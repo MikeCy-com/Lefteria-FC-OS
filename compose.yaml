@@ -20,7 +20,8 @@ services:
       api:
         condition: service_healthy
     networks:
-      - edge
+      - public
+      - app
 
   web:
     build:
@@ -42,7 +43,7 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - edge
+      - app
 
   api:
     build:
@@ -69,7 +70,7 @@ services:
       retries: 3
       start_period: 15s
     networks:
-      - edge
+      - app
       - data
 
   postgres:
@@ -96,6 +97,8 @@ volumes:
   caddy_config:
 
 networks:
-  edge:
+  public:
+  app:
+    internal: true
   data:
     internal: true

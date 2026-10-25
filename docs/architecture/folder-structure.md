@@ -109,7 +109,7 @@ The first code slice is deliberately limited to infrastructure. It currently add
 - backend/src/LefteriaFc.Api: ASP.NET Core host, health/readiness endpoints and development-only OpenAPI.
 - backend/src/LefteriaFc.Infrastructure: EF Core/Npgsql registration and PostgreSQL context boundary.
 - frontend/src/routes: SvelteKit server-rendered shell.
-- compose.yaml and deploy/Caddyfile: single public edge proxy; API, worker-ready data network and PostgreSQL are not host-published. The worker itself is not implemented yet.
+- compose.yaml and deploy/Caddyfile: single public edge proxy; API, web and PostgreSQL use segmented internal networks; only the proxy is host-published. The worker itself is not implemented yet.
 - .github/workflows/rewrite-build.yml: .NET, SvelteKit and container build checks; no test suite has been added to this slice.
 
 This physical bootstrap is incomplete compared with the intended module tree above. Do not add domain stubs merely to fill folders.

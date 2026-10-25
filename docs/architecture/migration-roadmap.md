@@ -6,13 +6,13 @@ A gated parallel migration plan, not a production release schedule. The existing
 
 Deliver current-state, target, folder, technology, roadmap, risk and ADR documents. Pin source commit; keep the rewrite branch isolated.
 
-Exit: evidence/unknowns are clear; no claim that deployed source equals GitHub main; selected stack and boundaries are reviewable. This branch currently delivers this checkpoint only.
+Exit: evidence/unknowns are clear; no claim that deployed source equals GitHub main; selected stack and boundaries are reviewable. The architecture checkpoint is established. A minimal infrastructure foundation has started in Phase 2 while source inventories continue; domain behavior remains gated on Phase 1.
 
 ## Progress snapshot — 2026-10-25
 
 - Phase 0 architecture documents are present on the rewrite branch.
 - Phase 1 source audit has expanded to route counts, auth realms, authorization risks, PWA/TWA, media, backups, jobs and deployment. It is still incomplete: route-by-route permission mapping and field-level data mapping remain open.
-- Phase 2 has begun with an API/frontend shell, PostgreSQL Compose service, private data network and build workflow. No business module, identity flow, migration or production data has been ported. Builds and Compose startup have not yet been observed in an execution environment.
+- Phase 2 has begun with an API/frontend shell, PostgreSQL Compose service, private data network and build workflow. No business module, identity flow, migration or production data has been ported. The first GitHub Actions run was created, but its three jobs failed before any steps started (runner IDs were 0, and no step logs were available). This does not identify a source-build failure; code and Compose build remain unverified until a runner executes them.
 - Do not start feature-domain implementation until the relevant Phase 1 route, permission, data and caller mappings are complete. Foundation work can continue in parallel.
 
 ## Phase 1 — Complete inventories and contracts
