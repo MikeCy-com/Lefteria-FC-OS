@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+**/bin/
+**/obj/
+frontend/node_modules/
+frontend/.svelte-kit/
+frontend/build/

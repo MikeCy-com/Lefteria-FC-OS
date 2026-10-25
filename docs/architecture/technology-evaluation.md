@@ -20,6 +20,11 @@ The owner selected the replacement direction below. These are target decisions, 
 | Python AI/ML dependencies | Provider-independent AI interface; selective Python | Swap providers/local models without coupling core business rules; keep concrete library advantage. | Actual production call sites, data sensitivity, evaluation, cost and licensing are not fully inventoried. No new recurring model provider without approval. |
 | Existing logging | Structured logging + OpenTelemetry | Correlate HTTP and job failures and measure performance. | Redact personal data/secrets; define retention and collector operation; no paid telemetry service by default. |
 
+## Runtime lines
+
+- Frontend and build containers use Node.js 24, which the Node.js release schedule lists as Active LTS on 2026-10-25, with end-of-life on 2028-04-30. Keep the runtime on current security patches. [Node.js release schedule](https://github.com/nodejs/Release)
+- PostgreSQL 18 is the current major release on the PostgreSQL version policy page; the Compose image uses the 18 line and must be kept on its current minor release. [PostgreSQL version policy](https://www.postgresql.org/support/versioning/)
+
 ## Cost, licensing, operations and security
 
 - .NET 10 is the selected LTS line. Microsoft lists support until November 15, 2028; keep SDK/runtime on supported monthly servicing updates. [Microsoft release support policy](https://learn.microsoft.com/dotnet/core/releases-and-support)

@@ -1,0 +1,50 @@
+name: Rewrite build
+
+on:
+  push:
+    branches:
+      - main
+      - rewrite/**
+  pull_request:
+    branches:
+      - main
+      - rewrite/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  api:
+    name: ASP.NET Core API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - run: dotnet restore backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj
+      - run: dotnet build backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --no-restore --configuration Release
+
+  web:
+    name: SvelteKit web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install --no-audit --no-fund
+        working-directory: frontend
+      - run: npm run check
+        working-directory: frontend
+      - run: npm run build
+        working-directory: frontend
+
+  containers:
+    name: Docker Compose build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose --env-file .env.example config --quiet
+      - run: docker compose --env-file .env.example build --pull

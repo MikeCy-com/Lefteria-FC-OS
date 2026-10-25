@@ -8,6 +8,13 @@ Deliver current-state, target, folder, technology, roadmap, risk and ADR documen
 
 Exit: evidence/unknowns are clear; no claim that deployed source equals GitHub main; selected stack and boundaries are reviewable. This branch currently delivers this checkpoint only.
 
+## Progress snapshot — 2026-10-25
+
+- Phase 0 architecture documents are present on the rewrite branch.
+- Phase 1 source audit has expanded to route counts, auth realms, authorization risks, PWA/TWA, media, backups, jobs and deployment. It is still incomplete: route-by-route permission mapping and field-level data mapping remain open.
+- Phase 2 has begun with an API/frontend shell, PostgreSQL Compose service, private data network and build workflow. No business module, identity flow, migration or production data has been ported. Builds and Compose startup have not yet been observed in an execution environment.
+- Do not start feature-domain implementation until the relevant Phase 1 route, permission, data and caller mappings are complete. Foundation work can continue in parallel.
+
 ## Phase 1 — Complete inventories and contracts
 
 1. Map features, routes, roles/scopes, data, callers and tests.
@@ -22,6 +29,8 @@ Exit: every route and feature has behavior, owner, authorization, migration stat
 ## Phase 2 — Repository foundation and vertical slice
 
 Create SvelteKit/TypeScript and ASP.NET Core/.NET 10 projects, locked dependencies, formatting/static checks, tests and CI. Add secure Compose and empty isolated PostgreSQL. Establish migration policy, OpenAPI/client generation, configuration validation, health/readiness and structured redacted logs. Select a first module only after Phase 1 mapping.
+
+Current foundation files provide a .NET 10 API host with development-only OpenAPI, PostgreSQL readiness, a SvelteKit Node-adapter shell, an internal PostgreSQL network and a Caddy edge service. The npm lockfile, generated TypeScript client, migrations, worker, tests and observed build results are still outstanding.
 
 Exit: clean build from fresh checkout, API/client drift check, PostgreSQL integration checks, readiness and green CI; no secrets in artifacts.
 

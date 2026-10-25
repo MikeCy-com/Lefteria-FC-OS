@@ -100,3 +100,16 @@ Keep modules as folders inside the API project until isolation has measured valu
 8. OpenAPI-generated client output is deterministic and not manually edited.
 9. Migrations are append-only and reviewed. Import scripts are isolated from runtime API and production by default.
 10. Test domain/use cases, PostgreSQL integration, API contracts, authorization and PWA journeys at their boundaries.
+
+
+## Bootstrap files currently implemented
+
+The first code slice is deliberately limited to infrastructure. It currently adds:
+
+- backend/src/LefteriaFc.Api: ASP.NET Core host, health/readiness endpoints and development-only OpenAPI.
+- backend/src/LefteriaFc.Infrastructure: EF Core/Npgsql registration and PostgreSQL context boundary.
+- frontend/src/routes: SvelteKit server-rendered shell.
+- compose.yaml and deploy/Caddyfile: single public edge proxy; API, worker-ready data network and PostgreSQL are not host-published. The worker itself is not implemented yet.
+- .github/workflows/rewrite-build.yml: .NET, SvelteKit and container build checks; no test suite has been added to this slice.
+
+This physical bootstrap is incomplete compared with the intended module tree above. Do not add domain stubs merely to fill folders.
