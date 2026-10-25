@@ -36,6 +36,19 @@ The owner selected the replacement direction below. These are target decisions, 
 - Actions build/validate; they must not deploy every push to production. Secrets are environment-scoped and unavailable to untrusted PR jobs.
 - Existing Emergent Object Storage and a private Python package index are operational dependencies. Inventory data export, SDK contract, license, cost and fallback before changing either.
 
+## Verified implementation baseline
+
+The first verified implementation uses .NET SDK 10.0.402, Node 24.22.1,
+SvelteKit 3.1.0, Svelte 5.57.2, adapter-node 6.0.0, Vite 8.3.5 and TypeScript
+6.0.3, with complete
+npm/NuGet lockfiles. The generated client uses MIT-licensed openapi-typescript
+7.13.0 and openapi-fetch 0.17.0. The generator's TypeScript 5.9.3 peer is isolated
+in tools/api-client, while the application uses TypeScript 6. No peer checks are
+ignored. The original SvelteKit 2.x graph's advisories are resolved by the stable
+3.x migration; final npm audit reports zero vulnerabilities. Configuration now
+lives in the Vite plugin and tsconfig extends $app/tsconfig, following the
+[official SvelteKit 3 migration guide](https://svelte.dev/docs/kit/migrating-to-sveltekit-3).
+
 ## Deferred choices
 
 - No Redis or separate message broker initially. Revisit from measured queue lag, throughput, lock contention and availability.

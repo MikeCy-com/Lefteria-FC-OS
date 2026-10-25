@@ -19,32 +19,75 @@ jobs:
     name: ASP.NET Core API
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
-          dotnet-version: 10.0.x
-      - run: dotnet restore backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj
+          global-json-file: global.json
+      - run: dotnet restore backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --locked-mode
+      - run: dotnet restore backend/tests/LefteriaFc.PolicyChecks/LefteriaFc.PolicyChecks.csproj --locked-mode
       - run: dotnet build backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --no-restore --configuration Release
+      - run: dotnet run --project backend/tests/LefteriaFc.PolicyChecks --configuration Release --no-restore
 
   web:
     name: SvelteKit web
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
-      - run: npm install --no-audit --no-fund
+          node-version-file: .nvmrc
+      - run: npm ci --no-audit --no-fund
         working-directory: frontend
+      - run: npm audit --audit-level=high
+        working-directory: frontend
+      - run: npm ci --prefix tools/api-client --no-audit --no-fund
+      - run: npm audit --prefix tools/api-client --audit-level=high
+      - run: npm run api:generate
+        working-directory: frontend
+      - run: git diff --exit-code -- frontend/src/lib/api/schema.d.ts
       - run: npm run check
+        working-directory: frontend
+      - run: npm test
         working-directory: frontend
       - run: npm run build
         working-directory: frontend
+      - run: npm run smoke:web
+        working-directory: frontend
+
+  contracts:
+    name: API contract and startup smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: dotnet restore backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --locked-mode
+      - run: dotnet build backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --no-restore --configuration Release
+      - run: npm ci --no-audit --no-fund
+        working-directory: frontend
+      - run: npm ci --prefix tools/api-client --no-audit --no-fund
+      - run: npm run api:export && npm run api:generate
+        working-directory: frontend
+      - run: git diff --exit-code -- contracts/openapi.json frontend/src/lib/api/schema.d.ts
 
   containers:
     name: Docker Compose build
     runs-on: ubuntu-latest
+    env:
+      COMPOSE_PROJECT_NAME: lefteria-os-ci-${{ github.run_id }}
+      SITE_ADDRESS: ':80'
+      PUBLIC_ORIGIN: http://localhost
+      POSTGRES_PASSWORD: ci-only-${{ github.run_id }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build --pull
+      - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
+      - run: curl --fail --silent --show-error http://localhost/api/health/ready
+      - run: curl --fail --silent --show-error http://localhost/ --output /dev/null
+      - if: always()
+        run: docker compose --env-file .env.example down --volumes --remove-orphans

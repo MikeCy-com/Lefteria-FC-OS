@@ -104,12 +104,16 @@ Keep modules as folders inside the API project until isolation has measured valu
 
 ## Bootstrap files currently implemented
 
-The first code slice is deliberately limited to infrastructure. It currently adds:
+The current implementation includes:
 
 - backend/src/LefteriaFc.Api: ASP.NET Core host, health/readiness endpoints and development-only OpenAPI.
 - backend/src/LefteriaFc.Infrastructure: EF Core/Npgsql registration and PostgreSQL context boundary.
+- backend/src/LefteriaFc.Domain: mobile role/session/OTP and organization scope policies.
+- backend/tests/LefteriaFc.PolicyChecks: focused dependency-free policy acceptance checks.
+- contracts/openapi.json and frontend/src/lib/api: exported API schema, generated TypeScript and the shared typed fetch client.
+- frontend/src/lib/mobile/navigation.ts and frontend/tests: source-compatible role navigation and client checks.
 - frontend/src/routes: SvelteKit server-rendered shell.
 - compose.yaml and deploy/Caddyfile: single public edge proxy; API, web and PostgreSQL use segmented internal networks; only the proxy is host-published. The worker itself is not implemented yet.
-- .github/workflows/rewrite-build.yml: .NET, SvelteKit and container build checks; no test suite has been added to this slice.
+- .github/workflows/rewrite-build.yml: locked restores, policy/client/navigation checks, API contract drift, production web packaging and isolated container health checks.
 
 This physical bootstrap is incomplete compared with the intended module tree above. Do not add domain stubs merely to fill folders.
