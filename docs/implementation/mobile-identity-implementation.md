@@ -48,7 +48,7 @@ IP within the configured app subnet; change both if that subnet is occupied.
 ```sh
 docker compose build
 docker compose up --wait postgres
-docker compose run --rm --no-build migrate
+docker compose run --rm migrate
 docker compose exec -T postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql'
 docker compose up --no-build --wait
 ```

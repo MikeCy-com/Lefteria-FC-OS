@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - rewrite/**
   pull_request:
     branches:
       - main
@@ -13,6 +12,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: rewrite-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   api:
@@ -42,8 +45,11 @@ jobs:
           global-json-file: global.json
       - name: Generate isolated database credentials
         run: |
-          echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
-          echo "DATABASE_APP_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD; do
+            value="$(openssl rand -base64 32)"
+            echo "::add-mask::$value"
+            printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
+          done
           echo "LEFTERIA_TEST_FIXTURE=$RUNNER_TEMP/identity-db.json" >> "$GITHUB_ENV"
       - name: Start disposable loopback PostgreSQL
         run: |
@@ -146,19 +152,20 @@ jobs:
       COMPOSE_PROJECT_NAME: lefteria-os-ci-${{ github.run_id }}
       SITE_ADDRESS: ':80'
       PUBLIC_ORIGIN: http://localhost
-      POSTGRES_PASSWORD: ci-only-${{ github.run_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Generate disposable authentication keys
         run: |
-          echo "MOBILE_SIGNING_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
-          echo "MOBILE_OTP_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
-          echo "DATABASE_APP_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD MOBILE_SIGNING_KEY MOBILE_OTP_KEY; do
+            value="$(openssl rand -base64 32)"
+            echo "::add-mask::$value"
+            printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
+          done
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build --pull
       - run: docker compose --env-file .env.example run --rm --no-deps proxy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - run: docker compose --env-file .env.example up --wait --wait-timeout 60 postgres
-      - run: docker compose --env-file .env.example run --rm --no-build migrate
+      - run: docker compose --env-file .env.example run --rm migrate
       - name: Provision restricted disposable runtime role
         run: docker compose --env-file .env.example exec -T postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql'
       - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
