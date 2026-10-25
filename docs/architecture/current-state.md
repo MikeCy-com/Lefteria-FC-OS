@@ -44,11 +44,25 @@ A prior remote source survey at the same main head recorded 6,555 lines in backe
 
 Selected reviewed paths include frontend/src/App.js, backend/server.py, backend/models.py, backend/database.py, backend/auth.py, backend/routes/scheduler.py, docker-compose.yml and backend/requirements.txt. See the current PRD and mobile/drill audit documents for additional behavior notes.
 
+## Identity, roles and authorization baseline
+
+Current-source evidence from PRD.md, backend/auth.py, backend/session_policy.py, backend/organization_scope.py, backend/mobile_scope.py and backend/routes/admin_users.py:
+
+- CMS role names in the PRD are super_admin, manager, editor, coach and matchday_editor. The current role matrix also defines marketing. organization_scope.py and the server's optional organization resolver accept admin as well, but it is not listed in ROLE_LABELS or ROLE_PERMISSIONS; confirm whether admin is a legacy alias before importing accounts.
+- The current static permission matrix grants super_admin all permissions; manager broad operational permissions except admin-user management and permanent deletes; editor limited content permissions; marketing social permissions; coach assigned-group/team capabilities; and matchday_editor live-score/match-report permissions.
+- Organization scope currently has two explicit IDs: lefteria_fc and lefteria_fc_academy. Missing selected organization is an error. Super admins without stored assignments may select either; other roles require explicit assignments. Staff team_ids and academy_group_ids contribute to mobile coach scope.
+- Admin and customer auth are distinct from mobile OTP identity flows. Admin auth accepts access_token/user_access_token cookies or a bearer token, reloads the admin record, rejects inactive accounts and removes password_hash from the response. Customer auth checks the customer token role and loads a separate user record.
+- Tokens use a stateless JWT contract. The shared policy allows 30, 60 or 90 remembered days; explicit null gives a default 24-hour lifetime. Older mobile clients that omit remember_days retain the 90-day default. Preserve existing expiry and multiple-device behavior unless a reviewed migration deliberately changes it.
+- Direct permission-helper call sites are visible in admin_users.py, security_ops.py, backup.py, marketing.py, server.py, finance_auth.py, upload_delivery.py, social_calendar.py, staff_compliance.py and social publishing/policy code. This source search is a triage signal, not a route-level security verdict; permissions can be enforced through other wrappers or omitted.
+- The 2026-10-22 earlier RBAC audit documents possible unsafe staff-linked admin changes and uneven role guards in backup, finance, shop, CMS, football operations and attendance, with local fixes noted as not deployed at that audit baseline. Current main is newer, so re-check those code paths and their tests before treating either finding or fix as current.
+
+The next security pass must enumerate each route and capture: public/private, principal type, required role/capability, organization/team/group/record scope, parent-child check, input validation, audit event, caller, and regression test. No role behavior should be changed based only on this summary.
+
 ## Security and operations observations
 
 1. The source security policy requires secrets from environment/secret store, no public Mongo/API ports, authenticated MongoDB, explicit CORS origins, server-side authorization, OTP/login rate limits, safe logs, validated uploads and tightly gated seeding.
 2. Checked-in Compose maps host ports 27017 and 8001 and sets MONGO_URL without credentials. This is an exposure risk if used as-is; actual firewall/reachability is unknown. The rewrite will publish only a reviewed edge service and keep API, worker and PostgreSQL private.
-3. The earlier RBAC/location audit recorded uneven use of its permission matrix and gaps in normalized location/resource modeling, but has an older baseline. A fresh route-by-route and scope-by-scope review is mandatory.
+3. The earlier RBAC/location audit recorded permission-coverage and scope gaps at its older baseline. Current main now contains a canonical role matrix and several visible permission-helper call sites; neither fact proves complete route coverage. A fresh route-by-route and scope-by-scope review is mandatory.
 4. Background reminders run within FastAPI while the image starts two Uvicorn workers. Module task state is per process. Existing sent markers may help idempotency but do not by themselves prove cross-process claims. Review send/update ordering before porting jobs.
 5. Mongo backup, Google Drive configuration, local upload volumes, object storage, retention and restore order must be audited as one recovery system. Compose volumes do not prove backups are restorable.
 6. Current data includes children/academy players, parent links, attendance, communications and financial records. Collection counts, variants, indexes, ownership and retention are not fully inventoried.
@@ -70,6 +84,10 @@ Selected reviewed paths include frontend/src/App.js, backend/server.py, backend/
 - [Security requirements](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/memory/SECURITY.md)
 - [Compose](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/docker-compose.yml)
 - [Quality gates](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/.github/workflows/quality-gates.yml)
+- [Current admin role matrix](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/routes/admin_users.py)
+- [Organization scope rules](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/organization_scope.py)
+- [Mobile coach assignment scope](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/mobile_scope.py)
+- [Session lifetime policy](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/session_policy.py)
 - [Earlier CMS/RBAC/location audit](https://github.com/MikeCy-com/Lefteria-FC/blob/7b22a7592241fe4e05b280c3885cc9341c934dd3/docs/full-cms-rbac-location-current-state.md)
 
 
