@@ -219,6 +219,15 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
         }
 
+        public async Task<MobileIdentityProfile> UpdateFavoriteTeamAsync(Guid identityId, string? favoriteTeam,
+            CancellationToken cancellationToken)
+        {
+            if (!lockedIdentities.Contains(identityId)) throw new InvalidOperationException("Identity row must be locked before profile mutation.");
+            var row = await context.MobileIdentities.SingleAsync(x => x.Id == identityId, cancellationToken);
+            row.FavoriteTeam = favoriteTeam;
+            return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
+        }
+
         public Task SaveChallengeProgressAsync(Guid challengeId, int verificationCalls, bool isConsumed,
             CancellationToken cancellationToken)
         {

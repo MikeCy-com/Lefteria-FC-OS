@@ -1,10 +1,34 @@
 # Mobile and social profile source contract
 
 Audited directly through the GitHub connector at source commit
-`5111f06af5d8b17f855ceed9637caca02db117e2` on 2026-10-25. This records the next
-profile migration slice; it does not claim these profile writes or social reads
-are implemented in Lefteria-FC-OS. The current mobile shell displays its actual
-authenticated identity. GitHub main is not proof of the deployed revision.
+`5111f06af5d8b17f855ceed9637caca02db117e2` on 2026-10-25. GitHub main is not proof
+of the deployed revision. The team-preference write described below is now
+implemented in the rewrite; other profile writes and social reads remain queued.
+
+## Implemented team preference
+
+`PUT /api/mobile/auth/me` updates only the signed-in identity's `favorite_team`
+and returns `{ok:true,user}`. The repository locks current identity/admin status
+before writing and appends the success audit in the same transaction. The request
+cannot choose a target identity, phone or role; unknown fields are ignored, as in
+the source allowlist. An empty change returns 400; revoked roles cannot write.
+Preferences remain separate for parent/fan and every other identity on one phone.
+
+New writes accept `first_team`, `academy`, `both`, or explicit null to clear.
+This deliberately tightens the source's unconstrained value to the three choices
+its consumers understand. Invalid values/types return 422. Existing unsupported
+stored values remain readable and are not silently rewritten; the editor asks
+the owner to choose an available value. No schema or data migration is needed.
+
+The fan profile destination contains the real preference editor. Its controller
+uses the generated client, keeps current profile data on failed writes, rejects
+mismatched returned identities and ignores late responses after logout. Header
+profile still explicitly enters fan context. Other edits use **Under Developments**.
+
+Observed: 19/19 HTTP/PostgreSQL groups and 37/37 frontend tests pass; API/test builds
+and Svelte check report zero warnings/errors; production frontend build passes.
+The profile suite covers per-role persistence, forged body targets, signed
+binding mismatch, explicit null, rejected inputs, revocation and audit actor.
 
 ## Private mobile identity and preferences
 

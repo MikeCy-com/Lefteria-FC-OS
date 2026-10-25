@@ -89,6 +89,20 @@ internal sealed class TestDatabase(FixtureConfiguration fixture, string otpKey)
             setters.SetProperty(row => row.IsActive, active));
     }
 
+    public async Task SetFavoriteTeamAsync(Guid id, string? favoriteTeam)
+    {
+        await using var database = CreateContext();
+        await database.MobileIdentities.Where(row => row.Id == id).ExecuteUpdateAsync(setters =>
+            setters.SetProperty(row => row.FavoriteTeam, favoriteTeam));
+    }
+
+    public async Task<int> CountSuccessfulAuditsAsync(Guid identityId)
+    {
+        await using var database = CreateContext();
+        return await database.SecurityAuditEvents.CountAsync(row =>
+            row.ActorIdentityId == identityId && row.Outcome == "success");
+    }
+
     public async Task<string?> ActiveOrganizationAsync(Guid id)
     {
         await using var database = CreateContext();

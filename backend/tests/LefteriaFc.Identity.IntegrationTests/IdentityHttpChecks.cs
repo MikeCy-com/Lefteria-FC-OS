@@ -11,7 +11,7 @@ using Npgsql;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class IdentityHttpChecks(IdentityApplicationFactory factory, TestDatabase database)
+internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory factory, TestDatabase database)
 {
     private int clientSequence;
 
@@ -25,6 +25,7 @@ internal sealed class IdentityHttpChecks(IdentityApplicationFactory factory, Tes
         ("Role picker has no token; neutral fan and exact-expiry role switch", RolePickerAndSwitchAsync),
         ("Revoked formal role exposes no links and can recover only active fan", RevocationAsync),
         ("Fan registration changes remain staged until OTP verification", FanStagingAsync),
+        ("Own profile preference validates input, binds current identity and isolates roles", ProfilePreferenceAsync),
         ("Formal role signup and malformed registration are rejected", RegistrationValidationAsync),
         ("Remember-days HTTP presence and strict JSON types", RememberDaysAsync),
         ("Expired OTP and sixth verification cannot create a session", ExpiryAndAttemptsAsync),

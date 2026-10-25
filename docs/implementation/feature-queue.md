@@ -60,7 +60,9 @@ This order follows the dependencies of the accepted requirements:
   the requested **Under Developments** label; no records or statistics are mocked.
 - Runtime permissions and migration/recovery checks are documented in
   [mobile identity implementation](mobile-identity-implementation.md).
-- Next: own profile editing and the player/fan privacy contracts, then scoped
+- Own team preference now persists through `PUT /api/mobile/auth/me`, with a real
+  fan profile editor, fresh identity authorization and audited per-role writes.
+- Next: remaining own profile edits and the player/fan privacy contracts, then scoped
   roster relationships and real role dashboards. Account import and legacy
   token compatibility remain cutover gates.
 

@@ -21,6 +21,17 @@ public sealed class MobileRequestSchemaTransformer : IOpenApiSchemaTransformer
                 ]
             };
         }
+        if (context.JsonTypeInfo.Type == typeof(MobileProfilePreferenceBody) && schema.Properties is not null)
+        {
+            schema.Properties["favorite_team"] = new OpenApiSchema
+            {
+                AnyOf = [
+                    new OpenApiSchema { Type = JsonSchemaType.String,
+                        Enum = [JsonValue.Create("first_team"), JsonValue.Create("academy"), JsonValue.Create("both")] },
+                    new OpenApiSchema { Type = JsonSchemaType.Null }
+                ]
+            };
+        }
         return Task.CompletedTask;
     }
 }

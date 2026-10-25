@@ -34,7 +34,9 @@ public enum MobileAuthErrorCode
     FormalAccountAlreadyExists,
     OrganizationSelectionRequired,
     OrganizationUnknown,
-    OrganizationUnavailable
+    OrganizationUnavailable,
+    NoProfileChanges,
+    InvalidTeamPreference
 }
 
 public sealed class MobileAuthException(

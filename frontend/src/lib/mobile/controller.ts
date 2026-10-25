@@ -9,6 +9,7 @@ type User = components['schemas']['MobileUserDto'];
 type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
+export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 
 export interface MobileAuthState {
   status: 'initializing' | 'anonymous' | 'authenticated' | 'unavailable';
@@ -84,12 +85,13 @@ export function createMobileAuthController(options: {
     return value === null || value === 30 || value === 60 || value === 90;
   }
 
-  function applyUser(user: User) {
+  function applyUser(user: User, behavior: { preserveOrganization?: boolean } = {}) {
     if (!isMobileRole(user.role) || typeof user.id !== 'string' || typeof user.name !== 'string' ||
         typeof user.current_role_available !== 'boolean') throw new Error('Invalid identity response');
     const roles = validRoles(user.available_roles);
-    update({ status: 'authenticated', user, availableRoles: roles, error: null, organization: null,
-      organizationError: null, identities: [], detectedRole: null, phone: user.phone });
+    update({ status: 'authenticated', user, availableRoles: roles, error: null,
+      ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
+      identities: [], detectedRole: null, phone: user.phone });
     if (token) options.storage.write(token, roles);
   }
 
@@ -240,6 +242,23 @@ export function createMobileAuthController(options: {
       return action(async (operationRevision) => {
         update({ organization: null, organizationError: null });
         await organizationContext(authorization(), operationRevision);
+      }, true);
+    },
+    async updateFavoriteTeam(favoriteTeam: FavoriteTeam) {
+      const identity = state.user;
+      if (state.status !== 'authenticated' || !identity?.current_role_available) return false;
+      return action(async (operationRevision) => {
+        if (favoriteTeam !== null && favoriteTeam !== 'first_team' && favoriteTeam !== 'academy' && favoriteTeam !== 'both') {
+          throw new Error('Invalid team preference');
+        }
+        const data = responseData(await api.PUT('/api/mobile/auth/me', {
+          headers: authorization(), body: { favorite_team: favoriteTeam }
+        }));
+        if (revision !== operationRevision) return;
+        if (data.ok !== true || data.user.id !== identity.id || data.user.role !== identity.role || data.user.phone !== identity.phone) {
+          throw new Error('Invalid preference response identity');
+        }
+        applyUser(data.user, { preserveOrganization: true });
       }, true);
     },
     logout() {

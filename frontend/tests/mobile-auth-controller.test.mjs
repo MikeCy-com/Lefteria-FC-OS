@@ -23,7 +23,7 @@ function setup(handler, initial = {}) {
   const requests = [];
   const controller = createMobileAuthController({ baseUrl: 'https://club.example', storage, now: () => 1000,
     fetch: async (request) => {
-      const body = request.method === 'POST' ? await request.clone().json() : undefined;
+      const body = ['POST', 'PUT'].includes(request.method) ? await request.clone().json() : undefined;
       requests.push({ path: new URL(request.url).pathname, method: request.method, body,
         authorization: request.headers.get('Authorization'), cache: request.cache });
       return handler(requests.at(-1), requests);
@@ -216,4 +216,152 @@ test('failed organization or management role change keeps stale context cleared 
     assert.equal(controller.getState().organizationError, null);
     assert.equal(controller.getState().error, null);
   }
+});
+
+test('team preference PUT uses each selected role identity JWT with no caller-selected target or role switch', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    const profile = identity(role, { favorite_team: 'first_team' });
+    const { controller, requests, values } = setup(({ path, method, body }) => {
+      if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+      if (method === 'GET') return Response.json(profile);
+      return Response.json({ ok: true, user: { ...profile, favorite_team: body.favorite_team } });
+    }, { mobile_token: `${role}-token` });
+    await controller.bootstrap();
+    assert.equal(await controller.updateFavoriteTeam('academy'), true);
+    assert.equal(requests.at(-1).method, 'PUT');
+    assert.equal(requests.at(-1).path, '/api/mobile/auth/me');
+    assert.equal(requests.at(-1).authorization, `Bearer ${role}-token`);
+    assert.equal(requests.at(-1).cache, 'no-store');
+    assert.deepEqual(requests.at(-1).body, { favorite_team: 'academy' });
+    assert.equal(controller.getState().user.id, profile.id);
+    assert.equal(controller.getState().user.role, role);
+    assert.equal(controller.getState().user.favorite_team, 'academy');
+    assert.equal(values.get('mobile_token'), `${role}-token`);
+    assert.equal(requests.some(({ path }) => path.endsWith('/switch-role')), false);
+    if (role === 'management') assert.equal(controller.getState().organization.organization_id, 'club');
+  }
+});
+
+test('preference refresh preserves independent parent and fan values through explicit role switches', async () => {
+  const profiles = {
+    parent: identity('parent', { favorite_team: 'academy' }),
+    fan: identity('fan', { id: '22222222-2222-4222-8222-222222222222', favorite_team: 'both', available_roles: ['parent', 'fan'] })
+  };
+  const { controller, requests } = setup(({ path, method, body, authorization }) => {
+    if (path.endsWith('/switch-role')) return Response.json({ token: `${body.role}-token`, role: body.role,
+      user: profiles[body.role], available_roles: ['parent', 'fan'] });
+    const role = authorization === 'Bearer parent-token' ? 'parent' : 'fan';
+    if (method === 'PUT') {
+      profiles[role] = { ...profiles[role], favorite_team: body.favorite_team };
+      return Response.json({ ok: true, user: profiles[role] });
+    }
+    return Response.json(profiles[role]);
+  }, { mobile_token: 'parent-token' });
+  await controller.bootstrap();
+  await controller.updateFavoriteTeam('first_team');
+  await controller.switchRole('fan');
+  assert.equal(controller.getState().user.favorite_team, 'both');
+  await controller.updateFavoriteTeam('academy');
+  await controller.switchRole('parent');
+  assert.equal(controller.getState().user.favorite_team, 'first_team');
+  assert.equal(profiles.fan.favorite_team, 'academy');
+  assert.deepEqual(requests.filter(({ method }) => method === 'PUT').map(({ authorization }) => authorization),
+    ['Bearer parent-token', 'Bearer fan-token']);
+});
+
+test('preference selection explicitly supports first team, academy, both and null clearing', async () => {
+  for (const selection of ['first_team', 'academy', 'both', null]) {
+    const profile = identity('fan', { favorite_team: 'academy' });
+    const { controller, requests } = setup(({ method }) => method === 'PUT'
+      ? Response.json({ ok: true, user: { ...profile, favorite_team: selection } }) : Response.json(profile),
+    { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.updateFavoriteTeam(selection), true);
+    assert.deepEqual(requests.at(-1).body, { favorite_team: selection });
+    assert.equal(controller.getState().user.favorite_team, selection);
+  }
+});
+
+test('failed preference updates retain actual profile and token without optimistic changes', async () => {
+  for (const failure of [422, 503, 'network']) {
+    const profile = identity('fan', { favorite_team: 'first_team' });
+    const { controller, values } = setup(({ method }) => {
+      if (method === 'GET') return Response.json(profile);
+      if (failure === 'network') throw new TypeError('Network unavailable');
+      return Response.json({ detail: 'Preference could not be saved', code: 'invalid_team_preference' }, { status: failure });
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.updateFavoriteTeam('academy'), false);
+    assert.deepEqual(controller.getState().user, profile);
+    assert.equal(controller.getState().status, 'authenticated');
+    assert.equal(controller.getState().busy, false);
+    assert.equal(values.get('mobile_token'), 'fan-token');
+    assert.ok(controller.getState().error);
+    if (failure !== 'network') assert.equal(controller.getState().error, 'Preference could not be saved');
+  }
+});
+
+test('expired preference request clears the session rather than retaining a private profile', async () => {
+  const { controller, values } = setup(({ method }) => method === 'GET' ? Response.json(identity('fan'))
+    : Response.json({ detail: 'Token expired', code: 'session_expired' }, { status: 401 }), { mobile_token: 'expired-token' });
+  await controller.bootstrap();
+  assert.equal(await controller.updateFavoriteTeam('both'), false);
+  assert.equal(controller.getState().status, 'anonymous');
+  assert.equal(controller.getState().user, null);
+  assert.equal(values.has('mobile_token'), false);
+});
+
+test('logout or a different restored session defeats an old preference response', async () => {
+  for (const restoreAnotherSession of [false, true]) {
+    let complete;
+    const oldProfile = identity('fan', { favorite_team: 'first_team' });
+    const newProfile = identity('parent', { id: '22222222-2222-4222-8222-222222222222', favorite_team: 'both' });
+    const { controller, values } = setup(({ method, authorization }) => method === 'PUT'
+      ? new Promise((resolve) => { complete = resolve; })
+      : Response.json(authorization === 'Bearer parent-token' ? newProfile : oldProfile), { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    const request = controller.updateFavoriteTeam('academy');
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.equal(controller.getState().busy, true);
+    controller.logout();
+    if (restoreAnotherSession) {
+      values.set('mobile_token', 'parent-token');
+      await controller.bootstrap();
+    }
+    complete(Response.json({ ok: true, user: { ...oldProfile, favorite_team: 'academy' } }));
+    assert.equal(await request, false);
+    assert.equal(controller.getState().busy, false);
+    if (restoreAnotherSession) {
+      assert.deepEqual(controller.getState().user, newProfile);
+      assert.equal(values.get('mobile_token'), 'parent-token');
+    } else {
+      assert.equal(controller.getState().status, 'anonymous');
+      assert.equal(controller.getState().user, null);
+      assert.equal(values.has('mobile_token'), false);
+    }
+  }
+});
+
+test('preference response cannot replace the selected identity or role', async () => {
+  for (const mismatch of [{ role: 'parent' }, { id: '22222222-2222-4222-8222-222222222222' }, { phone: '+35799111111' }]) {
+    const profile = identity('fan', { favorite_team: 'first_team' });
+    const { controller, values } = setup(({ method }) => method === 'GET' ? Response.json(profile)
+      : Response.json({ ok: true, user: { ...profile, ...mismatch, favorite_team: 'academy' } }), { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.updateFavoriteTeam('academy'), false);
+    assert.deepEqual(controller.getState().user, profile);
+    assert.equal(values.get('mobile_token'), 'fan-token');
+  }
+});
+
+test('preference updates deny anonymous and revoked identities without sending a write', async () => {
+  const anonymous = setup(() => { throw new Error('No request expected'); });
+  await anonymous.controller.bootstrap();
+  assert.equal(await anonymous.controller.updateFavoriteTeam('both'), false);
+  assert.equal(anonymous.requests.length, 0);
+  const revoked = setup(() => Response.json(identity('fan', { current_role_available: false })), { mobile_token: 'revoked-token' });
+  await revoked.controller.bootstrap();
+  assert.equal(await revoked.controller.updateFavoriteTeam('both'), false);
+  assert.equal(revoked.requests.length, 1);
 });

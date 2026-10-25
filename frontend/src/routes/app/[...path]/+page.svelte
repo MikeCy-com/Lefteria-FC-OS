@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
+  import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
@@ -37,7 +38,7 @@
     onTabChange={openTab} onRoleChange={changeRole}
     onNotifications={async () => { await openTab('notifications'); }} onProfile={openProfile}
     onCreatePost={() => { composing = true; }}>
-    {#if $controller.error && $controller.error !== $controller.organizationError}<p class="error" role="alert">{$controller.error}</p>{/if}
+    {#if $controller.error && $controller.error !== $controller.organizationError && !(activeTab === 'profile' && role === 'fan' && user.current_role_available && !composing)}<p class="error" role="alert">{$controller.error}</p>{/if}
     {#if !user.current_role_available}
       <section class="content-card" aria-labelledby="revoked-title" data-testid="revoked-role">
         <h1 id="revoked-title">Ο ρόλος δεν είναι πλέον διαθέσιμος</h1>
@@ -61,15 +62,8 @@
         {/if}
       {/if}
       {#if activeTab === 'profile' && role === 'fan' && !composing}
-        <section class="content-card" aria-labelledby="profile-title" data-testid="fan-profile">
-          <h1 id="profile-title">Το προφίλ μου</h1>
-          <dl>
-            <div><dt>Όνομα</dt><dd>{user.name}</dd></div>
-            <div><dt>Τηλέφωνο</dt><dd>{user.phone}</dd></div>
-            {#if user.birthday}<div><dt>Ημερομηνία γέννησης</dt><dd>{user.birthday}</dd></div>{/if}
-          </dl>
-          <button class="secondary" type="button" disabled={$controller.busy} onclick={logout}>Αποσύνδεση</button>
-        </section>
+        <MobileProfile {user} busy={$controller.busy} error={$controller.error}
+          onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)} onLogout={logout} />
       {:else if activeTab === 'more' && !composing}
         <section class="content-card" aria-labelledby="more-title"><h1 id="more-title">{TAB_NAMES.more}</h1>
           <div class="more-links">
@@ -113,10 +107,6 @@
   .secondary { background:#151718; color:#ffca46; }
   button:disabled { opacity:.55; cursor:wait; }
   button:focus-visible { outline:2px solid #ffca46; outline-offset:3px; }
-  dl { margin:0 0 24px; }
-  dl div { padding:12px 0; border-bottom:1px solid #292b2c; }
-  dt { color:#a6aaad; font-size:12px; }
-  dd { margin:4px 0 0; overflow-wrap:anywhere; }
   .more-links { display:grid; gap:9px; }
   .more-links button { text-align:left; }
   .app-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }

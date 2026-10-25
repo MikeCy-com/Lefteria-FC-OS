@@ -34,6 +34,10 @@ public sealed record MobileIdentityOption(
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("name")] string Name);
 
+public sealed record MobileProfilePreferenceResult(
+    [property: JsonPropertyName("ok")] bool Ok,
+    [property: JsonPropertyName("user")] MobileUserDto User);
+
 public sealed record MobileRolePickerResult(
     [property: JsonPropertyName("identities")] IReadOnlyList<MobileIdentityOption> Identities,
     [property: JsonPropertyName("phone")] string Phone) : MobileVerificationResult

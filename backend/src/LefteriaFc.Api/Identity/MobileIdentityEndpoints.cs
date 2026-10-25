@@ -15,6 +15,11 @@ public sealed record FanRegistrationBody(string? Phone,
     [property: JsonPropertyName("first_name")] string? FirstName = null,
     [property: JsonPropertyName("last_name")] string? LastName = null, string? Name = null, string? Birthday = null);
 public sealed record RoleSwitchBody(string? Role);
+public sealed record MobileProfilePreferenceBody
+{
+    [JsonPropertyName("favorite_team")]
+    public JsonElement FavoriteTeam { get; init; }
+}
 public sealed record OrganizationSelectionBody([property: JsonPropertyName("organization_id")] string? OrganizationId);
 public sealed record OtpVerificationBody
 {
@@ -68,6 +73,11 @@ public static class MobileIdentityEndpoints
         auth.MapGet("/me", (MobileAuthService service, HttpContext context, CancellationToken token) =>
                 Execute(() => service.GetMeAsync(MobilePrincipal.Read(context.User), token), context))
             .RequireAuthorization(IdentityServices.Policy).WithName("GetMobileIdentity").Produces<MobileUserDto>().WithMobileErrors();
+        auth.MapPut("/me", (MobileProfilePreferenceBody body, MobileAuthService service, HttpContext context, CancellationToken token) =>
+                Execute(() => service.UpdateFavoriteTeamAsync(MobilePrincipal.Read(context.User),
+                    body.FavoriteTeam.ValueKind != JsonValueKind.Undefined, ParseFavoriteTeam(body.FavoriteTeam), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithName("UpdateMobileProfilePreference")
+            .Produces<MobileProfilePreferenceResult>().WithMobileErrors();
 
         var management = endpoints.MapGroup("/api/mobile/management").WithTags("Mobile organization")
             .RequireAuthorization(IdentityServices.Policy);
@@ -87,6 +97,14 @@ public static class MobileIdentityEndpoints
         JsonValueKind.Number when value.GetRawText() is "30" or "60" or "90" => new(true, value.GetInt32()),
         _ => throw new MobileAuthException(MobileAuthFaultKind.Validation, MobileAuthErrorCode.InvalidRememberSelection,
             "Επιλέξτε 30, 60 ή 90 ημέρες.")
+    };
+
+    private static string? ParseFavoriteTeam(JsonElement value) => value.ValueKind switch
+    {
+        JsonValueKind.Undefined or JsonValueKind.Null => null,
+        JsonValueKind.String => value.GetString(),
+        _ => throw new MobileAuthException(MobileAuthFaultKind.Validation, MobileAuthErrorCode.InvalidTeamPreference,
+            "Επιλέξτε πρώτη ομάδα, ακαδημία ή και τις δύο.")
     };
 
     private static async Task<IResult> Execute<T>(Func<Task<T>> action, HttpContext context)

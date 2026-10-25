@@ -40,7 +40,7 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetMobileIdentity"];
-        put?: never;
+        put: operations["UpdateMobileProfilePreference"];
         post?: never;
         delete?: never;
         options?: never;
@@ -160,6 +160,13 @@ export interface components {
             organization_id: null | string;
             organization_name: null | string;
             requires_organization_selection: boolean;
+        };
+        MobileProfilePreferenceBody: {
+            favorite_team?: ("first_team" | "academy" | "both") | null;
+        };
+        MobileProfilePreferenceResult: {
+            ok: boolean;
+            user: components["schemas"]["MobileUserDto"];
         };
         MobileRoleSwitchResult: {
             available_roles?: null | string[];
@@ -308,6 +315,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileUserDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    UpdateMobileProfilePreference: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileProfilePreferenceBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileProfilePreferenceResult"];
                 };
             };
             /** @description Bad Request */

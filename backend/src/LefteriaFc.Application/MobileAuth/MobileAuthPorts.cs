@@ -124,6 +124,8 @@ public interface IMobileAuthTransaction : IAsyncDisposable
 
     Task<MobileIdentityProfile> UpdateLastLoginAsync(Guid identityId, string platform,
         DateTimeOffset now, CancellationToken cancellationToken);
+    Task<MobileIdentityProfile> UpdateFavoriteTeamAsync(Guid identityId, string? favoriteTeam,
+        CancellationToken cancellationToken);
     Task SaveChallengeProgressAsync(Guid challengeId, int verificationCalls, bool isConsumed,
         CancellationToken cancellationToken);
     Task AppendAuditAsync(AuthAuditEntry audit, CancellationToken cancellationToken);

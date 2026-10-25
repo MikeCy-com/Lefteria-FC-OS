@@ -269,6 +269,31 @@ public sealed class MobileAuthService(
         return ToUserDto(latest ?? profile, WireRoles(Available(profiles)), latest is not null && IsAvailable(latest));
     }
 
+    public async Task<MobileProfilePreferenceResult> UpdateFavoriteTeamAsync(MobileSession session,
+        bool wasProvided, string? favoriteTeam, CancellationToken cancellationToken = default)
+    {
+        RequireSession(session);
+        if (!wasProvided)
+            throw Fault(MobileAuthFaultKind.BadRequest, MobileAuthErrorCode.NoProfileChanges, "Καμία αλλαγή");
+        if (favoriteTeam is not (null or "first_team" or "academy" or "both"))
+            throw Fault(MobileAuthFaultKind.Validation, MobileAuthErrorCode.InvalidTeamPreference,
+                "Επιλέξτε πρώτη ομάδα, ακαδημία ή και τις δύο.");
+
+        var phone = PhoneNumber.Parse(session.NormalizedPhone);
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
+        var profiles = ValidateProfiles(await transaction.LoadIdentityProfilesForUpdateAsync(phone, cancellationToken), phone);
+        RequireSession(session);
+        var current = profiles.SingleOrDefault(profile => profile.Id == session.IdentityId) ?? throw AccountUnavailable();
+        RequireProfileIdentity(current, phone, session.IdentityId, session.Role);
+        if (!IsAvailable(current)) throw AccountUnavailable();
+        var updated = await transaction.UpdateFavoriteTeamAsync(current.Id, favoriteTeam, cancellationToken);
+        RequireProfileIdentity(updated, phone, session.IdentityId, session.Role);
+        await transaction.AppendAuditAsync(new AuthAuditEntry("mobile.profile.preference.update", "success",
+            timeProvider.GetUtcNow(), current.Id, session.DeviceSessionId, ReasonCode: "favorite_team"), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        return new(true, ToUserDto(updated, WireRoles(Available(profiles)), true));
+    }
+
     public async Task<MobileOrganizationContextDto> GetOrganizationAsync(MobileSession session,
         CancellationToken cancellationToken = default)
     {

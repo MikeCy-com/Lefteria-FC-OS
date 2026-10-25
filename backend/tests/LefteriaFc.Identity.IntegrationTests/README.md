@@ -28,9 +28,13 @@ test phones/identities, uses only exact owned-row cleanup, and leaves security
 audit events append-only. TEST-NET remote IP customization exists only in the
 test host, so product forwarded-header trust and shared throttles remain real.
 
-Checks cover HTTP contracts, role picker/no-token state, BCrypt-independent phone
-OTP proof, atomic consumption, invalid roles, expiry/attempts, exact device expiry,
+Checks cover HTTP contracts, role picker/no-token state, phone OTP proof, atomic
+consumption, invalid roles, expiry/attempts, exact device expiry,
 revoked formal-role fan recovery, staged fan profile writes, organization grant
 checks and durable sole context, PostgreSQL FKs/checks/uniqueness, restricted-role
 permissions, concurrent destination throttling, old-delivery cleanup races and JWT
 signature/issuer/audience/type/role/lifetime rejection.
+Own-profile preference coverage validates favorite_team's allowed values and
+explicit null, rejects missing/invalid input, ignores untrusted identifiers and
+unknown fields, verifies current signed identity/active status, checks separate
+same-phone role preferences, and confirms the security audit insert.

@@ -4,11 +4,11 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Current slice: rewrite/mobile-identity, based on rewrite/architecture-and-foundation
+- Current slice: rewrite/mobile-profile, based on rewrite/mobile-identity
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Deployed revision, VPS configuration and live data are not verified.
-- No accounts or production data have been migrated. Operational dashboards, profile editing, notifications and media remain queued.
+- No accounts or production data have been migrated. Own team preference can be edited; other profile edits, operational dashboards, notifications and media remain queued.
 
 ## Architecture documents
 
@@ -24,6 +24,7 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Observed verification](docs/implementation/verification-2026-10-25.md)
 - [Mobile identity implementation](docs/implementation/mobile-identity-implementation.md)
 - [PostgreSQL runtime permissions](docs/implementation/postgres-runtime-role.md)
+- [Profile contract and implementation](docs/implementation/profile-contract.md)
 
 ## Target stack
 
