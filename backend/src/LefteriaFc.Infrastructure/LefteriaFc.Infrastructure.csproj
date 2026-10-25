@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <ProjectReference Include="../LefteriaFc.Domain/LefteriaFc.Domain.csproj" />
+    <ProjectReference Include="../LefteriaFc.Application/LefteriaFc.Application.csproj" />
+  </ItemGroup>
+</Project>

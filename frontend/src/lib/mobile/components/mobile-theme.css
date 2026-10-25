@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Extra+Condensed:wght@500;600;700;800;900&family=Fira+Sans:wght@400;500;600;700&display=swap');
+
+.lf-mobile-theme {
+  --lf-bg: #080808;
+  --lf-surface: #111314;
+  --lf-elevated: #191b1c;
+  --lf-gold: #f5a623;
+  --lf-gold-light: #ffca46;
+  --lf-line: #292b2c;
+  --lf-muted: #a6aaad;
+  --lf-text: #fff;
+  --lf-body: 'Fira Sans', sans-serif;
+  --lf-heading: 'Fira Sans Extra Condensed', sans-serif;
+  color: var(--lf-text);
+  background: var(--lf-bg);
+  font-family: var(--lf-body);
+  font-size: 14px;
+  line-height: 1.45;
+  color-scheme: dark;
+}
+
+.lf-mobile-theme :is(button, input, select, textarea) { font: inherit; }
+.lf-mobile-theme :is(h1, h2, h3) {
+  max-width: none;
+  font-family: var(--lf-heading);
+  font-weight: 700;
+  letter-spacing: -.015em;
+}
+.lf-mobile-theme :is(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--lf-gold-light);
+  outline-offset: 3px;
+}
+.lf-mobile-theme button { -webkit-tap-highlight-color: transparent; }
+.lf-mobile-theme button:disabled { cursor: wait; opacity: .55; }

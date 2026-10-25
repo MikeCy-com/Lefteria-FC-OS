@@ -1,0 +1,10 @@
+{
+  "name": "lefteria-api-client-tooling",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  }
+}

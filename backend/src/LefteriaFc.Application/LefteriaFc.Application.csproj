@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../LefteriaFc.Domain/LefteriaFc.Domain.csproj" />
+  </ItemGroup>
+</Project>
