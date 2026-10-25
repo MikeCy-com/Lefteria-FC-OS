@@ -138,7 +138,7 @@
             <label class="code-label" for={`${id}-code`}>Εξαψήφιος κωδικός SMS</label>
             <input bind:this={otpInput} id={`${id}-code`} class="otp-code" type="text" inputmode="numeric" autocomplete="one-time-code"
               value={code} oninput={(event) => { code = event.currentTarget.value.replace(/[^0-9]/g, '').slice(0, 6); event.currentTarget.value = code; }}
-              pattern="[0-9]{6}" minlength="6" maxlength="6" required data-testid="otp-input" />
+              pattern={'[0-9]{6}'} minlength="6" maxlength="6" required data-testid="otp-input" />
             {@render rememberChoice()}
             <button class="primary" type="submit" data-testid="verify-otp-btn">{isBusy ? 'Επαλήθευση…' : 'Σύνδεση'}<MobileIcon name="arrow" size={20} /></button>
           </fieldset>

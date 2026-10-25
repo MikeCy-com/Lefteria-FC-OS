@@ -77,7 +77,7 @@
         </section>
       {:else}
         <section class="content-card development" aria-labelledby="development-title" data-testid="under-developments">
-          <p class="context">{ROLE_NAMES[role]}{#if $controller.organization?.organization_name} · {$controller.organization.organization_name}{/if}</p>
+          <p class="context">{ROLE_NAMES[role] + ($controller.organization?.organization_name ? ` · ${$controller.organization.organization_name}` : '')}</p>
           <h1 id="development-title">{composing ? 'Δημιουργία ανάρτησης' : TAB_NAMES[activeTab]}</h1>
           <p class="development-label">Under Developments</p>
           {#if composing}<button class="secondary" type="button" onclick={() => { composing = false; }}>Πίσω</button>{/if}

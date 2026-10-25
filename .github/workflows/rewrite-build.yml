@@ -96,6 +96,15 @@ jobs:
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_APP_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_APP_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/identity-app-permissions-check.sql'
       - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
+      - name: Build guarded browser verification host
+        run: |
+          dotnet restore backend/tools/LefteriaFc.MobilePreview --locked-mode
+          dotnet build backend/tools/LefteriaFc.MobilePreview --configuration Release --no-restore
+      - name: Smoke disposable browser API proxy
+        env:
+          ASPNETCORE_URLS: http://0.0.0.0:5999
+          Kestrel__Endpoints__Unexpected__Url: http://0.0.0.0:5998
+        run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --smoke --port 4191
       - if: always()
         run: docker rm --force --volumes identity-postgres
 

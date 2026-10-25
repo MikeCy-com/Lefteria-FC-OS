@@ -2,18 +2,19 @@
 
 A gated parallel migration plan, not a production release schedule. The existing Lefteria-FC application and Mongo data remain authoritative. No production data or credentials were used for this design.
 
-## Phase 0 — Audit and architecture (current checkpoint)
+## Phase 0 — Audit and architecture
 
 Deliver current-state, target, folder, technology, roadmap, risk and ADR documents. Pin source commit; keep the rewrite branch isolated.
 
-Exit: evidence/unknowns are clear; no claim that deployed source equals GitHub main; selected stack and boundaries are reviewable. The architecture checkpoint is established. A minimal infrastructure foundation has started in Phase 2 while source inventories continue; domain behavior remains gated on Phase 1.
+Exit: evidence/unknowns are clear; no claim that deployed source equals GitHub main; selected stack and boundaries are reviewable. The architecture checkpoint is established. Source inventories and mapped vertical slices continue in parallel.
 
 ## Progress snapshot — 2026-10-25
 
 - Phase 0 architecture documents are present on the rewrite branch.
 - Phase 1 source audit has expanded to route counts, auth realms, authorization risks, PWA/TWA, media, backups, jobs and deployment. It is still incomplete: route-by-route permission mapping and field-level data mapping remain open.
-- Phase 2 now has locked npm/NuGet dependencies, a generated API client, passing local .NET 10 and SvelteKit builds, health startup checks and a production web packaging smoke check. Earlier Actions runs failed before any steps started; Docker/Compose execution still requires a working runner.
-- The relevant mobile identity contract has been mapped. Its role/session/OTP/organization policy core and typed navigation are implemented with focused checks. HTTP login, persisted grants, ownership relations and operational datasets are not migrated yet. The accepted feature queue is recorded in docs/implementation/feature-queue.md.
+- Phase 2 has locked dependencies, generated contracts, two versioned migrations, bounded readiness, non-root containers and restricted runtime database permissions. All five GitHub jobs pass at PR #4 head `257b61dbaccc7b851bf9766390496616bf35c379`, including Linux PostgreSQL tests and full Compose migration/bootstrap/health. The earlier account-side Actions blocker was resolved.
+- Mapped mobile slices now implement phone OTP, explicit roles, exact session expiry, revoked-role fan recovery, fresh FC/Academy context, audit, mobile shell, own team/profile details and notification preferences. Observed checks: 26 policy cases, 23 HTTP/PostgreSQL groups and 42 frontend tests; builds, types, contract drift and production packaging pass. No live SMS was used.
+- The original feature queue remains intact in docs/implementation/feature-queue.md. Admin/customer authentication, legacy token/cookie acceptance, imported accounts, operational relationships/data, remaining modules, real provider behavior, jobs, PWA/TWA parity and staging/production recovery are still incomplete. Green identity CI does not prove these requirements.
 - Do not start feature-domain implementation until the relevant Phase 1 route, permission, data and caller mappings are complete. Foundation work can continue in parallel.
 
 ## Phase 1 — Complete inventories and contracts
@@ -31,7 +32,7 @@ Exit: every route and feature has behavior, owner, authorization, migration stat
 
 Create SvelteKit/TypeScript and ASP.NET Core/.NET 10 projects, locked dependencies, formatting/static checks, tests and CI. Add secure Compose and empty isolated PostgreSQL. Establish migration policy, OpenAPI/client generation, configuration validation, health/readiness and structured redacted logs. Select a first module only after Phase 1 mapping.
 
-Current foundation files provide a .NET 10 API host with typed development-only OpenAPI, bounded PostgreSQL readiness, a generated TypeScript client, a SvelteKit Node-adapter shell, internal networks and a Caddy edge. Local API/frontend builds, policy/navigation checks and isolated host smoke checks pass. Database migrations, worker jobs, real PostgreSQL integration/restore and observed container results remain outstanding.
+Current foundation files provide a .NET 10 API host with typed development-only OpenAPI, bounded PostgreSQL readiness, a generated TypeScript client, SvelteKit Node adapter, internal app/data networks and a Caddy edge. Real PostgreSQL authorization/concurrency checks, migration apply/rollback/reapply, runtime privilege probes, API/web/package checks and observed Compose startup now pass. Worker jobs and full PostgreSQL/media backup restoration remain outstanding.
 
 Exit: clean build from fresh checkout, API/client drift check, PostgreSQL integration checks, readiness and green CI; no secrets in artifacts.
 

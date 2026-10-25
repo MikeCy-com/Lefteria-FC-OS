@@ -6,7 +6,7 @@
   />
 </svelte:head>
 
-<main>
+<main class="foundation-page">
   <div class="crest" aria-hidden="true">LF</div>
   <p class="eyebrow">LEFTERIA FC</p>
   <h1>A new home for club operations</h1>

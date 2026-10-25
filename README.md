@@ -4,7 +4,7 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Current slice: rewrite/mobile-profile-details, based on rewrite/mobile-profile
+- Integration checkpoint: mobile identity, own profile settings and authenticated browser verification, accumulated for `main`.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Deployed revision, VPS configuration and live data are not verified.
@@ -25,6 +25,9 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Mobile identity implementation](docs/implementation/mobile-identity-implementation.md)
 - [PostgreSQL runtime permissions](docs/implementation/postgres-runtime-role.md)
 - [Profile contract and implementation](docs/implementation/profile-contract.md)
+- [Authenticated browser verification](docs/implementation/browser-verification.md)
+- [Legacy identity and session migration contract](docs/implementation/legacy-identity-migration.md)
+- [Role dashboard source contract](docs/implementation/role-dashboard-contract.md)
 
 ## Target stack
 
@@ -41,7 +44,7 @@ Use the SDK pinned in global.json and Node version pinned in .nvmrc. Docker Comp
 3. Open the configured PUBLIC_ORIGIN. Configure a trusted development certificate or use a loopback HTTP development address.
 4. The API health routes are /api/health/live and /api/health/ready. OpenAPI is enabled only in the ASP.NET Development environment.
 
-NuGet and npm dependencies are locked. CI uses locked restores, policy/navigation/client checks, API contract drift checks, production web smoke checks and disposable Compose health checks. Local API/frontend builds pass; Docker execution still requires a working Docker host or GitHub runner.
+NuGet and npm dependencies are locked. CI uses locked restores, policy/navigation/client checks, API contract drift checks, production web smoke checks and disposable Compose health checks. All five GitHub jobs passed at the preceding profile checkpoint, including full Compose migration/bootstrap/health. The browser verification tool also runs in the PostgreSQL CI job. This workflow builds and tests; it does not deploy.
 
 ## Developer checks
 

@@ -19,7 +19,7 @@ body {
     linear-gradient(145deg, #10251c, #09160f);
 }
 
-main {
+.foundation-page {
   display: grid;
   width: min(100% - 3rem, 52rem);
   min-height: 100vh;
@@ -29,7 +29,7 @@ main {
   padding: 4rem 0;
 }
 
-.crest {
+.foundation-page .crest {
   display: grid;
   width: 4rem;
   aspect-ratio: 1;
@@ -40,7 +40,7 @@ main {
   font-weight: 800;
 }
 
-.eyebrow {
+.foundation-page .eyebrow {
   margin: 2.5rem 0 0.75rem;
   color: #c09c46;
   font-size: 0.8rem;
@@ -48,14 +48,14 @@ main {
   letter-spacing: 0.2em;
 }
 
-h1 {
+.foundation-page h1 {
   max-width: 14ch;
   margin: 0;
   font-size: clamp(2.5rem, 7vw, 5rem);
   line-height: 1.03;
 }
 
-.status {
+.foundation-page .status {
   max-width: 38rem;
   margin-top: 1.5rem;
   color: #c5d1c8;
