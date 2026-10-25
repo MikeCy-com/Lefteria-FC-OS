@@ -2,13 +2,13 @@
 
 ## Status
 
-This repository is the parallel rewrite target. The framework foundation and the first mobile identity/navigation policies are implemented. The source application and its data remain authoritative while the migration proceeds.
+This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Rewrite branch: rewrite/architecture-and-foundation
+- Current slice: rewrite/mobile-identity, based on rewrite/architecture-and-foundation
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Deployed revision, VPS configuration and live data are not verified.
-- No accounts or production data have been migrated. Phone login and operational dashboards are still being ported.
+- No accounts or production data have been migrated. Operational dashboards, profile editing, notifications and media remain queued.
 
 ## Architecture documents
 
@@ -22,6 +22,8 @@ This repository is the parallel rewrite target. The framework foundation and the
 - [Accepted feature queue](docs/implementation/feature-queue.md)
 - [Mobile identity contract](docs/implementation/mobile-identity-contract.md)
 - [Observed verification](docs/implementation/verification-2026-10-25.md)
+- [Mobile identity implementation](docs/implementation/mobile-identity-implementation.md)
+- [PostgreSQL runtime permissions](docs/implementation/postgres-runtime-role.md)
 
 ## Target stack
 
@@ -33,9 +35,9 @@ These are target decisions, not completed migrations. Review the architecture do
 
 Use the SDK pinned in global.json and Node version pinned in .nvmrc. Docker Compose v2 is needed for the full container environment.
 
-1. Copy .env.example to .env and replace the sample PostgreSQL password with a local-only value.
-2. Run docker compose up --build from the repository root.
-3. Open https://localhost. Caddy may use a local certificate that the browser does not trust yet.
+1. Copy .env.example to .env, set distinct owner/runtime passwords and generate independent base64 signing/OTP keys.
+2. Follow the [fresh-database bootstrap commands](docs/implementation/mobile-identity-implementation.md) to build, migrate and provision the restricted runtime role.
+3. Open the configured PUBLIC_ORIGIN. Configure a trusted development certificate or use a loopback HTTP development address.
 4. The API health routes are /api/health/live and /api/health/ready. OpenAPI is enabled only in the ASP.NET Development environment.
 
 NuGet and npm dependencies are locked. CI uses locked restores, policy/navigation/client checks, API contract drift checks, production web smoke checks and disposable Compose health checks. Local API/frontend builds pass; Docker execution still requires a working Docker host or GitHub runner.
@@ -60,7 +62,9 @@ The API exporter launches an isolated local host with a deliberately unavailable
 SvelteKit 3 uses TypeScript 6. The generator's upstream TypeScript 5 peer is kept
 in tools/api-client with its own lockfile so neither toolchain bypasses peer checks.
 
-The mobile policy core preserves explicit roles, device expiry, five-minute OTP limits and FC/Academy isolation. The HTTP login, persisted grants, relational ownership, audit storage and real dashboard workflows remain queued; navigation visibility alone never authorizes data.
+Mobile login persists HMAC-protected OTP challenges, shared rate limits, explicit role grants and append-only audit events. Role changes preserve the original JWT expiry; removed formal roles expose explicit fan recovery. Management context uses current FC/Academy assignments. The API never migrates schema during normal startup. The mobile shell uses real identity/context responses and labels unported functions **Under Developments**.
+
+The SMS adapter fails closed when Twilio is unavailable or unconfigured. Tests replace it only in the test host. Legacy tokens are not yet accepted; a reviewed session bridge and account import remain cutover prerequisites. Player/guardian/team relationships and operational modules are not represented by invented records.
 
 ## Safety
 

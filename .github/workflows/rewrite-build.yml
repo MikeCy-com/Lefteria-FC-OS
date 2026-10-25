@@ -28,6 +28,71 @@ jobs:
       - run: dotnet build backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --no-restore --configuration Release
       - run: dotnet run --project backend/tests/LefteriaFc.PolicyChecks --configuration Release --no-restore
 
+  identity:
+    name: Mobile identity with PostgreSQL
+    runs-on: ubuntu-latest
+    env:
+      POSTGRES_USER: lefteria_tests
+      POSTGRES_DB: lefteria_rewrite_identity_tests
+      DATABASE_APP_USER: lefteria_identity_tests_app
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: Generate isolated database credentials
+        run: |
+          echo "POSTGRES_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "DATABASE_APP_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "LEFTERIA_TEST_FIXTURE=$RUNNER_TEMP/identity-db.json" >> "$GITHUB_ENV"
+      - name: Start disposable loopback PostgreSQL
+        run: |
+          docker run --detach --name identity-postgres --network host \
+            -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB -e DATABASE_APP_USER -e DATABASE_APP_PASSWORD \
+            -v "$PWD/ops/postgres:/opt/lefteria-postgres:ro" \
+            postgres:18.6-alpine -c listen_addresses=127.0.0.1 -p 54329
+          for attempt in {1..30}; do
+            if docker exec identity-postgres pg_isready -h 127.0.0.1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB"; then exit 0; fi
+            sleep 1
+          done
+          exit 1
+      - name: Write guarded disposable fixture configuration
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          database = os.environ['POSTGRES_DB']
+          def connection(user, password):
+              return f'Host=127.0.0.1;Port=54329;Database={database};Username={user};Password={password}'
+          fixture = {
+              'disposable': True, 'purpose': 'Lefteria rewrite identity integration tests only',
+              'host': '127.0.0.1', 'port': 54329, 'database': database,
+              'username': os.environ['POSTGRES_USER'], 'applicationUsername': os.environ['DATABASE_APP_USER'],
+              'connectionString': connection(os.environ['POSTGRES_USER'], os.environ['POSTGRES_PASSWORD']),
+              'applicationConnectionString': connection(os.environ['DATABASE_APP_USER'], os.environ['DATABASE_APP_PASSWORD'])
+          }
+          path = Path(os.environ['LEFTERIA_TEST_FIXTURE'])
+          path.write_text(json.dumps(fixture))
+          path.chmod(0o600)
+          with open(os.environ['GITHUB_ENV'], 'a') as env:
+              env.write('LEFTERIA_MIGRATION_CONNECTION=' + fixture['connectionString'] + '\n')
+          PY
+      - run: dotnet restore backend/tests/LefteriaFc.Identity.IntegrationTests --locked-mode
+      - run: dotnet build backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-restore
+      - name: Migration apply, rollback and reapply
+        run: |
+          dotnet tool restore
+          dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
+          dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+          dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
+      - name: Provision and check restricted runtime role
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
+          docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_APP_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_APP_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/identity-app-permissions-check.sql'
+      - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
+      - if: always()
+        run: docker rm --force --volumes identity-postgres
+
   web:
     name: SvelteKit web
     runs-on: ubuntu-latest
@@ -84,8 +149,18 @@ jobs:
       POSTGRES_PASSWORD: ci-only-${{ github.run_id }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Generate disposable authentication keys
+        run: |
+          echo "MOBILE_SIGNING_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "MOBILE_OTP_KEY=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
+          echo "DATABASE_APP_PASSWORD=$(openssl rand -base64 32)" >> "$GITHUB_ENV"
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build --pull
+      - run: docker compose --env-file .env.example run --rm --no-deps proxy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - run: docker compose --env-file .env.example up --wait --wait-timeout 60 postgres
+      - run: docker compose --env-file .env.example run --rm --no-build migrate
+      - name: Provision restricted disposable runtime role
+        run: docker compose --env-file .env.example exec -T postgres sh -c 'psql -X -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql'
       - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
       - run: curl --fail --silent --show-error http://localhost/api/health/ready
       - run: curl --fail --silent --show-error http://localhost/ --output /dev/null

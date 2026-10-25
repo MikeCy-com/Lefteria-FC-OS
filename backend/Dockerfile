@@ -4,9 +4,11 @@ COPY Directory.Build.props ./
 COPY src/LefteriaFc.Api/LefteriaFc.Api.csproj src/LefteriaFc.Api/
 COPY src/LefteriaFc.Infrastructure/LefteriaFc.Infrastructure.csproj src/LefteriaFc.Infrastructure/
 COPY src/LefteriaFc.Domain/LefteriaFc.Domain.csproj src/LefteriaFc.Domain/
+COPY src/LefteriaFc.Application/LefteriaFc.Application.csproj src/LefteriaFc.Application/
 COPY src/LefteriaFc.Api/packages.lock.json src/LefteriaFc.Api/
 COPY src/LefteriaFc.Infrastructure/packages.lock.json src/LefteriaFc.Infrastructure/
 COPY src/LefteriaFc.Domain/packages.lock.json src/LefteriaFc.Domain/
+COPY src/LefteriaFc.Application/packages.lock.json src/LefteriaFc.Application/
 RUN dotnet restore src/LefteriaFc.Api/LefteriaFc.Api.csproj --locked-mode
 COPY src/ src/
 RUN dotnet publish src/LefteriaFc.Api/LefteriaFc.Api.csproj \

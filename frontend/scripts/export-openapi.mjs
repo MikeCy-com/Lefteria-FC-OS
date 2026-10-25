@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
+import { randomBytes } from 'node:crypto';
 
 const root = new URL('../../', import.meta.url);
 const listener = createServer();
@@ -26,6 +27,9 @@ const child = spawn(host, [dll, '--urls', origin, '--environment', 'Development'
     ASPNETCORE_URLS: origin,
     DOTNET_ENVIRONMENT: 'Development',
     DOTNET_URLS: origin,
+    MobileAuth__SigningKey: randomBytes(32).toString('base64'),
+    MobileAuth__OtpKey: randomBytes(32).toString('base64'),
+    Twilio__AccountSid: '', Twilio__AuthToken: '', Twilio__FromNumber: '',
     ConnectionStrings__Postgres: 'Host=127.0.0.1;Port=1;Database=contract;Username=contract;Password=contract-only;Timeout=1'
   },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -58,6 +62,10 @@ try {
   const document = await response.json();
   assert.ok(document.paths['/api/health/live']);
   assert.ok(document.paths['/api/health/ready'].get.responses['503']);
+  assert.deepEqual(document.paths['/api/mobile/auth/me'].get.security, [{ Mobile: [] }]);
+  assert.equal(document.paths['/api/mobile/auth/request-otp'].post.security, undefined);
+  assert.ok(document.components.schemas.MobileVerificationResult.anyOf?.length === 2 ||
+    document.components.schemas.MobileVerificationResult.oneOf?.length === 2);
 
   const live = await fetch(`${origin}/api/health/live`);
   assert.equal(live.status, 200);

@@ -20,8 +20,9 @@ services:
       api:
         condition: service_healthy
     networks:
-      - public
-      - app
+      public: {}
+      app:
+        ipv4_address: ${TRUSTED_PROXY_IP:-172.28.90.2}
 
   web:
     build:
@@ -46,6 +47,7 @@ services:
       - app
 
   api:
+    image: ${LEFTERIA_API_IMAGE:-lefteria-fc-os-api:local}
     build:
       context: ./backend
     restart: unless-stopped
@@ -54,8 +56,14 @@ services:
       ASPNETCORE_HTTP_PORTS: "8080"
       Database__Host: postgres
       Database__Name: $POSTGRES_DB
-      Database__Username: $POSTGRES_USER
-      Database__Password: $POSTGRES_PASSWORD
+      Database__Username: ${DATABASE_APP_USER:?Set DATABASE_APP_USER in .env}
+      Database__Password: ${DATABASE_APP_PASSWORD:?Set DATABASE_APP_PASSWORD in .env}
+      MobileAuth__SigningKey: ${MOBILE_SIGNING_KEY:?Set a random base64 MOBILE_SIGNING_KEY}
+      MobileAuth__OtpKey: ${MOBILE_OTP_KEY:?Set a separate random base64 MOBILE_OTP_KEY}
+      Http__KnownProxies__0: ${TRUSTED_PROXY_IP:-172.28.90.2}
+      Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
+      Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
+      Twilio__FromNumber: ${TWILIO_FROM_NUMBER:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -72,6 +80,24 @@ services:
     networks:
       - app
       - data
+      - egress
+
+  migrate:
+    profiles: [tools]
+    image: ${LEFTERIA_API_IMAGE:-lefteria-fc-os-api:local}
+    build:
+      context: ./backend
+    command: [--migrate]
+    environment:
+      LEFTERIA_MIGRATION_HOST: postgres
+      LEFTERIA_MIGRATION_DATABASE: ${POSTGRES_DB}
+      LEFTERIA_MIGRATION_USERNAME: ${POSTGRES_USER}
+      LEFTERIA_MIGRATION_PASSWORD: ${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
 
   postgres:
     image: postgres:18-alpine
@@ -81,8 +107,11 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      DATABASE_APP_PASSWORD: ${DATABASE_APP_PASSWORD:?Set DATABASE_APP_PASSWORD in .env}
+      DATABASE_APP_USER: ${DATABASE_APP_USER:?Set DATABASE_APP_USER in .env}
     volumes:
       - postgres_data:/var/lib/postgresql
+      - ./ops/postgres:/opt/lefteria-postgres:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
@@ -100,5 +129,10 @@ networks:
   public:
   app:
     internal: true
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET:-172.28.90.0/24}
   data:
     internal: true
+  # API outbound HTTPS for SMS providers; no published ports.
+  egress:

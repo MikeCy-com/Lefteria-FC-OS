@@ -52,6 +52,11 @@ try {
   }
   assert.equal(response?.status, 200, `Production host must serve the page. ${logs}`);
   assert.match(await response.text(), /<title>Lefteria FC OS<\/title>/);
+  for (const pathname of ['/app/login', '/app', '/app/calendar']) {
+    const mobile = await fetch(origin + pathname);
+    assert.equal(mobile.status, 200, `Mobile path ${pathname} must render without browser storage on the server.`);
+    assert.match(await mobile.text(), /Έλεγχος σύνδεσης/);
+  }
   console.log('Production web smoke passed with build, package.json and production-only dependencies.');
 } finally {
   if (child?.pid && child.exitCode === null && child.signalCode === null) {

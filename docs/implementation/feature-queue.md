@@ -53,10 +53,16 @@ This order follows the dependencies of the accepted requirements:
   bounded hashed OTP verification and FC/Academy scope decisions.
 - Typed navigation: all five roles, source tab/query/path aliases and active-role
   composer eligibility. Parent, coach and management have no composer action.
-- The API health contract is exported, a TypeScript client is generated, and
-  dependency locks, runtime smoke checks and security gates are in place.
-- The core is not yet an authenticated HTTP workflow. Persistence, OTP delivery,
-  JWT verification, generated client and dashboard routes remain queued.
+- Mobile authentication is now a real HTTP workflow backed by PostgreSQL, shared
+  throttles, hashed OTP challenges, an SMS adapter, JWT validation and audit rows.
+- The generated client powers `/app/login` and the authenticated shell, explicit
+  roles and FC/Academy selector. Operational content is still unported and uses
+  the requested **Under Developments** label; no records or statistics are mocked.
+- Runtime permissions and migration/recovery checks are documented in
+  [mobile identity implementation](mobile-identity-implementation.md).
+- Next: own profile editing and the player/fan privacy contracts, then scoped
+  roster relationships and real role dashboards. Account import and legacy
+  token compatibility remain cutover gates.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
 was open and unmerged when inspected. It is pending React implementation evidence;

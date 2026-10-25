@@ -9,27 +9,29 @@ namespace LefteriaFc.Infrastructure;
 public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddLefteriaInfrastructure(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this IServiceCollection services)
     {
-        var connectionString = configuration.GetConnectionString("Postgres");
-        if (string.IsNullOrWhiteSpace(connectionString))
+        services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
-            connectionString = new NpgsqlConnectionStringBuilder
+            var configuration = provider.GetRequiredService<IConfiguration>();
+            var connectionString = configuration.GetConnectionString("Postgres");
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                Host = Required("Database:Host"),
-                Database = Required("Database:Name"),
-                Username = Required("Database:Username"),
-                Password = Required("Database:Password")
-            }.ConnectionString;
-        }
+                connectionString = new NpgsqlConnectionStringBuilder
+                {
+                    Host = Required("Database:Host"),
+                    Database = Required("Database:Name"),
+                    Username = Required("Database:Username"),
+                    Password = Required("Database:Password")
+                }.ConnectionString;
+            }
 
-        services.AddDbContext<LefteriaDbContext>(options => options.UseNpgsql(connectionString));
+            options.UseNpgsql(connectionString);
+            string Required(string key) =>
+                configuration[key] is { Length: > 0 } value
+                    ? value
+                    : throw new InvalidOperationException($"{key} is required.");
+        });
         return services;
-
-        string Required(string key) =>
-            configuration[key] is { Length: > 0 } value
-                ? value
-                : throw new InvalidOperationException($"{key} is required.");
     }
 }

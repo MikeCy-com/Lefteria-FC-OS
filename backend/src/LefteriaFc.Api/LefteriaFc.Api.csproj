@@ -2,6 +2,9 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
     <PackageReference Include="Microsoft.OpenApi" Version="2.13.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.13" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13" />
+    <ProjectReference Include="../LefteriaFc.Application/LefteriaFc.Application.csproj" />
     <ProjectReference Include="../LefteriaFc.Infrastructure/LefteriaFc.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

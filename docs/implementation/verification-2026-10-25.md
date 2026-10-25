@@ -1,4 +1,7 @@
-# Observed verification — 2026-10-25
+# Foundation verification — 2026-10-25
+
+This records the foundation checkpoint at 1adc20a3d720cc9e819d450d10c448dc6ee142e8.
+Later identity work is described in [mobile identity implementation](mobile-identity-implementation.md).
 
 Implementation was authored in an isolated checkout of the GitHub rewrite branch
 starting at a29e3560bd4d5d2af4004d143235ec3f832ee85e. Existing local application
