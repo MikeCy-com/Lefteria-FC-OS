@@ -57,7 +57,9 @@ public sealed record MobileIdentityProfile(
     string? LastName = null,
     DateOnly? Birthday = null,
     string? FavouritePlayerId = null,
-    IReadOnlyDictionary<string, bool>? NotificationPreferences = null);
+    IReadOnlyDictionary<string, bool>? NotificationPreferences = null,
+    string? Email = null,
+    DateTimeOffset? UpdatedAt = null);
 
 public sealed record PendingFanRegistration(string FirstName, string LastName, DateOnly Birthday)
 {
@@ -125,6 +127,8 @@ public interface IMobileAuthTransaction : IAsyncDisposable
     Task<MobileIdentityProfile> UpdateLastLoginAsync(Guid identityId, string platform,
         DateTimeOffset now, CancellationToken cancellationToken);
     Task<MobileIdentityProfile> UpdateFavoriteTeamAsync(Guid identityId, string? favoriteTeam,
+        CancellationToken cancellationToken);
+    Task<MobileIdentityProfile> UpdateProfileAsync(Guid identityId, MobileProfileUpdate update,
         CancellationToken cancellationToken);
     Task SaveChallengeProgressAsync(Guid challengeId, int verificationCalls, bool isConsumed,
         CancellationToken cancellationToken);

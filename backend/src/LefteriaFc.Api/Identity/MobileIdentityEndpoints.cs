@@ -39,7 +39,8 @@ public static class MobileIdentityEndpoints
         if (context.Request.Path.StartsWithSegments("/api/mobile"))
         {
             context.Response.Headers.CacheControl = "no-store";
-            if (context.Request.Path.StartsWithSegments("/api/mobile/auth"))
+            if (context.Request.Path.StartsWithSegments("/api/mobile/auth") ||
+                string.Equals(context.Request.Path.Value?.TrimEnd('/'), "/api/mobile/profile", StringComparison.OrdinalIgnoreCase))
             {
                 const long limit = 16 * 1024;
                 if (context.Request.ContentLength > limit)
@@ -78,6 +79,12 @@ public static class MobileIdentityEndpoints
                     body.FavoriteTeam.ValueKind != JsonValueKind.Undefined, ParseFavoriteTeam(body.FavoriteTeam), token), context))
             .RequireAuthorization(IdentityServices.Policy).WithName("UpdateMobileProfilePreference")
             .Produces<MobileProfilePreferenceResult>().WithMobileErrors();
+
+        endpoints.MapPut("/api/mobile/profile", (MobileProfileUpdateBody body, MobileAuthService service, HttpContext context, CancellationToken token) =>
+                Execute(() => service.UpdateProfileAsync(MobilePrincipal.Read(context.User), body.ToCommand(), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile profile")
+            .WithName("UpdateMobileProfile").Produces<MobileUserDto>()
+            .Produces(StatusCodes.Status413PayloadTooLarge).WithMobileErrors();
 
         var management = endpoints.MapGroup("/api/mobile/management").WithTags("Mobile organization")
             .RequireAuthorization(IdentityServices.Policy);

@@ -4,7 +4,7 @@ using LefteriaFc.Domain.Organizations;
 
 namespace LefteriaFc.Application.MobileAuth;
 
-public sealed class MobileAuthService(
+public sealed partial class MobileAuthService(
     IMobileAuthRepository repository,
     ISmsSender smsSender,
     IAuthThrottle throttle,
@@ -545,7 +545,8 @@ public sealed class MobileAuthService(
         Birthday = profile.Birthday?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
         FavouritePlayerId = profile.FavouritePlayerId,
         NotificationPreferences = profile.NotificationPreferences is null ? null :
-            new Dictionary<string, bool>(profile.NotificationPreferences, StringComparer.Ordinal)
+            new Dictionary<string, bool>(profile.NotificationPreferences, StringComparer.Ordinal),
+        Email = profile.Email, UpdatedAt = profile.UpdatedAt
     };
 
     private static MobileOrganizationContextDto ToOrganizationDto(OrganizationScope scope)

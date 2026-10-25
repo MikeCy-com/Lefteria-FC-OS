@@ -145,10 +145,20 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("display_name");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
                     b.Property<string>("FavoriteTeam")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("favorite_team");
+
+                    b.Property<string>("FavouritePlayerId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("favourite_player_id");
 
                     b.Property<string>("FirstName")
                         .HasMaxLength(100)
@@ -197,6 +207,10 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("role");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
 
                     b.HasKey("Id");
 

@@ -109,6 +109,10 @@ public sealed record MobileUserDto
     public string? FavouritePlayerId { get; init; }
     [JsonPropertyName("notification_prefs"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyDictionary<string, bool>? NotificationPreferences { get; init; }
+    [JsonPropertyName("email"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Email { get; init; }
+    [JsonPropertyName("updated_at"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DateTimeOffset? UpdatedAt { get; init; }
 }
 
 public sealed record OrganizationOptionDto(

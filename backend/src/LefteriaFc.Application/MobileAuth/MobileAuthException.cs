@@ -36,7 +36,9 @@ public enum MobileAuthErrorCode
     OrganizationUnknown,
     OrganizationUnavailable,
     NoProfileChanges,
-    InvalidTeamPreference
+    InvalidTeamPreference,
+    InvalidProfileField,
+    InvalidNotificationPreferences
 }
 
 public sealed class MobileAuthException(

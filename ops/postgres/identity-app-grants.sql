@@ -91,7 +91,7 @@ $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
 GRANT UPDATE (display_name, first_name, last_name, birthday, avatar_url,
-  favorite_team, notification_preferences, platform, last_login)
+  favorite_team, email, favourite_player_id, updated_at, notification_preferences, platform, last_login)
 ON identity.mobile_identities TO :"app_role";
 GRANT SELECT ON identity.admin_accounts, identity.admin_organization_grants,
   club.organizations TO :"app_role";

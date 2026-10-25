@@ -128,6 +128,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateMobileProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -168,6 +184,21 @@ export interface components {
             ok: boolean;
             user: components["schemas"]["MobileUserDto"];
         };
+        /** @description Updates accepted non-null own-profile fields. Null fields are ignored; at least one accepted field is required. Unknown fields are ignored. */
+        MobileProfileUpdateBody: {
+            birthday?: string | null;
+            /** @description A plain email address without a display name; empty string clears it. */
+            email?: string | null;
+            /** @description Opaque legacy player preference; empty string clears it. This value grants no roster access. */
+            favourite_player_id?: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
+            name?: string | null;
+            /** @description Replaces the whole preference object; up to 64 keys, each 1..64 characters without controls, with boolean values. Null is ignored; an empty object clears preferences. */
+            notification_prefs?: {
+                [key: string]: boolean;
+            } | null;
+        };
         MobileRoleSwitchResult: {
             available_roles?: null | string[];
             noop?: null | boolean;
@@ -183,6 +214,7 @@ export interface components {
             /** Format: date-time */
             created_at: string;
             current_role_available: boolean;
+            email?: null | string;
             favorite_team?: null | string;
             favourite_player_id?: null | string;
             first_name?: null | string;
@@ -201,6 +233,8 @@ export interface components {
             platform: string;
             role: string;
             team_id?: null | string;
+            /** Format: date-time */
+            updated_at?: null | string;
         };
         MobileVerificationResult: components["schemas"]["MobileVerificationResultMobileRolePickerResult"] | components["schemas"]["MobileVerificationResultMobileLoginResult"];
         MobileVerificationResultMobileLoginResult: {
@@ -957,6 +991,100 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MobileAuthError"];
                 };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    UpdateMobileProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileProfileUpdateBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileUserDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Unprocessable Entity */
             422: {

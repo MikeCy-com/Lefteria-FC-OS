@@ -35,6 +35,8 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
         identities.Property(x => x.LastName).HasMaxLength(100);
         identities.Property(x => x.Platform).HasMaxLength(24).IsRequired();
         identities.Property(x => x.FavoriteTeam).HasMaxLength(32);
+        identities.Property(x => x.Email).HasMaxLength(254);
+        identities.Property(x => x.FavouritePlayerId).HasMaxLength(128);
         identities.Property(x => x.NotificationPreferencesJson).HasColumnType("jsonb");
         identities.HasIndex(x => new { x.NormalizedPhone, x.Role }).IsUnique();
         identities.HasOne(x => x.ManagementAdmin).WithMany().HasForeignKey(x => x.ManagementAdminId)

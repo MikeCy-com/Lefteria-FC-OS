@@ -62,7 +62,10 @@ This order follows the dependencies of the accepted requirements:
   [mobile identity implementation](mobile-identity-implementation.md).
 - Own team preference now persists through `PUT /api/mobile/auth/me`, with a real
   fan profile editor, fresh identity authorization and audited per-role writes.
-- Next: remaining own profile edits and the player/fan privacy contracts, then scoped
+- Own profile details and whole-object boolean notification preferences now use
+  `PUT /api/mobile/profile`, with typed validation, locked phone, current-role
+  ownership, update time and atomic audit. Avatar and roster picker remain queued.
+- Next: avatar/media infrastructure and the player/fan privacy contracts, then scoped
   roster relationships and real role dashboards. Account import and legacy
   token compatibility remain cutover gates.
 

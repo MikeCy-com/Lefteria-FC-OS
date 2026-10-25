@@ -10,6 +10,7 @@ type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
+export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
 
 export interface MobileAuthState {
   status: 'initializing' | 'anonymous' | 'authenticated' | 'unavailable';
@@ -93,6 +94,13 @@ export function createMobileAuthController(options: {
       ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
       identities: [], detectedRole: null, phone: user.phone });
     if (token) options.storage.write(token, roles);
+  }
+
+  function applyOwnProfile(user: User, original: User) {
+    if (user.id !== original.id || user.role !== original.role || user.phone !== original.phone) {
+      throw new Error('Invalid profile response identity');
+    }
+    applyUser(user, { preserveOrganization: true });
   }
 
   async function organizationContext(headers: { Authorization: string }, operationRevision: number) {
@@ -255,10 +263,26 @@ export function createMobileAuthController(options: {
           headers: authorization(), body: { favorite_team: favoriteTeam }
         }));
         if (revision !== operationRevision) return;
-        if (data.ok !== true || data.user.id !== identity.id || data.user.role !== identity.role || data.user.phone !== identity.phone) {
-          throw new Error('Invalid preference response identity');
-        }
-        applyUser(data.user, { preserveOrganization: true });
+        if (data.ok !== true) throw new Error('Invalid preference response');
+        applyOwnProfile(data.user, identity);
+      }, true);
+    },
+    async updateProfile(changes: MobileProfileUpdate) {
+      const identity = state.user;
+      if (state.status !== 'authenticated' || !identity?.current_role_available) return false;
+      return action(async (operationRevision) => {
+        const body: MobileProfileUpdate = {
+          ...(changes.name != null ? { name: changes.name } : {}),
+          ...(changes.email != null ? { email: changes.email } : {}),
+          ...(changes.first_name != null ? { first_name: changes.first_name } : {}),
+          ...(changes.last_name != null ? { last_name: changes.last_name } : {}),
+          ...(changes.birthday != null ? { birthday: changes.birthday } : {}),
+          ...(changes.favourite_player_id != null ? { favourite_player_id: changes.favourite_player_id } : {}),
+          ...(changes.notification_prefs != null ? { notification_prefs: changes.notification_prefs } : {})
+        };
+        const user = responseData(await api.PUT('/api/mobile/profile', { headers: authorization(), body }));
+        if (revision !== operationRevision) return;
+        applyOwnProfile(user, identity);
       }, true);
     },
     logout() {

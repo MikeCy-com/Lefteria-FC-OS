@@ -2,8 +2,8 @@
 
 Audited directly through the GitHub connector at source commit
 `5111f06af5d8b17f855ceed9637caca02db117e2` on 2026-10-25. GitHub main is not proof
-of the deployed revision. The team-preference write described below is now
-implemented in the rewrite; other profile writes and social reads remain queued.
+of the deployed revision. Team preferences and own profile details are now
+implemented in the rewrite; avatar uploads, player picker and social reads remain queued.
 
 ## Implemented team preference
 
@@ -23,12 +23,63 @@ the owner to choose an available value. No schema or data migration is needed.
 The fan profile destination contains the real preference editor. Its controller
 uses the generated client, keeps current profile data on failed writes, rejects
 mismatched returned identities and ignores late responses after logout. Header
-profile still explicitly enters fan context. Other edits use **Under Developments**.
+profile still explicitly enters fan context.
 
-Observed: 19/19 HTTP/PostgreSQL groups and 37/37 frontend tests pass; API/test builds
+At the team-preference checkpoint, 19/19 HTTP/PostgreSQL groups and 37/37 frontend tests passed; API/test builds
 and Svelte check report zero warnings/errors; production frontend build passes.
 The profile suite covers per-role persistence, forged body targets, signed
 binding mismatch, explicit null, rejected inputs, revocation and audit actor.
+
+## Implemented own profile details
+
+`PUT /api/mobile/profile` returns the updated own identity directly. It accepts
+only `name`, `email`, `first_name`, `last_name`, `birthday`, `favourite_player_id`
+and `notification_prefs`. The signed identity/phone/role is checked against
+current locked rows; management also requires its current active admin. The
+write, UTC `updated_at` and `mobile.profile.update` audit commit atomically.
+Unknown keys cannot change phone, identity, role, status or operational links.
+Same-phone identities retain independent details. Source fan data is canonical
+on the fan identity here, avoiding a second collection that could drift.
+
+Source null semantics are retained: null common fields are ignored. Empty email
+or favourite-player reference clears that value; an empty preferences object
+replaces the whole object. A first/last-name change derives the combined name
+from the locked current values unless an explicit name was supplied. Empty
+combined parts retain the previous display name. No accepted change returns 400.
+
+Validation deliberately strengthens the old dictionary endpoint: display name
+1–200 characters; name parts at most 100; email at most 254 and a valid bare
+mailbox; exact nonfuture YYYY-MM-DD birthday; favourite reference at most 128;
+preferences at most 64 boolean entries with nonempty keys at most 64 characters.
+Control characters, wrong JSON types, duplicate preference keys and invalid
+values return 422. Profile JSON is capped at 16 KiB, including trailing-slash
+route aliases. Unknown boolean keys remain supported for forward compatibility.
+
+The editor has Cancel, a locked phone, first/last/birthday/email inputs, actual
+save feedback and update time. Notification controls use the source's 18 default
+true keys and the default false giveaway key while preserving other stored keys.
+All calls use the generated client; no optimistic identity replacement, token
+refresh or role switch occurs. Avatar and player-picker controls remain
+**Under Developments**. A favourite reference is preference metadata, never a
+player-access grant. Self-edited birthday/contact data cannot grant a social
+age exemption, role or organization.
+
+Migration `20261025133742_MobileProfileDetails` adds nullable `email`,
+`favourite_player_id` and `updated_at` columns. Apply it with the owner, reapply
+the restricted runtime grants, then start the new API. The old API can continue
+using the additive schema during a controlled rollout. Rollback removes these
+three new columns and their data: preserve them in a verified backup or use
+forward recovery after real use. A disposable probe verified upgrade defaults,
+rollback preservation of existing fields, reapplication and restoration of its
+synthetic added values; the runtime permission probes passed afterward.
+
+Profile-details verification: 23/23 real HTTP/PostgreSQL groups and 42/42 frontend
+tests passed. Release build and Svelte check report zero warnings/errors;
+production build and production-only web/mobile-route smoke passed. New HTTP
+checks cover all five roles, protected fields, source null/name-merge semantics,
+concurrent part edits, exact bounds, rejected atomic writes, current session audit,
+whole-object preferences and revoked identity/admin access. No live SMS was used.
+Authenticated editor visual review remains queued for a disposable browser host.
 
 ## Private mobile identity and preferences
 

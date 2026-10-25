@@ -125,7 +125,7 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             return new MobileIdentityProfile(row.Id, PhoneNumber.Parse(row.NormalizedPhone), role, row.DisplayName,
                 row.IsActive, null, [], null, [], row.AvatarUrl, row.Platform, row.CreatedAt,
                 row.LastLogin ?? row.CreatedAt, management, row.FavoriteTeam, row.FirstName, row.LastName,
-                row.Birthday, null, preferences);
+                row.Birthday, row.FavouritePlayerId, preferences, Email: row.Email, UpdatedAt: row.UpdatedAt);
         }).ToArray();
     }
 
@@ -225,6 +225,23 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             if (!lockedIdentities.Contains(identityId)) throw new InvalidOperationException("Identity row must be locked before profile mutation.");
             var row = await context.MobileIdentities.SingleAsync(x => x.Id == identityId, cancellationToken);
             row.FavoriteTeam = favoriteTeam;
+            return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
+        }
+
+        public async Task<MobileIdentityProfile> UpdateProfileAsync(Guid identityId, MobileProfileUpdate update,
+            CancellationToken cancellationToken)
+        {
+            if (!lockedIdentities.Contains(identityId)) throw new InvalidOperationException("Identity row must be locked before profile mutation.");
+            var row = await context.MobileIdentities.SingleAsync(x => x.Id == identityId, cancellationToken);
+            if (update.NameProvided) row.DisplayName = update.Name!;
+            if (update.EmailProvided) row.Email = update.Email;
+            if (update.FirstNameProvided) row.FirstName = update.FirstName;
+            if (update.LastNameProvided) row.LastName = update.LastName;
+            if (update.BirthdayProvided) row.Birthday = update.Birthday;
+            if (update.FavouritePlayerIdProvided) row.FavouritePlayerId = update.FavouritePlayerId;
+            if (update.NotificationPreferencesProvided)
+                row.NotificationPreferencesJson = JsonSerializer.Serialize(update.NotificationPreferences);
+            row.UpdatedAt = update.UpdatedAt;
             return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
         }
 

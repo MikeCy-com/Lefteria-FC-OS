@@ -165,6 +165,100 @@
         ],
         "type": "object"
       },
+      "MobileProfileUpdateBody": {
+        "description": "Updates accepted non-null own-profile fields. Null fields are ignored; at least one accepted field is required. Unknown fields are ignored.",
+        "properties": {
+          "birthday": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "minLength": 0,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A plain email address without a display name; empty string clears it."
+          },
+          "favourite_player_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "minLength": 0,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque legacy player preference; empty string clears it. This value grants no roster access."
+          },
+          "first_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 0,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_name": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "minLength": 0,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "notification_prefs": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "boolean"
+                },
+                "maxProperties": 64,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replaces the whole preference object; up to 64 keys, each 1..64 characters without controls, with boolean values. Null is ignored; an empty object clears preferences."
+          }
+        },
+        "type": "object"
+      },
       "MobileRoleSwitchResult": {
         "properties": {
           "available_roles": {
@@ -241,6 +335,12 @@
           "current_role_available": {
             "type": "boolean"
           },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "favorite_team": {
             "type": [
               "null",
@@ -307,6 +407,13 @@
             "type": "string"
           },
           "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
             "type": [
               "null",
               "string"
@@ -1381,6 +1488,114 @@
           "Mobile organization"
         ]
       }
+    },
+    "/api/mobile/profile": {
+      "put": {
+        "operationId": "UpdateMobileProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileProfileUpdateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileUserDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "413": {
+            "description": "Payload Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile profile"
+        ]
+      }
     }
   },
   "tags": [
@@ -1389,6 +1604,9 @@
     },
     {
       "name": "Mobile identity"
+    },
+    {
+      "name": "Mobile profile"
     },
     {
       "name": "Mobile organization"

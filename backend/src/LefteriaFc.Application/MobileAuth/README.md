@@ -33,6 +33,31 @@ provider dependency. The API maps typed faults and publishes the DTOs directly.
   A sole organization is persisted through the same atomic selection operation
   when the shared active context differs, retaining the source's durable behavior.
 
+PUT /api/mobile/profile returns the updated own MobileUserDto directly. Its
+allowlist is name, email, first_name, last_name, birthday, favourite_player_id and
+notification_prefs. Null values are ignored, and a request with no accepted
+non-null fields returns 400. An explicit name wins; otherwise a first/last-name
+change derives the display name from the changed part and current other part
+when the combined value is nonempty. An empty first/last part is accepted.
+
+New profile writes enforce display name 1..200 characters, first/last names up to
+100, plain email up to 254 without display names, and opaque favourite-player IDs
+up to 128. Name and preference-ID controls are rejected. Empty email/player-ID
+strings clear those values. Birthday must be a nonfuture ISO date. This
+self-reported date does not establish verified adulthood or alter social/youth
+authorization. The roster picker remains queued; a favourite-player ID grants no
+player access and does not become an operational link.
+
+Notification preferences replace the complete object, including an empty object
+to clear it. The typed HTTP boundary accepts booleans only, up to 64 unknown keys
+for forward compatibility, each 1..64 characters without controls. This tightens
+the source's truthiness coercion. All accepted full-profile writes use a locked,
+freshly active own identity and append mobile.profile.update / own_profile audit
+with the same UTC UpdatedAt in one transaction. Separate roles sharing a phone
+retain independent profile fields. Unknown body identifiers, role, phone, links
+and organization fields are ignored. Profile JSON is limited to 16 KiB; the
+future avatar multipart route is separate.
+
 PhoneNumber stores canonical ASCII digits and emits a '+' wire value. It accepts
 space, hyphen and parentheses, optional leading '+' or '00', prefixes 357 for an
 eight-digit local number, and enforces 8..15 final international digits. It

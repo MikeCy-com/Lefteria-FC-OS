@@ -15,6 +15,9 @@ public sealed class MobileIdentityRecord
     public DateOnly? Birthday { get; set; }
     public string? AvatarUrl { get; set; }
     public string? FavoriteTeam { get; set; }
+    public string? Email { get; set; }
+    public string? FavouritePlayerId { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
     public string? NotificationPreferencesJson { get; set; }
     public string Platform { get; set; } = "Άλλο";
     public DateTimeOffset CreatedAt { get; set; }

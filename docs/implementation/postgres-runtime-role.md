@@ -21,6 +21,9 @@ Do not put the password in a command argument, source file or build log.
 The script includes identity-app-grants.sql relative to its own directory.
 Compose can mount this directory read-only for its administrator setup command.
 Apply it after every schema recreate or identity-table rollback/reapply.
+After `MobileProfileDetails`, reapply it before starting the updated API: the
+runtime also needs column UPDATE for email, favourite_player_id and updated_at.
+Identity, phone, role, active status and management linkage remain excluded.
 
 ## Privilege boundary
 

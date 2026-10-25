@@ -365,3 +365,88 @@ test('preference updates deny anonymous and revoked identities without sending a
   assert.equal(await revoked.controller.updateFavoriteTeam('both'), false);
   assert.equal(revoked.requests.length, 1);
 });
+
+test('own profile details PUT applies fresh server fields and timestamp without changing JWT or role', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    const profile = identity(role, { first_name: 'Old', last_name: 'Name', email: 'old@example.test' });
+    const changed = { ...profile, first_name: 'Updated', last_name: 'Member', name: 'Updated Member',
+      birthday: '2000-01-02', email: '', updated_at: '2026-10-25T18:30:00Z' };
+    const { controller, requests, values } = setup(({ path, method }) => {
+      if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+      return Response.json(method === 'PUT' ? changed : profile);
+    }, { mobile_token: `${role}-token` });
+    await controller.bootstrap();
+    assert.equal(await controller.updateProfile({ first_name: 'Updated', last_name: 'Member', birthday: '2000-01-02', email: '' }), true);
+    assert.deepEqual(controller.getState().user, changed);
+    assert.equal(requests.at(-1).path, '/api/mobile/profile');
+    assert.equal(requests.at(-1).authorization, `Bearer ${role}-token`);
+    assert.deepEqual(requests.at(-1).body, { first_name: 'Updated', last_name: 'Member', birthday: '2000-01-02', email: '' });
+    assert.equal(values.get('mobile_token'), `${role}-token`);
+    if (role === 'management') assert.equal(controller.getState().organization.organization_id, 'club');
+  }
+});
+
+test('profile updates whitelist editable fields, ignore nulls and retain existing boolean preference keys', async () => {
+  const profile = identity('fan', { notification_prefs: { news: true, legacy_opt_in: false }, email: 'old@example.test' });
+  const preferences = { ...profile.notification_prefs, news: false, game_hub_giveaways: true };
+  const { controller, requests } = setup(({ method, body }) => Response.json(method === 'PUT'
+    ? { ...profile, ...body, updated_at: '2026-10-25T18:31:00Z' } : profile), { mobile_token: 'fan-token' });
+  await controller.bootstrap();
+  assert.equal(await controller.updateProfile({ name: null, email: '', first_name: null, birthday: null,
+    notification_prefs: preferences, phone: '+35799111111', role: 'management', id: 'other-target', avatar_url: 'unapproved.jpg' }), true);
+  assert.deepEqual(requests.at(-1).body, { email: '', notification_prefs: preferences });
+  assert.equal(controller.getState().user.phone, profile.phone);
+  assert.equal(controller.getState().user.notification_prefs.legacy_opt_in, false);
+  assert.equal(controller.getState().user.notification_prefs.news, false);
+});
+
+test('rejected profile update retains saved details and preferences', async () => {
+  for (const status of [400, 422, 503]) {
+    const profile = identity('fan', { first_name: 'Saved', last_name: 'Member', notification_prefs: { news: true } });
+    const { controller } = setup(({ method }) => method === 'PUT'
+      ? Response.json({ detail: 'Profile could not be updated', code: 'invalid_profile' }, { status }) : Response.json(profile),
+    { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.updateProfile({ first_name: 'Unsaved', notification_prefs: { news: false } }), false);
+    assert.deepEqual(controller.getState().user, profile);
+    assert.equal(controller.getState().error, 'Profile could not be updated');
+    assert.equal(controller.getState().busy, false);
+  }
+});
+
+test('old profile response cannot restore private fields after logout or replace a newer session', async () => {
+  for (const restoreAnotherSession of [false, true]) {
+    let complete;
+    const profile = identity('fan', { name: 'Previous identity', email: 'previous@example.test' });
+    const restored = identity('parent', { id: '22222222-2222-4222-8222-222222222222', name: 'Current identity' });
+    const { controller, values } = setup(({ method, authorization }) => method === 'PUT'
+      ? new Promise((resolve) => { complete = resolve; })
+      : Response.json(authorization === 'Bearer parent-token' ? restored : profile), { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    const request = controller.updateProfile({ email: 'updated@example.test' });
+    await new Promise((resolve) => setImmediate(resolve));
+    assert.deepEqual(controller.getState().user, profile);
+    controller.logout();
+    if (restoreAnotherSession) {
+      values.set('mobile_token', 'parent-token');
+      await controller.bootstrap();
+    }
+    complete(Response.json({ ...profile, email: 'updated@example.test' }));
+    assert.equal(await request, false);
+    assert.equal(controller.getState().busy, false);
+    assert.deepEqual(controller.getState().user, restoreAnotherSession ? restored : null);
+  }
+});
+
+test('profile endpoint response cannot change own identity binding and unauthenticated writes are denied', async () => {
+  const profile = identity('fan');
+  const { controller, requests } = setup(({ method }) => Response.json(method === 'GET' ? profile : { ...profile, role: 'management' }),
+    { mobile_token: 'fan-token' });
+  await controller.bootstrap();
+  assert.equal(await controller.updateProfile({ name: 'Updated name' }), false);
+  assert.deepEqual(controller.getState().user, profile);
+  controller.logout();
+  assert.equal(await controller.updateProfile({ name: 'Updated name' }), false);
+  assert.equal(requests.length, 2);
+});
