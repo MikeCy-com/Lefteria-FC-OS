@@ -171,5 +171,11 @@ jobs:
       - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
       - run: curl --fail --silent --show-error http://localhost/api/health/ready
       - run: curl --fail --silent --show-error http://localhost/ --output /dev/null
+      - if: failure()
+        name: Diagnose disposable Compose failure
+        run: |
+          docker compose --env-file .env.example ps --all
+          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
+          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
       - if: always()
         run: docker compose --env-file .env.example down --volumes --remove-orphans

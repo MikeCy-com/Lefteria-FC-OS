@@ -43,7 +43,8 @@ ordering.
 For a fresh **dedicated development database**, configure `.env` from
 `.env.example`: distinct strong owner/runtime passwords and independently
 generated base64 signing/OTP keys (at least 32 random bytes each). Set the proxy
-IP within the configured app subnet; change both if that subnet is occupied.
+IP within the configured app subnet and outside its dynamic allocation range;
+change all three settings together if that subnet is occupied.
 
 ```sh
 docker compose build
