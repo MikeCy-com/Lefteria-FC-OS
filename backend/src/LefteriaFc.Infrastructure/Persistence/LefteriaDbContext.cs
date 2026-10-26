@@ -3,6 +3,7 @@ using System.Text.Json;
 using LefteriaFc.Domain.Organizations;
 using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Infrastructure.Roster;
+using LefteriaFc.Infrastructure.StaffRelationships;
 
 namespace LefteriaFc.Infrastructure.Persistence;
 
@@ -23,11 +24,19 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     public DbSet<RosterPlayerAcademyGroupRecord> RosterPlayerAcademyGroups => Set<RosterPlayerAcademyGroupRecord>();
     public DbSet<RosterImportStateRecord> RosterImportStates => Set<RosterImportStateRecord>();
     public DbSet<RosterSourceDocumentRecord> RosterSourceDocuments => Set<RosterSourceDocumentRecord>();
+    public DbSet<StaffRecord> Staff => Set<StaffRecord>();
+    public DbSet<StaffTeamRecord> StaffTeams => Set<StaffTeamRecord>();
+    public DbSet<StaffAcademyGroupRecord> StaffAcademyGroups => Set<StaffAcademyGroupRecord>();
+    public DbSet<AcademyGroupCoachRecord> AcademyGroupCoaches => Set<AcademyGroupCoachRecord>();
+    public DbSet<StaffRelationshipImportStateRecord> StaffRelationshipImportStates => Set<StaffRelationshipImportStateRecord>();
+    public DbSet<StaffSourceDocumentRecord> StaffSourceDocuments => Set<StaffSourceDocumentRecord>();
+    public DbSet<ContactProvenanceRecord> ContactProvenance => Set<ContactProvenanceRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("identity");
         RosterModel.Configure(modelBuilder);
+        StaffRelationshipModel.Configure(modelBuilder);
         var avatars = modelBuilder.Entity<MobileAvatarRecord>();
         avatars.ToTable("mobile_avatars", table =>
         {

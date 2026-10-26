@@ -66,7 +66,9 @@ REVOKE ALL PRIVILEGES ON TABLE
   identity.admin_organization_grants, identity.otp_challenges,
   identity.auth_rate_buckets, club.organizations, audit.security_events,
   club.teams, club.academy_groups, club.players, club.player_academy_groups,
-  club.roster_import_state, migration.roster_source_documents
+  club.roster_import_state, migration.roster_source_documents,
+  club.staff, club.staff_teams, club.staff_academy_groups, club.academy_group_coaches,
+  migration.staff_relationship_import_state, migration.staff_source_documents, migration.contact_provenance
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -83,7 +85,9 @@ BEGIN
       ('identity','admin_organization_grants'), ('identity','otp_challenges'),
       ('identity','auth_rate_buckets'), ('club','organizations'), ('audit','security_events'),
       ('club','teams'), ('club','academy_groups'), ('club','players'), ('club','player_academy_groups'),
-      ('club','roster_import_state'), ('migration','roster_source_documents'))
+      ('club','roster_import_state'), ('migration','roster_source_documents'),
+      ('club','staff'), ('club','staff_teams'), ('club','staff_academy_groups'), ('club','academy_group_coaches'),
+      ('migration','staff_relationship_import_state'), ('migration','staff_source_documents'), ('migration','contact_provenance'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names

@@ -43,6 +43,14 @@ Identity, phone, role, active status and management linkage remain excluded.
 - Mobile avatars allow SELECT/INSERT and UPDATE of filename/JPEG/dimensions/time
   only. Ownership/provenance, DELETE and TRUNCATE are denied. Identity deletion
   cascades and replacements overwrite one current row per identity.
+- Canonical roster access is limited to SELECT on the five player-picker fields,
+  their eligibility predicates and the import-readiness ID. Whole player rows,
+  team/group relationships and roster writes are denied. The runtime has no
+  migration-schema USAGE or access to exact source archives.
+- Staff, staff assignments and group-coach links receive no runtime privileges.
+  Staff import state, full staff source and player/guardian/staff contact
+  provenance remain owner-only in the migration schema. The import executable
+  requires its own explicit owner connection; it is not part of API DI.
 
 Mobile identity RLS restricts INSERT to fan records. The fan check is restrictive,
 so an additional permissive insert policy cannot silently broaden it. SELECT
