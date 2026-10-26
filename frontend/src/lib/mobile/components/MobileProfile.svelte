@@ -2,6 +2,7 @@
   import { tick } from 'svelte';
   import type { components } from '../../api/schema';
   import type { FavoriteTeam, MobileProfileUpdate } from '../controller.ts';
+  import { AVATAR_FILE_TYPES, avatarFileError } from '../controller.ts';
   import './mobile-theme.css';
 
   interface Props {
@@ -10,16 +11,17 @@
     error?: string | null;
     onSaveFavoriteTeam: (value: FavoriteTeam) => boolean | Promise<boolean>;
     onSaveProfile: (changes: MobileProfileUpdate) => boolean | Promise<boolean>;
+    onUploadAvatar: (file: File) => boolean | Promise<boolean>;
     onLogout: () => void;
   }
 
-  let { user, busy = false, error = null, onSaveFavoriteTeam, onSaveProfile, onLogout }: Props = $props();
+  let { user, busy = false, error = null, onSaveFavoriteTeam, onSaveProfile, onUploadAvatar, onLogout }: Props = $props();
   const id = $props.id();
   let draft = $state('');
   let submitting = $state(false);
   let saved = $state(false);
   let avatarFailed = $state(false);
-  let editor = $state<'details' | 'notifications' | null>(null);
+  let editor = $state<'details' | 'notifications' | 'avatar' | null>(null);
   let profileSaved = $state(false);
   let details = $state({ firstName: '', lastName: '', birthday: '', email: '' });
   let notificationDraft = $state<Record<string, boolean>>({});
@@ -28,6 +30,13 @@
   let profileHeading = $state<HTMLHeadingElement>();
   let detailsTrigger = $state<HTMLButtonElement>();
   let notificationsTrigger = $state<HTMLButtonElement>();
+  let avatarTrigger = $state<HTMLButtonElement>();
+  let avatarInput = $state<HTMLInputElement>();
+  let selectedAvatar = $state<File | null>(null);
+  let avatarPreview = $state<string | null>(null);
+  let avatarSelectionError = $state<string | null>(null);
+  let avatarPreviewFailed = $state(false);
+  let avatarSaved = $state(false);
   // Keys/defaults come from pinned notification_center.py and GameHub.jsx.
   const notificationGroups = [
     { label: 'Λευτεριά FC', options: [
@@ -64,7 +73,52 @@
     saved = false;
   });
   $effect(() => { void avatar; avatarFailed = false; });
-  $effect(() => { void identityId; editor = null; profileSaved = false; });
+  $effect(() => { void identityId; editor = null; profileSaved = false; selectedAvatar = null; avatarSaved = false; avatarSelectionError = null; });
+  $effect(() => {
+    const file = selectedAvatar;
+    if (!file) { avatarPreview = null; return; }
+    const preview = URL.createObjectURL(file);
+    avatarPreview = preview;
+    return () => URL.revokeObjectURL(preview);
+  });
+
+  function openAvatar() {
+    selectedAvatar = null;
+    avatarSelectionError = null;
+    avatarPreviewFailed = false;
+    avatarSaved = false;
+    editor = 'avatar';
+    void tick().then(() => avatarInput?.focus());
+  }
+
+  function chooseAvatar(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    if (isBusy || !file) return;
+    const validation = avatarFileError(file);
+    selectedAvatar = validation ? null : file;
+    avatarSelectionError = validation;
+    avatarPreviewFailed = false;
+    avatarSaved = false;
+    input.value = '';
+  }
+
+  async function uploadAvatar(event: SubmitEvent) {
+    event.preventDefault();
+    if (isBusy || !selectedAvatar || avatarPreviewFailed) return;
+    submitting = true;
+    avatarSaved = false;
+    profileSaved = false;
+    saved = false;
+    try {
+      if (await onUploadAvatar(selectedAvatar)) {
+        selectedAvatar = null;
+        editor = null;
+        avatarSaved = true;
+        void tick().then(() => profileHeading?.focus());
+      }
+    } finally { submitting = false; }
+  }
 
   function openDetails() {
     details = { firstName: user.first_name ?? '', lastName: user.last_name ?? '', birthday: user.birthday ?? '', email: user.email ?? '' };
@@ -86,8 +140,11 @@
   function cancelEditor() {
     if (isBusy) return;
     const previous = editor;
+    selectedAvatar = null;
+    avatarSelectionError = null;
+    avatarPreviewFailed = false;
     editor = null;
-    void tick().then(() => (previous === 'details' ? detailsTrigger : notificationsTrigger)?.focus());
+    void tick().then(() => (previous === 'details' ? detailsTrigger : previous === 'avatar' ? avatarTrigger : notificationsTrigger)?.focus());
   }
 
   async function saveProfile(event: SubmitEvent) {
@@ -137,8 +194,29 @@
 
   {#if error}<p class="feedback error" role="alert" data-testid="profile-error">{error}</p>{/if}
   {#if profileSaved}<p class="feedback success" role="status" data-testid="profile-saved">Οι αλλαγές σου αποθηκεύτηκαν.</p>{/if}
+  {#if avatarSaved}<p class="feedback success" role="status" data-testid="avatar-saved">Η φωτογραφία προφίλ αποθηκεύτηκε.</p>{/if}
 
-  {#if editor === 'details'}
+  {#if editor === 'avatar'}
+    <form class="profile-editor" onsubmit={uploadAvatar} aria-labelledby={`${id}-avatar-title`} data-testid="profile-avatar-form">
+      <h2 id={`${id}-avatar-title`}>Αλλαγή φωτογραφίας</h2>
+      <label for={`${id}-avatar-file`}>Νέα φωτογραφία προφίλ</label>
+      <input bind:this={avatarInput} id={`${id}-avatar-file`} type="file" accept={AVATAR_FILE_TYPES.join(',')}
+        disabled={isBusy} onchange={chooseAvatar} aria-describedby={`${id}-avatar-help`} data-testid="avatar-file-input" />
+      <p class="hint" id={`${id}-avatar-help`}>JPEG, PNG, WebP ή GIF, έως 5 MB. Η φωτογραφία προφίλ έχει δημόσιο σύνδεσμο. Τα κινούμενα αρχεία αποθηκεύονται ως στατική φωτογραφία.</p>
+      {#if avatarSelectionError}<p class="error" role="alert" data-testid="avatar-selection-error">{avatarSelectionError}</p>{/if}
+      {#if selectedAvatar && avatarPreview}
+        <figure class="avatar-preview" data-testid="avatar-preview">
+          <img src={avatarPreview} alt="Προεπισκόπηση της νέας φωτογραφίας" onerror={() => { avatarPreviewFailed = true; }} />
+          <figcaption>{selectedAvatar.name}</figcaption>
+        </figure>
+      {/if}
+      {#if avatarPreviewFailed}<p class="error" role="alert">Δεν ήταν δυνατή η προεπισκόπηση. Επίλεξε άλλη φωτογραφία.</p>{/if}
+      <div class="form-actions">
+        <button type="button" class="secondary" disabled={isBusy} onclick={cancelEditor} data-testid="avatar-cancel">Ακύρωση</button>
+        <button type="submit" class="primary" disabled={isBusy || !selectedAvatar || avatarPreviewFailed} data-testid="avatar-upload">{isBusy ? 'Μεταφόρτωση…' : 'Αποθήκευση φωτογραφίας'}</button>
+      </div>
+    </form>
+  {:else if editor === 'details'}
     <form class="profile-editor" onsubmit={saveProfile} aria-labelledby={`${id}-edit-title`} data-testid="profile-details-form">
       <h2 id={`${id}-edit-title`}>Επεξεργασία προφίλ</h2>
       <fieldset disabled={isBusy}>
@@ -180,6 +258,7 @@
     </form>
   {:else}
     <div class="profile-actions">
+      <button bind:this={avatarTrigger} type="button" class="secondary" disabled={isBusy} onclick={openAvatar} data-testid="profile-edit-avatar">Αλλαγή φωτογραφίας</button>
       <button bind:this={detailsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openDetails} data-testid="profile-edit-details">Επεξεργασία στοιχείων</button>
       <button bind:this={notificationsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openNotifications} data-testid="profile-edit-notifications">Προτιμήσεις ειδοποιήσεων</button>
     </div>
@@ -202,7 +281,7 @@
   </form>
 
   <div class="pending-feature" data-testid="profile-edit-under-development">
-    <h2>Φωτογραφία και αγαπημένος παίκτης</h2><p>Under Developments</p>
+    <h2>Αγαπημένος παίκτης</h2><p>Under Developments</p>
   </div>
   <button class="logout" type="button" disabled={isBusy} onclick={onLogout} data-testid="profile-logout">Αποσύνδεση</button>
 </section>
@@ -215,6 +294,9 @@
   h1 { margin:0; font-size:28px; line-height:1.15; overflow-wrap:anywhere; }
   .avatar { display:grid; place-items:center; flex:0 0 auto; width:62px; height:62px; overflow:hidden; border:1px solid #806127; border-radius:50%; background:#1c2022; color:var(--lf-gold-light); font-family:var(--lf-heading); font-size:29px; }
   .avatar img { width:100%; height:100%; object-fit:cover; }
+  .avatar-preview { margin:18px 0 0; }
+  .avatar-preview img { display:block; width:160px; height:160px; max-width:100%; margin:0 auto; border:1px solid #806127; border-radius:8px; object-fit:contain; background:#080808; }
+  .avatar-preview figcaption { margin-top:8px; color:var(--lf-muted); font-size:12px; text-align:center; overflow-wrap:anywhere; }
   .identity-details { margin:0 0 24px; }
   .identity-details > div { padding:11px 0; border-bottom:1px solid var(--lf-line); }
   dt { color:var(--lf-muted); font-size:12px; }

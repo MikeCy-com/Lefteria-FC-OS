@@ -6,6 +6,7 @@
     <NuGetAuditLevel>low</NuGetAuditLevel>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.153.1" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" PrivateAssets="all" />
     <ProjectReference Include="../../src/LefteriaFc.Api/LefteriaFc.Api.csproj" />

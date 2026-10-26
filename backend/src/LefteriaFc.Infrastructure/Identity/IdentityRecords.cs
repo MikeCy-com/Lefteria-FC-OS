@@ -1,5 +1,16 @@
 namespace LefteriaFc.Infrastructure.Identity;
 
+public sealed class MobileAvatarRecord
+{
+    public Guid IdentityId { get; set; }
+    public string FileName { get; set; } = "";
+    public string? PreviousAvatarUrl { get; set; }
+    public byte[] JpegBytes { get; set; } = [];
+    public int Width { get; set; }
+    public int Height { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}
+
 public sealed class MobileIdentityRecord
 {
     public Guid Id { get; set; }

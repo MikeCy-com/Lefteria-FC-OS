@@ -9,6 +9,16 @@ public sealed class MobileRequestSchemaTransformer : IOpenApiSchemaTransformer
 {
     public Task TransformAsync(OpenApiSchema schema, OpenApiSchemaTransformerContext context, CancellationToken cancellationToken)
     {
+        if (context.JsonTypeInfo.Type == typeof(MobileAvatarUploadBody))
+        {
+            schema.Type = JsonSchemaType.Object;
+            schema.Properties = new Dictionary<string, IOpenApiSchema>
+            {
+                ["file"] = new OpenApiSchema { Type = JsonSchemaType.String, Format = "binary" }
+            };
+            schema.Required = new HashSet<string> { "file" };
+            schema.AdditionalPropertiesAllowed = false;
+        }
         if (context.JsonTypeInfo.Type == typeof(OtpVerificationBody) && schema.Properties is not null)
         {
             // JsonElement preserves missing vs null at runtime; publish its actual

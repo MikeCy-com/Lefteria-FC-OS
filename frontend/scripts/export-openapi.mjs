@@ -64,6 +64,17 @@ try {
   assert.ok(document.paths['/api/health/ready'].get.responses['503']);
   assert.deepEqual(document.paths['/api/mobile/auth/me'].get.security, [{ Mobile: [] }]);
   assert.equal(document.paths['/api/mobile/auth/request-otp'].post.security, undefined);
+  const avatarUpload = document.paths['/api/mobile/profile/avatar'].post;
+  assert.deepEqual(avatarUpload.security, [{ Mobile: [] }]);
+  const multipart = avatarUpload.requestBody.content['multipart/form-data'].schema;
+  const uploadSchema = multipart.$ref
+    ? document.components.schemas[multipart.$ref.split('/').at(-1)] : multipart;
+  assert.ok(uploadSchema.required?.includes('file'));
+  assert.equal(uploadSchema.properties.file.format, 'binary');
+  assert.equal(uploadSchema.properties.file.type, 'string');
+  const avatarRead = document.paths['/api/uploads/avatars/{fileName}'];
+  assert.ok(avatarRead.get && avatarRead.head);
+  assert.equal(avatarRead.get.security, undefined);
   assert.ok(document.components.schemas.MobileVerificationResult.anyOf?.length === 2 ||
     document.components.schemas.MobileVerificationResult.oneOf?.length === 2);
 

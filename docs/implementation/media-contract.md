@@ -7,7 +7,7 @@ rewrite slice. It does not establish the deployed production revision, select
 a new storage provider, or claim media is implemented in Lefteria-FC-OS.
 No provider, production database or uploaded binary was accessed.
 
-## Accepted composer flow and pending PR
+## Accepted composer flow and source frontend update
 
 The accepted [feature queue](feature-queue.md) requires: +, device photo/video
 selection, upload, Next, text with hashtags and @mentions, preview, publish.
@@ -30,11 +30,12 @@ Sources: [staging/Next/cancel](https://github.com/MikeCy-com/Lefteria-FC/blob/51
 [post edits](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/routes/social_network.py#L1854),
 [post deletion/job cancellation](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/routes/social_network.py#L2067).
 
-[Original PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42) was **open,
-unmerged** at review, head `5599ef99b8670b06e9480dcc283c060516ee10c6`, base
-`5111f06`. Its 15 changed files are frontend layouts/navigation/tests. Its social
-page patch changes public profile presentation, not upload/composer/backend
-contracts. It is pending parity/visual evidence, not shipped behavior. Its
+[Original PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42) was open at the
+initial audit and is now merged into source main at
+`7833daceceac1611c368e7bc4df2a82c64b45e1a`, rechecked on 2026-10-26. The 15-file
+delta from `5111f06` is frontend layouts/navigation/tests; no backend file changed.
+The avatar handler retains the same GitHub blob. Its social page patch changes
+public profile presentation, not upload/composer/backend contracts. Its
 singular “Under Development” wording does not supersede the accepted exact
 rewrite label **Under Developments**.
 

@@ -9,6 +9,7 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     : DbContext(options)
 {
     public DbSet<MobileIdentityRecord> MobileIdentities => Set<MobileIdentityRecord>();
+    public DbSet<MobileAvatarRecord> MobileAvatars => Set<MobileAvatarRecord>();
     public DbSet<AdminAccountRecord> AdminAccounts => Set<AdminAccountRecord>();
     public DbSet<AdminOrganizationGrantRecord> AdminOrganizationGrants => Set<AdminOrganizationGrantRecord>();
     public DbSet<OrganizationRecord> Organizations => Set<OrganizationRecord>();
@@ -19,6 +20,20 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("identity");
+        var avatars = modelBuilder.Entity<MobileAvatarRecord>();
+        avatars.ToTable("mobile_avatars", table =>
+        {
+            table.HasCheckConstraint("ck_avatar_filename", @"file_name ~ '^[0-9a-f]{32}_[0-9a-f]{64}\.jpg$'");
+            table.HasCheckConstraint("ck_avatar_bytes", "octet_length(jpeg_bytes) BETWEEN 4 AND 1048576 AND substring(jpeg_bytes from 1 for 2) = decode('ffd8','hex') AND substring(jpeg_bytes from octet_length(jpeg_bytes)-1 for 2) = decode('ffd9','hex')");
+            table.HasCheckConstraint("ck_avatar_dimensions", "width BETWEEN 1 AND 1024 AND height BETWEEN 1 AND 1024");
+        });
+        avatars.HasKey(x => x.IdentityId);
+        avatars.Property(x => x.IdentityId).ValueGeneratedNever();
+        avatars.Property(x => x.FileName).HasMaxLength(101).IsRequired();
+        avatars.Property(x => x.JpegBytes).HasColumnType("bytea").IsRequired();
+        avatars.HasIndex(x => x.FileName).IsUnique();
+        avatars.HasOne<MobileIdentityRecord>().WithOne().HasForeignKey<MobileAvatarRecord>(x => x.IdentityId)
+            .OnDelete(DeleteBehavior.Cascade);
         var identities = modelBuilder.Entity<MobileIdentityRecord>();
         identities.ToTable("mobile_identities", table =>
         {

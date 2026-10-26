@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
+using LefteriaFc.Application.MobileAuth;
+using LefteriaFc.Infrastructure.Identity;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -11,6 +13,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddLefteriaInfrastructure(
         this IServiceCollection services)
     {
+        services.AddSingleton<IAvatarImageSanitizer, SkiaAvatarImageSanitizer>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();

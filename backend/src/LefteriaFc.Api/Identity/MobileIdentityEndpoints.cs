@@ -32,7 +32,7 @@ public sealed record OtpVerificationBody
     public JsonElement RememberDays { get; init; }
 }
 
-public static class MobileIdentityEndpoints
+public static partial class MobileIdentityEndpoints
 {
     public static IApplicationBuilder UseMobileRequestGuards(this IApplicationBuilder app) => app.Use(async (context, next) =>
     {
@@ -94,6 +94,7 @@ public static class MobileIdentityEndpoints
         management.MapPost("/organization", (OrganizationSelectionBody body, MobileAuthService service, HttpContext context, CancellationToken token) =>
                 Execute(() => service.SelectOrganizationAsync(MobilePrincipal.Read(context.User), body.OrganizationId, token), context))
             .WithName("SelectMobileOrganization").Produces<MobileOrganizationContextDto>().WithMobileErrors();
+        MapMobileAvatar(endpoints);
         return endpoints;
     }
 
@@ -126,7 +127,7 @@ public static class MobileIdentityEndpoints
                 {
                     MobileAuthFaultKind.BadRequest => 400, MobileAuthFaultKind.Unauthorized => 401,
                     MobileAuthFaultKind.Forbidden => 403, MobileAuthFaultKind.NotFound => 404,
-                    MobileAuthFaultKind.Validation => 422, MobileAuthFaultKind.TooManyRequests => 429,
+                    MobileAuthFaultKind.Validation => 422, MobileAuthFaultKind.PayloadTooLarge => 413, MobileAuthFaultKind.TooManyRequests => 429,
                     _ => 503
                 });
         }

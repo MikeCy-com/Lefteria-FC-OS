@@ -11,6 +11,15 @@ type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
+export const MAX_AVATAR_FILE_BYTES = 5 * 1024 * 1024;
+export const AVATAR_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+
+export function avatarFileError(file: File): string | null {
+  if (!AVATAR_FILE_TYPES.some((type) => type === file.type)) return 'Επίλεξε φωτογραφία JPEG, PNG, WebP ή GIF.';
+  if (file.size === 0) return 'Το αρχείο φωτογραφίας είναι κενό.';
+  if (file.size > MAX_AVATAR_FILE_BYTES) return 'Η φωτογραφία πρέπει να είναι έως 5 MB.';
+  return null;
+}
 
 export interface MobileAuthState {
   status: 'initializing' | 'anonymous' | 'authenticated' | 'unavailable';
@@ -281,6 +290,28 @@ export function createMobileAuthController(options: {
           ...(changes.notification_prefs != null ? { notification_prefs: changes.notification_prefs } : {})
         };
         const user = responseData(await api.PUT('/api/mobile/profile', { headers: authorization(), body }));
+        if (revision !== operationRevision) return;
+        applyOwnProfile(user, identity);
+      }, true);
+    },
+    async uploadAvatar(file: File) {
+      const identity = state.user;
+      if (state.status !== 'authenticated' || !identity?.current_role_available) return false;
+      return action(async (operationRevision) => {
+        const validation = avatarFileError(file);
+        if (validation) throw new ApiFailure(422, validation);
+        const headers = authorization();
+        const result = responseData(await api.POST('/api/mobile/profile/avatar', {
+          headers, body: { file },
+          bodySerializer: () => {
+            const form = new FormData();
+            form.append('file', file, file.name);
+            return form;
+          }
+        }));
+        if (revision !== operationRevision) return;
+        if (!/^\/api\/uploads\/avatars\/[a-zA-Z0-9_-]+\.jpg$/.test(result.avatar_url)) throw new Error('Invalid avatar response');
+        const user = responseData(await api.GET('/api/mobile/auth/me', { headers }));
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);

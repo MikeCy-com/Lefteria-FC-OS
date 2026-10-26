@@ -65,10 +65,16 @@ This order follows the dependencies of the accepted requirements:
 - Own profile details and whole-object boolean notification preferences now use
   `PUT /api/mobile/profile`, with typed validation, locked phone, current-role
   ownership, update time and atomic audit. Avatar and roster picker remain queued.
-- Next: avatar/media infrastructure and the player/fan privacy contracts, then scoped
-  roster relationships and real role dashboards. Account import and legacy
-  token compatibility remain cutover gates.
+- Own mobile avatars now use bounded decoded-image upload, fresh ownership checks,
+  atomic PostgreSQL image/profile/audit storage and public generated JPEG delivery.
+  This does not approve a social avatar or migrate existing media.
+- Next: scoped roster relationships, player picker and real role dashboards;
+  social profiles/media retain their separately mapped privacy/moderation gates.
+  Account import and legacy token compatibility remain cutover gates.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
-was open and unmerged when inspected. It is pending React implementation evidence;
-its source and visual review can inform parity without treating it as shipped code.
+is now merged into source main at `7833daceceac1611c368e7bc4df2a82c64b45e1a`,
+verified on GitHub on 2026-10-26. Its 15 changed files are frontend layouts,
+navigation and tests; backend contracts are unchanged from the pinned audit.
+Use those merged layouts when porting dashboards. GitHub main still does not
+prove the deployed production revision.
