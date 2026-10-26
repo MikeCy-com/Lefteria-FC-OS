@@ -14,6 +14,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
+using LefteriaFc.Application.Roster;
+using LefteriaFc.Infrastructure.Roster;
 
 [assembly: WebApplicationFactoryContentRoot("LefteriaFc.Api", "../../../../../src/LefteriaFc.Api", "LefteriaFc.Api.csproj", "0")]
 
@@ -27,6 +29,7 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) :
     public string OtpKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     public CapturingSmsSender Sms { get; } = new();
     public GatedAvatarSanitizer Avatars { get; } = new();
+    public RosterQueryGate RosterGate { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -50,11 +53,39 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) :
             services.AddSingleton<ISmsSender>(Sms);
             services.RemoveAll<IAvatarImageSanitizer>();
             services.AddSingleton<IAvatarImageSanitizer>(Avatars);
+            services.RemoveAll<IRosterQueries>();
+            services.AddScoped<IRosterQueries>(provider => new GatedRosterQueries(
+                new PostgresRosterQueries(provider.GetRequiredService<LefteriaDbContext>()), RosterGate));
             services.RemoveAll<LefteriaDbContext>();
             services.AddScoped(_ => new LefteriaDbContext(new DbContextOptionsBuilder<LefteriaDbContext>()
                 .UseNpgsql(fixture.AppConnectionString).Options));
             services.AddSingleton<IStartupFilter, TrustedTestRemoteIpFilter>();
         });
+    }
+}
+
+internal sealed class RosterQueryGate
+{
+    private readonly ConcurrentQueue<Gate> gates = new();
+    public Gate HoldNext() { var gate = new Gate(); gates.Enqueue(gate); return gate; }
+    public async Task WaitAsync(CancellationToken token)
+    {
+        if (!gates.TryDequeue(out var gate)) return;
+        gate.Entered.TrySetResult();
+        await gate.Release.Task.WaitAsync(token);
+    }
+    internal sealed class Gate
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    }
+}
+internal sealed class GatedRosterQueries(IRosterQueries inner, RosterQueryGate gate) : IRosterQueries
+{
+    public async Task<RosterPickerSnapshot> GetFirstTeamPickerAsync(MobileSession session, CancellationToken token)
+    {
+        await gate.WaitAsync(token);
+        return await inner.GetFirstTeamPickerAsync(session, token);
     }
 }
 

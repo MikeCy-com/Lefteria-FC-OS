@@ -96,6 +96,14 @@ jobs:
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_APP_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_APP_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/identity-app-permissions-check.sql'
       - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
+      - name: Build and smoke the separate roster import tool
+        run: |
+          dotnet restore backend/tools/LefteriaFc.RosterImport --locked-mode
+          dotnet build backend/tools/LefteriaFc.RosterImport --configuration Release --no-restore
+          cat > "$RUNNER_TEMP/empty-roster-manifest.json" <<'JSON'
+          {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"7833daceceac1611c368e7bc4df2a82c64b45e1a","complete_collections":["teams","academy_groups","players"],"teams":[],"academy_groups":[],"players":[]}
+          JSON
+          dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --input "$RUNNER_TEMP/empty-roster-manifest.json"
       - name: Build guarded browser verification host
         run: |
           dotnet restore backend/tools/LefteriaFc.MobilePreview --locked-mode

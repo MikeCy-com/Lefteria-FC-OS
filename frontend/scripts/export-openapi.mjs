@@ -75,6 +75,11 @@ try {
   const avatarRead = document.paths['/api/uploads/avatars/{fileName}'];
   assert.ok(avatarRead.get && avatarRead.head);
   assert.equal(avatarRead.get.security, undefined);
+  const playerPicker = document.paths['/api/mobile/players-list'].get;
+  assert.deepEqual(playerPicker.security, [{ Mobile: [] }]);
+  assert.ok(playerPicker.responses['503'], 'An uninitialized roster must remain unavailable.');
+  assert.deepEqual(Object.keys(document.components.schemas.MobilePlayerOptionDto.properties).sort(),
+    ['id', 'image_url', 'name', 'number', 'position']);
   assert.ok(document.components.schemas.MobileVerificationResult.anyOf?.length === 2 ||
     document.components.schemas.MobileVerificationResult.oneOf?.length === 2);
 

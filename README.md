@@ -4,12 +4,12 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads and authenticated browser verification.
+- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster storage and an authenticated favourite-player picker.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Source main rechecked on 2026-10-26: `7833daceceac1611c368e7bc4df2a82c64b45e1a` merges frontend PR #42. Its 15-file delta changes no backend contracts; the avatar handler's GitHub blob is unchanged. New dashboard layouts are now part of the source baseline.
 - Deployed revision, VPS configuration and live data are not verified.
-- No accounts or production data have been migrated. Own profile details, team preference, notification preferences and a public mobile avatar can be edited; player picker, operational dashboards, notification delivery and social/media workflows remain queued.
+- No accounts or production data have been migrated. Own profile details, team/player preferences, notification preferences and a public mobile avatar can be edited. The picker requires an explicitly imported complete roster snapshot; operational dashboards, private roster relationships, notification delivery and social/media workflows remain queued.
 
 ## Architecture documents
 
@@ -30,6 +30,8 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Authenticated browser verification](docs/implementation/browser-verification.md)
 - [Legacy identity and session migration contract](docs/implementation/legacy-identity-migration.md)
 - [Role dashboard source contract](docs/implementation/role-dashboard-contract.md)
+- [Roster source contract](docs/implementation/roster-source-contract.md)
+- [Canonical roster, explicit import and recovery](docs/implementation/canonical-roster.md)
 
 ## Target stack
 

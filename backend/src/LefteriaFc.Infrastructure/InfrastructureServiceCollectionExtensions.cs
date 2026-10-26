@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Infrastructure.Identity;
+using LefteriaFc.Application.Roster;
+using LefteriaFc.Infrastructure.Roster;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -14,6 +16,8 @@ public static class InfrastructureServiceCollectionExtensions
         this IServiceCollection services)
     {
         services.AddSingleton<IAvatarImageSanitizer, SkiaAvatarImageSanitizer>();
+        services.AddScoped<IRosterQueries, PostgresRosterQueries>();
+        services.AddScoped<MobileRosterService>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();

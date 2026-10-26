@@ -43,7 +43,8 @@ public enum MobileAuthErrorCode
     InvalidAvatar,
     AvatarTooLarge,
     AvatarProcessingBusy,
-    AvatarStorageUnavailable
+    AvatarStorageUnavailable,
+    RosterUnavailable
 }
 
 public sealed class MobileAuthException(

@@ -26,7 +26,7 @@ function setup(handler, initial = {}) {
       const contentType = request.headers.get('Content-Type') ?? '';
       const body = !['POST', 'PUT'].includes(request.method) ? undefined
         : contentType.startsWith('multipart/form-data') ? await request.clone().formData() : await request.clone().json();
-      requests.push({ path: new URL(request.url).pathname, method: request.method, body,
+      requests.push({ path: new URL(request.url).pathname, search: new URL(request.url).search, method: request.method, body,
         authorization: request.headers.get('Authorization'), cache: request.cache, contentType });
       return handler(requests.at(-1), requests);
     }
@@ -604,4 +604,256 @@ test('avatar refresh refuses another identity and anonymous or revoked identitie
   await revoked.controller.bootstrap();
   assert.equal(await revoked.controller.uploadAvatar(avatarFile()), false);
   assert.equal(revoked.requests.length, 1);
+});
+
+const playerOptions = [
+  { id: 'player-option-1', name: 'Directory Player', number: 0, position: 'Goalkeeper', image_url: null },
+  { id: 'player-option-2', name: 'Second Player', number: 12, position: 'Defender', image_url: '/api/uploads/roster/second.jpg' }
+];
+
+test('player picker loads the authenticated minimal directory for all five roles without changing a stored favourite', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    const profile = identity(role, { favourite_player_id: 'unlisted-saved-id' });
+    const { controller, requests, writes, values } = setup(({ path }) => {
+      if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+      return Response.json(path.endsWith('/players-list') ? { players: playerOptions } : profile);
+    }, { mobile_token: `${role}-token` });
+    await controller.bootstrap();
+    const priorWrites = writes.length;
+    assert.equal(await controller.loadPlayerOptions(), true);
+    assert.equal(controller.getState().playerOptionsStatus, 'ready');
+    assert.deepEqual(controller.getState().playerOptions, playerOptions);
+    assert.equal(controller.getState().playerOptionsError, null);
+    assert.deepEqual(controller.getState().user, profile, 'Loading must not clear or replace an unlisted saved reference.');
+    assert.equal(writes.length, priorWrites, 'Directory results stay in memory.');
+    assert.equal(values.get('mobile_token'), `${role}-token`);
+    assert.deepEqual(requests.at(-1), { path: '/api/mobile/players-list', search: '', method: 'GET', body: undefined,
+      authorization: `Bearer ${role}-token`, cache: 'no-store', contentType: '' });
+    assert.equal(requests.some(({ method }) => method === 'PUT'), false);
+    if (role === 'management') assert.equal(controller.getState().organization.organization_id, 'club');
+  }
+});
+
+test('player picker distinguishes loading, unavailable errors and a verified empty list with explicit retry', { timeout: 5000 }, async () => {
+  for (const failure of [503, 403, 'network']) {
+    let complete;
+    let signal;
+    const pending = new Promise((resolve) => { signal = resolve; });
+    let attempts = 0;
+    const profile = identity('fan', { favourite_player_id: 'saved-id' });
+    const { controller } = setup(({ path }) => {
+      if (!path.endsWith('/players-list')) return Response.json(profile);
+      ++attempts;
+      if (attempts === 1) return new Promise((resolve, reject) => { complete = failure === 'network' ? reject : resolve; signal(); });
+      return Response.json({ players: [] });
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    const request = controller.loadPlayerOptions();
+    await pending;
+    assert.equal(controller.getState().playerOptionsStatus, 'loading');
+    assert.equal(controller.getState().busy, false, 'An outstanding directory read must not prevent an explicit role switch.');
+    assert.equal(await controller.loadPlayerOptions(), false, 'An in-flight load is not duplicated.');
+    complete(failure === 'network' ? new TypeError('Network unavailable')
+      : Response.json({ code: failure === 503 ? 'roster_unavailable' : 'role_unavailable', detail: 'Directory unavailable' }, { status: failure }));
+    assert.equal(await request, false);
+    assert.equal(controller.getState().playerOptionsStatus, 'error');
+    assert.deepEqual(controller.getState().playerOptions, []);
+    assert.ok(controller.getState().playerOptionsError);
+    if (failure !== 'network') assert.equal(controller.getState().playerOptionsError, 'Directory unavailable');
+    assert.deepEqual(controller.getState().user, profile);
+    assert.equal(await controller.loadPlayerOptions(), true);
+    assert.equal(controller.getState().playerOptionsStatus, 'ready');
+    assert.deepEqual(controller.getState().playerOptions, []);
+    assert.equal(controller.getState().playerOptionsError, null);
+    assert.deepEqual(controller.getState().user, profile);
+  }
+});
+
+test('expired player picker requests clear the session and anonymous or revoked identities cannot load', async () => {
+  const { controller, requests, values } = setup(({ path }) => path.endsWith('/players-list')
+    ? Response.json({ detail: 'Session expired', code: 'session_expired' }, { status: 401 }) : Response.json(identity('fan')),
+  { mobile_token: 'fan-token' });
+  await controller.bootstrap();
+  assert.equal(await controller.loadPlayerOptions(), false);
+  assert.equal(controller.getState().status, 'anonymous');
+  assert.equal(controller.getState().user, null);
+  assert.equal(controller.getState().playerOptionsStatus, 'idle');
+  assert.deepEqual(controller.getState().playerOptions, []);
+  assert.equal(values.has('mobile_token'), false);
+  assert.equal(await controller.loadPlayerOptions(), false);
+  assert.equal(requests.length, 2);
+  const revoked = setup(() => Response.json(identity('parent', { current_role_available: false })), { mobile_token: 'revoked-token' });
+  await revoked.controller.bootstrap();
+  assert.equal(await revoked.controller.loadPlayerOptions(), false);
+  assert.equal(revoked.requests.length, 1);
+});
+
+test('old picker success or failure cannot populate another role or a replacement session', { timeout: 5000 }, async () => {
+  for (const transition of ['logout', 'new-session', 'switch-role']) {
+    for (const responseStatus of [200, 401, 503]) {
+      let complete;
+      let signal;
+      const pending = new Promise((resolve) => { signal = resolve; });
+      const previous = identity('fan');
+      const current = identity('parent', { id: '22222222-2222-4222-8222-222222222222' });
+      const { controller, values } = setup(({ path, authorization }) => {
+        if (path.endsWith('/players-list')) return new Promise((resolve) => { complete = resolve; signal(); });
+        if (path.endsWith('/switch-role')) return Response.json({ token: 'parent-token', user: current, role: 'parent', available_roles: ['parent', 'fan'] });
+        return Response.json(authorization === 'Bearer parent-token' ? current : previous);
+      }, { mobile_token: 'fan-token' });
+      await controller.bootstrap();
+      const request = controller.loadPlayerOptions();
+      await pending;
+      if (transition === 'switch-role') assert.equal(await controller.switchRole('parent'), true);
+      else {
+        controller.logout();
+        if (transition === 'new-session') { values.set('mobile_token', 'parent-token'); await controller.bootstrap(); }
+      }
+      assert.deepEqual(controller.getState().playerOptions, []);
+      assert.equal(controller.getState().playerOptionsStatus, 'idle');
+      complete(Response.json(responseStatus === 200 ? { players: playerOptions }
+        : { detail: 'Old directory failure', code: 'old_failure' }, { status: responseStatus }));
+      assert.equal(await request, false);
+      assert.deepEqual(controller.getState().playerOptions, []);
+      assert.equal(controller.getState().playerOptionsStatus, 'idle');
+      assert.equal(controller.getState().playerOptionsError, null);
+      assert.deepEqual(controller.getState().user, transition === 'logout' ? null : current);
+      assert.equal(values.get('mobile_token'), transition === 'logout' ? undefined : 'parent-token');
+    }
+  }
+});
+
+test('loaded picker options are invalidated on role changes, failed switching and restored same-role sessions', async () => {
+  for (const transition of ['switch-role', 'failed-switch', 'restore']) {
+    const previous = identity('fan');
+    const current = identity('parent');
+    const { controller, values } = setup(({ path, authorization }) => {
+      if (path.endsWith('/players-list')) return Response.json({ players: playerOptions });
+      if (path.endsWith('/switch-role')) return transition === 'failed-switch'
+        ? Response.json({ detail: 'Switch failed' }, { status: 503 })
+        : Response.json({ token: 'parent-token', user: current, role: 'parent', available_roles: ['parent', 'fan'] });
+      return Response.json(authorization === 'Bearer parent-token' ? current : previous);
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    await controller.loadPlayerOptions();
+    assert.deepEqual(controller.getState().playerOptions, playerOptions);
+    if (transition === 'restore') { values.set('mobile_token', 'fresh-fan-token'); await controller.bootstrap(); }
+    else await controller.switchRole('parent');
+    assert.deepEqual(controller.getState().playerOptions, []);
+    assert.equal(controller.getState().playerOptionsStatus, 'idle');
+    assert.equal(controller.getState().playerOptionsError, null);
+  }
+});
+
+test('favourite-player save and explicit empty-string clear use the current own identity without a role change', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    let profile = identity(role, { favourite_player_id: 'unlisted-saved-id' });
+    const { controller, requests, values } = setup(({ path, method, body }) => {
+      if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+      if (path.endsWith('/players-list')) return Response.json({ players: playerOptions });
+      if (method === 'PUT') profile = { ...profile, favourite_player_id: body.favourite_player_id || null };
+      return Response.json(profile);
+    }, { mobile_token: `${role}-token` });
+    await controller.bootstrap();
+    await controller.loadPlayerOptions();
+    for (const selected of ['player-option-2', '']) {
+      assert.equal(await controller.updateProfile({ favourite_player_id: selected }), true);
+      assert.deepEqual(requests.at(-1).body, { favourite_player_id: selected });
+      assert.equal(requests.at(-1).path, '/api/mobile/profile');
+      assert.equal(requests.at(-1).authorization, `Bearer ${role}-token`);
+      assert.equal(controller.getState().user.favourite_player_id, selected || null);
+      assert.deepEqual(controller.getState().playerOptions, playerOptions);
+      assert.equal(controller.getState().playerOptionsStatus, 'ready');
+      assert.equal(values.get('mobile_token'), `${role}-token`);
+      assert.equal(requests.some(({ path }) => path.endsWith('/switch-role')), false);
+      if (role === 'management') assert.equal(controller.getState().organization.organization_id, 'club');
+    }
+  }
+});
+
+test('failed favourite-player writes retain the saved reference and loaded directory without optimistic changes', async () => {
+  for (const failure of [422, 503, 'network']) {
+    const profile = identity('fan', { favourite_player_id: 'saved-id' });
+    const { controller, values } = setup(({ path, method }) => {
+      if (path.endsWith('/players-list')) return Response.json({ players: playerOptions });
+      if (method !== 'PUT') return Response.json(profile);
+      if (failure === 'network') throw new TypeError('Network unavailable');
+      return Response.json({ detail: 'Favourite could not be saved', code: 'invalid_profile' }, { status: failure });
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    await controller.loadPlayerOptions();
+    for (const selection of ['player-option-2', '']) {
+      assert.equal(await controller.updateProfile({ favourite_player_id: selection }), false);
+      assert.deepEqual(controller.getState().user, profile);
+      assert.deepEqual(controller.getState().playerOptions, playerOptions);
+      assert.equal(controller.getState().playerOptionsStatus, 'ready');
+      assert.ok(controller.getState().error);
+      assert.equal(values.get('mobile_token'), 'fan-token');
+    }
+  }
+});
+
+test('picker 401 invalidates pending own writes and organization requests before their late success', { timeout: 5000 }, async (t) => {
+  for (const operation of ['profile', 'favorite-team', 'avatar-post', 'avatar-me', 'organization-refresh', 'organization-select']) {
+    await t.test(operation, async () => {
+      const picker = Promise.withResolvers();
+      const pickerStarted = Promise.withResolvers();
+      const work = Promise.withResolvers();
+      const workStarted = Promise.withResolvers();
+      const management = operation.startsWith('organization-');
+      const profile = identity(management ? 'management' : 'fan', { favourite_player_id: 'saved-id' });
+      const organization = { available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false };
+      const updated = { ...profile, name: 'Late private profile', avatar_url: '/api/uploads/avatars/new.jpg' };
+      let posted = false;
+      let organizationReads = 0;
+      const { controller, values } = setup(({ path, method }) => {
+        if (path.endsWith('/players-list')) { pickerStarted.resolve(); return picker.promise; }
+        if (path.endsWith('/organization')) {
+          if (method === 'GET' && ++organizationReads === 1) return Response.json(organization);
+          workStarted.resolve();
+          return work.promise;
+        }
+        if (method === 'POST' && path.endsWith('/avatar')) {
+          posted = true;
+          if (operation === 'avatar-me') return Response.json({ avatar_url: updated.avatar_url });
+          workStarted.resolve();
+          return work.promise;
+        }
+        if (method === 'PUT' || posted) { workStarted.resolve(); return work.promise; }
+        return Response.json(profile);
+      }, { mobile_token: 'current-token', mobile_available_roles: '["fan"]' });
+      await controller.bootstrap();
+      const pendingPicker = controller.loadPlayerOptions();
+      await pickerStarted.promise;
+      const pendingWork = operation === 'profile' ? controller.updateProfile({ name: updated.name })
+        : operation === 'favorite-team' ? controller.updateFavoriteTeam('both')
+        : operation.startsWith('avatar-') ? controller.uploadAvatar(avatarFile())
+        : operation === 'organization-refresh' ? controller.refreshOrganization() : controller.selectOrganization('club');
+      await workStarted.promise;
+      assert.equal(controller.getState().busy, true);
+      picker.resolve(Response.json({ detail: 'Session expired', code: 'session_expired' }, { status: 401 }));
+      assert.equal(await pendingPicker, false);
+      assert.equal(controller.getState().status, 'anonymous');
+      const busyAfterExpiry = controller.getState().busy;
+      work.resolve(Response.json(operation === 'favorite-team' ? { ok: true, user: updated }
+        : operation === 'avatar-post' ? { avatar_url: updated.avatar_url }
+        : management ? organization : updated));
+      assert.equal(await pendingWork, false, 'The pending action must be invalidated by session expiry.');
+      assert.equal(controller.getState().status, 'anonymous', 'A late success must not restore authenticated private state.');
+      assert.equal(controller.getState().user, null);
+      assert.equal(controller.getState().organization, null);
+      assert.equal(controller.getState().busy, false);
+      assert.equal(busyAfterExpiry, false, 'Expired sessions must immediately release the busy state.');
+      assert.deepEqual(controller.getState().playerOptions, []);
+      assert.equal(controller.getState().playerOptionsStatus, 'idle');
+      assert.equal(controller.getState().playerOptionsError, null);
+      assert.equal(controller.getState().error, 'Session expired');
+      assert.equal(values.has('mobile_token'), false);
+      assert.equal(values.has('mobile_available_roles'), false);
+      assert.equal(await controller.updateProfile({ name: 'No session' }), false);
+    });
+  }
 });

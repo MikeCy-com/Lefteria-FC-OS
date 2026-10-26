@@ -55,6 +55,7 @@ $guard$;
 REVOKE CREATE, TEMPORARY ON DATABASE :"identity_database" FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public, identity, club, audit FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM :"app_role";
+REVOKE ALL PRIVILEGES ON SCHEMA migration FROM PUBLIC, :"app_role";
 REVOKE ALL PRIVILEGES ON DATABASE :"identity_database" FROM :"app_role";
 GRANT CONNECT ON DATABASE :"identity_database" TO :"app_role";
 REVOKE ALL PRIVILEGES ON SCHEMA identity, club, audit FROM :"app_role";
@@ -63,7 +64,9 @@ GRANT USAGE ON SCHEMA identity, club, audit TO :"app_role";
 REVOKE ALL PRIVILEGES ON TABLE
   identity.mobile_identities, identity.mobile_avatars, identity.admin_accounts,
   identity.admin_organization_grants, identity.otp_challenges,
-  identity.auth_rate_buckets, club.organizations, audit.security_events
+  identity.auth_rate_buckets, club.organizations, audit.security_events,
+  club.teams, club.academy_groups, club.players, club.player_academy_groups,
+  club.roster_import_state, migration.roster_source_documents
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -78,7 +81,9 @@ BEGIN
     WHERE (n.nspname, c.relname) IN (
       ('identity','mobile_identities'), ('identity','mobile_avatars'), ('identity','admin_accounts'),
       ('identity','admin_organization_grants'), ('identity','otp_challenges'),
-      ('identity','auth_rate_buckets'), ('club','organizations'), ('audit','security_events'))
+      ('identity','auth_rate_buckets'), ('club','organizations'), ('audit','security_events'),
+      ('club','teams'), ('club','academy_groups'), ('club','players'), ('club','player_academy_groups'),
+      ('club','roster_import_state'), ('migration','roster_source_documents'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -103,6 +108,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON identity.otp_challenges TO :"app_role";
 GRANT SELECT, INSERT ON identity.auth_rate_buckets TO :"app_role";
 GRANT UPDATE (tokens, updated_at) ON identity.auth_rate_buckets TO :"app_role";
 GRANT INSERT ON audit.security_events TO :"app_role";
+GRANT SELECT (id, organization_id, name, number, position, image_url, team_type,
+  is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
+GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
 
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.

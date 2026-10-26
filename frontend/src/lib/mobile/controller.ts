@@ -11,6 +11,8 @@ type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
+export type MobilePlayerOption = components['schemas']['MobilePlayerOptionDto'];
+export type MobilePlayerOptionsStatus = 'idle' | 'loading' | 'ready' | 'error';
 export const MAX_AVATAR_FILE_BYTES = 5 * 1024 * 1024;
 export const AVATAR_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
 
@@ -33,6 +35,9 @@ export interface MobileAuthState {
   availableRoles: readonly MobileRole[];
   organization: Organization | null;
   organizationError: string | null;
+  playerOptions: readonly MobilePlayerOption[];
+  playerOptionsStatus: MobilePlayerOptionsStatus;
+  playerOptionsError: string | null;
   resendAvailableAt: number;
 }
 
@@ -66,24 +71,37 @@ export function createMobileAuthController(options: {
   let state: MobileAuthState = {
     status: 'initializing', busy: false, error: null, step: 'phone', phone: '',
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
-    organizationError: null, resendAvailableAt: 0
+    organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null, resendAvailableAt: 0
   };
   const store = writable(state);
   let token: string | null = null;
   let pendingCode: string | null = null;
   let revision = 0;
+  let playerOptionsRevision = 0;
 
   function update(patch: Partial<MobileAuthState>) {
     state = { ...state, ...patch };
     store.set(state);
   }
 
+  function clearPlayerOptions() {
+    ++playerOptionsRevision;
+    update({ playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null });
+  }
+
   function anonymous(error: string | null = null) {
+    clearPlayerOptions();
     token = null;
     pendingCode = null;
     options.storage.clear();
     update({ status: 'anonymous', user: null, availableRoles: [], organization: null,
       organizationError: null, identities: [], detectedRole: null, step: 'phone', error });
+  }
+
+  function endSession(error: string | null = null) {
+    ++revision;
+    anonymous(error);
+    update({ busy: false });
   }
 
   function authorization() {
@@ -99,6 +117,7 @@ export function createMobileAuthController(options: {
     if (!isMobileRole(user.role) || typeof user.id !== 'string' || typeof user.name !== 'string' ||
         typeof user.current_role_available !== 'boolean') throw new Error('Invalid identity response');
     const roles = validRoles(user.available_roles);
+    if (!user.current_role_available || state.user?.id !== user.id || state.user?.role !== user.role || state.user?.phone !== user.phone) clearPlayerOptions();
     update({ status: 'authenticated', user, availableRoles: roles, error: null,
       ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
       identities: [], detectedRole: null, phone: user.phone });
@@ -179,6 +198,7 @@ export function createMobileAuthController(options: {
     getState: () => state,
     async bootstrap() {
       return action(async (operationRevision) => {
+        clearPlayerOptions();
         token = options.storage.readToken();
         if (!token) { anonymous(); return; }
         try {
@@ -195,6 +215,7 @@ export function createMobileAuthController(options: {
     },
     async requestOtp(phone: string) {
       return action(async (operationRevision) => {
+        clearPlayerOptions();
         const data = responseData(await api.POST('/api/mobile/auth/request-otp', { body: { phone } }));
         if (revision !== operationRevision) return;
         pendingCode = null;
@@ -209,6 +230,7 @@ export function createMobileAuthController(options: {
     },
     async registerFan(registration: FanRegistrationForm) {
       return action(async (operationRevision) => {
+        clearPlayerOptions();
         const data = responseData(await api.POST('/api/mobile/auth/register-fan', { body: {
           phone: registration.phone, first_name: registration.firstName, last_name: registration.lastName,
           birthday: registration.birthday, name: null
@@ -228,6 +250,7 @@ export function createMobileAuthController(options: {
       if (!state.user || !isMobileRole(role) ||
           (!state.user.current_role_available && role !== 'fan')) return false;
       return action(async (operationRevision) => {
+        clearPlayerOptions();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/auth/switch-role', { headers: authorization(), body: { role } }));
         if (revision !== operationRevision) return;
@@ -260,6 +283,31 @@ export function createMobileAuthController(options: {
         update({ organization: null, organizationError: null });
         await organizationContext(authorization(), operationRevision);
       }, true);
+    },
+    async loadPlayerOptions() {
+      const identity = state.user;
+      if (state.busy || state.status !== 'authenticated' || !identity?.current_role_available || state.playerOptionsStatus === 'loading') return false;
+      const operationRevision = ++playerOptionsRevision;
+      const sessionToken = token;
+      const isCurrent = () => playerOptionsRevision === operationRevision && token === sessionToken &&
+        state.status === 'authenticated' && state.user?.id === identity.id && state.user.role === identity.role &&
+        state.user.phone === identity.phone && state.user.current_role_available;
+      update({ playerOptions: [], playerOptionsStatus: 'loading', playerOptionsError: null });
+      try {
+        const result = responseData(await api.GET('/api/mobile/players-list', { headers: authorization() }));
+        if (!isCurrent()) return false;
+        if (!Array.isArray(result.players) || !result.players.every((player) =>
+          typeof player.id === 'string' && player.id.length > 0 && typeof player.name === 'string' &&
+          Number.isInteger(player.number) && typeof player.position === 'string' &&
+          (player.image_url === null || typeof player.image_url === 'string'))) throw new Error('Invalid player options response');
+        update({ playerOptions: result.players, playerOptionsStatus: 'ready', playerOptionsError: null });
+        return true;
+      } catch (error) {
+        if (!isCurrent()) return false;
+        if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+        else update({ playerOptions: [], playerOptionsStatus: 'error', playerOptionsError: message(error) });
+        return false;
+      }
     },
     async updateFavoriteTeam(favoriteTeam: FavoriteTeam) {
       const identity = state.user;
@@ -316,12 +364,8 @@ export function createMobileAuthController(options: {
         applyOwnProfile(user, identity);
       }, true);
     },
-    logout() {
-      ++revision;
-      anonymous();
-      update({ busy: false });
-    },
-    dispose() { ++revision; pendingCode = null; }
+    logout() { endSession(); },
+    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); }
   };
 }
 
