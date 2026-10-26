@@ -7,6 +7,8 @@ BEGIN;
 DO $checks$
 DECLARE
   denied boolean;
+  private_table text;
+  private_table_id oid;
   probe_id uuid := gen_random_uuid();
   probe_phone text := '999' || lpad(trunc(random() * 10000000000)::bigint::text, 10, '0');
 BEGIN
@@ -40,6 +42,27 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Runtime can read owner-only source archives'; END IF;
+  FOREACH private_table IN ARRAY ARRAY['club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches',
+    'migration.staff_relationship_import_state','migration.staff_source_documents','migration.contact_provenance']
+  LOOP
+    -- Resolve through the catalog: the runtime deliberately lacks migration
+    -- schema USAGE, so resolving its qualified name as regclass is denied.
+    SELECT c.oid INTO STRICT private_table_id
+      FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = split_part(private_table, '.', 1)
+        AND c.relname = split_part(private_table, '.', 2);
+    IF has_table_privilege(current_user, private_table_id, 'SELECT') OR has_table_privilege(current_user, private_table_id, 'INSERT')
+        OR has_table_privilege(current_user, private_table_id, 'UPDATE') OR has_table_privilege(current_user, private_table_id, 'DELETE')
+        OR has_table_privilege(current_user, private_table_id, 'TRUNCATE') THEN
+      RAISE EXCEPTION 'Runtime has access to an owner-only staff relationship table';
+    END IF;
+    denied := false;
+    BEGIN
+      EXECUTE format('SELECT 1 FROM %s LIMIT 1', private_table);
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'Runtime can read an owner-only staff relationship table'; END IF;
+  END LOOP;
   INSERT INTO identity.mobile_identities
     (id, normalized_phone, role, display_name, is_active, platform, created_at)
     VALUES (probe_id, probe_phone, 'fan', 'Permission probe', true, 'Test', now());

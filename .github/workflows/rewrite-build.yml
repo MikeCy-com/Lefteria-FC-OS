@@ -104,6 +104,10 @@ jobs:
           {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"7833daceceac1611c368e7bc4df2a82c64b45e1a","complete_collections":["teams","academy_groups","players"],"teams":[],"academy_groups":[],"players":[]}
           JSON
           dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --input "$RUNNER_TEMP/empty-roster-manifest.json"
+          cat > "$RUNNER_TEMP/empty-staff-manifest.json" <<'JSON'
+          {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"7833daceceac1611c368e7bc4df2a82c64b45e1a","roster_sha256":"0000000000000000000000000000000000000000000000000000000000000000","complete_collections":["staff"],"staff":[]}
+          JSON
+          dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --kind staff-relationships --input "$RUNNER_TEMP/empty-staff-manifest.json"
       - name: Build guarded browser verification host
         run: |
           dotnet restore backend/tools/LefteriaFc.MobilePreview --locked-mode

@@ -4,7 +4,7 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster storage and an authenticated favourite-player picker.
+- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster/staff relationships with private contact provenance, and an authenticated favourite-player picker.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Source main rechecked on 2026-10-26: `7833daceceac1611c368e7bc4df2a82c64b45e1a` merges frontend PR #42. Its 15-file delta changes no backend contracts; the avatar handler's GitHub blob is unchanged. New dashboard layouts are now part of the source baseline.
@@ -32,6 +32,8 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Role dashboard source contract](docs/implementation/role-dashboard-contract.md)
 - [Roster source contract](docs/implementation/roster-source-contract.md)
 - [Canonical roster, explicit import and recovery](docs/implementation/canonical-roster.md)
+- [Staff relationship source contract](docs/implementation/staff-relationship-source-contract.md)
+- [Staff relationships, private contact provenance and import](docs/implementation/staff-relationships.md)
 
 ## Target stack
 
@@ -48,7 +50,7 @@ Use the SDK pinned in global.json and Node version pinned in .nvmrc. Docker Comp
 3. Open the configured PUBLIC_ORIGIN. Configure a trusted development certificate or use a loopback HTTP development address.
 4. The API health routes are /api/health/live and /api/health/ready. OpenAPI is enabled only in the ASP.NET Development environment.
 
-NuGet and npm dependencies are locked. CI uses locked restores, policy/navigation/client checks, API contract drift checks, production web smoke checks and disposable Compose health checks. All five GitHub jobs passed at the preceding profile checkpoint, including full Compose migration/bootstrap/health. The browser verification tool also runs in the PostgreSQL CI job. This workflow builds and tests; it does not deploy.
+NuGet and npm dependencies are locked. CI uses locked restores, policy/navigation/client checks, API contract drift checks, production web smoke checks and disposable Compose health checks. The published roster checkpoint passed all five jobs both before merge and on main at `63419dd3db9ca97e748a311ec43ee2fef6777c89`, including full Compose migration/bootstrap/health. The browser verification tool also runs in the PostgreSQL CI job. This workflow builds and tests; it does not deploy.
 
 ## Developer checks
 

@@ -73,7 +73,11 @@ This order follows the dependencies of the accepted requirements:
   The authenticated favourite-player picker returns five safe fields from at
   most 50 eligible first-team players; save, cancel and clear persist correctly.
   No imported roster row grants an identity role or access to private records.
-- Next: staff/account migration, scoped guardian/coach relationships and real role dashboards;
+- Canonical staff, singular/plural team/group assignments and group-coach links
+  now have an explicit import bound to the roster snapshot. Exact source and
+  player-own/guardian/staff contact provenance remain owner-only. Shared staff
+  can serve FC and Academy; no mobile/admin identity or grant is created.
+- Next: account migration, current guardian/coach identity mapping and real role dashboards;
   social profiles/media retain their separately mapped privacy/moderation gates.
   Account import and legacy token compatibility remain cutover gates.
 

@@ -10,5 +10,6 @@
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/FixtureConfiguration.cs" Link="Fixture/FixtureConfiguration.cs" />
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.cs" Link="Fixture/TestDatabase.cs" />
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.Roster.cs" Link="Fixture/TestDatabase.Roster.cs" />
+    <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.StaffRelationships.cs" Link="Fixture/TestDatabase.StaffRelationships.cs" />
   </ItemGroup>
 </Project>

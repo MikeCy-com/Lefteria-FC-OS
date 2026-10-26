@@ -41,9 +41,18 @@ internal sealed partial class IdentityHttpChecks
 
         var prefix = "roster-" + Guid.NewGuid().ToString("N");
         var manifest = RosterManifest(prefix); var players = manifest["players"]!.AsArray();
+        manifest["academy_groups"]![0]!["coach_id"] = prefix + "-implicit-staff";
+        manifest["academy_groups"]![0]!["coach_name"] = "Display text is not a staff ID";
         for (var number = 0; number < 60; number++)
         {
             var player = RosterPlayer(prefix + "-" + number.ToString("D2"), "Fixture player " + number, number / 2);
+            if (number is 0 or 1) player["phone"] = "+357 99 123456";
+            if (number == 0)
+            {
+                player["parent_phone"] = "+357 99 654321"; player["parent_name"] = "Fixture guardian";
+                player["parent_email"] = "guardian-private@example.invalid";
+                player["emergency_contact_phone"] = "+357 99 000000";
+            }
             player["team_id"] = prefix + "-team"; players.Add(player);
         }
         foreach (var flag in new[] { "is_active", "is_archived", "is_transferred" })
