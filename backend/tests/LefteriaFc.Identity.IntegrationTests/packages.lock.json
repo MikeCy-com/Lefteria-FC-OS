@@ -200,6 +200,13 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "SkiaSharp": "[4.153.1, )"
         }
+      },
+      "lefteriafc.rosterimport": {
+        "type": "Project",
+        "dependencies": {
+          "LefteriaFc.Application": "[1.0.0, )",
+          "LefteriaFc.Infrastructure": "[1.0.0, )"
+        }
       }
     }
   }

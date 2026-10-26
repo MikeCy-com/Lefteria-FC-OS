@@ -154,6 +154,55 @@
         ],
         "type": "object"
       },
+      "MobilePlayerOptionDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "position": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "number",
+          "position",
+          "image_url"
+        ],
+        "type": "object"
+      },
+      "MobilePlayersListResult": {
+        "properties": {
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/MobilePlayerOptionDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "players"
+        ],
+        "type": "object"
+      },
       "MobileProfilePreferenceBody": {
         "properties": {
           "favorite_team": {
@@ -1513,6 +1562,101 @@
         ]
       }
     },
+    "/api/mobile/players-list": {
+      "get": {
+        "operationId": "GetMobilePlayersList",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePlayersListResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile roster"
+        ]
+      }
+    },
     "/api/mobile/profile": {
       "put": {
         "operationId": "UpdateMobileProfile",
@@ -1795,6 +1939,9 @@
     },
     {
       "name": "Mobile profile"
+    },
+    {
+      "name": "Mobile roster"
     },
     {
       "name": "Mobile organization"

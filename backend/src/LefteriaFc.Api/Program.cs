@@ -5,6 +5,7 @@ using LefteriaFc.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using LefteriaFc.Infrastructure.Identity;
+using LefteriaFc.Api.Roster;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -62,6 +63,7 @@ app.UseAuthorization();
 
 app.MapHealthEndpoints();
 app.MapMobileIdentity();
+app.MapMobileRoster();
 
 if (app.Environment.IsDevelopment())
 {

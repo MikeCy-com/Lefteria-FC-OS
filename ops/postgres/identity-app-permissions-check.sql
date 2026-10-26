@@ -23,6 +23,23 @@ BEGIN
   IF NOT row_security_active('identity.mobile_identities') THEN
     RAISE EXCEPTION 'Mobile identity RLS is not active for the runtime role';
   END IF;
+  IF NOT has_column_privilege(current_user,'club.players','name','SELECT')
+      OR NOT has_column_privilege(current_user,'club.players','is_active','SELECT')
+      OR NOT has_column_privilege(current_user,'club.players','has_explicit_picker_fields','SELECT')
+      OR has_column_privilege(current_user,'club.players','team_id','SELECT')
+      OR has_table_privilege(current_user,'club.players','INSERT')
+      OR has_table_privilege(current_user,'club.players','UPDATE')
+      OR has_table_privilege(current_user,'club.players','DELETE')
+      OR has_table_privilege(current_user,'club.players','TRUNCATE')
+      OR has_schema_privilege(current_user,'migration','USAGE') THEN
+    RAISE EXCEPTION 'Runtime roster/import privileges exceed the picker boundary';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM 1 FROM migration.roster_source_documents LIMIT 1;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Runtime can read owner-only source archives'; END IF;
   INSERT INTO identity.mobile_identities
     (id, normalized_phone, role, display_name, is_active, platform, created_at)
     VALUES (probe_id, probe_phone, 'fan', 'Permission probe', true, 'Test', now());

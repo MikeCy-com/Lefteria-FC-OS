@@ -64,11 +64,16 @@ This order follows the dependencies of the accepted requirements:
   fan profile editor, fresh identity authorization and audited per-role writes.
 - Own profile details and whole-object boolean notification preferences now use
   `PUT /api/mobile/profile`, with typed validation, locked phone, current-role
-  ownership, update time and atomic audit. Avatar and roster picker remain queued.
+  ownership, update time and atomic audit.
 - Own mobile avatars now use bounded decoded-image upload, fresh ownership checks,
   atomic PostgreSQL image/profile/audit storage and public generated JPEG delivery.
   This does not approve a social avatar or migrate existing media.
-- Next: scoped roster relationships, player picker and real role dashboards;
+- Canonical teams, Academy groups, players and group memberships now have an
+  initial-only explicit owner import with exact source JSON retained privately.
+  The authenticated favourite-player picker returns five safe fields from at
+  most 50 eligible first-team players; save, cancel and clear persist correctly.
+  No imported roster row grants an identity role or access to private records.
+- Next: staff/account migration, scoped guardian/coach relationships and real role dashboards;
   social profiles/media retain their separately mapped privacy/moderation gates.
   Account import and legacy token compatibility remain cutover gates.
 

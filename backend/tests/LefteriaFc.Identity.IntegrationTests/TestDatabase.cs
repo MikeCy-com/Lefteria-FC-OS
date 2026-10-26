@@ -8,7 +8,7 @@ using Npgsql;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class TestDatabase(FixtureConfiguration fixture, string otpKey)
+internal sealed partial class TestDatabase(FixtureConfiguration fixture, string otpKey)
 {
     private readonly HashSet<string> phones = new(StringComparer.Ordinal);
     private readonly List<Guid> adminIds = [];
@@ -173,6 +173,7 @@ internal sealed class TestDatabase(FixtureConfiguration fixture, string otpKey)
 
     public async Task CleanupAsync()
     {
+        await CleanupRosterImportsAsync();
         // These are exact generated test identities, never a schema/table-wide delete.
         await using var database = CreateContext();
         await using var transaction = await database.Database.BeginTransactionAsync();

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using LefteriaFc.Domain.Organizations;
 using LefteriaFc.Infrastructure.Identity;
+using LefteriaFc.Infrastructure.Roster;
 
 namespace LefteriaFc.Infrastructure.Persistence;
 
@@ -16,10 +17,17 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     public DbSet<OtpChallengeRecord> OtpChallenges => Set<OtpChallengeRecord>();
     public DbSet<AuthRateBucketRecord> AuthRateBuckets => Set<AuthRateBucketRecord>();
     public DbSet<SecurityAuditRecord> SecurityAuditEvents => Set<SecurityAuditRecord>();
+    public DbSet<RosterTeamRecord> RosterTeams => Set<RosterTeamRecord>();
+    public DbSet<RosterAcademyGroupRecord> RosterAcademyGroups => Set<RosterAcademyGroupRecord>();
+    public DbSet<RosterPlayerRecord> RosterPlayers => Set<RosterPlayerRecord>();
+    public DbSet<RosterPlayerAcademyGroupRecord> RosterPlayerAcademyGroups => Set<RosterPlayerAcademyGroupRecord>();
+    public DbSet<RosterImportStateRecord> RosterImportStates => Set<RosterImportStateRecord>();
+    public DbSet<RosterSourceDocumentRecord> RosterSourceDocuments => Set<RosterSourceDocumentRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("identity");
+        RosterModel.Configure(modelBuilder);
         var avatars = modelBuilder.Entity<MobileAvatarRecord>();
         avatars.ToTable("mobile_avatars", table =>
         {

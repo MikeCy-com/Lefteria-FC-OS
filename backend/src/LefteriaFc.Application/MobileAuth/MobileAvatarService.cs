@@ -8,6 +8,9 @@ public sealed partial class MobileAuthService
     // Cheap preflight before any multipart bytes/native image work. Commit repeats
     // these checks under locks because eligibility can change during decoding.
     public async Task AuthorizeAvatarUploadAsync(MobileSession session, CancellationToken cancellationToken)
+        => await AuthorizeCurrentIdentityAsync(session, cancellationToken);
+
+    public async Task AuthorizeCurrentIdentityAsync(MobileSession session, CancellationToken cancellationToken)
     {
         RequireSession(session);
         var phone = PhoneNumber.Parse(session.NormalizedPhone);

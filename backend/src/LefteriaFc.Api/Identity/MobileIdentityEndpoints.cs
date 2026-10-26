@@ -115,7 +115,7 @@ public static partial class MobileIdentityEndpoints
             "Επιλέξτε πρώτη ομάδα, ακαδημία ή και τις δύο.")
     };
 
-    private static async Task<IResult> Execute<T>(Func<Task<T>> action, HttpContext context)
+    internal static async Task<IResult> Execute<T>(Func<Task<T>> action, HttpContext context)
     {
         try { return TypedResults.Ok(await action()); }
         catch (MobileAuthException exception)
@@ -137,7 +137,7 @@ public static partial class MobileIdentityEndpoints
         }
     }
 
-    private static RouteHandlerBuilder WithMobileErrors(this RouteHandlerBuilder endpoint)
+    internal static RouteHandlerBuilder WithMobileErrors(this RouteHandlerBuilder endpoint)
     {
         foreach (var code in new[] { 400, 401, 403, 404, 422, 429, 503 }) endpoint.Produces<MobileAuthError>(code);
         return endpoint;

@@ -30,3 +30,25 @@ Using the same isolated production-build/API/PostgreSQL setup at 390 × 844, a r
 The host shut down gracefully and cleaned its exact generated identities and avatar row. Automated evidence for this slice: 49 frontend tests, clean generated multipart Blob types/Svelte check and production build/package smoke, 27 HTTP/PostgreSQL groups, native-codec probe, no pending model changes, migration apply/down/reapply and restricted-role probes. Rollback restored the original URL, preserved an unrelated later URL and allowed explicit recovery of synthetic probe bytes after reapply. These are disposable fixture checks; real account/media import and production restoration remain unproven.
 
 New own-mobile-avatar upload is now implemented. Social-avatar approval, generic/private media, legacy-file delivery, roster linkage and the wider incomplete workflows above remain separate work.
+
+## Favourite-player follow-up — 2026-10-26
+
+The same production-build/API/restricted-PostgreSQL setup at 390 × 844 showed
+an unavailable message and retry before roster import. An explicit CLI import
+of a fictional complete snapshot made exactly one eligible first-team player
+available; archived and Academy players were excluded. An existing unlisted
+preference retained its neutral label. Selecting a different player and cancelling
+preserved the saved choice and restored focus. Saving the eligible player, then
+clearing with None, each persisted after a full reload. Logout returned to login.
+
+Automated evidence: 63 frontend tests, zero Svelte/type diagnostics, production
+build/package smoke and all 31 real HTTP/PostgreSQL groups passed. Coverage also
+reproduced and fixed a picker-401 race: late profile/avatar/team/context responses
+cannot restore authenticated state after the picker ends the session.
+
+Migration apply/import/replay/down/reapply/reimport preserved existing identity
+fields, and runtime permissions passed. The preview shut down gracefully; exact
+snapshot digest/ID cleanup left zero canonical, source archive, readiness and
+preview identity rows. Audit history remains append-only. This initial three-
+collection import does not implement private role rosters or a full account/data
+migration, and no production data or provider was used.

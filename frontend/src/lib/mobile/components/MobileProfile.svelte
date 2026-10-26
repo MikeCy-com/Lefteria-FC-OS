@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { components } from '../../api/schema';
-  import type { FavoriteTeam, MobileProfileUpdate } from '../controller.ts';
+  import type { FavoriteTeam, MobilePlayerOption, MobilePlayerOptionsStatus, MobileProfileUpdate } from '../controller.ts';
   import { AVATAR_FILE_TYPES, avatarFileError } from '../controller.ts';
   import './mobile-theme.css';
 
@@ -9,19 +9,24 @@
     user: components['schemas']['MobileUserDto'];
     busy?: boolean;
     error?: string | null;
+    playerOptions?: readonly MobilePlayerOption[];
+    playerOptionsStatus?: MobilePlayerOptionsStatus;
+    playerOptionsError?: string | null;
     onSaveFavoriteTeam: (value: FavoriteTeam) => boolean | Promise<boolean>;
     onSaveProfile: (changes: MobileProfileUpdate) => boolean | Promise<boolean>;
     onUploadAvatar: (file: File) => boolean | Promise<boolean>;
+    onLoadPlayerOptions: () => boolean | Promise<boolean>;
     onLogout: () => void;
   }
 
-  let { user, busy = false, error = null, onSaveFavoriteTeam, onSaveProfile, onUploadAvatar, onLogout }: Props = $props();
+  let { user, busy = false, error = null, playerOptions = [], playerOptionsStatus = 'idle', playerOptionsError = null,
+    onSaveFavoriteTeam, onSaveProfile, onUploadAvatar, onLoadPlayerOptions, onLogout }: Props = $props();
   const id = $props.id();
   let draft = $state('');
   let submitting = $state(false);
   let saved = $state(false);
   let avatarFailed = $state(false);
-  let editor = $state<'details' | 'notifications' | 'avatar' | null>(null);
+  let editor = $state<'details' | 'notifications' | 'avatar' | 'player' | null>(null);
   let profileSaved = $state(false);
   let details = $state({ firstName: '', lastName: '', birthday: '', email: '' });
   let notificationDraft = $state<Record<string, boolean>>({});
@@ -37,6 +42,11 @@
   let avatarSelectionError = $state<string | null>(null);
   let avatarPreviewFailed = $state(false);
   let avatarSaved = $state(false);
+  let playerTrigger = $state<HTMLButtonElement>();
+  let playerSelect = $state<HTMLSelectElement>();
+  let playerDraft = $state('');
+  let playerSaved = $state(false);
+  let playerImageFailed = $state(false);
   // Keys/defaults come from pinned notification_center.py and GameHub.jsx.
   const notificationGroups = [
     { label: 'Λευτεριά FC', options: [
@@ -57,6 +67,12 @@
   ] as const;
   const identityId = $derived(user.id);
   const savedPreference = $derived(user.favorite_team ?? null);
+  const savedPlayerId = $derived(user.favourite_player_id ?? '');
+  const storedPlayerUnlisted = $derived(savedPlayerId !== '' && !playerOptions.some((player) => player.id === savedPlayerId));
+  const selectedPlayer = $derived(playerOptions.find((player) => player.id === playerDraft));
+  const playerChanged = $derived(playerDraft !== savedPlayerId);
+  const playerChoiceValid = $derived(playerDraft === '' || playerDraft === savedPlayerId ||
+    (playerOptionsStatus === 'ready' && playerOptions.some((player) => player.id === playerDraft)));
   const avatar = $derived(user.avatar_url);
   const initial = $derived(user.name.trim().slice(0, 1).toLocaleUpperCase('el-GR') || '?');
   const isBusy = $derived(busy || submitting);
@@ -73,7 +89,11 @@
     saved = false;
   });
   $effect(() => { void avatar; avatarFailed = false; });
-  $effect(() => { void identityId; editor = null; profileSaved = false; selectedAvatar = null; avatarSaved = false; avatarSelectionError = null; });
+  $effect(() => { void identityId; void user.role; editor = null; profileSaved = false; selectedAvatar = null; avatarSaved = false; avatarSelectionError = null; playerSaved = false; });
+  $effect(() => { void selectedPlayer?.image_url; playerImageFailed = false; });
+  $effect(() => {
+    if (editor === 'player' && playerOptionsStatus !== 'loading') void tick().then(() => playerSelect?.focus());
+  });
   $effect(() => {
     const file = selectedAvatar;
     if (!file) { avatarPreview = null; return; }
@@ -127,6 +147,29 @@
     void tick().then(() => firstNameInput?.focus());
   }
 
+  function openPlayer() {
+    playerDraft = savedPlayerId;
+    playerSaved = false;
+    editor = 'player';
+    void onLoadPlayerOptions();
+  }
+
+  async function savePlayer(event: SubmitEvent) {
+    event.preventDefault();
+    if (isBusy || !playerChanged || !playerChoiceValid || playerOptionsStatus === 'loading') return;
+    submitting = true;
+    playerSaved = false;
+    profileSaved = false;
+    saved = false;
+    try {
+      if (await onSaveProfile({ favourite_player_id: playerDraft })) {
+        editor = null;
+        playerSaved = true;
+        void tick().then(() => profileHeading?.focus());
+      }
+    } finally { submitting = false; }
+  }
+
   function openNotifications() {
     notificationDraft = Object.fromEntries(Object.entries(user.notification_prefs ?? {}).filter(([, value]) => typeof value === 'boolean'));
     for (const group of notificationGroups) for (const option of group.options) {
@@ -144,7 +187,7 @@
     avatarSelectionError = null;
     avatarPreviewFailed = false;
     editor = null;
-    void tick().then(() => (previous === 'details' ? detailsTrigger : previous === 'avatar' ? avatarTrigger : notificationsTrigger)?.focus());
+    void tick().then(() => (previous === 'details' ? detailsTrigger : previous === 'avatar' ? avatarTrigger : previous === 'player' ? playerTrigger : notificationsTrigger)?.focus());
   }
 
   async function saveProfile(event: SubmitEvent) {
@@ -195,8 +238,41 @@
   {#if error}<p class="feedback error" role="alert" data-testid="profile-error">{error}</p>{/if}
   {#if profileSaved}<p class="feedback success" role="status" data-testid="profile-saved">Οι αλλαγές σου αποθηκεύτηκαν.</p>{/if}
   {#if avatarSaved}<p class="feedback success" role="status" data-testid="avatar-saved">Η φωτογραφία προφίλ αποθηκεύτηκε.</p>{/if}
+  {#if playerSaved}<p class="feedback success" role="status" data-testid="favorite-player-saved">Η προτίμηση παίκτη αποθηκεύτηκε.</p>{/if}
 
-  {#if editor === 'avatar'}
+  {#if editor === 'player'}
+    <form class="profile-editor" onsubmit={savePlayer} aria-labelledby={`${id}-player-title`} aria-busy={playerOptionsStatus === 'loading' || isBusy} data-testid="favorite-player-form">
+      <h2 id={`${id}-player-title`}>Αγαπημένος παίκτης</h2>
+      <p class="hint" id={`${id}-player-help`}>Επίλεξε παίκτη από την πρώτη ομάδα ή αφαίρεσε την προτίμησή σου.</p>
+      {#if playerOptionsStatus === 'idle'}<button type="button" class="secondary" disabled={isBusy} onclick={() => void onLoadPlayerOptions()} data-testid="favorite-player-load">Φόρτωση παικτών</button>{/if}
+      {#if playerOptionsStatus === 'loading'}<p role="status" data-testid="favorite-player-loading">Φόρτωση παικτών…</p>{/if}
+      {#if playerOptionsStatus === 'error'}
+        <p class="error" role="alert" data-testid="favorite-player-error">{playerOptionsError}</p>
+        <button type="button" class="secondary" disabled={isBusy} onclick={() => void onLoadPlayerOptions()} data-testid="favorite-player-retry">Δοκιμή ξανά</button>
+      {/if}
+      {#if playerOptionsStatus === 'ready' && playerOptions.length === 0}<p role="status" data-testid="favorite-player-empty">Δεν υπάρχουν διαθέσιμοι παίκτες στην πρώτη ομάδα.</p>{/if}
+      {#if storedPlayerUnlisted && playerOptionsStatus === 'ready'}<p class="hint" data-testid="favorite-player-unlisted">Η αποθηκευμένη επιλογή δεν υπάρχει στη διαθέσιμη λίστα. Διατηρείται μέχρι να επιλέξεις άλλον παίκτη ή «Κανένας».</p>{/if}
+      <label for={`${id}-favorite-player`}>Προτίμηση παίκτη</label>
+      <select bind:this={playerSelect} id={`${id}-favorite-player`} bind:value={playerDraft} disabled={isBusy || playerOptionsStatus === 'loading'}
+        aria-describedby={`${id}-player-help`} data-testid="favorite-player-select">
+        <option value="">Κανένας</option>
+        {#if storedPlayerUnlisted}<option value={savedPlayerId}>{playerOptionsStatus === 'ready' ? 'Αποθηκευμένη επιλογή (εκτός λίστας)' : 'Αποθηκευμένη επιλογή'}</option>{/if}
+        {#if playerOptionsStatus === 'ready'}
+          {#each playerOptions as player (player.id)}<option value={player.id}>#{player.number} · {player.name}{player.position ? ` · ${player.position}` : ''}</option>{/each}
+        {/if}
+      </select>
+      {#if selectedPlayer && playerOptionsStatus === 'ready'}
+        <div class="player-preview" data-testid="favorite-player-preview">
+          {#if selectedPlayer.image_url && !playerImageFailed}<img src={selectedPlayer.image_url} alt="" onerror={() => { playerImageFailed = true; }} />{/if}
+          <p><strong>{selectedPlayer.name}</strong><span>#{selectedPlayer.number}{selectedPlayer.position ? ` · ${selectedPlayer.position}` : ''}</span></p>
+        </div>
+      {/if}
+      <div class="form-actions">
+        <button type="button" class="secondary" disabled={isBusy} onclick={cancelEditor} data-testid="favorite-player-cancel">Ακύρωση</button>
+        <button type="submit" class="primary" disabled={isBusy || !playerChanged || !playerChoiceValid || playerOptionsStatus === 'loading'} data-testid="favorite-player-save">{isBusy ? 'Αποθήκευση…' : 'Αποθήκευση'}</button>
+      </div>
+    </form>
+  {:else if editor === 'avatar'}
     <form class="profile-editor" onsubmit={uploadAvatar} aria-labelledby={`${id}-avatar-title`} data-testid="profile-avatar-form">
       <h2 id={`${id}-avatar-title`}>Αλλαγή φωτογραφίας</h2>
       <label for={`${id}-avatar-file`}>Νέα φωτογραφία προφίλ</label>
@@ -261,6 +337,7 @@
       <button bind:this={avatarTrigger} type="button" class="secondary" disabled={isBusy} onclick={openAvatar} data-testid="profile-edit-avatar">Αλλαγή φωτογραφίας</button>
       <button bind:this={detailsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openDetails} data-testid="profile-edit-details">Επεξεργασία στοιχείων</button>
       <button bind:this={notificationsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openNotifications} data-testid="profile-edit-notifications">Προτιμήσεις ειδοποιήσεων</button>
+      <button bind:this={playerTrigger} type="button" class="secondary" disabled={isBusy} onclick={openPlayer} data-testid="profile-edit-favorite-player">Αγαπημένος παίκτης</button>
     </div>
   {/if}
 
@@ -280,9 +357,6 @@
     <button type="submit" class="primary" disabled={isBusy || !changed || editor !== null} data-testid="favorite-team-save">{isBusy ? 'Αποθήκευση…' : 'Αποθήκευση προτίμησης'}</button>
   </form>
 
-  <div class="pending-feature" data-testid="profile-edit-under-development">
-    <h2>Αγαπημένος παίκτης</h2><p>Under Developments</p>
-  </div>
   <button class="logout" type="button" disabled={isBusy} onclick={onLogout} data-testid="profile-logout">Αποσύνδεση</button>
 </section>
 
@@ -297,6 +371,11 @@
   .avatar-preview { margin:18px 0 0; }
   .avatar-preview img { display:block; width:160px; height:160px; max-width:100%; margin:0 auto; border:1px solid #806127; border-radius:8px; object-fit:contain; background:#080808; }
   .avatar-preview figcaption { margin-top:8px; color:var(--lf-muted); font-size:12px; text-align:center; overflow-wrap:anywhere; }
+  .player-preview { display:flex; align-items:center; gap:12px; margin-top:16px; }
+  .player-preview img { width:54px; height:54px; border-radius:6px; object-fit:cover; }
+  .player-preview p { margin:0; overflow-wrap:anywhere; }
+  .player-preview strong,.player-preview span { display:block; }
+  .player-preview span { margin-top:4px; color:var(--lf-muted); font-size:12px; }
   .identity-details { margin:0 0 24px; }
   .identity-details > div { padding:11px 0; border-bottom:1px solid var(--lf-line); }
   dt { color:var(--lf-muted); font-size:12px; }
@@ -327,8 +406,5 @@
   .error { padding:11px; border:1px solid #ef444455; border-radius:6px; background:#ef444411; color:#fca5a5; font-size:13px; overflow-wrap:anywhere; }
   .success { color:#a4deb2; font-size:13px; }
   form .success { margin:13px 0 0; }
-  .pending-feature { margin:25px 0 20px; padding-top:20px; border-top:1px solid var(--lf-line); }
-  .pending-feature h2 { color:#c8cdcf; font-size:19px; }
-  .pending-feature p { margin:6px 0 0; color:var(--lf-muted); font-size:13px; }
-  .logout { border:1px solid #383c3e; background:#151718; color:var(--lf-gold-light); }
+  .logout { margin-top:20px; border:1px solid #383c3e; background:#151718; color:var(--lf-gold-light); }
 </style>

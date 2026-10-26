@@ -63,6 +63,8 @@
       {/if}
       {#if activeTab === 'profile' && role === 'fan' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
+          playerOptions={$controller.playerOptions} playerOptionsStatus={$controller.playerOptionsStatus} playerOptionsError={$controller.playerOptionsError}
+          onLoadPlayerOptions={() => controller.loadPlayerOptions()}
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />

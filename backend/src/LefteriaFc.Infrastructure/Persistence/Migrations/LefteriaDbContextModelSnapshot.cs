@@ -431,6 +431,268 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                     b.ToTable("security_events", "audit");
                 });
 
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterAcademyGroupRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("id")
+                        .UseCollation("C");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("academy_groups", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_group_academy", "organization_id = 'lefteria_fc_academy'");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterImportStateRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AcademyGroupsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("academy_groups_count");
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("digest");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("environment");
+
+                    b.Property<int>("MembershipsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("memberships_count");
+
+                    b.Property<int>("PlayersCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("players_count");
+
+                    b.Property<string>("SourceCommit")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_commit");
+
+                    b.Property<string>("SourceRepository")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("source_repository");
+
+                    b.Property<int>("TeamsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("teams_count");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("roster_import_state", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_roster_counts", "teams_count >= 0 AND academy_groups_count >= 0 AND players_count >= 0 AND memberships_count >= 0");
+
+                            t.HasCheckConstraint("ck_roster_initial_state", "id = 'initial' AND digest ~ '^[0-9a-f]{64}$' AND source_commit ~ '^[0-9a-f]{40}$' AND environment IN ('development','staging')");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterPlayerAcademyGroupRecord", b =>
+                {
+                    b.Property<string>("OrganizationId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("PlayerId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("player_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("AcademyGroupId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("academy_group_id")
+                        .UseCollation("C");
+
+                    b.HasKey("OrganizationId", "PlayerId", "AcademyGroupId");
+
+                    b.HasIndex("OrganizationId", "AcademyGroupId");
+
+                    b.ToTable("player_academy_groups", "club");
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterPlayerRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("id")
+                        .UseCollation("C");
+
+                    b.Property<bool>("HasExplicitPickerFields")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_explicit_picker_fields");
+
+                    b.Property<string>("ImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("character varying(2048)")
+                        .HasColumnName("image_url");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_archived");
+
+                    b.Property<bool>("IsTransferred")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_transferred");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer")
+                        .HasColumnName("number");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("position");
+
+                    b.Property<string>("PrimaryAcademyGroupId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("primary_academy_group_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("TeamId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("team_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("TeamType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("team_type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "PrimaryAcademyGroupId");
+
+                    b.HasIndex("OrganizationId", "TeamId");
+
+                    b.HasIndex("OrganizationId", "HasExplicitPickerFields", "TeamType", "IsActive", "IsArchived", "IsTransferred", "Number", "Id");
+
+                    b.ToTable("players", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_player_position", "position IN ('Goalkeeper','Defender','Midfielder','Forward')");
+
+                            t.HasCheckConstraint("ck_player_team_type", "team_type IN ('First Team','Academy')");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterSourceDocumentRecord", b =>
+                {
+                    b.Property<string>("Collection")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("collection");
+
+                    b.Property<string>("SourceId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("source_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("ImportDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("import_digest");
+
+                    b.Property<string>("SourceJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_json");
+
+                    b.HasKey("Collection", "SourceId");
+
+                    b.HasIndex("ImportDigest");
+
+                    b.ToTable("roster_source_documents", "migration", t =>
+                        {
+                            t.HasCheckConstraint("ck_roster_source_json", "collection IN ('teams','academy_groups','players') AND json_typeof(source_json::json) = 'object'");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterTeamRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("id")
+                        .UseCollation("C");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("teams", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_team_club", "organization_id = 'lefteria_fc'");
+                        });
+                });
+
             modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.AdminAccountRecord", b =>
                 {
                     b.HasOne("LefteriaFc.Infrastructure.Identity.AdminOrganizationGrantRecord", null)
@@ -475,6 +737,72 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("ManagementAdmin");
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterAcademyGroupRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.OrganizationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterPlayerAcademyGroupRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterAcademyGroupRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "AcademyGroupId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterPlayerRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "PlayerId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterPlayerRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.OrganizationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterAcademyGroupRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "PrimaryAcademyGroupId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterTeamRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "TeamId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterSourceDocumentRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterImportStateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ImportDigest")
+                        .HasPrincipalKey("Digest")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Roster.RosterTeamRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.OrganizationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.AdminAccountRecord", b =>
