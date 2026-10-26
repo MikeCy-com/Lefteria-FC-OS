@@ -4,6 +4,14 @@ using LefteriaFc.Api.Identity;
 using LefteriaFc.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using LefteriaFc.Infrastructure.Identity;
+
+if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
+{
+    var ready = AvatarCodecProbe.Check();
+    Console.WriteLine(ready ? "Avatar codec ready." : "Avatar codec unavailable.");
+    return ready ? 0 : 1;
+}
 
 if (args.SequenceEqual(["--migrate"], StringComparer.Ordinal))
 {

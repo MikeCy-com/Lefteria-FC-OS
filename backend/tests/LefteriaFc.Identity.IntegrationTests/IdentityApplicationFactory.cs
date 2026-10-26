@@ -26,6 +26,7 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) :
     public string SigningKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     public string OtpKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     public CapturingSmsSender Sms { get; } = new();
+    public GatedAvatarSanitizer Avatars { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -47,11 +48,40 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) :
             // is confined to the test host and cannot perform an external SMS call.
             services.RemoveAll<ISmsSender>();
             services.AddSingleton<ISmsSender>(Sms);
+            services.RemoveAll<IAvatarImageSanitizer>();
+            services.AddSingleton<IAvatarImageSanitizer>(Avatars);
             services.RemoveAll<LefteriaDbContext>();
             services.AddScoped(_ => new LefteriaDbContext(new DbContextOptionsBuilder<LefteriaDbContext>()
                 .UseNpgsql(fixture.AppConnectionString).Options));
             services.AddSingleton<IStartupFilter, TrustedTestRemoteIpFilter>();
         });
+    }
+}
+
+// Real native processing with a test-only gate AFTER decode. This permits
+// revoking eligibility before the product's fresh binding transaction begins.
+internal sealed class GatedAvatarSanitizer : IAvatarImageSanitizer
+{
+    private readonly SkiaAvatarImageSanitizer inner = new();
+    private readonly ConcurrentQueue<Gate> gates = new();
+    private int calls;
+    public int Calls => Volatile.Read(ref calls);
+    public Gate HoldNext() { var gate = new Gate(); gates.Enqueue(gate); return gate; }
+    public SanitizedMobileAvatar Sanitize(ReadOnlyMemory<byte> input, string? contentType, CancellationToken token)
+    {
+        Interlocked.Increment(ref calls);
+        var sanitized = inner.Sanitize(input, contentType, token);
+        if (gates.TryDequeue(out var gate))
+        {
+            gate.Entered.TrySetResult();
+            gate.Release.Task.WaitAsync(token).GetAwaiter().GetResult();
+        }
+        return sanitized;
+    }
+    internal sealed class Gate
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     }
 }
 

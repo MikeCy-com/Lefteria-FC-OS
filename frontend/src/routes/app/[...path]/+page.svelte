@@ -64,7 +64,8 @@
       {#if activeTab === 'profile' && role === 'fan' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
-          onSaveProfile={(changes) => controller.updateProfile(changes)} onLogout={logout} />
+          onSaveProfile={(changes) => controller.updateProfile(changes)}
+          onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
       {:else if activeTab === 'more' && !composing}
         <section class="content-card" aria-labelledby="more-title"><h1 id="more-title">{TAB_NAMES.more}</h1>
           <div class="more-links">

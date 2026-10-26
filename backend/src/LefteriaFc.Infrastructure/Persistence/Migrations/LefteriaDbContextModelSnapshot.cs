@@ -121,6 +121,54 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.MobileAvatarRecord", b =>
+                {
+                    b.Property<Guid>("IdentityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("identity_id");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(101)
+                        .HasColumnType("character varying(101)")
+                        .HasColumnName("file_name");
+
+                    b.Property<int>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<byte[]>("JpegBytes")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("jpeg_bytes");
+
+                    b.Property<string>("PreviousAvatarUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("previous_avatar_url");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<int>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("IdentityId");
+
+                    b.HasIndex("FileName")
+                        .IsUnique();
+
+                    b.ToTable("mobile_avatars", "identity", t =>
+                        {
+                            t.HasCheckConstraint("ck_avatar_bytes", "octet_length(jpeg_bytes) BETWEEN 4 AND 1048576 AND substring(jpeg_bytes from 1 for 2) = decode('ffd8','hex') AND substring(jpeg_bytes from octet_length(jpeg_bytes)-1 for 2) = decode('ffd9','hex')");
+
+                            t.HasCheckConstraint("ck_avatar_dimensions", "width BETWEEN 1 AND 1024 AND height BETWEEN 1 AND 1024");
+
+                            t.HasCheckConstraint("ck_avatar_filename", "file_name ~ '^[0-9a-f]{32}_[0-9a-f]{64}\\.jpg$'");
+                        });
+                });
+
             modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.MobileIdentityRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -408,6 +456,15 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                     b.Navigation("AdminAccount");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.MobileAvatarRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.MobileIdentityRecord", null)
+                        .WithOne()
+                        .HasForeignKey("LefteriaFc.Infrastructure.Identity.MobileAvatarRecord", "IdentityId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.MobileIdentityRecord", b =>

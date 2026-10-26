@@ -11,6 +11,7 @@ COPY src/LefteriaFc.Domain/packages.lock.json src/LefteriaFc.Domain/
 COPY src/LefteriaFc.Application/packages.lock.json src/LefteriaFc.Application/
 RUN dotnet restore src/LefteriaFc.Api/LefteriaFc.Api.csproj --locked-mode
 COPY src/ src/
+COPY third-party/ third-party/
 RUN dotnet publish src/LefteriaFc.Api/LefteriaFc.Api.csproj \
     --configuration Release \
     --no-restore \

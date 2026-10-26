@@ -79,6 +79,7 @@ public sealed record OrganizationSelectionSnapshot(MobileIdentityProfile? Identi
 
 public interface IMobileAuthRepository
 {
+    Task<MobileAvatarContent?> GetPublicAvatarAsync(string fileName, CancellationToken cancellationToken);
     Task<IMobileAuthTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<MobileIdentityProfile>> GetIdentityProfilesAsync(PhoneNumber phone,
         CancellationToken cancellationToken);
@@ -130,6 +131,8 @@ public interface IMobileAuthTransaction : IAsyncDisposable
         CancellationToken cancellationToken);
     Task<MobileIdentityProfile> UpdateProfileAsync(Guid identityId, MobileProfileUpdate update,
         CancellationToken cancellationToken);
+    Task UpdateAvatarAsync(Guid identityId, string fileName, SanitizedMobileAvatar avatar,
+        DateTimeOffset now, CancellationToken cancellationToken);
     Task SaveChallengeProgressAsync(Guid challengeId, int verificationCalls, bool isConsumed,
         CancellationToken cancellationToken);
     Task AppendAuditAsync(AuthAuditEntry audit, CancellationToken cancellationToken);

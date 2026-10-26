@@ -61,7 +61,7 @@ REVOKE ALL PRIVILEGES ON SCHEMA identity, club, audit FROM :"app_role";
 GRANT USAGE ON SCHEMA identity, club, audit TO :"app_role";
 
 REVOKE ALL PRIVILEGES ON TABLE
-  identity.mobile_identities, identity.admin_accounts,
+  identity.mobile_identities, identity.mobile_avatars, identity.admin_accounts,
   identity.admin_organization_grants, identity.otp_challenges,
   identity.auth_rate_buckets, club.organizations, audit.security_events
 FROM PUBLIC, :"app_role";
@@ -76,7 +76,7 @@ BEGIN
     SELECT n.nspname, c.relname, c.oid
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE (n.nspname, c.relname) IN (
-      ('identity','mobile_identities'), ('identity','admin_accounts'),
+      ('identity','mobile_identities'), ('identity','mobile_avatars'), ('identity','admin_accounts'),
       ('identity','admin_organization_grants'), ('identity','otp_challenges'),
       ('identity','auth_rate_buckets'), ('club','organizations'), ('audit','security_events'))
   LOOP
@@ -90,6 +90,9 @@ END
 $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
+GRANT SELECT, INSERT ON identity.mobile_avatars TO :"app_role";
+GRANT UPDATE (file_name, jpeg_bytes, width, height, updated_at)
+ON identity.mobile_avatars TO :"app_role";
 GRANT UPDATE (display_name, first_name, last_name, birthday, avatar_url,
   favorite_team, email, favourite_player_id, updated_at, notification_preferences, platform, last_login)
 ON identity.mobile_identities TO :"app_role";

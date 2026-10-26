@@ -40,6 +40,9 @@ Identity, phone, role, active status and management linkage remain excluded.
   and UPDATE of token/time state.
 - Security audit permits INSERT only: no SELECT, UPDATE, DELETE or TRUNCATE.
 - No sequence or migration-history privileges are granted.
+- Mobile avatars allow SELECT/INSERT and UPDATE of filename/JPEG/dimensions/time
+  only. Ownership/provenance, DELETE and TRUNCATE are denied. Identity deletion
+  cascades and replacements overwrite one current row per identity.
 
 Mobile identity RLS restricts INSERT to fan records. The fan check is restrictive,
 so an additional permissive insert policy cannot silently broaden it. SELECT

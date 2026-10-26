@@ -38,3 +38,12 @@ Own-profile preference coverage validates favorite_team's allowed values and
 explicit null, rejects missing/invalid input, ignores untrusted identifiers and
 unknown fields, verifies current signed identity/active status, checks separate
 same-phone role preferences, and confirms the security audit insert.
+
+Avatar checks run the real native codec and PostgreSQL adapter for malformed,
+MIME-spoofed, oversized, truncated and excessive-dimension inputs, metadata/EXIF
+and alpha handling, public GET/HEAD and replacement, independent roles, and
+fresh identity/admin revocation after decode. A randomly named temporary
+failure trigger affects only its generated test identity and is removed in
+finally, proving atomic rollback. The optional post-decode gate is test DI only.
+No external images/providers or raw-upload persistence are used. Avatar FK
+cascade permits the existing exact-owned cleanup.

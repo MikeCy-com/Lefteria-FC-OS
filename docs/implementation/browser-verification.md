@@ -22,3 +22,11 @@ The preview host shut down gracefully and removed its exact synthetic identities
 Observed locally: 43 frontend tests, zero Svelte/type diagnostics, production build and route/package smoke passed. The preceding profile checkpoint passed 26 policy cases, 23 real HTTP/PostgreSQL groups and all five GitHub jobs. The preview executable passed locked restore, Release build and its HTTP smoke, including hostile inherited listener configuration, restricted-role writes, exact role-switch expiry, request limits and shutdown-origin checks. The workflow now builds and smoke-tests that executable on Linux as well.
 
 This verifies implemented authentication, profile and navigation flows. Operational dashboards still display **Under Developments**. Imported accounts, legacy sessions, real player/guardian relationships, avatar/media workflows, public social profiles, provider delivery, complete mockup parity and PWA/TWA parity remain unfinished. These checks do not authorize production cutover.
+
+## Avatar follow-up — 2026-10-26
+
+Using the same isolated production-build/API/PostgreSQL setup at 390 × 844, a repository logo was selected as a non-personal test image. The chooser showed the filename and preview; Save returned the actual generated JPEG URL. Both profile and header images loaded at 500 × 500, and a full reload retained the same URL and image. The UI showed the returned update time and save confirmation. Reopening and cancelling the avatar editor closed it and restored focus to its trigger. Logout returned to `/app/login`.
+
+The host shut down gracefully and cleaned its exact generated identities and avatar row. Automated evidence for this slice: 49 frontend tests, clean generated multipart Blob types/Svelte check and production build/package smoke, 27 HTTP/PostgreSQL groups, native-codec probe, no pending model changes, migration apply/down/reapply and restricted-role probes. Rollback restored the original URL, preserved an unrelated later URL and allowed explicit recovery of synthetic probe bytes after reapply. These are disposable fixture checks; real account/media import and production restoration remain unproven.
+
+New own-mobile-avatar upload is now implemented. Social-avatar approval, generic/private media, legacy-file delivery, roster linkage and the wider incomplete workflows above remain separate work.

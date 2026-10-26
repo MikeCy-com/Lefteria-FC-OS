@@ -4,11 +4,12 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Integration checkpoint: mobile identity, own profile settings and authenticated browser verification, accumulated for `main`.
+- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads and authenticated browser verification.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
+- Source main rechecked on 2026-10-26: `7833daceceac1611c368e7bc4df2a82c64b45e1a` merges frontend PR #42. Its 15-file delta changes no backend contracts; the avatar handler's GitHub blob is unchanged. New dashboard layouts are now part of the source baseline.
 - Deployed revision, VPS configuration and live data are not verified.
-- No accounts or production data have been migrated. Own profile details, team preference and notification preferences can be edited; avatars, player picker, operational dashboards, notification delivery and media remain queued.
+- No accounts or production data have been migrated. Own profile details, team preference, notification preferences and a public mobile avatar can be edited; player picker, operational dashboards, notification delivery and social/media workflows remain queued.
 
 ## Architecture documents
 
@@ -25,6 +26,7 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Mobile identity implementation](docs/implementation/mobile-identity-implementation.md)
 - [PostgreSQL runtime permissions](docs/implementation/postgres-runtime-role.md)
 - [Profile contract and implementation](docs/implementation/profile-contract.md)
+- [Mobile avatar implementation and recovery](docs/implementation/mobile-avatar-implementation.md)
 - [Authenticated browser verification](docs/implementation/browser-verification.md)
 - [Legacy identity and session migration contract](docs/implementation/legacy-identity-migration.md)
 - [Role dashboard source contract](docs/implementation/role-dashboard-contract.md)

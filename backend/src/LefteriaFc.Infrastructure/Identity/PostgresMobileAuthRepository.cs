@@ -10,6 +10,12 @@ namespace LefteriaFc.Infrastructure.Identity;
 
 public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : IMobileAuthRepository
 {
+    public Task<MobileAvatarContent?> GetPublicAvatarAsync(string fileName, CancellationToken cancellationToken) =>
+        !MobileAvatarLimits.IsFileName(fileName) ? Task.FromResult<MobileAvatarContent?>(null) :
+        database.MobileAvatars.AsNoTracking().Where(row => row.FileName == fileName &&
+            database.MobileIdentities.Any(identity => identity.Id == row.IdentityId &&
+                identity.AvatarUrl == "/api/uploads/avatars/" + row.FileName))
+            .Select(row => new MobileAvatarContent(row.JpegBytes)).SingleOrDefaultAsync(cancellationToken);
     public async Task<IMobileAuthTransaction> BeginTransactionAsync(CancellationToken cancellationToken) =>
         new Transaction(database, await database.Database.BeginTransactionAsync(cancellationToken));
 
@@ -243,6 +249,27 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
                 row.NotificationPreferencesJson = JsonSerializer.Serialize(update.NotificationPreferences);
             row.UpdatedAt = update.UpdatedAt;
             return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
+        }
+
+        public async Task UpdateAvatarAsync(Guid identityId, string fileName, SanitizedMobileAvatar avatar,
+            DateTimeOffset now, CancellationToken cancellationToken)
+        {
+            if (!lockedIdentities.Contains(identityId)) throw new InvalidOperationException("Identity must be locked before avatar mutation.");
+            if (!MobileAvatarLimits.IsFileName(fileName)) throw new InvalidOperationException("Invalid server-generated avatar name.");
+            var identity = await context.MobileIdentities.SingleAsync(row => row.Id == identityId, cancellationToken);
+            var stored = await context.MobileAvatars.SingleOrDefaultAsync(row => row.IdentityId == identityId, cancellationToken);
+            if (stored is null)
+            {
+                stored = new MobileAvatarRecord { IdentityId = identityId, PreviousAvatarUrl = identity.AvatarUrl };
+                context.MobileAvatars.Add(stored);
+            }
+            stored.FileName = fileName;
+            stored.JpegBytes = avatar.JpegBytes;
+            stored.Width = avatar.Width;
+            stored.Height = avatar.Height;
+            stored.UpdatedAt = now;
+            identity.AvatarUrl = MobileAvatarLimits.Url(fileName);
+            identity.UpdatedAt = now;
         }
 
         public Task SaveChallengeProgressAsync(Guid challengeId, int verificationCalls, bool isConsumed,

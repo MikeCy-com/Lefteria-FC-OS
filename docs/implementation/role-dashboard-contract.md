@@ -6,10 +6,13 @@ behavior or live data. This extends the [current-state inventory](../architectur
 and [accepted feature queue](feature-queue.md); it does not implement dashboard APIs.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
-was **open and unmerged** at inspection: base `5111f06…`, head
-`3411e01ed92aac8a6c55f6969f8ead99f9614ee5`. Its 15 changed files are frontend-only.
-Its compact layouts and new approval buttons are pending implementation evidence,
-not source-main behavior, verified production functionality or authorization fixes.
+was open at the initial inspection. A GitHub recheck on 2026-10-26 confirms it is
+merged into source main at `7833daceceac1611c368e7bc4df2a82c64b45e1a`, from final
+head `7e66096201cd502381562c905a77a329dfd25924`. The 15 changed files remain
+frontend-only. Its layouts are now source-main behavior; no backend authorization
+fix or deployed revision is established by that merge. Backend contracts below
+remain pinned to the unchanged `5111f06` files; update frontend caller mappings
+against the merged layouts when implementing each dashboard.
 
 ## Shared boundary
 

@@ -172,6 +172,8 @@ jobs:
           done
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build --pull
+      - name: Verify native avatar codec in the published API image
+        run: docker compose --env-file .env.example run --rm --no-deps api --check-avatar-codec
       - run: docker compose --env-file .env.example run --rm --no-deps proxy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - run: docker compose --env-file .env.example up --wait --wait-timeout 60 postgres
       - run: docker compose --env-file .env.example run --rm migrate

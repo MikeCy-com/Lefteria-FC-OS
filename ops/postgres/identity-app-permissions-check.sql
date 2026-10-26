@@ -27,6 +27,9 @@ BEGIN
     (id, normalized_phone, role, display_name, is_active, platform, created_at)
     VALUES (probe_id, probe_phone, 'fan', 'Permission probe', true, 'Test', now());
   UPDATE identity.mobile_identities SET last_login = now(), platform = 'Web/PWA' WHERE id = probe_id;
+  INSERT INTO identity.mobile_avatars (identity_id, file_name, jpeg_bytes, width, height, updated_at)
+    VALUES (probe_id, replace(gen_random_uuid()::text,'-','') || '_' || repeat('a',64) || '.jpg', decode('ffd8ffd9','hex'), 1, 1, now());
+  UPDATE identity.mobile_avatars SET width = 1, height = 1 WHERE identity_id = probe_id;
   UPDATE identity.admin_accounts SET active_organization_id = active_organization_id WHERE false;
   INSERT INTO audit.security_events (id, occurred_at, action, outcome)
     VALUES (gen_random_uuid(), now(), 'permissions.probe', 'success');
@@ -46,6 +49,23 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Runtime mutated an identity role'; END IF;
+
+  denied := false;
+  BEGIN
+    UPDATE identity.mobile_avatars SET identity_id = probe_id WHERE false;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Runtime can move avatar ownership'; END IF;
+  denied := false;
+  BEGIN
+    UPDATE identity.mobile_avatars SET previous_avatar_url = 'untrusted' WHERE false;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Runtime can rewrite avatar rollback provenance'; END IF;
+  IF has_table_privilege(current_user, 'identity.mobile_avatars', 'DELETE')
+      OR has_table_privilege(current_user, 'identity.mobile_avatars', 'TRUNCATE') THEN
+    RAISE EXCEPTION 'Runtime can delete/truncate stored avatars';
+  END IF;
 
   denied := false;
   BEGIN

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createMobileAuthController } from '../src/lib/mobile/controller.ts';
+import { avatarFileError, createMobileAuthController, MAX_AVATAR_FILE_BYTES } from '../src/lib/mobile/controller.ts';
 import { createMobileSessionStorage } from '../src/lib/mobile/session.ts';
 
 function identity(role = 'parent', patch = {}) {
@@ -23,9 +23,11 @@ function setup(handler, initial = {}) {
   const requests = [];
   const controller = createMobileAuthController({ baseUrl: 'https://club.example', storage, now: () => 1000,
     fetch: async (request) => {
-      const body = ['POST', 'PUT'].includes(request.method) ? await request.clone().json() : undefined;
+      const contentType = request.headers.get('Content-Type') ?? '';
+      const body = !['POST', 'PUT'].includes(request.method) ? undefined
+        : contentType.startsWith('multipart/form-data') ? await request.clone().formData() : await request.clone().json();
       requests.push({ path: new URL(request.url).pathname, method: request.method, body,
-        authorization: request.headers.get('Authorization'), cache: request.cache });
+        authorization: request.headers.get('Authorization'), cache: request.cache, contentType });
       return handler(requests.at(-1), requests);
     }
   });
@@ -449,4 +451,157 @@ test('profile endpoint response cannot change own identity binding and unauthent
   controller.logout();
   assert.equal(await controller.updateProfile({ name: 'Updated name' }), false);
   assert.equal(requests.length, 2);
+});
+
+const avatarBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jCfcAAAAASUVORK5CYII=', 'base64');
+const avatarFile = () => new File([avatarBytes], 'profile portrait.png', { type: 'image/png' });
+
+test('avatar upload sends one authenticated multipart file and applies only the refreshed same-role profile', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    const profile = identity(role, { avatar_url: '/api/uploads/avatars/previous.jpg' });
+    let stored = profile;
+    const avatarUrl = '/api/uploads/avatars/verified-photo.jpg';
+    const { controller, requests, values } = setup(({ path, method }) => {
+      if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+        organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+      if (method === 'POST') {
+        assert.equal(controller.getState().user.avatar_url, profile.avatar_url);
+        stored = { ...profile, avatar_url: avatarUrl, updated_at: '2026-10-26T01:00:00Z' };
+        return Response.json({ avatar_url: avatarUrl });
+      }
+      if (stored !== profile) assert.equal(controller.getState().user.avatar_url, profile.avatar_url);
+      return Response.json(stored);
+    }, { mobile_token: `${role}-token` });
+    await controller.bootstrap();
+    assert.equal(await controller.uploadAvatar(avatarFile()), true);
+    const upload = requests.find(({ method }) => method === 'POST');
+    assert.equal(upload.path, '/api/mobile/profile/avatar');
+    assert.equal(upload.authorization, `Bearer ${role}-token`);
+    assert.match(upload.contentType, /^multipart\/form-data; boundary=.+/);
+    assert.deepEqual([...upload.body.keys()], ['file']);
+    const file = upload.body.get('file');
+    assert.equal(file.name, 'profile portrait.png');
+    assert.equal(file.type, 'image/png');
+    assert.deepEqual(Buffer.from(await file.arrayBuffer()), avatarBytes);
+    assert.equal(requests.at(-1).method, 'GET');
+    assert.equal(requests.at(-1).path, '/api/mobile/auth/me');
+    assert.equal(requests.at(-1).authorization, `Bearer ${role}-token`);
+    assert.deepEqual(controller.getState().user, stored);
+    assert.equal(values.get('mobile_token'), `${role}-token`);
+    assert.equal(requests.some(({ path }) => path.endsWith('/switch-role')), false);
+    if (role === 'management') assert.equal(controller.getState().organization.organization_id, 'club');
+  }
+});
+
+test('avatar client prechecks reject unsupported, empty and oversized files before HTTP', async () => {
+  const { controller, requests } = setup(() => Response.json(identity('fan')), { mobile_token: 'fan-token' });
+  await controller.bootstrap();
+  for (const file of [
+    new File(['<svg/>'], 'avatar.svg', { type: 'image/svg+xml' }),
+    new File(['text'], 'avatar.jpg', { type: 'text/html' }),
+    new File([], 'empty.png', { type: 'image/png' }),
+    new File([new Uint8Array(MAX_AVATAR_FILE_BYTES + 1)], 'large.png', { type: 'image/png' })
+  ]) {
+    assert.ok(avatarFileError(file));
+    assert.equal(await controller.uploadAvatar(file), false);
+    assert.equal(controller.getState().busy, false);
+  }
+  assert.equal(requests.length, 1);
+  for (const type of ['image/jpeg', 'image/png', 'image/webp', 'image/gif']) {
+    assert.equal(avatarFileError(new File([avatarBytes], 'avatar', { type })), null);
+  }
+  assert.equal(avatarFileError(new File([new Uint8Array(MAX_AVATAR_FILE_BYTES)], 'limit.jpg', { type: 'image/jpeg' })), null);
+});
+
+test('avatar server rejections retain the saved profile and never trigger a speculative refresh', async () => {
+  for (const status of [400, 413, 415, 422, 503]) {
+    const profile = identity('fan', { avatar_url: '/api/uploads/avatars/saved.jpg' });
+    const { controller, requests, values } = setup(({ method }) => method === 'POST'
+      ? Response.json({ detail: 'Photo could not be saved', code: 'invalid_avatar' }, { status }) : Response.json(profile),
+    { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.uploadAvatar(avatarFile()), false);
+    assert.deepEqual(controller.getState().user, profile);
+    assert.equal(controller.getState().error, 'Photo could not be saved');
+    assert.equal(requests.length, 2);
+    assert.equal(values.get('mobile_token'), 'fan-token');
+  }
+});
+
+test('successful avatar POST does not change the profile if confirming GET fails', async () => {
+  for (const failure of ['network', 503, 401]) {
+    const profile = identity('fan', { avatar_url: '/api/uploads/avatars/saved.jpg' });
+    let posted = false;
+    const { controller, values } = setup(({ method }) => {
+      if (method === 'POST') { posted = true; return Response.json({ avatar_url: '/api/uploads/avatars/new.jpg' }); }
+      if (!posted) return Response.json(profile);
+      if (failure === 'network') throw new TypeError('Network unavailable');
+      return Response.json({ detail: 'Profile could not be refreshed', code: 'refresh_failed' }, { status: failure });
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    assert.equal(await controller.uploadAvatar(avatarFile()), false);
+    assert.equal(controller.getState().busy, false);
+    if (failure === 401) {
+      assert.equal(controller.getState().status, 'anonymous');
+      assert.equal(controller.getState().user, null);
+      assert.equal(values.has('mobile_token'), false);
+    } else {
+      assert.deepEqual(controller.getState().user, profile);
+      assert.equal(values.get('mobile_token'), 'fan-token');
+    }
+  }
+});
+
+test('stale avatar POST or confirming GET cannot replace a newer session after logout', { timeout: 5000 }, async () => {
+  for (const stage of ['post', 'me']) {
+    let complete;
+    let signalPending;
+    const pending = new Promise((resolve) => { signalPending = resolve; });
+    const holdResponse = () => new Promise((resolve) => { complete = resolve; signalPending(); });
+    let posted = false;
+    const previous = identity('fan', { avatar_url: '/api/uploads/avatars/previous.jpg' });
+    const current = identity('parent', { id: '22222222-2222-4222-8222-222222222222', avatar_url: '/api/uploads/avatars/current.jpg' });
+    const { controller, requests, values } = setup(({ method, authorization }) => {
+      if (method === 'POST') {
+        posted = true;
+        return stage === 'post' ? holdResponse()
+          : Response.json({ avatar_url: '/api/uploads/avatars/uploaded.jpg' });
+      }
+      if (authorization === 'Bearer parent-token') return Response.json(current);
+      if (posted) return holdResponse();
+      return Response.json(previous);
+    }, { mobile_token: 'fan-token' });
+    await controller.bootstrap();
+    const request = controller.uploadAvatar(avatarFile());
+    await pending;
+    assert.equal(await controller.switchRole('parent'), false, 'Role switching is disabled while upload is in progress.');
+    controller.logout();
+    values.set('mobile_token', 'parent-token');
+    await controller.bootstrap();
+    complete(Response.json(stage === 'post' ? { avatar_url: '/api/uploads/avatars/uploaded.jpg' }
+      : { ...previous, avatar_url: '/api/uploads/avatars/uploaded.jpg' }));
+    assert.equal(await request, false);
+    assert.deepEqual(controller.getState().user, current);
+    assert.equal(values.get('mobile_token'), 'parent-token');
+    assert.equal(requests.filter(({ method }) => method === 'POST').length, 1);
+  }
+});
+
+test('avatar refresh refuses another identity and anonymous or revoked identities cannot upload', async () => {
+  const profile = identity('fan');
+  let uploaded = false;
+  const { controller, requests } = setup(({ method }) => {
+    if (method === 'POST') { uploaded = true; return Response.json({ avatar_url: '/api/uploads/avatars/uploaded.jpg' }); }
+    return Response.json(uploaded ? { ...profile, role: 'management' } : profile);
+  }, { mobile_token: 'fan-token' });
+  await controller.bootstrap();
+  assert.equal(await controller.uploadAvatar(avatarFile()), false);
+  assert.deepEqual(controller.getState().user, profile);
+  controller.logout();
+  assert.equal(await controller.uploadAvatar(avatarFile()), false);
+  assert.equal(requests.length, 3);
+  const revoked = setup(() => Response.json(identity('fan', { current_role_available: false })), { mobile_token: 'revoked-token' });
+  await revoked.controller.bootstrap();
+  assert.equal(await revoked.controller.uploadAvatar(avatarFile()), false);
+  assert.equal(revoked.requests.length, 1);
 });

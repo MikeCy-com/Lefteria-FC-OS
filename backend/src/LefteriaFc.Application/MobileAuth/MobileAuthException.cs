@@ -8,6 +8,7 @@ public enum MobileAuthFaultKind
     Forbidden,
     NotFound,
     Validation,
+    PayloadTooLarge,
     TooManyRequests,
     ServiceUnavailable
 }
@@ -38,7 +39,11 @@ public enum MobileAuthErrorCode
     NoProfileChanges,
     InvalidTeamPreference,
     InvalidProfileField,
-    InvalidNotificationPreferences
+    InvalidNotificationPreferences,
+    InvalidAvatar,
+    AvatarTooLarge,
+    AvatarProcessingBusy,
+    AvatarStorageUnavailable
 }
 
 public sealed class MobileAuthException(
