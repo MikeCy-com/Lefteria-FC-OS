@@ -113,9 +113,14 @@ export function createMobileAuthController(options: {
     return value === null || value === 30 || value === 60 || value === 90;
   }
 
-  function applyUser(user: User, behavior: { preserveOrganization?: boolean } = {}) {
-    if (!isMobileRole(user.role) || typeof user.id !== 'string' || typeof user.name !== 'string' ||
+  function validateUser(user: User) {
+    if (!user || !isMobileRole(user.role) || typeof user.id !== 'string' || !user.id.trim() ||
+        typeof user.phone !== 'string' || !user.phone.trim() || typeof user.name !== 'string' || !user.name.trim() ||
         typeof user.current_role_available !== 'boolean') throw new Error('Invalid identity response');
+  }
+
+  function applyUser(user: User, behavior: { preserveOrganization?: boolean } = {}) {
+    validateUser(user);
     const roles = validRoles(user.available_roles);
     if (!user.current_role_available || state.user?.id !== user.id || state.user?.role !== user.role || state.user?.phone !== user.phone) clearPlayerOptions();
     update({ status: 'authenticated', user, availableRoles: roles, error: null,
@@ -169,10 +174,17 @@ export function createMobileAuthController(options: {
 
   async function finishLogin(data: LoginResult, operationRevision: number) {
     if (revision !== operationRevision) return;
-    if (!data.token || !isMobileRole(data.role) || data.user.role !== data.role) throw new Error('Invalid login response');
+    if (!data || typeof data.token !== 'string' || !data.token.trim() || !isMobileRole(data.role) || !data.user ||
+        data.user.role !== data.role || !Array.isArray(data.available_roles) || !data.available_roles.every(isMobileRole)) throw new Error('Invalid login response');
+    validateUser(data.user);
+    const roles = validRoles(data.available_roles);
+    const userRoles = data.user.available_roles;
+    if ((data.user.current_role_available && !roles.includes(data.role)) ||
+        (userRoles !== undefined && (!Array.isArray(userRoles) || !userRoles.every(isMobileRole) ||
+          validRoles(userRoles).length !== roles.length || roles.some((role) => !userRoles.includes(role))))) throw new Error('Invalid login roles');
     token = data.token;
     pendingCode = null;
-    applyUser(data.user);
+    applyUser({ ...data.user, available_roles: roles });
     if (data.role === 'management' && data.user.current_role_available) await organizationContext(authorization(), operationRevision);
   }
 
@@ -199,13 +211,24 @@ export function createMobileAuthController(options: {
     async bootstrap() {
       return action(async (operationRevision) => {
         clearPlayerOptions();
+        pendingCode = null;
+        update({ status: 'initializing', user: null, availableRoles: [], organization: null,
+          organizationError: null, identities: [], detectedRole: null, phone: '', step: 'phone' });
         token = options.storage.readToken();
         if (!token) { anonymous(); return; }
+        const headers = authorization();
         try {
-          const user = responseData(await api.GET('/api/mobile/auth/me', { headers: authorization() }));
+          const result = await api.GET('/api/mobile/auth/me', { headers });
           if (revision !== operationRevision) return;
-          applyUser(user);
-          if (user.role === 'management' && user.current_role_available) await organizationContext(authorization(), operationRevision);
+          if (result.response.status === 401) {
+            const login = responseData(await api.POST('/api/mobile/auth/exchange-legacy', { headers }));
+            if (revision !== operationRevision) return;
+            await finishLogin(login, operationRevision);
+          } else {
+            const user = responseData(result);
+            applyUser(user);
+            if (user.role === 'management' && user.current_role_available) await organizationContext(authorization(), operationRevision);
+          }
         } catch (error) {
           if (revision !== operationRevision) return;
           if (error instanceof ApiFailure && error.status === 401) anonymous(error.message);

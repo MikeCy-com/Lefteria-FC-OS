@@ -81,9 +81,13 @@ This order follows the dependencies of the accepted requirements:
   credential strings, current grants, exact source and quarantine privately. Fresh
   canonical player/guardian/coach/admin relationships govern imported role
   availability. Pre-OTP fan evidence becomes a new subject only after phone proof.
-- Next: bounded legacy-session bridging, private scoped APIs and real role dashboards;
+- The bounded legacy-session exchange and new-client same-origin handoff are
+  implemented behind an explicit disabled-by-default acceptance window. Exact
+  subject mapping, expiry and current permissions are retained. Cached old PWA
+  bundles and cross-origin restoration remain staging/cutover gates.
+- Next: private scoped APIs and real role dashboards;
   social profiles/media retain their separately mapped privacy/moderation gates.
-  Real export reconciliation, staging recovery and legacy token compatibility remain cutover gates.
+  Real export reconciliation, staging recovery and full legacy/PWA compatibility remain cutover gates.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
 is now merged into source main at `7833daceceac1611c368e7bc4df2a82c64b45e1a`,

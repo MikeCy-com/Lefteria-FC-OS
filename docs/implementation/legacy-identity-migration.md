@@ -20,8 +20,9 @@ permit silently replacing a bound snapshot's source revision.
 The later same-day [c83-to-a52 comparison](https://github.com/MikeCy-com/Lefteria-FC/compare/c83fd6dfa798cfaada8ae3483f7c0148b245b89c...a52d66b8e01c010cfe95ce53fa139e126bae4d84)
 also changes public branding only. The implemented initial account import and
 its current verification are described in [account import](account-import.md).
-The bounded legacy-session bridge below remains a requirement, not implemented
-token compatibility.
+The subsequent [bounded legacy exchange](legacy-mobile-bridge.md) implements the
+explicit exchange option below, disabled by default. Enabling it, validating real
+exports, cached-client updates and staging cutover remain separate gates.
 
 Sections marked **observed** describe repository code. Sections marked
 **proposed requirements** specify the validation needed before implementing or

@@ -8,6 +8,8 @@ internal static class TestRunner
 {
     public static async Task<int> Main(string[] args)
     {
+        if(args.SequenceEqual(["--legacy-token-policy"],StringComparer.Ordinal))
+            return await IdentityHttpChecks.RunLegacyPolicyChecksAsync();
         var fixturePath = args.Length == 2 && args[0] == "--fixture"
             ? args[1] : args.Length == 0 ? Environment.GetEnvironmentVariable("LEFTERIA_TEST_FIXTURE") : null;
         if (string.IsNullOrWhiteSpace(fixturePath))

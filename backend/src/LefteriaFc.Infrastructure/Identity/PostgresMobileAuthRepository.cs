@@ -138,6 +138,23 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
 
     private sealed class Transaction(LefteriaDbContext context, IDbContextTransaction transaction) : IMobileAuthTransaction
     {
+        public async Task<Guid?> ResolveLegacyMobileSubjectAsync(string legacySubject,CancellationToken cancellationToken)
+        {
+            try
+            {
+                var ids=await context.Database.SqlQuery<Guid>($"""
+                    SELECT identity_id AS "Value" FROM identity.imported_mobile_subjects
+                    WHERE legacy_subject = {legacySubject} COLLATE "C"
+                    """).Take(2).ToArrayAsync(cancellationToken);
+                return ids.Length==1?ids[0]:null;
+            }
+            catch(Npgsql.PostgresException error)when(error.SqlState==Npgsql.PostgresErrorCodes.UndefinedTable)
+            {
+                throw new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.LegacyBridgeUnavailable,"Η επαναφορά σύνδεσης δεν είναι διαθέσιμη προσωρινά.");
+            }
+        }
+
         public Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
             ReadLegacyFanAsync(context, phone, cancellationToken);
         private readonly Dictionary<Guid, OtpChallengeRecord> lockedChallenges = [];

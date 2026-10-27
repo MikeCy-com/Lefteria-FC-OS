@@ -29,6 +29,8 @@ const child = spawn(host, [dll, '--urls', origin, '--environment', 'Development'
     DOTNET_URLS: origin,
     MobileAuth__SigningKey: randomBytes(32).toString('base64'),
     MobileAuth__OtpKey: randomBytes(32).toString('base64'),
+    LegacyMobileBridge__Enabled: 'false', LegacyMobileBridge__SigningSecret: '',
+    LegacyMobileBridge__FingerprintKey: '', LegacyMobileBridge__StartsAt: '', LegacyMobileBridge__EndsAt: '',
     Twilio__AccountSid: '', Twilio__AuthToken: '', Twilio__FromNumber: '',
     ConnectionStrings__Postgres: 'Host=127.0.0.1;Port=1;Database=contract;Username=contract;Password=contract-only;Timeout=1'
   },
@@ -64,6 +66,10 @@ try {
   assert.ok(document.paths['/api/health/ready'].get.responses['503']);
   assert.deepEqual(document.paths['/api/mobile/auth/me'].get.security, [{ Mobile: [] }]);
   assert.equal(document.paths['/api/mobile/auth/request-otp'].post.security, undefined);
+  const legacyExchange = document.paths['/api/mobile/auth/exchange-legacy'].post;
+  assert.deepEqual(legacyExchange.security, [{ LegacyMobile: [] }]);
+  assert.equal(legacyExchange.requestBody, undefined);
+  assert.ok(legacyExchange.responses['200'] && legacyExchange.responses['401'] && legacyExchange.responses['503']);
   const avatarUpload = document.paths['/api/mobile/profile/avatar'].post;
   assert.deepEqual(avatarUpload.security, [{ Mobile: [] }]);
   const multipart = avatarUpload.requestBody.content['multipart/form-data'].schema;

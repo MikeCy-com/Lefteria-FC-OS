@@ -28,6 +28,10 @@ BEGIN
   IF has_column_privilege(current_user,'identity.admin_accounts','password_hash','SELECT') THEN
     RAISE EXCEPTION 'Mobile API runtime can read imported credentials';
   END IF;
+  PERFORM legacy_subject,identity_id FROM identity.imported_mobile_subjects LIMIT 1;
+  IF has_table_privilege(current_user,'identity.imported_mobile_subjects','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') THEN
+    RAISE EXCEPTION 'Runtime can mutate imported mobile subject projection';
+  END IF;
   IF NOT has_column_privilege(current_user,'club.players','name','SELECT')
       OR NOT has_column_privilege(current_user,'club.players','is_active','SELECT')
       OR NOT has_column_privilege(current_user,'club.players','has_explicit_picker_fields','SELECT')

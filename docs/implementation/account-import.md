@@ -1,5 +1,9 @@
 # Legacy account import and canonical mobile authority
 
+The subsequent [legacy mobile bridge](legacy-mobile-bridge.md) now consumes this
+mapping foundation for an explicitly enabled, time-bounded exchange. It remains
+disabled by default; this importer alone does not grant token compatibility.
+
 This extension imports an initial protected account snapshot alongside the
 existing roster and staff imports. The [source contract](account-import-source-contract.md)
 records field authority and deliberate validation differences. It does not
