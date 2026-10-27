@@ -62,6 +62,13 @@ Reapply grants after `LegacyAccountImport` before starting the new API. The
 reset includes new account tables and denies residual table/column privileges.
 Runtime probes exercise whole-row/source/hash access and canonical write denials.
 
+After `LegacyMobileBridge`, reapply grants for the two-column
+`identity.imported_mobile_subjects` view. It uses owner permissions and a security
+barrier to expose exact imported mobile subject/target pairs; it grants no access
+to original migration mappings or source objects. Runtime view writes remain
+denied. View-only rollback/reapply preserves populated account data and needs
+the view's SELECT grants reapplied. See [bridge recovery](legacy-mobile-bridge.md).
+
 Mobile identity RLS restricts INSERT to fan records. The fan check is restrictive,
 so an additional permissive insert policy cannot silently broaden it. SELECT
 and UPDATE policies let the repository evaluate canonical phone and identity

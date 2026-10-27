@@ -3,7 +3,7 @@ using LefteriaFc.Domain.Organizations;
 
 namespace LefteriaFc.Application.MobileAuth;
 
-public enum MobileAuthThrottleScope { OtpRequest, OtpVerify }
+public enum MobileAuthThrottleScope { OtpRequest, OtpVerify, LegacyExchange }
 
 public sealed record AuthThrottleDecision(bool IsAllowed, int? RetryAfterSeconds = null);
 
@@ -113,6 +113,9 @@ public interface IMobileAuthRepository
 
 public interface IMobileAuthTransaction : IAsyncDisposable
 {
+    // Exact imported mobile subject mapping only; no same-phone/native fallback.
+    Task<Guid?> ResolveLegacyMobileSubjectAsync(string legacySubject,CancellationToken cancellationToken) =>
+        Task.FromResult<Guid?>(null);
     Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
         Task.FromResult<LegacyFanRegistrationEvidence?>(null);
     // Lock this phone's current challenge (FOR UPDATE) until commit/disposal.

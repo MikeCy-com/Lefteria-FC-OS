@@ -24,6 +24,7 @@ internal sealed partial class IdentityHttpChecks
         {
             await database.ApplyRosterAsync(input.Roster);await database.ApplyStaffAsync(input.Staff);
             await AccountOwnerImportChecksAsync(input);
+            await LegacyBridgeHttpChecksAsync(input);
             await AccountCanonicalHttpChecksAsync(input);
             await AccountFanEvidenceHttpChecksAsync(input);
             await database.AssertAccountRuntimePermissionsAsync();

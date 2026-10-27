@@ -14,6 +14,11 @@ public sealed class MobileSecurityDocumentTransformer : IOpenApiDocumentTransfor
         {
             Type = SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT"
         };
+        document.Components.SecuritySchemes["LegacyMobile"] = new OpenApiSecurityScheme
+        {
+            Type=SecuritySchemeType.Http,Scheme="bearer",BearerFormat="Legacy mobile JWT",
+            Description="Original signed mobile token, accepted only by the explicitly enabled, time-bounded exchange endpoint. CMS/customer and rewrite tokens are excluded."
+        };
         return Task.CompletedTask;
     }
 }
@@ -22,6 +27,14 @@ public sealed class MobileSecurityOperationTransformer : IOpenApiOperationTransf
 {
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
+        if(context.Description.ActionDescriptor.EndpointMetadata.OfType<LegacyExchangeMetadata>().Any())
+        {
+            operation.Security??=[];
+            operation.Security.Add(new OpenApiSecurityRequirement
+            {
+                [new OpenApiSecuritySchemeReference("LegacyMobile",context.Document)]=[]
+            });
+        }
         if (context.Description.ActionDescriptor.EndpointMetadata.OfType<IAuthorizeData>()
             .Any(x => x.Policy == IdentityServices.Policy))
         {

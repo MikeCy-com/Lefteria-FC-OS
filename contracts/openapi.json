@@ -122,6 +122,32 @@
         ],
         "type": "object"
       },
+      "MobileLoginResult": {
+        "properties": {
+          "available_roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "type": "string"
+          },
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/MobileUserDto"
+          }
+        },
+        "required": [
+          "token",
+          "user",
+          "role",
+          "available_roles"
+        ],
+        "type": "object"
+      },
       "MobileOrganizationContextDto": {
         "properties": {
           "available_organizations": {
@@ -698,6 +724,12 @@
       }
     },
     "securitySchemes": {
+      "LegacyMobile": {
+        "bearerFormat": "Legacy mobile JWT",
+        "description": "Original signed mobile token, accepted only by the explicitly enabled, time-bounded exchange endpoint. CMS/customer and rewrite tokens are excluded.",
+        "scheme": "bearer",
+        "type": "http"
+      },
       "Mobile": {
         "bearerFormat": "JWT",
         "scheme": "bearer",
@@ -758,6 +790,101 @@
         },
         "tags": [
           "Health"
+        ]
+      }
+    },
+    "/api/mobile/auth/exchange-legacy": {
+      "post": {
+        "operationId": "ExchangeLegacyMobileSession",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLoginResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "LegacyMobile": []
+          }
+        ],
+        "tags": [
+          "Mobile identity"
         ]
       }
     },

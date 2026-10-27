@@ -54,6 +54,9 @@ internal sealed partial class TestDatabase
         {
             Check.True(await context.AccountImportStates.AnyAsync()&&await context.MobileIdentities.AnyAsync()&&await context.AccountSourceDocuments.AnyAsync(),
                 "Refused account rollback still removed imported data.");
+            // EF may already have completed a later, view-only Down before
+            // reaching the populated account guard. Restore that read boundary.
+            await RestoreLegacyBridgeViewAsync();
             return;
         }
         throw new InvalidOperationException("Populated account migration allowed destructive rollback.");

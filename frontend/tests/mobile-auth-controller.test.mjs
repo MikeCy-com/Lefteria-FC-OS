@@ -24,7 +24,7 @@ function setup(handler, initial = {}) {
   const controller = createMobileAuthController({ baseUrl: 'https://club.example', storage, now: () => 1000,
     fetch: async (request) => {
       const contentType = request.headers.get('Content-Type') ?? '';
-      const body = !['POST', 'PUT'].includes(request.method) ? undefined
+      const body = !['POST', 'PUT'].includes(request.method) || request.body === null ? undefined
         : contentType.startsWith('multipart/form-data') ? await request.clone().formData() : await request.clone().json();
       requests.push({ path: new URL(request.url).pathname, search: new URL(request.url).search, method: request.method, body,
         authorization: request.headers.get('Authorization'), cache: request.cache, contentType });
@@ -47,14 +47,16 @@ test('bootstrap validates token and replaces cached roles with current server gr
   assert.equal(requests[0].cache, 'no-store');
 });
 
-test('expired bootstrap session removes both legacy storage keys', async () => {
-  const { controller, values } = setup(() => Response.json({ detail: 'Token expired', code: 'session_expired' }, { status: 401 }),
+test('definitively invalid bootstrap and legacy exchange remove both legacy storage keys', async () => {
+  const { controller, requests, values } = setup(() => Response.json({ detail: 'Token expired', code: 'session_expired' }, { status: 401 }),
     { mobile_token: 'expired-token', mobile_available_roles: '["fan"]' });
   await controller.bootstrap();
   assert.equal(controller.getState().status, 'anonymous');
   assert.equal(controller.getState().error, 'Token expired');
   assert.equal(values.has('mobile_token'), false);
   assert.equal(values.has('mobile_available_roles'), false);
+  assert.deepEqual(requests.map(({ path }) => path), ['/api/mobile/auth/me', '/api/mobile/auth/exchange-legacy']);
+  assert.ok(requests.every(({ authorization }) => authorization === 'Bearer expired-token'));
 });
 
 test('network failure retains a saved token for explicit retry without exposing cached identity', async () => {
@@ -63,6 +65,197 @@ test('network failure retains a saved token for explicit retry without exposing 
   assert.equal(controller.getState().status, 'unavailable');
   assert.equal(controller.getState().user, null);
   assert.equal(values.get('mobile_token'), 'existing-token');
+});
+
+test('bootstrap exchanges an opaque saved token only after me rejects it and adopts the validated login result', async () => {
+  for (const role of ['fan', 'parent', 'player', 'coach', 'management']) {
+    const oldToken = 'opaque-old-session-without-jwt-claims';
+    const newToken = `${role}-rewrite-token`;
+    const profile = identity(role, { available_roles: [role, 'fan'] });
+    const returnedUser = { ...profile };
+    if (role === 'fan') delete returnedUser.available_roles;
+    const { controller, requests, values, writes } = setup(({ path, authorization, method, body, contentType }) => {
+      if (path.endsWith('/me')) return Response.json({ detail: 'Use legacy bridge' }, { status: 401 });
+      if (path.endsWith('/exchange-legacy')) {
+        assert.equal(method, 'POST');
+        assert.equal(authorization, `Bearer ${oldToken}`);
+        assert.equal(body, undefined);
+        assert.equal(contentType, '', 'The exchange has no invented JSON body.');
+        assert.equal(values.get('mobile_token'), oldToken);
+        assert.equal(writes.length, 0, 'Do not overwrite the old session before exchange succeeds.');
+        assert.equal(controller.getState().user, null);
+        return Response.json({ token: newToken, user: returnedUser, role, available_roles: profile.available_roles });
+      }
+      assert.equal(path, '/api/mobile/management/organization');
+      assert.equal(authorization, `Bearer ${newToken}`);
+      return Response.json({ available_organizations: [], organization_id: null, organization_name: null, requires_organization_selection: true });
+    }, { mobile_token: oldToken, mobile_available_roles: '["management"]' });
+    assert.equal(await controller.bootstrap(), true);
+    assert.equal(controller.getState().status, 'authenticated');
+    assert.deepEqual(controller.getState().user, { ...profile, available_roles: [...new Set(profile.available_roles)] });
+    assert.deepEqual(controller.getState().availableRoles, [...new Set(profile.available_roles)]);
+    assert.equal(values.get('mobile_token'), newToken);
+    assert.equal(controller.getState().busy, false);
+    assert.deepEqual(requests.slice(0, 2).map(({ path, method, authorization, cache }) => ({ path, method, authorization, cache })), [
+      { path: '/api/mobile/auth/me', method: 'GET', authorization: `Bearer ${oldToken}`, cache: 'no-store' },
+      { path: '/api/mobile/auth/exchange-legacy', method: 'POST', authorization: `Bearer ${oldToken}`, cache: 'no-store' }
+    ]);
+  }
+});
+
+test('bootstrap never attempts the bridge for non-401 me failures', async () => {
+  for (const failure of [403, 404, 429, 503, 'network']) {
+    const { controller, requests, values, writes } = setup(() => {
+      if (failure === 'network') throw new TypeError('Network unavailable');
+      return Response.json({ detail: 'Session check unavailable' }, { status: failure });
+    }, { mobile_token: 'saved-token', mobile_available_roles: '["management"]' });
+    await controller.bootstrap();
+    assert.equal(requests.length, 1);
+    assert.equal(requests[0].path, '/api/mobile/auth/me');
+    assert.equal(controller.getState().status, 'unavailable');
+    assert.equal(controller.getState().user, null);
+    assert.deepEqual(controller.getState().availableRoles, []);
+    assert.equal(controller.getState().organization, null);
+    assert.equal(controller.getState().busy, false);
+    assert.equal(values.get('mobile_token'), 'saved-token');
+    assert.equal(values.get('mobile_available_roles'), '["management"]');
+    assert.equal(writes.length, 0);
+  }
+});
+
+test('missing disabled throttled or unavailable legacy bridge retains the saved token for deliberate retry', async () => {
+  for (const failure of [404, 429, 500, 503, 'network']) {
+    const { controller, requests, values, writes } = setup(({ path }) => {
+      if (path.endsWith('/me')) return Response.json({ detail: 'Old token' }, { status: 401 });
+      if (failure === 'network') throw new TypeError('Bridge unreachable');
+      return Response.json({ detail: 'Legacy exchange temporarily unavailable', code: 'legacy_exchange_unavailable' }, { status: failure });
+    }, { mobile_token: 'old-token', mobile_available_roles: '["coach"]' });
+    await controller.bootstrap();
+    assert.deepEqual(requests.map(({ path }) => path), ['/api/mobile/auth/me', '/api/mobile/auth/exchange-legacy']);
+    assert.equal(controller.getState().status, 'unavailable');
+    assert.equal(controller.getState().user, null);
+    assert.deepEqual(controller.getState().availableRoles, []);
+    assert.equal(controller.getState().organization, null);
+    assert.equal(controller.getState().busy, false);
+    assert.ok(controller.getState().error);
+    if (failure !== 'network') assert.equal(controller.getState().error, 'Legacy exchange temporarily unavailable');
+    assert.equal(values.get('mobile_token'), 'old-token');
+    assert.equal(values.get('mobile_available_roles'), '["coach"]');
+    assert.equal(writes.length, 0);
+  }
+});
+
+test('legacy exchange retry keeps using the original saved token until a validated replacement succeeds', async () => {
+  let attempts = 0;
+  const profile = identity('fan', { available_roles: ['fan'] });
+  const { controller, requests, values, writes } = setup(({ path, authorization }) => {
+    if (path.endsWith('/me')) return authorization === 'Bearer new-token' ? Response.json(profile)
+      : Response.json({ detail: 'Old token' }, { status: 401 });
+    assert.equal(authorization, 'Bearer old-token');
+    assert.equal(values.get('mobile_token'), 'old-token');
+    assert.equal(writes.length, 0);
+    if (++attempts === 1) return Response.json({ detail: 'Bridge disabled' }, { status: 503 });
+    return Response.json({ token: 'new-token', user: profile, role: 'fan', available_roles: ['fan'] });
+  }, { mobile_token: 'old-token' });
+  await controller.bootstrap();
+  assert.equal(controller.getState().status, 'unavailable');
+  await controller.bootstrap();
+  assert.equal(controller.getState().status, 'authenticated');
+  assert.equal(values.get('mobile_token'), 'new-token');
+  await controller.bootstrap();
+  assert.equal(controller.getState().status, 'authenticated');
+  assert.equal(attempts, 2, 'A working rewrite token bypasses the bridge.');
+  assert.deepEqual(requests.map(({ authorization }) => authorization), [
+    'Bearer old-token', 'Bearer old-token', 'Bearer old-token', 'Bearer old-token', 'Bearer new-token'
+  ]);
+});
+
+test('malformed legacy login responses cannot overwrite saved storage or authenticate a different role shape', async () => {
+  const profile = identity('fan', { available_roles: ['fan'] });
+  const valid = { token: 'new-token', user: profile, role: 'fan', available_roles: ['fan'] };
+  for (const malformed of [
+    null, {}, { ...valid, token: null }, { ...valid, token: 42 }, { ...valid, token: ' ' },
+    { ...valid, role: 'super_admin' }, { ...valid, user: null }, { ...valid, user: { ...profile, role: 'parent' } },
+    { ...valid, user: { ...profile, id: '' } }, { ...valid, user: { ...profile, id: 42 } },
+    { ...valid, user: { ...profile, phone: null } }, { ...valid, user: { ...profile, phone: '' } },
+    { ...valid, user: { ...profile, name: null } }, { ...valid, user: { ...profile, current_role_available: 'yes' } },
+    { ...valid, available_roles: null }, { ...valid, available_roles: ['super_admin'] }, { ...valid, available_roles: [] },
+    { ...valid, user: { ...profile, available_roles: ['parent'] } }
+  ]) {
+    let retry = false;
+    const { controller, values, writes } = setup(({ path, authorization }) => {
+      assert.equal(authorization, 'Bearer old-token', 'A rejected token response must not change the in-memory bearer either.');
+      if (path.endsWith('/me')) return Response.json({ detail: 'Old token' }, { status: 401 });
+      return Response.json(retry ? valid : malformed);
+    }, { mobile_token: 'old-token', mobile_available_roles: '["coach"]' });
+    await controller.bootstrap();
+    assert.equal(controller.getState().status, 'unavailable');
+    assert.equal(controller.getState().user, null);
+    assert.equal(controller.getState().organization, null);
+    assert.deepEqual(controller.getState().availableRoles, []);
+    assert.equal(values.get('mobile_token'), 'old-token');
+    assert.equal(values.get('mobile_available_roles'), '["coach"]');
+    assert.equal(writes.length, 0);
+    retry = true;
+    await controller.bootstrap();
+    assert.equal(controller.getState().status, 'authenticated');
+    assert.equal(values.get('mobile_token'), 'new-token');
+  }
+});
+
+test('logout or a replacement session defeats late legacy exchange and me responses without clearing the new session', { timeout: 5000 }, async () => {
+  for (const stage of ['me', 'exchange']) for (const replacement of [false, true]) for (const lateStatus of [200, 401, 503]) {
+    const pending = Promise.withResolvers();
+    const started = Promise.withResolvers();
+    const oldProfile = identity('fan');
+    const current = identity('parent', { id: '22222222-2222-4222-8222-222222222222' });
+    const { controller, requests, values } = setup(({ path, authorization }) => {
+      if (authorization === 'Bearer replacement-token') return Response.json(current);
+      if ((stage === 'me' && path.endsWith('/me')) || path.endsWith('/exchange-legacy')) { started.resolve(); return pending.promise; }
+      return Response.json({ detail: 'Old token' }, { status: 401 });
+    }, { mobile_token: 'old-token' });
+    const bootstrapping = controller.bootstrap();
+    await started.promise;
+    assert.equal(await controller.bootstrap(), false, 'Concurrent bootstrap calls cannot create duplicate handoffs.');
+    controller.logout();
+    if (replacement) { values.set('mobile_token', 'replacement-token'); await controller.bootstrap(); }
+    pending.resolve(Response.json(lateStatus === 200
+      ? stage === 'me' ? oldProfile : { token: 'late-old-replacement', user: oldProfile, role: 'fan', available_roles: ['fan'] }
+      : { detail: 'Old response' }, { status: lateStatus }));
+    assert.equal(await bootstrapping, false);
+    assert.equal(controller.getState().status, replacement ? 'authenticated' : 'anonymous');
+    assert.deepEqual(controller.getState().user, replacement ? current : null);
+    assert.equal(controller.getState().busy, false);
+    assert.equal(values.get('mobile_token'), replacement ? 'replacement-token' : undefined);
+    if (stage === 'me') assert.equal(requests.some(({ path }) => path.endsWith('/exchange-legacy')), false);
+  }
+});
+
+test('an unavailable legacy handoff clears previously rendered private profile organization and picker state', async () => {
+  const profile = identity('management');
+  const { controller, values } = setup(({ path, authorization }) => {
+    if (path.endsWith('/exchange-legacy')) return Response.json({ detail: 'Bridge unavailable' }, { status: 503 });
+    if (authorization === 'Bearer old-token') return Response.json({ detail: 'Old token' }, { status: 401 });
+    if (path.endsWith('/organization')) return Response.json({ available_organizations: [{ id: 'club', name: 'Club' }],
+      organization_id: 'club', organization_name: 'Club', requires_organization_selection: false });
+    if (path.endsWith('/players-list')) return Response.json({ players: playerOptions });
+    return Response.json(profile);
+  }, { mobile_token: 'rewrite-token' });
+  await controller.bootstrap();
+  await controller.loadPlayerOptions();
+  assert.equal(controller.getState().user.role, 'management');
+  assert.equal(controller.getState().organization.organization_id, 'club');
+  assert.equal(controller.getState().playerOptions.length, 2);
+  values.set('mobile_token', 'old-token');
+  await controller.bootstrap();
+  assert.equal(controller.getState().status, 'unavailable');
+  assert.equal(controller.getState().user, null);
+  assert.equal(controller.getState().organization, null);
+  assert.equal(controller.getState().organizationError, null);
+  assert.deepEqual(controller.getState().availableRoles, []);
+  assert.deepEqual(controller.getState().playerOptions, []);
+  assert.equal(controller.getState().playerOptionsStatus, 'idle');
+  assert.equal(values.get('mobile_token'), 'old-token');
 });
 
 test('OTP remains transient through explicit role selection and sends chosen remember value', async () => {

@@ -21,12 +21,16 @@ using LefteriaFc.Infrastructure.Roster;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) : WebApplicationFactory<global::Program>
+internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bool enableLegacyBridge=false) : WebApplicationFactory<global::Program>
 {
     public const string Issuer = "lefteria-identity-http-tests";
     public const string Audience = "lefteria-identity-http-test-client";
     public string SigningKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     public string OtpKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    public string LegacySigningSecret { get; } = "isolated-legacy-test-secret-"+Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    public string LegacyFingerprintKey { get; } = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
+    public DateTimeOffset LegacyStartsAt { get; } = DateTimeOffset.UtcNow.AddMinutes(-5);
+    public DateTimeOffset LegacyEndsAt { get; } = DateTimeOffset.UtcNow.AddHours(2);
     public CapturingSmsSender Sms { get; } = new();
     public GatedAvatarSanitizer Avatars { get; } = new();
     public RosterQueryGate RosterGate { get; } = new();
@@ -43,6 +47,11 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture) :
                 ["MobileAuth:OtpKey"] = OtpKey,
                 ["MobileAuth:Issuer"] = Issuer,
                 ["MobileAuth:Audience"] = Audience,
+                ["LegacyMobileBridge:Enabled"] = enableLegacyBridge.ToString(),
+                ["LegacyMobileBridge:SigningSecret"] = enableLegacyBridge?LegacySigningSecret:"",
+                ["LegacyMobileBridge:FingerprintKey"] = enableLegacyBridge?LegacyFingerprintKey:"",
+                ["LegacyMobileBridge:StartsAt"] = enableLegacyBridge?LegacyStartsAt.ToString("O"):null,
+                ["LegacyMobileBridge:EndsAt"] = enableLegacyBridge?LegacyEndsAt.ToString("O"):null,
                 ["Twilio:AccountSid"] = "", ["Twilio:AuthToken"] = "", ["Twilio:FromNumber"] = ""
             }));
         builder.ConfigureTestServices(services =>

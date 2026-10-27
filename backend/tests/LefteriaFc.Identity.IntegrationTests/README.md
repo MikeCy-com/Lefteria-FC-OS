@@ -6,6 +6,10 @@ It uses the real PostgreSQL repository, shared throttle and JWT middleware. The
 only provider replacement is an in-memory ISmsSender registered by test DI; the
 product has no simulated login switch. Captured OTPs/tokens are never printed.
 
+Pure legacy JWT/configuration checks can run without a fixture, host or provider:
+
+    dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release -- --legacy-token-policy
+
 Run after applying the migration to the isolated fixture and creating its
 restricted application role:
 
@@ -56,3 +60,11 @@ same-count mutation refusal, quarantine, atomic failure and rollback protection,
 then exercises current player/guardian/coach/admin links, grant revocation with
 historical evidence retained and pre-OTP fan evidence. It cleans only exact owned
 IDs and generated fictional phones before the existing native identity cases.
+
+An explicitly enabled second host tests the bounded legacy exchange against the
+imported subjects. It preserves original expiry and token-bound session identity,
+denies native/evidence/quarantine/CMS and mismatched claims, rechecks revocations,
+tests concurrent replay/throttling and inspects safe audit effects. A populated
+view-only Down/Up preserves account replay and runtime archive denials. The
+populated account-rollback refusal test restores the later bridge view if EF
+already completed that view-only Down before reaching the account-data guard.

@@ -71,7 +71,7 @@ REVOKE ALL PRIVILEGES ON TABLE
   migration.staff_relationship_import_state, migration.staff_source_documents, migration.contact_provenance,
   identity.fan_registration_evidence, identity.canonical_contact_bindings, identity.mobile_record_links, identity.admin_staff_links,
   migration.account_import_state, migration.account_source_documents, migration.account_import_issues,
-  migration.legacy_account_mappings, migration.imported_admin_grants
+  migration.legacy_account_mappings, migration.imported_admin_grants, identity.imported_mobile_subjects
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -93,7 +93,7 @@ BEGIN
       ('migration','staff_relationship_import_state'), ('migration','staff_source_documents'), ('migration','contact_provenance'),
       ('identity','fan_registration_evidence'), ('identity','canonical_contact_bindings'), ('identity','mobile_record_links'), ('identity','admin_staff_links'),
       ('migration','account_import_state'), ('migration','account_source_documents'), ('migration','account_import_issues'),
-      ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'))
+      ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'), ('identity','imported_mobile_subjects'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -105,6 +105,7 @@ END
 $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
+GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO :"app_role";
 GRANT SELECT, INSERT ON identity.mobile_avatars TO :"app_role";
 GRANT UPDATE (file_name, jpeg_bytes, width, height, updated_at)
 ON identity.mobile_avatars TO :"app_role";

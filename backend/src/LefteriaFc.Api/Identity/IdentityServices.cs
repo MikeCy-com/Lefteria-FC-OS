@@ -1,4 +1,6 @@
 using System.Net;
+using System.Security.Cryptography;
+using System.Text;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -21,6 +23,12 @@ public static class IdentityServices
             .Validate(x => !string.IsNullOrWhiteSpace(x.Issuer) && !string.IsNullOrWhiteSpace(x.Audience), "Mobile token issuer and audience are required.")
             .ValidateOnStart();
         services.AddOptions<TwilioSmsOptions>().Bind(configuration.GetSection("Twilio"));
+        services.AddOptions<LegacyMobileBridgeOptions>().Bind(configuration.GetSection("LegacyMobileBridge"))
+            .Validate(LegacyMobileBridgeOptions.IsValid,"Enabled legacy bridge requires its literal signing secret, independent fingerprint key and bounded UTC acceptance window.")
+            .Validate<IOptions<MobileAuthOptions>>((legacy,mobile)=>DistinctLegacyKeys(legacy,mobile.Value),
+                "Legacy, fingerprint, rewrite signing and OTP keys must be independent.")
+            .ValidateOnStart();
+        services.AddSingleton<ILegacyMobileTokenValidator,LegacyMobileTokenValidator>();
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<IOtpProtector, HmacOtpProtector>();
         services.AddSingleton<IMobileTokenIssuer, JwtMobileTokenIssuer>();
@@ -73,5 +81,19 @@ public static class IdentityServices
             }
         });
         return services;
+    }
+
+    private static bool DistinctLegacyKeys(LegacyMobileBridgeOptions legacy,MobileAuthOptions mobile)
+    {
+        if(!legacy.Enabled)return true;
+        if(!MobileAuthOptions.IsStrongKey(legacy.FingerprintKey)||!MobileAuthOptions.IsStrongKey(mobile.SigningKey)||
+            !MobileAuthOptions.IsStrongKey(mobile.OtpKey)||legacy.SigningSecret is null)return false;
+        var fingerprint=Convert.FromBase64String(legacy.FingerprintKey);
+        var source=Encoding.UTF8.GetBytes(legacy.SigningSecret);
+        var signing=Convert.FromBase64String(mobile.SigningKey);var otp=Convert.FromBase64String(mobile.OtpKey);
+        return !CryptographicOperations.FixedTimeEquals(fingerprint,source)&&
+            !CryptographicOperations.FixedTimeEquals(fingerprint,signing)&&!CryptographicOperations.FixedTimeEquals(fingerprint,otp)&&
+            !CryptographicOperations.FixedTimeEquals(source,signing)&&!CryptographicOperations.FixedTimeEquals(source,otp)&&
+            !CryptographicOperations.FixedTimeEquals(signing,otp);
     }
 }

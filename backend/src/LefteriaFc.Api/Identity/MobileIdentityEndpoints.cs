@@ -58,6 +58,10 @@ public static partial class MobileIdentityEndpoints
     public static IEndpointRouteBuilder MapMobileIdentity(this IEndpointRouteBuilder endpoints)
     {
         var auth = endpoints.MapGroup("/api/mobile/auth").WithTags("Mobile identity");
+        auth.MapPost("/exchange-legacy",(HttpContext context,MobileAuthService service,ILegacyMobileTokenValidator validator,CancellationToken token)=>
+                Execute(()=>service.ExchangeLegacyAsync(validator,LegacyBearer(context),RequestContext(context),token),context))
+            .AllowAnonymous().WithMetadata(new LegacyExchangeMetadata())
+            .WithName("ExchangeLegacyMobileSession").Produces<MobileLoginResult>().WithMobileErrors();
         auth.MapPost("/request-otp", (OtpRequestBody body, MobileAuthService service, HttpContext context, CancellationToken token) =>
                 Execute(() => service.RequestOtpAsync(body.Phone, RequestContext(context), token), context))
             .WithName("RequestMobileOtp").Produces<OtpRequestResult>().WithMobileErrors();
@@ -152,4 +156,13 @@ public static partial class MobileIdentityEndpoints
             ? "iOS" : agent.Contains("Android", StringComparison.OrdinalIgnoreCase) ? "Android" : "Web/PWA";
         return new(client, platform);
     }
+
+    private static string? LegacyBearer(HttpContext context)
+    {
+        var values=context.Request.Headers.Authorization;
+        if(values.Count!=1||values[0] is not { } value||!value.StartsWith("Bearer ",StringComparison.OrdinalIgnoreCase))return null;
+        return value[7..];
+    }
 }
+
+internal sealed record LegacyExchangeMetadata;

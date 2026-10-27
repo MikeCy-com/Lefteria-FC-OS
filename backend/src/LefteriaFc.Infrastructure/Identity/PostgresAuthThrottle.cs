@@ -19,6 +19,7 @@ public sealed class PostgresAuthThrottle(LefteriaDbContext database, IOptions<Mo
         {
             MobileAuthThrottleScope.OtpRequest => 5,
             MobileAuthThrottleScope.OtpVerify => 10,
+            MobileAuthThrottleScope.LegacyExchange => 10,
             _ => throw new ArgumentOutOfRangeException(nameof(scope))
         };
         var fingerprint = Convert.ToHexString(HMACSHA256.HashData(key,
