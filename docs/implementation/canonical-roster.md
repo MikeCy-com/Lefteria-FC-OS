@@ -1,5 +1,10 @@
 # Canonical roster and authenticated player picker
 
+The initial roster boundary below is now extended by the
+[account import](account-import.md): current imported role availability rechecks
+canonical player/guardian/coach/admin links, including the final picker SQL.
+Runtime grants now include the narrow relationship projections documented there.
+
 This initial slice adds canonical storage, an explicit owner import, and
 `GET /api/mobile/players-list`. It does not implement dashboards, staff/coach/
 guardian grants, private player records, account import or legacy JWT bridging.

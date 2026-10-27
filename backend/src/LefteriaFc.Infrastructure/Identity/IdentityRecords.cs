@@ -44,6 +44,9 @@ public sealed class AdminAccountRecord
     public bool IsActive { get; set; } = true;
     public string? PasswordHash { get; set; }
     public string? LegacyId { get; set; }
+    public string? NormalizedPhone { get; set; }
+    public bool InvitePending { get; set; }
+    public bool Otp2faEnabled { get; set; }
     public string? ActiveOrganizationId { get; set; }
     public List<AdminOrganizationGrantRecord> OrganizationGrants { get; set; } = [];
 }
@@ -74,6 +77,7 @@ public sealed class OtpChallengeRecord
     public string? PendingFirstName { get; set; }
     public string? PendingLastName { get; set; }
     public DateOnly? PendingBirthday { get; set; }
+    public Guid? PendingEvidenceId { get; set; }
 }
 
 public sealed class AuthRateBucketRecord

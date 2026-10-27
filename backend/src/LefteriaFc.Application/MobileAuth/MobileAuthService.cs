@@ -20,8 +20,11 @@ public sealed partial class MobileAuthService(
         var phone = ParsePhone(rawPhone);
         await EnforceOtpRequestThrottleAsync(phone, context, cancellationToken);
         var profiles = ValidateProfiles(await repository.GetIdentityProfilesAsync(phone, cancellationToken), phone);
-        var detectedRole = Available(profiles).FirstOrDefault()?.Role;
-        await IssueChallengeAsync(phone, null, detectedRole, cancellationToken);
+        var evidence = profiles.Any(profile => profile.Role == MobileRole.Fan) ? null :
+            await repository.GetLegacyFanRegistrationAsync(phone, cancellationToken);
+        var pending = evidence is { IsActive: true } ? evidence.Registration : null;
+        var detectedRole = Available(profiles).FirstOrDefault()?.Role ?? (pending is not null ? MobileRole.Fan : (MobileRole?)null);
+        await IssueChallengeAsync(phone, pending, detectedRole, cancellationToken);
         return new OtpRequestResult("OTP sent", phone.WireValue, detectedRole?.ToWireValue(), 300);
     }
 
@@ -42,6 +45,9 @@ public sealed partial class MobileAuthService(
         {
             throw AccountUnavailable();
         }
+        if (!profiles.Any(profile => profile.Role == MobileRole.Fan) &&
+            await repository.GetLegacyFanRegistrationAsync(phone, cancellationToken) is { IsActive: false })
+            throw AccountUnavailable();
 
         // Personal fields remain on the challenge until this phone proves possession.
         await IssueChallengeAsync(phone, registration, MobileRole.Fan, cancellationToken);
@@ -96,7 +102,9 @@ public sealed partial class MobileAuthService(
         var requestedIsKnown = MobileRoles.TryParse(requestedWire, out var requestedRole);
         var predictedRoles = Available(profiles).Select(profile => profile.Role).ToHashSet();
         var hasFan = profiles.Any(profile => profile.Role == MobileRole.Fan);
-        var canCreateFan = !hasFan && (stored.PendingFan is not null || profiles.Count > 0);
+        var evidence = hasFan ? null : await transaction.GetLegacyFanRegistrationAsync(phone, cancellationToken);
+        var canCreateFan = !hasFan && evidence is not { IsActive: false } &&
+            (stored.PendingFan is not null || profiles.Count > 0 || evidence is { IsActive: true });
         if (canCreateFan)
         {
             predictedRoles.Add(MobileRole.Fan);
@@ -135,10 +143,11 @@ public sealed partial class MobileAuthService(
         }
 
         var platform = NormalizePlatform(context.Platform);
-        if (stored.PendingFan is not null &&
+        var registration = stored.PendingFan ?? (canCreateFan && evidence is { IsActive: true } ? evidence.Registration : null);
+        if (registration is not null && (hasFan || canCreateFan) &&
             !profiles.Any(profile => profile.Role == MobileRole.Fan && !IsAvailable(profile)))
         {
-            await transaction.UpsertVerifiedFanAsync(phone, stored.PendingFan, platform, now, cancellationToken);
+            await transaction.UpsertVerifiedFanAsync(phone, registration, platform, now, cancellationToken);
         }
         else if (canCreateFan)
         {

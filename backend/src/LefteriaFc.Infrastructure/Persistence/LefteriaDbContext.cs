@@ -4,6 +4,7 @@ using LefteriaFc.Domain.Organizations;
 using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Infrastructure.Roster;
 using LefteriaFc.Infrastructure.StaffRelationships;
+using LefteriaFc.Infrastructure.AccountImport;
 
 namespace LefteriaFc.Infrastructure.Persistence;
 
@@ -31,6 +32,15 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     public DbSet<StaffRelationshipImportStateRecord> StaffRelationshipImportStates => Set<StaffRelationshipImportStateRecord>();
     public DbSet<StaffSourceDocumentRecord> StaffSourceDocuments => Set<StaffSourceDocumentRecord>();
     public DbSet<ContactProvenanceRecord> ContactProvenance => Set<ContactProvenanceRecord>();
+    public DbSet<AccountImportStateRecord> AccountImportStates => Set<AccountImportStateRecord>();
+    public DbSet<AccountSourceDocumentRecord> AccountSourceDocuments => Set<AccountSourceDocumentRecord>();
+    public DbSet<AccountImportIssueRecord> AccountImportIssues => Set<AccountImportIssueRecord>();
+    public DbSet<LegacyAccountMappingRecord> LegacyAccountMappings => Set<LegacyAccountMappingRecord>();
+    public DbSet<FanRegistrationEvidenceRecord> FanRegistrationEvidence => Set<FanRegistrationEvidenceRecord>();
+    public DbSet<CanonicalContactBindingRecord> CanonicalContactBindings => Set<CanonicalContactBindingRecord>();
+    public DbSet<MobileRecordLinkRecord> MobileRecordLinks => Set<MobileRecordLinkRecord>();
+    public DbSet<AdminStaffLinkRecord> AdminStaffLinks => Set<AdminStaffLinkRecord>();
+    public DbSet<ImportedAdminGrantRecord> ImportedAdminGrants => Set<ImportedAdminGrantRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -83,6 +93,9 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
         admins.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
         admins.Property(x => x.Role).HasMaxLength(24).IsRequired();
         admins.Property(x => x.ActiveOrganizationId).HasMaxLength(32);
+        admins.Property(x => x.NormalizedPhone).HasMaxLength(15);
+        admins.ToTable(table => table.HasCheckConstraint("ck_admin_normalized_phone", "normalized_phone IS NULL OR normalized_phone ~ '^[1-9][0-9]{7,14}$'"));
+        admins.ToTable(table => table.HasCheckConstraint("ck_admin_pending_inactive", "NOT invite_pending OR NOT is_active"));
         admins.HasIndex(x => x.Username).IsUnique();
 
         var organizations = modelBuilder.Entity<OrganizationRecord>();
@@ -108,6 +121,7 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
             .HasPrincipalKey(x => new { x.AdminAccountId, x.OrganizationId })
             .OnDelete(DeleteBehavior.Restrict).IsRequired(false);
 
+        AccountImportModel.Configure(modelBuilder);
         var challenges = modelBuilder.Entity<OtpChallengeRecord>();
         challenges.ToTable("otp_challenges", table =>
         {

@@ -18,8 +18,26 @@ public sealed class PostgresRosterQueries(LefteriaDbContext database) : IRosterQ
                   SELECT i.id FROM identity.mobile_identities i
                   WHERE i.id=@identity AND i.normalized_phone=@phone AND i.role=@role AND i.is_active
                     AND @expires > statement_timestamp()
-                    AND (i.role <> 'management' OR EXISTS (
-                      SELECT 1 FROM identity.admin_accounts a WHERE a.id=i.management_admin_id AND a.is_active))
+                    AND (
+                      i.role='fan'
+                      OR (i.role IN ('parent','player','coach') AND (i.legacy_id IS NULL OR EXISTS (
+                        SELECT 1 FROM identity.mobile_record_links l
+                        JOIN identity.canonical_contact_bindings b ON b.collection=l.collection
+                          AND b.source_id=l.record_id AND b.kind=l.kind AND b.normalized_phone=i.normalized_phone
+                        LEFT JOIN club.players player ON l.collection='players' AND player.id=l.record_id
+                        LEFT JOIN club.staff coach ON l.collection='staff' AND coach.id=l.record_id
+                        WHERE l.identity_id=i.id AND l.normalized_phone=i.normalized_phone AND l.role=i.role
+                          AND ((i.role IN ('parent','player') AND player.is_active
+                            AND NOT player.is_archived AND NOT player.is_transferred)
+                            OR (i.role='coach' AND coach.is_active AND NOT coach.is_archived)))))
+                      OR (i.role='management' AND EXISTS (
+                        SELECT 1 FROM identity.admin_accounts a
+                        LEFT JOIN identity.admin_staff_links link ON link.admin_account_id=a.id
+                        LEFT JOIN club.staff staff ON staff.id=link.staff_id
+                        WHERE a.id=i.management_admin_id AND a.is_active AND NOT a.invite_pending
+                          AND ((a.normalized_phone IS NULL AND i.legacy_id IS NULL) OR a.normalized_phone=i.normalized_phone)
+                          AND (link.admin_account_id IS NULL OR (staff.is_active AND NOT staff.is_archived))))
+                    )
                 ), ready AS (SELECT id FROM club.roster_import_state WHERE id='initial')
                 SELECT EXISTS(SELECT 1 FROM bound), EXISTS(SELECT 1 FROM ready),
                        p.id,p.name,p.number,p.position,p.image_url

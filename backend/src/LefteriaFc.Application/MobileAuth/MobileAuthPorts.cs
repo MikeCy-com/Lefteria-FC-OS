@@ -61,9 +61,15 @@ public sealed record MobileIdentityProfile(
     string? Email = null,
     DateTimeOffset? UpdatedAt = null);
 
-public sealed record PendingFanRegistration(string FirstName, string LastName, DateOnly Birthday)
+public sealed record PendingFanRegistration(string FirstName, string LastName, DateOnly Birthday, Guid? EvidenceId = null)
 {
     public string FullName => FirstName + " " + LastName;
+    public override string ToString() => "Protected pending fan registration";
+}
+
+public sealed record LegacyFanRegistrationEvidence(bool IsActive, PendingFanRegistration Registration)
+{
+    public override string ToString() => "Protected legacy fan registration evidence";
 }
 
 public sealed record OtpChallengeSnapshot(Guid Id, PhoneNumber Phone, byte[] CodeDigest,
@@ -79,6 +85,8 @@ public sealed record OrganizationSelectionSnapshot(MobileIdentityProfile? Identi
 
 public interface IMobileAuthRepository
 {
+    Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
+        Task.FromResult<LegacyFanRegistrationEvidence?>(null);
     Task<MobileAvatarContent?> GetPublicAvatarAsync(string fileName, CancellationToken cancellationToken);
     Task<IMobileAuthTransaction> BeginTransactionAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<MobileIdentityProfile>> GetIdentityProfilesAsync(PhoneNumber phone,
@@ -105,6 +113,8 @@ public interface IMobileAuthRepository
 
 public interface IMobileAuthTransaction : IAsyncDisposable
 {
+    Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
+        Task.FromResult<LegacyFanRegistrationEvidence?>(null);
     // Lock this phone's current challenge (FOR UPDATE) until commit/disposal.
     Task<OtpChallengeSnapshot?> LockChallengeAsync(PhoneNumber phone,
         CancellationToken cancellationToken);

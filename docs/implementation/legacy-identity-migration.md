@@ -7,6 +7,22 @@ historical commit is explicitly named. GitHub main does not prove the deployed
 revision. No production data, credentials, tokens, provider or export endpoint
 was accessed. This document adds no importer, bridge, schema or production change.
 
+The GitHub audit was refreshed on 2026-10-27. Main first advanced to
+`2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30` from `7833dace` through public-site
+CSS changes only, then to `c83fd6dfa798cfaada8ae3483f7c0148b245b89c` through
+frontend public-branding changes only. The account-related backend files remain
+unchanged. Existing links retain their original immutable audit baseline;
+additions below pin `2986c570`. Equal code does not prove equal exported data or
+permit silently replacing a bound snapshot's source revision.
+[CSS comparison](https://github.com/MikeCy-com/Lefteria-FC/compare/7833daceceac1611c368e7bc4df2a82c64b45e1a...2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30),
+[public-branding comparison](https://github.com/MikeCy-com/Lefteria-FC/compare/2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30...c83fd6dfa798cfaada8ae3483f7c0148b245b89c).
+
+The later same-day [c83-to-a52 comparison](https://github.com/MikeCy-com/Lefteria-FC/compare/c83fd6dfa798cfaada8ae3483f7c0148b245b89c...a52d66b8e01c010cfe95ce53fa139e126bae4d84)
+also changes public branding only. The implemented initial account import and
+its current verification are described in [account import](account-import.md).
+The bounded legacy-session bridge below remains a requirement, not implemented
+token compatibility.
+
 Sections marked **observed** describe repository code. Sections marked
 **proposed requirements** specify the validation needed before implementing or
 enabling an import/bridge; they do not claim source data is clean or migrated.
@@ -32,6 +48,26 @@ Sources: [mobile upsert](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06a
 [staff model](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/models.py#L632),
 [staff mirror authority](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/staff_admin_sync.py#L73),
 [registration approval](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/server.py#L4004).
+
+There is a second fan profile writer, `PUT /mobile/fan/profile`, which mirrors
+`name`, `birthday`, `avatar_url`, `city` and `updated_at` to both `mobile_users`
+and `fans`. It is separate from the common profile route's mirror allowlist.
+`GET /mobile/auth/me` has a narrower fallback: only when the fan's birthday or
+first name is falsey does it read the exact-phone fan row, and only truthy
+`first_name`, `last_name`, `birthday`, `favourite_player_id` and
+`notification_prefs` fill falsey mobile fields. It does not unconditionally
+prefer the fan mirror, or fill email/favorite-team/avatar through that loop.
+Preserve field origin and conflicting values instead of inventing a universal
+mirror precedence rule.
+[Second fan writer](https://github.com/MikeCy-com/Lefteria-FC/blob/2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30/backend/routes/fan_engagement.py#L569),
+[narrow current-user fallback](https://github.com/MikeCy-com/Lefteria-FC/blob/2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30/backend/routes/mobile_auth.py#L599).
+
+`social_principal_id` is another persisted mobile field. The social resolver can
+choose an existing principal or the earliest exact-phone mobile account and
+write the principal to same-phone role rows. Preserve it and other untyped
+source fields privately for later social migration; it is neither a replacement
+for a role-specific mobile subject nor authority to merge accounts or grants.
+[Social principal persistence](https://github.com/MikeCy-com/Lefteria-FC/blob/2986c570458a3990c6d9d1b7aca1d1fe6d7a3c30/backend/social_policy.py#L490).
 
 ## Observed phone and role derivation
 
@@ -87,6 +123,12 @@ linking reads management `linked_admin_id/admin_user_id/linked_id`, player
 staff/admin links reject an explicit reverse pointer to another staff member.
 These are the evidenced names; no `guardian_id`, `coach_user_id` or invented
 generic account aliases are established by these paths.
+
+A consistent explicit link is stronger evidence than phone-only fallback.
+Uniqueness is required when using the fallback; duplicate phone candidates do
+not by themselves justify replacing an already consistent explicit link.
+Contradictory explicit aliases, reverse pointers, phone agreement or status must
+still be reviewed rather than silently falling through to a different record.
 [Coach assignments](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/mobile_scope.py#L5),
 [avatar link readers](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/profile_media.py#L13),
 [staff/admin reverse-link check](https://github.com/MikeCy-com/Lefteria-FC/blob/5111f06af5d8b17f855ceed9637caca02db117e2/backend/server.py#L1811).
@@ -123,7 +165,7 @@ Organization IDs are exactly `lefteria_fc` and `lefteria_fc_academy`.
 | Admin assignment state | Observed effective scope |
 |---|---|
 | Inactive/unknown CMS role | No organizations. |
-| `organization_ids` list (including `[]`) | Authoritative; an empty list grants nothing, including for super admin. Known IDs are returned in canonical order. |
+| `organization_ids` list or string | Authoritative when non-null; `[]` and `""` grant nothing, including for super admin. The reader accepts a string as one assignment. Known IDs are returned in canonical order. |
 | `organization_ids` missing or null | Fall back to `organization_id`; its string form is accepted by the reader. |
 | Both assignment fields missing/null, active `super_admin` | Both organizations, as an explicit legacy fallback. |
 | Both missing/null, other role | No grant from the organization helper. CMS coach authentication has a separate backfill from `assigned_academy_group_id`, else `assigned_team_id`; it does not override an explicit empty assignment. |
@@ -133,6 +175,10 @@ Organization IDs are exactly `lefteria_fc` and `lefteria_fc_academy`.
 Unknown IDs are ignored by the source reader; write validation rejects unknown
 or duplicate IDs. An explicit domain-record `organization_id` is authoritative;
 only missing/null legacy organization fields use roster/group classification.
+An explicit non-null plural assignment prevents singular fallback, including
+when plural is empty. The helper strips/lowercases the CMS role, whereas the
+canonical permission matrix uses exact role strings. This difference must not
+silently turn a noncanonical stored role into a privileged imported account.
 The organization helper recognizes legacy CMS role `admin`, but the canonical
 permission matrix and new-account role allowlist contain only super_admin,
 manager, editor, marketing, coach, matchday_editor. This inconsistency does not
@@ -224,9 +270,11 @@ activate pending invites as part of a login bridge.
 4. Enforce one unambiguous mobile row per canonical `(phone,role)` and a unique
    old subject mapping. Canonically equal phones across different roles are
    expected and remain separate identities. Conflicting duplicates within one
-   role, repeated admin usernames, multiple admin/staff/player own-phone matches,
-   contradictory explicit/reverse links, or a shared phone implying two distinct
-   people must be quarantined. No first/last/latest-row winner or union of grants.
+   role, repeated admin usernames, ambiguous phone-only admin/staff/player
+   resolution, contradictory explicit/reverse links, or a shared phone implying
+   two distinct people must be quarantined. A consistent explicit link takes
+   precedence over phone-only fallback. No first/last/latest-row winner or union
+   of grants.
 5. Preserve actual guardian-child IDs only after validating the child's parent
    contact and roster relationship. Multiple children per parent are legitimate;
    duplicate own-phone players and registration/name-only matches are not proof

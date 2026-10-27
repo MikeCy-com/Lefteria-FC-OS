@@ -32,7 +32,9 @@ Identity, phone, role, active status and management linkage remain excluded.
   the relevant schemas. These are database-wide hardening changes; do not run
   this setup against a shared database without a separate reviewed plan.
 - Organizations and organization grants are SELECT-only.
-- Admin accounts are SELECT-only except UPDATE of active_organization_id.
+- Admin accounts expose only ID, active/invitation state, normalized phone and
+  selected organization, plus UPDATE of active_organization_id. Credential hashes
+  and full admin rows are denied to the mobile API runtime.
 - Mobile identities permit SELECT, fan-only INSERT, and UPDATE of profile,
   platform and last-login fields. ID, phone, role, active status, legacy ID and
   management linkage cannot be updated by the runtime role.
@@ -44,13 +46,21 @@ Identity, phone, role, active status and management linkage remain excluded.
   only. Ownership/provenance, DELETE and TRUNCATE are denied. Identity deletion
   cascades and replacements overwrite one current row per identity.
 - Canonical roster access is limited to SELECT on the five player-picker fields,
-  their eligibility predicates and the import-readiness ID. Whole player rows,
-  team/group relationships and roster writes are denied. The runtime has no
+  their eligibility predicates, team ID, player/group membership IDs and the
+  import-readiness ID. Whole player rows and roster writes are denied. The runtime has no
   migration-schema USAGE or access to exact source archives.
-- Staff, staff assignments and group-coach links receive no runtime privileges.
-  Staff import state, full staff source and player/guardian/staff contact
-  provenance remain owner-only in the migration schema. The import executable
+- Staff status, staff/team/group assignment IDs and group-coach links expose only
+  the columns required to recheck current canonical mobile authority. Canonical
+  contact bindings, mobile record links, admin/staff links and fan-registration
+  evidence have narrow read projections; source IDs, raw fields and credentials
+  remain excluded where unnecessary. Canonical writes are denied. Staff/account
+  import state, full source, quarantine, subject mappings, grant provenance and
+  original player/guardian/staff contacts remain owner-only. The import executable
   requires its own explicit owner connection; it is not part of API DI.
+
+Reapply grants after `LegacyAccountImport` before starting the new API. The
+reset includes new account tables and denies residual table/column privileges.
+Runtime probes exercise whole-row/source/hash access and canonical write denials.
 
 Mobile identity RLS restricts INSERT to fan records. The fan check is restrictive,
 so an additional permissive insert policy cannot silently broaden it. SELECT

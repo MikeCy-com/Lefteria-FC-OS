@@ -17,6 +17,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
 
     public IReadOnlyList<(string Name, Func<Task> Check)> Cases =>
     [
+        ("Owner account import, canonical role revocation and legacy fan OTP preserve source authority", AccountImportEndToEndAsync),
         ("Twilio adapter encodes provider request and role sender fallback without network", TwilioAdapterChecks.ConfiguredRequestAsync),
         ("Unconfigured Twilio adapter refuses delivery without HTTP", TwilioAdapterChecks.UnconfiguredDoesNotCallHttpAsync),
         ("Restricted application role has no schema or audit mutation privilege", database.AssertRestrictedApplicationRoleAsync),
@@ -36,6 +37,8 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Avatar storage failure rolls back image, profile timestamp and audit atomically", AvatarRollbackAsync),
         ("Roster manifest validation is strict, bounded and private; CLI dry-run has no DB dependency", RosterValidationAsync),
         ("Staff manifest validates global assignments and preserves raw contact presence without DB access", StaffValidationAsync),
+        ("Account planning preserves role subjects, quarantine, canonical links and explicit grants", AccountPlannerAsync),
+        ("Account planning indexes full-source ambiguity and preserves strict source boundaries", AccountPlannerAdditionalAsync),
         ("Staff readiness distinguishes missing, verified empty and dangling group coach snapshots", StaffEmptySnapshotAsync),
         ("Roster initial import readiness, atomic failure, idempotency and concurrency are enforced", RosterImportAsync),
         ("Authenticated player picker projects only current active first-team players", RosterPickerAsync),

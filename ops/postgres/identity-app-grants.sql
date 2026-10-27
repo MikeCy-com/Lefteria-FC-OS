@@ -68,7 +68,10 @@ REVOKE ALL PRIVILEGES ON TABLE
   club.teams, club.academy_groups, club.players, club.player_academy_groups,
   club.roster_import_state, migration.roster_source_documents,
   club.staff, club.staff_teams, club.staff_academy_groups, club.academy_group_coaches,
-  migration.staff_relationship_import_state, migration.staff_source_documents, migration.contact_provenance
+  migration.staff_relationship_import_state, migration.staff_source_documents, migration.contact_provenance,
+  identity.fan_registration_evidence, identity.canonical_contact_bindings, identity.mobile_record_links, identity.admin_staff_links,
+  migration.account_import_state, migration.account_source_documents, migration.account_import_issues,
+  migration.legacy_account_mappings, migration.imported_admin_grants
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -87,7 +90,10 @@ BEGIN
       ('club','teams'), ('club','academy_groups'), ('club','players'), ('club','player_academy_groups'),
       ('club','roster_import_state'), ('migration','roster_source_documents'),
       ('club','staff'), ('club','staff_teams'), ('club','staff_academy_groups'), ('club','academy_group_coaches'),
-      ('migration','staff_relationship_import_state'), ('migration','staff_source_documents'), ('migration','contact_provenance'))
+      ('migration','staff_relationship_import_state'), ('migration','staff_source_documents'), ('migration','contact_provenance'),
+      ('identity','fan_registration_evidence'), ('identity','canonical_contact_bindings'), ('identity','mobile_record_links'), ('identity','admin_staff_links'),
+      ('migration','account_import_state'), ('migration','account_source_documents'), ('migration','account_import_issues'),
+      ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -105,16 +111,28 @@ ON identity.mobile_avatars TO :"app_role";
 GRANT UPDATE (display_name, first_name, last_name, birthday, avatar_url,
   favorite_team, email, favourite_player_id, updated_at, notification_preferences, platform, last_login)
 ON identity.mobile_identities TO :"app_role";
-GRANT SELECT ON identity.admin_accounts, identity.admin_organization_grants,
-  club.organizations TO :"app_role";
+GRANT SELECT (id, is_active, invite_pending, normalized_phone, active_organization_id)
+ON identity.admin_accounts TO :"app_role";
+GRANT SELECT ON identity.admin_organization_grants, club.organizations TO :"app_role";
 GRANT UPDATE (active_organization_id) ON identity.admin_accounts TO :"app_role";
 GRANT SELECT, INSERT, UPDATE, DELETE ON identity.otp_challenges TO :"app_role";
 GRANT SELECT, INSERT ON identity.auth_rate_buckets TO :"app_role";
 GRANT UPDATE (tokens, updated_at) ON identity.auth_rate_buckets TO :"app_role";
 GRANT INSERT ON audit.security_events TO :"app_role";
-GRANT SELECT (id, organization_id, name, number, position, image_url, team_type,
+GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
   is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
+-- Canonical auth reads expose only validated ownership/status/assignment facts.
+-- Raw contacts, source archives, quarantine and owner import state remain denied.
+GRANT SELECT (player_id, organization_id, academy_group_id) ON club.player_academy_groups TO :"app_role";
+GRANT SELECT (id, is_active, is_archived) ON club.staff TO :"app_role";
+GRANT SELECT (staff_id, team_id) ON club.staff_teams TO :"app_role";
+GRANT SELECT (staff_id, academy_group_id, from_plural, from_singular, from_group_coach) ON club.staff_academy_groups TO :"app_role";
+GRANT SELECT (academy_group_id, staff_id) ON club.academy_group_coaches TO :"app_role";
+GRANT SELECT (collection, source_id, kind, normalized_phone) ON identity.canonical_contact_bindings TO :"app_role";
+GRANT SELECT ON identity.mobile_record_links, identity.admin_staff_links TO :"app_role";
+GRANT SELECT (id, normalized_phone, first_name, last_name, birthday, is_active, avatar_url, favourite_player_id, notification_preferences_json)
+ON identity.fan_registration_evidence TO :"app_role";
 
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
