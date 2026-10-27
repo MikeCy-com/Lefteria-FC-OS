@@ -23,7 +23,9 @@ Both parsed connections and the actual connected server identity are validated
 before any SQL mutation. A mismatched document is rejected with exit code 2.
 Do not commit this credential document.
 
-The suite never migrates, drops or truncates a database. It generates distinct
+The suite never creates, drops or truncates a database. Its account scenario
+attempts the guarded account rollback and verifies populated data refuses it
+before any schema change. It generates distinct
 test phones/identities, uses only exact owned-row cleanup, and leaves security
 audit events append-only. TEST-NET remote IP customization exists only in the
 test host, so product forwarded-header trust and shared throttles remain real.
@@ -47,3 +49,10 @@ failure trigger affects only its generated test identity and is removed in
 finally, proving atomic rollback. The optional post-decode gate is test DI only.
 No external images/providers or raw-upload persistence are used. Avatar FK
 cascade permits the existing exact-owned cleanup.
+
+The account scenario runs first against empty account/roster/staff targets. It
+imports generated source-shaped records, checks owner-only review/apply/replay,
+same-count mutation refusal, quarantine, atomic failure and rollback protection,
+then exercises current player/guardian/coach/admin links, grant revocation with
+historical evidence retained and pre-OTP fan evidence. It cleans only exact owned
+IDs and generated fictional phones before the existing native identity cases.

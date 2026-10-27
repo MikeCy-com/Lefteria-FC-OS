@@ -25,16 +25,19 @@ BEGIN
   IF NOT row_security_active('identity.mobile_identities') THEN
     RAISE EXCEPTION 'Mobile identity RLS is not active for the runtime role';
   END IF;
+  IF has_column_privilege(current_user,'identity.admin_accounts','password_hash','SELECT') THEN
+    RAISE EXCEPTION 'Mobile API runtime can read imported credentials';
+  END IF;
   IF NOT has_column_privilege(current_user,'club.players','name','SELECT')
       OR NOT has_column_privilege(current_user,'club.players','is_active','SELECT')
       OR NOT has_column_privilege(current_user,'club.players','has_explicit_picker_fields','SELECT')
-      OR has_column_privilege(current_user,'club.players','team_id','SELECT')
+      OR NOT has_column_privilege(current_user,'club.players','team_id','SELECT')
       OR has_table_privilege(current_user,'club.players','INSERT')
       OR has_table_privilege(current_user,'club.players','UPDATE')
       OR has_table_privilege(current_user,'club.players','DELETE')
       OR has_table_privilege(current_user,'club.players','TRUNCATE')
       OR has_schema_privilege(current_user,'migration','USAGE') THEN
-    RAISE EXCEPTION 'Runtime roster/import privileges exceed the picker boundary';
+    RAISE EXCEPTION 'Runtime roster/import privileges exceed the canonical auth boundary';
   END IF;
   denied := false;
   BEGIN
@@ -42,8 +45,8 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Runtime can read owner-only source archives'; END IF;
-  FOREACH private_table IN ARRAY ARRAY['club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches',
-    'migration.staff_relationship_import_state','migration.staff_source_documents','migration.contact_provenance']
+  FOREACH private_table IN ARRAY ARRAY['migration.staff_relationship_import_state','migration.staff_source_documents','migration.contact_provenance',
+    'migration.account_import_state','migration.account_source_documents','migration.account_import_issues','migration.legacy_account_mappings','migration.imported_admin_grants']
   LOOP
     -- Resolve through the catalog: the runtime deliberately lacks migration
     -- schema USAGE, so resolving its qualified name as regclass is denied.
@@ -62,6 +65,26 @@ BEGIN
     EXCEPTION WHEN insufficient_privilege THEN denied := true;
     END;
     IF NOT denied THEN RAISE EXCEPTION 'Runtime can read an owner-only staff relationship table'; END IF;
+  END LOOP;
+  FOREACH private_table IN ARRAY ARRAY['club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches',
+    'identity.canonical_contact_bindings','identity.fan_registration_evidence']
+  LOOP
+    denied := false;
+    BEGIN
+      EXECUTE format('SELECT * FROM %s LIMIT 1', private_table);
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'Runtime exceeded the allowlisted canonical projection'; END IF;
+  END LOOP;
+  FOREACH private_table IN ARRAY ARRAY['identity.mobile_record_links','identity.admin_staff_links','identity.canonical_contact_bindings',
+    'identity.fan_registration_evidence','club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches','club.player_academy_groups']
+  LOOP
+    denied := false;
+    BEGIN
+      EXECUTE format('DELETE FROM %s WHERE false', private_table);
+    EXCEPTION WHEN insufficient_privilege THEN denied := true;
+    END;
+    IF NOT denied THEN RAISE EXCEPTION 'Runtime can mutate canonical relationships or evidence'; END IF;
   END LOOP;
   INSERT INTO identity.mobile_identities
     (id, normalized_phone, role, display_name, is_active, platform, created_at)

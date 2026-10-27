@@ -10,6 +10,14 @@ namespace LefteriaFc.Infrastructure.Identity;
 
 public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : IMobileAuthRepository
 {
+    public Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
+        ReadLegacyFanAsync(database, phone, cancellationToken);
+
+    private static Task<LegacyFanRegistrationEvidence?> ReadLegacyFanAsync(LefteriaDbContext context, PhoneNumber phone, CancellationToken token) =>
+        context.FanRegistrationEvidence.AsNoTracking().Where(row => row.NormalizedPhone == phone.Digits)
+            .Select(row => new LegacyFanRegistrationEvidence(row.IsActive,
+                new PendingFanRegistration(row.FirstName, row.LastName, row.Birthday, row.Id)))
+            .SingleOrDefaultAsync(token);
     public Task<MobileAvatarContent?> GetPublicAvatarAsync(string fileName, CancellationToken cancellationToken) =>
         !MobileAvatarLimits.IsFileName(fileName) ? Task.FromResult<MobileAvatarContent?>(null) :
         database.MobileAvatars.AsNoTracking().Where(row => row.FileName == fileName &&
@@ -31,7 +39,7 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
     {
         var row = await database.MobileIdentities.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == identityId, cancellationToken);
-        return row is null ? null : (await MapProfilesAsync(database, [row], cancellationToken)).Single();
+        return row is null ? null : (await MapProfilesAsync(database, [row], cancellationToken)).SingleOrDefault();
     }
 
     public async Task IssueOrReplaceChallengeAsync(OtpChallengeSnapshot challenge, AuthAuditEntry audit,
@@ -41,18 +49,20 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
         var pendingFirstName = challenge.PendingFan?.FirstName;
         var pendingLastName = challenge.PendingFan?.LastName;
         var pendingBirthday = challenge.PendingFan?.Birthday;
+        var pendingEvidence = challenge.PendingFan?.EvidenceId;
         await database.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO identity.otp_challenges
               (id, normalized_phone, code_digest, created_at, expires_at, verification_calls, is_consumed,
-               pending_first_name, pending_last_name, pending_birthday)
+               pending_first_name, pending_last_name, pending_birthday, pending_evidence_id)
             VALUES ({challenge.Id}, {challenge.Phone.Digits}, {challenge.CodeDigest}, {challenge.CreatedAt},
               {challenge.ExpiresAt}, 0, false, {pendingFirstName},
-              {pendingLastName}, {pendingBirthday})
+              {pendingLastName}, {pendingBirthday}, {pendingEvidence})
             ON CONFLICT (normalized_phone) DO UPDATE SET
               id = EXCLUDED.id, code_digest = EXCLUDED.code_digest, created_at = EXCLUDED.created_at,
               expires_at = EXCLUDED.expires_at, verification_calls = 0, is_consumed = false,
               pending_first_name = EXCLUDED.pending_first_name,
-              pending_last_name = EXCLUDED.pending_last_name, pending_birthday = EXCLUDED.pending_birthday
+              pending_last_name = EXCLUDED.pending_last_name, pending_birthday = EXCLUDED.pending_birthday,
+              pending_evidence_id = EXCLUDED.pending_evidence_id
             """, cancellationToken);
         database.SecurityAuditEvents.Add(MapAudit(audit));
         await database.SaveChangesAsync(cancellationToken);
@@ -84,8 +94,8 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
         var scope = OrganizationScope.Select(identity.Management.OrganizationIds, requestedOrganizationId);
         if (scope.Status == OrganizationScopeStatus.Selected)
         {
-            var admin = await database.AdminAccounts.SingleAsync(x => x.Id == identity.Management.AdminAccountId, cancellationToken);
-            admin.ActiveOrganizationId = scope.SelectedId;
+            await database.AdminAccounts.Where(x => x.Id == identity.Management.AdminAccountId)
+                .ExecuteUpdateAsync(setters => setters.SetProperty(row => row.ActiveOrganizationId, scope.SelectedId), cancellationToken);
             var audit = MapAudit(new AuthAuditEntry("mobile.organization.select", "success", now, identity.Id));
             audit.OrganizationId = scope.SelectedId;
             database.SecurityAuditEvents.Add(audit);
@@ -105,23 +115,14 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
     private static async Task<IReadOnlyList<MobileIdentityProfile>> MapProfilesAsync(LefteriaDbContext context,
         IReadOnlyList<MobileIdentityRecord> rows, CancellationToken cancellationToken)
     {
-        var adminIds = rows.Where(x => x.ManagementAdminId.HasValue).Select(x => x.ManagementAdminId!.Value).Distinct().ToArray();
-        var admins = await context.AdminAccounts.AsNoTracking().Where(x => adminIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id, cancellationToken);
-        var assignments = await context.AdminOrganizationGrants.AsNoTracking()
-            .Where(x => adminIds.Contains(x.AdminAccountId)).ToListAsync(cancellationToken);
-        return rows.Select(row =>
+        var canonical = await CanonicalMobileProfiles.ReadAsync(context, rows, cancellationToken);
+        return rows.Where(row => canonical.TryGetValue(row.Id, out var current) && current.SignatureMatches).Select(row =>
         {
             if (!MobileRoles.TryParse(row.Role, out var role))
             {
                 throw new InvalidOperationException("Stored mobile identity has an unknown role.");
             }
-            ManagementOrganizationGrant? management = null;
-            if (row.ManagementAdminId is { } adminId && admins.TryGetValue(adminId, out var admin))
-            {
-                management = new(admin.Id, admin.IsActive,
-                    assignments.Where(x => x.AdminAccountId == admin.Id).Select(x => x.OrganizationId).ToArray(),
-                    admin.ActiveOrganizationId);
-            }
+            var current = canonical[row.Id];
             IReadOnlyDictionary<string, bool>? preferences = null;
             if (row.NotificationPreferencesJson is not null)
             {
@@ -129,14 +130,16 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
                 catch (JsonException) { /* Malformed legacy preferences never grant access. */ }
             }
             return new MobileIdentityProfile(row.Id, PhoneNumber.Parse(row.NormalizedPhone), role, row.DisplayName,
-                row.IsActive, null, [], null, [], row.AvatarUrl, row.Platform, row.CreatedAt,
-                row.LastLogin ?? row.CreatedAt, management, row.FavoriteTeam, row.FirstName, row.LastName,
+                current.IsAvailable, current.LinkedPlayerId, current.LinkedPlayerIds, current.TeamId, current.GroupIds, row.AvatarUrl, row.Platform, row.CreatedAt,
+                row.LastLogin ?? row.CreatedAt, current.Management, row.FavoriteTeam, row.FirstName, row.LastName,
                 row.Birthday, row.FavouritePlayerId, preferences, Email: row.Email, UpdatedAt: row.UpdatedAt);
         }).ToArray();
     }
 
     private sealed class Transaction(LefteriaDbContext context, IDbContextTransaction transaction) : IMobileAuthTransaction
     {
+        public Task<LegacyFanRegistrationEvidence?> GetLegacyFanRegistrationAsync(PhoneNumber phone, CancellationToken cancellationToken) =>
+            ReadLegacyFanAsync(context, phone, cancellationToken);
         private readonly Dictionary<Guid, OtpChallengeRecord> lockedChallenges = [];
         private readonly HashSet<Guid> lockedIdentities = [];
 
@@ -149,7 +152,7 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             if (row is null) return null;
             lockedChallenges[row.Id] = row;
             var pending = row.PendingFirstName is not null && row.PendingLastName is not null && row.PendingBirthday.HasValue
-                ? new PendingFanRegistration(row.PendingFirstName, row.PendingLastName, row.PendingBirthday.Value) : null;
+                ? new PendingFanRegistration(row.PendingFirstName, row.PendingLastName, row.PendingBirthday.Value, row.PendingEvidenceId) : null;
             return new(row.Id, phone, (byte[])row.CodeDigest.Clone(), row.CreatedAt, row.ExpiresAt,
                 row.VerificationCalls, row.IsConsumed, pending);
         }
@@ -164,9 +167,9 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             var adminIds = rows.Where(x => x.ManagementAdminId.HasValue).Select(x => x.ManagementAdminId!.Value).Distinct().ToArray();
             if (adminIds.Length > 0)
             {
-                await context.AdminAccounts.FromSqlInterpolated($"""
-                    SELECT * FROM identity.admin_accounts WHERE id = ANY({adminIds}) ORDER BY id FOR UPDATE
-                    """).LoadAsync(cancellationToken);
+                await context.Database.SqlQuery<Guid>($"""
+                    SELECT id AS "Value" FROM identity.admin_accounts WHERE id = ANY({adminIds}) ORDER BY id FOR UPDATE
+                    """).ToArrayAsync(cancellationToken);
                 // Assignments are read afresh below. The API cannot edit grants;
                 // assignment mutation must lock the owning admin row first.
             }
@@ -176,13 +179,41 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
         public async Task<MobileIdentityProfile> UpsertVerifiedFanAsync(PhoneNumber phone,
             PendingFanRegistration registration, string platform, DateTimeOffset now, CancellationToken cancellationToken)
         {
-            var row = await GetOrCreateFanAsync(phone, registration.FullName, platform, now, cancellationToken);
-            if (row.IsActive)
+            VerifiedFanSeed? seed = null;
+            if (registration.EvidenceId is { } evidenceId)
+            {
+                var alreadyVerified = await context.MobileIdentities.SingleOrDefaultAsync(
+                    row => row.NormalizedPhone == phone.Digits && row.Role == "fan", cancellationToken);
+                if (alreadyVerified is not null)
+                {
+                    // A challenge staged before another verified profile write
+                    // must never restore the older registration mirror.
+                    lockedIdentities.Add(alreadyVerified.Id);
+                    return (await MapProfilesAsync(context, [alreadyVerified], cancellationToken)).Single();
+                }
+                seed = await context.FanRegistrationEvidence.AsNoTracking()
+                    .Where(row => row.Id == evidenceId && row.NormalizedPhone == phone.Digits)
+                    .Select(row => new VerifiedFanSeed(row.FirstName, row.LastName, row.Birthday, row.IsActive,
+                        row.AvatarUrl, row.FavouritePlayerId, row.NotificationPreferencesJson))
+                    .SingleOrDefaultAsync(cancellationToken);
+                if (seed is not { IsActive: true })
+                    throw new MobileAuthException(MobileAuthFaultKind.Forbidden, MobileAuthErrorCode.AccountUnavailable,
+                        "Ο λογαριασμός δεν είναι διαθέσιμος.");
+                registration = registration with { FirstName = seed.FirstName, LastName = seed.LastName, Birthday = seed.Birthday };
+            }
+            var (row, created) = await GetOrCreateFanAsync(phone, registration.FullName, platform, now, cancellationToken);
+            if (row.IsActive && (seed is null || created))
             {
                 row.FirstName = registration.FirstName;
                 row.LastName = registration.LastName;
                 row.Birthday = registration.Birthday;
                 row.DisplayName = registration.FullName;
+                if (seed is not null)
+                {
+                    row.AvatarUrl = seed.AvatarUrl;
+                    row.FavouritePlayerId = seed.FavouritePlayerId;
+                    row.NotificationPreferencesJson = seed.PreferencesJson;
+                }
                 await context.SaveChangesAsync(cancellationToken);
             }
             return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
@@ -191,15 +222,16 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
         public async Task<MobileIdentityProfile> EnsureNeutralFanIdentityAsync(PhoneNumber phone,
             string neutralDisplayName, string platform, DateTimeOffset now, CancellationToken cancellationToken)
         {
-            var row = await GetOrCreateFanAsync(phone, neutralDisplayName, platform, now, cancellationToken);
+            var (row, _) = await GetOrCreateFanAsync(phone, neutralDisplayName, platform, now, cancellationToken);
             return (await MapProfilesAsync(context, [row], cancellationToken)).Single();
         }
 
-        private async Task<MobileIdentityRecord> GetOrCreateFanAsync(PhoneNumber phone, string name,
+        private async Task<(MobileIdentityRecord Identity, bool Created)> GetOrCreateFanAsync(PhoneNumber phone, string name,
             string platform, DateTimeOffset now, CancellationToken cancellationToken)
         {
             var row = await context.MobileIdentities.SingleOrDefaultAsync(
                 x => x.NormalizedPhone == phone.Digits && x.Role == "fan", cancellationToken);
+            var created = row is null;
             if (row is null)
             {
                 row = new MobileIdentityRecord
@@ -211,7 +243,13 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
                 await context.SaveChangesAsync(cancellationToken);
             }
             lockedIdentities.Add(row.Id);
-            return row;
+            return (row, created);
+        }
+
+        private sealed record VerifiedFanSeed(string FirstName, string LastName, DateOnly Birthday, bool IsActive,
+            string? AvatarUrl, string? FavouritePlayerId, string? PreferencesJson)
+        {
+            public override string ToString() => "Protected verified fan seed";
         }
 
         public async Task<MobileIdentityProfile> UpdateLastLoginAsync(Guid identityId, string platform,

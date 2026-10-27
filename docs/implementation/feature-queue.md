@@ -77,9 +77,13 @@ This order follows the dependencies of the accepted requirements:
   now have an explicit import bound to the roster snapshot. Exact source and
   player-own/guardian/staff contact provenance remain owner-only. Shared staff
   can serve FC and Academy; no mobile/admin identity or grant is created.
-- Next: account migration, current guardian/coach identity mapping and real role dashboards;
+- Protected initial account import now preserves role-specific subjects, supported
+  credential strings, current grants, exact source and quarantine privately. Fresh
+  canonical player/guardian/coach/admin relationships govern imported role
+  availability. Pre-OTP fan evidence becomes a new subject only after phone proof.
+- Next: bounded legacy-session bridging, private scoped APIs and real role dashboards;
   social profiles/media retain their separately mapped privacy/moderation gates.
-  Account import and legacy token compatibility remain cutover gates.
+  Real export reconciliation, staging recovery and legacy token compatibility remain cutover gates.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
 is now merged into source main at `7833daceceac1611c368e7bc4df2a82c64b45e1a`,

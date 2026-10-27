@@ -4,11 +4,12 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster/staff relationships with private contact provenance, and an authenticated favourite-player picker.
+- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster/staff relationships, protected initial account import with quarantine, current role bindings, and an authenticated favourite-player picker.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Source main rechecked on 2026-10-26: `7833daceceac1611c368e7bc4df2a82c64b45e1a` merges frontend PR #42. Its 15-file delta changes no backend contracts; the avatar handler's GitHub blob is unchanged. New dashboard layouts are now part of the source baseline.
 - Deployed revision, VPS configuration and live data are not verified.
+- Source main rechecked on 2026-10-27 at `a52d66b8e01c010cfe95ce53fa139e126bae4d84`: subsequent public branding changes leave the audited account/backend contracts unchanged.
 - No accounts or production data have been migrated. Own profile details, team/player preferences, notification preferences and a public mobile avatar can be edited. The picker requires an explicitly imported complete roster snapshot; operational dashboards, private roster relationships, notification delivery and social/media workflows remain queued.
 
 ## Architecture documents
@@ -34,6 +35,8 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Canonical roster, explicit import and recovery](docs/implementation/canonical-roster.md)
 - [Staff relationship source contract](docs/implementation/staff-relationship-source-contract.md)
 - [Staff relationships, private contact provenance and import](docs/implementation/staff-relationships.md)
+- [Legacy account source contract](docs/implementation/account-import-source-contract.md)
+- [Account import, canonical mobile authority and recovery](docs/implementation/account-import.md)
 
 ## Target stack
 
@@ -74,7 +77,7 @@ in tools/api-client with its own lockfile so neither toolchain bypasses peer che
 
 Mobile login persists HMAC-protected OTP challenges, shared rate limits, explicit role grants and append-only audit events. Role changes preserve the original JWT expiry; removed formal roles expose explicit fan recovery. Management context uses current FC/Academy assignments. The API never migrates schema during normal startup. The mobile shell uses real identity/context responses and labels unported functions **Under Developments**.
 
-The SMS adapter fails closed when Twilio is unavailable or unconfigured. Tests replace it only in the test host. Legacy tokens are not yet accepted; a reviewed session bridge and account import remain cutover prerequisites. Player/guardian/team relationships and operational modules are not represented by invented records.
+The SMS adapter fails closed when Twilio is unavailable or unconfigured. Tests replace it only in the test host. Legacy tokens are not yet accepted; a reviewed session bridge, real account export reconciliation and staging verification remain cutover prerequisites. Imported canonical player/guardian/coach relationships now govern role availability; private operational modules remain queued.
 
 ## Safety
 

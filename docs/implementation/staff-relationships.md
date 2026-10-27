@@ -1,5 +1,11 @@
 # Canonical staff and relationship import
 
+The subsequent [account import](account-import.md) consumes this protected
+foundation and adds canonical mobile authority. It also grants the runtime the
+narrow status/assignment projections needed for fresh authorization. Statements
+below about this initial staff slice granting no accounts remain specific to
+`--kind staff-relationships`.
+
 This extension builds on the [canonical roster](canonical-roster.md) and the
 [staff source contract](staff-relationship-source-contract.md). It preserves
 staff records, team/group assignments, Academy group coach references and
@@ -82,10 +88,11 @@ The underlying roster, mobile identities and profile preferences remain. Keep
 the protected original manifests/checksums and an approved backup before rollback;
 reapply and explicitly reimport to recover the extension.
 
-Account/credential migration, subject mapping, collision quarantine, current
-guardian/player/coach grants, legacy-session bridging, private role APIs and the
-operational dashboards remain required follow-up work. A stored relationship is
-evidence for that work, not authorization by itself.
+Initial account/credential import, subject mapping, collision quarantine and
+current guardian/player/coach authority are implemented in the subsequent account
+slice. Real export reconciliation, legacy-session bridging, private role APIs and
+operational dashboards remain required. A staff relationship alone grants no
+account or authority.
 
 ## Observed verification — 2026-10-26
 

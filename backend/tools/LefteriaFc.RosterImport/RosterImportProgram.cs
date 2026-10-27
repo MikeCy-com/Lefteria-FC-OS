@@ -3,6 +3,8 @@ using LefteriaFc.Application.Roster;
 using LefteriaFc.Infrastructure.Roster;
 using LefteriaFc.Application.StaffRelationships;
 using LefteriaFc.Infrastructure.StaffRelationships;
+using LefteriaFc.Application.AccountImport;
+using LefteriaFc.Infrastructure.AccountImport;
 
 namespace LefteriaFc.Tools.RosterImport;
 
@@ -14,25 +16,30 @@ public static class RosterImportProgram
         {
             var values = new Dictionary<string, string>(StringComparer.Ordinal);
             var apply = false;
+            var reviewTarget = false;
             for (var index = 0; index < args.Length; index++)
             {
                 if (args[index] == "--apply") { if (apply) return Error("duplicate_option"); apply = true; continue; }
+                if (args[index] == "--review-target") { if (reviewTarget) return Error("duplicate_option"); reviewTarget = true; continue; }
                 var name = args[index];
                 if (name is not ("--kind" or "--input" or "--expected-sha256" or "--expected-database" or "--environment") ||
                     index + 1 >= args.Length || !values.TryAdd(name, args[++index])) return Error("invalid_option");
             }
             if (!values.TryGetValue("--input", out var path)) return Error("input_required");
             var kind = values.GetValueOrDefault("--kind", "roster");
-            if (kind is not ("roster" or "staff-relationships")) return Error("invalid_kind");
+            if (kind is not ("roster" or "staff-relationships" or "accounts")) return Error("invalid_kind");
+            if (reviewTarget && (kind != "accounts" || apply)) return Error("invalid_review_mode");
             var bytes = await ReadBoundedAsync(path);
             // Validation must finish before reading credentials or constructing
             // any database adapter, including when --apply was requested.
             var plan = kind == "roster" ? RosterImportValidator.Validate(bytes) : null;
             var staffPlan = kind == "staff-relationships" ? StaffRelationshipImportValidator.Validate(bytes) : null;
-            if (!apply)
+            var accountManifest = kind == "accounts" ? AccountImportValidator.Validate(bytes) : null;
+            if (!apply && !reviewTarget)
             {
                 if (plan is not null) Summary("valid_dry_run", plan);
-                else StaffSummary("valid_dry_run", staffPlan!);
+                else if (staffPlan is not null) StaffSummary("valid_dry_run", staffPlan);
+                else AccountSummary("manifest_valid", accountManifest!);
                 return 0;
             }
             if (!values.TryGetValue("--expected-sha256", out var digest) || !values.TryGetValue("--expected-database", out var database) ||
@@ -44,10 +51,17 @@ public static class RosterImportProgram
                 var result = await PostgresRosterImport.ApplyAsync(plan, connection, digest, database, environment);
                 Summary(result.Noop ? "same_snapshot_noop" : "applied", plan);
             }
+            else if (staffPlan is not null)
+            {
+                var result = await PostgresStaffRelationshipImport.ApplyAsync(staffPlan, connection, digest, database, environment);
+                StaffSummary(result.Noop ? "same_snapshot_noop" : "applied", staffPlan, result);
+            }
             else
             {
-                var result = await PostgresStaffRelationshipImport.ApplyAsync(staffPlan!, connection, digest, database, environment);
-                StaffSummary(result.Noop ? "same_snapshot_noop" : "applied", staffPlan!, result);
+                var result = await PostgresAccountImport.ApplyAsync(accountManifest!, connection, digest, database, environment, reviewTarget);
+                var status = reviewTarget ? "reviewed" : result.Noop ? "same_snapshot_noop" : "applied";
+                if (result.IssueCounts.Count > 0) status += "_with_quarantine";
+                AccountSummary(status, accountManifest!, result);
             }
             return 0;
         }
@@ -90,4 +104,21 @@ public static class RosterImportProgram
         }
         return output.ToArray();
     }
+    private static void AccountSummary(string status, ValidatedAccountImport manifest, AccountImportOutcome? result = null) =>
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            status, kind = "accounts", sha256 = manifest.Digest,
+            roster_sha256 = manifest.RosterDigest, staff_sha256 = manifest.StaffDigest,
+            source_rows = new
+            {
+                mobile_users = manifest.Rows.Count(row => row.Collection == "mobile_users"),
+                fans = manifest.Rows.Count(row => row.Collection == "fans"),
+                admin_users = manifest.Rows.Count(row => row.Collection == "admin_users")
+            },
+            counts = result is null ? (JsonElement?)null : JsonSerializer.Deserialize<JsonElement>(result.CountsJson),
+            issue_counts = result?.IssueCounts,
+            bound_snapshots_checked = result is not null,
+            applied = result?.Applied ?? false,
+            review_only = result?.Reviewed ?? false
+        }));
 }
