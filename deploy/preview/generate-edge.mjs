@@ -4,6 +4,25 @@ import { pathToFileURL } from 'node:url';
 
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
+const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}'];
+export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|academy|about|contact)(?:/__data[.]json)?$|news(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
+export const publicApiExpression = '^/api/public/(?:site|news(?:/[^/]+)?)$';
+
+export function reviewedPublicReads(document) {
+  // This curated list never opens a newly added anonymous API automatically.
+  for (const path of publicApiPaths) {
+    const operation = document?.paths?.[path]?.get;
+    if (!operation || (operation.security !== undefined &&
+        (!Array.isArray(operation.security) || operation.security.length !== 0))) {
+      throw new Error('Reviewed public reads must remain explicitly anonymous.');
+    }
+  }
+  const parameter = document.paths['/api/public/news/{id}'].get.parameters;
+  if (!parameter?.some(value => value.in === 'path' && value.name === 'id' && value.required === true)) {
+    throw new Error('The public article path parameter must remain required.');
+  }
+  return publicApiPaths;
+}
 
 export function protectedOperations(document) {
   if (!document || typeof document !== 'object' || Array.isArray(document) ||
@@ -59,6 +78,7 @@ export function generateEdge(document, hostname, contractDigest) {
   if (hostname !== supportedHost) throw new Error('The preview hostname must be explicitly reviewed.');
   if (!/^[a-f0-9]{64}$/.test(contractDigest)) throw new Error('A contract SHA-256 is required.');
   const groups = bearerRouteGroups(document);
+  reviewedPublicReads(document);
   const matchers = groups.map(({ method, expression }) => `  @private_${method.toLowerCase()} {
     method ${method}
     path_regexp private_${method.toLowerCase()} ${expression}
@@ -78,7 +98,7 @@ export function generateEdge(document, hostname, contractDigest) {
     '  -Server',
     '}'
   ].map(line => indent + line).join('\n');
-  return `# Generated from explicit Mobile operation security; do not broaden by hand.
+  return `# Generated from reviewed public reads and explicit Mobile security; do not broaden by hand.
 # OpenAPI SHA-256: ${contractDigest}
 # https://caddyserver.com/docs/caddyfile/matchers
 # https://caddyserver.com/docs/caddyfile/directives/basic_auth
@@ -103,12 +123,41 @@ ${responseHeaders('    ')}
   }
 
 ${matchers}
+  @public_web {
+    method GET HEAD
+    path_regexp public_web ${publicWebExpression}
+  }
+  @public_api {
+    method GET
+    path_regexp public_api ${publicApiExpression}
+  }
+  @legacy_upload {
+    method GET HEAD
+    path /uploads/* /api/uploads/*
+  }
   @api path /api/*
 
   route {
+    handle @public_web {
+      reverse_proxy web:3000 {
+        header_up -Authorization
+        header_up -Cookie
+      }
+    }
+    handle @public_api {
+      reverse_proxy api:8080 {
+        header_up -Authorization
+        header_up -Cookie
+      }
+    }
+    handle @legacy_upload {
+      # Private restored uploads are not published. Missing image references
+      # return a plain404 so browsers can use the public crest fallback.
+      respond "" 404
+    }
 ${handles}
     handle {
-      # New, anonymous and non-Mobile routes remain behind the preview gate.
+      # Unreviewed routes and private pages remain behind the preview gate.
       # In particular, a Bearer header cannot bypass OTP or legacy exchange.
       basic_auth bcrypt "Lefteria OS preview" {
         preview {env.PREVIEW_GATE_HASH}
