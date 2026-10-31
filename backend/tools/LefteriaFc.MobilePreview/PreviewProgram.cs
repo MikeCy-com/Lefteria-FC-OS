@@ -91,6 +91,13 @@ internal static class PreviewProgram
             Console.Error.WriteLine(exception.Message);
             exitCode = 2;
         }
+        catch (PreviewSmokeException exception)
+        {
+            // This type carries only our fixed checks/phases and HTTP statuses.
+            // Other failures remain redacted by the generic catch below.
+            Console.Error.WriteLine("Local preview smoke failed: " + exception.Message);
+            exitCode = 1;
+        }
         catch (Exception)
         {
             Console.Error.WriteLine("Local preview failed. Check the guarded fixture, applied schema, and free loopback port.");
