@@ -9,7 +9,8 @@ attach or redirect `lefteriafc.cy`.
 credentials, fresh preview token/OTP keys, private application/data networks,
 read-only application filesystems, dropped capabilities, process/memory/CPU
 limits and rotated logs. Only the edge publishes a port. Its default bind is
-loopback until TLS, authentication and private-service checks pass. The API has
+loopback in both address families (`PREVIEW_BIND=127.0.0.1` and
+`PREVIEW_BIND_IPV6=::1`) until TLS, authentication and private-service checks pass. The API has
 no outbound provider network; SMS and the legacy token bridge are disabled.
 The existing local test/preview host and its fixed OTP are never deployed here.
 
@@ -94,6 +95,22 @@ to release memory before starting the preview application.
 6. Start API/web/edge on loopback, verify health and the Basic/Bearer route
    matrix, then publish only the separate HTTPS edge port. Verify from outside
    the VPS with normal certificate validation.
+
+Public publication is an explicit operator change for each address family:
+`PREVIEW_BIND=0.0.0.0` enables IPv4 and `PREVIEW_BIND_IPV6=::` enables IPv6
+(specific approved addresses may also be used). Keep both generated defaults
+on loopback during preparation. If the preview hostname advertises both A and
+AAAA records, verify HTTPS on both families before handing over the URL; an
+IPv4-only listener can cause slow IPv6 connection fallback. These bindings do
+not change the production project's ports, DNS or domain configuration.
+
+Inspect the host/cloud firewall too. An IPv6 Docker publication may use a host
+proxy and require an INPUT allow rule even when the IPv4 Docker mapping works.
+On the verified UFW host, the narrowly scoped rule was
+`ufw allow proto tcp from ::/0 to any port 8443 comment lefteria-os-preview-https`.
+Review the rule with `--dry-run` before applying it, preserve existing rules,
+and verify external trusted TLS afterward. Do not disable the firewall or open
+database/upstream ports to solve preview reachability.
 
 The [edge and certificate guide](EDGE-AND-TLS.md) describes the authorization
 boundary and guarded renewal. Basic credentials must never reach either

@@ -232,6 +232,7 @@ def configuration_files(source_sha: str, images: dict[str, str], manifests: Path
                         certificates: Path, credentials: dict[str, str], bcrypt_hash: str) -> dict[str, bytes]:
     environment = {
         "PREVIEW_SOURCE_SHA": source_sha, "PREVIEW_HOST": HOSTNAME, "PREVIEW_BIND": "127.0.0.1",
+        "PREVIEW_BIND_IPV6": "::1",
         "PREVIEW_CERT_DIRECTORY": str(certificates), "PREVIEW_MANIFEST_DIRECTORY": str(manifests),
         "PREVIEW_API_IMAGE": images["api"], "PREVIEW_WEB_IMAGE": images["web"], "PREVIEW_IMPORT_IMAGE": images["import"],
         "PREVIEW_OWNER_PASSWORD": credentials["owner"], "PREVIEW_APP_PASSWORD": credentials["application"],
