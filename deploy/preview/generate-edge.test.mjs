@@ -70,3 +70,18 @@ test('generated edge separates Bearer routing from the hashed Basic fallback', (
   assert.throws(() => generateEdge(contract, 'lefteriafc.cy', digest), /hostname/);
   assert.throws(() => generateEdge(contract, hostname, 'invalid'), /SHA-256/);
 });
+
+test('error routes apply the same security headers without replacing status or authentication challenges', () => {
+  const output = generateEdge(contract, hostname, digest);
+  const errorRoute = output.split('  handle_errors {\n')[1]?.split('\n  }')[0];
+  assert.ok(errorRoute, 'Authentication errors need their own header handler.');
+  for (const line of [
+    'X-Frame-Options DENY', 'X-Content-Type-Options nosniff', 'Referrer-Policy no-referrer',
+    'X-Robots-Tag "noindex, nofollow, noarchive"', 'Cache-Control "no-store"', '-Server'
+  ]) {
+    assert.ok(errorRoute.includes(line));
+    assert.equal(output.split(line).length - 1, 2, 'Normal and error response headers must agree.');
+  }
+  assert.ok(errorRoute.includes('respond "" {err.status_code}'));
+  assert.doesNotMatch(errorRoute, /WWW-Authenticate|err\.(?:message|trace|id)|reverse_proxy|respond[^\n]*200/i);
+});
