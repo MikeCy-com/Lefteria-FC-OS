@@ -157,6 +157,8 @@ jobs:
         run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --smoke --port 4191
       - name: Smoke canonical calendar browser API proxy
         run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --calendar --smoke --port 4192
+      - name: Smoke isolated website admin cookie and request boundaries
+        run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --web-platform --smoke --port 4193
       - if: always()
         run: docker rm --force --volumes identity-postgres
 
