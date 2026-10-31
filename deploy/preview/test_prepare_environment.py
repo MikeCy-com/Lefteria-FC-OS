@@ -2,10 +2,12 @@ import base64
 import contextlib
 import importlib.util
 import io
+import ipaddress
 import json
 import os
 from pathlib import Path, PurePosixPath
 import stat
+import re
 import sys
 import tempfile
 from types import SimpleNamespace
@@ -158,6 +160,7 @@ class PreviewEnvironmentChecks(unittest.TestCase):
         environment = files[".env"].decode()
         self.assertIn("PREVIEW_GATE_HASH='" + hashed + "'\n", environment)
         self.assertIn("PREVIEW_BIND='127.0.0.1'\n", environment)
+        self.assertIn("PREVIEW_BIND_IPV6='::1'\n", environment)
         self.assertIn("PREVIEW_API_IMAGE='" + images["api"] + "'\n", environment)
         self.assertNotIn(credentials["gate"], environment)
         access = json.loads(files["client-access.json"])
@@ -165,6 +168,24 @@ class PreviewEnvironmentChecks(unittest.TestCase):
         for value in ("line\nbreak", "line\rbreak", "apost'rophe", "back\\slash", "nul\0", ""):
             with self.subTest(value=value), self.assertRaises(prepare.PreparationRefused):
                 prepare.dotenv_value(value)
+
+    def test_compose_and_example_keep_both_address_families_bound_to_loopback(self):
+        directory = Path(__file__).parent
+        compose = (directory / 'compose.yaml').read_text(encoding='utf-8')
+        edge = compose.split('  edge:\n', 1)[1].split('\n  web:', 1)[0]
+        self.assertIn('"${PREVIEW_BIND:-127.0.0.1}:8443:8443"', edge)
+        self.assertIn('"[${PREVIEW_BIND_IPV6:-::1}]:8443:8443"', edge)
+        # No private API/database/tool may acquire an independent host port.
+        self.assertEqual(1, compose.count('\n    ports:'))
+        values = dict(line.split('=', 1) for line in (directory / '.env.example').read_text(encoding='utf-8').splitlines()
+                      if line and not line.startswith('#'))
+        for variable, version in (('PREVIEW_BIND', 4), ('PREVIEW_BIND_IPV6', 6)):
+            fallback = re.search(r'\$\{' + variable + r':-([^}]+)\}', edge)
+            self.assertIsNotNone(fallback)
+            address = ipaddress.ip_address(fallback.group(1))
+            self.assertEqual(version, address.version)
+            self.assertTrue(address.is_loopback)
+            self.assertEqual(str(address), values[variable])
 
     def test_errors_never_log_lower_level_output_or_secret_material(self):
         arguments = ["--source-sha", "a" * 40, "--bundle-manifest", str(prepare.ROOT / "bundle/manifest.json"),

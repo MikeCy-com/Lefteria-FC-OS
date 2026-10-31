@@ -19,7 +19,10 @@ services:
     environment:
       PREVIEW_HOST: ${PREVIEW_HOST:?Set the separate preview hostname}
       PREVIEW_GATE_HASH: ${PREVIEW_GATE_HASH:?Set a bcrypt preview access hash}
-    ports: ["${PREVIEW_BIND:-127.0.0.1}:8443:8443"]
+    # Publish each address family explicitly; both defaults remain loopback.
+    ports:
+      - "${PREVIEW_BIND:-127.0.0.1}:8443:8443"
+      - "[${PREVIEW_BIND_IPV6:-::1}]:8443:8443"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ${PREVIEW_CERT_DIRECTORY:?Set the dedicated preview certificate directory}:/certificates:ro
