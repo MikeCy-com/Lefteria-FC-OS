@@ -1,9 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
     <PackageReference Include="SkiaSharp" Version="4.153.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.13" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <ProjectReference Include="../LefteriaFc.Domain/LefteriaFc.Domain.csproj" />
     <ProjectReference Include="../LefteriaFc.Application/LefteriaFc.Application.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../third-party/BCrypt/LICENSE.txt"
+          Link="third-party/BCrypt/LICENSE.txt"
+          CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

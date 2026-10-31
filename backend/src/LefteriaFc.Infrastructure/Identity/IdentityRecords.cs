@@ -89,6 +89,7 @@ public sealed class AuthRateBucketRecord
 
 public sealed class SecurityAuditRecord
 {
+    public string ActorRealm { get; set; } = "mobile";
     public Guid Id { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
     public Guid? ActorIdentityId { get; set; }

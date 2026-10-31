@@ -47,6 +47,162 @@ Keep configuration, certificates, backups and source manifests root-owned and
 private. Do not print `.env`, run a verbose Compose config with real credentials,
 commit data or mount source archives into the normal API/web containers.
 
+## Upgrade an existing preview
+
+`prepare-environment.py` is a fresh-install bootstrap, not an upgrade command.
+It refuses an existing configuration directory. Do not rename that directory to
+bypass the refusal: it generates new database passwords, mobile signing/OTP keys
+and gate credentials, and resets the edge to loopback. A persistent PostgreSQL
+volume does not change its existing role passwords when container environment
+variables change.
+
+Use the verified new release images/source and a guarded operator process for
+this sequence. The operator must verify the exact Compose project, container
+IDs, image provenance, private paths and existing configuration before changes.
+Keep a private record of the original configuration, source/image IDs and
+production container IDs/start times. Never source the dotenv file as a shell
+script, put secrets in command arguments, or print resolved Compose configuration.
+
+The commands below use these non-secret paths and exact project/database names:
+
+```sh
+PREVIEW_ROOT=/srv/lefteria-os-preview
+PREVIEW_ENV="$PREVIEW_ROOT/config/.env"
+PREVIEW_COMPOSE="$PREVIEW_ROOT/source/deploy/preview/compose.yaml"
+preview_docker() {
+  docker --host unix:///var/run/docker.sock "$@"
+}
+preview_compose() {
+  preview_docker compose --project-name lefteria-os-preview --env-file "$PREVIEW_ENV" \
+    --file "$PREVIEW_COMPOSE" "$@"
+}
+```
+
+`PREVIEW_PG_ID` must be the verified full ID of the sole `postgres` service in
+`lefteria-os-preview`, with its existing dedicated volume. Resolve and inspect
+that ID before the commands below; it must never identify the legacy database.
+
+1. Before migrating, make a root-only PostgreSQL backup of the **preview** using
+   its owner role. Retain the old environment/access files and release metadata
+   privately alongside the recovery evidence. For example, after setting the
+   verified `PREVIEW_PG_ID`:
+
+   ```sh
+   : "${PREVIEW_PG_ID:?Set the verified full preview PostgreSQL container ID}"
+   umask 077
+   PREVIEW_DB_BACKUP="$PREVIEW_ROOT/backups/postgres-before-web-platform-$(date -u +%Y%m%dT%H%M%SZ)"
+   mkdir -m 700 -- "$PREVIEW_DB_BACKUP"
+   preview_docker exec "$PREVIEW_PG_ID" pg_dump --no-password \
+     -U lefteria_os_preview_owner -d lefteria_os_preview --format=custom \
+     > "$PREVIEW_DB_BACKUP/database.dump"
+   test -s "$PREVIEW_DB_BACKUP/database.dump"
+   preview_docker exec -i "$PREVIEW_PG_ID" pg_restore --list \
+     < "$PREVIEW_DB_BACKUP/database.dump" > "$PREVIEW_DB_BACKUP/archive-list.txt"
+   sha256sum "$PREVIEW_DB_BACKUP/database.dump" > "$PREVIEW_DB_BACKUP/SHA256SUMS"
+   ```
+
+   Stop on any command failure. Listing/checksumming an archive is not a restore
+   test; verify recovery in a separate capped disposable PostgreSQL instance,
+   never by overwriting either working database. Backup contents stay on the VPS.
+2. Atomically extend the existing root-owned `0600` environment file within its
+   `0700` directory. Preserve the exact five existing values
+   `PREVIEW_OWNER_PASSWORD`, `PREVIEW_APP_PASSWORD`, `PREVIEW_SIGNING_KEY`,
+   `PREVIEW_OTP_KEY`, `PREVIEW_GATE_HASH`, and the unchanged gate access file.
+   Preserve the hostname, both published binds, TLS directory and original
+   `PREVIEW_MANIFEST_DIRECTORY`. Append `PREVIEW_WEB_ADMIN_ENABLED='false'`,
+   `PREVIEW_ADMIN_AUTH_PASSWORD` and `PREVIEW_ADMIN_THROTTLE_KEY`. Generate the
+   two new secrets independently from 32 random bytes: URL-safe base64 without
+   padding for the database password, standard base64 for the throttle key.
+   They must differ from existing credentials/keys. If any new key already
+   exists, inspect the prior upgrade state instead of replacing it. Update only
+   the verified source SHA and immutable API/web/import image IDs as release
+   metadata; retain a private before/after integrity record.
+3. Validate Compose with `preview_compose config --quiet`, then run
+   `preview_compose --profile tools run --rm --no-deps migrate`. The normal API
+   never migrates on startup. Reapply the mobile/public projection grants as
+   owner, then explicitly provision the separate admin-auth role:
+
+   ```sh
+   preview_docker exec "$PREVIEW_PG_ID" psql -X -v ON_ERROR_STOP=1 \
+     -U lefteria_os_preview_owner -d lefteria_os_preview \
+     -v app_role=lefteria_os_preview_app \
+     -f /opt/lefteria-postgres/identity-app-grants.sql
+   preview_docker exec --env DATABASE_ADMIN_AUTH_PASSWORD --env DATABASE_APP_PASSWORD \
+     "$PREVIEW_PG_ID" psql -X -v ON_ERROR_STOP=1 \
+     -U lefteria_os_preview_owner -d lefteria_os_preview \
+     -v app_role=lefteria_os_preview_app \
+     -v admin_auth_role=lefteria_os_preview_admin_auth \
+     -f /opt/lefteria-postgres/create-web-admin-auth-role.sql
+   ```
+
+   For the second command, the operator supplies `DATABASE_ADMIN_AUTH_PASSWORD`
+   from `PREVIEW_ADMIN_AUTH_PASSWORD` and `DATABASE_APP_PASSWORD` from the
+   preserved `PREVIEW_APP_PASSWORD` only in the Docker client's subprocess
+   environment. The flags intentionally contain names without values. These
+   commands use the existing container's owner socket access; they do not
+   recreate it. The mounted SQL files must match the verified new source.
+   `WebAdmin__Username` in Compose is exactly
+   `lefteria_os_preview_admin_auth`; its password is a database credential, not
+   an imported administrator's application password. The role script refuses
+   missing migrations and unsafe existing roles; it never rotates a role.
+4. Run `identity-app-permissions-check.sql` as `lefteria_os_preview_app`, then
+   `web-admin-auth-permissions-check.sql` as `lefteria_os_preview_admin_auth`,
+   using `psql -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -d lefteria_os_preview` inside
+   the verified PostgreSQL container, with `-U` set to that probe's exact role
+   and `-f /opt/lefteria-postgres/<probe-file>`. The admin probe also requires
+   `-v app_role=lefteria_os_preview_app` and
+   `-v admin_auth_role=lefteria_os_preview_admin_auth`. Supply the corresponding
+   `PGPASSWORD` only through the operator's per-command subprocess environment
+   and `preview_docker exec --env PGPASSWORD`; never echo it. All fictional
+   probe writes roll back. Require both probes to pass: the mobile role must still be denied
+   credential hashes/admin session state, and the admin-auth role must have no
+   account/grant writes, mobile identities, source archives or DDL access.
+5. Keep the original four-manifest directory unchanged. For the fifth manifest,
+   set `PREVIEW_PUBLIC_MANIFEST` to its verified root-private absolute JSON path
+   and `PREVIEW_PUBLIC_SHA256` to its exact verified digest. Add only this file
+   to the one-off owner-import container:
+
+   ```sh
+   : "${PREVIEW_PUBLIC_MANIFEST:?Set the verified public-content manifest path}"
+   : "${PREVIEW_PUBLIC_SHA256:?Set its verified SHA-256}"
+   preview_compose --profile tools run --rm --no-deps \
+     --volume "$PREVIEW_PUBLIC_MANIFEST:/public-content-manifest.json:ro" \
+     import --kind public-content --input /public-content-manifest.json
+   preview_compose --profile tools run --rm --no-deps \
+     --volume "$PREVIEW_PUBLIC_MANIFEST:/public-content-manifest.json:ro" \
+     import --kind public-content --input /public-content-manifest.json --apply \
+     --expected-sha256 "$PREVIEW_PUBLIC_SHA256" \
+     --expected-database lefteria_os_preview --environment staging
+   ```
+
+   Omission of `--apply` is the dry run; there is no `--dry-run` flag. Require
+   validation to pass before apply, then repeat the exact apply command and
+   require `same_snapshot_noop`. Retain counts/digest evidence privately. Do not
+   mount any source manifest or private uploads into API/web/edge.
+6. Only after migration, role probes and imports succeed, explicitly set
+   `PREVIEW_WEB_ADMIN_ENABLED='true'` atomically, retaining both new secrets.
+   Run `preview_compose up -d --no-deps api web`. Do not use an unscoped `up`,
+   `down`, or recreate PostgreSQL to pick up its new environment variable;
+   explicit role provisioning already supplied that secret to its one-off
+   process. Validate the generated Caddyfile against the new contract and
+   explicitly reload the verified preview edge if its content changed; a bind
+   file update alone does not reload Caddy. Verify health, trusted TLS in both
+   families, gate/header stripping, public projections and admin cookie/Origin
+   boundaries. Existing imported active, non-invited accounts with supported
+   bcrypt credentials can use their original username/password. Do not seed a
+   default administrator or reset credentials to make a smoke check pass.
+7. Twilio remains paused: keep its settings empty, provider egress closed and
+   the legacy bridge disabled. Accounts requiring two-factor authentication
+   must fail closed with `two_factor_unavailable`; no SMS bypass is enabled.
+   For application rollback, disable admin auth and restore the recorded prior
+   image/source configuration while refreshing only the preview application
+   services. Retain the added schema, new keys and private source/evidence.
+   The migration's `Down` refuses recovery once public content, admin sessions
+   or admin audit evidence exists; use forward recovery instead of deleting
+   those rows. Restoring an older backup discards later preview writes and
+   requires a separate controlled recovery procedure. Never restore it into
+   legacy production or alter its domain/services during this upgrade.
+
 ## Backup and derived import
 
 Back up the original database through read-only operations. Record the exact

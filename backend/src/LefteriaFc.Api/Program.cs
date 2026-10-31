@@ -7,6 +7,9 @@ using Npgsql;
 using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Api.Roster;
 using LefteriaFc.Api.ClubCalendar;
+using LefteriaFc.Api.WebAdmin;
+using LefteriaFc.Api.PublicContent;
+using LefteriaFc.Infrastructure.PublicContent;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -50,15 +53,20 @@ builder.Services.AddOpenApi(options =>
     options.AddDocumentTransformer<MobileSecurityDocumentTransformer>();
     options.AddOperationTransformer<MobileSecurityOperationTransformer>();
     options.AddSchemaTransformer<MobileRequestSchemaTransformer>();
+    options.AddDocumentTransformer<WebAdminSecurityDocumentTransformer>();
+    options.AddOperationTransformer<WebAdminSecurityOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
+builder.Services.AddWebAdmin(builder.Configuration);
+builder.Services.AddPublicContent();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
 app.UseMobileRequestGuards();
+app.UseWebAdminGuards();
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -66,6 +74,8 @@ app.MapHealthEndpoints();
 app.MapMobileIdentity();
 app.MapMobileRoster();
 app.MapMobileCalendar();
+app.MapWebAdmin();
+app.MapPublicContentEndpoints();
 
 if (app.Environment.IsDevelopment())
 {

@@ -8,6 +8,27 @@ internal static class TestRunner
 {
     public static async Task<int> Main(string[] args)
     {
+        if (args.SequenceEqual(["--web-admin-configuration-policy"], StringComparer.Ordinal))
+        {
+            try { WebAdminConfigurationChecks.Run(); return 0; }
+            catch (Exception error) { Console.Error.WriteLine("FAIL web admin configuration policy: " + error.GetType().Name); return 1; }
+        }
+        if (args.Length == 2 && args[0] == "--web-admin-fixture")
+        {
+            try
+            {
+                var adminFixture = await FixtureConfiguration.LoadAsync(args[1]);
+                await adminFixture.VerifyServerAsync();
+                await WebAdminHttpChecks.RunAsync(args[1], adminFixture);
+                return 0;
+            }
+            catch (Exception error) { Console.Error.WriteLine("FAIL web-admin fixture: " + error.GetType().Name); return 1; }
+        }
+        if (args.SequenceEqual(["--web-admin-password-policy"], StringComparer.Ordinal))
+        {
+            try { await WebAdminPasswordChecks.RunAsync(); return 0; }
+            catch (Exception error) { Console.Error.WriteLine("FAIL web admin password policy: " + error.GetType().Name + ": " + error.Message); return 1; }
+        }
         if(args.SequenceEqual(["--legacy-token-policy"],StringComparer.Ordinal))
             return await IdentityHttpChecks.RunLegacyPolicyChecksAsync();
         if(args.SequenceEqual(["--sms-adapter-policy"],StringComparer.Ordinal))
@@ -70,6 +91,12 @@ internal static class TestRunner
                     var reason=exception is LefteriaFc.Application.Roster.RosterImportApplyException refusal?$" ({refusal.Code})":"";
                     Console.Error.WriteLine($"FAIL {name}: {exception.GetType().Name}: {exception.Message}{reason}");
                 }
+            }
+            try { await WebAdminHttpChecks.RunAsync(fixturePath, fixture); }
+            catch (Exception error)
+            {
+                failures++;
+                Console.Error.WriteLine("FAIL web-admin HTTP/PostgreSQL checks: " + error.GetType().Name);
             }
         }
         catch (Exception exception)

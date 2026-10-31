@@ -1,0 +1,49 @@
+.admin-app { min-height:100dvh; background:#0b0c0c; color:#f4f4f1; font-family:Inter,ui-sans-serif,system-ui,sans-serif; line-height:1.6; }
+.admin-app a { color:#f7c56d; text-underline-offset:4px; }
+.admin-app h1 { margin:0 0 12px; font-size:clamp(1.7rem,4vw,2.25rem); line-height:1.25; }
+.admin-app h2 { margin:0 0 20px; font-size:1.25rem; }
+.admin-app h3 { margin:24px 0 10px; font-size:1rem; }
+.admin-app button,.admin-app input,.admin-app select { font:inherit; }
+.admin-app button,.admin-app select,.admin-app input { min-height:46px; border-radius:7px; }
+.admin-app button { cursor:pointer; padding:10px 16px; border:1px solid #6c572e; }
+.admin-app button:disabled { cursor:wait; opacity:.6; }
+.admin-app :focus-visible { outline:3px solid #ffca65; outline-offset:3px; }
+.admin-app .admin-primary { background:#efb347; color:#171109; border-color:#efb347; font-weight:700; }
+.admin-app .admin-secondary { background:#222321; color:#f9e1b3; }
+.admin-signin { width:min(100% - 32px,480px); margin:0 auto; padding:56px 0; }
+.admin-home-link { display:inline-block; margin-bottom:24px; }
+.admin-panel { background:#161817; border:1px solid #333732; border-radius:14px; padding:clamp(20px,4vw,32px); }
+.admin-crest { object-fit:contain; margin-bottom:8px; }
+.admin-eyebrow { color:#efb347; font-size:.75rem; font-weight:800; letter-spacing:.16em; margin:8px 0 12px; }
+.admin-muted { color:#b4bab3; }
+.admin-app form { display:grid; gap:10px; margin-top:28px; }
+.admin-app label { margin-top:10px; font-size:.9rem; font-weight:600; }
+.admin-app input,.admin-app select { width:100%; min-width:0; padding:10px 12px; background:#090c0b; color:#fff; border:1px solid #5a6056; }
+.admin-password-field { display:flex; gap:8px; }
+.admin-password-field input { flex:1; }
+.admin-app form .admin-primary { margin-top:18px; }
+.admin-error { padding:12px 14px; border:1px solid #a7645e; border-radius:7px; color:#ffd3cd; background:#401d1a; overflow-wrap:anywhere; }
+.admin-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; }
+.admin-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:20px; padding:20px 28px; border-bottom:1px solid #333732; }
+.admin-brand { display:flex; align-items:center; gap:12px; text-decoration:none; font-weight:800; }
+.admin-brand small { display:block; color:#b4bab3; font-weight:400; font-size:.75rem; }
+.admin-workspace-body { display:grid; grid-template-columns:220px minmax(0,1fr); }
+.admin-sidebar { display:flex; flex-direction:column; padding:28px 20px; gap:8px; border-right:1px solid #333732; }
+.admin-sidebar a { padding:10px; text-decoration:none; }
+.admin-sidebar a:hover { background:#262a24; border-radius:6px; }
+.admin-content { width:min(100%,980px); padding:32px; }
+.admin-content .admin-panel { margin-top:24px; scroll-margin-top:20px; }
+.admin-details { margin:0; display:grid; gap:14px; }
+.admin-details div { display:grid; grid-template-columns:minmax(100px,150px) minmax(0,1fr); gap:16px; }
+.admin-details dt { color:#b4bab3; }
+.admin-details dd { margin:0; overflow-wrap:anywhere; }
+.admin-tags,.admin-permissions { list-style:none; padding:0; display:flex; flex-wrap:wrap; gap:8px; }
+.admin-tags li,.admin-permissions li { background:#252c22; padding:6px 12px; border:1px solid #434e3e; border-radius:6px; overflow-wrap:anywhere; }
+.admin-permissions li { font-size:.85rem; }
+.admin-pending-modules { list-style:none; padding:0; margin:0; }
+.admin-pending-modules li { display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; padding:12px 0; border-bottom:1px solid #333732; }
+.admin-pending-modules li:last-child { border:0; }
+.admin-development { font-size:.8rem; color:#b4bab3; }
+@media(max-width:720px) { .admin-workspace-body { display:block; } .admin-sidebar { flex-direction:row; overflow-x:auto; border-right:0; border-bottom:1px solid #333732; padding:12px 16px; } .admin-sidebar a { white-space:nowrap; } .admin-content { padding:24px 16px; } .admin-header { padding:16px; } }
+@media(max-height:800px) { .admin-signin { padding:20px 0; } .admin-home-link { margin-bottom:16px; } .admin-signin .admin-panel { padding:20px; } .admin-signin .admin-crest { width:56px; height:56px; } .admin-signin form { margin-top:16px; gap:6px; } .admin-signin label { margin-top:6px; } .admin-signin form .admin-primary { margin-top:12px; } }
+@media(prefers-reduced-motion:no-preference) { .admin-app button { transition:background .15s; } }

@@ -28,6 +28,13 @@ BEGIN
   IF has_column_privilege(current_user,'identity.admin_accounts','password_hash','SELECT') THEN
     RAISE EXCEPTION 'Mobile API runtime can read imported credentials';
   END IF;
+  IF has_table_privilege(current_user,'identity.admin_sessions','SELECT,INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'identity.admin_auth_rate_buckets','SELECT,INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'public_content.documents','INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'public_content.import_state','INSERT,UPDATE,DELETE,TRUNCATE') THEN
+    RAISE EXCEPTION 'Mobile/content runtime has credential-session or public-content write privileges';
+  END IF;
+  PERFORM kind,organization_id,id,data_json FROM public_content.documents LIMIT 0;
   PERFORM legacy_subject,identity_id FROM identity.imported_mobile_subjects LIMIT 1;
   PERFORM id,time_zone,is_complete FROM club.calendar_import_state LIMIT 1;
   PERFORM id,organization_id FROM club.teams LIMIT 1;
@@ -62,7 +69,8 @@ BEGIN
   IF NOT denied THEN RAISE EXCEPTION 'Runtime can read owner-only source archives'; END IF;
   FOREACH private_table IN ARRAY ARRAY['migration.staff_relationship_import_state','migration.staff_source_documents','migration.contact_provenance',
     'migration.account_import_state','migration.account_source_documents','migration.account_import_issues','migration.legacy_account_mappings','migration.imported_admin_grants',
-    'migration.calendar_source_documents','migration.calendar_import_issues']
+    'migration.calendar_source_documents','migration.calendar_import_issues',
+    'migration.public_content_import_evidence','migration.public_content_source_documents']
   LOOP
     -- Resolve through the catalog: the runtime deliberately lacks migration
     -- schema USAGE, so resolving its qualified name as regclass is denied.

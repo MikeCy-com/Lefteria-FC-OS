@@ -32,6 +32,7 @@ const child = spawn(host, [dll, '--urls', origin, '--environment', 'Development'
     LegacyMobileBridge__Enabled: 'false', LegacyMobileBridge__SigningSecret: '',
     LegacyMobileBridge__FingerprintKey: '', LegacyMobileBridge__StartsAt: '', LegacyMobileBridge__EndsAt: '',
     Twilio__AccountSid: '', Twilio__AuthToken: '', Twilio__FromNumber: '',
+    WebAdmin__Enabled: 'false', WebAdmin__Password: '', WebAdmin__ThrottleKey: '',
     ConnectionStrings__Postgres: 'Host=127.0.0.1;Port=1;Database=contract;Username=contract;Password=contract-only;Timeout=1'
   },
   stdio: ['ignore', 'pipe', 'pipe'],
@@ -63,6 +64,13 @@ try {
   if (!response?.ok) throw new Error(`OpenAPI endpoint was unavailable: ${lastAttempt}. ${logs}`);
   const document = await response.json();
   assert.ok(document.paths['/api/health/live']);
+  assert.deepEqual(document.paths['/api/admin/auth/me'].get.security, [{ WebAdmin: [] }]);
+  assert.equal(document.components.securitySchemes.WebAdmin.in, 'cookie');
+  assert.equal(document.components.securitySchemes.WebAdmin.name, '__Host-lefteria-admin');
+  assert.equal(document.paths['/api/admin/auth/login'].post.security, undefined);
+  assert.equal(document.paths['/api/public/site'].get.security, undefined);
+  assert.deepEqual(Object.keys(document.components.schemas.WebAdminIdentityDto.properties).sort(),
+    ['id', 'name', 'organizations', 'permissions', 'role', 'username']);
   assert.ok(document.paths['/api/health/ready'].get.responses['503']);
   assert.deepEqual(document.paths['/api/mobile/auth/me'].get.security, [{ Mobile: [] }]);
   assert.equal(document.paths['/api/mobile/auth/request-otp'].post.security, undefined);

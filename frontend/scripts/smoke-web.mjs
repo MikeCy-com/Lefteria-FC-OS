@@ -31,7 +31,8 @@ try {
   const origin = `http://127.0.0.1:${port}`;
   child = spawn(process.execPath, ['build'], {
     cwd: directory, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'],
-    env: { ...process.env, NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port), ORIGIN: origin }
+    env: { ...process.env, NODE_ENV: 'production', HOST: '127.0.0.1', PORT: String(port), ORIGIN: origin,
+      INTERNAL_API_ORIGIN: 'http://127.0.0.1:1' }
   });
   let logs = '';
   let startupError;
@@ -51,7 +52,14 @@ try {
     await delay(100);
   }
   assert.equal(response?.status, 200, `Production host must serve the page. ${logs}`);
-  assert.match(await response.text(), /<title>Lefteria FC OS<\/title>/);
+  const home = await response.text();
+  assert.match(home, /ΛΕΥΤΕΡΙΑ FC/);
+  assert.match(home, /Η ΕΠΙΣΗΜΗ ΙΣΤΟΣΕΛΙΔΑ/);
+  for (const pathname of ['/about', '/team', '/academy', '/news', '/contact', '/admin', '/admin/login']) {
+    const page = await fetch(origin + pathname);
+    assert.equal(page.status, 200, `Public/admin path ${pathname} must render without private API or browser storage.`);
+    assert.doesNotMatch(await page.text(), /fixture-password|password_hash|twilio_auth_token/);
+  }
   for (const pathname of ['/app/login', '/app', '/app/calendar']) {
     const mobile = await fetch(origin + pathname);
     assert.equal(mobile.status, 200, `Mobile path ${pathname} must render without browser storage on the server.`);

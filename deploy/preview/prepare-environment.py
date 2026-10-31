@@ -186,14 +186,15 @@ def validate_loaded_images(manifest: dict) -> dict[str, str]:
 
 
 def fresh_secrets() -> dict[str, str]:
-    entropy = [secrets.token_bytes(32) for _ in range(5)]
-    if len(set(entropy)) != 5:
+    entropy = [secrets.token_bytes(32) for _ in range(7)]
+    if len(set(entropy)) != 7:
         refuse("independent_entropy_required")
-    owner, application, signing, otp, gate = entropy
+    owner, application, signing, otp, gate, admin_password, admin_throttle = entropy
     url_value = lambda value: base64.urlsafe_b64encode(value).decode("ascii").rstrip("=")
     return {"owner": url_value(owner), "application": url_value(application),
             "signing": base64.b64encode(signing).decode("ascii"),
-            "otp": base64.b64encode(otp).decode("ascii"), "gate": url_value(gate)}
+            "otp": base64.b64encode(otp).decode("ascii"), "gate": url_value(gate),
+            "admin_password": url_value(admin_password), "admin_throttle": base64.b64encode(admin_throttle).decode("ascii")}
 
 
 def gate_hash(password: str) -> str:
@@ -237,6 +238,8 @@ def configuration_files(source_sha: str, images: dict[str, str], manifests: Path
         "PREVIEW_API_IMAGE": images["api"], "PREVIEW_WEB_IMAGE": images["web"], "PREVIEW_IMPORT_IMAGE": images["import"],
         "PREVIEW_OWNER_PASSWORD": credentials["owner"], "PREVIEW_APP_PASSWORD": credentials["application"],
         "PREVIEW_SIGNING_KEY": credentials["signing"], "PREVIEW_OTP_KEY": credentials["otp"], "PREVIEW_GATE_HASH": bcrypt_hash,
+        "PREVIEW_WEB_ADMIN_ENABLED": "false", "PREVIEW_ADMIN_AUTH_PASSWORD": credentials["admin_password"],
+        "PREVIEW_ADMIN_THROTTLE_KEY": credentials["admin_throttle"],
     }
     content = "# Dedicated preview only. Keep private; do not source as a shell script.\n"
     content += "".join(f"{name}={dotenv_value(value)}\n" for name, value in environment.items())

@@ -13,6 +13,8 @@ internal static class PreviewProgram
 {
     public static async Task<int> Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "--web-platform")
+            return await WebPlatformPreviewProgram.RunAsync(args[1..]);
         TestDatabase? database = null;
         PreviewApiFactory? factory = null;
         WebApplication? app = null;

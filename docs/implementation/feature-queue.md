@@ -1,8 +1,12 @@
 # Rewrite feature queue
 
-The rewrite target is MikeCy-com/Lefteria-FC-OS. Existing behavior is pinned to
-MikeCy-com/Lefteria-FC at 5111f06af5d8b17f855ceed9637caca02db117e2, verified on
-GitHub on 2026-10-25. GitHub main is not proof of the deployed revision.
+The rewrite target is MikeCy-com/Lefteria-FC-OS. The initial audit used original
+MikeCy-com/Lefteria-FC at `5111f06af5d8b17f855ceed9637caca02db117e2`, verified on
+GitHub on 2026-10-25. The protected backup/import baseline is
+`a52d66b8e01c010cfe95ce53fa139e126bae4d84`; the public/admin source contracts use
+later GitHub main `380b4022f0ab0db95fbc52a8613711160a5037a5`. These identify
+different evidence, not an assertion that a backup contains every later source
+change. GitHub main alone is not proof of a deployed revision.
 
 ## Accepted requirements from the other chat
 
@@ -95,13 +99,42 @@ This order follows the dependencies of the accepted requirements:
   typed calendar route, not the unported legacy event/MVP response contract.
   See [source evidence](calendar-source-contract.md) and
   [implementation/recovery](scoped-calendar.md) for the boundary and verification status.
-- Next: the requested separate Hostinger preview environment, leaving
-  `lefteriafc.cy`, live production and its data unchanged; then remaining private
-  scoped APIs and real role dashboards. A protected source backup can feed the
-  isolated preview import. Real provider calls and production cutover remain
-  separate approval/verification boundaries;
-  social profiles/media retain their separately mapped privacy/moderation gates.
-  Real export reconciliation, staging recovery and full legacy/PWA compatibility remain cutover gates.
+- The requested separate Hostinger preview now exists with an independent
+  Compose project, database, secrets, volumes and TLS/access gate. A protected
+  original backup/isolated restore, four initial manifests and exact-digest
+  import/no-op replay were verified. Roster/staff/account/calendar source rows
+  remain retained privately. See the [deployment/import record](isolated-preview.md).
+  Live production and `lefteriafc.cy` remain authoritative and were not switched.
+- Public source implementation now includes the Greek homepage, news list/article,
+  team overview/schedule/results, Academy overview/fixtures, history/contact and
+  original crest/Sideline assets. A separate owner-only initial import preserves
+  complete originals privately and exposes only allowlisted public DTOs. Default
+  news includes FC and Academy, deduplicates shared articles and keeps explicit
+  scoped queries isolated; shared navigation requests Academy groups separately.
+  See [public content and import](public-content.md).
+- Web-admin source implementation now includes username/password login, a
+  separate revocable cookie session, logout, current role/capability/organization
+  projections, durable throttles and a permission-aware workspace. Mobile tokens
+  and source web JWTs do not grant this session. Accounts requiring SMS 2FA fail
+  closed while Twilio is paused. See the
+  [source and authentication boundary](web-admin-source-contract.md).
+- The new public/admin source is not yet deployed. Its
+  [verification checkpoint](verification-2026-11-01.md) separates completed checks
+  from the pending latest news-parity HTTP regression rerun and release gates.
+  The existing preview does not establish that this new website/admin slice is
+  already available on the hosted URL.
+- Next bounded web-admin work: permission-checked public club settings and news
+  create/edit/unpublish, followed by other mapped CMS/business modules. Initial
+  imported evidence must remain immutable; current organization ownership,
+  fresh authority checks, concurrency and atomic audit apply to writes. No CMS
+  business-write endpoint or enabled editor is claimed by the session workspace.
+- Remaining private scoped APIs, real role dashboards and social/media follow
+  their mapped contracts. The calendar's two unresolved copied RSVP rows remain
+  quarantined and readiness stays false. Restored media is not publicly mounted.
+  Twilio setup remains explicitly paused; no real SMS/provider login is verified.
+  Quarantine resolution, broader recovery/cutover rehearsal and full legacy/PWA
+  compatibility remain production-switch gates. Provider calls and production
+  cutover retain their separate approval/verification boundaries.
 
 The original repository's [PR #42](https://github.com/MikeCy-com/Lefteria-FC/pull/42)
 is now merged into source main at `7833daceceac1611c368e7bc4df2a82c64b45e1a`,

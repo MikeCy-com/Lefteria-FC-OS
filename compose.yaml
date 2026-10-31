@@ -33,6 +33,7 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       ORIGIN: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in .env}
+      INTERNAL_API_ORIGIN: http://api:8080
     healthcheck:
       test:
         - CMD
@@ -58,6 +59,13 @@ services:
       Database__Name: $POSTGRES_DB
       Database__Username: ${DATABASE_APP_USER:?Set DATABASE_APP_USER in .env}
       Database__Password: ${DATABASE_APP_PASSWORD:?Set DATABASE_APP_PASSWORD in .env}
+      WebAdmin__Enabled: "${WEB_ADMIN_ENABLED:-false}"
+      WebAdmin__PublicOrigin: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in .env}
+      WebAdmin__Host: postgres
+      WebAdmin__Database: $POSTGRES_DB
+      WebAdmin__Username: ${DATABASE_ADMIN_AUTH_USER:-}
+      WebAdmin__Password: ${DATABASE_ADMIN_AUTH_PASSWORD:-}
+      WebAdmin__ThrottleKey: ${WEB_ADMIN_THROTTLE_KEY:-}
       MobileAuth__SigningKey: ${MOBILE_SIGNING_KEY:?Set a random base64 MOBILE_SIGNING_KEY}
       MobileAuth__OtpKey: ${MOBILE_OTP_KEY:?Set a separate random base64 MOBILE_OTP_KEY}
       LegacyMobileBridge__Enabled: "${LEGACY_MOBILE_BRIDGE_ENABLED:-false}"

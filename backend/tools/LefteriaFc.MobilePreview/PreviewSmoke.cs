@@ -16,6 +16,8 @@ internal sealed class PreviewSmokeException(string check, HttpStatusCode? status
 
 internal static class PreviewSmoke
 {
+    private enum Failure { InvalidJson, MissingJsonField, UnexpectedJsonTypeOrState, HttpTransport, RequestCancelled, Unexpected }
+
     private enum Phase
     {
         Initialization, Readiness, AnonymousIdentity, OtpIssue, RolePicker, FanLogin,
@@ -31,10 +33,20 @@ internal static class PreviewSmoke
             await RunScenarioAsync(options, phone, calendar, value => phase = value);
         }
         catch (PreviewSmokeException) { throw; }
-        catch (Exception)
+        catch (Exception error)
         {
-            // Every phase is a closed enum chosen below, never external input.
-            throw new PreviewSmokeException($"Unexpected preview response contract or transport failure in {phase}.");
+            // Classify using closed labels only; never include external messages,
+            // response values, cookies, SQL or tokens in diagnostics.
+            var failure = error switch
+            {
+                JsonException => Failure.InvalidJson,
+                KeyNotFoundException => Failure.MissingJsonField,
+                HttpRequestException => Failure.HttpTransport,
+                OperationCanceledException => Failure.RequestCancelled,
+                InvalidOperationException => Failure.UnexpectedJsonTypeOrState,
+                _ => Failure.Unexpected
+            };
+            throw new PreviewSmokeException($"Preview smoke {failure} in {phase}.");
         }
     }
 
@@ -78,7 +90,10 @@ internal static class PreviewSmoke
         phase(Phase.ProfileUpdate);
         using var profile = await JsonAsync(client, HttpMethod.Put, "/api/mobile/profile",
             new { first_name = "Δοκιμή", last_name = "Προεπισκόπησης", email = "edited@example.invalid" });
-        Check(profile.RootElement.GetProperty("email").GetString() == "edited@example.invalid", "Profile update failed.");
+        Check(profile.RootElement.ValueKind == JsonValueKind.Object, "Profile update returned a non-object JSON response.");
+        Check(profile.RootElement.TryGetProperty("email", out var email), "Profile update response omitted the email field.");
+        Check(email.ValueKind == JsonValueKind.String, "Profile update response email was not a JSON string.");
+        Check(email.GetString() == "edited@example.invalid", "Profile update returned an unchanged or different email.");
         phase(Phase.PreferenceUpdate);
         using var preference = await JsonAsync(client, HttpMethod.Put, "/api/mobile/auth/me", new { favorite_team = "academy" });
         Check(preference.RootElement.GetProperty("user").GetProperty("favorite_team").GetString() == "academy", "Preference update failed.");

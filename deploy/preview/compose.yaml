@@ -46,6 +46,7 @@ services:
       HOST: 0.0.0.0
       PORT: "3000"
       ORIGIN: https://${PREVIEW_HOST:?Set the preview hostname}:8443
+      INTERNAL_API_ORIGIN: http://api:8080
     tmpfs: [/tmp:size=16m]
     mem_limit: 192m
     cpus: 0.15
@@ -69,6 +70,13 @@ services:
       Database__Name: lefteria_os_preview
       Database__Username: lefteria_os_preview_app
       Database__Password: ${PREVIEW_APP_PASSWORD:?Set a fresh runtime password}
+      WebAdmin__Enabled: "${PREVIEW_WEB_ADMIN_ENABLED:-false}"
+      WebAdmin__PublicOrigin: https://${PREVIEW_HOST:?Set the preview hostname}:8443
+      WebAdmin__Host: postgres
+      WebAdmin__Database: lefteria_os_preview
+      WebAdmin__Username: lefteria_os_preview_admin_auth
+      WebAdmin__Password: ${PREVIEW_ADMIN_AUTH_PASSWORD:-}
+      WebAdmin__ThrottleKey: ${PREVIEW_ADMIN_THROTTLE_KEY:-}
       MobileAuth__Issuer: lefteria-fc-os-preview
       MobileAuth__Audience: lefteria-fc-os-preview-mobile
       MobileAuth__SigningKey: ${PREVIEW_SIGNING_KEY:?Set a fresh preview signing key}
@@ -104,6 +112,7 @@ services:
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
       DATABASE_APP_USER: lefteria_os_preview_app
       DATABASE_APP_PASSWORD: ${PREVIEW_APP_PASSWORD:?Set a fresh runtime password}
+      DATABASE_ADMIN_AUTH_PASSWORD: ${PREVIEW_ADMIN_AUTH_PASSWORD:-}
     command: [postgres, -c, shared_buffers=64MB, -c, max_connections=30, -c, work_mem=2MB]
     volumes:
       - postgres_data:/var/lib/postgresql
