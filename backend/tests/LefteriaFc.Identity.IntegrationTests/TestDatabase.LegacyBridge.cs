@@ -28,19 +28,19 @@ internal sealed partial class TestDatabase
     {
         await fixture.VerifyServerAsync();
         await using var context=CreateContext();var applied=(await context.Database.GetAppliedMigrationsAsync()).ToArray();
-        if(applied.Length<2||!applied[^1].EndsWith("_LegacyMobileBridge",StringComparison.Ordinal)||!applied[^2].EndsWith("_LegacyAccountImport",StringComparison.Ordinal))
+        if(!applied.Any(row=>row.EndsWith("_LegacyMobileBridge",StringComparison.Ordinal))||!applied.Any(row=>row.EndsWith("_LegacyAccountImport",StringComparison.Ordinal)))
             throw new InvalidOperationException("Refusing recovery probe outside the exact view-only migration boundary.");
-        var before=await CountsAsync();var migrator=context.Database.GetService<IMigrator>();
+        var before=await CountsAsync();
         try
         {
-            await migrator.MigrateAsync("LegacyAccountImport");
+            await ExecuteMigrationOperationsAsync(context,"LegacyMobileBridge",true);
             Check.True(await context.Database.SqlQueryRaw<bool>("SELECT to_regclass('identity.imported_mobile_subjects') IS NULL AS \"Value\"").SingleAsync(),
                 "Bridge Down did not remove only its view.");
             Check.Equal(before,await CountsAsync(),"Bridge view rollback changed populated account/source/mapping rows.");
         }
         finally
         {
-            await migrator.MigrateAsync("LegacyMobileBridge");
+            await ExecuteMigrationOperationsAsync(context,"LegacyMobileBridge",false);
             await context.Database.OpenConnectionAsync();
             using var builder=new NpgsqlCommandBuilder();var role=builder.QuoteIdentifier(fixture.AppUsername);
             await using var grant=new NpgsqlCommand("GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO "+role,

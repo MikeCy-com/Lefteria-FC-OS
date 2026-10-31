@@ -5,6 +5,8 @@ using LefteriaFc.Application.StaffRelationships;
 using LefteriaFc.Infrastructure.StaffRelationships;
 using LefteriaFc.Application.AccountImport;
 using LefteriaFc.Infrastructure.AccountImport;
+using LefteriaFc.Application.CalendarImport;
+using LefteriaFc.Infrastructure.ClubCalendar;
 
 namespace LefteriaFc.Tools.RosterImport;
 
@@ -27,19 +29,21 @@ public static class RosterImportProgram
             }
             if (!values.TryGetValue("--input", out var path)) return Error("input_required");
             var kind = values.GetValueOrDefault("--kind", "roster");
-            if (kind is not ("roster" or "staff-relationships" or "accounts")) return Error("invalid_kind");
-            if (reviewTarget && (kind != "accounts" || apply)) return Error("invalid_review_mode");
+            if (kind is not ("roster" or "staff-relationships" or "accounts" or "calendar")) return Error("invalid_kind");
+            if (reviewTarget && (kind is not ("accounts" or "calendar") || apply)) return Error("invalid_review_mode");
             var bytes = await ReadBoundedAsync(path);
             // Validation must finish before reading credentials or constructing
             // any database adapter, including when --apply was requested.
             var plan = kind == "roster" ? RosterImportValidator.Validate(bytes) : null;
             var staffPlan = kind == "staff-relationships" ? StaffRelationshipImportValidator.Validate(bytes) : null;
             var accountManifest = kind == "accounts" ? AccountImportValidator.Validate(bytes) : null;
+            var calendarManifest = kind == "calendar" ? CalendarImportValidator.Validate(bytes) : null;
             if (!apply && !reviewTarget)
             {
                 if (plan is not null) Summary("valid_dry_run", plan);
                 else if (staffPlan is not null) StaffSummary("valid_dry_run", staffPlan);
-                else AccountSummary("manifest_valid", accountManifest!);
+                else if(accountManifest is not null) AccountSummary("manifest_valid", accountManifest);
+                else CalendarSummary("manifest_valid",calendarManifest!);
                 return 0;
             }
             if (!values.TryGetValue("--expected-sha256", out var digest) || !values.TryGetValue("--expected-database", out var database) ||
@@ -56,12 +60,19 @@ public static class RosterImportProgram
                 var result = await PostgresStaffRelationshipImport.ApplyAsync(staffPlan, connection, digest, database, environment);
                 StaffSummary(result.Noop ? "same_snapshot_noop" : "applied", staffPlan, result);
             }
-            else
+            else if(accountManifest is not null)
             {
                 var result = await PostgresAccountImport.ApplyAsync(accountManifest!, connection, digest, database, environment, reviewTarget);
                 var status = reviewTarget ? "reviewed" : result.Noop ? "same_snapshot_noop" : "applied";
                 if (result.IssueCounts.Count > 0) status += "_with_quarantine";
                 AccountSummary(status, accountManifest!, result);
+            }
+            else
+            {
+                var result=await PostgresCalendarImport.ApplyAsync(calendarManifest!,connection,digest,database,environment,reviewTarget);
+                var status=reviewTarget?"reviewed":result.Noop?"same_snapshot_noop":"applied";
+                if(result.IssueCounts.Count>0)status+="_with_quarantine";
+                CalendarSummary(status,calendarManifest!,result);
             }
             return 0;
         }
@@ -78,6 +89,16 @@ public static class RosterImportProgram
         Console.Error.WriteLine(JsonSerializer.Serialize(new { status = "refused", code }));
         return 2;
     }
+    private static void CalendarSummary(string status,ValidatedCalendarImport manifest,CalendarImportOutcome? result=null)=>
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            status,kind="calendar",sha256=manifest.Digest,roster_sha256=manifest.RosterDigest,time_zone=manifest.TimeZone,
+            source_rows=new[]{"fixtures","events","training_sessions","availability","event_attendance","attendance"}
+                .ToDictionary(collection=>collection,collection=>manifest.Rows.Count(row=>row.Collection==collection),StringComparer.Ordinal),
+            counts=result is null?(JsonElement?)null:JsonSerializer.Deserialize<JsonElement>(result.CountsJson),
+            issue_counts=result?.IssueCounts,bound_snapshots_checked=result is not null,applied=result?.Applied??false,
+            review_only=result?.Reviewed??false,ready_for_calendar=result is not null&&(result.Applied||result.Noop)&&result.IssueCounts.Count==0
+        }));
     private static void Summary(string status, ValidatedRosterImport plan) => Console.WriteLine(JsonSerializer.Serialize(new
     {
         status, sha256 = plan.Digest, teams = plan.Teams.Count, academy_groups = plan.Groups.Count,

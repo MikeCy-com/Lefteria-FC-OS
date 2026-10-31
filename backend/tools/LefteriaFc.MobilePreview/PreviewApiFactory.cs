@@ -15,7 +15,7 @@ using Microsoft.Extensions.Options;
 namespace LefteriaFc.MobilePreview;
 
 // This executable alone changes DI. Product startup has no fixture OTP/SMS option.
-internal sealed class PreviewApiFactory(FixtureConfiguration fixture, PhoneNumber phone,
+internal sealed class PreviewApiFactory(FixtureConfiguration fixture, IReadOnlyCollection<PhoneNumber> phones,
     string signingKey, string otpKey) : WebApplicationFactory<global::Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -39,7 +39,7 @@ internal sealed class PreviewApiFactory(FixtureConfiguration fixture, PhoneNumbe
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<ISmsSender>();
-            services.AddSingleton<ISmsSender>(new FixtureSmsSender(phone));
+            services.AddSingleton<ISmsSender>(new FixtureSmsSender(phones));
             services.RemoveAll<IOtpProtector>();
             services.AddSingleton<IOtpProtector, FixedFixtureOtpProtector>();
             services.RemoveAll<LefteriaDbContext>();
@@ -60,14 +60,15 @@ internal sealed class FixedFixtureOtpProtector(IOptions<MobileAuthOptions> optio
         realProtector.ComputeDigest(challengeId, phone, code);
 }
 
-internal sealed class FixtureSmsSender(PhoneNumber fixturePhone) : ISmsSender
+internal sealed class FixtureSmsSender(IReadOnlyCollection<PhoneNumber> fixturePhones) : ISmsSender
 {
+    private readonly HashSet<string> allowedPhones = fixturePhones.Select(phone => phone.Digits).ToHashSet(StringComparer.Ordinal);
     public Task<bool> SendOtpAsync(PhoneNumber phone, string code, MobileRole? detectedRole,
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         // Do not capture/log codes or accept delivery for any other phone.
-        return Task.FromResult(phone.Digits == fixturePhone.Digits && code == FixedFixtureOtpProtector.Code);
+        return Task.FromResult(allowedPhones.Contains(phone.Digits) && code == FixedFixtureOtpProtector.Code);
     }
 }
 

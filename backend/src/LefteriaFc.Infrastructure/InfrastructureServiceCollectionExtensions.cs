@@ -7,6 +7,8 @@ using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Application.Roster;
 using LefteriaFc.Infrastructure.Roster;
+using LefteriaFc.Application.ClubCalendar;
+using LefteriaFc.Infrastructure.ClubCalendar;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -18,6 +20,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddSingleton<IAvatarImageSanitizer, SkiaAvatarImageSanitizer>();
         services.AddScoped<IRosterQueries, PostgresRosterQueries>();
         services.AddScoped<MobileRosterService>();
+        services.AddScoped<IMobileCalendarRepository,PostgresMobileCalendarRepository>();
+        services.AddScoped<MobileCalendarService>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();

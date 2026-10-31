@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Api.Roster;
+using LefteriaFc.Api.ClubCalendar;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -64,6 +65,7 @@ app.UseAuthorization();
 app.MapHealthEndpoints();
 app.MapMobileIdentity();
 app.MapMobileRoster();
+app.MapMobileCalendar();
 
 if (app.Environment.IsDevelopment())
 {

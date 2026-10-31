@@ -88,6 +88,19 @@ try {
     ['id', 'image_url', 'name', 'number', 'position']);
   assert.ok(document.components.schemas.MobileVerificationResult.anyOf?.length === 2 ||
     document.components.schemas.MobileVerificationResult.oneOf?.length === 2);
+  for (const [path, method] of [
+    ['/api/mobile/calendar', 'get'], ['/api/mobile/availability', 'post'],
+    ['/api/mobile/my-availability', 'get'],
+    ['/api/mobile/calendar/{event_type}/{event_id}/responses', 'get']
+  ]) {
+    const operation = document.paths[path][method];
+    assert.deepEqual(operation.security, [{ Mobile: [] }]);
+    assert.ok(operation.responses['503'], 'An uninitialized calendar must remain unavailable.');
+  }
+  const responseParameters = document.paths['/api/mobile/calendar/{event_type}/{event_id}/responses'].get.parameters;
+  assert.ok(responseParameters.some(parameter => parameter.name === 'event_type' && parameter.in === 'path' && parameter.required));
+  assert.equal(document.paths['/api/mobile/events/{event_id}/attendance'], undefined,
+    'The legacy attendance/MVP contract must not be replaced by a different RSVP shape.');
 
   const live = await fetch(`${origin}/api/health/live`);
   assert.equal(live.status, 200);

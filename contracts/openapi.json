@@ -1,6 +1,48 @@
 {
   "components": {
     "schemas": {
+      "CalendarOwnResponse": {
+        "properties": {
+          "player_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "player_id",
+          "status",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "CalendarPlayerOption": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "organization_id"
+        ],
+        "type": "object"
+      },
       "FanRegistrationBody": {
         "properties": {
           "birthday": {
@@ -83,6 +125,91 @@
         ],
         "type": "object"
       },
+      "MobileAvailabilityBody": {
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "default": "going",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_id"
+        ],
+        "type": "object"
+      },
+      "MobileAvailabilityResult": {
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message",
+          "status",
+          "player_id",
+          "event_id",
+          "event_type"
+        ],
+        "type": "object"
+      },
+      "MobileAvailabilityRow": {
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "player_id",
+          "status",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "MobileAvatarResult": {
         "properties": {
           "avatar_url": {
@@ -104,6 +231,305 @@
         },
         "required": [
           "file"
+        ],
+        "type": "object"
+      },
+      "MobileCalendarItem": {
+        "properties": {
+          "arrival_time": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cancel_reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "content_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "date": {
+            "format": "date",
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "end_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "ends_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_cancelled": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "location_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "member_summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "preparation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "responses": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarOwnResponse"
+            },
+            "type": "array"
+          },
+          "session_journey": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "start_time": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "starts_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "event_type",
+          "organization_id",
+          "title",
+          "date",
+          "end_date",
+          "start_time",
+          "starts_at",
+          "ends_at",
+          "arrival_time",
+          "duration_minutes",
+          "location",
+          "location_url",
+          "description",
+          "member_summary",
+          "session_journey",
+          "preparation",
+          "status",
+          "is_cancelled",
+          "cancel_reason",
+          "content_status",
+          "responses"
+        ],
+        "type": "object"
+      },
+      "MobileCalendarResponsePlayer": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "position": {
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "number",
+          "position",
+          "image_url",
+          "status",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "MobileCalendarResponseResult": {
+        "properties": {
+          "event_id": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "next_offset": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/MobileCalendarResponsePlayer"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "event_id",
+          "event_type",
+          "organization_id",
+          "players",
+          "next_offset"
+        ],
+        "type": "object"
+      },
+      "MobileCalendarResult": {
+        "properties": {
+          "identity_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MobileCalendarItem"
+            },
+            "type": "array"
+          },
+          "month": {
+            "type": "string"
+          },
+          "next_offset": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/CalendarPlayerOption"
+            },
+            "type": "array"
+          },
+          "role": {
+            "type": "string"
+          },
+          "selected_player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "time_zone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity_id",
+          "role",
+          "month",
+          "time_zone",
+          "organization_id",
+          "players",
+          "selected_player_id",
+          "items",
+          "next_offset"
         ],
         "type": "object"
       },
@@ -1491,6 +1917,362 @@
         ]
       }
     },
+    "/api/mobile/availability": {
+      "post": {
+        "description": "Submits the current parent/player's RSVP. Status is going, not_going or maybe and defaults to going only when omitted. event_type is match, fixture (match alias), event or training; omission requires a unique event ID. Cancelled and archived events reject new RSVPs; past events otherwise remain eligible. Unknown properties are ignored; duplicate JSON keys and bodies over 16 KiB are rejected.",
+        "operationId": "SubmitMobileAvailability",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileAvailabilityBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAvailabilityResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile calendar"
+        ]
+      }
+    },
+    "/api/mobile/calendar": {
+      "get": {
+        "description": "Returns a scoped calendar month. month is required in YYYY-MM form; offset is an integer from 0 to 100000. Each page contains at most 200 items. player_id selects an already authorized player and grants no access.",
+        "operationId": "GetMobileCalendar",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "month",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "player_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileCalendarResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile calendar"
+        ]
+      }
+    },
+    "/api/mobile/calendar/{event_type}/{event_id}/responses": {
+      "get": {
+        "description": "Returns scoped player RSVPs for a currently authorized coach/management identity. These are availability responses, not physical attendance or read receipts. The required event_type is match, fixture, event or training. offset is an integer from 0 to 100000; each page contains at most 200 players.",
+        "operationId": "GetMobileEventResponses",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "event_type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileCalendarResponseResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile calendar"
+        ]
+      }
+    },
     "/api/mobile/management/organization": {
       "get": {
         "operationId": "GetMobileOrganization",
@@ -1686,6 +2468,105 @@
         ],
         "tags": [
           "Mobile organization"
+        ]
+      }
+    },
+    "/api/mobile/my-availability": {
+      "get": {
+        "description": "Returns RSVP rows only for players currently linked to the authenticated parent/player identity.",
+        "operationId": "GetMobileOwnAvailability",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MobileAvailabilityRow"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile calendar"
         ]
       }
     },
@@ -2069,6 +2950,9 @@
     },
     {
       "name": "Mobile roster"
+    },
+    {
+      "name": "Mobile calendar"
     },
     {
       "name": "Mobile organization"

@@ -13,5 +13,7 @@
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.StaffRelationships.cs" Link="Fixture/TestDatabase.StaffRelationships.cs" />
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.AccountImports.cs" Link="Fixture/TestDatabase.AccountImports.cs" />
     <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/AccountImportFixture.cs" Link="Fixture/AccountImportFixture.cs" />
+    <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/CalendarDatabaseFixture.cs" Link="Fixture/CalendarDatabaseFixture.cs" />
+    <Compile Include="../../tests/LefteriaFc.Identity.IntegrationTests/TestDatabase.CalendarCleanup.cs" Link="Fixture/TestDatabase.CalendarCleanup.cs" />
   </ItemGroup>
 </Project>

@@ -153,7 +153,13 @@ unknown/native/evidence/quarantined subject denial, signed phone/role mismatch,
 CMS/wrong-signature/rewrite token rejection, original-expiry replay and role
 switch, concurrent exchange, fresh canonical revocations, current organization
 scope, throttling, safe audits and no account/SMS effects. Populated view rollback
-and reapply must preserve exact account replay and runtime archive denials.
+and reapply must preserve exact account replay and runtime archive denials. The
+current recovery probe executes the view migration's recorded EF Down/Up
+operations directly and reapplies its grants, leaving global migration history
+and later unrelated modules intact. The populated account-data guard is tested
+separately through its actual Down operations in a rollback-isolated transaction.
+These tests do not simulate or authorize a global populated-history downgrade;
+the operational partial-downgrade recovery condition above still applies.
 
 OpenAPI export asserts the separate legacy bearer scheme, absent request body
 and response contracts; the generated TypeScript client drives the browser

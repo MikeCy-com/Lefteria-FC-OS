@@ -17,9 +17,11 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
 
     public IReadOnlyList<(string Name, Func<Task> Check)> Cases =>
     [
+        ("Scoped calendar import, role visibility and atomic own-player RSVP use current canonical authority", CalendarEndToEndAsync),
         ("Owner account import, canonical role revocation and legacy fan OTP preserve source authority", AccountImportEndToEndAsync),
         ("Bounded legacy token validation preserves source claim families and rejects unapproved JWTs", LegacyMobileTokenValidationAsync),
         ("Legacy bridge startup enforces independent keys and disabled defaults", LegacyBridgeConfigurationAsync),
+        ("Calendar import preserves private sources, scope references, publication and date semantics", CalendarImportPlannerAsync),
         ("Twilio adapter encodes provider request and role sender fallback without network", TwilioAdapterChecks.ConfiguredRequestAsync),
         ("Unconfigured Twilio adapter refuses delivery without HTTP", TwilioAdapterChecks.UnconfiguredDoesNotCallHttpAsync),
         ("Restricted application role has no schema or audit mutation privilege", database.AssertRestrictedApplicationRoleAsync),

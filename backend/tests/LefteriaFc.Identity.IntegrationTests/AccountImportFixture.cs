@@ -31,7 +31,7 @@ internal sealed class AccountImportFixture
     public string StaffId=>Prefix+"-staff";
     public string[] Phones=>[PlayerPhone.Digits,ParentPhone.Digits,StaffPhone.Digits,EvidencePhone.Digits,InactivePhone.Digits,StalePhone.Digits,ConflictPhone.Digits];
     public override string ToString()=>"Synthetic protected account fixture";
-    public static AccountImportFixture Create(TestDatabase database)
+    public static AccountImportFixture Create(TestDatabase database,bool calendarScenario=false)
     {
         var prefix="account-e2e-"+Guid.NewGuid().ToString("N");
         var player=database.NewPhone();var parent=database.NewPhone();var staffPhone=database.NewPhone();
@@ -47,6 +47,15 @@ internal sealed class AccountImportFixture
         rosterInput["players"]=new JsonArray(
             new JsonObject{["id"]=prefix+"-player",["name"]="Fictional own player",["number"]=7,["position"]="Midfielder",["team_type"]="First Team",["is_active"]=true,["team_id"]=prefix+"-team",["phone"]=player.WireValue,["quick_notes"]="owner-only-account-marker"},
             new JsonObject{["id"]=prefix+"-child",["name"]="Fictional child",["number"]=3,["position"]="Forward",["team_type"]="Academy",["is_active"]=true,["academy_group_id"]=prefix+"-group",["parent_phone"]=parent.WireValue,["parent_email"]="private-guardian@example.invalid"});
+        if(calendarScenario)
+        {
+            rosterInput["academy_groups"]!.AsArray().Add(new JsonObject{["id"]=prefix+"-group-two",["name"]="Fictional second calendar group"});
+            rosterInput["players"]!.AsArray().Add(new JsonObject{["id"]=prefix+"-child-two",["name"]="Fictional second child",["number"]=4,["position"]="Defender",["team_type"]="Academy",["is_active"]=true,["academy_group_id"]=prefix+"-group-two",["parent_phone"]=parent.WireValue});
+            rosterInput["players"]!.AsArray().Add(new JsonObject{["id"]=prefix+"-child-fc",["name"]="Fictional FC child",["number"]=8,["position"]="Goalkeeper",["team_type"]="First Team",["is_active"]=true,["team_id"]=prefix+"-team",["parent_phone"]=parent.WireValue});
+            // Group one plus an invited second-group child produces exactly 201
+            // response rows without granting any extra phone or mobile identity.
+            for(var index=0;index<199;index++)rosterInput["players"]!.AsArray().Add(new JsonObject{["id"]=prefix+"-peer-"+index.ToString("D3"),["name"]="Fictional roster peer "+index.ToString("D3"),["number"]=index+10,["position"]="Midfielder",["team_type"]="Academy",["is_active"]=true,["academy_group_id"]=prefix+"-group"});
+        }
         var roster=RosterImportValidator.Validate(JsonSerializer.SerializeToUtf8Bytes(rosterInput));
         var staffInput=Header("staff");staffInput["roster_sha256"]=roster.Digest;
         staffInput["staff"]=new JsonArray(new JsonObject{["id"]=prefix+"-staff",["name"]="Fictional shared coach",["role"]="Head Coach",["phone"]=staffPhone.WireValue,
@@ -60,7 +69,7 @@ internal sealed class AccountImportFixture
                 ["role"]=role,["name"]="Imported "+role,["created_at"]="2026-10-24T00:00:00.1234567Z",["updated_at"]="2026-10-25T01:02:03.7654321Z",
                 ["is_active"]=true,["social_principal_id"]="private-principal-marker"};
             if(role=="player")row["linked_player_id"]=prefix+"-player";
-            if(role=="parent"){row["linked_player_id"]=prefix+"-child";row["linked_player_ids"]=new JsonArray(prefix+"-child");}
+            if(role=="parent"){row["linked_player_id"]=prefix+"-child";row["linked_player_ids"]=calendarScenario?new JsonArray(prefix+"-child",prefix+"-child-two",prefix+"-child-fc"):new JsonArray(prefix+"-child");}
             if(role=="coach")row["linked_staff_id"]=prefix+"-staff";
             if(role=="management")row["linked_admin_id"]=prefix+"-admin";
             input["mobile_users"]!.AsArray().Add(row);

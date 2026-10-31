@@ -5,12 +5,13 @@ using System.Text;
 using System.Text.Json;
 using LefteriaFc.Domain.Identity;
 using LefteriaFc.Domain.Organizations;
+using LefteriaFc.Identity.IntegrationTests;
 
 namespace LefteriaFc.MobilePreview;
 
 internal static class PreviewSmoke
 {
-    public static async Task RunAsync(PreviewOptions options, PhoneNumber phone)
+    public static async Task RunAsync(PreviewOptions options, PhoneNumber phone, CalendarDatabaseFixture? calendar = null)
     {
         Check(options.Origin.Host == "127.0.0.1", "Preview must stay on loopback.");
         using var client = new HttpClient(new SocketsHttpHandler
@@ -25,7 +26,7 @@ internal static class PreviewSmoke
         Check(issue.RootElement.GetProperty("expires_in").GetInt32() == 300, "OTP expiration differs.");
         using var picker = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/verify-otp",
             new { phone = phone.WireValue, code = FixedFixtureOtpProtector.Code, remember_days = (int?)null });
-        Check(picker.RootElement.GetProperty("identities").GetArrayLength() == 5 &&
+        Check(picker.RootElement.GetProperty("identities").GetArrayLength() == (calendar is null ? 5 : 2) &&
               !picker.RootElement.TryGetProperty("token", out _), "Role picker contract failed.");
         using var login = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/verify-otp",
             new { phone = phone.WireValue, code = FixedFixtureOtpProtector.Code, role = "fan", remember_days = (int?)null });
@@ -44,15 +45,17 @@ internal static class PreviewSmoke
         Check(profile.RootElement.GetProperty("email").GetString() == "edited@example.invalid", "Profile update failed.");
         using var preference = await JsonAsync(client, HttpMethod.Put, "/api/mobile/auth/me", new { favorite_team = "academy" });
         Check(preference.RootElement.GetProperty("user").GetProperty("favorite_team").GetString() == "academy", "Preference update failed.");
+        var previousToken = calendar is null ? fanToken : await LoginAsync(client, calendar.Accounts.StaffPhone, "coach");
         using var switched = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/switch-role", new { role = "management" });
         var managementToken = switched.RootElement.GetProperty("token").GetString()!;
-        Check(Expiration(fanToken) == Expiration(managementToken), "Role switch extended session expiration.");
+        Check(Expiration(previousToken) == Expiration(managementToken), "Role switch extended session expiration.");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managementToken);
         using var organization = await JsonAsync(client, HttpMethod.Get, "/api/mobile/management/organization");
-        Check(organization.RootElement.GetProperty("requires_organization_selection").GetBoolean(), "Organization choice missing.");
+        Check(organization.RootElement.GetProperty("requires_organization_selection").GetBoolean() == (calendar is null), "Organization choice differs from the fixture.");
         using var selected = await JsonAsync(client, HttpMethod.Post, "/api/mobile/management/organization",
             new { organization_id = OrganizationIds.Club });
         Check(selected.RootElement.GetProperty("organization_id").GetString() == OrganizationIds.Club, "Organization selection failed.");
+        if (calendar is not null) await CalendarAsync(client, calendar);
         using (var wrongHost = new HttpRequestMessage(HttpMethod.Get, "/api/health/ready"))
         {
             wrongHost.Headers.Host = "untrusted.invalid";
@@ -67,6 +70,77 @@ internal static class PreviewSmoke
         }
         using var stop = await client.PostAsync("/__fixture__/stop", null);
         Check(stop.StatusCode == HttpStatusCode.Accepted, "Graceful stop failed.");
+    }
+
+    private static async Task CalendarAsync(HttpClient client, CalendarDatabaseFixture fixture)
+    {
+        const string monthPath = "/api/mobile/calendar?month=2026-10";
+        using var club = await JsonAsync(client, HttpMethod.Get, monthPath);
+        Check(club.RootElement.GetProperty("role").GetString() == "management" &&
+              club.RootElement.GetProperty("organization_id").GetString() == OrganizationIds.Club &&
+              Contains(club, fixture.Id("shared")) && !Contains(club, fixture.Id("host")), "Management club calendar scope failed.");
+        using var selected = await JsonAsync(client, HttpMethod.Post, "/api/mobile/management/organization", new { organization_id = OrganizationIds.Academy });
+        using var academy = await JsonAsync(client, HttpMethod.Get, monthPath);
+        Check(academy.RootElement.GetProperty("organization_id").GetString() == OrganizationIds.Academy &&
+              Contains(academy, fixture.Id("host")) && !Contains(academy, fixture.Id("shared")), "Management Academy calendar scope failed.");
+
+        await LoginAsync(client, fixture.Accounts.ParentPhone, "parent");
+        using var parent = await JsonAsync(client, HttpMethod.Get, monthPath);
+        Check(parent.RootElement.GetProperty("players").GetArrayLength() == 3 &&
+              parent.RootElement.GetProperty("selected_player_id").GetString() == fixture.Accounts.ChildId &&
+              Contains(parent, fixture.Id("published")) && !Contains(parent, fixture.Id("draft")), "Parent children or published calendar failed.");
+        var secondPath = monthPath + "&player_id=" + Uri.EscapeDataString(fixture.SecondChild);
+        using var second = await JsonAsync(client, HttpMethod.Get, secondPath);
+        Check(second.RootElement.GetProperty("selected_player_id").GetString() == fixture.SecondChild &&
+              Contains(second, fixture.Id("group-two")) && !Contains(second, fixture.Id("published")), "Second-child calendar selection failed.");
+        using var saved = await JsonAsync(client, HttpMethod.Post, "/api/mobile/availability",
+            new { event_id = fixture.Id("host"), event_type = "event", player_id = fixture.SecondChild, status = "maybe" });
+        Check(saved.RootElement.GetProperty("player_id").GetString() == fixture.SecondChild, "Second-child RSVP target changed.");
+        using var confirmed = await JsonAsync(client, HttpMethod.Get, secondPath);
+        var response = confirmed.RootElement.GetProperty("items").EnumerateArray().Single(row => row.GetProperty("id").GetString() == fixture.Id("host"))
+            .GetProperty("responses").EnumerateArray().Single();
+        Check(response.GetProperty("player_id").GetString() == fixture.SecondChild && response.GetProperty("status").GetString() == "maybe", "Fresh calendar did not confirm the own-child RSVP.");
+        using var cancelled = await client.PostAsJsonAsync("/api/mobile/availability",
+            new { event_id = fixture.Id("cancelled"), event_type = "event", player_id = fixture.Accounts.ChildId, status = "going" });
+        Check(cancelled.StatusCode == HttpStatusCode.Forbidden, "Cancelled event accepted RSVP.");
+
+        await LoginAsync(client, fixture.Accounts.StaffPhone, "coach");
+        using var coach = await JsonAsync(client, HttpMethod.Get, monthPath);
+        Check(coach.RootElement.GetProperty("role").GetString() == "coach" && Contains(coach, fixture.Id("host")) &&
+              Contains(coach, fixture.Id("shared")) && !Contains(coach, fixture.Id("group-two")), "Coach assignments failed.");
+        var repliesPath = "/api/mobile/calendar/event/" + Uri.EscapeDataString(fixture.Id("host")) + "/responses";
+        using var firstReplies = await JsonAsync(client, HttpMethod.Get, repliesPath);
+        using var lastReplies = await JsonAsync(client, HttpMethod.Get, repliesPath + "?offset=200");
+        var replyPlayers = firstReplies.RootElement.GetProperty("players").EnumerateArray()
+            .Concat(lastReplies.RootElement.GetProperty("players").EnumerateArray()).ToArray();
+        Check(firstReplies.RootElement.GetProperty("next_offset").GetInt32() == 200 && replyPlayers.Length == 201 &&
+              replyPlayers.Single(row => row.GetProperty("id").GetString() == fixture.SecondChild).GetProperty("status").GetString() == "maybe", "Scoped staff response pagination failed.");
+        using var staffWrite = await client.PostAsJsonAsync("/api/mobile/availability",
+            new { event_id = fixture.Id("host"), event_type = "event", player_id = fixture.Accounts.ChildId, status = "going" });
+        Check(staffWrite.StatusCode == HttpStatusCode.Forbidden, "Read-only coach view accepted own-player RSVP.");
+
+        await LoginAsync(client, fixture.Accounts.PlayerPhone, "player");
+        using var player = await JsonAsync(client, HttpMethod.Get, monthPath);
+        Check(player.RootElement.GetProperty("role").GetString() == "player" &&
+              player.RootElement.GetProperty("selected_player_id").GetString() == fixture.Accounts.PlayerId &&
+              Contains(player, fixture.Id("shared")) && !Contains(player, fixture.Id("host")), "Player calendar crossed its scope.");
+        using var playerSaved = await JsonAsync(client, HttpMethod.Post, "/api/mobile/availability",
+            new { event_id = fixture.Id("shared"), event_type = "match", player_id = fixture.Accounts.PlayerId, status = "not_going" });
+        Check(playerSaved.RootElement.GetProperty("event_type").GetString() == "match", "Player RSVP lost the kind/id boundary.");
+    }
+
+    private static bool Contains(JsonDocument calendar, string eventId) => calendar.RootElement.GetProperty("items")
+        .EnumerateArray().Any(row => row.GetProperty("id").GetString() == eventId);
+
+    private static async Task<string> LoginAsync(HttpClient client, PhoneNumber phone, string role)
+    {
+        client.DefaultRequestHeaders.Authorization = null;
+        using var issue = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/request-otp", new { phone = phone.WireValue });
+        using var login = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/verify-otp",
+            new { phone = phone.WireValue, code = FixedFixtureOtpProtector.Code, role, remember_days = (int?)null });
+        var token = login.RootElement.GetProperty("token").GetString()!;
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return token;
     }
 
     private static async Task<JsonDocument> JsonAsync(HttpClient client, HttpMethod method, string path, object? body = null)

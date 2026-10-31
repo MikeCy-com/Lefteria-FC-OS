@@ -119,6 +119,14 @@ manifests, checksums and a verified backup. Populated recovery requires a review
 forward fix or an approved protected restore, retaining subsequent user changes;
 incremental import and automatic account-data rollback are not implemented.
 
+The current populated-refusal test executes the recorded EF Down operations in
+an isolated transaction, rolls back after the fixed guard and verifies retained
+account/source rows. It does not globally downgrade newer modules or their
+migration history. The bridge view has its own actual Down/Up recovery probe.
+An operational deep EF downgrade may complete later empty/view-only migrations
+before reaching this populated account guard; inspect history and restore any
+already-removed extensions with their runtime grants after such a refusal.
+
 Observed locally on 2026-10-27: migration apply and EF model consistency passed;
 restricted runtime SQL probes passed; all 38 real HTTP/PostgreSQL test groups
 passed. Account coverage includes offline and target-review CLI privacy,

@@ -27,9 +27,10 @@ Both parsed connections and the actual connected server identity are validated
 before any SQL mutation. A mismatched document is rejected with exit code 2.
 Do not commit this credential document.
 
-The suite never creates, drops or truncates a database. Its account scenario
-attempts the guarded account rollback and verifies populated data refuses it
-before any schema change. It generates distinct
+The suite never creates, drops or truncates a database. Populated account and
+calendar guard checks execute the actual recorded EF Down operations in an
+isolated transaction and verify refusal before table removal. They do not
+globally downgrade later migrations, their history or runtime grants. It generates distinct
 test phones/identities, uses only exact owned-row cleanup, and leaves security
 audit events append-only. TEST-NET remote IP customization exists only in the
 test host, so product forwarded-header trust and shared throttles remain real.
@@ -54,7 +55,19 @@ finally, proving atomic rollback. The optional post-decode gate is test DI only.
 No external images/providers or raw-upload persistence are used. Avatar FK
 cascade permits the existing exact-owned cleanup.
 
-The account scenario runs first against empty account/roster/staff targets. It
+The calendar scenario runs first against empty calendar/account/roster/staff
+targets. It imports generated source-shaped records and exercises clean-empty
+versus quarantined readiness, owner review/apply/replay, raw retention,
+same-count mutation refusal, atomic archive failure, role/child/group/team/guest
+scope, frozen publication dates, selected management organization, paging,
+RSVP mirror/audit atomicity and unchanged physical attendance. Test DI gates
+pause each repository operation before its final SQL statement so committed
+phone, role, staff, assignment, child-link and grant revocations can be checked.
+Its exact owned cleanup leaves append-only audits and an empty target for the
+account scenario. The [calendar guide](../../../docs/implementation/scoped-calendar.md)
+records implemented coverage separately from observed execution results.
+
+The account scenario then runs against empty account/roster/staff targets. It
 imports generated source-shaped records, checks owner-only review/apply/replay,
 same-count mutation refusal, quarantine, atomic failure and rollback protection,
 then exercises current player/guardian/coach/admin links, grant revocation with
@@ -65,6 +78,10 @@ An explicitly enabled second host tests the bounded legacy exchange against the
 imported subjects. It preserves original expiry and token-bound session identity,
 denies native/evidence/quarantine/CMS and mismatched claims, rechecks revocations,
 tests concurrent replay/throttling and inspects safe audit effects. A populated
-view-only Down/Up preserves account replay and runtime archive denials. The
-populated account-rollback refusal test restores the later bridge view if EF
-already completed that view-only Down before reaching the account-data guard.
+view-only recovery probe executes the actual recorded EF Down/Up operations,
+reapplies the view's restricted grants and checks account replay/archive denials.
+It does not alter migration history or downgrade unrelated later modules. The
+account-data refusal test separately rolls back its actual Down operation.
+An operator's deep EF downgrade can still complete later empty/view-only Down
+migrations before an earlier populated guard refuses; that operational case
+requires inspection and restoration of already-removed extensions and grants.

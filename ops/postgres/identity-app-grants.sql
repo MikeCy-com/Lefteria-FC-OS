@@ -43,7 +43,7 @@ BEGIN
     RAISE EXCEPTION 'Runtime role must not own a database, schema or persistent relation';
   END IF;
   IF EXISTS (SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
-             WHERE n.nspname = 'identity' AND c.relname = 'mobile_identities'
+             WHERE (n.nspname,c.relname) IN (('identity','mobile_identities'),('club','calendar_responses'))
                AND c.relforcerowsecurity) THEN
     RAISE EXCEPTION 'Review owner import behavior before applying to a FORCE RLS table';
   END IF;
@@ -71,7 +71,9 @@ REVOKE ALL PRIVILEGES ON TABLE
   migration.staff_relationship_import_state, migration.staff_source_documents, migration.contact_provenance,
   identity.fan_registration_evidence, identity.canonical_contact_bindings, identity.mobile_record_links, identity.admin_staff_links,
   migration.account_import_state, migration.account_source_documents, migration.account_import_issues,
-  migration.legacy_account_mappings, migration.imported_admin_grants, identity.imported_mobile_subjects
+  migration.legacy_account_mappings, migration.imported_admin_grants, identity.imported_mobile_subjects,
+  club.calendar_import_state,club.calendar_items,club.calendar_item_scopes,club.calendar_item_guests,
+  club.calendar_responses,migration.calendar_source_documents,migration.calendar_import_issues
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -93,7 +95,9 @@ BEGIN
       ('migration','staff_relationship_import_state'), ('migration','staff_source_documents'), ('migration','contact_provenance'),
       ('identity','fan_registration_evidence'), ('identity','canonical_contact_bindings'), ('identity','mobile_record_links'), ('identity','admin_staff_links'),
       ('migration','account_import_state'), ('migration','account_source_documents'), ('migration','account_import_issues'),
-      ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'), ('identity','imported_mobile_subjects'))
+      ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'), ('identity','imported_mobile_subjects'),
+      ('club','calendar_import_state'),('club','calendar_items'),('club','calendar_item_scopes'),('club','calendar_item_guests'),
+      ('club','calendar_responses'),('migration','calendar_source_documents'),('migration','calendar_import_issues'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -106,6 +110,27 @@ $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
 GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO :"app_role";
+GRANT SELECT (id,time_zone,is_complete) ON club.calendar_import_state TO :"app_role";
+GRANT SELECT (id,organization_id) ON club.teams,club.academy_groups TO :"app_role";
+GRANT SELECT ON club.calendar_items,club.calendar_item_scopes,club.calendar_item_guests,club.calendar_responses TO :"app_role";
+GRANT INSERT (collection,kind,event_id,player_id,organization_id,status,actor_identity_id,updated_at)
+ON club.calendar_responses TO :"app_role";
+GRANT UPDATE (status,actor_identity_id,updated_at) ON club.calendar_responses TO :"app_role";
+ALTER TABLE club.calendar_responses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS calendar_runtime_select ON club.calendar_responses;
+DROP POLICY IF EXISTS calendar_runtime_insert ON club.calendar_responses;
+DROP POLICY IF EXISTS calendar_runtime_update ON club.calendar_responses;
+DROP POLICY IF EXISTS calendar_runtime_insert_rsvp_only ON club.calendar_responses;
+DROP POLICY IF EXISTS calendar_runtime_update_rsvp_only ON club.calendar_responses;
+CREATE POLICY calendar_runtime_select ON club.calendar_responses FOR SELECT TO :"app_role" USING (true);
+CREATE POLICY calendar_runtime_insert ON club.calendar_responses FOR INSERT TO :"app_role" WITH CHECK (true);
+CREATE POLICY calendar_runtime_insert_rsvp_only ON club.calendar_responses AS RESTRICTIVE FOR INSERT TO :"app_role"
+  WITH CHECK (collection IN ('availability','event_attendance') AND status IN ('going','not_going','maybe')
+    AND actor_identity_id IS NOT NULL AND source_ordinal IS NULL);
+CREATE POLICY calendar_runtime_update ON club.calendar_responses FOR UPDATE TO :"app_role" USING (true) WITH CHECK (true);
+CREATE POLICY calendar_runtime_update_rsvp_only ON club.calendar_responses AS RESTRICTIVE FOR UPDATE TO :"app_role"
+  USING (collection IN ('availability','event_attendance'))
+  WITH CHECK (collection IN ('availability','event_attendance') AND status IN ('going','not_going','maybe') AND actor_identity_id IS NOT NULL);
 GRANT SELECT, INSERT ON identity.mobile_avatars TO :"app_role";
 GRANT UPDATE (file_name, jpeg_bytes, width, height, updated_at)
 ON identity.mobile_avatars TO :"app_role";

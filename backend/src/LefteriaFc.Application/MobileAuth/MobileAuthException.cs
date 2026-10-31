@@ -45,6 +45,9 @@ public enum MobileAuthErrorCode
     AvatarProcessingBusy,
     AvatarStorageUnavailable,
     RosterUnavailable,
+    CalendarUnavailable,
+    InvalidCalendarInput,
+    CalendarEventAmbiguous,
     LegacyBridgeUnavailable,
     LegacyTokenInvalid
 }

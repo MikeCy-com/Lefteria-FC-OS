@@ -4,6 +4,8 @@ import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
 import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays } from './components/component-types.ts';
 import type { MobileSessionStorage } from './session.ts';
+import { calendarItemKey, isAvailabilityStatus, isCalendarDate, isCalendarKind, isCalendarMonth } from './calendar.ts';
+import type { AvailabilityStatus, CalendarLoadStatus, MobileCalendar, MobileCalendarItem, MobileCalendarResponses } from './calendar.ts';
 
 type User = components['schemas']['MobileUserDto'];
 type Organization = components['schemas']['MobileOrganizationContextDto'];
@@ -38,12 +40,22 @@ export interface MobileAuthState {
   playerOptions: readonly MobilePlayerOption[];
   playerOptionsStatus: MobilePlayerOptionsStatus;
   playerOptionsError: string | null;
+  calendar: MobileCalendar | null;
+  calendarStatus: CalendarLoadStatus;
+  calendarError: string | null;
+  calendarLoadingMore: boolean;
+  calendarResponses: MobileCalendarResponses | null;
+  calendarResponsesKey: string | null;
+  calendarResponsesStatus: CalendarLoadStatus;
+  calendarResponsesError: string | null;
+  calendarResponsesLoadingMore: boolean;
   resendAvailableAt: number;
 }
 
 class ApiFailure extends Error {
   readonly status: number;
-  constructor(status: number, message: string) { super(message); this.status = status; }
+  readonly code: string | null;
+  constructor(status: number, message: string, code: string | null = null) { super(message); this.status = status; this.code = code; }
 }
 
 function responseData<T>(result: { data?: T; error?: unknown; response: Response }): T {
@@ -51,7 +63,8 @@ function responseData<T>(result: { data?: T; error?: unknown; response: Response
   const error = result.error;
   const detail = error && typeof error === 'object' && 'detail' in error && typeof error.detail === 'string'
     ? error.detail : 'Η υπηρεσία δεν είναι διαθέσιμη. Δοκιμάστε ξανά.';
-  throw new ApiFailure(result.response.status, detail);
+  const code = error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' ? error.code : null;
+  throw new ApiFailure(result.response.status, detail, code);
 }
 
 function validRoles(roles: readonly string[] | null | undefined): MobileRole[] {
@@ -71,13 +84,18 @@ export function createMobileAuthController(options: {
   let state: MobileAuthState = {
     status: 'initializing', busy: false, error: null, step: 'phone', phone: '',
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
-    organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null, resendAvailableAt: 0
+    organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
+    calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
+    calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
+    calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
   };
   const store = writable(state);
   let token: string | null = null;
   let pendingCode: string | null = null;
   let revision = 0;
   let playerOptionsRevision = 0;
+  let calendarRevision = 0;
+  let calendarResponsesRevision = 0;
 
   function update(patch: Partial<MobileAuthState>) {
     state = { ...state, ...patch };
@@ -89,8 +107,28 @@ export function createMobileAuthController(options: {
     update({ playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null });
   }
 
+  function clearCalendarResponses() {
+    ++calendarResponsesRevision;
+    update({ calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
+      calendarResponsesError: null, calendarResponsesLoadingMore: false });
+  }
+
+  function clearCalendar() {
+    ++calendarRevision;
+    clearCalendarResponses();
+    update({ calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false });
+  }
+
+  function denyCalendarAccess(error: ApiFailure) {
+    // A current authorization denial invalidates earlier pages too: a child or
+    // assignment may have been removed while another role grant remains active.
+    clearCalendar();
+    update({ calendarStatus: 'error', calendarError: error.message });
+  }
+
   function anonymous(error: string | null = null) {
     clearPlayerOptions();
+    clearCalendar();
     token = null;
     pendingCode = null;
     options.storage.clear();
@@ -102,6 +140,12 @@ export function createMobileAuthController(options: {
     ++revision;
     anonymous(error);
     update({ busy: false });
+  }
+
+  function revokeCurrentRole(error: string) {
+    ++revision;
+    if (state.user) applyUser({ ...state.user, current_role_available: false });
+    update({ busy: false, error });
   }
 
   function authorization() {
@@ -122,7 +166,10 @@ export function createMobileAuthController(options: {
   function applyUser(user: User, behavior: { preserveOrganization?: boolean } = {}) {
     validateUser(user);
     const roles = validRoles(user.available_roles);
-    if (!user.current_role_available || state.user?.id !== user.id || state.user?.role !== user.role || state.user?.phone !== user.phone) clearPlayerOptions();
+    if (!user.current_role_available || state.user?.id !== user.id || state.user?.role !== user.role || state.user?.phone !== user.phone) {
+      clearPlayerOptions();
+      clearCalendar();
+    }
     update({ status: 'authenticated', user, availableRoles: roles, error: null,
       ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
       identities: [], detectedRole: null, phone: user.phone });
@@ -162,6 +209,7 @@ export function createMobileAuthController(options: {
     } catch (error) {
       if (revision !== operationRevision) return false;
       if (authenticated && error instanceof ApiFailure && error.status === 401) anonymous(error.message);
+      else if (authenticated && error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable') revokeCurrentRole(error.message);
       else {
         const detail = message(error);
         update({ error: detail, ...(failureScope === 'organization' ? { organizationError: detail } : {}) });
@@ -205,12 +253,147 @@ export function createMobileAuthController(options: {
     });
   }
 
+  function calendarIdentity() {
+    const identity = state.user;
+    if (state.status !== 'authenticated' || !identity?.current_role_available || identity.role === 'fan' ||
+        (identity.role === 'management' && (!state.organization?.organization_id || state.organization.requires_organization_selection))) return null;
+    return identity;
+  }
+
+  function calendarScopeCurrent(identity: User, sessionToken: string | null, organizationId: string | null | undefined) {
+    return token === sessionToken && state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user.role === identity.role && state.user.phone === identity.phone && state.user.current_role_available &&
+      (identity.role !== 'management' || state.organization?.organization_id === organizationId);
+  }
+
+  function validOffset(value: unknown, offset: number) {
+    return value === null || (typeof value === 'number' && Number.isInteger(value) && value > offset);
+  }
+
+  function validCalendar(data: MobileCalendar, identity: User, month: string, playerId: string | undefined, offset: number) {
+    if (!data || data.identity_id !== identity.id || data.role !== identity.role || data.month !== month ||
+        typeof data.time_zone !== 'string' || !Array.isArray(data.players) || !Array.isArray(data.items) ||
+        !validOffset(data.next_offset, offset)) return false;
+    try { new Intl.DateTimeFormat('el-GR', { timeZone: data.time_zone }); } catch { return false; }
+    const playerIds = new Set<string>();
+    if (!data.players.every((player) => player && typeof player.id === 'string' && !!player.id.trim() &&
+      typeof player.name === 'string' && typeof player.organization_id === 'string' && !!player.organization_id.trim() &&
+      !playerIds.has(player.id) && !!playerIds.add(player.id))) return false;
+    if (identity.role === 'parent' || identity.role === 'player') {
+      if (playerId && data.selected_player_id !== playerId) return false;
+      const selected = data.players.find((player) => player.id === data.selected_player_id);
+      // An identity without any current player links may receive a verified empty calendar.
+      if (!selected && (data.players.length > 0 || data.selected_player_id !== null || data.items.length > 0)) return false;
+      if (selected && (selected.organization_id !== data.organization_id || (playerId && selected.id !== playerId))) return false;
+      if (identity.role === 'player' && data.players.length > 1) return false;
+    } else if (data.selected_player_id !== null || data.players.length !== 0) return false;
+    if (identity.role === 'coach' && data.organization_id !== null) return false;
+    if (identity.role === 'management' && data.organization_id !== state.organization?.organization_id) return false;
+    if (data.organization_id !== null && (typeof data.organization_id !== 'string' || !data.organization_id.trim())) return false;
+    const optionalText = ['start_time', 'starts_at', 'ends_at', 'arrival_time', 'location', 'location_url', 'description',
+      'member_summary', 'session_journey', 'preparation', 'status', 'cancel_reason', 'content_status'] as const;
+    return data.items.every((item) => item && typeof item.id === 'string' && !!item.id.trim() && isCalendarKind(item.kind) &&
+      typeof item.event_type === 'string' && typeof item.organization_id === 'string' && !!item.organization_id.trim() &&
+      (data.organization_id === null || item.organization_id === data.organization_id) && typeof item.title === 'string' &&
+      isCalendarDate(item.date) && isCalendarDate(item.end_date) && item.end_date >= item.date &&
+      item.date <= `${month}-31` && item.end_date >= `${month}-01` && typeof item.is_cancelled === 'boolean' &&
+      optionalText.every((field) => item[field] == null || typeof item[field] === 'string') &&
+      (item.duration_minutes == null || (typeof item.duration_minutes === 'number' && Number.isInteger(item.duration_minutes) && item.duration_minutes >= 0)) &&
+      Array.isArray(item.responses) && item.responses.length <= 1 && item.responses.every((response) =>
+        response && response.player_id === data.selected_player_id && isAvailabilityStatus(response.status) &&
+        (response.updated_at == null || typeof response.updated_at === 'string')));
+  }
+
+  async function loadCalendar(month: string, playerId?: string, append = false) {
+    const identity = calendarIdentity();
+    if (state.busy || !identity || !isCalendarMonth(month) || (playerId !== undefined && !playerId.trim())) return false;
+    const previous = state.calendar;
+    const offset = append ? previous?.next_offset : 0;
+    if (append && (state.calendarLoadingMore || state.calendarStatus !== 'ready' || previous?.month !== month ||
+        previous.selected_player_id !== (playerId ?? null) || offset == null)) return false;
+    if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) return false;
+    const operationRevision = ++calendarRevision;
+    const sessionToken = token;
+    const organizationId = state.organization?.organization_id;
+    const isCurrent = () => calendarRevision === operationRevision && calendarScopeCurrent(identity, sessionToken, organizationId);
+    clearCalendarResponses();
+    update(append ? { calendarLoadingMore: true, calendarError: null }
+      : { calendar: null, calendarStatus: 'loading', calendarError: null, calendarLoadingMore: false });
+    try {
+      const data = responseData(await api.GET('/api/mobile/calendar', { headers: authorization(),
+        params: { query: { month, offset: String(offset), ...(playerId ? { player_id: playerId } : {}) } } }));
+      if (!isCurrent()) return false;
+      if (!validCalendar(data, identity, month, playerId, offset) || (append &&
+          (data.selected_player_id !== previous?.selected_player_id || data.organization_id !== previous.organization_id || data.time_zone !== previous.time_zone))) {
+        throw new Error('Invalid calendar response');
+      }
+      const items = new Map<string, MobileCalendarItem>();
+      for (const item of [...(append ? previous?.items ?? [] : []), ...data.items]) items.set(calendarItemKey(item), item);
+      update({ calendar: { ...data, items: [...items.values()] }, calendarStatus: 'ready', calendarError: null, calendarLoadingMore: false });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else if (error instanceof ApiFailure && error.status === 403) denyCalendarAccess(error);
+      else update({ calendarStatus: append ? 'ready' : 'error', calendarError: message(error), calendarLoadingMore: false });
+      return false;
+    }
+  }
+
+  async function loadCalendarResponses(item: MobileCalendarItem, append = false) {
+    const identity = calendarIdentity();
+    const key = calendarItemKey(item);
+    const currentItem = state.calendar?.items.find((candidate) => calendarItemKey(candidate) === key);
+    if (state.busy || !identity || (identity.role !== 'coach' && identity.role !== 'management') ||
+        state.calendarStatus !== 'ready' || !currentItem) return false;
+    const previous = state.calendarResponses;
+    const offset = append ? previous?.next_offset : 0;
+    if (append && (state.calendarResponsesLoadingMore || state.calendarResponsesStatus !== 'ready' ||
+        state.calendarResponsesKey !== key || offset == null)) return false;
+    if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) return false;
+    const operationRevision = ++calendarResponsesRevision;
+    const monthRevision = calendarRevision;
+    const sessionToken = token;
+    const organizationId = state.organization?.organization_id;
+    const isCurrent = () => operationRevision === calendarResponsesRevision && monthRevision === calendarRevision &&
+      calendarScopeCurrent(identity, sessionToken, organizationId);
+    update(append ? { calendarResponsesLoadingMore: true, calendarResponsesError: null }
+      : { calendarResponses: null, calendarResponsesKey: key, calendarResponsesStatus: 'loading', calendarResponsesError: null, calendarResponsesLoadingMore: false });
+    try {
+      const data = responseData(await api.GET('/api/mobile/calendar/{event_type}/{event_id}/responses', { headers: authorization(),
+        params: { path: { event_id: currentItem.id, event_type: currentItem.kind }, query: { offset: String(offset) } } }));
+      if (!isCurrent()) return false;
+      if (!data || data.event_id !== currentItem.id || data.event_type !== currentItem.kind ||
+          data.organization_id !== currentItem.organization_id || !validOffset(data.next_offset, offset) ||
+          !Array.isArray(data.players) || !data.players.every((player) => player && typeof player.id === 'string' && !!player.id.trim() &&
+            typeof player.name === 'string' && typeof player.number === 'number' && Number.isInteger(player.number) &&
+            typeof player.position === 'string' && (player.image_url == null || typeof player.image_url === 'string') &&
+            (player.status === null || player.status === 'no_response' || isAvailabilityStatus(player.status)) &&
+            (player.updated_at == null || typeof player.updated_at === 'string'))) {
+        throw new Error('Invalid calendar replies');
+      }
+      const players = new Map([...(append ? previous?.players ?? [] : []), ...data.players].map((player) => [player.id, player]));
+      update({ calendarResponses: { ...data, players: [...players.values()] }, calendarResponsesStatus: 'ready',
+        calendarResponsesError: null, calendarResponsesLoadingMore: false });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else if (error instanceof ApiFailure && error.status === 403) denyCalendarAccess(error);
+      else update({ calendarResponsesStatus: append ? 'ready' : 'error', calendarResponsesError: message(error), calendarResponsesLoadingMore: false });
+      return false;
+    }
+  }
+
   return {
     subscribe: store.subscribe,
     getState: () => state,
     async bootstrap() {
       return action(async (operationRevision) => {
         clearPlayerOptions();
+        clearCalendar();
         pendingCode = null;
         update({ status: 'initializing', user: null, availableRoles: [], organization: null,
           organizationError: null, identities: [], detectedRole: null, phone: '', step: 'phone' });
@@ -239,6 +422,7 @@ export function createMobileAuthController(options: {
     async requestOtp(phone: string) {
       return action(async (operationRevision) => {
         clearPlayerOptions();
+        clearCalendar();
         const data = responseData(await api.POST('/api/mobile/auth/request-otp', { body: { phone } }));
         if (revision !== operationRevision) return;
         pendingCode = null;
@@ -254,6 +438,7 @@ export function createMobileAuthController(options: {
     async registerFan(registration: FanRegistrationForm) {
       return action(async (operationRevision) => {
         clearPlayerOptions();
+        clearCalendar();
         const data = responseData(await api.POST('/api/mobile/auth/register-fan', { body: {
           phone: registration.phone, first_name: registration.firstName, last_name: registration.lastName,
           birthday: registration.birthday, name: null
@@ -274,6 +459,7 @@ export function createMobileAuthController(options: {
           (!state.user.current_role_available && role !== 'fan')) return false;
       return action(async (operationRevision) => {
         clearPlayerOptions();
+        clearCalendar();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/auth/switch-role', { headers: authorization(), body: { role } }));
         if (revision !== operationRevision) return;
@@ -292,6 +478,7 @@ export function createMobileAuthController(options: {
     async selectOrganization(organizationId: string) {
       if (state.user?.role !== 'management' || !state.user.current_role_available) return false;
       return action(async (operationRevision) => {
+        clearCalendar();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/management/organization', {
           headers: authorization(), body: { organization_id: organizationId }
@@ -303,8 +490,43 @@ export function createMobileAuthController(options: {
     async refreshOrganization() {
       if (state.user?.role !== 'management' || !state.user.current_role_available) return false;
       return action(async (operationRevision) => {
+        clearCalendar();
         update({ organization: null, organizationError: null });
         await organizationContext(authorization(), operationRevision);
+      }, true);
+    },
+    loadCalendar,
+    loadMoreCalendar() {
+      const calendar = state.calendar;
+      return calendar ? loadCalendar(calendar.month, calendar.selected_player_id ?? undefined, true) : Promise.resolve(false);
+    },
+    loadCalendarResponses,
+    clearCalendarResponses,
+    async submitAvailability(item: MobileCalendarItem, status: AvailabilityStatus) {
+      const identity = calendarIdentity();
+      const calendar = state.calendar;
+      const currentItem = calendar?.items.find((candidate) => calendarItemKey(candidate) === calendarItemKey(item));
+      if (!identity || (identity.role !== 'parent' && identity.role !== 'player') || state.calendarStatus !== 'ready' ||
+          !calendar?.selected_player_id || !currentItem || currentItem.is_cancelled || !isAvailabilityStatus(status)) return false;
+      const playerId = calendar.selected_player_id;
+      const sessionToken = token;
+      const organizationId = state.organization?.organization_id;
+      return action(async (operationRevision) => {
+        ++calendarRevision;
+        update({ calendarLoadingMore: false });
+        clearCalendarResponses();
+        const data = responseData(await api.POST('/api/mobile/availability', { headers: authorization(), body: {
+          event_id: currentItem.id, event_type: currentItem.kind, player_id: playerId, status
+        } }));
+        if (revision !== operationRevision || !calendarScopeCurrent(identity, sessionToken, organizationId)) return;
+        if (!data || data.event_id !== currentItem.id || data.event_type !== currentItem.kind ||
+            data.player_id !== playerId || !isAvailabilityStatus(data.status)) throw new Error('Invalid availability response');
+        // Read confirmed server state, including cancellation and assignment changes.
+        // Release only this action's busy flag while its guarded refresh is pending.
+        update({ busy: false });
+        if (!await loadCalendar(calendar.month, playerId) && revision === operationRevision) {
+          throw new ApiFailure(503, 'Η απάντηση αποθηκεύτηκε. Δεν ήταν δυνατή η ανανέωση του προγράμματος. Δοκιμάστε ξανά.');
+        }
       }, true);
     },
     async loadPlayerOptions() {
@@ -388,7 +610,7 @@ export function createMobileAuthController(options: {
       }, true);
     },
     logout() { endSession(); },
-    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); }
+    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); }
   };
 }
 

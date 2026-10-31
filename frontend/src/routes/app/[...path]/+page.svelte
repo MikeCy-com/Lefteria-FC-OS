@@ -5,6 +5,7 @@
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
+  import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
@@ -68,6 +69,23 @@
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
+      {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
+        {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
+          <section class="content-card" data-testid="calendar-organization-required"><h1>Πρόγραμμα</h1><p>Επίλεξε οργανισμό για να δεις το πρόγραμμά του.</p></section>
+        {:else}
+          {#key `${user.id}:${role}:${role === 'management' ? $controller.organization?.organization_id : ''}`}
+            <MobileCalendar {role} calendar={$controller.calendar} status={$controller.calendarStatus} error={$controller.calendarError}
+              loadingMore={$controller.calendarLoadingMore} busy={$controller.busy}
+              responses={$controller.calendarResponses} responsesKey={$controller.calendarResponsesKey}
+              responsesStatus={$controller.calendarResponsesStatus} responsesError={$controller.calendarResponsesError}
+              responsesLoadingMore={$controller.calendarResponsesLoadingMore}
+              onLoad={(month, playerId) => controller.loadCalendar(month, playerId)}
+              onLoadMore={() => controller.loadMoreCalendar()}
+              onRespond={(item, status) => controller.submitAvailability(item, status)}
+              onLoadResponses={(item, append) => controller.loadCalendarResponses(item, append)}
+              onCloseResponses={() => controller.clearCalendarResponses()} />
+          {/key}
+        {/if}
       {:else if activeTab === 'more' && !composing}
         <section class="content-card" aria-labelledby="more-title"><h1 id="more-title">{TAB_NAMES.more}</h1>
           <div class="more-links">

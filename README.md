@@ -4,13 +4,13 @@
 
 This repository is the parallel rewrite target. The framework foundation, PostgreSQL-backed mobile authentication and authenticated mobile shell are implemented. The source application and its data remain authoritative while the migration proceeds.
 
-- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster/staff relationships, protected initial account import with quarantine, current role bindings, an authenticated favourite-player picker, and a disabled-by-default legacy session exchange.
+- Implemented slices: mobile identity, own profile settings, sanitized avatar uploads, canonical roster/staff relationships, protected initial account import with quarantine, current role bindings, an authenticated favourite-player picker, a disabled-by-default legacy session exchange, and a private scoped calendar with an explicit initial import and parent/player RSVP.
 - Source application: [MikeCy-com/Lefteria-FC](https://github.com/MikeCy-com/Lefteria-FC)
 - Audit baseline: GitHub main at 5111f06af5d8b17f855ceed9637caca02db117e2, observed 2026-10-25
 - Source main rechecked on 2026-10-26: `7833daceceac1611c368e7bc4df2a82c64b45e1a` merges frontend PR #42. Its 15-file delta changes no backend contracts; the avatar handler's GitHub blob is unchanged. New dashboard layouts are now part of the source baseline.
 - Deployed revision, VPS configuration and live data are not verified.
 - Source main rechecked on 2026-10-27 at `a52d66b8e01c010cfe95ce53fa139e126bae4d84`: subsequent public branding changes leave the audited account/backend contracts unchanged.
-- No accounts or production data have been migrated. Own profile details, team/player preferences, notification preferences and a public mobile avatar can be edited. The picker requires an explicitly imported complete roster snapshot; operational dashboards, private roster relationships, notification delivery and social/media workflows remain queued.
+- No production accounts or data have been migrated. Own profile details, team/player preferences, notification preferences and a public mobile avatar can be edited. The picker requires an explicitly imported complete roster snapshot; calendar access requires a clean complete calendar import bound to that roster. Operational dashboards, private roster browsing, physical attendance, notification delivery and social/media workflows remain queued.
 
 ## Architecture documents
 
@@ -38,6 +38,9 @@ This repository is the parallel rewrite target. The framework foundation, Postgr
 - [Legacy account source contract](docs/implementation/account-import-source-contract.md)
 - [Account import, canonical mobile authority and recovery](docs/implementation/account-import.md)
 - [Bounded legacy mobile exchange and browser handoff](docs/implementation/legacy-mobile-bridge.md)
+- [Calendar source contract](docs/implementation/calendar-source-contract.md)
+- [Scoped calendar, protected import and recovery](docs/implementation/scoped-calendar.md)
+- [Calendar verification checkpoint](docs/implementation/verification-2026-10-31.md)
 
 ## Target stack
 
@@ -78,8 +81,8 @@ in tools/api-client with its own lockfile so neither toolchain bypasses peer che
 
 Mobile login persists HMAC-protected OTP challenges, shared rate limits, explicit role grants and append-only audit events. Role changes preserve the original JWT expiry; removed formal roles expose explicit fan recovery. Management context uses current FC/Academy assignments. The API never migrates schema during normal startup. The mobile shell uses real identity/context responses and labels unported functions **Under Developments**.
 
-The SMS adapter fails closed when Twilio is unavailable or unconfigured. Tests replace it only in the test host. The legacy mobile exchange is disabled by default and requires a separately approved acceptance window and protected source key. Real account export reconciliation, staging recovery and cached-PWA update verification remain cutover prerequisites. Imported canonical player/guardian/coach relationships govern role availability; private operational modules remain queued.
+The SMS adapter fails closed when Twilio is unavailable or unconfigured. Tests replace it only in the test host. The legacy mobile exchange is disabled by default and requires a separately approved acceptance window and protected source key. Real account export reconciliation, staging recovery and cached-PWA update verification remain cutover prerequisites. Imported canonical player/guardian/coach relationships govern role availability. The calendar uses those current relationships, frozen member training publications and selected management organization; RSVP never marks physical attendance. Other private operational modules remain queued.
 
 ## Safety
 
-Do not connect this branch to production services or run migrations against production. Do not deploy, switch traffic or replace production until staging, backup/restore, compatibility and rollback evidence is reviewed and the owner explicitly approves.
+Do not run rewrite migrations against production or switch live traffic without explicit cutover approval. The requested Hostinger preview must be a separate project with its own environment, database and secrets. Keep `lefteriafc.cy` and the live application unchanged. A protected source backup may supply an isolated import; production data must never be restored into, overwritten or removed by the rewrite. Staging, backup/restore, compatibility and recovery evidence remain prerequisites for any later production switch.

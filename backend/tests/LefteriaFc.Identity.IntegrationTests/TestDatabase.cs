@@ -173,6 +173,7 @@ internal sealed partial class TestDatabase(FixtureConfiguration fixture, string 
 
     public async Task CleanupAsync()
     {
+        await CleanupCalendarImportsAsync();
         await CleanupAccountImportsAsync();
         await CleanupStaffImportsAsync();
         await CleanupRosterImportsAsync();
