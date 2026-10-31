@@ -68,6 +68,16 @@ export function generateEdge(document, hostname, contractDigest) {
       # A match only selects the API; its JWT and current-scope checks still apply.
       reverse_proxy api:8080
     }`).join('\n');
+  const responseHeaders = (indent) => [
+    'header {',
+    '  X-Frame-Options DENY',
+    '  X-Content-Type-Options nosniff',
+    '  Referrer-Policy no-referrer',
+    '  X-Robots-Tag "noindex, nofollow, noarchive"',
+    '  Cache-Control "no-store"',
+    '  -Server',
+    '}'
+  ].map(line => indent + line).join('\n');
   return `# Generated from explicit Mobile operation security; do not broaden by hand.
 # OpenAPI SHA-256: ${contractDigest}
 # https://caddyserver.com/docs/caddyfile/matchers
@@ -83,13 +93,13 @@ export function generateEdge(document, hostname, contractDigest) {
 https://${hostname}:8443 {
   tls /certificates/current/fullchain.pem /certificates/current/privkey.pem
   encode zstd gzip
-  header {
-    X-Frame-Options DENY
-    X-Content-Type-Options nosniff
-    Referrer-Policy no-referrer
-    X-Robots-Tag "noindex, nofollow, noarchive"
-    Cache-Control "no-store"
-    -Server
+${responseHeaders('  ')}
+
+  # Authentication errors run outside the normal deferred-header chain.
+  # Keep its challenge header and original status; expose no error details.
+  handle_errors {
+${responseHeaders('    ')}
+    respond "" {err.status_code}
   }
 
 ${matchers}

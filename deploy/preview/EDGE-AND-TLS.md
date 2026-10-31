@@ -35,6 +35,12 @@ Authorization header. See [Caddy authentication](https://caddyserver.com/docs/ca
 and [request matchers](https://caddyserver.com/docs/caddyfile/matchers).
 
 All responses carry no-store/noindex, no-referrer, nosniff and frame-denial headers.
+The same header policy is also applied in `handle_errors`: Basic authentication
+returns an error outside the normal deferred-header chain. The error response
+keeps its original status and authentication challenge and has no diagnostic
+body. Upstream HTTP errors remain normal proxied responses with the same header
+policy. See [Caddy error routes](https://caddyserver.com/docs/caddyfile/directives/handle_errors)
+and [deferred headers](https://caddyserver.com/docs/caddyfile/directives/header).
 The Caddy admin listener is confined to its container's loopback for preview-only
 certificate reloads. It must never be published to a host port. These controls
 supplement the existing API authorization; they do not create a test login or
