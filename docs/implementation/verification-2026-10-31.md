@@ -39,13 +39,17 @@ This behavior is confined to that tool's Testing host; the product has no fixtur
 OTP option. These checks neither send real SMS nor grant arbitrary imported
 records to a real user.
 
-## Checks still pending at this checkpoint
+## Published calendar checks
 
-GitHub checks at the final PR head remain pending at this checkpoint. The
-frontend results above include
+All five [PR checks](https://github.com/MikeCy-com/Lefteria-FC-OS/actions/runs/41225661360)
+passed at `9299fd542a007f75af4b23d2c96a40ac3c1ade5d`.
+[PR #11](https://github.com/MikeCy-com/Lefteria-FC-OS/pull/11) merged to
+main as `a5a3492511e3abbbf75ed22962b30de289caca31`; the
+[main push workflow](https://github.com/MikeCy-com/Lefteria-FC-OS/actions/runs/41226063272)
+also passed. The frontend results above include
 the review fixes for imported `no_response` rows and clearing private paging
-data after a current 403 scope denial. Record the remaining observed outcomes
-before claiming this slice is deployed.
+data after a current 403 scope denial. A successful source merge does not claim
+that the application has been deployed.
 
 The browser showed the approved October 30 publication at 17:00 while its staff
 draft was dated November 2. Selecting Maybe sent the actual RSVP POST and a
@@ -54,9 +58,9 @@ child's published training; switching back retained the saved response. These
 are observed fictional parent flows, not a claim that every role's browser
 journey or real production data has been verified.
 
-Local Docker/Compose execution is not established by the checks above. The
-repository workflow includes a separate disposable Compose job; its final head
-result must be verified in GitHub.
+Local Docker/Compose execution was unavailable. The observed GitHub workflow
+passed its disposable Compose build, migrations, runtime grants and startup
+checks at both the PR head and the published main revision.
 
 ## Production and preview limits
 
@@ -65,9 +69,9 @@ disposable fixture. No production records, live providers, production database
 or domain configuration were changed by these checks. Exact fixture cleanup
 retains append-only security audits.
 
-Hostinger work is limited to authenticated read-only inventory at this point;
-no separate hosted staging project has been created or deployed. Hosting access
-and the intended isolated environment still need preparation. Keep preview
+At the calendar verification checkpoint, Hostinger work was limited to
+authenticated read-only inventory; no separate application project had been
+deployed. Subsequent preview preparation is tracked separately. Keep preview
 database, secrets and access separate; do not attach `lefteriafc.cy` or alter the
 live application. Source backup/export, protected restore and real-data
 reconciliation remain unperformed staging gates, followed by the other unported

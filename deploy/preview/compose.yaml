@@ -1,0 +1,171 @@
+name: lefteria-os-preview
+
+x-runtime: &runtime
+  restart: unless-stopped
+  init: true
+  read_only: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: {max-size: 5m, max-file: "2"}
+
+services:
+  edge:
+    <<: *runtime
+    image: caddy@sha256:e70b164da81ef698b3ad19af799ea6086ce6d9e48ed4079eb9fe26f6fbf14ee5
+    # The official binary carries this file capability; Linux otherwise refuses exec.
+    cap_add: [NET_BIND_SERVICE]
+    environment:
+      PREVIEW_HOST: ${PREVIEW_HOST:?Set the separate preview hostname}
+      PREVIEW_GATE_HASH: ${PREVIEW_GATE_HASH:?Set a bcrypt preview access hash}
+    ports: ["${PREVIEW_BIND:-127.0.0.1}:8443:8443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${PREVIEW_CERT_DIRECTORY:?Set the dedicated preview certificate directory}:/certificates:ro
+    tmpfs: [/data:size=16m, /config:size=4m, /tmp:size=8m]
+    mem_limit: 64m
+    cpus: 0.10
+    pids_limit: 64
+    depends_on:
+      api: {condition: service_healthy}
+      web: {condition: service_healthy}
+    networks:
+      public: {}
+      app: {ipv4_address: 172.30.92.2}
+
+  web:
+    <<: *runtime
+    image: ${PREVIEW_WEB_IMAGE:?Set a verified prebuilt web image}
+    pull_policy: never
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+      ORIGIN: https://${PREVIEW_HOST:?Set the preview hostname}:8443
+    tmpfs: [/tmp:size=16m]
+    mem_limit: 192m
+    cpus: 0.15
+    pids_limit: 96
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    networks: [app]
+
+  api:
+    <<: *runtime
+    image: ${PREVIEW_API_IMAGE:?Set a verified prebuilt API image}
+    pull_policy: never
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      Database__Host: postgres
+      Database__Name: lefteria_os_preview
+      Database__Username: lefteria_os_preview_app
+      Database__Password: ${PREVIEW_APP_PASSWORD:?Set a fresh runtime password}
+      MobileAuth__Issuer: lefteria-fc-os-preview
+      MobileAuth__Audience: lefteria-fc-os-preview-mobile
+      MobileAuth__SigningKey: ${PREVIEW_SIGNING_KEY:?Set a fresh preview signing key}
+      MobileAuth__OtpKey: ${PREVIEW_OTP_KEY:?Set a separate preview OTP key}
+      LegacyMobileBridge__Enabled: "false"
+      Http__KnownProxies__0: 172.30.92.2
+      Twilio__AccountSid: ""
+      Twilio__AuthToken: ""
+      Twilio__FromNumber: ""
+    tmpfs: [/tmp:size=32m]
+    mem_limit: 512m
+    cpus: 0.35
+    pids_limit: 128
+    depends_on:
+      postgres: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, dotnet, LefteriaFc.Api.dll, --healthcheck]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    # No outbound provider network until a separate staging integration is ready.
+    networks: [app, data]
+
+  postgres:
+    <<: *runtime
+    image: postgres:18.6-alpine
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    environment:
+      POSTGRES_DB: lefteria_os_preview
+      POSTGRES_USER: lefteria_os_preview_owner
+      POSTGRES_PASSWORD: ${PREVIEW_OWNER_PASSWORD:?Set a separate fresh owner password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      DATABASE_APP_USER: lefteria_os_preview_app
+      DATABASE_APP_PASSWORD: ${PREVIEW_APP_PASSWORD:?Set a fresh runtime password}
+    command: [postgres, -c, shared_buffers=64MB, -c, max_connections=30, -c, work_mem=2MB]
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ../../ops/postgres:/opt/lefteria-postgres:ro
+    tmpfs: [/tmp:size=32m, /var/run/postgresql:size=16m]
+    mem_limit: 384m
+    cpus: 0.20
+    pids_limit: 128
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [data]
+
+  migrate:
+    <<: *runtime
+    profiles: [tools]
+    restart: "no"
+    image: ${PREVIEW_API_IMAGE:?Set a verified prebuilt API image}
+    pull_policy: never
+    command: [--migrate]
+    environment:
+      LEFTERIA_MIGRATION_HOST: postgres
+      LEFTERIA_MIGRATION_DATABASE: lefteria_os_preview
+      LEFTERIA_MIGRATION_USERNAME: lefteria_os_preview_owner
+      LEFTERIA_MIGRATION_PASSWORD: ${PREVIEW_OWNER_PASSWORD:?Set the owner password}
+    tmpfs: [/tmp:size=32m]
+    mem_limit: 384m
+    cpus: 0.35
+    pids_limit: 128
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [data]
+
+  import:
+    <<: *runtime
+    profiles: [tools]
+    restart: "no"
+    image: ${PREVIEW_IMPORT_IMAGE:?Set a verified prebuilt import image}
+    pull_policy: never
+    # Owner tool only; permits reading the root-owned, read-only source mount.
+    user: "0:0"
+    environment:
+      LEFTERIA_ROSTER_IMPORT_CONNECTION: Host=postgres;Database=lefteria_os_preview;Username=lefteria_os_preview_owner;Password=${PREVIEW_OWNER_PASSWORD:?Set the owner password}
+    volumes:
+      - ${PREVIEW_MANIFEST_DIRECTORY:?Set a protected restored-source export directory}:/manifests:ro
+    tmpfs: [/tmp:size=32m]
+    mem_limit: 384m
+    cpus: 0.35
+    pids_limit: 128
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [data]
+
+volumes:
+  postgres_data:
+
+networks:
+  public:
+  app:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.92.0/24
+          ip_range: 172.30.92.128/25
+  data:
+    internal: true

@@ -1,0 +1,72 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import test from 'node:test';
+import { bearerRouteGroups, generateEdge, protectedOperations } from './generate-edge.mjs';
+
+const contract = JSON.parse(await readFile(new URL('../../contracts/openapi.json', import.meta.url), 'utf8'));
+const hostname = 'srv1649602.hstgr.cloud';
+const digest = 'a'.repeat(64);
+const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
+  group.method === method && new RegExp(group.expression).test(path));
+
+test('only the twelve explicit Mobile operations receive Bearer routing', () => {
+  const operations = protectedOperations(contract);
+  assert.equal(operations.length, 12);
+  for (const operation of operations) {
+    const path = operation.path.replace(/\{[^}]+\}/g, 'record');
+    assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
+    assert.equal(permits(contract, 'OPTIONS', path), false);
+    assert.equal(permits(contract, operation.method, path + '/extra'), false);
+  }
+  for (const path of [
+    '/api/mobile/auth/request-otp', '/api/mobile/auth/verify-otp', '/api/mobile/auth/register',
+    '/api/mobile/auth/exchange-legacy', '/api/health/live', '/api/uploads/avatars/photo.jpg',
+    '/api/mobile/future-public-route', '/app', '/api/mobile/calendar/event/id/responses/extra',
+    '/api/mobile/calendar/event/nested/id/responses', '/api/mobile/calendar//id/responses'
+  ]) {
+    for (const method of ['GET', 'POST', 'PUT']) assert.equal(permits(contract, method, path), false, `${method} ${path}`);
+  }
+  assert.equal(permits(contract, 'POST', '/api/mobile/calendar'), false);
+  assert.equal(permits(contract, 'GET', '/api/mobile/profile'), false);
+});
+
+test('anonymous and newly declared non-Mobile operations remain gated', () => {
+  const changed = structuredClone(contract);
+  changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
+  changed.paths['/api/mobile/unmarked'] = { post: {} };
+  changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
+  assert.equal(protectedOperations(changed).length, 12);
+  assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
+  assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
+});
+
+test('ambiguous security, global defaults and unsafe templates fail closed', () => {
+  for (const security of [[{ Mobile: [] }, {}], [{ Mobile: [], Other: [] }], [{ Mobile: ['scope'] }]]) {
+    const changed = structuredClone(contract);
+    changed.paths['/api/mobile/calendar'].get.security = security;
+    assert.throws(() => protectedOperations(changed), /Ambiguous/);
+  }
+  assert.throws(() => protectedOperations({ ...contract, security: [{ Mobile: [] }] }), /Explicit/);
+  for (const path of ['/outside', '/api/mobile/a*', '/api/mobile/a.b', '/api/mobile/a//b', '/api/mobile/{unknown}', '/api/mobile/{part}suffix']) {
+    const changed = structuredClone(contract);
+    changed.paths[path] = { get: { security: [{ Mobile: [] }] } };
+    assert.throws(() => protectedOperations(changed));
+  }
+});
+
+test('generated edge separates Bearer routing from the hashed Basic fallback', () => {
+  const output = generateEdge(contract, hostname, digest);
+  assert.match(output, /https:\/\/srv1649602\.hstgr\.cloud:8443/);
+  assert.match(output, /auto_https off/);
+  assert.match(output, /tls \/certificates\/current\/fullchain\.pem \/certificates\/current\/privkey\.pem/);
+  assert.match(output, /basic_auth bcrypt "Lefteria OS preview"/);
+  assert.match(output, /preview \{env\.PREVIEW_GATE_HASH\}/);
+  assert.equal((output.match(/header_up -Authorization/g) ?? []).length, 2);
+  assert.equal((output.match(/header_regexp bearer_/g) ?? []).length, bearerRouteGroups(contract).length);
+  assert.ok(output.indexOf('handle @private_') < output.indexOf('\n      basic_auth'));
+  assert.doesNotMatch(output, /listen (?:80|443)\b|:80\s*\{|:443\s*\{|tls internal|on_demand/);
+  assert.match(output, /X-Robots-Tag "noindex, nofollow, noarchive"/);
+  assert.match(output, /Cache-Control "no-store"/);
+  assert.throws(() => generateEdge(contract, 'lefteriafc.cy', digest), /hostname/);
+  assert.throws(() => generateEdge(contract, hostname, 'invalid'), /SHA-256/);
+});

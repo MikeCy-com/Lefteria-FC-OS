@@ -10,6 +10,21 @@ internal static class TestRunner
     {
         if(args.SequenceEqual(["--legacy-token-policy"],StringComparer.Ordinal))
             return await IdentityHttpChecks.RunLegacyPolicyChecksAsync();
+        if(args.SequenceEqual(["--sms-adapter-policy"],StringComparer.Ordinal))
+        {
+            try
+            {
+                await TwilioAdapterChecks.ConfiguredRequestAsync();
+                await TwilioAdapterChecks.UnconfiguredDoesNotCallHttpAsync();
+                Console.WriteLine("PASS isolated Twilio adapter checks; no provider network used.");
+                return 0;
+            }
+            catch(Exception)
+            {
+                Console.Error.WriteLine("FAIL isolated Twilio adapter policy.");
+                return 1;
+            }
+        }
         var fixturePath = args.Length == 2 && args[0] == "--fixture"
             ? args[1] : args.Length == 0 ? Environment.GetEnvironmentVariable("LEFTERIA_TEST_FIXTURE") : null;
         if (string.IsNullOrWhiteSpace(fixturePath))

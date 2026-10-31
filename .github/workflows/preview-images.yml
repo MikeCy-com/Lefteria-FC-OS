@@ -1,0 +1,219 @@
+name: Preview image bundle
+
+on:
+  workflow_run:
+    workflows: [Rewrite build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact current main SHA whose push Rewrite build has passed
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-images-${{ github.event.workflow_run.head_sha || inputs.source_sha }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build verified preview images
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+    env:
+      GH_REPO: ${{ github.repository }}
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || inputs.source_sha }}
+    steps:
+      - name: Verify source provenance and successful main checks
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TRIGGER_EVENT: ${{ github.event_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo 'A full lowercase source SHA is required.' >&2; exit 1; }
+          if [[ "$TRIGGER_EVENT" == workflow_dispatch ]]; then
+            current_main="$(gh api "repos/$GH_REPO/git/ref/heads/main" --jq .object.sha)"
+            [[ "$SOURCE_SHA" == "$current_main" ]] || { echo 'Manual builds require the exact current main SHA.' >&2; exit 1; }
+          fi
+          gh api --paginate --slurp "repos/$GH_REPO/actions/runs?head_sha=$SOURCE_SHA&event=push&per_page=100" > "$RUNNER_TEMP/preview-source-runs.json"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          pages = json.loads((Path(os.environ['RUNNER_TEMP']) / 'preview-source-runs.json').read_text())
+          if not any(run.get('name') == 'Rewrite build' and run.get('head_branch') == 'main' and run.get('conclusion') == 'success'
+                     and run.get('event') == 'push' and run.get('head_sha') == os.environ['SOURCE_SHA']
+                     and run.get('head_repository', {}).get('full_name') == os.environ['GH_REPO']
+                     for page in pages for run in page['workflow_runs']):
+              raise SystemExit('No successful main push Rewrite build exists for this source')
+          PY
+          printf 'sha=%s\n' "$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.source.outputs.sha }}
+          persist-credentials: false
+      - name: Build API, owner import tool and web images
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]]
+          labels=(--label "org.opencontainers.image.source=https://github.com/$GH_REPO"
+                  --label "org.opencontainers.image.revision=$SOURCE_SHA"
+                  --label "org.opencontainers.image.version=$SOURCE_SHA")
+          docker build --platform linux/amd64 "${labels[@]}" --target runtime \
+            --tag "lefteria-fc-os-api:$SOURCE_SHA" backend
+          docker build --platform linux/amd64 "${labels[@]}" --target roster-import \
+            --tag "lefteria-fc-os-import:$SOURCE_SHA" backend
+          docker build --platform linux/amd64 "${labels[@]}" \
+            --tag "lefteria-fc-os-web:$SOURCE_SHA" frontend
+      - name: Verify packaged API codec, offline owner tool and license notices
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            "lefteria-fc-os-api:$SOURCE_SHA" --check-avatar-codec
+          cat > "$RUNNER_TEMP/preview-empty-roster.json" <<'JSON'
+          {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"a52d66b8e01c010cfe95ce53fa139e126bae4d84","complete_collections":["teams","academy_groups","players"],"teams":[],"academy_groups":[],"players":[]}
+          JSON
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges \
+            --env LEFTERIA_ROSTER_IMPORT_CONNECTION=invalid \
+            --mount "type=bind,source=$RUNNER_TEMP/preview-empty-roster.json,target=/input.json,readonly" \
+            "lefteria-fc-os-import:$SOURCE_SHA" --input /input.json
+          for image in api import; do
+            docker run --rm --network none --entrypoint cat "lefteria-fc-os-$image:$SOURCE_SHA" \
+              /app/third-party/UnicodeData/NOTICE.txt > "$RUNNER_TEMP/$image-unicode-notice.txt"
+            cmp backend/src/LefteriaFc.Application/AccountImport/UnicodeData.NOTICE.txt "$RUNNER_TEMP/$image-unicode-notice.txt"
+          done
+      - name: Save image archives and exact image manifest
+        env:
+          BUNDLE_DIRECTORY: ${{ runner.temp }}/preview-bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir "$BUNDLE_DIRECTORY"
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+
+          sha, repository = os.environ['SOURCE_SHA'], os.environ['GH_REPO']
+          directory = Path(os.environ['BUNDLE_DIRECTORY'])
+          images = {}
+          for name, suffix in [('api', 'api'), ('web', 'web'), ('import', 'import')]:
+              reference = f'lefteria-fc-os-{suffix}:{sha}'
+              image, = json.loads(subprocess.check_output(['docker', 'image', 'inspect', reference]))
+              labels = image['Config']['Labels']
+              if (image['Os'], image['Architecture']) != ('linux', 'amd64'):
+                  raise SystemExit('Unexpected image platform')
+              if labels.get('org.opencontainers.image.revision') != sha or labels.get('org.opencontainers.image.source') != f'https://github.com/{repository}':
+                  raise SystemExit('Image provenance does not match verified source')
+              if not image['Id'].startswith('sha256:') or reference not in image['RepoTags']:
+                  raise SystemExit('Missing exact image identity')
+              images[name] = {'reference': reference, 'id': image['Id'],
+                              'archive': f'lefteria-fc-os-{suffix}.tar.gz'}
+          manifest = {'schema_version': 1, 'repository': repository, 'source_sha': sha,
+                      'platform': 'linux/amd64', 'images': images}
+          (directory / 'manifest.json').write_text(json.dumps(manifest, indent=2, sort_keys=True) + '\n', encoding='utf-8')
+          PY
+          for image in api web import; do
+            docker image save "lefteria-fc-os-$image:$SOURCE_SHA" | gzip -1 > "$BUNDLE_DIRECTORY/lefteria-fc-os-$image.tar.gz"
+          done
+          (cd "$BUNDLE_DIRECTORY" && sha256sum -- *.tar.gz manifest.json > SHA256SUMS)
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: preview-bundle-${{ steps.source.outputs.sha }}
+          path: ${{ runner.temp }}/preview-bundle/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  release:
+    name: Publish immutable preview bundle
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_REPO: ${{ github.repository }}
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
+      BUNDLE_DIRECTORY: ${{ runner.temp }}/preview-bundle
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: preview-bundle-${{ needs.build.outputs.source_sha }}
+          path: ${{ runner.temp }}/preview-bundle/
+      - name: Verify bundle and refuse existing tags or releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          (cd "$BUNDLE_DIRECTORY" && sha256sum --check --strict SHA256SUMS)
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          directory = Path(os.environ['BUNDLE_DIRECTORY'])
+          manifest = json.loads((directory / 'manifest.json').read_text())
+          if manifest['schema_version'] != 1 or manifest['source_sha'] != os.environ['SOURCE_SHA'] or manifest['repository'] != os.environ['GH_REPO']:
+              raise SystemExit('Bundle source mismatch')
+          if manifest['platform'] != 'linux/amd64' or set(manifest['images']) != {'api', 'web', 'import'}:
+              raise SystemExit('Unexpected image set')
+          expected = {'manifest.json', 'SHA256SUMS'} | {f'lefteria-fc-os-{name}.tar.gz' for name in manifest['images']}
+          if {path.name for path in directory.iterdir()} != expected:
+              raise SystemExit('Unexpected bundle files')
+          for name, image in manifest['images'].items():
+              if image['reference'] != f"lefteria-fc-os-{name}:{manifest['source_sha']}" or image['archive'] != f'lefteria-fc-os-{name}.tar.gz':
+                  raise SystemExit('Unexpected image reference or archive')
+          PY
+          tag="preview-$SOURCE_SHA"
+          releases="$(gh api --paginate "repos/$GH_REPO/releases?per_page=100" --jq '.[].tag_name')"
+          while IFS= read -r existing; do
+            [[ "$existing" != "$tag" ]] || { echo 'Refusing to overwrite an existing release.' >&2; exit 1; }
+          done <<< "$releases"
+          refs="$(gh api "repos/$GH_REPO/git/matching-refs/tags/$tag" --jq '.[].ref')"
+          while IFS= read -r existing; do
+            [[ "$existing" != "refs/tags/$tag" ]] || { echo 'Refusing to reuse an existing tag.' >&2; exit 1; }
+          done <<< "$refs"
+      - name: Create draft with all assets, verify, then publish prerelease
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="preview-$SOURCE_SHA"
+          cat > "$RUNNER_TEMP/preview-release-notes.md" <<EOF
+          Prebuilt Linux/amd64 preview images for verified source commit $SOURCE_SHA.
+
+          Check SHA256SUMS and manifest.json before loading the images. This bundle contains no hosting credentials or production data. Deployment is a separate operation; publishing this prerelease does not deploy or switch production.
+          EOF
+          gh release create "$tag" --target "$SOURCE_SHA" --draft --prerelease --latest=false \
+            --title "Preview image bundle ${SOURCE_SHA:0:12}" --notes-file "$RUNNER_TEMP/preview-release-notes.md" \
+            "$BUNDLE_DIRECTORY/SHA256SUMS" "$BUNDLE_DIRECTORY/manifest.json" "$BUNDLE_DIRECTORY/"*.tar.gz
+          gh release view "$tag" --json assets,isDraft,targetCommitish > "$RUNNER_TEMP/preview-release.json"
+          RELEASE_METADATA="$RUNNER_TEMP/preview-release.json" python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          release = json.loads(Path(os.environ['RELEASE_METADATA']).read_text())
+          directory = Path(os.environ['BUNDLE_DIRECTORY'])
+          expected = {path.name: path.stat().st_size for path in directory.iterdir()}
+          actual = {asset['name']: asset['size'] for asset in release['assets']}
+          if not release['isDraft'] or release['targetCommitish'] != os.environ['SOURCE_SHA'] or actual != expected:
+              raise SystemExit('Draft release assets or source do not match the verified bundle; review the draft manually')
+          PY
+          gh release edit "$tag" --draft=false --prerelease --latest=false
+          printf 'Published preview bundle: https://github.com/%s/releases/tag/%s\n' "$GH_REPO" "$tag" >> "$GITHUB_STEP_SUMMARY"

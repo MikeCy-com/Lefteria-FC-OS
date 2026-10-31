@@ -192,6 +192,13 @@ jobs:
       PUBLIC_ORIGIN: http://localhost
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Verify preview export, edge and certificate guards
+        run: |
+          node --test deploy/preview/*.test.mjs
+          python3 -B -m unittest discover -s deploy/preview -p 'test_*.py'
       - name: Generate disposable authentication keys
         run: |
           for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD MOBILE_SIGNING_KEY MOBILE_OTP_KEY; do
@@ -204,6 +211,48 @@ jobs:
       - name: Verify native avatar codec in the published API image
         run: docker compose --env-file .env.example run --rm --no-deps api --check-avatar-codec
       - run: docker compose --env-file .env.example run --rm --no-deps proxy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Validate isolated preview Compose and TLS edge
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/preview-tls/current"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
+            -subj /CN=srv1649602.hstgr.cloud -addext subjectAltName=DNS:srv1649602.hstgr.cloud \
+            -keyout "$RUNNER_TEMP/preview-tls/current/privkey.pem" \
+            -out "$RUNNER_TEMP/preview-tls/current/fullchain.pem" 2>/dev/null
+          # Disposable self-signed fixture only: the capability-limited root
+          # container cannot read runner-owned 0600 files via DAC override.
+          chmod 0644 "$RUNNER_TEMP/preview-tls/current/"*.pem
+          node deploy/preview/generate-edge.mjs --contract contracts/openapi.json \
+            --host srv1649602.hstgr.cloud --output "$RUNNER_TEMP/preview-Caddyfile"
+          chmod 0644 "$RUNNER_TEMP/preview-Caddyfile"
+          export PREVIEW_GATE_HASH="$(docker run --rm --network none caddy:2-alpine caddy hash-password --plaintext ci-preview-fixture-only)"
+          docker run --rm --network none --read-only --cap-drop ALL --cap-add NET_BIND_SERVICE --security-opt no-new-privileges \
+            --tmpfs /data --tmpfs /config --env PREVIEW_GATE_HASH \
+            --mount "type=bind,source=$RUNNER_TEMP/preview-Caddyfile,target=/etc/caddy/Caddyfile,readonly" \
+            --mount "type=bind,source=$RUNNER_TEMP/preview-tls,target=/certificates,readonly" \
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          values = {
+              'PREVIEW_HOST': 'srv1649602.hstgr.cloud', 'PREVIEW_BIND': '127.0.0.1',
+              'PREVIEW_CERT_DIRECTORY': os.environ['RUNNER_TEMP'] + '/preview-tls',
+              'PREVIEW_MANIFEST_DIRECTORY': os.environ['RUNNER_TEMP'],
+              'PREVIEW_API_IMAGE': 'preview-api:ci', 'PREVIEW_WEB_IMAGE': 'preview-web:ci',
+              'PREVIEW_IMPORT_IMAGE': 'preview-import:ci',
+              'PREVIEW_OWNER_PASSWORD': os.environ['POSTGRES_PASSWORD'],
+              'PREVIEW_APP_PASSWORD': os.environ['DATABASE_APP_PASSWORD'],
+              'PREVIEW_SIGNING_KEY': os.environ['MOBILE_SIGNING_KEY'],
+              'PREVIEW_OTP_KEY': os.environ['MOBILE_OTP_KEY'],
+              'PREVIEW_GATE_HASH': os.environ['PREVIEW_GATE_HASH']
+          }
+          path = Path(os.environ['RUNNER_TEMP']) / 'preview.env'
+          if any("'" in value or '\n' in value for value in values.values()):
+              raise SystemExit('Unexpected fixture environment syntax')
+          path.write_text(''.join(f"{key}='{value}'\n" for key, value in values.items()))
+          path.chmod(0o600)
+          PY
+          docker compose --env-file "$RUNNER_TEMP/preview.env" -f deploy/preview/compose.yaml config --quiet
       - run: docker compose --env-file .env.example up --wait --wait-timeout 60 postgres
       - run: docker compose --env-file .env.example run --rm migrate
       - name: Provision restricted disposable runtime role
