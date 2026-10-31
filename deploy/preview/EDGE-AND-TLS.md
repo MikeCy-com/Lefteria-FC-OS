@@ -22,9 +22,18 @@ a Bearer route, bound to their exact method and anchored path. Template paramete
 match one non-empty path segment. The current contract has twelve such operations.
 Ambiguous Mobile security, global security defaults and unsafe templates refuse
 generation. Newly unmarked/anonymous routes remain behind the Basic gate.
+The reviewed public website is an explicit exception: GET/HEAD home, news,
+team, Academy, about/contact pages, their SvelteKit data requests and packaged
+assets open directly. Only GET of the three existing `/api/public/site`,
+`/api/public/news` and `/api/public/news/{id}` contracts reaches public API reads.
+Generation refuses if those operations acquire authentication requirements;
+new anonymous routes are not opened automatically. Public forwarding removes
+both Authorization and Cookie. The public API returns only its reviewed DTOs.
+Legacy upload references return an empty404; the private restored uploads stay
+unmounted. Missing images can fall back without a browser authentication prompt.
 
 The Basic username is `preview`; configure only a generated bcrypt hash through
-`PREVIEW_GATE_HASH`. Pages, public avatars, health endpoints and anonymous login,
+`PREVIEW_GATE_HASH`. Admin/member pages, health endpoints and anonymous login,
 OTP and legacy exchange routes require that gate. A Bearer header cannot bypass
 it on those paths. Explicit protected routes preserve the Bearer header and still
 require the API's valid JWT/current role and record scope. An invalid token can
