@@ -458,6 +458,408 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarImportIssueRecord", b =>
+                {
+                    b.Property<string>("Collection")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("collection");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordinal");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("code");
+
+                    b.HasKey("Collection", "Ordinal", "Code");
+
+                    b.ToTable("calendar_import_issues", "migration");
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarImportStateRecord", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("AppliedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("applied_at");
+
+                    b.Property<string>("CountsJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("counts_json");
+
+                    b.Property<string>("Digest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("digest");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("environment");
+
+                    b.Property<DateTimeOffset>("ExportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("exported_at");
+
+                    b.Property<bool>("IsComplete")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_complete");
+
+                    b.Property<byte[]>("ManifestBytes")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("manifest_bytes");
+
+                    b.Property<string>("RosterDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("roster_digest");
+
+                    b.Property<string>("SourceCommit")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("source_commit");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("time_zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("calendar_import_state", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_calendar_complete", "counts_json ? 'quarantined_rows' AND jsonb_typeof(counts_json->'quarantined_rows')='number' AND (counts_json->>'quarantined_rows')::integer>=0 AND is_complete = ((counts_json->>'quarantined_rows')::integer = 0)");
+
+                            t.HasCheckConstraint("ck_calendar_counts_json", "jsonb_typeof(counts_json)='object'");
+
+                            t.HasCheckConstraint("ck_calendar_initial", "id='initial' AND digest ~ '^[0-9a-f]{64}$' AND roster_digest ~ '^[0-9a-f]{64}$' AND source_commit ~ '^[0-9a-f]{40}$' AND environment IN ('development','staging')");
+
+                            t.HasCheckConstraint("ck_calendar_manifest_bytes", "octet_length(manifest_bytes) BETWEEN 1 AND 33554432");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemGuestRecord", b =>
+                {
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("EventId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("PlayerId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("player_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.HasKey("Kind", "EventId", "PlayerId");
+
+                    b.HasIndex("OrganizationId", "PlayerId");
+
+                    b.HasIndex("OrganizationId", "Kind", "EventId");
+
+                    b.ToTable("calendar_item_guests", "club");
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemRecord", b =>
+                {
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("id")
+                        .UseCollation("C");
+
+                    b.Property<string>("CancelReason")
+                        .HasMaxLength(1200)
+                        .HasColumnType("character varying(1200)")
+                        .HasColumnName("cancel_reason");
+
+                    b.Property<string>("ContentStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("content_status");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("event_type");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_archived");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_cancelled");
+
+                    b.Property<DateOnly?>("MemberDay")
+                        .HasColumnType("date")
+                        .HasColumnName("member_day");
+
+                    b.Property<DateOnly?>("MemberEndDay")
+                        .HasColumnType("date")
+                        .HasColumnName("member_end_day");
+
+                    b.Property<string>("MemberProjectionJson")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("member_projection_json");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("SourceCollection")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("source_collection");
+
+                    b.Property<int>("SourceOrdinal")
+                        .HasColumnType("integer")
+                        .HasColumnName("source_ordinal");
+
+                    b.Property<DateOnly>("StaffDay")
+                        .HasColumnType("date")
+                        .HasColumnName("staff_day");
+
+                    b.Property<DateOnly>("StaffEndDay")
+                        .HasColumnType("date")
+                        .HasColumnName("staff_end_day");
+
+                    b.Property<string>("StaffProjectionJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("staff_projection_json");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Kind", "Id");
+
+                    b.HasIndex("SourceCollection", "SourceOrdinal");
+
+                    b.HasIndex("OrganizationId", "MemberDay", "Kind", "Id");
+
+                    b.HasIndex("OrganizationId", "StaffDay", "Kind", "Id");
+
+                    b.ToTable("calendar_items", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_calendar_item_kind", "kind IN ('event','match','training')");
+
+                            t.HasCheckConstraint("ck_calendar_item_origin", "(kind='match' AND source_collection='fixtures') OR (kind='event' AND source_collection='events') OR (kind='training' AND source_collection='training_sessions')");
+
+                            t.HasCheckConstraint("ck_calendar_item_projection", "jsonb_typeof(staff_projection_json)='object' AND staff_end_day>=staff_day AND ((member_projection_json IS NULL AND member_day IS NULL AND member_end_day IS NULL) OR (jsonb_typeof(member_projection_json)='object' AND member_day IS NOT NULL AND member_end_day IS NOT NULL AND member_end_day>=member_day))");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemScopeRecord", b =>
+                {
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("EventId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("ScopeKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("scope_kind");
+
+                    b.Property<string>("RecordId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("record_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("AcademyGroupId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("academy_group_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("TeamId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("team_id")
+                        .UseCollation("C");
+
+                    b.HasKey("Kind", "EventId", "ScopeKind", "RecordId");
+
+                    b.HasIndex("OrganizationId", "AcademyGroupId");
+
+                    b.HasIndex("OrganizationId", "TeamId");
+
+                    b.HasIndex("OrganizationId", "Kind", "EventId");
+
+                    b.ToTable("calendar_item_scopes", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_calendar_scope_kind", "(scope_kind='team' AND team_id=record_id AND team_id IS NOT NULL AND academy_group_id IS NULL) OR (scope_kind='group' AND academy_group_id=record_id AND academy_group_id IS NOT NULL AND team_id IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarResponseRecord", b =>
+                {
+                    b.Property<string>("Collection")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("collection");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("EventId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("event_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("PlayerId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("player_id")
+                        .UseCollation("C");
+
+                    b.Property<Guid?>("ActorIdentityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_identity_id");
+
+                    b.Property<string>("OrganizationId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<int?>("SourceOrdinal")
+                        .HasColumnType("integer")
+                        .HasColumnName("source_ordinal");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Collection", "Kind", "EventId", "PlayerId");
+
+                    b.HasIndex("ActorIdentityId");
+
+                    b.HasIndex("Collection", "SourceOrdinal");
+
+                    b.HasIndex("OrganizationId", "PlayerId");
+
+                    b.HasIndex("OrganizationId", "Kind", "EventId");
+
+                    b.ToTable("calendar_responses", "club", t =>
+                        {
+                            t.HasCheckConstraint("ck_calendar_response_status", "(collection='availability' AND status IN ('going','not_going','maybe')) OR (collection='event_attendance' AND status IN ('going','not_going','maybe','no_response')) OR (collection='attendance' AND status IN ('present','absent'))");
+                        });
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarSourceDocumentRecord", b =>
+                {
+                    b.Property<string>("Collection")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("collection");
+
+                    b.Property<int>("Ordinal")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordinal");
+
+                    b.Property<string>("Disposition")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("disposition");
+
+                    b.Property<string>("ImportDigest")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("import_digest");
+
+                    b.Property<string>("SourceJson")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("source_json");
+
+                    b.Property<string>("TargetId")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("target_id")
+                        .UseCollation("C");
+
+                    b.Property<string>("TargetKind")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("target_kind");
+
+                    b.HasKey("Collection", "Ordinal");
+
+                    b.HasIndex("ImportDigest");
+
+                    b.ToTable("calendar_source_documents", "migration", t =>
+                        {
+                            t.HasCheckConstraint("ck_calendar_source_collection", "collection IN ('fixtures','events','training_sessions','availability','event_attendance','attendance') AND ordinal>=0");
+
+                            t.HasCheckConstraint("ck_calendar_source_disposition", "disposition IN ('item','response','quarantined')");
+
+                            t.HasCheckConstraint("ck_calendar_source_json", "json_typeof(source_json::json)='object'");
+                        });
+                });
+
             modelBuilder.Entity("LefteriaFc.Infrastructure.Identity.AdminAccountRecord", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1609,6 +2011,106 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("Collection", "RecordId", "Kind", "NormalizedPhone")
                         .HasPrincipalKey("Collection", "SourceId", "Kind", "NormalizedPhone")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarImportIssueRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarSourceDocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("Collection", "Ordinal")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemGuestRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterPlayerRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "PlayerId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "Kind", "EventId")
+                        .HasPrincipalKey("OrganizationId", "Kind", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.OrganizationRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarSourceDocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("SourceCollection", "SourceOrdinal")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemScopeRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterAcademyGroupRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "AcademyGroupId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterTeamRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "TeamId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "Kind", "EventId")
+                        .HasPrincipalKey("OrganizationId", "Kind", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarResponseRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.Identity.MobileIdentityRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ActorIdentityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarSourceDocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("Collection", "SourceOrdinal")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("LefteriaFc.Infrastructure.Roster.RosterPlayerRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "PlayerId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarItemRecord", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "Kind", "EventId")
+                        .HasPrincipalKey("OrganizationId", "Kind", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.ClubCalendar.CalendarSourceDocumentRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.ClubCalendar.CalendarImportStateRecord", null)
+                        .WithMany()
+                        .HasForeignKey("ImportDigest")
+                        .HasPrincipalKey("Digest")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

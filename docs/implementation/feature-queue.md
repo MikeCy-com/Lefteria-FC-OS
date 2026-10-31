@@ -56,8 +56,8 @@ This order follows the dependencies of the accepted requirements:
 - Mobile authentication is now a real HTTP workflow backed by PostgreSQL, shared
   throttles, hashed OTP challenges, an SMS adapter, JWT validation and audit rows.
 - The generated client powers `/app/login` and the authenticated shell, explicit
-  roles and FC/Academy selector. Operational content is still unported and uses
-  the requested **Under Developments** label; no records or statistics are mocked.
+  roles and FC/Academy selector. Unported operational content uses the requested
+  **Under Developments** label; no records or statistics are mocked.
 - Runtime permissions and migration/recovery checks are documented in
   [mobile identity implementation](mobile-identity-implementation.md).
 - Own team preference now persists through `PUT /api/mobile/auth/me`, with a real
@@ -85,7 +85,21 @@ This order follows the dependencies of the accepted requirements:
   implemented behind an explicit disabled-by-default acceptance window. Exact
   subject mapping, expiry and current permissions are retained. Cached old PWA
   bundles and cross-origin restoration remain staging/cutover gates.
-- Next: private scoped APIs and real role dashboards;
+- The private parent/player/coach/management calendar now has an owner-only
+  initial import retaining all six schedule/response collections, explicit club
+  time zone and frozen member training publication. A clean complete import is
+  required for readiness; quarantine returns unavailable instead of a false
+  empty calendar. Current child/group/team/guest and selected-organization scope
+  governs reads and parent/player RSVP. Both RSVP mirrors and audit commit
+  atomically; physical attendance remains untouched. Staff replies use the new
+  typed calendar route, not the unported legacy event/MVP response contract.
+  See [source evidence](calendar-source-contract.md) and
+  [implementation/recovery](scoped-calendar.md) for the boundary and verification status.
+- Next: the requested separate Hostinger preview environment, leaving
+  `lefteriafc.cy`, live production and its data unchanged; then remaining private
+  scoped APIs and real role dashboards. A protected source backup can feed the
+  isolated preview import. Real provider calls and production cutover remain
+  separate approval/verification boundaries;
   social profiles/media retain their separately mapped privacy/moderation gates.
   Real export reconciliation, staging recovery and full legacy/PWA compatibility remain cutover gates.
 

@@ -52,7 +52,8 @@ internal static class TestRunner
                 catch (Exception exception)
                 {
                     failures++;
-                    Console.Error.WriteLine($"FAIL {name}: {exception.GetType().Name}: {exception.Message}");
+                    var reason=exception is LefteriaFc.Application.Roster.RosterImportApplyException refusal?$" ({refusal.Code})":"";
+                    Console.Error.WriteLine($"FAIL {name}: {exception.GetType().Name}: {exception.Message}{reason}");
                 }
             }
         }

@@ -49,14 +49,13 @@ internal sealed partial class TestDatabase
     public async Task AssertAccountRollbackRefusedAsync()
     {
         await using var context=CreateContext();
-        try{await context.GetService<IMigrator>().MigrateAsync("20261026080850_StaffRelationships");}
+        await using var transaction=await context.Database.BeginTransactionAsync();
+        try{await ExecuteMigrationOperationsAsync(context,"LegacyAccountImport",true);}
         catch(PostgresException error)when(error.SqlState==PostgresErrorCodes.RaiseException&&error.MessageText=="account_data_requires_forward_recovery")
         {
+            await transaction.RollbackAsync();
             Check.True(await context.AccountImportStates.AnyAsync()&&await context.MobileIdentities.AnyAsync()&&await context.AccountSourceDocuments.AnyAsync(),
                 "Refused account rollback still removed imported data.");
-            // EF may already have completed a later, view-only Down before
-            // reaching the populated account guard. Restore that read boundary.
-            await RestoreLegacyBridgeViewAsync();
             return;
         }
         throw new InvalidOperationException("Populated account migration allowed destructive rollback.");

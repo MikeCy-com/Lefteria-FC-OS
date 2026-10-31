@@ -5,6 +5,7 @@ using LefteriaFc.Infrastructure.Identity;
 using LefteriaFc.Infrastructure.Roster;
 using LefteriaFc.Infrastructure.StaffRelationships;
 using LefteriaFc.Infrastructure.AccountImport;
+using LefteriaFc.Infrastructure.ClubCalendar;
 
 namespace LefteriaFc.Infrastructure.Persistence;
 
@@ -41,12 +42,20 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     public DbSet<MobileRecordLinkRecord> MobileRecordLinks => Set<MobileRecordLinkRecord>();
     public DbSet<AdminStaffLinkRecord> AdminStaffLinks => Set<AdminStaffLinkRecord>();
     public DbSet<ImportedAdminGrantRecord> ImportedAdminGrants => Set<ImportedAdminGrantRecord>();
+    public DbSet<CalendarItemRecord> CalendarItems => Set<CalendarItemRecord>();
+    public DbSet<CalendarItemScopeRecord> CalendarItemScopes => Set<CalendarItemScopeRecord>();
+    public DbSet<CalendarItemGuestRecord> CalendarItemGuests => Set<CalendarItemGuestRecord>();
+    public DbSet<CalendarResponseRecord> CalendarResponses => Set<CalendarResponseRecord>();
+    public DbSet<CalendarImportStateRecord> CalendarImportStates => Set<CalendarImportStateRecord>();
+    public DbSet<CalendarSourceDocumentRecord> CalendarSourceDocuments => Set<CalendarSourceDocumentRecord>();
+    public DbSet<CalendarImportIssueRecord> CalendarImportIssues => Set<CalendarImportIssueRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("identity");
         RosterModel.Configure(modelBuilder);
         StaffRelationshipModel.Configure(modelBuilder);
+        CalendarModel.Configure(modelBuilder);
         var avatars = modelBuilder.Entity<MobileAvatarRecord>();
         avatars.ToTable("mobile_avatars", table =>
         {

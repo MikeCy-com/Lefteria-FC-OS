@@ -47,7 +47,8 @@ Identity, phone, role, active status and management linkage remain excluded.
   cascades and replacements overwrite one current row per identity.
 - Canonical roster access is limited to SELECT on the five player-picker fields,
   their eligibility predicates, team ID, player/group membership IDs and the
-  import-readiness ID. Whole player rows and roster writes are denied. The runtime has no
+  import-readiness ID. Calendar scope also reads only team/group IDs and owning
+  organization IDs. Whole player rows and roster writes are denied. The runtime has no
   migration-schema USAGE or access to exact source archives.
 - Staff status, staff/team/group assignment IDs and group-coach links expose only
   the columns required to recheck current canonical mobile authority. Canonical
@@ -68,6 +69,18 @@ barrier to expose exact imported mobile subject/target pairs; it grants no acces
 to original migration mappings or source objects. Runtime view writes remain
 denied. View-only rollback/reapply preserves populated account data and needs
 the view's SELECT grants reapplied. See [bridge recovery](legacy-mobile-bridge.md).
+
+After `ScopedCalendar`, reapply grants before starting the updated API. Calendar
+import state exposes only `id,time_zone,is_complete`; full manifest bytes and
+metadata remain owner-only. The runtime reads curated item/scope/guest/response
+tables and may insert/update only RSVP status, actor and time with the permitted
+keys on insert. Response keys and imported source ordinals cannot be updated.
+Restrictive RLS limits INSERT/UPDATE to `availability`/`event_attendance`, valid
+RSVP statuses and a non-null actor; physical `attendance` rows remain protected.
+DELETE/TRUNCATE, calendar canonical writes, raw source/quarantine and readiness
+mutation are denied. Application SQL still enforces each signed identity's
+current child/staff/guest/organization scope. Its audit INSERT returns a constant
+and does not require audit SELECT. See [calendar recovery](scoped-calendar.md).
 
 Mobile identity RLS restricts INSERT to fan records. The fan check is restrictive,
 so an additional permissive insert policy cannot silently broaden it. SELECT

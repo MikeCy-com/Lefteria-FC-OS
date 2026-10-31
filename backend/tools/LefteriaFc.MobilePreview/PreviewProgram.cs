@@ -30,13 +30,26 @@ internal static class PreviewProgram
             database = new TestDatabase(fixture, otpKey);
             database.TrackClient(250);
             await database.AssertRestrictedApplicationRoleAsync();
-            var phone = database.NewPhone();
-            var adminId = await database.SeedAdminAsync(OrganizationIds.Club, OrganizationIds.Academy);
-            foreach (var role in Enum.GetValues<MobileRole>())
-                await database.SeedIdentityAsync(phone, role, "Δοκιμαστικός Χρήστης",
-                    role == MobileRole.Management ? adminId : null);
+            CalendarDatabaseFixture? calendar = null;
+            PhoneNumber phone;
+            IReadOnlyCollection<PhoneNumber> previewPhones;
+            if (options.Calendar)
+            {
+                calendar = await database.SeedPreviewCalendarAsync();
+                phone = calendar.Accounts.PlayerPhone;
+                previewPhones = [phone, calendar.Accounts.ParentPhone, calendar.Accounts.StaffPhone];
+            }
+            else
+            {
+                phone = database.NewPhone();
+                previewPhones = [phone];
+                var adminId = await database.SeedAdminAsync(OrganizationIds.Club, OrganizationIds.Academy);
+                foreach (var role in Enum.GetValues<MobileRole>())
+                    await database.SeedIdentityAsync(phone, role, "Δοκιμαστικός Χρήστης",
+                        role == MobileRole.Management ? adminId : null);
+            }
             await SeedFanDetailsAsync(database, phone);
-            factory = new PreviewApiFactory(fixture, phone, signingKey, otpKey);
+            factory = new PreviewApiFactory(fixture, previewPhones, signingKey, otpKey);
             using (var scope = factory.Services.CreateScope())
             {
                 var configured = scope.ServiceProvider.GetRequiredService<LefteriaDbContext>();
@@ -55,11 +68,18 @@ internal static class PreviewProgram
             await app.StartAsync();
             PreviewProxy.AssertSingleLoopbackListener(app, options);
             Console.WriteLine($"Preview URL: {options.Origin.GetLeftPart(UriPartial.Authority)}/app/login");
-            Console.WriteLine($"Fictional phone: {phone.WireValue}");
+            if (calendar is null) Console.WriteLine($"Fictional phone: {phone.WireValue}");
+            else
+            {
+                Console.WriteLine($"Fictional player/fan phone: {phone.WireValue}");
+                Console.WriteLine($"Fictional parent phone: {calendar.Accounts.ParentPhone.WireValue}");
+                Console.WriteLine($"Fictional coach/management phone: {calendar.Accounts.StaffPhone.WireValue}");
+                Console.WriteLine("Fictional calendar month: 2026-10 (December has the pagination scenario).");
+            }
             Console.WriteLine($"Fixture code: {FixedFixtureOtpProtector.Code} (this fictional fixture only; no SMS is sent).");
             if (options.Smoke)
             {
-                await PreviewSmoke.RunAsync(options, phone);
+                await PreviewSmoke.RunAsync(options, phone, calendar);
                 await app.WaitForShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10));
                 Console.WriteLine("PASS local authenticated preview smoke.");
             }

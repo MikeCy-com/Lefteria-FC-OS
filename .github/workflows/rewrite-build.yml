@@ -113,6 +113,10 @@ jobs:
           {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"a52d66b8e01c010cfe95ce53fa139e126bae4d84","roster_sha256":"0000000000000000000000000000000000000000000000000000000000000000","staff_sha256":"0000000000000000000000000000000000000000000000000000000000000000","exported_at":"2026-10-27T00:00:00Z","complete_collections":["mobile_users","fans","admin_users"],"mobile_users":[],"fans":[],"admin_users":[]}
           JSON
           LEFTERIA_ROSTER_IMPORT_CONNECTION=invalid dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --kind accounts --input "$RUNNER_TEMP/empty-account-manifest.json"
+          cat > "$RUNNER_TEMP/empty-calendar-manifest.json" <<'JSON'
+          {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"a52d66b8e01c010cfe95ce53fa139e126bae4d84","roster_sha256":"0000000000000000000000000000000000000000000000000000000000000000","exported_at":"2026-10-31T00:00:00Z","time_zone":"Asia/Nicosia","complete_collections":["fixtures","events","training_sessions","availability","event_attendance","attendance"],"fixtures":[],"events":[],"training_sessions":[],"availability":[],"event_attendance":[],"attendance":[]}
+          JSON
+          LEFTERIA_ROSTER_IMPORT_CONNECTION=invalid dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --kind calendar --input "$RUNNER_TEMP/empty-calendar-manifest.json"
       - name: Verify published Unicode license notices
         run: |
           dotnet publish backend/src/LefteriaFc.Api --configuration Release --no-build --no-restore -o "$RUNNER_TEMP/account-api-publish"
@@ -128,6 +132,8 @@ jobs:
           ASPNETCORE_URLS: http://0.0.0.0:5999
           Kestrel__Endpoints__Unexpected__Url: http://0.0.0.0:5998
         run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --smoke --port 4191
+      - name: Smoke canonical calendar browser API proxy
+        run: dotnet run --project backend/tools/LefteriaFc.MobilePreview --configuration Release --no-build -- --calendar --smoke --port 4192
       - if: always()
         run: docker rm --force --volumes identity-postgres
 

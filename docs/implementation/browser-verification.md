@@ -52,3 +52,21 @@ snapshot digest/ID cleanup left zero canonical, source archive, readiness and
 preview identity rows. Audit history remains append-only. This initial three-
 collection import does not implement private role rosters or a full account/data
 migration, and no production data or provider was used.
+
+## Scoped calendar — 2026-10-31
+
+The guarded production-build/API/restricted-PostgreSQL preview used fictional
+imported records and its separate test-only OTP adapter. The actual parent
+login and role picker opened the calendar. October 30 showed the approved
+frozen training publication at 17:00 while the staff draft was dated November 2.
+Selecting Maybe sent the RSVP POST; a fresh calendar GET confirmed the saved
+response. Selecting the second child hid the first child's published training.
+Switching back retained the saved response. At 390 CSS pixels, document client
+width and scroll width were both 390.
+
+The preview stopped gracefully. Calendar state, items, responses, mobile
+identities and admins were all zero after exact fictional-row cleanup; security
+audits remained append-only. This verifies those observed parent flows, not
+every role's browser journey or a real production import. Automated results and
+remaining GitHub checks are recorded in the
+[October 31 verification checkpoint](verification-2026-10-31.md).

@@ -29,6 +29,17 @@ BEGIN
     RAISE EXCEPTION 'Mobile API runtime can read imported credentials';
   END IF;
   PERFORM legacy_subject,identity_id FROM identity.imported_mobile_subjects LIMIT 1;
+  PERFORM id,time_zone,is_complete FROM club.calendar_import_state LIMIT 1;
+  PERFORM id,organization_id FROM club.teams LIMIT 1;
+  PERFORM id,organization_id FROM club.academy_groups LIMIT 1;
+  IF has_column_privilege(current_user,'club.calendar_import_state','manifest_bytes','SELECT')
+      OR has_table_privilege(current_user,'club.calendar_items','INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'club.calendar_item_scopes','INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'club.calendar_item_guests','INSERT,UPDATE,DELETE,TRUNCATE')
+      OR has_table_privilege(current_user,'club.calendar_responses','DELETE,TRUNCATE')
+      OR NOT row_security_active('club.calendar_responses') THEN
+    RAISE EXCEPTION 'Runtime calendar import/canonical/response privileges exceed their boundary';
+  END IF;
   IF has_table_privilege(current_user,'identity.imported_mobile_subjects','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') THEN
     RAISE EXCEPTION 'Runtime can mutate imported mobile subject projection';
   END IF;
@@ -50,7 +61,8 @@ BEGIN
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Runtime can read owner-only source archives'; END IF;
   FOREACH private_table IN ARRAY ARRAY['migration.staff_relationship_import_state','migration.staff_source_documents','migration.contact_provenance',
-    'migration.account_import_state','migration.account_source_documents','migration.account_import_issues','migration.legacy_account_mappings','migration.imported_admin_grants']
+    'migration.account_import_state','migration.account_source_documents','migration.account_import_issues','migration.legacy_account_mappings','migration.imported_admin_grants',
+    'migration.calendar_source_documents','migration.calendar_import_issues']
   LOOP
     -- Resolve through the catalog: the runtime deliberately lacks migration
     -- schema USAGE, so resolving its qualified name as regclass is denied.
@@ -70,7 +82,7 @@ BEGIN
     END;
     IF NOT denied THEN RAISE EXCEPTION 'Runtime can read an owner-only staff relationship table'; END IF;
   END LOOP;
-  FOREACH private_table IN ARRAY ARRAY['club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches',
+  FOREACH private_table IN ARRAY ARRAY['club.teams','club.academy_groups','club.staff','club.staff_teams','club.staff_academy_groups','club.academy_group_coaches',
     'identity.canonical_contact_bindings','identity.fan_registration_evidence']
   LOOP
     denied := false;
