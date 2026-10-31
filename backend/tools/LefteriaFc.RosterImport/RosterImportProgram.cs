@@ -7,6 +7,8 @@ using LefteriaFc.Application.AccountImport;
 using LefteriaFc.Infrastructure.AccountImport;
 using LefteriaFc.Application.CalendarImport;
 using LefteriaFc.Infrastructure.ClubCalendar;
+using LefteriaFc.Application.PublicContent;
+using LefteriaFc.Infrastructure.PublicContent;
 
 namespace LefteriaFc.Tools.RosterImport;
 
@@ -29,7 +31,7 @@ public static class RosterImportProgram
             }
             if (!values.TryGetValue("--input", out var path)) return Error("input_required");
             var kind = values.GetValueOrDefault("--kind", "roster");
-            if (kind is not ("roster" or "staff-relationships" or "accounts" or "calendar")) return Error("invalid_kind");
+            if (kind is not ("roster" or "staff-relationships" or "accounts" or "calendar" or "public-content")) return Error("invalid_kind");
             if (reviewTarget && (kind is not ("accounts" or "calendar") || apply)) return Error("invalid_review_mode");
             var bytes = await ReadBoundedAsync(path);
             // Validation must finish before reading credentials or constructing
@@ -38,11 +40,13 @@ public static class RosterImportProgram
             var staffPlan = kind == "staff-relationships" ? StaffRelationshipImportValidator.Validate(bytes) : null;
             var accountManifest = kind == "accounts" ? AccountImportValidator.Validate(bytes) : null;
             var calendarManifest = kind == "calendar" ? CalendarImportValidator.Validate(bytes) : null;
+            var publicManifest = kind == "public-content" ? PublicContentImportValidator.Validate(bytes) : null;
             if (!apply && !reviewTarget)
             {
                 if (plan is not null) Summary("valid_dry_run", plan);
                 else if (staffPlan is not null) StaffSummary("valid_dry_run", staffPlan);
                 else if(accountManifest is not null) AccountSummary("manifest_valid", accountManifest);
+                else if (publicManifest is not null) PublicSummary("manifest_valid", publicManifest);
                 else CalendarSummary("manifest_valid",calendarManifest!);
                 return 0;
             }
@@ -67,6 +71,11 @@ public static class RosterImportProgram
                 if (result.IssueCounts.Count > 0) status += "_with_quarantine";
                 AccountSummary(status, accountManifest!, result);
             }
+            else if (publicManifest is not null)
+            {
+                var result = await PostgresPublicContentImport.ApplyAsync(publicManifest, connection, digest, database, environment);
+                PublicSummary(result.Noop ? "same_snapshot_noop" : "applied", publicManifest);
+            }
             else
             {
                 var result=await PostgresCalendarImport.ApplyAsync(calendarManifest!,connection,digest,database,environment,reviewTarget);
@@ -89,6 +98,13 @@ public static class RosterImportProgram
         Console.Error.WriteLine(JsonSerializer.Serialize(new { status = "refused", code }));
         return 2;
     }
+    private static void PublicSummary(string status, ValidatedPublicContentImport manifest) =>
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            status, kind = "public-content", sha256 = manifest.Digest, source_commit = manifest.SourceCommit,
+            documents = manifest.Documents.Count, source_rows = manifest.Source.Count,
+            kinds = manifest.Documents.GroupBy(row => row.Kind).ToDictionary(group => group.Key, group => group.Count())
+        }));
     private static void CalendarSummary(string status,ValidatedCalendarImport manifest,CalendarImportOutcome? result=null)=>
         Console.WriteLine(JsonSerializer.Serialize(new
         {

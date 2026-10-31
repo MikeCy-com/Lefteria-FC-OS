@@ -54,6 +54,8 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
     {
         modelBuilder.HasDefaultSchema("identity");
         RosterModel.Configure(modelBuilder);
+        LefteriaFc.Infrastructure.WebAdmin.WebAdminModel.ConfigureWebAdmin(modelBuilder);
+        LefteriaFc.Infrastructure.PublicContent.PublicContentModel.ConfigurePublicContent(modelBuilder);
         StaffRelationshipModel.Configure(modelBuilder);
         CalendarModel.Configure(modelBuilder);
         var avatars = modelBuilder.Entity<MobileAvatarRecord>();

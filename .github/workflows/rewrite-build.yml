@@ -46,6 +46,7 @@ jobs:
       POSTGRES_USER: lefteria_tests
       POSTGRES_DB: lefteria_rewrite_identity_tests
       DATABASE_APP_USER: lefteria_identity_tests_app
+      DATABASE_ADMIN_AUTH_USER: lefteria_admin_auth_tests
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -53,7 +54,7 @@ jobs:
           global-json-file: global.json
       - name: Generate isolated database credentials
         run: |
-          for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD; do
+          for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD DATABASE_ADMIN_AUTH_PASSWORD; do
             value="$(openssl rand -base64 32)"
             echo "::add-mask::$value"
             printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
@@ -62,7 +63,7 @@ jobs:
       - name: Start disposable loopback PostgreSQL
         run: |
           docker run --detach --name identity-postgres --network host \
-            -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB -e DATABASE_APP_USER -e DATABASE_APP_PASSWORD \
+            -e POSTGRES_USER -e POSTGRES_PASSWORD -e POSTGRES_DB -e DATABASE_APP_USER -e DATABASE_APP_PASSWORD -e DATABASE_ADMIN_AUTH_USER -e DATABASE_ADMIN_AUTH_PASSWORD \
             -v "$PWD/ops/postgres:/opt/lefteria-postgres:ro" \
             postgres:18.6-alpine -c listen_addresses=127.0.0.1 -p 54329
           for attempt in {1..30}; do
@@ -83,7 +84,9 @@ jobs:
               'host': '127.0.0.1', 'port': 54329, 'database': database,
               'username': os.environ['POSTGRES_USER'], 'applicationUsername': os.environ['DATABASE_APP_USER'],
               'connectionString': connection(os.environ['POSTGRES_USER'], os.environ['POSTGRES_PASSWORD']),
-              'applicationConnectionString': connection(os.environ['DATABASE_APP_USER'], os.environ['DATABASE_APP_PASSWORD'])
+              'applicationConnectionString': connection(os.environ['DATABASE_APP_USER'], os.environ['DATABASE_APP_PASSWORD']),
+              'adminAuthUsername': os.environ['DATABASE_ADMIN_AUTH_USER'],
+              'adminAuthConnectionString': connection(os.environ['DATABASE_ADMIN_AUTH_USER'], os.environ['DATABASE_ADMIN_AUTH_PASSWORD'])
           }
           path = Path(os.environ['LEFTERIA_TEST_FIXTURE'])
           path.write_text(json.dumps(fixture))
@@ -104,6 +107,12 @@ jobs:
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_APP_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_APP_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/identity-app-permissions-check.sql'
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/create-web-admin-auth-role.sql
+          docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
+      - name: Preserved Python bcrypt password compatibility
+        run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
+      - name: Independent admin credential and origin configuration
+        run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-configuration-policy
       - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
       - name: Build and smoke the separate roster import tool
         run: |
@@ -125,12 +134,18 @@ jobs:
           {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"a52d66b8e01c010cfe95ce53fa139e126bae4d84","roster_sha256":"0000000000000000000000000000000000000000000000000000000000000000","exported_at":"2026-10-31T00:00:00Z","time_zone":"Asia/Nicosia","complete_collections":["fixtures","events","training_sessions","availability","event_attendance","attendance"],"fixtures":[],"events":[],"training_sessions":[],"availability":[],"event_attendance":[],"attendance":[]}
           JSON
           LEFTERIA_ROSTER_IMPORT_CONNECTION=invalid dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --kind calendar --input "$RUNNER_TEMP/empty-calendar-manifest.json"
-      - name: Verify published Unicode license notices
+          cat > "$RUNNER_TEMP/empty-public-manifest.json" <<'JSON'
+          {"schema_version":1,"source_repository":"MikeCy-com/Lefteria-FC","source_commit":"380b4022f0ab0db95fbc52a8613711160a5037a5","complete_collections":["club_profile","news","teams","academy_groups","fixtures"],"club_profile":[],"news":[],"teams":[],"academy_groups":[],"fixtures":[]}
+          JSON
+          LEFTERIA_ROSTER_IMPORT_CONNECTION=invalid dotnet run --project backend/tools/LefteriaFc.RosterImport --configuration Release --no-build -- --kind public-content --input "$RUNNER_TEMP/empty-public-manifest.json"
+      - name: Verify published dependency license notices
         run: |
           dotnet publish backend/src/LefteriaFc.Api --configuration Release --no-build --no-restore -o "$RUNNER_TEMP/account-api-publish"
           dotnet publish backend/tools/LefteriaFc.RosterImport --configuration Release --no-build --no-restore -o "$RUNNER_TEMP/account-tool-publish"
           cmp backend/src/LefteriaFc.Application/AccountImport/UnicodeData.NOTICE.txt "$RUNNER_TEMP/account-api-publish/third-party/UnicodeData/NOTICE.txt"
           cmp backend/src/LefteriaFc.Application/AccountImport/UnicodeData.NOTICE.txt "$RUNNER_TEMP/account-tool-publish/third-party/UnicodeData/NOTICE.txt"
+          cmp backend/third-party/BCrypt/LICENSE.txt "$RUNNER_TEMP/account-api-publish/third-party/BCrypt/LICENSE.txt"
+          cmp backend/third-party/BCrypt/LICENSE.txt "$RUNNER_TEMP/account-tool-publish/third-party/BCrypt/LICENSE.txt"
       - name: Build guarded browser verification host
         run: |
           dotnet restore backend/tools/LefteriaFc.MobilePreview --locked-mode

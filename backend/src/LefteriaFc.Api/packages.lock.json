@@ -49,6 +49,11 @@
         "resolved": "4.153.1",
         "contentHash": "NrnPjcxjcRau4GMOY0BTpUdMey+MnmLU3jC5AuExEFHPS2NkX1tdkXW0n/c5nQMMHBTAMpHnt7qEOpXs2FNfIQ=="
       },
+      "BCrypt.Net-Next": {
+        "type": "Transitive",
+        "resolved": "4.2.0",
+        "contentHash": "gwLD2KfCuwQesP17aVh4h6lpiMPEVt5Lbpndo0ej903hNUUTtyxt3ARdDjmuydBRTAUICc7OVKVbaOvc6SQYXA=="
+      },
       "Humanizer.Core": {
         "type": "Transitive",
         "resolved": "2.14.1",
@@ -329,6 +334,7 @@
       "lefteriafc.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "BCrypt.Net-Next": "[4.2.0, )",
           "LefteriaFc.Application": "[1.0.0, )",
           "LefteriaFc.Domain": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.13, )",

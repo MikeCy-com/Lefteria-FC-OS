@@ -154,7 +154,8 @@ var checks = new (string Name, Action Check)[]
 };
 
 var failures = 0;
-foreach (var (name, check) in checks)
+var allChecks = checks.Concat(AdminPermissionChecks.Checks()).ToArray();
+foreach (var (name, check) in allChecks)
 {
     try
     {
@@ -168,7 +169,7 @@ foreach (var (name, check) in checks)
     }
 }
 
-Console.WriteLine($"{checks.Length - failures}/{checks.Length} policy checks passed.");
+Console.WriteLine($"{allChecks.Length - failures}/{allChecks.Length} policy checks passed.");
 return failures == 0 ? 0 : 1;
 
 OtpChallenge NewChallenge() => new(Guid.NewGuid(), digest, now, now.AddMinutes(5));

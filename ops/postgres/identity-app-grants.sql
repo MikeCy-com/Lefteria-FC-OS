@@ -53,13 +53,13 @@ $guard$;
 -- PUBLIC privileges are inherited even by NOINHERIT roles; per-role REVOKE
 -- cannot cancel them. These changes are scoped to the dedicated current DB.
 REVOKE CREATE, TEMPORARY ON DATABASE :"identity_database" FROM PUBLIC;
-REVOKE CREATE ON SCHEMA public, identity, club, audit FROM PUBLIC;
+REVOKE CREATE ON SCHEMA public, identity, club, audit, public_content FROM PUBLIC;
 REVOKE CREATE ON SCHEMA public FROM :"app_role";
 REVOKE ALL PRIVILEGES ON SCHEMA migration FROM PUBLIC, :"app_role";
 REVOKE ALL PRIVILEGES ON DATABASE :"identity_database" FROM :"app_role";
 GRANT CONNECT ON DATABASE :"identity_database" TO :"app_role";
 REVOKE ALL PRIVILEGES ON SCHEMA identity, club, audit FROM :"app_role";
-GRANT USAGE ON SCHEMA identity, club, audit TO :"app_role";
+GRANT USAGE ON SCHEMA identity, club, audit, public_content TO :"app_role";
 
 REVOKE ALL PRIVILEGES ON TABLE
   identity.mobile_identities, identity.mobile_avatars, identity.admin_accounts,
@@ -73,7 +73,9 @@ REVOKE ALL PRIVILEGES ON TABLE
   migration.account_import_state, migration.account_source_documents, migration.account_import_issues,
   migration.legacy_account_mappings, migration.imported_admin_grants, identity.imported_mobile_subjects,
   club.calendar_import_state,club.calendar_items,club.calendar_item_scopes,club.calendar_item_guests,
-  club.calendar_responses,migration.calendar_source_documents,migration.calendar_import_issues
+  club.calendar_responses,migration.calendar_source_documents,migration.calendar_import_issues,
+  public_content.documents,public_content.import_state,migration.public_content_import_evidence,migration.public_content_source_documents,
+  identity.admin_sessions,identity.admin_auth_rate_buckets
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -97,7 +99,9 @@ BEGIN
       ('migration','account_import_state'), ('migration','account_source_documents'), ('migration','account_import_issues'),
       ('migration','legacy_account_mappings'), ('migration','imported_admin_grants'), ('identity','imported_mobile_subjects'),
       ('club','calendar_import_state'),('club','calendar_items'),('club','calendar_item_scopes'),('club','calendar_item_guests'),
-      ('club','calendar_responses'),('migration','calendar_source_documents'),('migration','calendar_import_issues'))
+      ('club','calendar_responses'),('migration','calendar_source_documents'),('migration','calendar_import_issues'),
+      ('public_content','documents'),('public_content','import_state'),('migration','public_content_import_evidence'),
+      ('migration','public_content_source_documents'),('identity','admin_sessions'),('identity','admin_auth_rate_buckets'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -109,6 +113,7 @@ END
 $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
+GRANT SELECT ON public_content.documents,public_content.import_state TO :"app_role";
 GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO :"app_role";
 GRANT SELECT (id,time_zone,is_complete) ON club.calendar_import_state TO :"app_role";
 GRANT SELECT (id,organization_id) ON club.teams,club.academy_groups TO :"app_role";

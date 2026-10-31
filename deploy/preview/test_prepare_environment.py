@@ -106,14 +106,14 @@ class PreviewEnvironmentChecks(unittest.TestCase):
                     prepare.validate_loaded_images(manifest)
 
     def test_each_secret_has_independent_entropy_and_required_encoding(self):
-        with patch.object(prepare.secrets, "token_bytes", side_effect=[bytes([value]) * 32 for value in range(1, 6)]) as draw:
+        with patch.object(prepare.secrets, "token_bytes", side_effect=[bytes([value]) * 32 for value in range(1, 8)]) as draw:
             values = prepare.fresh_secrets()
-        self.assertEqual(5, draw.call_count)
+        self.assertEqual(7, draw.call_count)
         self.assertTrue(all(call.args == (32,) for call in draw.call_args_list))
         decoded = []
         for name, value in values.items():
-            decoded.append(base64.b64decode(value) if name in ("signing", "otp") else base64.urlsafe_b64decode(value + "="))
-        self.assertEqual(5, len(set(decoded)))
+            decoded.append(base64.b64decode(value) if name in ("signing", "otp", "admin_throttle") else base64.urlsafe_b64decode(value + "="))
+        self.assertEqual(7, len(set(decoded)))
         self.assertTrue(all(len(value) == 32 for value in decoded))
         with patch.object(prepare.secrets, "token_bytes", return_value=b"x" * 32):
             with self.assertRaisesRegex(prepare.PreparationRefused, "independent_entropy_required"):
@@ -152,7 +152,7 @@ class PreviewEnvironmentChecks(unittest.TestCase):
 
     def test_dotenv_preserves_bcrypt_dollars_and_client_file_contains_only_gate_access(self):
         credentials = {"owner": "owner-only", "application": "app-only", "signing": "signing-only",
-                       "otp": "otp-only", "gate": "gate-only"}
+                       "otp": "otp-only", "gate": "gate-only", "admin_password": "admin-only", "admin_throttle": "admin-key-only"}
         hashed = "$2a$14$" + "a" * 53
         images = {name: value["id"] for name, value in image_manifest()["images"].items()}
         files = prepare.configuration_files("a" * 40, images, PurePosixPath("/srv/lefteria-os-preview/manifests/20261031t174927z"),
@@ -161,6 +161,8 @@ class PreviewEnvironmentChecks(unittest.TestCase):
         self.assertIn("PREVIEW_GATE_HASH='" + hashed + "'\n", environment)
         self.assertIn("PREVIEW_BIND='127.0.0.1'\n", environment)
         self.assertIn("PREVIEW_BIND_IPV6='::1'\n", environment)
+        self.assertIn("PREVIEW_WEB_ADMIN_ENABLED='false'\n", environment)
+        self.assertIn("PREVIEW_ADMIN_AUTH_PASSWORD='admin-only'\n", environment)
         self.assertIn("PREVIEW_API_IMAGE='" + images["api"] + "'\n", environment)
         self.assertNotIn(credentials["gate"], environment)
         access = json.loads(files["client-access.json"])
