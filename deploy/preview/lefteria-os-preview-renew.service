@@ -1,0 +1,31 @@
+[Unit]
+Description=Renew only the isolated Lefteria OS preview certificate
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/srv/lefteria-os-preview/source
+Environment=PREVIEW_ACME_GUARD_FILE=/srv/lefteria-os-preview/acme/guard.json
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=HOME=/nonexistent
+Environment=PATH=/usr/sbin:/usr/bin:/sbin:/bin
+Environment=DOCKER_HOST=unix:///var/run/docker.sock
+Environment=DOCKER_CONTEXT=
+UMask=0077
+ExecStart=/usr/bin/certbot renew --non-interactive --no-random-sleep-on-renew --cert-name srv1649602.hstgr.cloud --config-dir /srv/lefteria-os-preview/acme/config --work-dir /srv/lefteria-os-preview/acme/work --logs-dir /srv/lefteria-os-preview/acme/logs --deploy-hook "/usr/bin/python3 /srv/lefteria-os-preview/source/deploy/preview/renew-preview-tls.py"
+Nice=10
+CPUQuota=20%
+MemoryMax=512M
+IOSchedulingClass=idle
+TimeoutStartSec=10min
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/lefteria-os-preview/acme /srv/lefteria-os-preview/tls
+StandardOutput=journal
+StandardError=journal

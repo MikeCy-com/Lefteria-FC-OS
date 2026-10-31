@@ -18,6 +18,24 @@ RUN dotnet publish src/LefteriaFc.Api/LefteriaFc.Api.csproj \
     --output /app/publish \
     /p:UseAppHost=false
 
+# Explicit owner-tool target. BuildKit skips this branch for the default API
+# image; no preview/Test host or fixed fixture OTP is included in either image.
+FROM build AS import-build
+COPY tools/LefteriaFc.RosterImport/ tools/LefteriaFc.RosterImport/
+RUN dotnet restore tools/LefteriaFc.RosterImport/LefteriaFc.RosterImport.csproj --locked-mode
+RUN dotnet publish tools/LefteriaFc.RosterImport/LefteriaFc.RosterImport.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/import \
+    /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS roster-import
+WORKDIR /app
+COPY --from=import-build /app/import/ ./
+USER $APP_UID
+ENTRYPOINT ["dotnet", "LefteriaFc.RosterImport.dll"]
+
+# Keep the API as the final/default target for existing Compose builds.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish/ ./
