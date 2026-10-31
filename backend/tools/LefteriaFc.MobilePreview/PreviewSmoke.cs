@@ -9,67 +9,111 @@ using LefteriaFc.Identity.IntegrationTests;
 
 namespace LefteriaFc.MobilePreview;
 
+// Only fixed checks, phase names and numeric HTTP statuses belong here. Never
+// wrap an external exception message, token, response body or request selector.
+internal sealed class PreviewSmokeException(string check, HttpStatusCode? status = null)
+    : Exception(check + (status is null ? string.Empty : $" Observed HTTP {(int)status.Value}."));
+
 internal static class PreviewSmoke
 {
+    private enum Phase
+    {
+        Initialization, Readiness, AnonymousIdentity, OtpIssue, RolePicker, FanLogin,
+        OwnIdentity, OversizedProfile, ProfileUpdate, PreferenceUpdate, RoleSwitch,
+        OrganizationRead, OrganizationSelection, Calendar, WrongHost, WrongOrigin, Stop
+    }
+
     public static async Task RunAsync(PreviewOptions options, PhoneNumber phone, CalendarDatabaseFixture? calendar = null)
+    {
+        var phase = Phase.Initialization;
+        try
+        {
+            await RunScenarioAsync(options, phone, calendar, value => phase = value);
+        }
+        catch (PreviewSmokeException) { throw; }
+        catch (Exception)
+        {
+            // Every phase is a closed enum chosen below, never external input.
+            throw new PreviewSmokeException($"Unexpected preview response contract or transport failure in {phase}.");
+        }
+    }
+
+    private static async Task RunScenarioAsync(PreviewOptions options, PhoneNumber phone,
+        CalendarDatabaseFixture? calendar, Action<Phase> phase)
     {
         Check(options.Origin.Host == "127.0.0.1", "Preview must stay on loopback.");
         using var client = new HttpClient(new SocketsHttpHandler
         {
             UseProxy = false, UseCookies = false, AllowAutoRedirect = false
         }) { BaseAddress = options.Origin, Timeout = TimeSpan.FromSeconds(10) };
+        phase(Phase.Readiness);
         using (var ready = await client.GetAsync("/api/health/ready"))
-            Check(ready.StatusCode == HttpStatusCode.OK, "API readiness failed.");
+            Check(ready.StatusCode == HttpStatusCode.OK, "API readiness failed.", ready.StatusCode);
+        phase(Phase.AnonymousIdentity);
         using (var anonymous = await client.GetAsync("/api/mobile/auth/me"))
-            Check(anonymous.StatusCode == HttpStatusCode.Unauthorized, "Anonymous authentication boundary failed.");
+            Check(anonymous.StatusCode == HttpStatusCode.Unauthorized, "Anonymous authentication boundary failed.", anonymous.StatusCode);
+        phase(Phase.OtpIssue);
         using var issue = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/request-otp", new { phone = phone.WireValue });
         Check(issue.RootElement.GetProperty("expires_in").GetInt32() == 300, "OTP expiration differs.");
+        phase(Phase.RolePicker);
         using var picker = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/verify-otp",
             new { phone = phone.WireValue, code = FixedFixtureOtpProtector.Code, remember_days = (int?)null });
         Check(picker.RootElement.GetProperty("identities").GetArrayLength() == (calendar is null ? 5 : 2) &&
               !picker.RootElement.TryGetProperty("token", out _), "Role picker contract failed.");
+        phase(Phase.FanLogin);
         using var login = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/verify-otp",
             new { phone = phone.WireValue, code = FixedFixtureOtpProtector.Code, role = "fan", remember_days = (int?)null });
         var fanToken = login.RootElement.GetProperty("token").GetString()!;
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", fanToken);
+        phase(Phase.OwnIdentity);
         using var me = await JsonAsync(client, HttpMethod.Get, "/api/mobile/auth/me");
         Check(me.RootElement.GetProperty("role").GetString() == "fan", "Fan identity failed.");
+        phase(Phase.OversizedProfile);
         using (var oversized = new StringContent(JsonSerializer.Serialize(new { email = new string('x', 17 * 1024) }),
                    Encoding.UTF8, "application/json"))
         {
             using var rejected = await client.PutAsync("/api/mobile/profile", oversized);
-            Check(rejected.StatusCode == HttpStatusCode.RequestEntityTooLarge, "The API body limit was lost through the proxy.");
+            Check(rejected.StatusCode == HttpStatusCode.RequestEntityTooLarge, "The API body limit was lost through the proxy.", rejected.StatusCode);
         }
+        phase(Phase.ProfileUpdate);
         using var profile = await JsonAsync(client, HttpMethod.Put, "/api/mobile/profile",
             new { first_name = "Δοκιμή", last_name = "Προεπισκόπησης", email = "edited@example.invalid" });
         Check(profile.RootElement.GetProperty("email").GetString() == "edited@example.invalid", "Profile update failed.");
+        phase(Phase.PreferenceUpdate);
         using var preference = await JsonAsync(client, HttpMethod.Put, "/api/mobile/auth/me", new { favorite_team = "academy" });
         Check(preference.RootElement.GetProperty("user").GetProperty("favorite_team").GetString() == "academy", "Preference update failed.");
+        phase(Phase.RoleSwitch);
         var previousToken = calendar is null ? fanToken : await LoginAsync(client, calendar.Accounts.StaffPhone, "coach");
         using var switched = await JsonAsync(client, HttpMethod.Post, "/api/mobile/auth/switch-role", new { role = "management" });
         var managementToken = switched.RootElement.GetProperty("token").GetString()!;
         Check(Expiration(previousToken) == Expiration(managementToken), "Role switch extended session expiration.");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", managementToken);
+        phase(Phase.OrganizationRead);
         using var organization = await JsonAsync(client, HttpMethod.Get, "/api/mobile/management/organization");
         Check(organization.RootElement.GetProperty("requires_organization_selection").GetBoolean() == (calendar is null), "Organization choice differs from the fixture.");
+        phase(Phase.OrganizationSelection);
         using var selected = await JsonAsync(client, HttpMethod.Post, "/api/mobile/management/organization",
             new { organization_id = OrganizationIds.Club });
         Check(selected.RootElement.GetProperty("organization_id").GetString() == OrganizationIds.Club, "Organization selection failed.");
+        phase(Phase.Calendar);
         if (calendar is not null) await CalendarAsync(client, calendar);
+        phase(Phase.WrongHost);
         using (var wrongHost = new HttpRequestMessage(HttpMethod.Get, "/api/health/ready"))
         {
             wrongHost.Headers.Host = "untrusted.invalid";
             using var rejected = await client.SendAsync(wrongHost);
-            Check(rejected.StatusCode == HttpStatusCode.Forbidden, "Nonlocal Host was accepted.");
+            Check(rejected.StatusCode == HttpStatusCode.Forbidden, "Nonlocal Host was accepted.", rejected.StatusCode);
         }
+        phase(Phase.WrongOrigin);
         using (var crossOrigin = new HttpRequestMessage(HttpMethod.Post, "/__fixture__/stop"))
         {
             crossOrigin.Headers.Add("Origin", "http://untrusted.invalid");
             using var rejected = await client.SendAsync(crossOrigin);
-            Check(rejected.StatusCode == HttpStatusCode.Forbidden, "Cross-origin stop was accepted.");
+            Check(rejected.StatusCode == HttpStatusCode.Forbidden, "Cross-origin stop was accepted.", rejected.StatusCode);
         }
+        phase(Phase.Stop);
         using var stop = await client.PostAsync("/__fixture__/stop", null);
-        Check(stop.StatusCode == HttpStatusCode.Accepted, "Graceful stop failed.");
+        Check(stop.StatusCode == HttpStatusCode.Accepted, "Graceful stop failed.", stop.StatusCode);
     }
 
     private static async Task CalendarAsync(HttpClient client, CalendarDatabaseFixture fixture)
@@ -102,7 +146,7 @@ internal static class PreviewSmoke
         Check(response.GetProperty("player_id").GetString() == fixture.SecondChild && response.GetProperty("status").GetString() == "maybe", "Fresh calendar did not confirm the own-child RSVP.");
         using var cancelled = await client.PostAsJsonAsync("/api/mobile/availability",
             new { event_id = fixture.Id("cancelled"), event_type = "event", player_id = fixture.Accounts.ChildId, status = "going" });
-        Check(cancelled.StatusCode == HttpStatusCode.Forbidden, "Cancelled event accepted RSVP.");
+        Check(cancelled.StatusCode == HttpStatusCode.Forbidden, "Cancelled event accepted RSVP.", cancelled.StatusCode);
 
         await LoginAsync(client, fixture.Accounts.StaffPhone, "coach");
         using var coach = await JsonAsync(client, HttpMethod.Get, monthPath);
@@ -117,7 +161,7 @@ internal static class PreviewSmoke
               replyPlayers.Single(row => row.GetProperty("id").GetString() == fixture.SecondChild).GetProperty("status").GetString() == "maybe", "Scoped staff response pagination failed.");
         using var staffWrite = await client.PostAsJsonAsync("/api/mobile/availability",
             new { event_id = fixture.Id("host"), event_type = "event", player_id = fixture.Accounts.ChildId, status = "going" });
-        Check(staffWrite.StatusCode == HttpStatusCode.Forbidden, "Read-only coach view accepted own-player RSVP.");
+        Check(staffWrite.StatusCode == HttpStatusCode.Forbidden, "Read-only coach view accepted own-player RSVP.", staffWrite.StatusCode);
 
         await LoginAsync(client, fixture.Accounts.PlayerPhone, "player");
         using var player = await JsonAsync(client, HttpMethod.Get, monthPath);
@@ -148,8 +192,27 @@ internal static class PreviewSmoke
         using var request = new HttpRequestMessage(method, path);
         if (body is not null) request.Content = JsonContent.Create(body);
         using var response = await client.SendAsync(request);
-        Check(response.StatusCode == HttpStatusCode.OK, "An authenticated preview API operation failed.");
+        Check(response.StatusCode == HttpStatusCode.OK, Operation(method, path) + " failed.", response.StatusCode);
         return JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+    }
+
+    private static string Operation(HttpMethod method, string path)
+    {
+        var route = path.Split('?', 2)[0];
+        return (method.Method, route) switch
+        {
+            ("POST", "/api/mobile/auth/request-otp") => "Preview OTP issue",
+            ("POST", "/api/mobile/auth/verify-otp") => "Preview OTP verification",
+            ("GET", "/api/mobile/auth/me") => "Preview own identity read",
+            ("PUT", "/api/mobile/auth/me") => "Preview preference update",
+            ("PUT", "/api/mobile/profile") => "Preview profile update",
+            ("POST", "/api/mobile/auth/switch-role") => "Preview role switch",
+            ("GET", "/api/mobile/management/organization") => "Preview organization read",
+            ("POST", "/api/mobile/management/organization") => "Preview organization selection",
+            ("GET", "/api/mobile/calendar") => "Preview calendar read",
+            ("POST", "/api/mobile/availability") => "Preview RSVP update",
+            _ => "Preview protected API operation"
+        };
     }
 
     private static long Expiration(string token)
@@ -160,8 +223,8 @@ internal static class PreviewSmoke
         return document.RootElement.GetProperty("exp").GetInt64();
     }
 
-    private static void Check(bool value, string message)
+    private static void Check(bool value, string message, HttpStatusCode? status = null)
     {
-        if (!value) throw new InvalidOperationException(message);
+        if (!value) throw new PreviewSmokeException(message, status);
     }
 }
