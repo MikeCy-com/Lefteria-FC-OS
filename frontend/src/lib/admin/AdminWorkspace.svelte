@@ -12,17 +12,20 @@
 </script>
 
 <div class="admin-workspace" data-testid="admin-workspace">
+  <a class="admin-skip" href="#admin-main">Μετάβαση στο περιεχόμενο</a>
   <header class="admin-header">
     <a class="admin-brand" href="/admin"><img src="/mobile/club-logo.png" alt="" width="40" height="40" /><span>LEFTERIA FC OS <small>Διαχείριση</small></span></a>
     <div class="admin-actions"><a href="/">Ιστοσελίδα</a><button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button></div>
   </header>
   <div class="admin-workspace-body">
     <nav class="admin-sidebar" aria-label="Διαχείριση λογαριασμού">
+      <p class="admin-nav-label">Ο ΧΩΡΟΣ ΣΟΥ</p>
       <a href="#account">Λογαριασμός</a><a href="#session">Σύνδεση</a><a href="#access">Δικαιώματα πρόσβασης</a>
+      <div class="admin-sidebar-context"><span>ΣΥΝΔΕΔΕΜΕΝΟΣ ΩΣ</span><strong>{user.name || user.username}</strong><small>{roleName}</small></div>
     </nav>
-    <main class="admin-content">
-      <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ</p><h1>Καλώς ήρθατε, {user.name || user.username}</h1>
-      <p class="admin-muted">Ο λογαριασμός, η σύνδεση και τα τρέχοντα δικαιώματά σας.</p>
+    <main class="admin-content" id="admin-main" tabindex="-1">
+      <div class="admin-workspace-intro"><p class="admin-eyebrow">LEFTERIA FC · ΔΙΑΧΕΙΡΙΣΗ</p><h1>Καλώς ήρθατε,<br />{user.name || user.username}</h1>
+      <p class="admin-muted">Ο λογαριασμός, η σύνδεση και τα τρέχοντα δικαιώματά σας.</p></div>
       <section class="admin-panel" id="account" aria-labelledby="account-title">
         <h2 id="account-title">Λογαριασμός</h2>
         <dl class="admin-details"><div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div><div><dt>Όνομα χρήστη</dt><dd>{user.username}</dd></div><div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div></dl>

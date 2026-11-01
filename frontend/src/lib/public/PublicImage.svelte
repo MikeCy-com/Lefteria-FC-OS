@@ -3,4 +3,4 @@
   let failed = $state(false);
   $effect(() => { void src; failed = false; });
 </script>
-<img src={failed || !src ? '/club/logo512.png' : src} {alt} class={className} loading={eager ? 'eager' : 'lazy'} onerror={() => { failed = true; }} />
+<img src={failed || !src ? '/club/logo512.png' : src} {alt} class={className} data-fallback={failed || !src} loading={eager ? 'eager' : 'lazy'} onerror={() => { failed = true; }} />

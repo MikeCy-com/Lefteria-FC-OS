@@ -12,4 +12,4 @@
   <div><p class="public-eyebrow">ΤΕΛΕΥΤΑΙΑ ΝΕΑ</p><h2>ΝΕΑ & ΑΝΑΚΟΙΝΩΣΕΙΣ</h2></div>
   <div class="public-news-filters">{#each [['all','ΟΛΑ'],...categories.map(category => [category,category])] as [value,label], index}<button type="button" aria-pressed={filter === value} onclick={() => { filter = value; }} data-testid={`public-news-filter-${index}`}>{label}</button>{/each}</div>
   <a href="/news" data-testid="public-news-all">ΔΕΙΤΕ ΟΛΑ ΤΑ ΝΕΑ <Icon name="arrow" size={17} /></a>
-</div>{#if available}<NewsCards articles={rows} quote />{:else}<Unavailable />{/if}</section>
+</div>{#if available}<NewsCards articles={rows} />{:else}<Unavailable />{/if}</section>
