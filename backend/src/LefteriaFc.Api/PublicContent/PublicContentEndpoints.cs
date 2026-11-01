@@ -7,11 +7,8 @@ public static class PublicContentEndpoints
     public static IEndpointRouteBuilder MapPublicContentEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/public").AllowAnonymous().WithTags("Public website");
-        group.MapGet("/site", async (string? organization_id, PublicContentService service, HttpContext context, CancellationToken token) =>
-            await Execute(organization_id, service, context, token, site => site with
-            {
-                News = site.News.Take(20).ToArray(), Fixtures = OrderFixtures(site.Fixtures).Take(50).ToArray()
-            }))
+        group.MapGet("/site", async (string? organization_id, PublicContentService service, TimeProvider clock, HttpContext context, CancellationToken token) =>
+            await Execute(organization_id, service, context, token, site => SiteView(site, clock.GetUtcNow())))
             .WithName("GetPublicSite").Produces<PublicSiteResult>().Produces<PublicContentError>(400).Produces<PublicContentError>(503);
         group.MapGet("/news", async (string? organization_id, string? category, int? offset, int? limit,
             PublicContentService service, HttpContext context, CancellationToken token) =>
@@ -50,11 +47,18 @@ public static class PublicContentEndpoints
         catch (Exception) { return Unavailable(); }
     }
 
-    private static IEnumerable<PublicFixture> OrderFixtures(IReadOnlyList<PublicFixture> rows)
+    private static PublicSiteResult SiteView(PublicSiteResult site, DateTimeOffset now)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        return rows.Where(row => row.MatchDate >= today).OrderBy(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal)
-            .Concat(rows.Where(row => row.MatchDate < today).OrderByDescending(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal));
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(PublicFixtureClock.TimeZone);
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, zone).DateTime);
+        bool Future(PublicFixture row) => PublicFixtureClock.KickoffAt(row.MatchDate, row.MatchTime) is { } kickoff
+            ? kickoff > now : row.MatchTime is null && row.MatchDate >= today;
+        var fixtures = site.Fixtures.OrderBy(row => Future(row) ? 0 : 1)
+            .ThenBy(row => Future(row) ? row.MatchDate.DayNumber : -row.MatchDate.DayNumber)
+            .ThenBy(row => row.MatchTime, StringComparer.Ordinal).ThenBy(row => row.Id, StringComparer.Ordinal).Take(50).ToArray();
+        return site with { News = site.News.Take(20).ToArray(), Fixtures = fixtures, GeneratedAt = now,
+            TimeZone = PublicFixtureClock.TimeZone,
+            FixtureClock = fixtures.Select(row => new PublicFixtureInstant(row.Id, PublicFixtureClock.KickoffAt(row.MatchDate, row.MatchTime))).ToArray() };
     }
     private static async Task<IResult> Execute<T>(string? organization, PublicContentService service, HttpContext context, CancellationToken token,
         Func<PublicSiteResult, T> project, bool notFoundWhenNull = false)

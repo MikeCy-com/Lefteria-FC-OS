@@ -113,6 +113,8 @@ jobs:
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-configuration-policy
+      - name: Cyprus fixture time and daylight-saving boundaries
+        run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --public-fixture-clock-policy
       - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
       - name: Build and smoke the separate roster import tool
         run: |

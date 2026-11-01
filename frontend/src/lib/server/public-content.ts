@@ -14,9 +14,9 @@ export function publicNewsScope(url: URL): PublicNewsScope {
   return publicOrganization(url);
 }
 
-function publicApi() {
+export function publicApi() {
   const origin = new URL(INTERNAL_API_ORIGIN);
-  if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/') throw new Error('Invalid internal API origin.');
+  if (!['http:', 'https:'].includes(origin.protocol) || origin.username || origin.password || origin.pathname !== '/' || origin.search || origin.hash) throw new Error('Invalid internal API origin.');
   return createApiClient({ baseUrl: origin.origin, fetch: (input, init) =>
     // No browser RequestEvent/cookies/Authorization enters this server client.
     fetch(input, { ...init, headers: { accept: 'application/json' }, credentials: 'omit', cache: 'no-store', signal: AbortSignal.timeout(3000) }) });
@@ -40,15 +40,36 @@ async function requestArticle(organization: PublicNewsScope, id: string): Promis
   } catch { return { value: null, status: 503 }; }
 }
 
+// Bare Node preview has no edge proxy. This single public GET uses the same
+// fixed, credential-free server client as SSR; no caller chooses its upstream.
+export async function requestPublicSearchNews(url: URL) {
+  const allowed = new Set(['organization_id', 'offset', 'limit', 'category']);
+  const seen = new Set<string>();
+  for (const key of url.searchParams.keys()) {
+    if (!allowed.has(key) || seen.has(key)) error(400, 'Μη έγκυρα φίλτρα.');
+    seen.add(key);
+  }
+  const organization = publicNewsScope(url);
+  const offsetText = url.searchParams.get('offset') ?? '0';
+  const limitText = url.searchParams.get('limit') ?? '100';
+  if (!/^(0|[1-9][0-9]{0,4})$/.test(offsetText) || !/^[1-9][0-9]{0,2}$/.test(limitText)) error(400, 'Μη έγκυρα φίλτρα.');
+  const offset = Number(offsetText); const limit = Number(limitText); const category = url.searchParams.get('category') ?? '';
+  if (offset > 20000 || limit > 100 || category.length > 200) error(400, 'Μη έγκυρα φίλτρα.');
+  return requestNews(organization, offset, category, limit);
+}
+
 export async function loadPublicSite(url: URL, fixed?: PublicOrganization): Promise<PublicPageData> {
   const organization = publicOrganization(url, fixed);
   const resultTask = requestSite(organization);
   // Shared public navigation needs Academy groups even on an FC page. They
   // remain a separate explicit public request, never injected into FC site data.
   const navigationTask = organization === 'lefteria_fc_academy' ? resultTask : requestSite('lefteria_fc_academy');
-  const [result, navigation] = await Promise.all([resultTask, navigationTask]);
+  // The source public shell always uses the FC /club branding. Page content
+  // retains its explicit organization; this never widens a private grant.
+  const brandingTask = organization === 'lefteria_fc' ? resultTask : requestSite('lefteria_fc');
+  const [result, navigation, branding] = await Promise.all([resultTask, navigationTask, brandingTask]);
   return { site: result.value, available: result.status === 200 && result.value !== null, organization,
-    navigationGroups: navigation.value?.academy_groups ?? [] };
+    branding: branding.value?.club ?? null, navigationGroups: navigation.value?.academy_groups ?? [] };
 }
 
 export async function loadPublicHome(url: URL): Promise<PublicHomeData> {

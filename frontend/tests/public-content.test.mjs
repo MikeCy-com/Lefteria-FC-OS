@@ -37,6 +37,7 @@ test('public Markdown permits safe links and preserves text without executing HT
 function installPublicModuleHooks(origin) {
   return registerHooks({
     resolve(specifier, context, nextResolve) {
+      if (specifier === '$app/state') return { url: 'data:text/javascript,' + encodeURIComponent('export const page = { url: new URL("https://fixture.test/") };'), shortCircuit: true };
       if (specifier === '$app/env/private' && origin) return { url: 'data:text/javascript,' + encodeURIComponent('export const INTERNAL_API_ORIGIN=' + JSON.stringify(origin)), shortCircuit: true };
       if (specifier.startsWith('.') && /\/src\/(?:lib\/(?:public|server|api)|routes)\//.test(context.parentURL ?? '') && !/\.[a-z]+$/i.test(specifier)) {
         const candidate = new URL(specifier + '.ts', context.parentURL);
@@ -108,7 +109,7 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
     const homeHtml = render(Home, { props: { data: home } }).body;
     assert.match(homeHtml, /Fixture Academy global article/);
     assert.doesNotMatch(homeHtml, /Fixture FC article/);
-    assert.match(homeHtml, /href="\/academy#group-academy-group"/);
+    assert.match(homeHtml, /data-testid="public-rail-academy"/);
     assert.match(homeHtml, /href="\/news\/fixture-academy-global-article--academy-only"/);
     const news = await loadPublicNews(new URL('https://preview.test/news?category=' + encodeURIComponent('Ακαδημία') + '&page=2'));
     assert.equal(news.newsScope, null);

@@ -692,6 +692,11 @@ export interface components {
             team_id: null | string;
             venue: null | string;
         };
+        PublicFixtureInstant: {
+            id: string;
+            /** Format: date-time */
+            kickoff_at: null | string;
+        };
         PublicNewsResult: {
             items: components["schemas"]["PublicArticle"][];
             /** Format: int32 */
@@ -704,10 +709,14 @@ export interface components {
         PublicSiteResult: {
             academy_groups: components["schemas"]["PublicAcademyGroup"][];
             club: null | components["schemas"]["PublicClub"];
+            fixture_clock?: null | components["schemas"]["PublicFixtureInstant"][];
             fixtures: components["schemas"]["PublicFixture"][];
+            /** Format: date-time */
+            generated_at?: null | string;
             news: components["schemas"]["PublicArticle"][];
             organization_id: string;
             teams: components["schemas"]["PublicTeam"][];
+            time_zone?: null | string;
         };
         PublicTeam: {
             banner_url: null | string;

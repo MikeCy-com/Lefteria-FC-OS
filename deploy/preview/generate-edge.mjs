@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
 const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}'];
-export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|academy|about|contact)(?:/__data[.]json)?$|news(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
+export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|academy|about|contact|privacy|terms|academy/philosophy)(?:/__data[.]json)?$|news(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
 export const publicApiExpression = '^/api/public/(?:site|news(?:/[^/]+)?)$';
 
 export function reviewedPublicReads(document) {

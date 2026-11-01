@@ -1,33 +1,67 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { greekDate } from './content';
   import type { PublicGroup, PublicSite } from './types';
+  import { CLUB_TIME_ZONE, nextPublicFixture, fixtureCountdown, snapshotInstant } from './fixture-clock';
+  import { publicImages } from './images';
+  import Icon from './PublicIcon.svelte';
+  import TeamCrest from './TeamCrest.svelte';
   let { site, navigationGroups = [] }: { site: PublicSite | null; navigationGroups?: PublicGroup[] } = $props();
   let index = $state(0); let paused = $state(false); let visible = $state(true); let reduced = $state(false);
-  let region: HTMLElement;
-  const club = $derived(site?.club);
-  const team = $derived(site?.teams[0]);
-  const hero = 'https://static.prod-images.emergentagent.com/jobs/bf6c3d8c-bb69-4407-a80f-3421fc7ad126/images/89d7357a5d918ed9f0adf953c27f04db5e7a7c5f78814f7bd3c449710aab9c29.jpeg';
-  const backgrounds = $derived([navigationGroups.find(group => group.banner_url)?.banner_url || hero, team?.banner_url || club?.stadium_image_url || hero]);
-  const today = new Date().toISOString().slice(0, 10);
-  const nextMatch = $derived(site?.fixtures.filter(fixture => fixture.status === 'Scheduled' && fixture.match_date >= today).sort((a, b) => a.match_date.localeCompare(b.match_date))[0]);
+  let hovered = $state(false); let focused = $state(false); let hidden = $state(false); let region: HTMLElement;
+  const club = $derived(site?.club); const firstTeam = $derived(site?.teams.find(team => team.banner_url) || site?.teams[0]);
+  const academySlide = $derived(index === 0);
+  const backgrounds = $derived([navigationGroups.find(group => group.banner_url)?.banner_url || publicImages.hero, firstTeam?.banner_url || club?.stadium_image_url || publicImages.pitch]);
+  const running = $derived(!paused && !hovered && !focused && visible && !hidden && !reduced);
+  let clock = $state<number | null>(null);
+  // SSR and initial hydration share the server snapshot. The mounted clock then
+  // advances every second for the real countdown and refreshes on focus.
+  const snapshot = $derived(site?.generated_at && site.time_zone ? { generated_at: site.generated_at, time_zone: site.time_zone } : null);
+  const now = $derived(snapshotInstant(snapshot) === null ? null : clock ?? snapshotInstant(snapshot));
+  const fixtureRows = $derived(site?.fixtures.map(row => ({ ...row,
+    kickoff_at: site.fixture_clock?.find(instant => instant.id === row.id)?.kickoff_at ?? null })) ?? []);
+  const fixture = $derived(nextPublicFixture(fixtureRows, now));
+  const countdown = $derived(fixture && now !== null ? fixtureCountdown(fixture,now) : null);
+  const fixtureDate = new Intl.DateTimeFormat('el-GR', { weekday:'long',day:'numeric',month:'long',timeZone:CLUB_TIME_ZONE });
+  function select(next: number) { index = (next + 2) % 2; paused = true; }
   onMount(() => {
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const updateMotion = () => { reduced = motion.matches; };
-    updateMotion(); motion.addEventListener('change', updateMotion);
-    const observer = new IntersectionObserver(entries => { visible = entries.some(entry => entry.isIntersecting); });
+    const updateMotion = () => { reduced = motion.matches; if (motion.matches) paused = true; };
+    const visibility = () => { hidden = document.hidden; };
+    const updateClock = () => { clock = Date.now(); };
+    updateMotion(); visibility(); motion.addEventListener('change', updateMotion); document.addEventListener('visibilitychange', visibility);
+    const observer = new IntersectionObserver(entries => { visible = entries.some(entry => entry.isIntersecting); }, { threshold: 0.1 });
     observer.observe(region);
-    const timer = window.setInterval(() => { if (!paused && !reduced && visible && document.visibilityState === 'visible') index = (index + 1) % 2; }, 7000);
-    return () => { window.clearInterval(timer); observer.disconnect(); motion.removeEventListener('change', updateMotion); };
+    const timer = window.setInterval(() => { if (running) index = (index + 1) % 2; }, 5000);
+    updateClock(); window.addEventListener('focus',updateClock);
+    const clockTimer = window.setInterval(updateClock,1000);
+    return () => { window.clearInterval(timer); window.clearInterval(clockTimer); window.removeEventListener('focus',updateClock); observer.disconnect(); motion.removeEventListener('change', updateMotion); document.removeEventListener('visibilitychange', visibility); };
   });
 </script>
-<section class="public-home-hero" bind:this={region} aria-roledescription="καρουζέλ" aria-label="Ακαδημία και πρώτη ομάδα" onfocusin={() => { paused = true; }}>
-  {#each backgrounds as image, position}<div class:active={index === position} class="hero-photo" style:background-image={`url("${image.replaceAll('"', '%22')}")`} aria-hidden="true"></div>{/each}
-  <div class="hero-copy" aria-live={paused || reduced ? 'polite' : 'off'}><p class="public-eyebrow">{index === 0 ? club?.name || 'ΛΕΥΤΕΡΙΑ FC' : 'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
-    {#if index === 0}<h1>Η ΠΟΛΗ ΜΑΣ.<br /><em>ΤΑ ΠΑΙΔΙΑ ΜΑΣ.</em><br />ΤΟ ΜΕΛΛΟΝ ΤΟΥΣ.</h1>{:else}<h1>ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ.<br /><em>Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</em></h1>{/if}
-    {#if club?.description}<p class="hero-description">{club.description}</p>{/if}
-    <div class="hero-actions"><a class="public-button" href={index === 0 ? '/academy' : '/team'}>{index === 0 ? 'ΔΕΣ ΤΗΝ ΑΚΑΔΗΜΙΑ' : 'ΓΝΩΡΙΣΕ ΤΗΝ ΟΜΑΔΑ'} <span aria-hidden="true">↗</span></a><a class="public-button public-button-outline" href={index === 0 ? '/team' : '/team?tab=schedule'}>{index === 0 ? 'Η ΠΡΩΤΗ ΟΜΑΔΑ' : 'ΠΡΟΓΡΑΜΜΑ ΑΓΩΝΩΝ'} <span aria-hidden="true">↗</span></a></div>
+<section class="public-home-hero" data-testid="hero-section">
+  <div class="public-hero-stage public-hero-carousel" bind:this={region} role="region" aria-roledescription="καρουζέλ" aria-label="Ακαδημία και πρώτη ομάδα" data-testid="hero-carousel" data-slide={academySlide ? 'academy' : 'first-team'} data-rotating={running}
+    onpointerenter={event => { if (event.pointerType === 'mouse') hovered = true; }} onpointerleave={() => { hovered = false; }}
+    onfocusin={() => { focused = true; }} onfocusout={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) focused = false; }}
+    ontouchstart={event => { if (!(event.target as Element).closest('[data-testid="hero-slide-toggle"]')) paused = true; }}>
+    {#each backgrounds as image, position}<div class="public-hero-visual" class:is-active={index === position} style:background-image={`url("${image.replaceAll('"','%22')}")`} aria-hidden="true" data-testid={`hero-slide-background-${position}`}></div>{/each}
+    <div class="public-hero-copy" aria-live={running ? 'off' : 'polite'} aria-atomic="true"><p class="public-eyebrow" data-testid="public-hero-brand">{academySlide ? club?.name || 'ΛΕΥΤΕΡΙΑ FC' : 'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
+      <h1 class="hero-copy-stack" data-testid="public-hero-title"><span aria-hidden={!academySlide}>Η ΠΟΛΗ ΜΑΣ.<br /><em>ΤΑ ΠΑΙΔΙΑ ΜΑΣ.</em><br />ΤΟ ΜΕΛΛΟΝ ΤΟΥΣ.</span><span aria-hidden={academySlide}>ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ.<br /><em>Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</em></span></h1>
+      <p class="public-hero-description hero-copy-stack" data-testid="public-hero-description"><span aria-hidden={!academySlide}>{club?.description || 'Χτίζουμε πρωταθλητές μέσα από το πάθος, την πειθαρχία και την ομαδικότητα. Ελάτε μαζί μας στο ταξίδι προς την κορυφή.'}</span><span aria-hidden={academySlide}>Στο πλευρό της ομάδας μας, σε κάθε αγώνα.</span></p>
+      <div class="public-hero-actions">{#if academySlide}<a href="/academy" class="public-button" data-testid="hero-join-academy">ΔΕΣ ΤΗΝ ΑΚΑΔΗΜΙΑ <Icon name="arrow" size={18} /></a><a href="/team" class="public-button public-button-outline" data-testid="hero-view-team">Η ΠΡΩΤΗ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a>{:else}<a href="/team" class="public-button" data-testid="hero-first-team-link">ΓΝΩΡΙΣΕ ΤΗΝ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a><a href="/team?tab=schedule" class="public-button public-button-outline" data-testid="hero-first-team-schedule">ΠΡΟΓΡΑΜΜΑ ΑΓΩΝΩΝ <Icon name="arrow" size={18} /></a>{/if}</div>
+    </div>
+    {#if fixture}<aside class="public-hero-fixture" data-testid="public-hero-fixture">
+      <div class="public-fixture-heading"><span>ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</span><a href="/team?tab=schedule" aria-label="Όλοι οι αγώνες" title="Όλοι οι αγώνες"><Icon name="external" size={18} /></a></div>
+      <p class="public-fixture-date">{fixture.competition}<br />{fixtureDate.format(new Date(fixture.match_date+'T12:00:00Z'))}{fixture.match_time ? ` · ${fixture.match_time}` : ''}</p>
+      <a href={`/match/${encodeURIComponent(fixture.id)}`} class="public-fixture-teams"><div><TeamCrest name={fixture.home_team} logo={fixture.home_team_logo} clubName={club?.name} clubLogo={club?.logo_url} /><strong>{fixture.home_team}</strong></div><span>—</span><div><TeamCrest name={fixture.away_team} logo={fixture.away_team_logo} clubName={club?.name} clubLogo={club?.logo_url} /><strong>{fixture.away_team}</strong></div></a>
+      {#if countdown}<div class="public-countdown" data-testid="public-hero-countdown">{#each countdown as value,index}<div><strong>{String(value).padStart(2,'0')}</strong><span>{['ΗΜΕΡΕΣ','ΩΡΕΣ','ΛΕΠΤΑ','ΔΕΥΤ.'][index]}</span></div>{/each}</div>{/if}
+      {#if fixture.venue}<p class="public-fixture-venue">{fixture.venue}</p>{/if}
+    </aside>{/if}
+    <div class="public-hero-bottom"><p class="public-hero-motto">{club?.motto || 'ΜΙΑ ΟΜΑΔΑ. ΕΝΑ ΟΝΕΙΡΟ.'}</p>
+      <div class="public-hero-controls" role="group" aria-label="Εναλλαγή κεντρικών εικόνων" data-testid="hero-slide-controls">
+        <button type="button" onclick={() => select(index - 1)} aria-label="Προηγούμενη εικόνα" title="Προηγούμενη εικόνα" data-testid="hero-slide-previous"><Icon name="back" size={19} /></button>
+        {#each ['Ακαδημία','Πρώτη ομάδα'] as label, position}<button type="button" onclick={() => select(position)} class="public-hero-dot" aria-label={label} aria-pressed={index === position} title={label} data-testid={`hero-slide-select-${position}`}><span></span></button>{/each}
+        <button type="button" onclick={() => select(index + 1)} aria-label="Επόμενη εικόνα" title="Επόμενη εικόνα" data-testid="hero-slide-next"><Icon name="chevron" size={19} /></button>
+        <button type="button" onclick={() => { paused = !paused; focused = false; }} aria-label={paused ? 'Έναρξη αυτόματης εναλλαγής' : 'Παύση αυτόματης εναλλαγής'} title={paused ? 'Έναρξη αυτόματης εναλλαγής' : 'Παύση αυτόματης εναλλαγής'} aria-pressed={paused} data-testid="hero-slide-toggle"><Icon name={paused ? 'play' : 'pause'} size={16} /></button>
+      </div>
+    </div>
   </div>
-  {#if nextMatch}<aside class="hero-fixture"><p class="public-eyebrow">ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</p><p>{nextMatch.competition}</p><time datetime={nextMatch.match_date}>{greekDate(nextMatch.match_date)}{nextMatch.match_time ? ` · ${nextMatch.match_time}` : ''}</time><div><strong>{nextMatch.home_team}</strong><span>—</span><strong>{nextMatch.away_team}</strong></div>{#if nextMatch.venue}<p>{nextMatch.venue}</p>{/if}<a href="/team?tab=schedule">ΟΛΟ ΤΟ ΠΡΟΓΡΑΜΜΑ ↗</a></aside>{/if}
-  <div class="hero-bottom"><p>{club?.motto || 'ΜΙΑ ΟΜΑΔΑ. ΕΝΑ ΟΝΕΙΡΟ.'}</p><div class="hero-controls"><button aria-label="Προηγούμενη διαφάνεια" onclick={() => { paused = true; index = (index + 1) % 2; }}>←</button><span>{index + 1} / 2</span><button aria-label="Επόμενη διαφάνεια" onclick={() => { paused = true; index = (index + 1) % 2; }}>→</button><button aria-label={paused ? 'Συνέχιση αυτόματης εναλλαγής' : 'Παύση αυτόματης εναλλαγής'} aria-pressed={paused} onclick={() => { paused = !paused; }}>{paused ? '▷' : 'Ⅱ'}</button></div></div>
 </section>
