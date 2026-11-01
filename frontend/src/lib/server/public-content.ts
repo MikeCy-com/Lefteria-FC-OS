@@ -73,7 +73,8 @@ export async function loadPublicSite(url: URL, fixed?: PublicOrganization): Prom
 }
 
 export async function loadPublicHome(url: URL): Promise<PublicHomeData> {
-  const [site, news] = await Promise.all([loadPublicSite(url), requestNews(null, 0, '', 3)]);
+  // Filter the actual published feed before selecting the three homepage cards.
+  const [site, news] = await Promise.all([loadPublicSite(url), requestNews(null, 0, '', 100)]);
   return { ...site, news: news.value, newsAvailable: news.status === 200 && news.value !== null };
 }
 

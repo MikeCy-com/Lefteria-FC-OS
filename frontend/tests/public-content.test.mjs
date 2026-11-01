@@ -78,6 +78,8 @@ test('rendered public article and cards escape source text and do not invent unp
 test('public SSR keeps global news and Academy navigation separate from FC site data without forwarding credentials', async () => {
   const first = { id: 'first', organization_id: 'lefteria_fc', title: 'Fixture FC article', excerpt: '', content: '', image_url: null, category: 'Νέα', audience: 'first_team', is_featured: false, created_at: '2026-10-31T12:00:00Z' };
   const academyArticle = { ...first, id: 'academy-only', organization_id: 'lefteria_fc_academy', title: 'Fixture Academy global article', category: 'Ακαδημία', audience: 'academy', created_at: '2026-11-01T12:00:00Z' };
+  const homeFeed = [academyArticle, { ...academyArticle, id: 'academy-second' }, { ...academyArticle, id: 'academy-third' },
+    { ...first, id: 'older-general', title: 'Fixture older general article', category: 'Νέα' }];
   const separatorArticle = { ...first, id: 'record--legacy', title: 'Recorded article' };
   const group = { id: 'academy-group', organization_id: 'lefteria_fc_academy', name: 'Fixture public Academy group', age_range: 'U12', description: '', training_schedule: '', banner_url: null };
   const fcSite = { organization_id: 'lefteria_fc', club: null, teams: [], academy_groups: [], fixtures: [], news: [first] };
@@ -90,7 +92,7 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
     if (url.pathname === '/api/public/site') response.end(JSON.stringify(url.searchParams.get('organization_id') === 'lefteria_fc_academy' ? academySite : fcSite));
     else if (url.pathname === '/api/public/news/academy-only') response.end(JSON.stringify(academyArticle));
     else if (url.pathname === '/api/public/news/record--legacy') response.end(JSON.stringify(separatorArticle));
-    else if (url.pathname === '/api/public/news') response.end(JSON.stringify({ items: [academyArticle], total: 30, offset: Number(url.searchParams.get('offset')), limit: Number(url.searchParams.get('limit')) }));
+    else if (url.pathname === '/api/public/news') response.end(JSON.stringify({ items: Number(url.searchParams.get('limit')) >= homeFeed.length ? homeFeed : [academyArticle], total: 30, offset: Number(url.searchParams.get('offset')), limit: Number(url.searchParams.get('limit')) }));
     else { response.statusCode = 404; response.end('{}'); }
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -103,6 +105,7 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
     assert.deepEqual(home.site.academy_groups, []);
     assert.equal(home.site.news[0].id, 'first');
     assert.equal(home.news.items[0].id, 'academy-only');
+    assert.ok(home.news.items.some(article => article.id === 'older-general'), 'A homepage category must include older published news beyond the first three cards.');
     assert.equal(home.navigationGroups[0].id, 'academy-group');
     assert.equal(requests.find(row => row.url.pathname === '/api/public/news').url.searchParams.has('organization_id'), false);
     const { default: Home } = await import('../src/routes/+page.svelte');
