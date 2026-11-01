@@ -5,6 +5,14 @@ import { pathToFileURL } from 'node:url';
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
 const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}'];
+const entryOperations = [
+  ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
+  ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
+  ['post', '/api/mobile/auth/request-otp', []], ['post', '/api/mobile/auth/verify-otp', []],
+  ['post', '/api/mobile/auth/register-fan', []],
+  ['post', '/api/mobile/auth/exchange-legacy', [{ LegacyMobile: [] }]],
+  ['get', '/api/uploads/avatars/{fileName}', []], ['head', '/api/uploads/avatars/{fileName}', []]
+];
 export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|academy|about|contact|privacy|terms|academy/philosophy)(?:/__data[.]json)?$|news(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
 export const publicApiExpression = '^/api/public/(?:site|news(?:/[^/]+)?)$';
 
@@ -74,16 +82,41 @@ export function bearerRouteGroups(document) {
   return [...groups].map(([method, expressions]) => ({ method, expression: `^(?:${expressions.join('|')})$` }));
 }
 
+export function entryRouteGroups(document) {
+  const groups = new Map();
+  for (const [method, path, security] of entryOperations) {
+    const operation = document?.paths?.[path]?.[method];
+    if (!operation || JSON.stringify(operation.security ?? []) !== JSON.stringify(security)) {
+      throw new Error('Reviewed application entry security changed.');
+    }
+    const expression = path.replace('{fileName}', '[^/]+');
+    if (path.includes('{fileName}') && !operation.parameters?.some(value => value.name === 'fileName' && value.in === 'path' && value.required)) {
+      throw new Error('The sanitized avatar filename must remain a required path parameter.');
+    }
+    const paths = groups.get(method.toUpperCase()) ?? [];
+    paths.push(expression); groups.set(method.toUpperCase(), paths);
+  }
+  return [...groups].map(([method, paths]) => ({ method, expression: `^(?:${paths.join('|')})$` }));
+}
+
 export function generateEdge(document, hostname, contractDigest) {
   if (hostname !== supportedHost) throw new Error('The preview hostname must be explicitly reviewed.');
   if (!/^[a-f0-9]{64}$/.test(contractDigest)) throw new Error('A contract SHA-256 is required.');
   const groups = bearerRouteGroups(document);
+  const entries = entryRouteGroups(document);
   reviewedPublicReads(document);
   const matchers = groups.map(({ method, expression }) => `  @private_${method.toLowerCase()} {
     method ${method}
     path_regexp private_${method.toLowerCase()} ${expression}
-    header_regexp bearer_${method.toLowerCase()} Authorization (?i)^Bearer[[:blank:]]+[^[:blank:]]+$
   }`).join('\n');
+  const entryMatchers = entries.map(({ method, expression }) => `  @entry_${method.toLowerCase()} {
+    method ${method}
+    path_regexp entry_${method.toLowerCase()} ${expression}
+  }`).join('\n');
+  const entryHandles = entries.map(({ method }) => `    handle @entry_${method.toLowerCase()} {
+      # The API enforces its own cookie/JWT, throttling and request guards.
+      reverse_proxy api:8080
+    }`).join('\n');
   const handles = groups.map(({ method }) => `    handle @private_${method.toLowerCase()} {
       # A match only selects the API; its JWT and current-scope checks still apply.
       reverse_proxy api:8080
@@ -98,10 +131,10 @@ export function generateEdge(document, hostname, contractDigest) {
     '  -Server',
     '}'
   ].map(line => indent + line).join('\n');
-  return `# Generated from reviewed public reads and explicit Mobile security; do not broaden by hand.
+  return `# Generated from reviewed application contracts; application authentication stays authoritative.
 # OpenAPI SHA-256: ${contractDigest}
 # https://caddyserver.com/docs/caddyfile/matchers
-# https://caddyserver.com/docs/caddyfile/directives/basic_auth
+# https://caddyserver.com/docs/caddyfile/directives/request_header
 {
   auto_https off
   admin 127.0.0.1:2019
@@ -123,6 +156,8 @@ ${responseHeaders('    ')}
   }
 
 ${matchers}
+${entryMatchers}
+  @cached_basic header_regexp cached_basic Authorization (?i)^Basic[[:blank:]]+
   @public_web {
     method GET HEAD
     path_regexp public_web ${publicWebExpression}
@@ -138,6 +173,9 @@ ${matchers}
   @api path /api/*
 
   route {
+    # Remove old browser-cached preview credentials. Preserve application Bearer
+    # headers and cookies on the approved API operations below.
+    request_header @cached_basic -Authorization
     handle @public_web {
       reverse_proxy web:3000 {
         header_up -Authorization
@@ -150,21 +188,20 @@ ${matchers}
         header_up -Cookie
       }
     }
+${entryHandles}
     handle @legacy_upload {
       # Private restored uploads are not published. Missing image references
       # return a plain404 so browsers can use the public crest fallback.
       respond "" 404
     }
 ${handles}
+    handle @api {
+      # Unlisted APIs and diagnostic endpoints are not public preview routes.
+      respond "" 404
+    }
     handle {
-      # Unreviewed routes and private pages remain behind the preview gate.
-      # In particular, a Bearer header cannot bypass OTP or legacy exchange.
-      basic_auth bcrypt "Lefteria OS preview" {
-        preview {env.PREVIEW_GATE_HASH}
-      }
-      reverse_proxy @api api:8080 {
-        header_up -Authorization
-      }
+      # Every website destination reaches the application, including its own
+      # admin/member login and ordinary404 pages. No browser password dialog.
       reverse_proxy web:3000 {
         header_up -Authorization
       }
