@@ -55,7 +55,7 @@ try {
   const home = await response.text();
   assert.match(home, /ΛΕΥΤΕΡΙΑ FC/);
   assert.match(home, /Η ΕΠΙΣΗΜΗ ΙΣΤΟΣΕΛΙΔΑ/);
-  for (const pathname of ['/about', '/team', '/academy', '/news', '/contact', '/admin', '/admin/login']) {
+  for (const pathname of ['/about', '/team', '/academy', '/academy/philosophy', '/privacy', '/terms', '/news', '/contact', '/admin', '/admin/login']) {
     const page = await fetch(origin + pathname);
     assert.equal(page.status, 200, `Public/admin path ${pathname} must render without private API or browser storage.`);
     assert.doesNotMatch(await page.text(), /fixture-password|password_hash|twilio_auth_token/);

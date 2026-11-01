@@ -1,0 +1,1 @@
+PublicIcon.svelte contains adapted Lucide/Feather icon geometry. License source: https://github.com/lucide-icons/lucide/blob/main/LICENSE (retrieved2026-11-01). Both ISC and upstream Feather MIT notices are retained in lucide-LICENSE.txt.

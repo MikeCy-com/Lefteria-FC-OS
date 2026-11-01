@@ -57,6 +57,12 @@ internal sealed partial class IdentityHttpChecks
             var text = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != HttpStatusCode.OK || text.Contains("sentinel-", StringComparison.Ordinal)) throw new InvalidOperationException("Public site exposed source data or inherited invalid credentials.");
             using var site = JsonDocument.Parse(text);
+            if (site.RootElement.GetProperty("time_zone").GetString() != PublicFixtureClock.TimeZone ||
+                !site.RootElement.GetProperty("generated_at").TryGetDateTimeOffset(out _) ||
+                site.RootElement.GetProperty("fixture_clock").GetArrayLength() != 1 ||
+                site.RootElement.GetProperty("fixture_clock")[0].GetProperty("id").GetString() != "match" ||
+                site.RootElement.GetProperty("fixture_clock")[0].GetProperty("kickoff_at").GetDateTimeOffset() != DateTimeOffset.Parse("2026-11-07T13:00:00Z"))
+                throw new InvalidOperationException("The public clock must expose the server snapshot and exact scoped Cyprus kickoff.");
             if (site.RootElement.GetProperty("teams").GetArrayLength() != 1 || site.RootElement.GetProperty("academy_groups").GetArrayLength() != 0 ||
                 site.RootElement.GetProperty("news").GetArrayLength() != 2) throw new InvalidOperationException("FC public content scope is wrong.");
             var academy = await client.GetAsync("/api/public/site?organization_id=lefteria_fc_academy");

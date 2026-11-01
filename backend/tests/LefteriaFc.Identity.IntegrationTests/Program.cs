@@ -8,6 +8,11 @@ internal static class TestRunner
 {
     public static async Task<int> Main(string[] args)
     {
+        if (args.SequenceEqual(["--public-fixture-clock-policy"], StringComparer.Ordinal))
+        {
+            try { PublicFixtureClockChecks.Run(); return 0; }
+            catch (Exception error) { Console.Error.WriteLine("FAIL public fixture clock: " + error.Message); return 1; }
+        }
         if (args.SequenceEqual(["--web-admin-configuration-policy"], StringComparer.Ordinal))
         {
             try { WebAdminConfigurationChecks.Run(); return 0; }

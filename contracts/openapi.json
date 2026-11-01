@@ -1501,6 +1501,25 @@
         ],
         "type": "object"
       },
+      "PublicFixtureInstant": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kickoff_at"
+        ],
+        "type": "object"
+      },
       "PublicNewsResult": {
         "properties": {
           "items": {
@@ -1560,11 +1579,27 @@
               }
             ]
           },
+          "fixture_clock": {
+            "items": {
+              "$ref": "#/components/schemas/PublicFixtureInstant"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "fixtures": {
             "items": {
               "$ref": "#/components/schemas/PublicFixture"
             },
             "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "news": {
             "items": {
@@ -1580,6 +1615,12 @@
               "$ref": "#/components/schemas/PublicTeam"
             },
             "type": "array"
+          },
+          "time_zone": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "required": [

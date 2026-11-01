@@ -19,7 +19,14 @@ public sealed record PublicFixture(string Id, string OrganizationId, string Home
     string? TeamId, string? AcademyGroupId);
 public sealed record PublicSiteResult(string OrganizationId, PublicClub? Club,
     IReadOnlyList<PublicTeam> Teams, IReadOnlyList<PublicAcademyGroup> AcademyGroups,
-    IReadOnlyList<PublicArticle> News, IReadOnlyList<PublicFixture> Fixtures);
+    IReadOnlyList<PublicArticle> News, IReadOnlyList<PublicFixture> Fixtures)
+{
+    // Read-time metadata is separate from immutable imported fixture JSON.
+    public DateTimeOffset? GeneratedAt { get; init; }
+    public string? TimeZone { get; init; }
+    public IReadOnlyList<PublicFixtureInstant>? FixtureClock { get; init; }
+}
+public sealed record PublicFixtureInstant(string Id, DateTimeOffset? KickoffAt);
 public sealed record PublicNewsResult(IReadOnlyList<PublicArticle> Items, int Total, int Offset, int Limit);
 public sealed record PublicContentError(string Detail, string Code);
 

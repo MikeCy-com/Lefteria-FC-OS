@@ -23,7 +23,7 @@ match one non-empty path segment. The current contract has twelve such operation
 Ambiguous Mobile security, global security defaults and unsafe templates refuse
 generation. Newly unmarked/anonymous routes remain behind the Basic gate.
 The reviewed public website is an explicit exception: GET/HEAD home, news,
-team, Academy, about/contact pages, their SvelteKit data requests and packaged
+team, Academy (including philosophy), about/contact and privacy/terms pages, their SvelteKit data requests and packaged
 assets open directly. Only GET of the three existing `/api/public/site`,
 `/api/public/news` and `/api/public/news/{id}` contracts reaches public API reads.
 Generation refuses if those operations acquire authentication requirements;

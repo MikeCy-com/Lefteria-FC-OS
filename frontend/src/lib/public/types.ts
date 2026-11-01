@@ -9,5 +9,5 @@ export type PublicArticle = components['schemas']['PublicArticle'];
 export type PublicFixture = components['schemas']['PublicFixture'];
 export type PublicSite = components['schemas']['PublicSiteResult'];
 export type PublicNews = components['schemas']['PublicNewsResult'];
-export type PublicPageData = { site: PublicSite | null; available: boolean; organization: PublicOrganization; navigationGroups: PublicGroup[] };
+export type PublicPageData = { site: PublicSite | null; branding: PublicClub | null; available: boolean; organization: PublicOrganization; navigationGroups: PublicGroup[] };
 export type PublicHomeData = PublicPageData & { news: PublicNews | null; newsAvailable: boolean };
