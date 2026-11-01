@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { bearerRouteGroups, generateEdge, protectedOperations, publicWebExpression, publicApiExpression, reviewedPublicReads } from './generate-edge.mjs';
+import { bearerRouteGroups, entryRouteGroups, generateEdge, protectedOperations, publicWebExpression, publicApiExpression, reviewedPublicReads } from './generate-edge.mjs';
 
 const contract = JSON.parse(await readFile(new URL('../../contracts/openapi.json', import.meta.url), 'utf8'));
 const hostname = 'srv1649602.hstgr.cloud';
@@ -30,7 +30,7 @@ test('only the twelve explicit Mobile operations receive Bearer routing', () => 
   assert.equal(permits(contract, 'GET', '/api/mobile/profile'), false);
 });
 
-test('anonymous and newly declared non-Mobile operations remain gated', () => {
+test('anonymous and newly declared non-Mobile operations do not enter the protected Mobile inventory', () => {
   const changed = structuredClone(contract);
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
@@ -54,17 +54,17 @@ test('ambiguous security, global defaults and unsafe templates fail closed', () 
   }
 });
 
-test('generated edge separates Bearer routing from the hashed Basic fallback', () => {
+test('generated edge removes the browser Basic gate and preserves application authentication', () => {
   const output = generateEdge(contract, hostname, digest);
   assert.match(output, /https:\/\/srv1649602\.hstgr\.cloud:8443/);
   assert.match(output, /auto_https off/);
   assert.match(output, /tls \/certificates\/current\/fullchain\.pem \/certificates\/current\/privkey\.pem/);
-  assert.match(output, /basic_auth bcrypt "Lefteria OS preview"/);
-  assert.match(output, /preview \{env\.PREVIEW_GATE_HASH\}/);
-  assert.equal((output.match(/header_up -Authorization/g) ?? []).length, 4);
+  assert.doesNotMatch(output, /basic_auth|PREVIEW_GATE_HASH|WWW-Authenticate|header_regexp bearer_/);
+  assert.match(output, /request_header @cached_basic -Authorization/);
+  assert.equal((output.match(/header_up -Authorization/g) ?? []).length, 3);
   assert.equal((output.match(/header_up -Cookie/g) ?? []).length, 2);
-  assert.equal((output.match(/header_regexp bearer_/g) ?? []).length, bearerRouteGroups(contract).length);
-  assert.ok(output.indexOf('handle @private_') < output.indexOf('\n      basic_auth'));
+  assert.ok(output.indexOf('handle @private_') < output.indexOf('handle @api {'));
+  assert.match(output, /handle @api \{[\s\S]*?respond "" 404/);
   assert.doesNotMatch(output, /listen (?:80|443)\b|:80\s*\{|:443\s*\{|tls internal|on_demand/);
   assert.match(output, /X-Robots-Tag "noindex, nofollow, noarchive"/);
   assert.match(output, /Cache-Control "no-store"/);
@@ -72,7 +72,7 @@ test('generated edge separates Bearer routing from the hashed Basic fallback', (
   assert.throws(() => generateEdge(contract, hostname, 'invalid'), /SHA-256/);
 });
 
-test('the public website and only reviewed public API reads avoid the preview gate', () => {
+test('public reads remain credential-free and private restored media remains unavailable', () => {
   assert.equal(reviewedPublicReads(contract).length, 3);
   const web = new RegExp(publicWebExpression), api = new RegExp(publicApiExpression);
   for (const path of ['/', '/__data.json', '/team', '/academy/__data.json', '/academy/philosophy', '/academy/philosophy/__data.json', '/privacy', '/privacy/__data.json', '/terms', '/terms/__data.json', '/news', '/news/story--id', '/news/story--id/__data.json', '/_app/immutable/chunks/part.js', '/club/logo512.png', '/mobile/club-logo.png', '/favicon.ico']) assert.ok(web.test(path), path);
@@ -83,9 +83,28 @@ test('the public website and only reviewed public API reads avoid the preview ga
   changed.paths['/api/public/site'].get.security = [{ WebAdmin: [] }];
   assert.throws(() => generateEdge(changed, hostname, digest), /anonymous/);
   const output = generateEdge(contract, hostname, digest);
-  assert.ok(output.indexOf('handle @public_web') < output.indexOf('\n      basic_auth'));
+  assert.ok(output.indexOf('handle @public_web') < output.indexOf('handle @api {'));
   assert.match(output, /@public_api \{\n    method GET\n/);
   assert.match(output, /@legacy_upload[\s\S]*handle @legacy_upload[\s\S]*respond "" 404/);
+});
+
+test('only reviewed login/session and sanitized-avatar operations reach their application policies', () => {
+  const groups = entryRouteGroups(contract);
+  const entryPermits = (method,path) => groups.some(group => group.method === method && new RegExp(group.expression).test(path));
+  for (const [method,path] of [['POST','/api/admin/auth/login'],['POST','/api/admin/auth/logout'],['GET','/api/admin/auth/me'],
+    ['POST','/api/mobile/auth/request-otp'],['POST','/api/mobile/auth/verify-otp'],['POST','/api/mobile/auth/register-fan'],
+    ['POST','/api/mobile/auth/exchange-legacy'],['GET','/api/uploads/avatars/opaque.jpg'],['HEAD','/api/uploads/avatars/opaque.jpg']]) {
+    assert.equal(entryPermits(method,path),true,method+' '+path);
+    assert.equal(entryPermits(method,path+'/extra'),false);
+  }
+  for (const path of ['/api/health/ready','/api/openapi/v1.json','/api/mobile/auth/future','/api/uploads/private.jpg','/api/uploads/avatars/'])
+    assert.equal(entryPermits('GET',path),false,path);
+  for (const [path,method,security] of [['/api/admin/auth/me','get',[]],['/api/admin/auth/login','post',[{Mobile:[]}]]]) {
+    const changed=structuredClone(contract); changed.paths[path][method].security=security;
+    assert.throws(()=>generateEdge(changed,hostname,digest),/entry security|Unexpected Mobile operation path/);
+  }
+  const output=generateEdge(contract,hostname,digest);
+  assert.ok(output.indexOf('handle @entry_get')<output.indexOf('handle @legacy_upload'));
 });
 
 test('error routes apply the same security headers without replacing status or authentication challenges', () => {

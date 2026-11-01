@@ -16,36 +16,31 @@ node deploy/preview/generate-edge.mjs \
   --output /protected/new-release/Caddyfile --check
 ```
 
-The file records the contract hash. Normal generation refuses to overwrite an
-existing file. Only operations with exactly `security: [{ Mobile: [] }]` receive
-a Bearer route, bound to their exact method and anchored path. Template parameters
-match one non-empty path segment. The current contract has twelve such operations.
-Ambiguous Mobile security, global security defaults and unsafe templates refuse
-generation. Newly unmarked/anonymous routes remain behind the Basic gate.
-The reviewed public website is an explicit exception: GET/HEAD home, news,
-team, Academy (including philosophy), about/contact and privacy/terms pages, their SvelteKit data requests and packaged
-assets open directly. Only GET of the three existing `/api/public/site`,
-`/api/public/news` and `/api/public/news/{id}` contracts reaches public API reads.
-Generation refuses if those operations acquire authentication requirements;
-new anonymous routes are not opened automatically. Public forwarding removes
-both Authorization and Cookie. The public API returns only its reviewed DTOs.
-Legacy upload references return an empty404; the private restored uploads stay
-unmounted. Missing images can fall back without a browser authentication prompt.
+The file records the contract hash. Generation refuses to overwrite an existing
+file or accept changed security on a reviewed operation. The twelve explicit
+Mobile operations retain their API JWT/current-scope checks. Reviewed admin
+login/session, mobile OTP/registration/legacy exchange and sanitized-avatar reads
+reach their existing API policies. Health, OpenAPI and unlisted API routes return
+an empty404 at the public edge. Private restored uploads remain unavailable.
 
-The Basic username is `preview`; configure only a generated bcrypt hash through
-`PREVIEW_GATE_HASH`. Admin/member pages, health endpoints and anonymous login,
-OTP and legacy exchange routes require that gate. A Bearer header cannot bypass
-it on those paths. Explicit protected routes preserve the Bearer header and still
-require the API's valid JWT/current role and record scope. An invalid token can
-reach only that protected API operation, which rejects it. The Basic fallback
-removes Authorization before either API or SvelteKit forwarding; Basic credentials
-must never reach application code. This avoids putting both schemes in the same
-Authorization header. See [Caddy authentication](https://caddyserver.com/docs/caddyfile/directives/basic_auth)
-and [request matchers](https://caddyserver.com/docs/caddyfile/matchers).
+The user explicitly removed the extra browser Basic password gate. All website
+paths now reach SvelteKit, including the real admin/mobile login pages and normal
+404 pages for unfinished destinations. The edge never sends a Basic challenge.
+Browser-cached Basic credentials are stripped before routing; application Bearer
+headers and admin cookies remain intact on reviewed application APIs. Public site
+and news reads still discard both Cookie and Authorization. Sanitized new avatar
+reads precede the blanket denial of legacy media; original uploads are not mounted.
+
+Application authentication, per-role/organization ownership, admin Origin/custom
+header checks and durable login/OTP throttles remain authoritative. SMS is still
+unconfigured and the legacy bridge stays disabled. Removing the preview popup
+does not create a login, fixed OTP or role bypass. Existing PREVIEW_GATE_HASH and
+private access files are retained only for configuration/rollback compatibility;
+the generated edge no longer uses them.
 
 All responses carry no-store/noindex, no-referrer, nosniff and frame-denial headers.
-The same header policy is also applied in `handle_errors`: Basic authentication
-returns an error outside the normal deferred-header chain. The error response
+The same header policy is also applied in `handle_errors` for edge errors.
+The error response
 keeps its original status and authentication challenge and has no diagnostic
 body. Upstream HTTP errors remain normal proxied responses with the same header
 policy. See [Caddy error routes](https://caddyserver.com/docs/caddyfile/directives/handle_errors)
