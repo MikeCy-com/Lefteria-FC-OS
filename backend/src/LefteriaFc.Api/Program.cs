@@ -60,6 +60,7 @@ builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPublicContent();
+builder.Services.AddPublicSections();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
@@ -76,6 +77,7 @@ app.MapMobileRoster();
 app.MapMobileCalendar();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
+app.MapPublicSections();
 
 if (app.Environment.IsDevelopment())
 {

@@ -340,6 +340,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPublicSections"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/site": {
         parameters: {
             query?: never;
@@ -705,6 +721,447 @@ export interface components {
             offset: number | string;
             /** Format: int32 */
             total: number | string;
+        };
+        PublicSectionAcademyStats: {
+            /** Format: int32 */
+            age_groups: number | string;
+            /** Format: int32 */
+            athletes: number | string;
+            /** Format: int32 */
+            dedication_pct: null | number | string;
+            id: string;
+            /** Format: date-time */
+            measured_at: string;
+            organization_id: string;
+            /** Format: int32 */
+            trainings_per_week: null | number | string;
+        };
+        PublicSectionArchive: {
+            /** Format: date-time */
+            archived_at: null | string;
+            fixtures: components["schemas"]["PublicSectionFixture"][];
+            id: string;
+            organization_id: string;
+            player_stats: components["schemas"]["PublicSectionArchivePlayer"][];
+            season_id: string;
+            season_name: string;
+            standings: components["schemas"]["PublicSectionStanding"][];
+            team_type: string;
+            /** Format: int32 */
+            top_scorer_goals: number | string;
+            top_scorer_name: null | string;
+        };
+        PublicSectionArchivePlayer: {
+            image_url: null | string;
+            name: string;
+            /** Format: int32 */
+            number: null | number | string;
+            player_id: string;
+            statistics: components["schemas"]["PublicSectionStatistics"];
+        };
+        PublicSectionBenefit: {
+            description: null | string;
+            icon: null | string;
+            title: string;
+        };
+        PublicSectionBlock: {
+            content: null | string;
+            id: null | string;
+            image_url: null | string;
+            images: string[];
+            items: components["schemas"]["PublicSectionHighlight"][];
+            link_text: null | string;
+            link_url: null | string;
+            title: null | string;
+            type: string;
+        };
+        PublicSectionBranding: {
+            academy_socials: components["schemas"]["PublicSectionSocial"][];
+            city: null | string;
+            country: null | string;
+            first_team_socials: components["schemas"]["PublicSectionSocial"][];
+            greek_name: null | string;
+            history: null | string;
+            home_venue_id: null | string;
+            id: string;
+            legacy_socials: components["schemas"]["PublicSectionSocial"][];
+            logo_url: null | string;
+            name: string;
+            organization_id: string;
+            stadium: null | string;
+            /** Format: int32 */
+            stadium_capacity: null | number | string;
+            stadium_dimensions: null | string;
+            stadium_image_url: null | string;
+            stadium_surface: null | string;
+        };
+        PublicSectionEvent: {
+            /** Format: int32 */
+            capacity: null | number | string;
+            cover_image_url: null | string;
+            description: null | string;
+            /** Format: date-time */
+            end_at: null | string;
+            event_type: string;
+            id: string;
+            is_featured: boolean;
+            location: null | string;
+            organization_id: string;
+            /** Format: double */
+            price_eur: null | number | string;
+            registration_url: null | string;
+            /** Format: date-time */
+            start_at: string;
+            status: string;
+            title: string;
+        };
+        PublicSectionExperience: {
+            club: null | string;
+            role: null | string;
+            years: null | string;
+        };
+        PublicSectionFixture: {
+            academy_group_id: null | string;
+            /** Format: int32 */
+            away_score: null | number | string;
+            away_team: string;
+            away_team_logo: null | string;
+            competition: null | string;
+            /** Format: int32 */
+            home_score: null | number | string;
+            home_team: string;
+            home_team_logo: null | string;
+            id: string;
+            /** Format: date */
+            match_date: string;
+            match_time: null | string;
+            organization_id: string;
+            season: null | string;
+            status: string;
+            team_id: null | string;
+            team_type: string;
+            venue: null | string;
+        };
+        PublicSectionFixtureView: {
+            academy_group_id?: null | string;
+            /** Format: int32 */
+            away_score?: null | number | string;
+            away_team?: string;
+            away_team_logo?: null | string;
+            competition?: null | string;
+            /** Format: int32 */
+            home_score?: null | number | string;
+            home_team?: string;
+            home_team_logo?: null | string;
+            id?: string;
+            /** Format: date-time */
+            kickoff_at: null | string;
+            /** Format: date */
+            match_date?: string;
+            match_time?: null | string;
+            organization_id?: string;
+            season?: null | string;
+            status?: string;
+            team_id?: null | string;
+            team_type?: string;
+            venue?: null | string;
+        };
+        PublicSectionGallery: {
+            academy_group_id: null | string;
+            category: string;
+            /** Format: date-time */
+            created_at: null | string;
+            description: null | string;
+            id: string;
+            image_url: string;
+            is_featured: boolean;
+            organization_id: string;
+            player_id: null | string;
+            team_id: null | string;
+            title: string;
+        };
+        PublicSectionGroup: {
+            coach_id: null | string;
+            coach_image_url: null | string;
+            coach_name: null | string;
+            coach_role: null | string;
+            id: string;
+            organization_id: string;
+        };
+        PublicSectionHighlight: {
+            label: null | string;
+            value: null | string;
+        };
+        PublicSectionModule: {
+            id: string;
+            organization_id: string;
+            /** Format: int32 */
+            published_count: number | string;
+            /** Format: int32 */
+            quarantined_count: number | string;
+            status: string;
+        };
+        PublicSectionPartner: {
+            benefits: components["schemas"]["PublicSectionBenefit"][];
+            bio: null | string;
+            bio_bullets: string[];
+            cta_button1_label: null | string;
+            cta_button1_url: null | string;
+            cta_button2_label: null | string;
+            cta_button2_url: null | string;
+            cta_text: null | string;
+            cta_title: null | string;
+            /** Format: int32 */
+            display_order: number | string;
+            executive_name: null | string;
+            executive_role: null | string;
+            headshot_url: null | string;
+            hero_image_url: null | string;
+            id: string;
+            name: string;
+            organization_id: string;
+            partner_type: string;
+            slug: string;
+            socials: components["schemas"]["PublicSectionSocial"][];
+            staff_members: components["schemas"]["PublicSectionPartnerStaff"][];
+            tagline: null | string;
+            website_url: null | string;
+        };
+        PublicSectionPartnerStaff: {
+            bio: null | string;
+            name: string;
+            photo_url: null | string;
+            role: null | string;
+        };
+        PublicSectionPlayer: {
+            academy_group_ids: string[];
+            academy_group_name: null | string;
+            /** Format: int32 */
+            age: null | number | string;
+            bio: null | string;
+            height: null | string;
+            id: string;
+            image_url: null | string;
+            name: string;
+            nationality: null | string;
+            /** Format: int32 */
+            number: number | string;
+            organization_id: string;
+            position: null | string;
+            preferred_foot: null | string;
+            previous_clubs: components["schemas"]["PublicSectionPreviousClub"][];
+            statistics: null | components["schemas"]["PublicSectionStatistics"];
+            team_id: null | string;
+            team_type: string;
+            weight: null | string;
+        };
+        PublicSectionPotm: {
+            id: string;
+            month_key: string;
+            organization_id: string;
+            results: components["schemas"]["PublicSectionPotmCandidate"][];
+            /** Format: int32 */
+            total_votes: number | string;
+        };
+        PublicSectionPotmCandidate: {
+            image_url: null | string;
+            name: string;
+            /** Format: int32 */
+            number: number | string;
+            player_id: string;
+            position: null | string;
+            /** Format: int32 */
+            votes: number | string;
+        };
+        PublicSectionPreviousClub: {
+            club_name: string;
+        };
+        PublicSectionProduct: {
+            category: string;
+            delivery_options: string[];
+            description: null | string;
+            id: string;
+            image_url: null | string;
+            in_stock: boolean;
+            name: string;
+            organization_id: string;
+            /** Format: double */
+            price: number | string;
+            product_type: string;
+            sizes: string[];
+        };
+        PublicSectionReview: {
+            author_name: string;
+            author_role: null | string;
+            body: string;
+            id: string;
+            organization_id: string;
+            /** Format: date-time */
+            published_at: null | string;
+            /** Format: int32 */
+            rating: number | string;
+            response: null | string;
+            title: null | string;
+        };
+        PublicSectionSeason: {
+            competitions: string[];
+            end_date: null | string;
+            id: string;
+            is_archived: boolean;
+            is_current: boolean;
+            name: string;
+            organization_id: string;
+            start_date: null | string;
+        };
+        PublicSectionSocial: {
+            platform: string;
+            url: string;
+        };
+        PublicSectionSponsor: {
+            banner_url: null | string;
+            content_blocks: components["schemas"]["PublicSectionBlock"][];
+            description: null | string;
+            /** Format: int32 */
+            display_order: number | string;
+            facebook: null | string;
+            id: string;
+            instagram: null | string;
+            level: string;
+            linkedin: null | string;
+            logo_url: null | string;
+            name: string;
+            organization_id: string;
+            sponsor_type: string;
+            twitter: null | string;
+            website: null | string;
+            youtube: null | string;
+        };
+        PublicSectionsResult: {
+            academy_groups: components["schemas"]["PublicSectionGroup"][];
+            academy_stats: null | components["schemas"]["PublicSectionAcademyStats"];
+            archived_seasons: components["schemas"]["PublicSectionArchive"][];
+            branding: null | components["schemas"]["PublicSectionBranding"];
+            events: components["schemas"]["PublicSectionEvent"][];
+            fixtures: components["schemas"]["PublicSectionFixtureView"][];
+            gallery: components["schemas"]["PublicSectionGallery"][];
+            /** Format: date-time */
+            generated_at: string;
+            modules: components["schemas"]["PublicSectionModule"][];
+            organization_id: string;
+            partners: components["schemas"]["PublicSectionPartner"][];
+            players: components["schemas"]["PublicSectionPlayer"][];
+            potm: components["schemas"]["PublicSectionPotm"];
+            products: components["schemas"]["PublicSectionProduct"][];
+            reviews: components["schemas"]["PublicSectionReview"][];
+            seasons: components["schemas"]["PublicSectionSeason"][];
+            /** Format: date-time */
+            snapshot_at: string;
+            sponsors: components["schemas"]["PublicSectionSponsor"][];
+            staff: components["schemas"]["PublicSectionStaff"][];
+            standings: components["schemas"]["PublicSectionStanding"][];
+            tickets: components["schemas"]["PublicSectionTicket"][];
+            time_zone: string;
+            trial_settings: null | components["schemas"]["PublicSectionTrials"];
+            venues: components["schemas"]["PublicSectionVenue"][];
+        };
+        PublicSectionStaff: {
+            academy_group_ids: string[];
+            badges: string[];
+            bio: null | string;
+            coaching_philosophy: null | string;
+            favorite_quote: null | string;
+            id: string;
+            image_url: null | string;
+            joined_date: null | string;
+            name: string;
+            nationality: null | string;
+            organization_id: string;
+            previous_experience: components["schemas"]["PublicSectionExperience"][];
+            qualifications: string[];
+            role: string;
+            team_ids: string[];
+            team_type: string;
+        };
+        PublicSectionStanding: {
+            competition: string;
+            /** Format: int32 */
+            drawn: number | string;
+            form: null | string;
+            /** Format: int32 */
+            goal_difference: number | string;
+            /** Format: int32 */
+            goals_against: number | string;
+            /** Format: int32 */
+            goals_for: number | string;
+            id: string;
+            /** Format: int32 */
+            lost: number | string;
+            organization_id: string;
+            /** Format: int32 */
+            played: number | string;
+            /** Format: int32 */
+            points: number | string;
+            season: null | string;
+            team_logo: null | string;
+            team_name: string;
+            /** Format: int32 */
+            won: number | string;
+        };
+        PublicSectionStatistics: {
+            /** Format: int32 */
+            appearances: null | number | string;
+            /** Format: int32 */
+            assists: null | number | string;
+            /** Format: int32 */
+            clean_sheets: null | number | string;
+            /** Format: int32 */
+            goals: null | number | string;
+            /** Format: int32 */
+            minutes_played: null | number | string;
+            /** Format: int32 */
+            red_cards: null | number | string;
+            /** Format: int32 */
+            yellow_cards: null | number | string;
+        };
+        PublicSectionTicket: {
+            available: boolean;
+            description: null | string;
+            fixture_id: null | string;
+            id: string;
+            /** Format: int32 */
+            max_quantity: number | string;
+            name: string;
+            organization_id: string;
+            /** Format: double */
+            price: number | string;
+            ticket_type: string;
+        };
+        PublicSectionTrials: {
+            button_text: null | string;
+            closed_message: null | string;
+            headline: null | string;
+            id: string;
+            open: boolean;
+            organization_id: string;
+            subtitle: null | string;
+        };
+        PublicSectionVenue: {
+            address: null | string;
+            /** Format: int32 */
+            capacity: null | number | string;
+            city: null | string;
+            country: null | string;
+            id: string;
+            image_url: null | string;
+            is_home_ground: boolean;
+            /** Format: double */
+            latitude: null | number | string;
+            /** Format: double */
+            longitude: null | number | string;
+            map_url: null | string;
+            name: string;
+            organization_id: string;
+            surface: null | string;
         };
         PublicSiteResult: {
             academy_groups: components["schemas"]["PublicAcademyGroup"][];
@@ -2565,6 +3022,46 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContentError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicContentError"];
+                };
+            };
+        };
+    };
+    GetPublicSections: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSectionsResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

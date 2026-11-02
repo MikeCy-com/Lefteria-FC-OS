@@ -192,4 +192,5 @@ BEGIN
   END IF;
 END
 $ddl_guard$;
+\ir public-sections-app-grants.sql
 COMMIT;

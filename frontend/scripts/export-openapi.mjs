@@ -69,6 +69,12 @@ try {
   assert.equal(document.components.securitySchemes.WebAdmin.name, '__Host-lefteria-admin');
   assert.equal(document.paths['/api/admin/auth/login'].post.security, undefined);
   assert.equal(document.paths['/api/public/site'].get.security, undefined);
+  const publicSections = document.paths['/api/public/sections'].get;
+  assert.equal(publicSections.security, undefined);
+  assert.ok(publicSections.responses['400'] && publicSections.responses['503']);
+  assert.ok(publicSections.parameters.some(parameter => parameter.name === 'organization_id' && parameter.in === 'query'));
+  assert.deepEqual(Object.keys(document.components.schemas.PublicSectionStatistics.properties).sort(),
+    ['appearances', 'assists', 'clean_sheets', 'goals', 'minutes_played', 'red_cards', 'yellow_cards']);
   assert.deepEqual(Object.keys(document.components.schemas.WebAdminIdentityDto.properties).sort(),
     ['id', 'name', 'organizations', 'permissions', 'role', 'username']);
   assert.ok(document.paths['/api/health/ready'].get.responses['503']);

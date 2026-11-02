@@ -8,10 +8,10 @@ internal static class TestRunner
 {
     public static async Task<int> Main(string[] args)
     {
-        if (args.SequenceEqual(["--public-fixture-clock-policy"], StringComparer.Ordinal))
+        if (args.SequenceEqual(["--public-sections-policy"], StringComparer.Ordinal))
         {
-            try { PublicFixtureClockChecks.Run(); return 0; }
-            catch (Exception error) { Console.Error.WriteLine("FAIL public fixture clock: " + error.Message); return 1; }
+            try { PublicSectionsPolicyChecks.Run(); return 0; }
+            catch (Exception error) { Console.Error.WriteLine("FAIL public sections projection: " + error.GetType().Name); return 1; }
         }
         if (args.SequenceEqual(["--web-admin-configuration-policy"], StringComparer.Ordinal))
         {
@@ -51,7 +51,8 @@ internal static class TestRunner
                 return 1;
             }
         }
-        var fixturePath = args.Length == 2 && args[0] == "--fixture"
+        var sectionsOnly = args.Length == 2 && args[0] == "--public-sections-fixture";
+        var fixturePath = args.Length == 2 && (args[0] == "--fixture" || sectionsOnly)
             ? args[1] : args.Length == 0 ? Environment.GetEnvironmentVariable("LEFTERIA_TEST_FIXTURE") : null;
         if (string.IsNullOrWhiteSpace(fixturePath))
         {
@@ -75,7 +76,8 @@ internal static class TestRunner
         var database = new TestDatabase(fixture, factory.OtpKey);
         var failures = 0;
         var passed = 0;
-        var checks = new IdentityHttpChecks(factory, database).Cases;
+        var checks = new IdentityHttpChecks(factory, database).Cases
+            .Where(check => !sectionsOnly || check.Name.StartsWith("Versioned public sections", StringComparison.Ordinal)).ToArray();
         try
         {
             // Validate the actual DI connection before any request can touch a database.
@@ -97,7 +99,7 @@ internal static class TestRunner
                     Console.Error.WriteLine($"FAIL {name}: {exception.GetType().Name}: {exception.Message}{reason}");
                 }
             }
-            try { await WebAdminHttpChecks.RunAsync(fixturePath, fixture); }
+            try { if (!sectionsOnly) await WebAdminHttpChecks.RunAsync(fixturePath, fixture); }
             catch (Exception error)
             {
                 failures++;
@@ -119,7 +121,7 @@ internal static class TestRunner
                 Console.Error.WriteLine($"FAIL exact-owned-row cleanup: {exception.GetType().Name}: {exception.Message}");
             }
         }
-        Console.WriteLine($"{passed}/{checks.Count} HTTP/PostgreSQL identity checks passed; {failures} failures.");
+        Console.WriteLine($"{passed}/{checks.Length} HTTP/PostgreSQL identity checks passed; {failures} failures.");
         return failures == 0 ? 0 : 1;
     }
 }

@@ -192,4 +192,5 @@ BEGIN
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
+\ir public-sections-permissions-check.sql
 ROLLBACK;

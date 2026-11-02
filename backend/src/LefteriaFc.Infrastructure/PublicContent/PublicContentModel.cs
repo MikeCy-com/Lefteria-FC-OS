@@ -53,5 +53,6 @@ public static class PublicContentModel
         source.Property(row => row.SourceJson).HasColumnType("text");
         source.HasOne<PublicContentImportStateRecord>().WithMany().HasForeignKey(row => row.ImportDigest)
             .HasPrincipalKey(row => row.Digest).OnDelete(DeleteBehavior.Restrict);
+        PublicSectionsModel.Configure(model);
     }
 }
