@@ -31,7 +31,7 @@ public static class RosterImportProgram
             }
             if (!values.TryGetValue("--input", out var path)) return Error("input_required");
             var kind = values.GetValueOrDefault("--kind", "roster");
-            if (kind is not ("roster" or "staff-relationships" or "accounts" or "calendar" or "public-content")) return Error("invalid_kind");
+            if (kind is not ("roster" or "staff-relationships" or "accounts" or "calendar" or "public-content" or "public-sections")) return Error("invalid_kind");
             if (reviewTarget && (kind is not ("accounts" or "calendar") || apply)) return Error("invalid_review_mode");
             var bytes = await ReadBoundedAsync(path);
             // Validation must finish before reading credentials or constructing
@@ -41,12 +41,14 @@ public static class RosterImportProgram
             var accountManifest = kind == "accounts" ? AccountImportValidator.Validate(bytes) : null;
             var calendarManifest = kind == "calendar" ? CalendarImportValidator.Validate(bytes) : null;
             var publicManifest = kind == "public-content" ? PublicContentImportValidator.Validate(bytes) : null;
+            var sectionsManifest = kind == "public-sections" ? PublicSectionsImportValidator.Validate(bytes) : null;
             if (!apply && !reviewTarget)
             {
                 if (plan is not null) Summary("valid_dry_run", plan);
                 else if (staffPlan is not null) StaffSummary("valid_dry_run", staffPlan);
                 else if(accountManifest is not null) AccountSummary("manifest_valid", accountManifest);
                 else if (publicManifest is not null) PublicSummary("manifest_valid", publicManifest);
+                else if (sectionsManifest is not null) SectionsSummary("manifest_valid", sectionsManifest);
                 else CalendarSummary("manifest_valid",calendarManifest!);
                 return 0;
             }
@@ -76,6 +78,11 @@ public static class RosterImportProgram
                 var result = await PostgresPublicContentImport.ApplyAsync(publicManifest, connection, digest, database, environment);
                 PublicSummary(result.Noop ? "same_snapshot_noop" : "applied", publicManifest);
             }
+            else if (sectionsManifest is not null)
+            {
+                var result = await PostgresPublicSectionsImport.ApplyAsync(sectionsManifest, connection, digest, database, environment);
+                SectionsSummary(result.Noop ? "same_snapshot_noop" : "applied", sectionsManifest);
+            }
             else
             {
                 var result=await PostgresCalendarImport.ApplyAsync(calendarManifest!,connection,digest,database,environment,reviewTarget);
@@ -98,6 +105,13 @@ public static class RosterImportProgram
         Console.Error.WriteLine(JsonSerializer.Serialize(new { status = "refused", code }));
         return 2;
     }
+    private static void SectionsSummary(string status, ValidatedPublicSectionsImport manifest) => Console.WriteLine(JsonSerializer.Serialize(new
+    {
+        status, kind = "public-sections", snapshot_version = manifest.Version, sha256 = manifest.Digest, source_commit = manifest.SourceCommit,
+        base_public_sha256 = manifest.BasePublicDigest, documents = manifest.Documents.Count, source_rows = manifest.Source.Count,
+        projection_issue_counts = manifest.Issues.GroupBy(row => row.Code).ToDictionary(group => group.Key, group => group.Count()),
+        kinds = manifest.Documents.GroupBy(row => row.Kind).ToDictionary(group => group.Key, group => group.Count())
+    }));
     private static void PublicSummary(string status, ValidatedPublicContentImport manifest) =>
         Console.WriteLine(JsonSerializer.Serialize(new
         {

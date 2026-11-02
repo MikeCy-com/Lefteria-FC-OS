@@ -1561,6 +1561,2267 @@
         ],
         "type": "object"
       },
+      "PublicSectionAcademyStats": {
+        "properties": {
+          "age_groups": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "athletes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "dedication_pct": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "measured_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "trainings_per_week": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "age_groups",
+          "athletes",
+          "trainings_per_week",
+          "dedication_pct",
+          "measured_at"
+        ],
+        "type": "object"
+      },
+      "PublicSectionArchive": {
+        "properties": {
+          "archived_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionFixture"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "player_stats": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionArchivePlayer"
+            },
+            "type": "array"
+          },
+          "season_id": {
+            "type": "string"
+          },
+          "season_name": {
+            "type": "string"
+          },
+          "standings": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionStanding"
+            },
+            "type": "array"
+          },
+          "team_type": {
+            "type": "string"
+          },
+          "top_scorer_goals": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "top_scorer_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "season_id",
+          "season_name",
+          "archived_at",
+          "team_type",
+          "fixtures",
+          "standings",
+          "player_stats",
+          "top_scorer_name",
+          "top_scorer_goals"
+        ],
+        "type": "object"
+      },
+      "PublicSectionArchivePlayer": {
+        "properties": {
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "statistics": {
+            "$ref": "#/components/schemas/PublicSectionStatistics"
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "number",
+          "image_url",
+          "statistics"
+        ],
+        "type": "object"
+      },
+      "PublicSectionBenefit": {
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "icon": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "description",
+          "icon"
+        ],
+        "type": "object"
+      },
+      "PublicSectionBlock": {
+        "properties": {
+          "content": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "images": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionHighlight"
+            },
+            "type": "array"
+          },
+          "link_text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "link_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "title",
+          "content",
+          "image_url",
+          "link_url",
+          "link_text",
+          "images",
+          "items"
+        ],
+        "type": "object"
+      },
+      "PublicSectionBranding": {
+        "properties": {
+          "academy_socials": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSocial"
+            },
+            "type": "array"
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "first_team_socials": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSocial"
+            },
+            "type": "array"
+          },
+          "greek_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "history": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "home_venue_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "legacy_socials": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSocial"
+            },
+            "type": "array"
+          },
+          "logo_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "stadium": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stadium_capacity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "stadium_dimensions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stadium_image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stadium_surface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "greek_name",
+          "logo_url",
+          "stadium",
+          "home_venue_id",
+          "city",
+          "country",
+          "history",
+          "stadium_capacity",
+          "stadium_surface",
+          "stadium_dimensions",
+          "stadium_image_url",
+          "first_team_socials",
+          "academy_socials",
+          "legacy_socials"
+        ],
+        "type": "object"
+      },
+      "PublicSectionEvent": {
+        "properties": {
+          "capacity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "cover_image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "end_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_featured": {
+            "type": "boolean"
+          },
+          "location": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "price_eur": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ]
+          },
+          "registration_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "start_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "title",
+          "description",
+          "event_type",
+          "start_at",
+          "end_at",
+          "location",
+          "cover_image_url",
+          "capacity",
+          "price_eur",
+          "registration_url",
+          "status",
+          "is_featured"
+        ],
+        "type": "object"
+      },
+      "PublicSectionExperience": {
+        "properties": {
+          "club": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "years": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "club",
+          "role",
+          "years"
+        ],
+        "type": "object"
+      },
+      "PublicSectionFixture": {
+        "properties": {
+          "academy_group_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "away_score": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "away_team": {
+            "type": "string"
+          },
+          "away_team_logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "competition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "home_score": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "home_team": {
+            "type": "string"
+          },
+          "home_team_logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "match_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "match_time": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "season": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_type": {
+            "type": "string"
+          },
+          "venue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "home_team",
+          "away_team",
+          "home_team_logo",
+          "away_team_logo",
+          "home_score",
+          "away_score",
+          "match_date",
+          "match_time",
+          "venue",
+          "competition",
+          "status",
+          "team_id",
+          "academy_group_id",
+          "season",
+          "team_type"
+        ],
+        "type": "object"
+      },
+      "PublicSectionFixtureView": {
+        "properties": {
+          "academy_group_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "away_score": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "away_team": {
+            "type": "string"
+          },
+          "away_team_logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "competition": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "home_score": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "home_team": {
+            "type": "string"
+          },
+          "home_team_logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "kickoff_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "match_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "match_time": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "season": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_type": {
+            "type": "string"
+          },
+          "venue": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "kickoff_at"
+        ],
+        "type": "object"
+      },
+      "PublicSectionGallery": {
+        "properties": {
+          "academy_group_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": "string"
+          },
+          "is_featured": {
+            "type": "boolean"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "title",
+          "image_url",
+          "category",
+          "description",
+          "player_id",
+          "team_id",
+          "academy_group_id",
+          "is_featured",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "PublicSectionGroup": {
+        "properties": {
+          "coach_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coach_image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coach_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coach_role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "coach_id",
+          "coach_name",
+          "coach_role",
+          "coach_image_url"
+        ],
+        "type": "object"
+      },
+      "PublicSectionHighlight": {
+        "properties": {
+          "label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "value": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "type": "object"
+      },
+      "PublicSectionModule": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "quarantined_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "status",
+          "published_count",
+          "quarantined_count"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPartner": {
+        "properties": {
+          "benefits": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionBenefit"
+            },
+            "type": "array"
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bio_bullets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "cta_button1_label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cta_button1_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cta_button2_label": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cta_button2_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cta_text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "cta_title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "display_order": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "executive_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "executive_role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headshot_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hero_image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "partner_type": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "socials": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSocial"
+            },
+            "type": "array"
+          },
+          "staff_members": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPartnerStaff"
+            },
+            "type": "array"
+          },
+          "tagline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "website_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "slug",
+          "name",
+          "partner_type",
+          "tagline",
+          "hero_image_url",
+          "headshot_url",
+          "executive_name",
+          "executive_role",
+          "bio",
+          "bio_bullets",
+          "staff_members",
+          "benefits",
+          "website_url",
+          "socials",
+          "cta_title",
+          "cta_text",
+          "cta_button1_label",
+          "cta_button1_url",
+          "cta_button2_label",
+          "cta_button2_url",
+          "display_order"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPartnerStaff": {
+        "properties": {
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "photo_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "role",
+          "photo_url",
+          "bio"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPlayer": {
+        "properties": {
+          "academy_group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "academy_group_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "age": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "height": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "preferred_foot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "previous_clubs": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPreviousClub"
+            },
+            "type": "array"
+          },
+          "statistics": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionStatistics"
+              }
+            ]
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_type": {
+            "type": "string"
+          },
+          "weight": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "number",
+          "image_url",
+          "team_type",
+          "position",
+          "age",
+          "nationality",
+          "bio",
+          "height",
+          "weight",
+          "preferred_foot",
+          "team_id",
+          "academy_group_name",
+          "academy_group_ids",
+          "statistics",
+          "previous_clubs"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPotm": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "month_key": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPotmCandidate"
+            },
+            "type": "array"
+          },
+          "total_votes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "month_key",
+          "total_votes",
+          "results"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPotmCandidate": {
+        "properties": {
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "votes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "number",
+          "position",
+          "image_url",
+          "votes"
+        ],
+        "type": "object"
+      },
+      "PublicSectionPreviousClub": {
+        "properties": {
+          "club_name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "club_name"
+        ],
+        "type": "object"
+      },
+      "PublicSectionProduct": {
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "delivery_options": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "in_stock": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "price": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "product_type": {
+            "type": "string"
+          },
+          "sizes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "description",
+          "price",
+          "image_url",
+          "category",
+          "sizes",
+          "in_stock",
+          "product_type",
+          "delivery_options"
+        ],
+        "type": "object"
+      },
+      "PublicSectionReview": {
+        "properties": {
+          "author_name": {
+            "type": "string"
+          },
+          "author_role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rating": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "response": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "author_name",
+          "author_role",
+          "rating",
+          "title",
+          "body",
+          "response",
+          "published_at"
+        ],
+        "type": "object"
+      },
+      "PublicSectionSeason": {
+        "properties": {
+          "competitions": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "end_date": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "is_archived": {
+            "type": "boolean"
+          },
+          "is_current": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "start_date": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "start_date",
+          "end_date",
+          "is_current",
+          "is_archived",
+          "competitions"
+        ],
+        "type": "object"
+      },
+      "PublicSectionSocial": {
+        "properties": {
+          "platform": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "platform",
+          "url"
+        ],
+        "type": "object"
+      },
+      "PublicSectionSponsor": {
+        "properties": {
+          "banner_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "content_blocks": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionBlock"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "display_order": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "facebook": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "instagram": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "level": {
+            "type": "string"
+          },
+          "linkedin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "logo_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "sponsor_type": {
+            "type": "string"
+          },
+          "twitter": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "website": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "youtube": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "description",
+          "logo_url",
+          "banner_url",
+          "website",
+          "facebook",
+          "instagram",
+          "twitter",
+          "youtube",
+          "linkedin",
+          "level",
+          "sponsor_type",
+          "display_order",
+          "content_blocks"
+        ],
+        "type": "object"
+      },
+      "PublicSectionStaff": {
+        "properties": {
+          "academy_group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "badges": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "bio": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "coaching_philosophy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "favorite_quote": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "joined_date": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "nationality": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "previous_experience": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionExperience"
+            },
+            "type": "array"
+          },
+          "qualifications": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "role": {
+            "type": "string"
+          },
+          "team_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "team_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "role",
+          "image_url",
+          "team_type",
+          "nationality",
+          "bio",
+          "joined_date",
+          "qualifications",
+          "badges",
+          "coaching_philosophy",
+          "favorite_quote",
+          "team_ids",
+          "academy_group_ids",
+          "previous_experience"
+        ],
+        "type": "object"
+      },
+      "PublicSectionStanding": {
+        "properties": {
+          "competition": {
+            "type": "string"
+          },
+          "drawn": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "form": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "goal_difference": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "goals_against": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "goals_for": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "lost": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "played": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "points": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "season": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_logo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_name": {
+            "type": "string"
+          },
+          "won": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "team_name",
+          "team_logo",
+          "played",
+          "won",
+          "drawn",
+          "lost",
+          "goals_for",
+          "goals_against",
+          "goal_difference",
+          "points",
+          "competition",
+          "season",
+          "form"
+        ],
+        "type": "object"
+      },
+      "PublicSectionStatistics": {
+        "properties": {
+          "appearances": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "assists": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "clean_sheets": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "goals": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "minutes_played": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "red_cards": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "yellow_cards": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "appearances",
+          "goals",
+          "assists",
+          "minutes_played",
+          "clean_sheets",
+          "yellow_cards",
+          "red_cards"
+        ],
+        "type": "object"
+      },
+      "PublicSectionTicket": {
+        "properties": {
+          "available": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fixture_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "max_quantity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "price": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "ticket_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "description",
+          "price",
+          "ticket_type",
+          "fixture_id",
+          "available",
+          "max_quantity"
+        ],
+        "type": "object"
+      },
+      "PublicSectionTrials": {
+        "properties": {
+          "button_text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "closed_message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "open",
+          "headline",
+          "subtitle",
+          "button_text",
+          "closed_message"
+        ],
+        "type": "object"
+      },
+      "PublicSectionVenue": {
+        "properties": {
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "capacity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "city": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "is_home_ground": {
+            "type": "boolean"
+          },
+          "latitude": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ]
+          },
+          "longitude": {
+            "format": "double",
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ]
+          },
+          "map_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "surface": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "name",
+          "address",
+          "city",
+          "country",
+          "capacity",
+          "surface",
+          "image_url",
+          "map_url",
+          "latitude",
+          "longitude",
+          "is_home_ground"
+        ],
+        "type": "object"
+      },
+      "PublicSectionsResult": {
+        "properties": {
+          "academy_groups": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionGroup"
+            },
+            "type": "array"
+          },
+          "academy_stats": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionAcademyStats"
+              }
+            ]
+          },
+          "archived_seasons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionArchive"
+            },
+            "type": "array"
+          },
+          "branding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionBranding"
+              }
+            ]
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionEvent"
+            },
+            "type": "array"
+          },
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionFixtureView"
+            },
+            "type": "array"
+          },
+          "gallery": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionGallery"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionModule"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "partners": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPartner"
+            },
+            "type": "array"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPlayer"
+            },
+            "type": "array"
+          },
+          "potm": {
+            "$ref": "#/components/schemas/PublicSectionPotm"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionProduct"
+            },
+            "type": "array"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionReview"
+            },
+            "type": "array"
+          },
+          "seasons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSeason"
+            },
+            "type": "array"
+          },
+          "snapshot_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sponsors": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSponsor"
+            },
+            "type": "array"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionStaff"
+            },
+            "type": "array"
+          },
+          "standings": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionStanding"
+            },
+            "type": "array"
+          },
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionTicket"
+            },
+            "type": "array"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "trial_settings": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionTrials"
+              }
+            ]
+          },
+          "venues": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionVenue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "organization_id",
+          "players",
+          "staff",
+          "academy_groups",
+          "standings",
+          "venues",
+          "seasons",
+          "gallery",
+          "sponsors",
+          "partners",
+          "events",
+          "products",
+          "trial_settings",
+          "fixtures",
+          "tickets",
+          "archived_seasons",
+          "reviews",
+          "academy_stats",
+          "potm",
+          "branding",
+          "modules",
+          "snapshot_at",
+          "generated_at",
+          "time_zone"
+        ],
+        "type": "object"
+      },
       "PublicSiteResult": {
         "properties": {
           "academy_groups": {
@@ -3995,6 +6256,55 @@
         ]
       }
     },
+    "/api/public/sections": {
+      "get": {
+        "operationId": "GetPublicSections",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicSectionsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContentError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicContentError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "tags": [
+          "Public website"
+        ]
+      }
+    },
     "/api/public/site": {
       "get": {
         "operationId": "GetPublicSite",
@@ -4118,13 +6428,13 @@
       "name": "Mobile calendar"
     },
     {
+      "name": "Public website"
+    },
+    {
       "name": "Mobile organization"
     },
     {
       "name": "Web administration"
-    },
-    {
-      "name": "Public website"
     }
   ]
 }
