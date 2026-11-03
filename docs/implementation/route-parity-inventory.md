@@ -2,6 +2,17 @@
 
 Snapshot written **2026-11-03**, based on the 2026-11-02 audit. This is an observed implementation inventory, not a statement that the rewrite is complete.
 
+## Preview release update, 2026-11-03
+
+The implementation-state columns below record the original audit and are superseded for the following shipped slice by release `8b70f7a0e35a625b5c7a68eb2b975709b4a48984` ([PR22](https://github.com/MikeCy-com/Lefteria-FC-OS/pull/22)), now active only at the isolated preview. Its typed public-sections snapshot contains 715 frozen source records and 130 safe public documents. Initial import and exact replay reconciled; existing core/import data and production services remained unchanged.
+
+- Academy directory/group details; player/staff/match details; the eight team tabs; events, partners, sponsors and archived-season list/detail pages are merged and deployed. Legacy fixtures/calendar/venues/staff redirects are deployed.
+- `/login` explicitly offers the existing mobile and administrator realms. It does not implement the original customer email/password realm. Public menu/footer links expose `/admin/login`.
+- Hosted verification passed 95 base/authentication-boundary checks and 91 additional public-page checks, including all imported Club player/staff links, both organizations' fixtures/catalogs and Academy groups, unknown-ID404s and legacy308s. Browser clicks verified Academy directory→group→match and roster→player. These checks did not exercise a real administrator's credentials.
+- Registration, customer identity/profile, shop/cart/checkout, enquiry submissions, voting and the broader private operational admin workflows remain incomplete. A rendered route does not establish mutation/workflow parity. The reported transient Academy500 was not assigned a confirmed root cause.
+
+The next club-editor/navigation changes are under integration and must not be counted as hosted until separately released and verified.
+
 ## Evidence and state boundaries
 
 The user requires equivalent or improved versions of every original public page and admin workflow on the approved new stack. The source baseline is [original route declarations](https://github.com/MikeCy-com/Lefteria-FC/blob/380b4022f0ab0db95fbc52a8613711160a5037a5/frontend/src/App.js#L2270) at full commit `380b4022f0ab0db95fbc52a8613711160a5037a5`. The coordinating audit separately recorded original main `979935267fa2662580579fb33e987b5cc219d969` as a later storage/backend revision; this inventory does not assume that the old checkout proves current production behavior. A fresh compare request for that later commit failed transport during this inventory, so no additional frontend-change claim is inferred from it.

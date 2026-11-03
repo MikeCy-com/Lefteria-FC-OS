@@ -25,7 +25,7 @@ export const publicNavigation: readonly PublicNavigationItem[] = [
   ] },
   { id: "matches", label: "ΑΓΩΝΕΣ", icon: 'calendar', items: [
     ["schedule", "Πρόγραμμα αγώνων", "/team?tab=schedule"], ["results", "Αποτελέσματα", "/team?tab=results"],
-    ["standings", "Βαθμολογία", "/team?tab=overview"], ["vote", "Παίκτης του μήνα", "/vote"], ["tickets", "Εισιτήρια", "/shop"],
+    ["standings", "Βαθμολογία", "/team?tab=overview#standings"], ["vote", "Παίκτης του μήνα", "/vote"], ["tickets", "Εισιτήρια", "/shop"],
   ] },
   { id: "news", label: "ΝΕΑ", path: "/news", icon: 'news' },
   { id: "events", label: "ΕΚΔΗΛΩΣΕΙΣ", path: "/events", icon: 'event' },
@@ -41,9 +41,77 @@ export function categoryLinks(item: PublicNavigationItem, groups: PublicGroup[])
   return item.id === 'academy' ? [...(item.items ?? []), ...groups.map(group =>
     [group.id, group.name, academyGroupLink(group)] as const)] : item.items ?? [];
 }
-export function navigationActive(item: PublicNavigationItem, pathname: string): boolean {
-  return item.path ? item.path === '/' ? pathname === '/' : pathname.startsWith(item.path) :
-    (item.items ?? []).some(([, , path]) => pathname === path.split('?')[0]);
+type NavigationLocation = string | Pick<URL, 'href'>;
+function navigationLocation(location: NavigationLocation): URL {
+  const url = new URL(typeof location === 'string' ? location : location.href, 'https://navigation.invalid');
+  if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '');
+  const aliases: Record<string, string> = { '/fixtures': 'results', '/calendar': 'schedule', '/venues': 'venues', '/staff': 'overview' };
+  if (aliases[url.pathname]) { url.searchParams.set('tab', aliases[url.pathname]); url.pathname = '/team'; }
+  return url;
+}
+const within = (pathname: string, parent: string) => pathname === parent || pathname.startsWith(parent + '/');
+function teamTab(url: URL): string {
+  const value = url.searchParams.get('tab') ?? 'overview';
+  return ['overview', 'roster', 'staff', 'schedule', 'results', 'statistics', 'gallery', 'venues'].includes(value) ? value : 'overview';
+}
+function scopedOwner(url: URL): 'academy' | 'team' | 'club' {
+  // Fixed sponsor-directory routes outrank a conflicting caller query, just as
+  // their server loaders do. Detail/catalog links carry their explicit scope.
+  if (url.pathname === '/sponsors/academy') return 'academy';
+  if (url.pathname === '/sponsors/first-team') return 'team';
+  return url.searchParams.get('scope') === 'academy' ? 'academy' : url.searchParams.get('scope') === 'first_team' ? 'team' : 'club';
+}
+export function navigationOwner(location: NavigationLocation): string | null {
+  const url = navigationLocation(location); const path = url.pathname;
+  if (path === '/') return 'home';
+  if (within(path, '/academy')) return 'academy';
+  if (path === '/team') return ['schedule', 'results'].includes(teamTab(url)) || (teamTab(url) === 'overview' && url.hash === '#standings') ? 'matches' : 'team';
+  if (within(path, '/player') || within(path, '/staff') || path === '/trials') return 'team';
+  if (within(path, '/match') || path === '/vote') return 'matches';
+  if (within(path, '/partners') || within(path, '/sponsors')) return scopedOwner(url);
+  if (within(path, '/about') || within(path, '/seasons') || ['/join', '/privacy', '/terms'].includes(path)) return 'club';
+  if (within(path, '/news')) return 'news';
+  if (within(path, '/events')) return 'events';
+  if (['/shop', '/cart', '/checkout'].some(parent => within(path, parent))) return 'shop';
+  if (path === '/contact') return 'contact';
+  return null;
+}
+export function navigationActive(item: PublicNavigationItem, location: NavigationLocation): boolean {
+  return navigationOwner(location) === item.id;
+}
+function academyIdentity(pathname: string, groups: readonly PublicGroup[]): string | null {
+  if (!pathname.startsWith('/academy/')) return null;
+  let value: string;
+  try { value = decodeURIComponent(pathname.slice('/academy/'.length)); } catch { return null; }
+  if (groups.some(group => group.id === value)) return value;
+  const separator = value.indexOf('--');
+  const suffix = separator > 0 ? value.slice(separator + 2) : null;
+  return suffix && groups.some(group => group.id === suffix) ? suffix : null;
+}
+export function navigationLinkCurrent(path: string, location: NavigationLocation, groups: readonly PublicGroup[] = []): 'page' | 'location' | undefined {
+  if (!path.startsWith('/') || path.startsWith('//')) return undefined;
+  const target = navigationLocation(path); const current = navigationLocation(location);
+  if (target.pathname === '/team' && current.pathname === '/team') {
+    const targetTab = teamTab(target);
+    const currentTab = teamTab(current);
+    if (targetTab !== currentTab) return undefined;
+    if (target.hash) return target.hash === current.hash ? 'location' : undefined;
+    // The standings link owns this anchored destination, not generic overview.
+    return current.hash === '#standings' && targetTab === 'overview' ? undefined : 'page';
+  }
+  if (target.pathname === '/partners' && within(current.pathname, '/partners')) {
+    if (scopedOwner(target) !== scopedOwner(current)) return undefined;
+    return target.pathname === current.pathname ? 'page' : 'location';
+  }
+  if (['/sponsors/academy', '/sponsors/first-team'].includes(target.pathname) && within(current.pathname, '/sponsors')) {
+    if (scopedOwner(target) !== scopedOwner(current)) return undefined;
+    return target.pathname === current.pathname ? 'page' : 'location';
+  }
+  const targetGroup = academyIdentity(target.pathname, groups);
+  if (targetGroup && targetGroup === academyIdentity(current.pathname, groups)) return 'page';
+  if (target.pathname === current.pathname && (!target.hash || target.hash === current.hash)) return 'page';
+  if (['/news', '/events', '/seasons'].includes(target.pathname) && within(current.pathname, target.pathname)) return 'location';
+  return undefined;
 }
 export function publicSearch(query: string, groups: PublicGroup[], news: PublicArticle[]) {
   const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');

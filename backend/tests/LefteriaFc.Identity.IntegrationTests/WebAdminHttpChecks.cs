@@ -12,7 +12,7 @@ using Npgsql;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class WebAdminHttpChecks(WebAdminApplicationFactory factory, WebAdminDatabaseFixture database)
+internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory factory, WebAdminDatabaseFixture database)
 {
     private const string LoginPath = "/api/admin/auth/login";
     private const string MePath = "/api/admin/auth/me";
@@ -78,7 +78,8 @@ internal sealed class WebAdminHttpChecks(WebAdminApplicationFactory factory, Web
         ("Web-admin role permissions and organization union follow current grants", FreshAuthorityAsync),
         ("Web-admin copied cookies lose authority after logout and account/session changes", CookieInvalidationAsync),
         ("Web-admin cookie and mobile bearer realms remain independent", RealmIsolationAsync),
-        ("Web-admin durable client and username throttle dimensions are independent", DurableThrottlesAsync)
+        ("Web-admin durable client and username throttle dimensions are independent", DurableThrottlesAsync),
+        ("Club editor safe overrides, fresh locked authority, concurrency and atomic audit preserve initial import", ClubEditorAsync)
     ];
 
     private HttpClient Client()

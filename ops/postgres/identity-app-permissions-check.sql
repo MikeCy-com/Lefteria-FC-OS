@@ -35,6 +35,13 @@ BEGIN
     RAISE EXCEPTION 'Mobile/content runtime has credential-session or public-content write privileges';
   END IF;
   PERFORM kind,organization_id,id,data_json FROM public_content.documents LIMIT 0;
+  PERFORM kind,organization_id,id,data_json FROM public_content.edits LIMIT 0;
+  IF has_column_privilege(current_user,'public_content.edits','version','SELECT')
+      OR has_any_column_privilege(current_user,'public_content.edits','INSERT,UPDATE,REFERENCES')
+      OR has_table_privilege(current_user,'public_content.edits','DELETE,TRUNCATE,TRIGGER')
+      OR has_function_privilege(current_user,'identity.lock_admin_club_authority(text,text)','EXECUTE') THEN
+    RAISE EXCEPTION 'Public runtime exceeds safe club payload read boundary';
+  END IF;
   PERFORM legacy_subject,identity_id FROM identity.imported_mobile_subjects LIMIT 1;
   PERFORM id,time_zone,is_complete FROM club.calendar_import_state LIMIT 1;
   PERFORM id,organization_id FROM club.teams LIMIT 1;

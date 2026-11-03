@@ -1304,6 +1304,43 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("LefteriaFc.Infrastructure.PublicContent.AdminClubEditRecord", b =>
+                {
+                    b.Property<string>("Kind")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("OrganizationId")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("organization_id");
+
+                    b.Property<string>("Id")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("id")
+                        .UseCollation("C");
+
+                    b.Property<string>("DataJson")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data_json");
+
+                    b.Property<long>("Version")
+                        .HasColumnType("bigint")
+                        .HasColumnName("version");
+
+                    b.HasKey("Kind", "OrganizationId", "Id");
+
+                    b.ToTable("edits", "public_content", t =>
+                        {
+                            t.HasCheckConstraint("ck_public_club_edit", "kind = 'club' AND version > 0");
+
+                            t.HasCheckConstraint("ck_public_club_edit_identity", "(jsonb_typeof(data_json) = 'object' AND data_json->>'id' = id AND data_json->>'organization_id' = organization_id) IS TRUE");
+                        });
+                });
+
             modelBuilder.Entity("LefteriaFc.Infrastructure.PublicContent.PublicContentDocumentRecord", b =>
                 {
                     b.Property<string>("Kind")
@@ -2607,6 +2644,15 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
                         .HasForeignKey("PendingEvidenceId", "NormalizedPhone")
                         .HasPrincipalKey("Id", "NormalizedPhone")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("LefteriaFc.Infrastructure.PublicContent.AdminClubEditRecord", b =>
+                {
+                    b.HasOne("LefteriaFc.Infrastructure.PublicContent.PublicContentDocumentRecord", null)
+                        .WithMany()
+                        .HasForeignKey("Kind", "OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("LefteriaFc.Infrastructure.PublicContent.PublicContentDocumentRecord", b =>

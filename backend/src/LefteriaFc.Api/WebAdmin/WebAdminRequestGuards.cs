@@ -28,7 +28,9 @@ public static class WebAdminRequestGuards
                     await Reject(context, 415, "json_required", "A JSON request is required.");
                     return;
                 }
-                const int limit = 16 * 1024;
+                // Safe full public history/description are independently bounded;
+                // credential and session endpoints keep their original small cap.
+                var limit = HttpMethods.IsPut(context.Request.Method) && context.Request.Path == "/api/admin/club" ? 1024 * 1024 : 16 * 1024;
                 if (context.Request.ContentLength > limit)
                 {
                     await Reject(context, 413, "request_too_large", "The request is too large.");

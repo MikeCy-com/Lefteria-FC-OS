@@ -19,7 +19,16 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
         var rows = await database.Set<PublicContentDocumentRecord>().AsNoTracking().Where(row => row.OrganizationId == organizationId).ToArrayAsync(token);
         T[] Read<T>(string kind) where T : class => rows.Where(row => row.Kind == kind).OrderBy(row => row.DisplayOrder).ThenBy(row => row.Id, StringComparer.Ordinal)
             .Select(row => JsonSerializer.Deserialize<T>(row.DataJson, Options) ?? throw new InvalidOperationException("Invalid public projection.")).ToArray();
-        var result = new PublicSiteResult(organizationId, Read<PublicClub>(PublicContentKinds.Club).SingleOrDefault(),
+        var club = Read<PublicClub>(PublicContentKinds.Club).SingleOrDefault();
+        if (club is not null)
+        {
+            // The runtime sees safe payload columns, never editor version metadata.
+            var edited = await database.Set<AdminClubEditRecord>().AsNoTracking()
+                .Where(row => row.Kind == PublicContentKinds.Club && row.OrganizationId == organizationId && row.Id == club.Id)
+                .Select(row => row.DataJson).SingleOrDefaultAsync(token);
+            if (edited is not null) club = JsonSerializer.Deserialize<PublicClub>(edited, Options) ?? throw new InvalidOperationException("Invalid club edit.");
+        }
+        var result = new PublicSiteResult(organizationId, club,
             Read<PublicTeam>(PublicContentKinds.Team), Read<PublicAcademyGroup>(PublicContentKinds.AcademyGroup),
             Read<PublicArticle>(PublicContentKinds.News).OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicFixture>(PublicContentKinds.Fixture).OrderBy(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray());

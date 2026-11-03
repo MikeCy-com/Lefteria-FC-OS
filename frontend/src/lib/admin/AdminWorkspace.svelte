@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { WebAdminSession } from './controller.ts';
   import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole, pendingAdminModules } from './permissions.ts';
+  import { canReadClub } from './club-controller.ts';
+  import AdminFrame from './AdminFrame.svelte';
 
   let { session, busy = false, onLogout, onRefresh }: {
     session: WebAdminSession; busy?: boolean; onLogout: () => void; onRefresh: () => void;
@@ -12,20 +14,10 @@
 </script>
 
 <div class="admin-workspace" data-testid="admin-workspace">
-  <a class="admin-skip" href="#admin-main">Μετάβαση στο περιεχόμενο</a>
-  <header class="admin-header">
-    <a class="admin-brand" href="/admin"><img src="/mobile/club-logo.png" alt="" width="40" height="40" /><span>LEFTERIA FC OS <small>Διαχείριση</small></span></a>
-    <div class="admin-actions"><a href="/">Ιστοσελίδα</a><button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button></div>
-  </header>
-  <div class="admin-workspace-body">
-    <nav class="admin-sidebar" aria-label="Διαχείριση λογαριασμού">
-      <p class="admin-nav-label">Ο ΧΩΡΟΣ ΣΟΥ</p>
-      <a href="#account">Λογαριασμός</a><a href="#session">Σύνδεση</a><a href="#access">Δικαιώματα πρόσβασης</a>
-      <div class="admin-sidebar-context"><span>ΣΥΝΔΕΔΕΜΕΝΟΣ ΩΣ</span><strong>{user.name || user.username}</strong><small>{roleName}</small></div>
-    </nav>
-    <main class="admin-content" id="admin-main" tabindex="-1">
+  <AdminFrame {user} {busy} {onLogout}>
       <div class="admin-workspace-intro"><p class="admin-eyebrow">LEFTERIA FC · ΔΙΑΧΕΙΡΙΣΗ</p><h1>Καλώς ήρθατε,<br />{user.name || user.username}</h1>
       <p class="admin-muted">Ο λογαριασμός, η σύνδεση και τα τρέχοντα δικαιώματά σας.</p></div>
+      {#if canReadClub(user)}<section class="admin-panel" aria-labelledby="website-title"><p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ</p><h2 id="website-title">Προφίλ συλλόγου</h2><p class="admin-muted">Τα δημόσια στοιχεία, η ιστορία, η επικοινωνία και τα κοινωνικά δίκτυα κάθε οργανισμού σας.</p><a class="admin-module-link" href="/admin/club">Άνοιγμα προφίλ συλλόγου <span aria-hidden="true">↗</span></a></section>{/if}
       <section class="admin-panel" id="account" aria-labelledby="account-title">
         <h2 id="account-title">Λογαριασμός</h2>
         <dl class="admin-details"><div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div><div><dt>Όνομα χρήστη</dt><dd>{user.username}</dd></div><div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div></dl>
@@ -50,6 +42,5 @@
           <ul class="admin-pending-modules">{#each modules as name}<li><span>{name}</span><span class="admin-development">Under Developments</span></li>{/each}</ul>
         </section>
       {/if}
-    </main>
-  </div>
+  </AdminFrame>
 </div>

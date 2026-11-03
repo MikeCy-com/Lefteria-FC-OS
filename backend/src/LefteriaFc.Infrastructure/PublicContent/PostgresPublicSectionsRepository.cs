@@ -30,6 +30,23 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
         var now = clock.GetUtcNow();
         var month = TimeZoneInfo.ConvertTime(now, TimeZoneInfo.FindSystemTimeZoneById(PublicFixtureClock.TimeZone))
             .ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+        var branding = Read<PublicSectionBranding>("branding").SingleOrDefault();
+        if (branding is not null)
+        {
+            // Keep the overlapping public site/section fields consistent after a
+            // club edit. Stadium and scope-specific social fields remain imported
+            // because the safe club editor does not expose those capabilities.
+            var edited = await database.Set<AdminClubEditRecord>().AsNoTracking()
+                .Where(row => row.Kind == "club" && row.OrganizationId == organizationId && row.Id == branding.Id)
+                .Select(row => row.DataJson).SingleOrDefaultAsync(token);
+            if (edited is not null)
+            {
+                var club = JsonSerializer.Deserialize<PublicClub>(edited, Json) ?? throw new InvalidOperationException("Invalid club edit.");
+                branding = branding with { Name = club.Name, GreekName = club.GreekName, LogoUrl = club.LogoUrl,
+                    City = club.City, Country = club.Country, History = club.History, StadiumImageUrl = club.StadiumImageUrl,
+                    LegacySocials = club.SocialLinks.Select(pair => new PublicSectionSocial(pair.Key, pair.Value)).ToArray() };
+            }
+        }
         var response = new PublicSectionsResult(organizationId, Read<PublicSectionPlayer>("player"), Read<PublicSectionStaff>("staff"), Read<PublicSectionGroup>("academy_group"),
             Read<PublicSectionStanding>("standing").OrderByDescending(row => row.Points).ThenByDescending(row => row.GoalDifference).ThenBy(row => row.TeamName, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionVenue>("venue"), Read<PublicSectionSeason>("season").OrderByDescending(row => row.StartDate, StringComparer.Ordinal).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
@@ -39,7 +56,7 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
             Read<PublicSectionTicket>("ticket"), Read<PublicSectionArchive>("archive").OrderByDescending(row => row.ArchivedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionReview>("review").OrderByDescending(row => row.PublishedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionAcademyStats>("academy_stats").SingleOrDefault(), Read<PublicSectionPotm>("potm").SingleOrDefault(row => row.MonthKey == month) ?? new PublicSectionPotm(month, organizationId, month, 0, []),
-            Read<PublicSectionBranding>("branding").SingleOrDefault(), Read<PublicSectionModule>("module"), snapshot.ExportedAt, now, PublicFixtureClock.TimeZone);
+            branding, Read<PublicSectionModule>("module"), snapshot.ExportedAt, now, PublicFixtureClock.TimeZone);
         await transaction.CommitAsync(token);
         return response;
     }

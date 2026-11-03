@@ -51,6 +51,7 @@ BEGIN
     RAISE EXCEPTION 'Admin-auth role must not own databases, schemas, persistent relations or routines';
   END IF;
   IF to_regclass('identity.admin_sessions') IS NULL OR to_regclass('identity.admin_auth_rate_buckets') IS NULL
+      OR to_regclass('public_content.edits') IS NULL OR to_regprocedure('identity.lock_admin_club_authority(text,text)') IS NULL
       OR NOT EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid='audit.security_events'::regclass
                       AND attname='actor_realm' AND attnum>0 AND NOT attisdropped) THEN
     RAISE EXCEPTION 'Apply the web-admin EF migration first; auth grants never create schema';
@@ -73,10 +74,10 @@ $guard$;
 -- mobile projections and audit permissions remain unchanged.
 REVOKE ALL PRIVILEGES ON DATABASE :"admin_auth_database" FROM :"admin_auth_role";
 GRANT CONNECT ON DATABASE :"admin_auth_database" TO :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration FROM :"admin_auth_role";
-GRANT USAGE ON SCHEMA identity,club,audit TO :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration FROM :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration FROM :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections FROM :"admin_auth_role";
+GRANT USAGE ON SCHEMA identity,club,audit,public_content TO :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections FROM :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON identity.admin_sessions,identity.admin_auth_rate_buckets FROM PUBLIC, :"app_role";
 
 -- Table-level REVOKE does not remove previous column grants.
@@ -90,7 +91,7 @@ BEGIN
   FOR target IN
     SELECT n.nspname,c.relname,c.oid
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname IN ('public','identity','club','audit','migration') AND c.relkind IN ('r','p','v','m','f')
+    WHERE n.nspname IN ('public','identity','club','audit','migration','public_content','public_sections') AND c.relkind IN ('r','p','v','m','f')
   LOOP
     SELECT string_agg(format('%I',a.attname),', ' ORDER BY a.attnum) INTO columns
     FROM pg_attribute a WHERE a.attrelid=target.oid AND a.attnum>0 AND NOT a.attisdropped;
@@ -112,6 +113,12 @@ GRANT SELECT,INSERT ON identity.admin_sessions,identity.admin_auth_rate_buckets 
 GRANT UPDATE (revoked_at) ON identity.admin_sessions TO :"admin_auth_role";
 GRANT UPDATE (tokens,updated_at) ON identity.admin_auth_rate_buckets TO :"admin_auth_role";
 GRANT INSERT ON audit.security_events TO :"admin_auth_role";
+GRANT SELECT ON public_content.documents,public_content.import_state,public_content.edits TO :"admin_auth_role";
+GRANT INSERT ON public_content.edits TO :"admin_auth_role";
+GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
+\ir admin-club-lock-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -132,7 +139,8 @@ BEGIN
   END IF;
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
-                AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')) THEN
+                AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
+                AND p.oid<>'identity.lock_admin_club_authority(text,text)'::regprocedure) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN
@@ -145,10 +153,13 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname='edits');
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
+    can_update := can_update OR (target.nspname='public_content' AND target.relname='edits' AND target.attname IN ('data_json','version'));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update

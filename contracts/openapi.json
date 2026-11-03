@@ -1,6 +1,180 @@
 {
   "components": {
     "schemas": {
+      "AdminClubEditable": {
+        "additionalProperties": false,
+        "description": "Complete safe public club fields only. Null clears optional fields. Unknown keys and duplicate JSON keys are rejected.",
+        "properties": {
+          "address": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "country": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "maxLength": 20000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "email": {
+            "maxLength": 254,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "founded": {
+            "format": "int32",
+            "type": [
+              "null",
+              "integer"
+            ]
+          },
+          "greek_name": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "history": {
+            "maxLength": 100000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "logo_url": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "motto": {
+            "maxLength": 1000,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "phone": {
+            "maxLength": 40,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "social_links": {
+            "additionalProperties": {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            "description": "Only facebook, instagram, twitter, youtube and tiktok; values are nonempty safe HTTPS URLs.",
+            "maxProperties": 5,
+            "type": "object"
+          },
+          "stadium_image_url": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "website": {
+            "maxLength": 2048,
+            "minLength": 0,
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "greek_name",
+          "founded",
+          "description",
+          "motto",
+          "history",
+          "logo_url",
+          "stadium_image_url",
+          "city",
+          "country",
+          "address",
+          "email",
+          "phone",
+          "website",
+          "social_links"
+        ],
+        "type": "object"
+      },
+      "AdminClubProfileDto": {
+        "properties": {
+          "club": {
+            "$ref": "#/components/schemas/PublicClub"
+          },
+          "version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "club"
+        ],
+        "type": "object"
+      },
+      "AdminClubUpdateCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "club": {
+            "$ref": "#/components/schemas/AdminClubEditable"
+          },
+          "expected_version": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expected_version",
+          "club"
+        ],
+        "type": "object"
+      },
       "CalendarOwnResponse": {
         "properties": {
           "player_id": {
@@ -4397,6 +4571,274 @@
         ]
       }
     },
+    "/api/admin/club": {
+      "get": {
+        "operationId": "GetAdminClubProfile",
+        "parameters": [
+          {
+            "description": "One current authorized owner; no implicit or global organization.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc",
+                "lefteria_fc_academy"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminClubProfileDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Club settings"
+        ]
+      },
+      "put": {
+        "operationId": "UpdateAdminClubProfile",
+        "parameters": [
+          {
+            "description": "One current authorized owner; no implicit or global organization.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc",
+                "lefteria_fc_academy"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminClubUpdateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminClubProfileDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Club settings"
+        ]
+      }
+    },
     "/api/health/live": {
       "get": {
         "operationId": "GetLiveness",
@@ -6435,6 +6877,9 @@
     },
     {
       "name": "Web administration"
+    },
+    {
+      "name": "Club settings"
     }
   ]
 }
