@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
-const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}'];
+const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections'];
 const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
@@ -13,8 +13,8 @@ const entryOperations = [
   ['post', '/api/mobile/auth/exchange-legacy', [{ LegacyMobile: [] }]],
   ['get', '/api/uploads/avatars/{fileName}', []], ['head', '/api/uploads/avatars/{fileName}', []]
 ];
-export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|academy|about|contact|privacy|terms|academy/philosophy)(?:/__data[.]json)?$|news(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
-export const publicApiExpression = '^/api/public/(?:site|news(?:/[^/]+)?)$';
+export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|about|contact|privacy|terms|fixtures|calendar|venues)(?:/__data[.]json)?$|(?:news|academy|match|player|staff|events|partners|sponsors|seasons)(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
+export const publicApiExpression = '^/api/public/(?:site|sections|news(?:/[^/]+)?)$';
 
 export function reviewedPublicReads(document) {
   // This curated list never opens a newly added anonymous API automatically.

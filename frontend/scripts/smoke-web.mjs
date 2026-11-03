@@ -55,10 +55,26 @@ try {
   const home = await response.text();
   assert.match(home, /ΛΕΥΤΕΡΙΑ FC/);
   assert.match(home, /Η ΕΠΙΣΗΜΗ ΙΣΤΟΣΕΛΙΔΑ/);
-  for (const pathname of ['/about', '/team', '/academy', '/academy/philosophy', '/privacy', '/terms', '/news', '/contact', '/admin', '/admin/login']) {
+  for (const pathname of ['/about', '/team', '/academy', '/academy/philosophy', '/privacy', '/terms', '/news', '/contact', '/login', '/admin', '/admin/login']) {
     const page = await fetch(origin + pathname);
     assert.equal(page.status, 200, `Public/admin path ${pathname} must render without private API or browser storage.`);
     assert.doesNotMatch(await page.text(), /fixture-password|password_hash|twilio_auth_token/);
+  }
+  // A missing data source must keep the real route and an explicit unavailable
+  // status. It must not degrade into a missing route or an opaque500 page.
+  for (const pathname of ['/player/known-id', '/staff/known-id', '/match/known-id', '/academy/known-id', '/academy/groups',
+    '/team?tab=roster', '/team?tab=statistics', '/team?tab=gallery', '/team?tab=venues',
+    '/events', '/events/known-id', '/partners', '/partners/known-id', '/sponsors/first-team', '/sponsors/academy',
+    '/sponsors/known-id', '/seasons', '/seasons/known-id']) {
+    const unavailable = await fetch(origin + pathname);
+    assert.equal(unavailable.status, 503, `Implemented path ${pathname} must distinguish unavailable data from404/500.`);
+    const recovery = await unavailable.text();
+    assert.match(recovery, /Φόρτωση ξανά/);
+    assert.doesNotMatch(recovery, /Internal Error|password_hash|twilio_auth_token/);
+  }
+  for (const [pathname,target] of [['/fixtures','/team?tab=results'],['/calendar','/team?tab=schedule'],['/venues','/team?tab=venues'],['/staff','/team?tab=overview']]) {
+    const legacy = await fetch(origin + pathname, {redirect:'manual'});
+    assert.equal(legacy.status,308); assert.equal(legacy.headers.get('location'),target);
   }
   for (const pathname of ['/app/login', '/app', '/app/calendar']) {
     const mobile = await fetch(origin + pathname);
