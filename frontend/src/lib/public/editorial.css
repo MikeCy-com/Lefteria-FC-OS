@@ -5,7 +5,7 @@
 .public-site .public-rail { border-right-color:#ffffff12; }
 .public-site .public-rail-logo { height:112px; }
 .public-site .public-rail-logo img { width:64px;height:78px; }
-.public-site .public-rail nav :is(a,button) { flex-direction:column;justify-content:center;gap:6px;padding:11px 5px;font-size:10px;line-height:1.2;min-height:64px; }
+.public-site .public-rail nav :is(a,button) { flex-direction:column;justify-content:center;gap:6px;padding:11px 5px;font-size:12px;line-height:1.35;min-height:66px; }
 .public-site .public-rail nav :is(a,button):hover { background:#f5a62312; }
 .public-site .public-header { padding:0 32px;gap:22px;border-bottom-color:#ffffff16;background:#080808ed; }
 .public-site .public-header-brand strong { font-size:23px; }
@@ -27,7 +27,8 @@
 .public-editorial-home .public-hero-bottom { bottom:35px; }
 .public-editorial-home .public-news-section { padding:50px 38px 64px;background:#0d0d0d; }
 .public-site .public-section-heading { margin-bottom:26px;align-items:center; }
-.public-site .public-section-heading h2 { font-size:clamp(28px,3vw,40px);line-height:1.05; }
+.public-site .public-section-heading h2,.public-site .section-heading h2 { font-size:clamp(28px,3vw,40px);line-height:1.05; }
+.public-site :is(.source-about,.source-philosophy) h2 { font-size:clamp(28px,3vw,40px);line-height:1.1; }
 .public-site .public-section-heading .public-eyebrow { font-size:11px;margin-bottom:9px; }
 .public-site .public-news-grid { gap:22px; }
 .public-site .public-news-card { border:0;border-radius:12px;overflow:hidden;background:#171717;transition:background .2s,transform .2s; }
@@ -36,7 +37,7 @@
 .public-site .public-news-image img[data-fallback="true"] { object-fit:contain;padding:34px;background:radial-gradient(ellipse at bottom,#30271a,#151515 75%); }
 .public-site .public-news-body { padding:22px; }
 .public-site .public-news-body h3 { font-family:'Fira Sans Extra Condensed',sans-serif!important;font-size:27px;line-height:1.12;font-weight:700;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden; }
-.public-site .public-news-body p { font-size:13px;line-height:1.65;color:#b6b6b6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden; }
+.public-site .public-news-body p { font-size:14px;line-height:1.65;color:#b6b6b6;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden; }
 .public-site .public-news-category { background:transparent;color:var(--public-gold);padding:0;font-family:'Fira Sans',sans-serif;font-size:10px; }
 .public-site .public-news-body time { margin-left:auto;color:#a6a6a6; }
 .public-site .public-news-read { padding-top:12px;font-size:12px; }
