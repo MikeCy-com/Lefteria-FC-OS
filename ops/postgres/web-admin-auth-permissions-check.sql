@@ -18,6 +18,7 @@ BEGIN;
 SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin_auth_role_setting,
        set_config('lefteria.mobile_runtime_role', :'app_role', true) AS mobile_runtime_role_setting
 \gset
+\ir admin-club-lock-boundary.sql
 
 DO $checks$
 DECLARE
@@ -66,7 +67,8 @@ BEGIN
   IF NOT denied THEN RAISE EXCEPTION 'Admin-auth role can assume the mobile runtime role'; END IF;
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
-                AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')) THEN
+                AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
+                AND p.oid<>'identity.lock_admin_club_authority(text,text)'::regprocedure) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;
 

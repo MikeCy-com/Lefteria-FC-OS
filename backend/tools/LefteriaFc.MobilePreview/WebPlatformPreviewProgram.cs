@@ -18,6 +18,7 @@ internal static class WebPlatformPreviewProgram
         WebApplication? app = null;
         WebAdminApplicationFactory? factory = null;
         WebAdminDatabaseFixture? database = null;
+        WebPlatformPreviewClubFixture? clubs = null;
         var exitCode = 0;
         var phase = Phase.Arguments;
         try
@@ -56,6 +57,8 @@ internal static class WebPlatformPreviewProgram
             database = new WebAdminDatabaseFixture(fixture, factory);
             database.TrackClient(249);
             phase = Phase.Seed;
+            clubs = new WebPlatformPreviewClubFixture(fixture);
+            await clubs.SeedAsync();
             var account = await database.SeedAsync(organizations: ["lefteria_fc", "lefteria_fc_academy"]);
             using var api = factory.CreateClient(new WebApplicationFactoryClientOptions
             { BaseAddress = new Uri(WebAdminApplicationFactory.Origin), HandleCookies = false, AllowAutoRedirect = false });
@@ -72,10 +75,12 @@ internal static class WebPlatformPreviewProgram
             Console.WriteLine($"Fictional username: {account.Username}");
             Console.WriteLine($"Fictional password: {WebAdminDatabaseFixture.Password}");
             Console.WriteLine("The fictional manager has both organizations. No SMS/provider call is enabled.");
+            Console.WriteLine($"Club editor URL: {options.Origin.GetLeftPart(UriPartial.Authority)}/admin/club");
+            Console.WriteLine("Both fictional public club profiles start at version zero. Saves affect this disposable preview only.");
             if (options.Smoke)
             {
                 phase = Phase.Smoke;
-                await WebPlatformPreviewSmoke.RunAsync(options, account.Username);
+                await WebPlatformPreviewSmoke.RunAsync(options, account, database);
                 await app.WaitForShutdownAsync().WaitAsync(TimeSpan.FromSeconds(10));
                 Console.WriteLine("PASS local web-platform real-cookie API smoke; browser cookie storage still requires browser verification.");
             }
@@ -95,6 +100,11 @@ internal static class WebPlatformPreviewProgram
                 if (factory is not null) await factory.DisposeAsync();
             }
             catch (Exception) { Console.Error.WriteLine("Web-platform preview shutdown failed."); exitCode = 1; }
+            if (clubs is not null)
+            {
+                try { await clubs.CleanupAsync(); }
+                catch (Exception) { Console.Error.WriteLine("Exact fictional public-club cleanup failed; inspect the disposable fixture before reuse."); exitCode = 1; }
+            }
             if (database is not null)
             {
                 try { await database.CleanupAsync(); }

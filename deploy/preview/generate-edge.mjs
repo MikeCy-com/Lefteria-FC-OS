@@ -8,6 +8,7 @@ const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/new
 const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
+  ['get', '/api/admin/club', [{ WebAdmin: [] }]], ['put', '/api/admin/club', [{ WebAdmin: [] }]],
   ['post', '/api/mobile/auth/request-otp', []], ['post', '/api/mobile/auth/verify-otp', []],
   ['post', '/api/mobile/auth/register-fan', []],
   ['post', '/api/mobile/auth/exchange-legacy', [{ LegacyMobile: [] }]],

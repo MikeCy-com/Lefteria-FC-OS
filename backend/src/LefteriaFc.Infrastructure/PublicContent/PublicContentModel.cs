@@ -54,5 +54,6 @@ public static class PublicContentModel
         source.HasOne<PublicContentImportStateRecord>().WithMany().HasForeignKey(row => row.ImportDigest)
             .HasPrincipalKey(row => row.Digest).OnDelete(DeleteBehavior.Restrict);
         PublicSectionsModel.Configure(model);
+        AdminClubModel.Configure(model);
     }
 }

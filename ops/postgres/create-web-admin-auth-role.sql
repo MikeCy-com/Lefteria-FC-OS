@@ -43,6 +43,8 @@ SELECT octet_length(:'admin_auth_role') BETWEEN 1 AND 63
        AS admin_password_input_valid,
        to_regclass('identity.admin_sessions') IS NOT NULL
        AND to_regclass('identity.admin_auth_rate_buckets') IS NOT NULL
+       AND to_regclass('public_content.edits') IS NOT NULL
+       AND to_regprocedure('identity.lock_admin_club_authority(text,text)') IS NOT NULL
        AND EXISTS (SELECT 1 FROM information_schema.columns
                    WHERE table_schema='audit' AND table_name='security_events' AND column_name='actor_realm')
        AND EXISTS (SELECT 1 FROM information_schema.columns

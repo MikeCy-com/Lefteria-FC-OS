@@ -68,6 +68,15 @@ try {
   assert.equal(document.components.securitySchemes.WebAdmin.in, 'cookie');
   assert.equal(document.components.securitySchemes.WebAdmin.name, '__Host-lefteria-admin');
   assert.equal(document.paths['/api/admin/auth/login'].post.security, undefined);
+  for (const method of ['get', 'put']) {
+    const operation = document.paths['/api/admin/club'][method];
+    assert.deepEqual(operation.security, [{ WebAdmin: [] }]);
+    assert.ok(operation.parameters.some(parameter => parameter.name === 'organization_id' && parameter.in === 'query' && parameter.required === true));
+    assert.ok(operation.responses['401'] && operation.responses['403'] && operation.responses['409'] && operation.responses['422']);
+  }
+  assert.equal(document.components.schemas.AdminClubUpdateCommand.additionalProperties, false);
+  assert.equal(document.components.schemas.AdminClubEditable.additionalProperties, false);
+  assert.equal(document.components.schemas.AdminClubEditable.properties.history.maxLength, 100000);
   assert.equal(document.paths['/api/public/site'].get.security, undefined);
   const publicSections = document.paths['/api/public/sections'].get;
   assert.equal(publicSections.security, undefined);

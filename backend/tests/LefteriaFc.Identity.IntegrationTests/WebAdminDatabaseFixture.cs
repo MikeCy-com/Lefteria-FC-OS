@@ -4,7 +4,7 @@ namespace LefteriaFc.Identity.IntegrationTests;
 
 // Only the owner connection seeds/removes these random fictional accounts.
 // API requests use the independently validated web-admin role in the factory.
-internal sealed class WebAdminDatabaseFixture(FixtureConfiguration fixture, WebAdminApplicationFactory factory)
+internal sealed partial class WebAdminDatabaseFixture(FixtureConfiguration fixture, WebAdminApplicationFactory factory)
 {
     public const string Password = "fixture-password-26";
     public const string PasswordHash = "$2b$04$......................zZBj5OGxtMOVwSKwuhgTqOM4l8/c6/O";

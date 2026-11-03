@@ -75,7 +75,7 @@ REVOKE ALL PRIVILEGES ON TABLE
   club.calendar_import_state,club.calendar_items,club.calendar_item_scopes,club.calendar_item_guests,
   club.calendar_responses,migration.calendar_source_documents,migration.calendar_import_issues,
   public_content.documents,public_content.import_state,migration.public_content_import_evidence,migration.public_content_source_documents,
-  identity.admin_sessions,identity.admin_auth_rate_buckets
+  identity.admin_sessions,identity.admin_auth_rate_buckets,public_content.edits
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -101,7 +101,7 @@ BEGIN
       ('club','calendar_import_state'),('club','calendar_items'),('club','calendar_item_scopes'),('club','calendar_item_guests'),
       ('club','calendar_responses'),('migration','calendar_source_documents'),('migration','calendar_import_issues'),
       ('public_content','documents'),('public_content','import_state'),('migration','public_content_import_evidence'),
-      ('migration','public_content_source_documents'),('identity','admin_sessions'),('identity','admin_auth_rate_buckets'))
+      ('migration','public_content_source_documents'),('identity','admin_sessions'),('identity','admin_auth_rate_buckets'),('public_content','edits'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
@@ -114,6 +114,8 @@ $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
 GRANT SELECT ON public_content.documents,public_content.import_state TO :"app_role";
+GRANT SELECT (kind,organization_id,id,data_json) ON public_content.edits TO :"app_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO :"app_role";
 GRANT SELECT (id,time_zone,is_complete) ON club.calendar_import_state TO :"app_role";
 GRANT SELECT (id,organization_id) ON club.teams,club.academy_groups TO :"app_role";

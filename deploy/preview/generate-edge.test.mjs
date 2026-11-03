@@ -88,18 +88,20 @@ test('public reads remain credential-free and private restored media remains una
   assert.match(output, /@legacy_upload[\s\S]*handle @legacy_upload[\s\S]*respond "" 404/);
 });
 
-test('only reviewed login/session and sanitized-avatar operations reach their application policies', () => {
+test('only reviewed login/session, club editor and sanitized-avatar operations reach their application policies', () => {
   const groups = entryRouteGroups(contract);
   const entryPermits = (method,path) => groups.some(group => group.method === method && new RegExp(group.expression).test(path));
   for (const [method,path] of [['POST','/api/admin/auth/login'],['POST','/api/admin/auth/logout'],['GET','/api/admin/auth/me'],
+    ['GET','/api/admin/club'],['PUT','/api/admin/club'],
     ['POST','/api/mobile/auth/request-otp'],['POST','/api/mobile/auth/verify-otp'],['POST','/api/mobile/auth/register-fan'],
     ['POST','/api/mobile/auth/exchange-legacy'],['GET','/api/uploads/avatars/opaque.jpg'],['HEAD','/api/uploads/avatars/opaque.jpg']]) {
     assert.equal(entryPermits(method,path),true,method+' '+path);
     assert.equal(entryPermits(method,path+'/extra'),false);
   }
-  for (const path of ['/api/health/ready','/api/openapi/v1.json','/api/mobile/auth/future','/api/uploads/private.jpg','/api/uploads/avatars/'])
+  for (const path of ['/api/health/ready','/api/openapi/v1.json','/api/mobile/auth/future','/api/admin/future','/api/uploads/private.jpg','/api/uploads/avatars/'])
     assert.equal(entryPermits('GET',path),false,path);
-  for (const [path,method,security] of [['/api/admin/auth/me','get',[]],['/api/admin/auth/login','post',[{Mobile:[]}]]]) {
+  for (const method of ['POST','DELETE','PATCH','HEAD','OPTIONS']) assert.equal(entryPermits(method,'/api/admin/club'),false);
+  for (const [path,method,security] of [['/api/admin/auth/me','get',[]],['/api/admin/auth/login','post',[{Mobile:[]}]],['/api/admin/club','get',[]],['/api/admin/club','put',[]]]) {
     const changed=structuredClone(contract); changed.paths[path][method].security=security;
     assert.throws(()=>generateEdge(changed,hostname,digest),/entry security|Unexpected Mobile operation path/);
   }

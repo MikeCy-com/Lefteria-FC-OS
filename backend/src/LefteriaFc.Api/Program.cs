@@ -55,12 +55,15 @@ builder.Services.AddOpenApi(options =>
     options.AddSchemaTransformer<MobileRequestSchemaTransformer>();
     options.AddDocumentTransformer<WebAdminSecurityDocumentTransformer>();
     options.AddOperationTransformer<WebAdminSecurityOperationTransformer>();
+    options.AddSchemaTransformer<AdminClubSchemaTransformer>();
+    options.AddOperationTransformer<AdminClubOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
+builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
@@ -78,6 +81,7 @@ app.MapMobileCalendar();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapPublicSections();
+app.MapAdminClub();
 
 if (app.Environment.IsDevelopment())
 {

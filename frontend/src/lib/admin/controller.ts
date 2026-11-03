@@ -123,7 +123,12 @@ export function createAdminAuthController(options: { baseUrl: string; fetch?: ty
     }
   }
 
-  return { subscribe: store.subscribe, getState: () => state, bootstrap, login, logout, expireIfNeeded,
+  function invalidateSession() {
+    ++revision;
+    update({ status: 'anonymous', session: null, busy: false, error: EXPIRED });
+  }
+
+  return { subscribe: store.subscribe, getState: () => state, bootstrap, login, logout, expireIfNeeded, invalidateSession,
     dispose() { ++revision; disposed = true; state = { status: 'anonymous', session: null, busy: false, error: null }; store.set(state); } };
 }
 

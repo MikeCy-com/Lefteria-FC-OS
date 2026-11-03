@@ -9,7 +9,8 @@ namespace LefteriaFc.MobilePreview;
 
 internal static class WebPlatformPreviewProxy
 {
-    private const int MaxBodyBytes = 16 * 1024;
+    private const int AuthMaxBodyBytes = 16 * 1024;
+    private const int ClubMaxBodyBytes = 1024 * 1024;
     private static readonly string[] HopHeaders =
         ["Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization", "TE", "Trailer", "Transfer-Encoding", "Upgrade"];
 
@@ -24,7 +25,7 @@ internal static class WebPlatformPreviewProxy
             // Both address families are loopback only. localhost also permits the
             // real Secure cookie browser policy; no cookie attributes are weakened.
             server.ListenLocalhost(options.Port);
-            server.Limits.MaxRequestBodySize = MaxBodyBytes;
+            server.Limits.MaxRequestBodySize = ClubMaxBodyBytes;
         });
         var app = builder.Build();
         app.Run(context => HandleAsync(context, app, options, api, web, database));
@@ -59,10 +60,15 @@ internal static class WebPlatformPreviewProxy
         if (target.Scheme != upstream.Scheme || target.Host != upstream.Host || target.Port != upstream.Port)
         { context.Response.StatusCode = 400; return; }
         var targetPath = new PathString(Uri.UnescapeDataString(target.AbsolutePath));
-        var isAdmin = isApi && targetPath.StartsWithSegments("/api/admin/auth");
+        var isClub = isApi && targetPath == "/api/admin/club" &&
+            (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsPut(context.Request.Method));
+        var isAdmin = isApi && (targetPath.StartsWithSegments("/api/admin/auth") || isClub);
         if (isApi && !isAdmin && !targetPath.StartsWithSegments("/api/public") && !targetPath.StartsWithSegments("/api/health"))
         { context.Response.StatusCode = 404; return; }
         var mutation = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
+        var maxBodyBytes = isClub && HttpMethods.IsPut(context.Request.Method) ? ClubMaxBodyBytes : AuthMaxBodyBytes;
+        var bodyLimit = context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+        if (bodyLimit is { IsReadOnly: false }) bodyLimit.MaxRequestBodySize = maxBodyBytes;
         var localOrigin = options.Origin.GetLeftPart(UriPartial.Authority);
         // Never manufacture an accepted Origin for a foreign/missing browser
         // origin. The actual API still enforces its custom header and JSON policy.
@@ -72,7 +78,7 @@ internal static class WebPlatformPreviewProxy
             await context.Response.WriteAsJsonAsync(new { detail = "The request origin is not allowed.", code = "request_origin_denied" });
             return;
         }
-        if (context.Request.ContentLength > MaxBodyBytes) { context.Response.StatusCode = 413; return; }
+        if (context.Request.ContentLength > maxBodyBytes) { context.Response.StatusCode = 413; return; }
 
         try
         {
@@ -86,7 +92,7 @@ internal static class WebPlatformPreviewProxy
                 int count;
                 while ((count = await context.Request.Body.ReadAsync(chunk, context.RequestAborted)) != 0)
                 {
-                    if (body.Length + count > MaxBodyBytes) { context.Response.StatusCode = 413; return; }
+                    if (body.Length + count > maxBodyBytes) { context.Response.StatusCode = 413; return; }
                     await body.WriteAsync(chunk.AsMemory(0, count), context.RequestAborted);
                 }
                 var bytes = body.ToArray();
