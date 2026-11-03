@@ -80,20 +80,30 @@ internal static class PreviewSmoke
         phase(Phase.OwnIdentity);
         using var me = await JsonAsync(client, HttpMethod.Get, "/api/mobile/auth/me");
         Check(me.RootElement.GetProperty("role").GetString() == "fan", "Fan identity failed.");
-        phase(Phase.OversizedProfile);
-        using (var oversized = new StringContent(JsonSerializer.Serialize(new { email = new string('x', 17 * 1024) }),
-                   Encoding.UTF8, "application/json"))
+        // Keep the same HTTP client and immediately follow each rejected upload
+        // with a real mutation. Repetition exercises connection reuse; these are
+        // independent assertions, never retries of a failed request.
+        for (var cycle = 0; cycle < 3; cycle++)
         {
-            using var rejected = await client.PutAsync("/api/mobile/profile", oversized);
-            Check(rejected.StatusCode == HttpStatusCode.RequestEntityTooLarge, "The API body limit was lost through the proxy.", rejected.StatusCode);
+            phase(Phase.OversizedProfile);
+            // JsonContent has no precomputed length, so the middle request also
+            // exercises the proxy's chunked-body read before forwarding.
+            using (HttpContent oversized = cycle == 1
+                       ? JsonContent.Create(new { email = new string('x', 17 * 1024) })
+                       : new StringContent(JsonSerializer.Serialize(new { email = new string('x', 17 * 1024) }), Encoding.UTF8, "application/json"))
+            {
+                using var rejected = await client.PutAsync("/api/mobile/profile", oversized);
+                Check(rejected.StatusCode == HttpStatusCode.RequestEntityTooLarge, "The API body limit was lost through the proxy.", rejected.StatusCode);
+            }
+            phase(Phase.ProfileUpdate);
+            var expectedEmail = $"edited-{cycle}@example.invalid";
+            using var profile = await JsonAsync(client, HttpMethod.Put, "/api/mobile/profile",
+                new { first_name = "Δοκιμή", last_name = "Προεπισκόπησης", email = expectedEmail });
+            Check(profile.RootElement.ValueKind == JsonValueKind.Object, "Profile update returned a non-object JSON response.");
+            Check(profile.RootElement.TryGetProperty("email", out var email), "Profile update response omitted the email field.");
+            Check(email.ValueKind == JsonValueKind.String, "Profile update response email was not a JSON string.");
+            Check(email.GetString() == expectedEmail, "Profile update returned an unchanged or different email.");
         }
-        phase(Phase.ProfileUpdate);
-        using var profile = await JsonAsync(client, HttpMethod.Put, "/api/mobile/profile",
-            new { first_name = "Δοκιμή", last_name = "Προεπισκόπησης", email = "edited@example.invalid" });
-        Check(profile.RootElement.ValueKind == JsonValueKind.Object, "Profile update returned a non-object JSON response.");
-        Check(profile.RootElement.TryGetProperty("email", out var email), "Profile update response omitted the email field.");
-        Check(email.ValueKind == JsonValueKind.String, "Profile update response email was not a JSON string.");
-        Check(email.GetString() == "edited@example.invalid", "Profile update returned an unchanged or different email.");
         phase(Phase.PreferenceUpdate);
         using var preference = await JsonAsync(client, HttpMethod.Put, "/api/mobile/auth/me", new { favorite_team = "academy" });
         Check(preference.RootElement.GetProperty("user").GetProperty("favorite_team").GetString() == "academy", "Preference update failed.");

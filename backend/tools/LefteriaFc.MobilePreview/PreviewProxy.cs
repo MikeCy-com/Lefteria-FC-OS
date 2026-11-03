@@ -83,25 +83,39 @@ internal static class PreviewProxy
             context.Response.StatusCode = StatusCodes.Status400BadRequest;
             return;
         }
-        using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), target);
-        if (context.Request.ContentLength > 0 || context.Request.Headers.ContainsKey("Transfer-Encoding"))
-        {
-            request.Content = new StreamContent(context.Request.Body);
-            if (context.Request.ContentLength is > 0)
-                request.Content.Headers.ContentLength = context.Request.ContentLength;
-        }
-        var excluded = Excluded(context.Request.Headers.Connection.ToString());
-        excluded.UnionWith(["Host", "Content-Length", "Cookie", "Expect", "Forwarded"]);
-        foreach (var header in context.Request.Headers)
-        {
-            if (excluded.Contains(header.Key) || header.Key.StartsWith("X-Forwarded-", StringComparison.OrdinalIgnoreCase) ||
-                (!isApi && header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))) continue;
-            if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && request.Content is not null)
-                request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
-        }
-
         try
         {
+            using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), target);
+            if (context.Request.ContentLength > 0 || context.Request.Headers.ContainsKey("Transfer-Encoding"))
+            {
+                // TestServer can complete an early 413 before its background
+                // StreamContent upload finishes. Consume the bounded Kestrel body
+                // first, so no upstream task keeps reading it after this handler
+                // returns and Kestrel starts draining/reusing the connection.
+                // Only the proxy-owned byte content is disposed with the request.
+                await using var body = new MemoryStream();
+                var chunk = new byte[4096];
+                int count;
+                while ((count = await context.Request.Body.ReadAsync(chunk, context.RequestAborted)) != 0)
+                {
+                    if (body.Length + count > MaxBodyBytes)
+                    {
+                        context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+                        return;
+                    }
+                    await body.WriteAsync(chunk.AsMemory(0, count), context.RequestAborted);
+                }
+                request.Content = new ByteArrayContent(body.ToArray());
+            }
+            var excluded = Excluded(context.Request.Headers.Connection.ToString());
+            excluded.UnionWith(["Host", "Content-Length", "Cookie", "Expect", "Forwarded"]);
+            foreach (var header in context.Request.Headers)
+            {
+                if (excluded.Contains(header.Key) || header.Key.StartsWith("X-Forwarded-", StringComparison.OrdinalIgnoreCase) ||
+                    (!isApi && header.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase))) continue;
+                if (!request.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray()) && request.Content is not null)
+                    request.Content.Headers.TryAddWithoutValidation(header.Key, header.Value.ToArray());
+            }
             using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
             context.Response.StatusCode = (int)response.StatusCode;
             excluded = Excluded(string.Join(',', response.Headers.Connection));
