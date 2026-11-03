@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Application.Roster;
 
@@ -35,12 +36,67 @@ internal static class PublicSectionsPolicyChecks
         Check(plan.Issues.Any(row => row.Code == "academy_group_reference") && plan.Issues.Any(row => row.Code == "integer_value"),
             "Malformed statistics and orphan memberships require explicit reconciliation issues.");
         CheckArchivePrivacy();
+        CheckStandingCompetition();
         try { PublicSectionsImportValidator.Validate(Fixture(duplicate: true)); }
         catch (RosterImportValidationException) { Console.WriteLine("PASS public sections: eligible roster, Academy profile/archive privacy, recorded statistics, raw evidence and invalid-source refusal."); return; }
         throw new InvalidOperationException("Duplicate source identities must refuse the snapshot.");
     }
 
     private static void Check(bool value, string message) { if (!value) throw new InvalidOperationException(message); }
+
+    private static void CheckStandingCompetition()
+    {
+        foreach (var blank in new[] { "", " \t " })
+        {
+            var plan = PublicSectionsImportValidator.Validate(StandingFixture(blank));
+            var live = JsonSerializer.Deserialize<PublicSectionStanding>(plan.Documents.Single(row => row.Kind == "standing").Json, Json)!;
+            var archive = JsonSerializer.Deserialize<PublicSectionArchive>(plan.Documents.Single(row => row.Kind == "archive").Json, Json)!;
+            foreach (var standing in new[] { live, archive.Standings.Single() })
+                Check(standing.Competition == "" && standing.TeamName == "Recorded standing" && standing.Played == 12 && standing.Won == 5 &&
+                    standing.Drawn == 4 && standing.Lost == 3 && standing.GoalsFor == 18 && standing.GoalsAgainst == 20 &&
+                    standing.GoalDifference == -2 && standing.Points == 19 && standing.Season == "2025/26" && standing.Form == "WDLDW",
+                    "An explicit unknown competition label must preserve every recorded live/archive standing statistic.");
+            Check(!plan.Issues.Any(row => row.Collection is "standings" or "archived_seasons"), "A valid blank competition must not quarantine standings or its whole archive.");
+            Check(plan.Source.Any(row => row.Collection == "standings" && row.Json.Contains("sentinel-standing-private", StringComparison.Ordinal)),
+                "Blank-label source evidence must remain whole.");
+            Check(!string.Join('\n', plan.Documents.Select(row => row.Json)).Contains("sentinel-standing-private", StringComparison.Ordinal),
+                "Accepting a blank label must not publish private standing metadata.");
+        }
+        foreach (var (include, value, code) in new (bool, object?, string)[]
+        {
+            (false, null, "required_value"), (true, null, "required_value"), (true, 123, "string_type"),
+            (true, new string('x', 201), "string_length"), (true, "invalid\0label", "string_length")
+        })
+        {
+            var plan = PublicSectionsImportValidator.Validate(StandingFixture(value, include));
+            Check(!plan.Documents.Any(row => row.Kind is "standing" or "archive"), "A malformed competition must not publish a misleading standing or partial archive.");
+            Check(plan.Issues.Any(row => row.Collection == "standings" && row.Code == code) &&
+                plan.Issues.Any(row => row.Collection == "archived_seasons" && row.Code == code),
+                "Malformed live and archived standings require explicit reconciliation issues.");
+            Check(plan.Source.Any(row => row.Collection == "archived_seasons" && row.Json.Contains("sentinel-standing-private", StringComparison.Ordinal)),
+                "Quarantined archive evidence must remain recoverable.");
+            var safe = string.Join('\n', plan.Documents.Select(row => row.Json));
+            Check(!safe.Contains("sentinel-standing-private", StringComparison.Ordinal) && !safe.Contains("Παπαδόπουλος", StringComparison.Ordinal),
+                "A malformed standing must not weaken archive or Academy privacy.");
+        }
+    }
+
+    private static byte[] StandingFixture(object? competition, bool include = true)
+    {
+        var standing = new Dictionary<string, object?>
+        {
+            ["id"] = "standing", ["team_name"] = "Recorded standing", ["played"] = 12, ["won"] = 5, ["drawn"] = 4, ["lost"] = 3,
+            ["goals_for"] = 18, ["goals_against"] = 20, ["goal_difference"] = -2, ["points"] = 19,
+            ["season"] = "2025/26", ["form"] = "WDLDW", ["private_notes"] = "sentinel-standing-private"
+        };
+        if (include) standing["competition"] = competition;
+        var archivedStanding = new Dictionary<string, object?>(standing) { ["id"] = "archive-standing" };
+        var root = JsonNode.Parse(Fixture())!.AsObject();
+        root["standings"] = JsonSerializer.SerializeToNode(new[] { standing });
+        root["archived_seasons"] = JsonSerializer.SerializeToNode(new[]
+        { new { id = "standing-archive", season_id = "season", season_name = "2025-2026", standings = new[] { archivedStanding } } });
+        return JsonSerializer.SerializeToUtf8Bytes(root);
+    }
 
     private static void CheckArchivePrivacy()
     {

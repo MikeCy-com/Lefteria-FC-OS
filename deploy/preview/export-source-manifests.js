@@ -35,6 +35,9 @@
     accounts: ['mobile_users', 'fans', 'admin_users'],
     calendar: ['fixtures', 'events', 'training_sessions', 'availability', 'event_attendance', 'attendance']
   });
+  const SECTION_COLLECTIONS = Object.freeze(['players', 'staff', 'standings', 'venues', 'seasons', 'gallery',
+    'sponsors', 'partners', 'marketing_events', 'products', 'trials_settings', 'fixtures', 'teams', 'academy_groups',
+    'tickets', 'archived_seasons', 'reviews', 'training_sessions', 'attendance', 'potm_votes', 'club_profile']);
   const ROW_LIMITS = Object.freeze({
     teams: 1000, academy_groups: 2000, players: 20000, staff: 5000,
     mobile_users: 50000, fans: 50000, admin_users: 5000,
@@ -46,6 +49,12 @@
   function sha256(content) { return crypto.createHash('sha256').update(content, 'utf8').digest('hex'); }
 
   function readConfiguration(environment, now = () => new Date()) {
+    const kind = environment.LEFTERIA_EXPORT_KIND ?? 'legacy';
+    if (!['legacy', 'public-sections'].includes(kind)) refused();
+    const basePublicDigest = environment.LEFTERIA_EXPORT_BASE_PUBLIC_SHA256;
+    const snapshotVersion = environment.LEFTERIA_EXPORT_SNAPSHOT_VERSION;
+    if (kind === 'public-sections' && (!/^[0-9a-f]{64}$/.test(basePublicDigest ?? '') ||
+        !/^[1-9][0-9]{0,5}$/.test(snapshotVersion ?? '') || Number(snapshotVersion) > 100000)) refused();
     const database = environment.LEFTERIA_EXPORT_DATABASE;
     const cloneName = environment.LEFTERIA_EXPORT_CLONE_NAME;
     const cloneId = environment.LEFTERIA_EXPORT_CLONE_ID;
@@ -62,7 +71,8 @@
         !/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\.[0-9]{1,3})?Z$/.test(exportedAt) ||
         exportedAt.startsWith('0000-') || !Number.isFinite(Date.parse(exportedAt)) ||
         new Date(exportedAt).toISOString().slice(0, 19) !== exportedAt.slice(0, 19)) refused();
-    return Object.freeze({ database, cloneName, cloneId, backupSha256, exportedAt, timeZone: 'Asia/Nicosia' });
+    return Object.freeze({ database, cloneName, cloneId, backupSha256, exportedAt, timeZone: 'Asia/Nicosia',
+      kind, ...(kind === 'public-sections' ? { basePublicDigest, snapshotVersion: Number(snapshotVersion) } : {}) });
   }
 
   function safeNumericValue(canonical) {
@@ -187,6 +197,31 @@
     };
   }
 
+  function buildSectionsBundle(configuration, rows, absentCollections = []) {
+    if (configuration.kind !== 'public-sections') refused();
+    if (!Array.isArray(absentCollections) || new Set(absentCollections).size !== absentCollections.length ||
+        absentCollections.some(name => !SECTION_COLLECTIONS.includes(name) || rows[name]?.length !== 0)) refused();
+    for (const name of SECTION_COLLECTIONS) {
+      if (!Object.prototype.hasOwnProperty.call(rows, name) || !Array.isArray(rows[name]) || rows[name].length > 20000 ||
+          rows[name].some(row => row === null || typeof row !== 'object' || Array.isArray(row))) refused();
+    }
+    const content = manifest('public-sections-manifest.json', 'public-sections', {
+      schema_version: 1, snapshot_version: configuration.snapshotVersion, source_repository: SOURCE_REPOSITORY,
+      source_commit: SOURCE_COMMIT, base_public_sha256: configuration.basePublicDigest,
+      exported_at: configuration.exportedAt, complete_collections: [...SECTION_COLLECTIONS],
+      ...Object.fromEntries(SECTION_COLLECTIONS.map(name => [name, rows[name]]))
+    });
+    return { schema_version: 1, purpose: 'isolated-public-sections-export',
+      provenance: { source_repository: SOURCE_REPOSITORY, source_commit: SOURCE_COMMIT,
+        source_commit_meaning: 'Source-contract baseline; not the live image revision',
+        backup_sha256: configuration.backupSha256, clone_name: configuration.cloneName, clone_id: configuration.cloneId,
+        database: configuration.database, exported_at: configuration.exportedAt, source_fields_removed: false,
+        absent_collections: absentCollections, absent_collection_meaning: 'Verified absent in the restored database namespace; exported as empty',
+        bson_authority: 'Retained protected mongodump archive preserves original BSON types',
+        source_consistency: 'Live standalone logical backup; no global point-in-time guarantee', collection_order: 'MongoDB _id ascending' },
+      manifests: [content] };
+  }
+
   async function exportFromMongo(shellDatabase, ejson, environment) {
     // Complete environment validation precedes every database call.
     const configuration = readConfiguration(environment);
@@ -199,19 +234,23 @@
     if (hello.ok !== 1 || hello.setName || hello.msg === 'isdbgrid' ||
         parameters.ok !== 1 || parameters.ttlMonitorEnabled !== false ||
         options.ok !== 1 || options.parsed?.net?.bindIp !== '127.0.0.1') refused();
-    const names = Object.keys(ROW_LIMITS);
+    const sections = configuration.kind === 'public-sections';
+    const names = sections ? [...SECTION_COLLECTIONS] : Object.keys(ROW_LIMITS);
     const collections = await database.getCollectionInfos({ name: { $in: names } });
-    if (collections.length !== names.length || collections.some(row => row.type !== 'collection' || !names.includes(row.name))) refused();
+    if ((!sections && collections.length !== names.length) || new Set(collections.map(row => row.name)).size !== collections.length ||
+        collections.some(row => row.type !== 'collection' || !names.includes(row.name))) refused();
+    const absent = names.filter(name => !collections.some(row => row.name === name));
     const rows = Object.create(null);
     for (const name of names) {
-      const source = await database.getCollection(name).find({}).sort({ _id: 1 }).limit(ROW_LIMITS[name] + 1).toArray();
-      if (source.length > ROW_LIMITS[name]) refused();
+      const limit = sections ? 20000 : ROW_LIMITS[name];
+      const source = await database.getCollection(name).find({}).sort({ _id: 1 }).limit(limit + 1).toArray();
+      if (source.length > limit || (absent.includes(name) && source.length !== 0)) refused();
       rows[name] = source.map(row => serializeRow(row, ejson));
     }
-    return buildBundle(configuration, rows);
+    return sections ? buildSectionsBundle(configuration, rows, absent) : buildBundle(configuration, rows);
   }
 
-  const exported = { MAXIMUM_BYTES, SOURCE_COMMIT, readConfiguration, normalizeCanonicalNumbers, serializeRow, manifest, buildBundle, exportFromMongo };
+  const exported = { MAXIMUM_BYTES, SOURCE_COMMIT, SECTION_COLLECTIONS, readConfiguration, normalizeCanonicalNumbers, serializeRow, manifest, buildBundle, buildSectionsBundle, exportFromMongo };
   if (typeof module !== 'undefined' && module.exports) module.exports = exported;
   if (typeof db !== 'undefined' && typeof EJSON !== 'undefined') {
     // Return the promise as the script completion value so mongosh waits for all

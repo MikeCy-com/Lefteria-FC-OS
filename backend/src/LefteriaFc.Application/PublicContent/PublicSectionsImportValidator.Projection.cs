@@ -68,10 +68,16 @@ public static partial class PublicSectionsImportValidator
             case "standings":
             {
                 var org = Organization(row, Club);
+                // Legacy Standing/Create require a string but permit an empty
+                // competition. Preserve that unknown label without inventing
+                // one; missing/null or malformed values still quarantine.
+                if (!row.TryGetProperty("competition", out var competition) || competition.ValueKind == JsonValueKind.Null)
+                    throw Skip("required_value");
+                var competitionName = Text(row, "competition", 200) ?? "";
                 Add(result, "standing", org, id, new PublicSectionStanding(id, org, Required(row, "team_name", 200), Image(row, "team_logo"),
                     Integer(row, "played") ?? 0, Integer(row, "won") ?? 0, Integer(row, "drawn") ?? 0, Integer(row, "lost") ?? 0,
                     Integer(row, "goals_for") ?? 0, Integer(row, "goals_against") ?? 0, Integer(row, "goal_difference", -100000, 100000) ?? 0,
-                    Integer(row, "points", -100000, 100000) ?? 0, Required(row, "competition", 200), Text(row, "season", 100), Text(row, "form", 100)));
+                    Integer(row, "points", -100000, 100000) ?? 0, competitionName, Text(row, "season", 100), Text(row, "form", 100)));
                 break;
             }
             case "venues":

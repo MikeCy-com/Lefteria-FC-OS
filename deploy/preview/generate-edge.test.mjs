@@ -73,11 +73,11 @@ test('generated edge removes the browser Basic gate and preserves application au
 });
 
 test('public reads remain credential-free and private restored media remains unavailable', () => {
-  assert.equal(reviewedPublicReads(contract).length, 3);
+  assert.equal(reviewedPublicReads(contract).length, 4);
   const web = new RegExp(publicWebExpression), api = new RegExp(publicApiExpression);
   for (const path of ['/', '/__data.json', '/team', '/academy/__data.json', '/academy/philosophy', '/academy/philosophy/__data.json', '/privacy', '/privacy/__data.json', '/terms', '/terms/__data.json', '/news', '/news/story--id', '/news/story--id/__data.json', '/_app/immutable/chunks/part.js', '/club/logo512.png', '/mobile/club-logo.png', '/favicon.ico']) assert.ok(web.test(path), path);
   for (const path of ['/admin', '/admin/login', '/admin/__data.json', '/app', '/app/login', '/api/admin/auth/me', '/_app/../admin', '/api/mobile/auth/me', '/news/id/extra', '/privacy/extra', '/terms/extra', '/academy/philosophy/extra']) assert.equal(web.test(path), false, path);
-  for (const path of ['/api/public/site', '/api/public/news', '/api/public/news/id']) assert.ok(api.test(path), path);
+  for (const path of ['/api/public/site', '/api/public/news', '/api/public/news/id', '/api/public/sections']) assert.ok(api.test(path), path);
   for (const path of ['/api/public/new-route', '/api/public/news/id/extra', '/api/admin/auth/login', '/api/mobile/profile', '/api/health/ready']) assert.equal(api.test(path), false, path);
   const changed = structuredClone(contract);
   changed.paths['/api/public/site'].get.security = [{ WebAdmin: [] }];

@@ -1,2 +1,2 @@
-import { loadPublicSite } from '../../lib/server/public-content';
-export const load = ({ url }: { url: URL }) => loadPublicSite(url, 'lefteria_fc');
+import { loadTeamPage } from '../../lib/server/public-sections';
+export const load = ({ url }: { url: URL }) => loadTeamPage(url);

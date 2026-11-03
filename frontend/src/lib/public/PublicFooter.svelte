@@ -27,5 +27,5 @@
     </section>
   </div>
   <div class="public-footer-app"><div class="public-app-download" data-testid="footer-app-download"><h4>Download Our Official App</h4><p>One official Lefteria FC app for iPhone, iPad, Android, and desktop.</p><a href="/app" class="public-app-open"><Icon name="download" size={21} />Άνοιξε την εφαρμογή στο browser</a></div></div>
-  <div class="public-footer-bottom"><a href="/privacy" data-testid="footer-privacy-link">Πολιτική απορρήτου</a><a href="/terms" data-testid="footer-terms-link">Όροι χρήσης</a><span>© {club?.founded || '2024'} ΛΕΥΤΕΡΙΑ FC. Με επιφύλαξη κάθε δικαιώματος.</span></div>
+  <div class="public-footer-bottom"><a href="/privacy" data-testid="footer-privacy-link">Πολιτική απορρήτου</a><a href="/terms" data-testid="footer-terms-link">Όροι χρήσης</a><a href="/admin/login" data-testid="footer-admin-link">Διαχείριση συλλόγου</a><span>© {club?.founded || '2024'} ΛΕΥΤΕΡΙΑ FC. Με επιφύλαξη κάθε δικαιώματος.</span></div>
 </footer>
