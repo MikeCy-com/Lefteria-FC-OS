@@ -26,6 +26,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<MobileCalendarService>();
         services.AddScoped<IParentFamilyQueries, PostgresParentFamilyQueries>();
         services.AddScoped<ParentFamilyService>();
+        services.AddScoped<IFamilyInvitationRepository, PostgresFamilyInvitationRepository>();
+        services.AddScoped<FamilyInvitationService>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();

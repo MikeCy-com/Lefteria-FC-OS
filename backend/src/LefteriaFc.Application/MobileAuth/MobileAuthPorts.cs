@@ -3,7 +3,7 @@ using LefteriaFc.Domain.Organizations;
 
 namespace LefteriaFc.Application.MobileAuth;
 
-public enum MobileAuthThrottleScope { OtpRequest, OtpVerify, LegacyExchange }
+public enum MobileAuthThrottleScope { OtpRequest, OtpVerify, LegacyExchange, FamilyInvitation, FamilyInvitationTarget }
 
 public sealed record AuthThrottleDecision(bool IsAllowed, int? RetryAfterSeconds = null);
 

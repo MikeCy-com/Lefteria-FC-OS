@@ -31,6 +31,7 @@ internal sealed partial class IdentityHttpChecks
             await LoginAsync(player,accounts.PlayerPhone,"player");await LoginAsync(parent,accounts.ParentPhone,"parent");
             await LoginAsync(coach,accounts.StaffPhone,"coach");await LoginAsync(management,accounts.StaffPhone,"management");await LoginAsync(fan,accounts.PlayerPhone,"fan");
             await FamilyReadChecksAsync(accounts,parent,player,coach,management,fan);
+            await FamilyInvitationChecksAsync(accounts,parent,player,coach,management,fan);
             await CalendarRequestAsync(player,HttpMethod.Get,"/api/mobile/calendar?month=2026-10",null,503);
             await CalendarReadinessChecksAsync(input,player);
             await CalendarOwnerChecksAsync(input);
