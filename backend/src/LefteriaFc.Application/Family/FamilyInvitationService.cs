@@ -40,7 +40,7 @@ public sealed class FamilyInvitationService(
         // One target cannot be repeatedly contacted by unrelated parents.
         await ThrottleAsync(MobileAuthThrottleScope.FamilyInvitationTarget, phone.Digits, token);
         try { return await repository.IssueAsync(session, player, phone.Digits, Guid.NewGuid(), token); }
-        catch (DbException error) { throw DatabaseFault(error); }
+        catch (DbException) { throw Unavailable(); }
     }
 
     public async Task<FamilyOperationResult> CancelAsync(MobileSession session, Guid invitationId,
@@ -87,28 +87,6 @@ public sealed class FamilyInvitationService(
         if (session.Role != MobileRole.Parent)
             throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
                 MobileAuthErrorCode.RoleUnavailable, "Family invitations require the current parent role.");
-    }
-
-    private static MobileAuthException DatabaseFault(DbException error)
-    {
-        if (error is Npgsql.PostgresException postgres)
-        {
-            if (postgres.SqlState == "P0001")
-                return postgres.MessageText switch
-                {
-                    "family_invitation_denied" => new(MobileAuthFaultKind.Forbidden,
-                        MobileAuthErrorCode.AccountUnavailable, "Family access is unavailable."),
-                    "family_invitation_missing" => new(MobileAuthFaultKind.NotFound,
-                        MobileAuthErrorCode.InvalidInput, "Invitation not found."),
-                    "family_invitation_conflict" => new(MobileAuthFaultKind.Conflict,
-                        MobileAuthErrorCode.FamilyInvitationConflict, "The invitation is no longer available."),
-                    _ => Unavailable()
-                };
-            if (postgres.SqlState is "23505" or "23503")
-                return new(MobileAuthFaultKind.Conflict,
-                    MobileAuthErrorCode.FamilyInvitationConflict, "The invitation is no longer available.");
-        }
-        return Unavailable();
     }
 
     private static MobileAuthException InvalidInput() => new(MobileAuthFaultKind.Validation,
