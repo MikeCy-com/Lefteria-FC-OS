@@ -31,6 +31,7 @@ internal sealed partial class IdentityHttpChecks
                 await IssueAsync(client,path,target.WireValue,403);
             await IssueAsync(parent,"/api/mobile/family/children/"+accounts.PlayerId+"/invitations",
                 target.WireValue,403);
+            await IssueAsync(parent,path,new string('8',17000),413);
             await IssueAsync(parent,path,accounts.ParentPhone.WireValue,422);
             await IssueAsync(parent,path,accounts.PlayerPhone.WireValue,409);
 
