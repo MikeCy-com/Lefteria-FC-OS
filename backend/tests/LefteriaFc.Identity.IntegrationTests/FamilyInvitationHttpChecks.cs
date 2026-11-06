@@ -31,7 +31,12 @@ internal sealed partial class IdentityHttpChecks
                 await IssueAsync(client,path,target.WireValue,403);
             await IssueAsync(parent,"/api/mobile/family/children/"+accounts.PlayerId+"/invitations",
                 target.WireValue,403);
-            await IssueAsync(parent,path,new string('8',17000),413);
+            // StringContent sets a real Content-Length header; the regular
+            // JsonContent streaming test client does not supply this header.
+            using(var oversized=new StringContent("{\\\"phone\\\":\\\""+new string('8',17000)+"\\\"}",
+                System.Text.Encoding.UTF8,"application/json"))
+            using(var rejected=await parent.PostAsync(path,oversized))
+                await CalendarResponseAsync(rejected,413);
             await IssueAsync(parent,path,accounts.ParentPhone.WireValue,422);
             await IssueAsync(parent,path,accounts.PlayerPhone.WireValue,409);
 
