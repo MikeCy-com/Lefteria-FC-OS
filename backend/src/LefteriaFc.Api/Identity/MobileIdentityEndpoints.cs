@@ -130,7 +130,8 @@ public static partial class MobileIdentityEndpoints
                 JsonNamingPolicy.SnakeCaseLower.ConvertName(exception.Code.ToString())), statusCode: exception.Kind switch
                 {
                     MobileAuthFaultKind.BadRequest => 400, MobileAuthFaultKind.Unauthorized => 401,
-                    MobileAuthFaultKind.Forbidden => 403, MobileAuthFaultKind.NotFound => 404,
+                    MobileAuthFaultKind.Forbidden => 403, MobileAuthFaultKind.Conflict => 409,
+                    MobileAuthFaultKind.NotFound => 404,
                     MobileAuthFaultKind.Validation => 422, MobileAuthFaultKind.PayloadTooLarge => 413, MobileAuthFaultKind.TooManyRequests => 429,
                     _ => 503
                 });
