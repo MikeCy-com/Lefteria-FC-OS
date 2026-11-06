@@ -33,7 +33,7 @@ internal sealed partial class IdentityHttpChecks
                 target.WireValue,403);
             // StringContent sets a real Content-Length header; the regular
             // JsonContent streaming test client does not supply this header.
-            using(var oversized=new StringContent("{\\\"phone\\\":\\\""+new string('8',17000)+"\\\"}",
+            using(var oversized=new StringContent("{\"phone\":\""+new string('8',17000)+"\"}",
                 System.Text.Encoding.UTF8,"application/json"))
             using(var rejected=await parent.PostAsync(path,oversized))
                 await CalendarResponseAsync(rejected,413);
