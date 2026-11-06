@@ -24,7 +24,7 @@ public sealed class PostgresParentFamilyQueries(LefteriaDbContext database) : IP
                 ), children AS (
                   SELECT p.id, p.name, p.organization_id, p.team_type, p.team_id, l.is_primary,
                     ARRAY(
-                      SELECT DISTINCT g.academy_group_id::text FROM club.player_academy_groups g
+                      SELECT g.academy_group_id::text FROM club.player_academy_groups g
                       WHERE g.player_id=p.id AND g.organization_id=p.organization_id
                       ORDER BY g.academy_group_id::text COLLATE "C"
                     ) AS group_ids
