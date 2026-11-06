@@ -46,6 +46,15 @@ memory, CPU, concurrency, page-cache needs, and PostgreSQL maintenance operation
 before release. A memory cap can result in an OOM restart; a low CPU cap may cause
 latency. The limits intentionally do not assert guaranteed capacity.
 
+## Edge response headers
+
+The production Caddyfile now emits `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin` and
+`X-Frame-Options: SAMEORIGIN`. These defenses apply at the edge and are
+asserted in CI's real Compose HTTP smoke. Do not add a restrictive
+`Content-Security-Policy` or `Permissions-Policy` without validating all
+SvelteKit, mobile camera/media, admin, payment and external-provider flows.
+
 ## Verification and release gate
 
 The existing GitHub Actions `Docker Compose build` job validates the fully
