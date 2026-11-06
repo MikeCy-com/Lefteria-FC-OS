@@ -217,6 +217,43 @@
         ],
         "type": "object"
       },
+      "FamilyChildDto": {
+        "properties": {
+          "academy_group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "team_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "team_type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "organization_id",
+          "team_type",
+          "team_id",
+          "academy_group_ids"
+        ],
+        "type": "object"
+      },
       "FanRegistrationBody": {
         "properties": {
           "birthday": {
@@ -1306,6 +1343,20 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ParentFamilyResult": {
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/FamilyChildDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "children"
+        ],
         "type": "object"
       },
       "PublicAcademyGroup": {
@@ -5943,6 +5994,101 @@
         ]
       }
     },
+    "/api/mobile/family": {
+      "get": {
+        "operationId": "GetParentFamily",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParentFamilyResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile family"
+        ]
+      }
+    },
     "/api/mobile/management/organization": {
       "get": {
         "operationId": "GetMobileOrganization",
@@ -6865,6 +7011,9 @@
     },
     {
       "name": "Mobile roster"
+    },
+    {
+      "name": "Mobile family"
     },
     {
       "name": "Mobile calendar"

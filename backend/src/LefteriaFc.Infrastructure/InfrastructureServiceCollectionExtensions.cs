@@ -9,6 +9,8 @@ using LefteriaFc.Application.Roster;
 using LefteriaFc.Infrastructure.Roster;
 using LefteriaFc.Application.ClubCalendar;
 using LefteriaFc.Infrastructure.ClubCalendar;
+using LefteriaFc.Application.Family;
+using LefteriaFc.Infrastructure.Family;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -22,6 +24,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<MobileRosterService>();
         services.AddScoped<IMobileCalendarRepository,PostgresMobileCalendarRepository>();
         services.AddScoped<MobileCalendarService>();
+        services.AddScoped<IParentFamilyQueries, PostgresParentFamilyQueries>();
+        services.AddScoped<ParentFamilyService>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
