@@ -24,6 +24,7 @@ internal sealed partial class TestDatabase(FixtureConfiguration fixture, string 
     }
 
     public void TrackClient(int client) => clients.Add(client);
+    public string AppConnectionStringForTest() => fixture.AppConnectionString;
 
     public LefteriaDbContext CreateContext() => new(new DbContextOptionsBuilder<LefteriaDbContext>()
         .UseNpgsql(fixture.AdminConnectionString, options => options.CommandTimeout(10)).Options);
