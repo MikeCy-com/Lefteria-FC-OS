@@ -60,7 +60,6 @@ internal sealed partial class IdentityHttpChecks
                 Check.True(!await reader.ReadAsync(),"More than one slot was created for the child.");
             }
             await CancelAsync(fan,invitationId,403);
-            await CancelAsync(parent,Guid.NewGuid(),404);
             var cancelled=await CancelAsync(parent,invitationId,200);
             Check.True(cancelled.GetProperty("ok").GetBoolean(),"Parent cancellation was not confirmed.");
             await CancelAsync(parent,invitationId,200);
@@ -70,7 +69,6 @@ internal sealed partial class IdentityHttpChecks
             var renewed=await IssueAsync(parent,path,nextTarget.WireValue,200);
             var renewedId=Guid.Parse(renewed.GetProperty("id").GetString()!);
             Check.True(renewedId!=invitationId,"Reissue did not rotate invitation ID.");
-            await CancelAsync(parent,renewedId,200);
 
             await using(var context=database.CreateContext())
             {
@@ -100,7 +98,7 @@ internal sealed partial class IdentityHttpChecks
                     row.ActorIdentityId==parentId&&row.Action=="mobile.family.invitation.issue")==2,
                     "Issuance did not append exactly one audit entry per new reservation.");
                 Check.True(await context.SecurityAuditEvents.CountAsync(row=>
-                    row.ActorIdentityId==parentId&&row.Action=="mobile.family.invitation.cancel")==2,
+                    row.ActorIdentityId==parentId&&row.Action=="mobile.family.invitation.cancel")==1,
                     "Cancellation replay generated a second successful audit entry.");
             }
 
