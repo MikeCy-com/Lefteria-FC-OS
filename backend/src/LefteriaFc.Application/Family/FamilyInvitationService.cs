@@ -55,7 +55,7 @@ public sealed class FamilyInvitationService(
             await repository.CancelAsync(session, invitationId, token);
             return new(true);
         }
-        catch (DbException error) { throw DatabaseFault(error); }
+        catch (DbException) { throw Unavailable(); }
     }
 
     private async Task ThrottleAsync(MobileAuthThrottleScope scope, string key, CancellationToken token)
