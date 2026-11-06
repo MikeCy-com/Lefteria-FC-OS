@@ -113,7 +113,7 @@ test('real SSR shop uses only safe public API and exposes tickets and merchandis
     assert.match(html, /Επίσημη φανέλα/);
     assert.match(html, /Αυθεντική φανέλα/);
     assert.match(html, /ΣΕ ΑΠΟΘΕΜΑ/);
-    assert.match(html, /&lt;script>unsafe&lt;\/script>/);
+    assert.match(html, /&lt;script(?:>|&gt;)unsafe&lt;\/script(?:>|&gt;)/);
     assert.doesNotMatch(html, /hidden-CRM-contact|data-testid="tickets-section"|checkout-submit/);
     assert.ok(requests.length > 0);
     assert.ok(requests.every(row => row.cookie === undefined && row.authorization === undefined));
