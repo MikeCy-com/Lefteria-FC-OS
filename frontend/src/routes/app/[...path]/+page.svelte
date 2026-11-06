@@ -7,6 +7,7 @@
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
+  import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
@@ -67,7 +68,18 @@
           </section>
         {/if}
       {/if}
-      {#if activeTab === 'profile' && role === 'fan' && !composing}
+      {#if activeTab === 'home' && role === 'parent' && !composing}
+        {#key `${user.id}:${role}`}
+          <MobileParentHome identityId={user.id} parentName={user.name}
+            family={$controller.family} familyStatus={$controller.familyStatus} familyError={$controller.familyError}
+            calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
+            calendarError={$controller.calendarError} busy={$controller.busy}
+            onLoadFamily={() => controller.loadFamily()}
+            onLoadCalendar={(month, childId) => controller.loadCalendar(month, childId)}
+            onChildren={() => openTab('children')}
+            onCalendar={(childId) => openTab('calendar', childId)} />
+        {/key}
+      {:else if activeTab === 'profile' && role === 'fan' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
           playerOptions={$controller.playerOptions} playerOptionsStatus={$controller.playerOptionsStatus} playerOptionsError={$controller.playerOptionsError}
           onLoadPlayerOptions={() => controller.loadPlayerOptions()}
