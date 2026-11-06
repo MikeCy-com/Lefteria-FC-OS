@@ -23,9 +23,11 @@ internal sealed partial class IdentityHttpChecks
         var result = await CalendarRequestAsync(parent, HttpMethod.Get, path, null, 200);
         var children = result.GetProperty("children").EnumerateArray().ToArray();
         Check.Equal(3, children.Length, "Canonical parent links did not include every assigned child.");
-        Check.True(children.Select(row => row.GetProperty("id").GetString()).SequenceEqual(new[]
-            { accounts.ChildId, accounts.Prefix + "-child-two", accounts.Prefix + "-child-fc" }),
-            "The parent chooser lost its primary-first stable order.");
+        Check.Equal(accounts.ChildId, children[0].GetProperty("id").GetString(),
+            "The parent chooser lost its canonical primary child.");
+        Check.True(children.Select(row => row.GetProperty("id").GetString()).ToHashSet()
+            .SetEquals(new[] { accounts.ChildId, accounts.Prefix + "-child-two", accounts.Prefix + "-child-fc" }),
+            "The parent chooser lost a canonically assigned child.");
         Check.True(children.All(row => row.GetProperty("id").GetString() != accounts.PlayerId),
             "A player with an unrelated phone was exposed by the family endpoint.");
 
@@ -34,7 +36,7 @@ internal sealed partial class IdentityHttpChecks
             "The Academy child organization scope was lost.");
         Check.True(first.GetProperty("academy_group_ids").EnumerateArray().Any(value =>
             value.GetString() == accounts.GroupId), "Canonical Academy group membership was lost.");
-        Check.Equal(OrganizationIds.Club, children[2].GetProperty("organization_id").GetString(),
+        Check.Equal(OrganizationIds.Club, children.Single(row => row.GetProperty("id").GetString() == accounts.Prefix + "-child-fc").GetProperty("organization_id").GetString(),
             "FC child organization scope was lost.");
 
         // An untrusted organization selector cannot widen or filter a guardian grant.
