@@ -8,6 +8,7 @@
 
   interface Props {
     role: Exclude<MobileRole, 'fan'>;
+    initialPlayerId?: string | null;
     calendar: MobileCalendar | null;
     status: CalendarLoadStatus;
     error: string | null;
@@ -25,12 +26,12 @@
     onCloseResponses: () => void;
   }
 
-  let { role, calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
+  let { role, initialPlayerId = null, calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
     responsesError, responsesLoadingMore = false, onLoad, onLoadMore, onRespond, onLoadResponses, onCloseResponses }: Props = $props();
   const id = $props.id();
   let month = $state(untrack(() => calendar?.month ?? clubToday().slice(0, 7)));
   let selectedDate = $state(untrack(() => calendar?.month ? `${calendar.month}-01` : clubToday()));
-  let playerId = $state<string | undefined>(untrack(() => calendar?.selected_player_id ?? undefined));
+  let playerId = $state<string | undefined>(untrack(() => calendar?.selected_player_id ?? (role === 'parent' ? initialPlayerId ?? undefined : undefined)));
   let showMonth = $state(false);
   let filter = $state<'all' | CalendarKind>('all');
   const staff = $derived(role === 'coach' || role === 'management');
