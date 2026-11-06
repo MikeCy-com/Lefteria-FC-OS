@@ -130,6 +130,7 @@ internal sealed partial class IdentityHttpChecks
             await context.SecurityAuditEvents.Where(row=>
                 row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
                     row.Action=="mobile.family.invitation.cancel")).ExecuteDeleteAsync();
+            await database.CleanupFamilyThrottleAsync(parentId);
         }
     }
 }
