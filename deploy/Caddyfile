@@ -1,6 +1,14 @@
 {$SITE_ADDRESS:localhost} {
   encode zstd gzip
 
+  # Defense-in-depth for public, mobile and admin browser responses.
+  # Do not enforce a CSP without first testing the current app and providers.
+  header {
+    X-Content-Type-Options nosniff
+    Referrer-Policy strict-origin-when-cross-origin
+    X-Frame-Options SAMEORIGIN
+  }
+
   @api path /api/*
   reverse_proxy @api api:8080
 
