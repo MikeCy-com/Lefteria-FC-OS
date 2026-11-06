@@ -57,7 +57,8 @@
               <p class="family-organization">{organizationLabel(child.organization_id)}</p>
               <h2>{child.name}</h2>
               <p>{teamTypeLabel(child.team_type)}</p>
-              <button type="button" disabled={busy} onclick={() => void onCalendar(child.id)} class="family-calendar-link">
+              <button type="button" disabled={busy} onclick={() => void onCalendar(child.id)}
+                class="family-calendar-link" aria-label={`Πρόγραμμα για ${child.name}`} data-testid="family-child-calendar">
                 Το πρόγραμμα <span aria-hidden="true">→</span>
               </button>
             </div>
