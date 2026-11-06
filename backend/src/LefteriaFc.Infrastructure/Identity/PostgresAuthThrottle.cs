@@ -20,8 +20,11 @@ public sealed class PostgresAuthThrottle(LefteriaDbContext database, IOptions<Mo
             MobileAuthThrottleScope.OtpRequest => 5,
             MobileAuthThrottleScope.OtpVerify => 10,
             MobileAuthThrottleScope.LegacyExchange => 10,
+            MobileAuthThrottleScope.FamilyInvitation => 10,
+            MobileAuthThrottleScope.FamilyInvitationTarget => 4,
             _ => throw new ArgumentOutOfRangeException(nameof(scope))
         };
+        var windowSeconds = scope is MobileAuthThrottleScope.FamilyInvitation or MobileAuthThrottleScope.FamilyInvitationTarget ? 3600d : 60d;
         var fingerprint = Convert.ToHexString(HMACSHA256.HashData(key,
             Encoding.UTF8.GetBytes($"lefteria-auth-throttle-v1\n{scope}\n{clientKey}"))).ToLowerInvariant();
         await database.Database.OpenConnectionAsync(cancellationToken);
@@ -42,10 +45,10 @@ public sealed class PostgresAuthThrottle(LefteriaDbContext database, IOptions<Mo
                 """;
             command.Parameters.AddWithValue("key", fingerprint);
             command.Parameters.AddWithValue("capacity", (double)capacity);
-            command.Parameters.AddWithValue("refill", capacity / 60d);
+            command.Parameters.AddWithValue("refill", capacity / windowSeconds);
             var result = await command.ExecuteScalarAsync(cancellationToken);
             return result is null or DBNull
-                ? new AuthThrottleDecision(false, (int)Math.Ceiling(60d / capacity))
+                ? new AuthThrottleDecision(false, (int)Math.Ceiling(windowSeconds / capacity))
                 : new AuthThrottleDecision(true);
         }
         finally
