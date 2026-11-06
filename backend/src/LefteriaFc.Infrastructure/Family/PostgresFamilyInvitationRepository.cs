@@ -1,4 +1,5 @@
 using LefteriaFc.Application.Family;
+using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Domain.Identity;
 using LefteriaFc.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +27,7 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
             command.Parameters.AddWithValue("player",childId);
             command.Parameters.AddWithValue("target",normalizedTargetPhone);
             command.Parameters.AddWithValue("invitation",invitationId);
-            await using var reader=await command.ExecuteReaderAsync(token);
+            await using var reader=await ExecuteIssuanceAsync(command,token);
             if(!await reader.ReadAsync(token))throw new InvalidOperationException("Invitation function returned no record");
             var id=reader.GetGuid(0);
             var created=reader.GetFieldValue<DateTimeOffset>(1);
@@ -47,11 +48,45 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
                 """,(NpgsqlConnection)database.Database.GetDbConnection());
             BindSession(command,session);
             command.Parameters.AddWithValue("invitation",invitationId);
-            var result=await command.ExecuteScalarAsync(token);
+            var result=await ExecuteCancellationAsync(command,token);
             if(result is not true)throw new InvalidOperationException("Invitation cancellation returned no confirmation");
         }
         finally{await database.Database.CloseConnectionAsync();}
     }
+
+    private static async Task<NpgsqlDataReader> ExecuteIssuanceAsync(NpgsqlCommand command,CancellationToken token)
+    {
+        try {return await command.ExecuteReaderAsync(token);}
+        catch(PostgresException issue){throw Fault(issue);}
+    }
+
+    private static async Task<object?> ExecuteCancellationAsync(NpgsqlCommand command,CancellationToken token)
+    {
+        try {return await command.ExecuteScalarAsync(token);}
+        catch(PostgresException issue){throw Fault(issue);}
+    }
+
+    private static MobileAuthException Fault(PostgresException issue)
+    {
+        if(issue.SqlState=="P0001")
+            return issue.MessageText switch
+            {
+                "family_invitation_denied"=>new(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.AccountUnavailable,"Family access is unavailable."),
+                "family_invitation_missing"=>new(MobileAuthFaultKind.NotFound,
+                    MobileAuthErrorCode.InvalidInput,"Invitation not found."),
+                "family_invitation_conflict"=>new(MobileAuthFaultKind.Conflict,
+                    MobileAuthErrorCode.FamilyInvitationConflict,"The invitation is no longer available."),
+                _=>Unavailable()
+            };
+        if(issue.SqlState is "23505" or "23503")
+            return new(MobileAuthFaultKind.Conflict,MobileAuthErrorCode.FamilyInvitationConflict,
+                "The invitation is no longer available.");
+        return Unavailable();
+    }
+
+    private static MobileAuthException Unavailable()=>new(MobileAuthFaultKind.ServiceUnavailable,
+        MobileAuthErrorCode.FamilyUnavailable,"Family invitations are temporarily unavailable.");
 
     private static void BindSession(NpgsqlCommand command,MobileSession session)
     {
