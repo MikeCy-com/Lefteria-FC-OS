@@ -289,6 +289,38 @@ jobs:
       - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
       - run: curl --fail --silent --show-error http://localhost/api/health/ready
       - run: curl --fail --silent --show-error http://localhost/ --output /dev/null
+      - name: Verify production edge security headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(curl --fail --silent --show-error --head http://localhost/ | tr -d '\r')"
+          grep -Eqi '^x-content-type-options: nosniff      - if: failure()
+        name: Diagnose disposable Compose failure
+        run: |
+          docker compose --env-file .env.example ps --all
+          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
+          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
+      - if: always()
+        run: docker compose --env-file .env.example down --volumes --remove-orphans
+ <<< "$headers"
+          grep -Eqi '^referrer-policy: strict-origin-when-cross-origin      - if: failure()
+        name: Diagnose disposable Compose failure
+        run: |
+          docker compose --env-file .env.example ps --all
+          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
+          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
+      - if: always()
+        run: docker compose --env-file .env.example down --volumes --remove-orphans
+ <<< "$headers"
+          grep -Eqi '^x-frame-options: sameorigin      - if: failure()
+        name: Diagnose disposable Compose failure
+        run: |
+          docker compose --env-file .env.example ps --all
+          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
+          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
+      - if: always()
+        run: docker compose --env-file .env.example down --volumes --remove-orphans
+ <<< "$headers"
       - if: failure()
         name: Diagnose disposable Compose failure
         run: |
