@@ -1,5 +1,5 @@
-import type { components } from '../../api/schema';
-import { clubToday } from '../calendar.ts';
+import type { components } from '../api/schema';
+import { clubToday } from './calendar.ts';
 
 export type Family = components['schemas']['ParentFamilyResult'];
 export type ParentCalendar = components['schemas']['MobileCalendarResult'];
