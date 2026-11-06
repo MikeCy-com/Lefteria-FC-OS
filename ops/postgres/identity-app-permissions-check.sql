@@ -196,6 +196,22 @@ BEGIN
   IF has_table_privilege(current_user, 'audit.security_events', 'TRUNCATE') THEN
     RAISE EXCEPTION 'Runtime can truncate audit rows';
   END IF;
+  -- Direct reads and writes of private invitations are prohibited.
+  FOR private_table IN SELECT unnest(ARRAY['identity.family_invitations','identity.family_invitation_events']) LOOP
+    IF has_table_privilege(current_user,private_table,'SELECT')
+      OR has_table_privilege(current_user,private_table,'INSERT')
+      OR has_table_privilege(current_user,private_table,'UPDATE')
+      OR has_table_privilege(current_user,private_table,'DELETE')
+      OR has_table_privilege(current_user,private_table,'TRUNCATE') THEN
+      RAISE EXCEPTION 'Runtime may directly access protected family data: %',private_table;
+    END IF;
+  END LOOP;
+  IF NOT has_function_privilege(current_user,
+    'identity.issue_family_invitation(uuid,text,text,timestamptz,uuid,text,text,uuid)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+    'identity.cancel_family_invitation(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Scoped family functions not available to runtime';
+  END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
