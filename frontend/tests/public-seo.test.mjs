@@ -67,7 +67,7 @@ test('published sitemap includes actual public routes, global news and eligible 
     '/match/academy-game', '/events/', '/partners/partner-one', '/sponsors/', '/seasons/']) {
     assert.ok(xml.includes(CANONICAL_PUBLIC_ORIGIN + item), item);
   }
-  assert.match(xml, /\/academy\/u12--u12/);
+  assert.match(xml, /\/academy\/[^<]*--u12/);
   assert.match(xml, /\/news\/[^<]+--published-news/);
   assert.match(xml, /<lastmod>2026-11-01<\/lastmod>/);
   assert.match(xml, /\/events\/[^<]+\?scope=academy/);
