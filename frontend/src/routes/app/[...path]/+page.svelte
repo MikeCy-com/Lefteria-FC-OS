@@ -19,9 +19,13 @@
   $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
   $effect(() => { void role; composing = false; });
 
-  async function openTab(tab: MobileTab) {
+  async function openTab(tab: MobileTab, childId?: string) {
     composing = false;
-    await goto(`/app?tab=${tab}`, { reset: true });
+    // Caller-supplied child selection never replaces the server's current
+    // guardian authorization check.
+    const query = new URLSearchParams({ tab });
+    if (role === 'parent' && tab === 'calendar' && childId) query.set('player_id', childId);
+    await goto('/app?' + query.toString(), { reset: true });
   }
   async function changeRole(nextRole: MobileRole) {
     if (await controller.switchRole(nextRole)) await openTab('home');
@@ -74,14 +78,15 @@
         {#key `${user.id}:${role}`}
           <MobileFamily family={$controller.family} status={$controller.familyStatus}
             error={$controller.familyError} busy={$controller.busy}
-            onLoad={() => controller.loadFamily()} onCalendar={() => openTab('calendar')} />
+            onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
           <section class="content-card" data-testid="calendar-organization-required"><h1>Πρόγραμμα</h1><p>Επίλεξε οργανισμό για να δεις το πρόγραμμά του.</p></section>
         {:else}
           {#key `${user.id}:${role}:${role === 'management' ? $controller.organization?.organization_id : ''}`}
-            <MobileCalendar {role} calendar={$controller.calendar} status={$controller.calendarStatus} error={$controller.calendarError}
+            <MobileCalendar {role} initialPlayerId={role === 'parent' ? page.url.searchParams.get('player_id') : null}
+              calendar={$controller.calendar} status={$controller.calendarStatus} error={$controller.calendarError}
               loadingMore={$controller.calendarLoadingMore} busy={$controller.busy}
               responses={$controller.calendarResponses} responsesKey={$controller.calendarResponsesKey}
               responsesStatus={$controller.calendarResponsesStatus} responsesError={$controller.calendarResponsesError}
