@@ -6,6 +6,7 @@
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
+  import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
@@ -69,6 +70,12 @@
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
+      {:else if activeTab === 'children' && role === 'parent' && !composing}
+        {#key `${user.id}:${role}`}
+          <MobileFamily family={$controller.family} status={$controller.familyStatus}
+            error={$controller.familyError} busy={$controller.busy}
+            onLoad={() => controller.loadFamily()} onCalendar={() => openTab('calendar')} />
+        {/key}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
           <section class="content-card" data-testid="calendar-organization-required"><h1>Πρόγραμμα</h1><p>Επίλεξε οργανισμό για να δεις το πρόγραμμά του.</p></section>
