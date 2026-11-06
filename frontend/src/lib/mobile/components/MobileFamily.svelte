@@ -11,7 +11,7 @@
     error: string | null;
     busy?: boolean;
     onLoad: () => boolean | Promise<boolean>;
-    onCalendar: () => void | Promise<void>;
+    onCalendar: (playerId: string) => void | Promise<void>;
   }
 
   let { family, status, error, busy = false, onLoad, onCalendar }: Props = $props();
@@ -57,7 +57,7 @@
               <p class="family-organization">{organizationLabel(child.organization_id)}</p>
               <h2>{child.name}</h2>
               <p>{teamTypeLabel(child.team_type)}</p>
-              <button type="button" disabled={busy} onclick={() => void onCalendar()} class="family-calendar-link">
+              <button type="button" disabled={busy} onclick={() => void onCalendar(child.id)} class="family-calendar-link">
                 Το πρόγραμμα <span aria-hidden="true">→</span>
               </button>
             </div>
