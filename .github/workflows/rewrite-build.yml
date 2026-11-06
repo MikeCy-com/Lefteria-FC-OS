@@ -234,6 +234,8 @@ jobs:
             printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
           done
       - run: docker compose --env-file .env.example config --quiet
+      - name: Enforce production Compose least-privilege contract
+        run: docker compose --profile tools --env-file .env.example config --format json | python3 -B deploy/production/verify-compose-security.py
       - run: docker compose --env-file .env.example build --pull
       - name: Verify native avatar codec in the published API image
         run: docker compose --env-file .env.example run --rm --no-deps api --check-avatar-codec
@@ -287,6 +289,14 @@ jobs:
       - run: docker compose --env-file .env.example up --no-build --wait --wait-timeout 120
       - run: curl --fail --silent --show-error http://localhost/api/health/ready
       - run: curl --fail --silent --show-error http://localhost/ --output /dev/null
+      - name: Verify production edge security headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          headers="$(curl --fail --silent --show-error --head http://localhost/)"
+          grep -Eqi '^x-content-type-options: nosniff' <<< "$headers"
+          grep -Eqi '^referrer-policy: strict-origin-when-cross-origin' <<< "$headers"
+          grep -Eqi '^x-frame-options: sameorigin' <<< "$headers"
       - if: failure()
         name: Diagnose disposable Compose failure
         run: |

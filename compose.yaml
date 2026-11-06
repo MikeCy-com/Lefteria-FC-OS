@@ -1,7 +1,25 @@
 name: lefteria-fc-os
 
+# Shared production container baseline; edge/database require limited exceptions.
+x-hardened-runtime: &hardened-runtime
+  restart: unless-stopped
+  init: true
+  read_only: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging:
+    driver: json-file
+    options: {max-size: "10m", max-file: "3"}
+
 services:
   proxy:
+    <<: *hardened-runtime
+    # Official Caddy binary needs this single retained capability.
+    cap_add: [NET_BIND_SERVICE]
+    tmpfs: [/tmp:size=16m]
+    mem_limit: ${LEFTERIA_PROXY_MEMORY_LIMIT:-128m}
+    cpus: ${LEFTERIA_PROXY_CPUS:-0.5}
+    pids_limit: 96
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
@@ -25,6 +43,11 @@ services:
         ipv4_address: ${TRUSTED_PROXY_IP:-172.28.90.2}
 
   web:
+    <<: *hardened-runtime
+    tmpfs: [/tmp:size=32m]
+    mem_limit: ${LEFTERIA_WEB_MEMORY_LIMIT:-512m}
+    cpus: ${LEFTERIA_WEB_CPUS:-1.0}
+    pids_limit: 160
     build:
       context: ./frontend
     restart: unless-stopped
@@ -48,6 +71,11 @@ services:
       - app
 
   api:
+    <<: *hardened-runtime
+    tmpfs: [/tmp:size=64m]
+    mem_limit: ${LEFTERIA_API_MEMORY_LIMIT:-768m}
+    cpus: ${LEFTERIA_API_CPUS:-1.0}
+    pids_limit: 160
     image: ${LEFTERIA_API_IMAGE:-lefteria-fc-os-api:local}
     build:
       context: ./backend
@@ -96,6 +124,12 @@ services:
       - egress
 
   migrate:
+    <<: *hardened-runtime
+    restart: "no"
+    tmpfs: [/tmp:size=64m]
+    mem_limit: ${LEFTERIA_MIGRATE_MEMORY_LIMIT:-512m}
+    cpus: ${LEFTERIA_MIGRATE_CPUS:-1.0}
+    pids_limit: 128
     profiles: [tools]
     image: ${LEFTERIA_API_IMAGE:-lefteria-fc-os-api:local}
     build:
@@ -113,6 +147,13 @@ services:
       - data
 
   postgres:
+    <<: *hardened-runtime
+    # PostgreSQL requires ownership capabilities on first initialization.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    tmpfs: [/tmp:size=64m, /var/run/postgresql:size=16m]
+    mem_limit: ${LEFTERIA_POSTGRES_MEMORY_LIMIT:-768m}
+    cpus: ${LEFTERIA_POSTGRES_CPUS:-1.0}
+    pids_limit: 160
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
