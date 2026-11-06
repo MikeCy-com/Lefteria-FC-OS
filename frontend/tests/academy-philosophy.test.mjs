@@ -9,6 +9,7 @@ import { render } from 'svelte/server';
 // This tests the actual Svelte server rendering, not a detached HTML mock.
 registerHooks({
   resolve(specifier, context, nextResolve) {
+    if (specifier === '$app/state') return { url: 'data:text/javascript,' + encodeURIComponent('export const page={url:new URL("https://fixture.test/academy/philosophy")};'), shortCircuit: true };
     if (specifier.startsWith('.') && /\/src\//.test(context.parentURL ?? '') &&
         !/\.[a-z]+$/i.test(specifier)) {
       const candidate = new URL(specifier + '.ts', context.parentURL);
