@@ -11,6 +11,7 @@ type User = components['schemas']['MobileUserDto'];
 type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
+type Family = components['schemas']['ParentFamilyResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
 export type MobilePlayerOption = components['schemas']['MobilePlayerOptionDto'];
@@ -40,6 +41,9 @@ export interface MobileAuthState {
   playerOptions: readonly MobilePlayerOption[];
   playerOptionsStatus: MobilePlayerOptionsStatus;
   playerOptionsError: string | null;
+  family: Family | null;
+  familyStatus: 'idle' | 'loading' | 'ready' | 'error';
+  familyError: string | null;
   calendar: MobileCalendar | null;
   calendarStatus: CalendarLoadStatus;
   calendarError: string | null;
@@ -85,6 +89,7 @@ export function createMobileAuthController(options: {
     status: 'initializing', busy: false, error: null, step: 'phone', phone: '',
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
+    family: null, familyStatus: 'idle', familyError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
     calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
@@ -94,6 +99,7 @@ export function createMobileAuthController(options: {
   let pendingCode: string | null = null;
   let revision = 0;
   let playerOptionsRevision = 0;
+  let familyRevision = 0;
   let calendarRevision = 0;
   let calendarResponsesRevision = 0;
 
@@ -105,6 +111,11 @@ export function createMobileAuthController(options: {
   function clearPlayerOptions() {
     ++playerOptionsRevision;
     update({ playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null });
+  }
+
+  function clearFamily() {
+    ++familyRevision;
+    update({ family: null, familyStatus: 'idle', familyError: null });
   }
 
   function clearCalendarResponses() {
@@ -120,6 +131,7 @@ export function createMobileAuthController(options: {
   }
 
   function denyCalendarAccess(error: ApiFailure) {
+    clearFamily();
     // A current authorization denial invalidates earlier pages too: a child or
     // assignment may have been removed while another role grant remains active.
     clearCalendar();
@@ -129,6 +141,7 @@ export function createMobileAuthController(options: {
   function anonymous(error: string | null = null) {
     clearPlayerOptions();
     clearCalendar();
+    clearFamily();
     token = null;
     pendingCode = null;
     options.storage.clear();
@@ -170,6 +183,7 @@ export function createMobileAuthController(options: {
       clearPlayerOptions();
       clearCalendar();
     }
+    clearFamily();
     update({ status: 'authenticated', user, availableRoles: roles, error: null,
       ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
       identities: [], detectedRole: null, phone: user.phone });
@@ -387,6 +401,44 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function loadFamily() {
+    const identity = state.user;
+    if (state.busy || state.familyStatus === 'loading' || state.status !== 'authenticated' ||
+        !identity?.current_role_available || identity.role !== 'parent' || !token) return false;
+    const operationRevision = ++familyRevision;
+    const bearer = token;
+    const isCurrent = () => familyRevision === operationRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'parent' &&
+      state.user.current_role_available;
+    update({ family: null, familyStatus: 'loading', familyError: null });
+    try {
+      const data = responseData(await api.GET('/api/mobile/family', { headers: authorization() }));
+      if (!isCurrent()) return false;
+      const ids = new Set<string>();
+      if (!data || !Array.isArray(data.children) || data.children.length > 100 ||
+          !data.children.every((child) => child && typeof child.id === 'string' &&
+            child.id.length > 0 && child.id.length <= 128 && !ids.has(child.id) && !!ids.add(child.id) &&
+            typeof child.name === 'string' && child.name.length > 0 && child.name.length <= 200 &&
+            (child.organization_id === 'lefteria_fc' || child.organization_id === 'lefteria_fc_academy') &&
+            (child.team_type === 'First Team' || child.team_type === 'Academy') &&
+            (child.team_id === null || typeof child.team_id === 'string') &&
+            Array.isArray(child.academy_group_ids) && child.academy_group_ids.length <= 100 &&
+            child.academy_group_ids.every((group) => typeof group === 'string' && group.length > 0 && group.length <= 128))) {
+        throw new Error('Invalid family response');
+      }
+      update({ family: data, familyStatus: 'ready', familyError: null });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable')
+        revokeCurrentRole(error.message);
+      else update({ family: null, familyStatus: 'error', familyError: message(error) });
+      return false;
+    }
+  }
+
   return {
     subscribe: store.subscribe,
     getState: () => state,
@@ -394,6 +446,7 @@ export function createMobileAuthController(options: {
       return action(async (operationRevision) => {
         clearPlayerOptions();
         clearCalendar();
+        clearFamily();
         pendingCode = null;
         update({ status: 'initializing', user: null, availableRoles: [], organization: null,
           organizationError: null, identities: [], detectedRole: null, phone: '', step: 'phone' });
@@ -423,6 +476,7 @@ export function createMobileAuthController(options: {
       return action(async (operationRevision) => {
         clearPlayerOptions();
         clearCalendar();
+        clearFamily();
         const data = responseData(await api.POST('/api/mobile/auth/request-otp', { body: { phone } }));
         if (revision !== operationRevision) return;
         pendingCode = null;
@@ -439,6 +493,7 @@ export function createMobileAuthController(options: {
       return action(async (operationRevision) => {
         clearPlayerOptions();
         clearCalendar();
+        clearFamily();
         const data = responseData(await api.POST('/api/mobile/auth/register-fan', { body: {
           phone: registration.phone, first_name: registration.firstName, last_name: registration.lastName,
           birthday: registration.birthday, name: null
@@ -460,6 +515,7 @@ export function createMobileAuthController(options: {
       return action(async (operationRevision) => {
         clearPlayerOptions();
         clearCalendar();
+        clearFamily();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/auth/switch-role', { headers: authorization(), body: { role } }));
         if (revision !== operationRevision) return;
@@ -495,6 +551,7 @@ export function createMobileAuthController(options: {
         await organizationContext(authorization(), operationRevision);
       }, true);
     },
+    loadFamily,
     loadCalendar,
     loadMoreCalendar() {
       const calendar = state.calendar;
@@ -610,7 +667,7 @@ export function createMobileAuthController(options: {
       }, true);
     },
     logout() { endSession(); },
-    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); }
+    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); }
   };
 }
 
