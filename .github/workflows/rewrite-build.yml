@@ -234,6 +234,8 @@ jobs:
             printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
           done
       - run: docker compose --env-file .env.example config --quiet
+      - name: Enforce production Compose least-privilege contract
+        run: docker compose --env-file .env.example config --format json | python3 -B deploy/production/verify-compose-security.py
       - run: docker compose --env-file .env.example build --pull
       - name: Verify native avatar codec in the published API image
         run: docker compose --env-file .env.example run --rm --no-deps api --check-avatar-codec
