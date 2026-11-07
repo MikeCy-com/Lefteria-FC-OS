@@ -1,3 +1,4 @@
+using LefteriaFc.PolicyChecks;
 using System.Security.Cryptography;
 using LefteriaFc.Domain.Identity;
 using LefteriaFc.Domain.Organizations;
@@ -154,7 +155,7 @@ var checks = new (string Name, Action Check)[]
 };
 
 var failures = 0;
-var allChecks = checks.Concat(AdminPermissionChecks.Checks()).ToArray();
+var allChecks = checks.Concat(AdminPermissionChecks.Checks()).Concat(AcademyLeadChecks.Checks()).ToArray();
 foreach (var (name, check) in allChecks)
 {
     try
