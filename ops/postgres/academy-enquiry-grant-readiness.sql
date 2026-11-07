@@ -18,7 +18,7 @@ DECLARE
     runtime_oid oid;
     function_oid oid;
     f pg_proc%ROWTYPE;
-    table_oid oid;
+    table_count integer;
     rel record;
 BEGIN
     IF current_database() IN ('postgres', 'template0', 'template1') THEN
@@ -69,10 +69,10 @@ BEGIN
             RAISE EXCEPTION 'Unsafe marketing RLS or DML privileges on %',rel.relname;
         END IF;
     END LOOP;
-    SELECT count(*) INTO table_oid FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    SELECT count(*) INTO table_count FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname='marketing'
         AND c.relname IN ('public_leads','lead_events','lead_rate_buckets');
-    IF table_oid<>3 THEN
+    IF table_count<>3 THEN
         RAISE EXCEPTION 'Expected private marketing tables are missing';
     END IF;
     RAISE NOTICE 'Academy lead pre-activation security audit passed; no changes made';
