@@ -703,6 +703,9 @@ export function createMobileAuthController(options: {
       state.status === 'authenticated' && state.user?.id === identity.id &&
       state.user?.phone === identity.phone && state.user?.role === 'fan' &&
       state.user.current_role_available;
+    // A status refresh invalidates previously displayed private child data
+    // until the current grant is verified again by the server.
+    clearDelegatedCalendar();
     update({ delegationAvailability: null, delegationStatus: 'loading', delegationError: null });
     try {
       const data = responseData(await api.GET('/api/mobile/family/active-delegation',
@@ -764,6 +767,9 @@ export function createMobileAuthController(options: {
           (data.next_offset!==null && (typeof data.next_offset!=='number' ||
             !Number.isSafeInteger(data.next_offset) || data.next_offset<=offset || data.next_offset>100000)) ||
           !data.items.every(item=>item && isCalendarKind(item.kind) &&
+            isCalendarDate(item.date) && isCalendarDate(item.end_date) &&
+            item.end_date>=item.date && typeof item.title==='string' &&
+            item.title.length>0 && item.title.length<=2048 &&
             item.organization_id===data.organization_id && Array.isArray(item.responses) &&
             item.responses.every(response=>response.player_id===child.id)))
         throw new Error('Invalid delegated calendar response');
