@@ -40,7 +40,7 @@
         </button>
       {/each}
     </div>
-    <p class="education-stage-hint">
+    <p class="education-stage-hint" aria-live="polite" aria-atomic="true">
       {EDUCATION_STAGES.find(option => option.id === stage)?.hint}
     </p>
     <div class="education-audiences" role="group" aria-label="Για ποιον">
@@ -55,6 +55,9 @@
 
   <section class="education-articles" aria-labelledby={id+'-materials'} data-testid="education-materials">
     <h2 id={id+'-materials'}>Ιδέες για συζήτηση</h2>
+    <p class="education-result-count" role="status" aria-live="polite" aria-atomic="true">
+      {cards.length} {cards.length === 1 ? 'άρθρο' : 'άρθρα'} για την επιλεγμένη ομάδα
+    </p>
     <div class="education-card-grid">
       {#each cards as article (article.id)}
         <article class="education-card" data-testid="education-article">
@@ -111,6 +114,7 @@
   .education-age-tabs button.chosen,.education-audiences button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
   .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
   .education-articles{margin:28px 0}
+  .education-result-count{color:#c8ceca;font-size:13px;line-height:1.5;margin:0 0 10px}
   .education-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:15px}
   .education-card{min-width:0;padding:20px;border:1px solid #3a3b37;border-radius:12px;background:linear-gradient(145deg,#202323,#151718)}
   .education-card-heading{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:#f8b844;margin-bottom:14px}
