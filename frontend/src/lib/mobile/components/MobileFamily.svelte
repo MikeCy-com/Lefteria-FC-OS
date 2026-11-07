@@ -17,11 +17,21 @@
     outgoingStatus?: 'idle' | 'loading' | 'ready' | 'error';
     outgoingError?: string | null;
     onLoadOutgoing?: () => boolean | Promise<boolean>;
+    onCancelOutgoing?: (invitationId: string) => boolean | Promise<boolean>;
+    outgoingCancellingId?: string | null;
+    outgoingCancelError?: string | null;
   }
 
   let { family, status, error, busy = false, onLoad, onCalendar,
     outgoingInvitations = null, outgoingStatus = 'idle', outgoingError = null,
-    onLoadOutgoing }: Props = $props();
+    onLoadOutgoing, onCancelOutgoing, outgoingCancellingId = null,
+    outgoingCancelError = null }: Props = $props();
+  let confirmingId = $state<string | null>(null);
+
+  async function confirmCancel(id: string) {
+    if (!onCancelOutgoing || outgoingCancellingId) return;
+    if (await onCancelOutgoing(id)) confirmingId = null;
+  }
   const id = $props.id();
 
   // A newly mounted parent view refreshes the canonical server relationship.
@@ -102,10 +112,34 @@
                   <strong>{child?.name ?? 'Παιδί'}</strong>
                   <p>Καταχώριση σε αναμονή · {new Intl.DateTimeFormat('el-CY', { dateStyle: 'medium', timeZone: 'Asia/Nicosia' }).format(new Date(item.expires_at))}</p>
                   <span>Δεν έχει αποσταλεί πρόσκληση ή SMS.</span>
+                  {#if onCancelOutgoing}
+                    {#if confirmingId === item.id}
+                      <div class="family-cancel-confirm" data-testid="family-cancel-confirm">
+                        <p>Να ακυρωθεί η εκκρεμής καταχώριση για {child?.name ?? 'το παιδί'};</p>
+                        <div class="family-cancel-actions">
+                          <button type="button" disabled={busy || !!outgoingCancellingId}
+                            onclick={() => { confirmingId = null; }} data-testid="family-cancel-back">Όχι</button>
+                          <button type="button" disabled={busy || !!outgoingCancellingId}
+                            onclick={() => void confirmCancel(item.id)} data-testid="family-cancel-submit">
+                            {outgoingCancellingId === item.id ? 'Ακύρωση…' : 'Ναι, ακύρωση'}
+                          </button>
+                        </div>
+                      </div>
+                    {:else}
+                      <button type="button" class="family-cancel-start"
+                        disabled={busy || !!outgoingCancellingId}
+                        onclick={() => { confirmingId = item.id; }}
+                        aria-label={'Ακύρωση εκκρεμούς πρόσκλησης για ' + (child?.name ?? 'παιδί')}
+                        data-testid="family-cancel-start">Ακύρωση καταχώρισης</button>
+                    {/if}
+                  {/if}
                 </article>
               {/each}
             </div>
           {/if}
+        {/if}
+        {#if outgoingCancelError}
+          <div class="family-outgoing-error" role="alert" data-testid="family-cancel-error">{outgoingCancelError}</div>
         {/if}
         <div class="family-invitations-pending">
           <p>Under Developments</p>
@@ -153,6 +187,14 @@
   .family-outgoing-error { border: 1px solid #934840; border-radius: 6px; padding: 12px; }
   .family-outgoing-error button { min-height: 44px; border: 1px solid #a77520; background: #251d11; color: #ffca46; border-radius: 5px; cursor: pointer; padding: 9px 14px; }
   .family-invitations-pending { margin-top: 15px; border-top: 1px solid #303333; padding-top: 16px; }
+  .family-cancel-start { display: block; margin-top: 14px; min-height: 44px; border: 1px solid #82513c; border-radius: 6px; background: #302018; padding: 10px 14px; color: #f7b9a3; cursor: pointer; font-size: 12px; }
+  .family-cancel-confirm { margin-top: 14px; padding: 12px; border: 1px solid #925844; border-radius: 6px; }
+  .family-cancel-confirm p { margin: 0 0 10px; color: #f0d0c5; font-size: 12px; }
+  .family-cancel-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .family-cancel-actions button { min-height: 44px; padding: 9px 14px; border: 1px solid #775c3f; border-radius: 6px; color: #f7e1ba; background: #201c16; cursor: pointer; }
+  .family-cancel-actions button:last-child { border-color: #ae5f49; background: #3c1c17; color: #ffd0c5; }
+  .family-cancel-actions button:disabled,.family-cancel-start:disabled { opacity: .6; cursor: wait; }
+  .family-cancel-start:focus-visible,.family-cancel-actions button:focus-visible { outline: 2px solid #ffca46; outline-offset: 3px; }
 
   .family-invitations p { margin: 0 0 8px; font-size: 13px; color: #ffca46; font-weight: 700; }
   .family-invitations span { font-size: 13px; color: #a6abac; line-height: 1.65; }
