@@ -521,6 +521,45 @@ internal sealed partial class IdentityHttpChecks
                     Check.True(await repository.ReadCurrentDelegationAsync(otherSession,CancellationToken.None) is null,
                         "A different recipient read the active grant through the production adapter.");
                 }
+                // This scoped authorization predicate must eventually be
+                // inlined into each private calendar SELECT, never used as a
+                // separate preflight followed by an unprotected query.
+                async Task<bool> ScopeAsync(Guid identity,string phone,string role,
+                    string player,string organization,DateTimeOffset? expiry=null)
+                {
+                    await using var command=new NpgsqlCommand("""
+                        SELECT identity.current_family_calendar_scope(
+                          @identity,@phone,@role,@expires,@player,@organization)
+                        """,connection);
+                    command.Parameters.AddWithValue("identity",identity);
+                    command.Parameters.AddWithValue("phone",phone);
+                    command.Parameters.AddWithValue("role",role);
+                    command.Parameters.AddWithValue("expires",expiry ?? DateTimeOffset.UtcNow.AddMinutes(5));
+                    command.Parameters.AddWithValue("player",player);
+                    command.Parameters.AddWithValue("organization",organization);
+                    return (bool)(await command.ExecuteScalarAsync() ?? false);
+                }
+                Check.True(await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Academy),
+                    "Live delegated calendar scope rejected the valid accepted grant.");
+                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",accounts.PlayerId,OrganizationIds.Academy),
+                    "A delegated recipient gained access to an unrelated player.");
+                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Club),
+                    "A delegated recipient crossed the child's organization scope.");
+                Check.True(!await ScopeAsync(verifiedFan.Id,nextTarget.Digits,"fan",child,OrganizationIds.Academy),
+                    "Another verified phone received the delegated player's calendar scope.");
+                Check.True(!await ScopeAsync(recipientFan.Id,nextTarget.Digits,"fan",child,OrganizationIds.Academy),
+                    "A forged session phone unlocked the delegated calendar scope.");
+                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan","",OrganizationIds.Academy),
+                    "Empty player selector unlocked the delegated calendar scope.");
+                try { await ScopeAsync(recipientFan.Id,target.Digits,"player",child,OrganizationIds.Academy);
+                    throw new InvalidOperationException("A forged player-role claim unlocked delegated calendar scope."); }
+                catch(PostgresException e) when(e.SqlState=="P0001" &&
+                    e.MessageText=="family_invitation_denied") { }
+                try { await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Academy,
+                    DateTimeOffset.UtcNow.AddMinutes(-1));
+                    throw new InvalidOperationException("Expired session unlocked delegated calendar scope."); }
+                catch(PostgresException e) when(e.SqlState=="P0001" &&
+                    e.MessageText=="family_invitation_denied") { }
                 var current=await CurrentAsync(recipientFan.Id,target.Digits,"fan");
                 Check.True(current.HasValue,"Accepted active grant was not revalidated.");
                 Check.Equal(child,current!.Value.PlayerId,"Recipient grant returned another child.");
@@ -538,6 +577,8 @@ internal sealed partial class IdentityHttpChecks
                 try {
                     Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                         "Deactivated guardian retained live delegated child access.");
+                    Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Academy),
+                        "A deactivated guardian still authorized delegated calendar access.");
                 }
                 finally {
                     await using var restore=database.CreateContext();
@@ -559,6 +600,8 @@ internal sealed partial class IdentityHttpChecks
                 await CalendarRequestAsync(parent,HttpMethod.Post,revokePath,null,404);
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
+                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Academy),
+                    "A revoked grant still authorized delegated calendar access.");
                 var after=await CalendarRequestAsync(parent,HttpMethod.Get,activePath,null,200);
                 Check.Equal(0,after.GetProperty("items").GetArrayLength(),
                     "Revoked delegation remained active in the parent's summary.");

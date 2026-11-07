@@ -187,6 +187,14 @@ REVOKE ALL ON FUNCTION
 GRANT EXECUTE ON FUNCTION
   identity.read_current_family_delegation(uuid,text,text,timestamptz)
   TO :"app_role";
+-- Future calendar SQL must inline this exact scope predicate in the same
+-- private data SELECT; separate preflight is not an authorization boundary.
+REVOKE ALL ON FUNCTION
+  identity.current_family_calendar_scope(uuid,text,text,timestamptz,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION
+  identity.current_family_calendar_scope(uuid,text,text,timestamptz,text,text)
+  TO :"app_role";
 -- Parent can read only exact current own-child identifiers, no recipient PII.
 REVOKE ALL ON FUNCTION
   identity.read_parent_active_family_delegations(uuid,text,text,timestamptz)
