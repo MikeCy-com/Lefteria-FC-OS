@@ -46,6 +46,9 @@ export interface MobileAuthState {
   family: Family | null;
   familyStatus: 'idle' | 'loading' | 'ready' | 'error';
   familyError: string | null;
+  familyRevokingPlayerId: string | null;
+  familyRevokeError: string | null;
+  familyRevokeSuccess: string | null;
   outgoingInvitations: OutgoingInvitations | null;
   outgoingStatus: 'idle' | 'loading' | 'ready' | 'error';
   outgoingError: string | null;
@@ -102,6 +105,7 @@ export function createMobileAuthController(options: {
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
     family: null, familyStatus: 'idle', familyError: null,
+    familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
@@ -146,7 +150,8 @@ export function createMobileAuthController(options: {
   function clearFamily() {
     ++familyRevision;
     clearOutgoingInvitations();
-    update({ family: null, familyStatus: 'idle', familyError: null });
+    update({ family: null, familyStatus: 'idle', familyError: null,
+      familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null });
   }
 
   function clearCalendarResponses() {
@@ -473,6 +478,45 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function revokeFamilyDelegation(playerId: string) {
+    const identity = state.user;
+    const family = state.family;
+    if (state.status !== 'authenticated' || !identity?.current_role_available ||
+        identity.role !== 'parent' || !token || state.busy || state.familyRevokingPlayerId ||
+        state.familyStatus !== 'ready' || !family ||
+        !family.children.some(child => child.id === playerId)) return false;
+    const operationRevision = familyRevision;
+    const bearer = token;
+    const isCurrent = () => familyRevision === operationRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'parent' &&
+      state.user.current_role_available && state.family === family;
+    update({ familyRevokingPlayerId: playerId, familyRevokeError: null,
+      familyRevokeSuccess: null });
+    try {
+      const result = responseData(await api.POST('/api/mobile/family/children/{playerId}/revoke', {
+        headers: authorization(), params: {path: {playerId}}
+      }));
+      if (!isCurrent()) return false;
+      if (!result || result.ok !== true) throw new Error('Invalid revocation response');
+      update({familyRevokingPlayerId: null,
+        familyRevokeSuccess: 'Η οικογενειακή πρόσβαση ανακλήθηκε.',familyRevokeError: null});
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 &&
+          error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else if (error instanceof ApiFailure && error.status === 403) {
+        clearFamily();
+        update({familyRevokeError: 'Η σύνδεση γονέα άλλαξε. Ανανέωσε τα στοιχεία.'});
+      } else update({familyRevokingPlayerId: null,
+        familyRevokeError: error instanceof ApiFailure && error.status === 404
+          ? 'Δεν υπάρχει ενεργή οικογενειακή πρόσβαση για ανάκληση.' : message(error)});
+      return false;
+    }
+  }
+
   async function loadOutgoingInvitations() {
     const identity = state.user;
     const family = state.family;
@@ -778,6 +822,7 @@ export function createMobileAuthController(options: {
     },
     loadFamily,
     loadOutgoingInvitations,
+    revokeFamilyDelegation,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
     declineRecipientInvitation,
