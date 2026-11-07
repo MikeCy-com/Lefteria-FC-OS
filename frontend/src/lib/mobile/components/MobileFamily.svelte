@@ -5,6 +5,7 @@
 
   type Family = components['schemas']['ParentFamilyResult'];
   type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
+  type ActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
 
   interface Props {
     family: Family | null;
@@ -24,13 +25,19 @@
     revokingPlayerId?: string | null;
     revokeError?: string | null;
     revokeSuccess?: string | null;
+    activeDelegations?: ActiveDelegations | null;
+    activeStatus?: 'idle' | 'loading' | 'ready' | 'error';
+    activeError?: string | null;
+    onLoadActive?: () => boolean | Promise<boolean>;
   }
 
   let { family, status, error, busy = false, onLoad, onCalendar,
     outgoingInvitations = null, outgoingStatus = 'idle', outgoingError = null,
     onLoadOutgoing, onCancelOutgoing, outgoingCancellingId = null,
     outgoingCancelError = null, onRevokeDelegation,
-    revokingPlayerId = null, revokeError = null, revokeSuccess = null }: Props = $props();
+    revokingPlayerId = null, revokeError = null, revokeSuccess = null,
+    activeDelegations = null, activeStatus = 'idle', activeError = null,
+    onLoadActive }: Props = $props();
   let confirmingId = $state<string | null>(null);
   let confirmingRevokeId = $state<string | null>(null);
 
@@ -48,6 +55,12 @@
   // No locally cached player or browser-provided child ID is treated as a grant.
   $effect(() => {
     if (status === 'idle' && !busy) untrack(() => { void onLoad(); });
+  });
+
+  $effect(() => {
+    if (status === 'ready' && family && activeStatus === 'idle' && onLoadActive && !busy) {
+      untrack(() => { void onLoadActive(); });
+    }
   });
 
   // Never load outgoing records while the guardian-child source is missing.
@@ -96,7 +109,7 @@
                 class="family-calendar-link" aria-label={`Πρόγραμμα για ${child.name}`} data-testid="family-child-calendar">
                 Το πρόγραμμα <span aria-hidden="true">→</span>
               </button>
-              {#if onRevokeDelegation}
+              {#if onRevokeDelegation && activeStatus === 'ready' && activeDelegations?.items.some(item => item.player_id === child.id && item.organization_id === child.organization_id)}
                 {#if confirmingRevokeId === child.id}
                   <div class="family-cancel-confirm" data-testid="family-revoke-confirm">
                     <p>Να ανακληθεί η ενεργή πρόσβαση οικογενειακής σύνδεσης για {child.name};</p>
@@ -119,6 +132,14 @@
             </div>
           </article>
         {/each}
+      </div>
+    {/if}
+    {#if onLoadActive && (activeStatus === 'loading' || activeStatus === 'idle')}
+      <p role="status" class="family-outgoing-status" data-testid="family-active-loading">Έλεγχος ενεργών οικογενειακών συνδέσεων…</p>
+    {:else if onLoadActive && activeStatus === 'error'}
+      <div class="family-outgoing-error" role="alert" data-testid="family-active-error">
+        <p>{activeError || 'Δεν ήταν δυνατός ο έλεγχος ενεργών συνδέσεων.'}</p>
+        <button type="button" disabled={busy} onclick={() => void onLoadActive()}>Δοκιμή ξανά</button>
       </div>
     {/if}
     {#if revokeError}
