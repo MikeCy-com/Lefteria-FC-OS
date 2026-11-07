@@ -198,7 +198,7 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   const accept=render(Inbox,{props:{...props,onAccept:async()=>true}}).body;
   assert.match(accept,/recipient-accept-start/);
   assert.doesNotMatch(rendered,/recipient-accept-start/);
-  assert.match(accept,/Δεν δίνει/);
+  assert.match(accept,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
   assert.match(route,/onLoad=\{\(\) => controller\.loadRecipientInvitations\(\)\}/);
