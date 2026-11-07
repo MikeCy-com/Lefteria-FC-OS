@@ -42,3 +42,11 @@ Use one narrowly granted SECURITY DEFINER PostgreSQL function, fixed search_path
 - Generated API drift, browser SSR and current-session client state invalidation.
 
 Do not implement acceptance as a mere status update: account-to-player reconciliation, current authorization and revocable grant enforcement are required before exposure.
+
+## Schema findings and blocker confirmed from main
+
+The existing `identity.mobile_record_links` table enforces a canonical-contact foreign key and a check constraint requiring `role='player'`, `collection='players'`, `kind='player_own'` for a player link. It also enforces one non-guardian self link per identity and a matching `mobile_identities(id,normalized_phone,role)` key. The existing invitation issuer explicitly rejects any child with a `player_own` canonical binding and any target with a `player_own` binding, while the runtime role's RLS restricts new mobile identities to `fan`. Therefore **the current schema does not support safely turning a recipient's fan reservation directly into a canonical player identity**. Simply flipping `family_invitations.status` to `active` would not provide authorized player access.
+
+Before implementing any acceptance transaction, choose and review one of these explicit models: (a) a separate revocable family-access grant with dedicated player authorization semantics, distinct from the canonical `player_own` link, or (b) a controlled canonical phone/identity ownership transfer with independently verified guardian consent and reconciliation. Do not silently relax existing contact-link foreign keys, RLS, or role constraints. Model (a) is preferable when the recipient is an invited family delegate rather than the child who owns the canonical player phone, but the product role semantics must be resolved first.
+
+Required acceptance gate: prove in integration tests that the new grant is honored by every intended private player endpoint and rejected by every other endpoint, including after revocation, without creating an incorrect `player_own` contact binding. Until that is possible, leave acceptance unavailable.
