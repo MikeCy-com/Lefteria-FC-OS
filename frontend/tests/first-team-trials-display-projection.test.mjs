@@ -21,9 +21,10 @@ test('private first-team display selects only original club scope and remains cl
   assert.doesNotMatch(source,/^\s*GRANT\s+EXECUTE|^\s*CREATE POLICY|^\s*UPDATE\s|^\s*INSERT\s/im);
 });
 
-test('actual PostgreSQL test checks closed default and app execution denial',()=>{
+test('actual PostgreSQL test checks closed default and narrow app read permission',()=>{
   assert.ok(integration.includes('AssertFirstTeamTrialDisplayProjectionClosedAsync'));
   assert.ok(integration.includes('!rows.GetBoolean(0)'));
-  assert.ok(integration.includes("NOT has_function_privilege(current_user, fun.oid, 'EXECUTE')"));
+  assert.ok(integration.includes("has_function_privilege(current_user,"));
+  assert.ok(integration.includes("NOT has_table_privilege(current_user,"));
   assert.ok(integration.includes("LEFTERIA FC"));
 });
