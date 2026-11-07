@@ -234,11 +234,6 @@ internal sealed partial class IdentityHttpChecks
                 .GetProperty("has_active_delegation").GetBoolean(),
                 "Revocation left the previous recipient's delegated calendar enabled.");
         }
-        catch(Exception fault)
-        {
-            Console.Error.WriteLine("Delegated family RSVP test primary failure: "+fault);
-            throw;
-        }
         finally
         {
             await using var context=database.CreateContext();
