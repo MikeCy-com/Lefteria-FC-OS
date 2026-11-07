@@ -34,6 +34,7 @@ function createFixture(cancel) {
       if(row.path==='/api/mobile/auth/me')return Response.json(user);
       if(row.path==='/api/mobile/family')return Response.json(family);
       if(row.path==='/api/mobile/family/outgoing-invitations')return Response.json(outbox);
+      if(row.path==='/api/mobile/family/active-children')return Response.json({items:[{player_id:'child-1',organization_id:'lefteria_fc_academy'}]});
       if(row.path==='/api/mobile/family/invitations/'+invitationId+'/cancel')
         return await cancel(row);
       if(row.path==='/api/mobile/family/children/child-1/revoke')
@@ -69,9 +70,13 @@ test('parent revocation uses a canonical child and rechecks authorization',async
   await controller.bootstrap();
   assert.equal(await controller.revokeFamilyDelegation('child-1'),false);
   assert.equal(await controller.loadFamily(),true);
+  assert.equal(await controller.revokeFamilyDelegation('child-1'),false);
+  assert.equal(await controller.loadActiveFamilyDelegations(),true);
   assert.equal(await controller.revokeFamilyDelegation('unknown-child'),false);
   assert.equal(await controller.revokeFamilyDelegation('child-1'),true);
   assert.equal(controller.getState().familyRevokeSuccess,'Η οικογενειακή πρόσβαση ανακλήθηκε.');
+  assert.equal(controller.getState().activeFamilyDelegations.items.length,0);
+  assert.equal(await controller.revokeFamilyDelegation('child-1'),false);
   const actions=calls.filter(x=>x.method==='POST');
   assert.deepEqual(actions,[{path:'/api/mobile/family/children/child-1/revoke',
     method:'POST',authorization:'Bearer parent-fixture-token'}]);
@@ -154,7 +159,11 @@ test('Svelte pending card only offers cancellation when explicitly enabled; no f
   assert.match(route,/onCancelOutgoing=\{\(id\) => controller\.cancelOutgoingInvitation\(id\)\}/);
   assert.match(component,/data-testid="family-cancel-confirm"/);
   assert.match(component,/data-testid="family-cancel-submit"/);
-  const revokable=render(MobileFamily,{props:{...props,onRevokeDelegation:async()=>true}}).body;
+  const revokable=render(MobileFamily,{props:{...props,onRevokeDelegation:async()=>true,
+    activeStatus:'ready',activeDelegations:{items:[{player_id:'child-1',organization_id:'lefteria_fc_academy'}]}}}).body;
+  const noGrants=render(MobileFamily,{props:{...props,onRevokeDelegation:async()=>true,
+    activeStatus:'ready',activeDelegations:{items:[]}}}).body;
+  assert.doesNotMatch(noGrants,/family-revoke-start/);
   assert.match(revokable,/family-revoke-start/);
   assert.doesNotMatch(readOnly,/family-revoke-start/);
   assert.ok(route.includes('onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}'));
