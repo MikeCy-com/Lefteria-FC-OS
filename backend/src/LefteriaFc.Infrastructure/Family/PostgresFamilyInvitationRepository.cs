@@ -129,6 +129,70 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
         finally { await database.Database.CloseConnectionAsync(); }
     }
 
+    public async Task AcceptGrantAsync(MobileSession session, Guid invitationId,
+        Guid grantId, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT identity.accept_recipient_family_invitation(
+                  @identity,@phone,@role,@expires,@device,@invitation,@grant)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            BindSession(command, session);
+            command.Parameters.AddWithValue("invitation", invitationId);
+            command.Parameters.AddWithValue("grant", grantId);
+            if (await ExecuteCancellationAsync(command, token) is not true)
+                throw Unavailable();
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
+    public async Task RevokeGrantAsync(MobileSession session, string playerId,
+        CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT identity.revoke_family_delegated_player_grant(
+                  @identity,@phone,@role,@expires,@device,@player)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            BindSession(command, session);
+            command.Parameters.AddWithValue("player", playerId);
+            if (await ExecuteCancellationAsync(command, token) is not true)
+                throw Unavailable();
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
+    public async Task<FamilyDelegationSnapshot?> ReadCurrentDelegationAsync(
+        MobileSession session, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT grant_id, player_id, organization_id
+                FROM identity.read_current_family_delegation(
+                  @identity,@phone,@role,@expires)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            command.Parameters.AddWithValue("identity", session.IdentityId);
+            command.Parameters.AddWithValue("phone", session.NormalizedPhone);
+            command.Parameters.AddWithValue("role", session.Role.ToWireValue());
+            command.Parameters.AddWithValue("expires", session.ExpiresAt.ToUniversalTime());
+            await using var reader = await ExecuteOutgoingAsync(command, token);
+            if (!await reader.ReadAsync(token)) return null;
+            var row = new FamilyDelegationSnapshot(reader.GetGuid(0),
+                reader.GetString(1), reader.GetString(2));
+            // An impossible overlap is a security incident, not a selection
+            // policy: do not silently choose one of two private children.
+            if (await reader.ReadAsync(token)) throw Unavailable();
+            return row;
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
     private static async Task<NpgsqlDataReader> ExecuteOutgoingAsync(
         NpgsqlCommand command, CancellationToken token)
     {
