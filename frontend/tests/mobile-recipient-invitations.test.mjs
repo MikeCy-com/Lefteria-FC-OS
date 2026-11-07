@@ -254,7 +254,7 @@ test('verified fan accepts only current pending invitation and cannot replay it'
   assert.equal(await controller.acceptRecipientInvitation('33333333-3333-4333-8333-333333333333'),false);
   assert.equal(await controller.acceptRecipientInvitation(id),true);
   assert.deepEqual(controller.getState().recipientInvitations.items,[]);
-  assert.match(controller.getState().recipientAcceptSuccess,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(controller.getState().recipientAcceptSuccess,/Ελέγχουμε την πρόσβαση στο πρόγραμμα/);
   assert.equal(await controller.acceptRecipientInvitation(id),false);
   assert.deepEqual(requests.filter(x=>x.method==='POST'),[{
     path:'/api/mobile/family/invitations/'+id+'/accept',method:'POST',
@@ -367,7 +367,7 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   assert.match(rendered,/Ακαδημία Λευτεριά FC/);
   assert.match(rendered,/ΣΕ ΑΝΑΜΟΝΗ/);
   assert.match(rendered,/Δεν έχει αποσταλεί SMS/);
-  assert.match(rendered,/Under Developments/);
+  assert.match(rendered,/Όρια οικογενειακής πρόσβασης/);
   assert.doesNotMatch(rendered,/secret-child-id|target_phone|parent_phone|recipient-accept-submit/);
   const empty=render(Inbox,{props:{...props,inbox:{items:[]}}}).body;
   assert.match(empty,/recipient-invites-empty/);
@@ -377,12 +377,12 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   const active=render(Inbox,{props:{...props,onLoadDelegation:()=>true,
     delegationStatus:'ready',delegationAvailability:{has_active_delegation:true}}}).body;
   assert.match(active,/recipient-delegation-active/);
-  assert.match(active,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(active,/Μπορείς να δεις το πρόγραμμα και να δηλώσεις συμμετοχή/);
   assert.doesNotMatch(active,/secret-child-id|guardian_phone|target_phone|recipient-accept-submit/);
   const accept=render(Inbox,{props:{...props,onAccept:async()=>true}}).body;
   assert.match(accept,/recipient-accept-start/);
   assert.doesNotMatch(rendered,/recipient-accept-start/);
-  assert.match(accept,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(accept,/Δεν δημιουργείται λογαριασμός αθλητή/);
   const {default:Calendar}=await import('../src/lib/mobile/components/MobileDelegatedCalendar.svelte');
   const delegated=render(Calendar,{props:{calendar:calendarPayload(),status:'ready',error:null,
     onLoad:()=>true}}).body;
