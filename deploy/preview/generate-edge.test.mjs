@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the twenty-one explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the twenty-two explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 21);
+  assert.equal(operations.length, 22);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -27,6 +27,9 @@ test('only the twenty-one explicitly declared Mobile operations receive Bearer r
     for (const method of ['GET', 'POST', 'PUT']) assert.equal(permits(contract, method, path), false, `${method} ${path}`);
   }
   assert.equal(permits(contract, 'POST', '/api/mobile/family/children/player-id/invitations'), true);
+  assert.equal(permits(contract, 'POST', '/api/mobile/family/invitations/00000000-0000-0000-0000-000000000001/accept'), true);
+  assert.equal(permits(contract, 'GET', '/api/mobile/family/invitations/00000000-0000-0000-0000-000000000001/accept'), false);
+  assert.equal(permits(contract, 'POST', '/api/mobile/family/invitations/00000000-0000-0000-0000-000000000001/accept/extra'), false);
   assert.equal(permits(contract, 'POST', '/api/mobile/family/children/player-id/revoke'), true);
   assert.equal(permits(contract, 'GET', '/api/mobile/family/children/player-id/revoke'), false);
   assert.equal(permits(contract, 'POST', '/api/mobile/family/children/player-id/revoke/extra'), false);
@@ -60,7 +63,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 21);
+  assert.equal(protectedOperations(changed).length, 22);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
