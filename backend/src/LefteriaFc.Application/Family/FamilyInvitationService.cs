@@ -5,8 +5,8 @@ using LefteriaFc.Domain.Identity;
 
 namespace LefteriaFc.Application.Family;
 
-// A pending invitation never grants player access. Internal grant operations
-// are not routed to HTTP until complete player authorization is implemented.
+// A pending invitation never grants player access. Acceptance stores a
+// revocable delegation only; player session/role authorization is separate.
 public sealed record PendingFamilyInvitationDto(
     [property: JsonPropertyName("id")] Guid Id,
     [property: JsonPropertyName("status")] string Status,
@@ -184,7 +184,7 @@ public sealed class FamilyInvitationService(
         catch (DbException) { throw Unavailable(); }
     }
 
-    // Internal only: no HTTP acceptance route or player-role elevation.
+    // Public OTP-verified fan acceptance stores a grant, never player-role elevation.
     // The database rechecks the live OTP fan, canonical guardian, roster,
     // collision boundaries, and pending invitation under transaction locks.
     public async Task<FamilyOperationResult> AcceptGrantAsync(
