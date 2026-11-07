@@ -13,7 +13,8 @@ internal static class AcademyLeadChecks
     {
         yield return ("Academy lead policy preserves trimmed source fields and opt-in",()=>{
             Require(AcademyLeadPolicy.TryValidate(Valid,out var lead,out var error));
-            Require(error is null && lead is not null);
+            Require(error is null);
+            if(lead is null)throw new InvalidOperationException("Validation returned no lead.");
             Require(lead.Name=="Parent Example");
             Require(lead.Phone=="+357 99 000000");
             Require(lead.Email=="parent@example.test");
