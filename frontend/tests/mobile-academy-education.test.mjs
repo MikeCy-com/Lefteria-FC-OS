@@ -22,6 +22,9 @@ test('education materials cover four stages and both family audiences without se
     assert.equal(academyEducationFor(stage.id,'parent').length,1);
     assert.equal(academyEducationFor(stage.id,'player').length,1);
   }
+  assert.equal(academyEducationFor('10-12','all','psychology').length,1);
+  assert.equal(academyEducationFor('10-12','parent','psychology').length,0);
+  assert.equal(academyEducationFor('10-12','parent','communication').length,1);
   for(const article of ACADEMY_EDUCATION_ARTICLES){
     assert.ok(!ids.has(article.id));ids.add(article.id);
     assert.ok(article.title.length>6&&article.summary.length>15);
@@ -60,7 +63,7 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
   const html=render(Education).body;
   for(const value of ['parent-education-hub','education-editorial-status','education-materials',
     '6–9 ετών','10–12 ετών','13–15 ετών','16–18 ετών',
-    'Μαθαίνουμε μαζί','Για γονείς','Για αθλητές','Διάβασε περισσότερα',
+    'Μαθαίνουμε μαζί','Για γονείς','Για αθλητές','Όλα τα θέματα','Διάβασε περισσότερα',
     'επίσημη δημοσίευση']){
     assert.ok(html.includes(value),value);
   }
