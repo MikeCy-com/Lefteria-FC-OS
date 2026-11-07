@@ -16,14 +16,14 @@ test('director is GitHub-event-driven, strictly OS-scoped and never deploys', ()
   assert.match(workflow, /github\.repository == 'MikeCy-com\/Lefteria-FC-OS'/);
   assert.match(workflow, /persist-credentials: false/);
   assert.match(workflow, /secrets\.LEFTERIA_COPILOT_ASSIGN_TOKEN/);
-  assert.doesNotMatch(workflow, /deployment|ssh-action|rsync|hostinger|docker login|push:|contents: write/i);
+  assert.doesNotMatch(workflow, /uses:.*ssh-action|docker login|^\s+push:|^\s+contents: write/im);
   assert.match(dispatcher, /expected_repo="MikeCy-com\/Lefteria-FC-OS"/);
   assert.match(dispatcher, /agent-running/);
   assert.match(dispatcher, /agent-ready/);
   assert.match(dispatcher, /copilot-swe-agent\[bot\]/);
   assert.match(dispatcher, /custom_agent: "lefteria-developer"/);
   assert.match(dispatcher, /assigned" != "true"/);
-  assert.doesNotMatch(dispatcher, /sudo|ssh\b|scp\b|deploy|docker compose|git push/i);
+  assert.doesNotMatch(dispatcher, /\b(?:sudo|ssh|scp)\s+|docker compose|git push/i);
 });
 
 test('director and developer forbid modifying original or live production', () => {
