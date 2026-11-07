@@ -96,6 +96,10 @@
             error={$controller.recipientError} busy={$controller.busy}
             decliningId={$controller.recipientDecliningId}
             declineError={$controller.recipientDeclineError}
+            acceptingId={$controller.recipientAcceptingId}
+            acceptError={$controller.recipientAcceptError}
+            acceptSuccess={$controller.recipientAcceptSuccess}
+            onAccept={(id) => controller.acceptRecipientInvitation(id)}
             onDecline={(id) => controller.declineRecipientInvitation(id)}
             delegationAvailability={$controller.delegationAvailability}
             delegationStatus={$controller.delegationStatus}
