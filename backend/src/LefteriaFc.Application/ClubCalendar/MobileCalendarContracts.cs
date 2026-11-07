@@ -38,6 +38,9 @@ public interface IMobileCalendarRepository
         MobileSession session,DateOnly month,int offset,CancellationToken token);
     Task<CalendarMonthSnapshot> GetMonthAsync(MobileSession session,DateOnly month,string? playerId,int offset,CancellationToken token);
     Task<CalendarWriteSnapshot> SubmitAvailabilityAsync(MobileSession session,MobileAvailabilityCommand command,CancellationToken token);
+    // Fan RSVP is authorized independently by the exact live family grant
+    // in the same SQL statement that persists the response and audit.
+    Task<CalendarWriteSnapshot> SubmitDelegatedAvailabilityAsync(MobileSession session,MobileAvailabilityCommand command,CancellationToken token);
     Task<CalendarAvailabilitySnapshot> GetOwnAvailabilityAsync(MobileSession session,CancellationToken token);
     Task<CalendarResponsesSnapshot> GetResponsesAsync(MobileSession session,string eventId,string? kind,int offset,CancellationToken token);
 }
