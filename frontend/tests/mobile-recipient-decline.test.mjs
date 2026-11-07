@@ -133,7 +133,7 @@ test('recipient invite SSR requires explicit decline callback and never shows an
   assert.match(ready,/data-testid="recipient-decline-start"/);
   assert.match(ready,/Απόρριψη καταχώρισης/);
   assert.match(ready,/Δεν έχει αποσταλεί SMS/);
-  assert.match(ready,/Under Developments/);
+  assert.match(ready,/Όρια οικογενειακής πρόσβασης/);
   assert.doesNotMatch(ready,/target_phone|child_name|accept-invitation|recipient-accept-submit/);
   const failed=render(Component,{props:{...props,
     onDecline:()=>false,declineError:'Η πρόσκληση δεν είναι διαθέσιμη'}}).body;
