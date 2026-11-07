@@ -1,0 +1,125 @@
+/* Lefteria FC original-brand visual parity / high-density refinement.
+   Original frontend/src/club-site/public.css is the baseline: black #080808,
+   gold #f5a623, Fira Sans + Fira Sans Extra Condensed.
+   Keep these enhancements scoped to the public site and preserve the original
+   116px rail / 76px header, normal desktop sizing and mobile navigation. */
+.public-site, .public-dialog {
+  --public-gold: #f5a623;
+  --public-black: #080808;
+  --public-muted: #a6a6a6;
+  --public-line: #292929;
+  --brand-gold-highlight: #ffd67c;
+  --brand-gold-lowlight: #a66a14;
+  --brand-focus: #ffcb56;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.public-site :is(img,svg), .public-dialog :is(img,svg) {
+  image-rendering: auto;
+}
+.public-site :is(.public-rail-logo img,.public-header-brand img,.public-team-crest img),
+.public-dialog .public-menu-title img {
+  object-fit: contain;
+  filter: drop-shadow(0 2px 12px rgb(245 166 35 / 10%));
+}
+/* Brand premium finish: metallic GOLD, never an unrelated blue palette.
+   Shading is CSS/vector resolution-independent and subtle on normal screens. */
+.public-site .public-button:not(.public-button-outline) {
+  background: linear-gradient(135deg,var(--brand-gold-highlight) -80%,var(--public-gold) 56%,#e99518 140%);
+  border-color:var(--public-gold);
+  box-shadow: inset 0 1px rgb(255 243 209 / 20%), 0 2px 16px rgb(245 166 35 / 10%);
+}
+.public-site .public-button:not(.public-button-outline):hover {
+  background:linear-gradient(135deg,#fff0b7,var(--brand-gold-highlight) 65%,var(--public-gold));
+  box-shadow:inset 0 1px rgb(255 255 255 / 30%), 0 5px 22px rgb(245 166 35 / 16%);
+}
+.public-site .public-rail nav :is(a,button).is-current,
+.public-site .public-rail nav :is(a,button):hover {
+  box-shadow:inset 1px 0 0 rgb(245 166 35 / 30%);
+}
+.public-site .public-header {
+  box-shadow:0 8px 28px rgb(0 0 0 / 20%);
+}
+.public-dialog.public-menu-dialog {
+  background:linear-gradient(155deg,#161410 0%,#0a0a0a 48%,#080808 100%);
+  border-right:1px solid #72501e;
+  box-shadow:18px 0 52px rgb(0 0 0 / 42%);
+}
+.public-dialog .public-menu-row,
+.public-dialog .public-menu-back,
+.public-dialog .public-submenu a {
+  transition:background-color .16s ease,color .16s ease,border-color .16s ease;
+}
+.public-dialog .public-menu-row {
+  border-bottom:1px solid rgb(255 255 255 / 5%);
+  padding-inline:6px;
+}
+.public-dialog .public-menu-row:is(:hover,:focus-visible),
+.public-dialog .public-menu-back:is(:hover,:focus-visible),
+.public-dialog .public-submenu a:is(:hover,:focus-visible) {
+  background:rgb(245 166 35 / 7%);
+  color:var(--brand-gold-highlight);
+}
+.public-dialog .public-menu-row[aria-current],
+.public-dialog .public-menu-row.is-current {
+  border-left:3px solid var(--public-gold);
+  padding-left:9px;
+}
+.public-dialog .public-menu-back,
+.public-dialog .public-dialog-close {
+  min-height:44px;
+  min-width:44px;
+}
+.public-dialog .public-dialog-close {
+  border:1px solid #4a3b26;
+  background:rgb(8 8 8 / 82%);
+}
+.public-dialog .public-dialog-close:hover {
+  color:var(--brand-gold-highlight);
+  background:#2b2419;
+}
+/* 4K presentation: add spacious breathing room to the existing original
+   editorial architecture instead of scaling pixels (or substituting artwork).
+   Preserve the real imagery's aspect ratio and use native raster rendering. */
+@media (min-width:2560px) {
+  .public-site { --public-rail:128px; --public-header:84px; }
+  .public-rail-logo { height:146px; }
+  .public-rail-logo img { width:96px;height:116px; }
+  .public-rail nav :is(a,button) { font-size:14px; min-height:61px; }
+  .public-header { padding-inline:clamp(28px,2.25vw,86px); }
+  .public-header-brand strong { font-size:29px; }
+  .public-hero-stage { min-height:720px; height:min(820px,calc(100svh - 145px)); }
+  .public-hero-copy { max-width:760px; }
+  .public-hero-copy h1 { font-size:clamp(64px,3vw,92px); }
+  .public-hero-description { font-size:clamp(15px,.7vw,19px);max-width:520px; }
+  .public-hero-fixture { width:370px;padding:24px; }
+  .public-main .max-w-7xl { max-width:1780px; }
+  dialog.public-menu-dialog { --public-rail:128px; width:460px;left:128px; }
+  .public-dialog .public-menu-row { font-size:23px;min-height:58px; }
+}
+@media (max-width:767px) {
+  .public-dialog.public-menu-dialog {
+    width:min(360px,calc(100vw - 12px));
+    max-width:calc(100vw - 12px);
+    padding:20px 16px max(28px,env(safe-area-inset-bottom,0px));
+    overflow-x:hidden;
+    overscroll-behavior:contain;
+  }
+  .public-dialog .public-menu-row { min-height:52px; }
+  .public-site .public-header-brand strong { max-width:130px;overflow:hidden;text-overflow:ellipsis; }
+  .public-site .public-header { gap:5px; }
+}
+@media (max-width:374px) {
+  .public-site .public-header-brand strong { max-width:101px; }
+  .public-dialog.public-menu-dialog { width:calc(100vw - 8px);max-width:calc(100vw - 8px); }
+}
+@media (prefers-contrast:more) {
+  .public-site, .public-dialog { --public-muted:#d0d0d0; }
+  .public-dialog .public-menu-row { border-bottom-color:#666; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .public-site .public-button,.public-dialog .public-menu-row,
+  .public-dialog .public-menu-back,.public-dialog .public-submenu a {
+    transition:none !important;
+  }
+}
