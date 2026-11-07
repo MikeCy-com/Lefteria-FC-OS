@@ -65,8 +65,8 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
     assert.ok(html.includes(value),value);
   }
   assert.equal((html.match(/data-testid="education-article"/g)||[]).length,2);
-  assert.match(html,/class="education-result-count"[^>]*role="status"[^>]*aria-live="polite"/);
-  assert.match(html,/class="education-stage-hint" aria-live="polite"/);
+  assert.match(html,/class="education-result-count[^"]*"[^>]*role="status"[^>]*aria-live="polite"/);
+  assert.match(html,/class="education-stage-hint[^"]*" aria-live="polite"/);
   assert.doesNotMatch(html,/data-testid="parent-home-child"|family-child-calendar|guardian_phone|Bearer/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/activeTab === 'education' && role === 'parent' && !composing/);
