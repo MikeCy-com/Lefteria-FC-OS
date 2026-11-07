@@ -14,7 +14,15 @@
   color: var(--lf-text);
   background: var(--lf-bg);
   font-family: var(--lf-body);
-  font-size: 14px;
+  /* Reference: original Lefteria FC mobile-typography.css parent dashboard. */
+  --lf-type-display: 26px;
+  --lf-type-title: 16px;
+  --lf-type-card: 14px;
+  --lf-type-body: 13px;
+  --lf-type-label: 12px;
+  --lf-type-caption: 10px;
+  --lf-brand-edge: #b98228;
+  font-size: var(--lf-type-body);
   line-height: 1.45;
   color-scheme: dark;
 }
@@ -32,3 +40,25 @@
 }
 .lf-mobile-theme button { -webkit-tap-highlight-color: transparent; }
 .lf-mobile-theme button:disabled { cursor: wait; opacity: .55; }
+
+/* Reuse original high-density typography and subtle metallic details across
+   all five real mobile roles, rather than a separate design theme. */
+.lf-mobile-theme {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+.lf-mobile-theme :is(button,a) { -webkit-tap-highlight-color: rgb(245 166 35 / 12%); }
+.lf-mobile-theme :is(button,a,input,select,textarea):focus-visible {
+  outline: 2px solid var(--lf-gold-light);
+  outline-offset: 3px;
+}
+.lf-mobile-theme img { image-rendering:auto; }
+@media (min-resolution:2dppx) {
+  .lf-mobile-theme { font-synthesis:none; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .lf-mobile-theme *, .lf-mobile-theme *::before, .lf-mobile-theme *::after {
+    animation-duration:.01ms !important;
+    transition-duration:.01ms !important;
+  }
+}
