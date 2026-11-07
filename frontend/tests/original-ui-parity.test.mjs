@@ -52,3 +52,35 @@ test('mobile roles retain original Fira font sizes and same logo asset',()=>{
   for(const testid of ['mobile-app','bottom-nav','role-switcher','mobile-notifications','mobile-profile'])
     assert.ok(shell.includes(testid),testid);
 });
+
+test('original public menu preserves scope ownership across legacy aliases and enrollment routes',async()=>{
+  const {navigationOwner,navigationActive,publicNavigation}=await import('../src/lib/public/navigation.ts');
+  const cases=[
+    ['/','home'],
+    ['/join','club'],
+    ['/trials','team'],
+    ['/academy/registration','academy'],
+    ['/vote','matches'],
+    ['/team?tab=roster','team'],
+    ['/team?tab=schedule','matches'],
+    ['/team?tab=results','matches'],
+    ['/team?tab=overview#standings','matches'],
+    ['/fixtures','matches'],
+    ['/calendar','matches'],
+    ['/staff','team'],
+    ['/sponsors/first-team?scope=academy','team'],
+    ['/sponsors/academy?scope=first_team','academy'],
+    ['/partners?scope=academy','academy'],
+    ['/partners?scope=first_team','team'],
+    ['/news/example-article','news'],
+    ['/events/example-event','events'],
+    ['/cart','shop']
+  ];
+  for(const [path,owner] of cases){
+    assert.equal(navigationOwner(path),owner,'Incorrect navigation scope for '+path);
+    const active=publicNavigation.filter(item=>navigationActive(item,path)).map(item=>item.id);
+    // Shared directory links intentionally resolve to their scoped FC/Academy owner.
+    assert.deepEqual(active,[owner],'Incorrect active menu category for '+path);
+  }
+  assert.equal(navigationOwner('/unported-private-route'),null);
+});
