@@ -11,6 +11,8 @@ using LefteriaFc.Application.ClubCalendar;
 using LefteriaFc.Infrastructure.ClubCalendar;
 using LefteriaFc.Application.Family;
 using LefteriaFc.Infrastructure.Family;
+using LefteriaFc.Application.Marketing;
+using LefteriaFc.Infrastructure.Marketing;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -28,6 +30,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ParentFamilyService>();
         services.AddScoped<IFamilyInvitationRepository, PostgresFamilyInvitationRepository>();
         services.AddScoped<FamilyInvitationService>();
+        services.AddScoped<IAcademyLeadWriter, PostgresAcademyLeadWriter>();
+        services.AddScoped<AcademyLeadSubmissionService>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
