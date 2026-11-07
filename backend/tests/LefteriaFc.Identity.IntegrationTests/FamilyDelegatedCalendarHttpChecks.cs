@@ -59,6 +59,15 @@ internal sealed partial class IdentityHttpChecks
                 "Delegated calendar exposed a roster rather than its sole child.");
             Check.True(CalendarIds(delegated).SequenceEqual(CalendarIds(own)),
                 "Delegated calendar diverged from the guardian's child-level member events.");
+            // A now-revoked child calendar must not be recoverable from a
+            // private/shared HTTP cache even if the browser retains its URL.
+            using(var http=await recipient.GetAsync(get))
+            {
+                Check.Equal(200,(int)http.StatusCode,"Read-only family calendar HTTP GET failed.");
+                Check.True(http.Headers.CacheControl?.NoStore==true &&
+                    http.Headers.CacheControl.Private,
+                    "Delegated child calendar was served with cacheable headers.");
+            }
             foreach(var item in delegated.GetProperty("items").EnumerateArray())
             {
                 Check.Equal(OrganizationIds.Academy,item.GetProperty("organization_id").GetString(),
@@ -77,6 +86,47 @@ internal sealed partial class IdentityHttpChecks
             await CalendarRequestAsync(recipient,HttpMethod.Get,
                 "/api/mobile/calendar?month=2026-10",null,403);
 
+            // Prove the protected SQL checks authority AFTER the service's
+            // detached profile preflight. This is the revocation race that a
+            // separate app-side grant check would fail.
+            async Task FinalQueryRevocationAsync(Func<Task> revoke)
+            {
+                var gate=factory.CalendarGate.HoldNext();
+                var pending=CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
+                try
+                {
+                    var entered=gate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                    if(await Task.WhenAny(entered,pending)==pending)
+                    {
+                        await pending;
+                        throw new InvalidOperationException(
+                            "Delegated calendar completed before the final SQL query gate.");
+                    }
+                    await entered;
+                    await revoke();
+                    gate.Release.TrySetResult();
+                    var response=await pending;
+                    Check.True(!response.TryGetProperty("items",out _) &&
+                        !response.TryGetProperty("players",out _),
+                        "Revocation race exposed cached child event or roster data.");
+                }
+                finally
+                {
+                    gate.Release.TrySetResult();
+                    await pending;
+                }
+            }
+
+            await FinalQueryRevocationAsync(async()=>
+            {
+                await using var context=database.CreateContext();
+                await context.MobileIdentities.Where(x=>x.Id==parentId)
+                    .ExecuteUpdateAsync(x=>x.SetProperty(y=>y.IsActive,false));
+            });
+            await using(var restored=database.CreateContext())
+                await restored.MobileIdentities.Where(x=>x.Id==parentId)
+                    .ExecuteUpdateAsync(x=>x.SetProperty(y=>y.IsActive,true));
+
             await using(var context=database.CreateContext())
                 await context.MobileIdentities.Where(x=>x.Id==parentId)
                     .ExecuteUpdateAsync(x=>x.SetProperty(y=>y.IsActive,false));
@@ -94,8 +144,13 @@ internal sealed partial class IdentityHttpChecks
                 .SequenceEqual(CalendarIds(own)),
                 "Restored active guardian relationship did not recover the scoped member calendar.");
 
-            await CalendarRequestAsync(parent,HttpMethod.Post,
-                "/api/mobile/family/children/"+child+"/revoke",null,200);
+            // Revocation committed while the delegated request is parked
+            // immediately before its final SQL data SELECT must deny events.
+            await FinalQueryRevocationAsync(async()=>
+            {
+                await CalendarRequestAsync(parent,HttpMethod.Post,
+                    "/api/mobile/family/children/"+child+"/revoke",null,200);
+            });
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
             Check.True(!(await CalendarRequestAsync(recipient,HttpMethod.Get,
                 "/api/mobile/family/active-delegation",null,200))
