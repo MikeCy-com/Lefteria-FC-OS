@@ -21,10 +21,11 @@
     onLoadCalendar: (month: string, childId: string) => boolean | Promise<boolean>;
     onChildren: () => void | Promise<void>;
     onCalendar: (childId: string) => void | Promise<void>;
+    onEducation?: () => void | Promise<void>;
   }
 
   let { identityId, parentName, family, familyStatus, familyError, calendar, calendarStatus, calendarError,
-    busy = false, today = clubToday(), onLoadFamily, onLoadCalendar, onChildren, onCalendar }: Props = $props();
+    busy = false, today = clubToday(), onLoadFamily, onLoadCalendar, onChildren, onCalendar, onEducation }: Props = $props();
 
   const id = $props.id();
   let familyRequested = $state(false);
@@ -161,7 +162,13 @@
           <span aria-hidden="true">▦</span><strong>Πρόγραμμα</strong>
         </button>
       {/if}
-      <div class="parent-shortcut-pending"><span aria-hidden="true">✉</span><strong>Μηνύματα</strong><small>Under Developments</small></div>
+      {#if onEducation}
+        <button type="button" disabled={busy} onclick={() => void onEducation()} data-testid="parent-shortcut-education">
+          <span aria-hidden="true">✦</span><strong>Εκπαίδευση</strong>
+        </button>
+      {:else}
+        <div class="parent-shortcut-pending"><span aria-hidden="true">✉</span><strong>Μηνύματα</strong><small>Under Developments</small></div>
+      {/if}
       <div class="parent-shortcut-pending"><span aria-hidden="true">€</span><strong>Πληρωμές</strong><small>Under Developments</small></div>
     </div>
   </section>
