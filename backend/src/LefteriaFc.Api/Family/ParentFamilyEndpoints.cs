@@ -33,6 +33,19 @@ public static class ParentFamilyEndpoints
 
         // This is the recipient's private phone-verified inbox, intentionally
         // separate from the parent-owned outgoing list. No child PII is returned.
+        // Only a currently verified fan learns whether their own phone holds
+        // a live grant. No grant ID, child ID, phone or guardian data leaves
+        // this endpoint, and it does not provide a player access token.
+        endpoints.MapGet("/api/mobile/family/active-delegation",
+            (HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.GetDelegationAvailabilityAsync(MobilePrincipal.Read(context.User), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetRecipientFamilyDelegationAvailability")
+            .Produces<FamilyDelegationAvailabilityDto>()
+            .WithMobileErrors();
+
         endpoints.MapGet("/api/mobile/family/invitations",
             (HttpContext context, FamilyInvitationService service,
                 CancellationToken token) =>

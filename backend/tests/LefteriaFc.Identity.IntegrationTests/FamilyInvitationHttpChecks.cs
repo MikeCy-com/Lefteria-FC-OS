@@ -34,6 +34,9 @@ internal sealed partial class IdentityHttpChecks
         async Task<JsonElement> RecipientAsync(HttpClient client,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Get,
                 "/api/mobile/family/invitations",null,status);
+        async Task<JsonElement> DelegationStatusAsync(HttpClient client,int status)=>
+            await CalendarRequestAsync(client,HttpMethod.Get,
+                "/api/mobile/family/active-delegation",null,status);
         async Task<JsonElement> DeclineAsync(HttpClient client,Guid invitation,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Post,
                 "/api/mobile/family/invitations/"+invitation.ToString("D")+"/decline",null,status);
@@ -46,6 +49,12 @@ internal sealed partial class IdentityHttpChecks
             await RecipientAsync(unauthenticated,401);
             foreach(var otherRole in new[]{parent,player,coach,management})
                 await RecipientAsync(otherRole,403);
+            await DelegationStatusAsync(unauthenticated,401);
+            foreach(var otherRole in new[]{parent,player,coach,management})
+                await DelegationStatusAsync(otherRole,403);
+            Check.True(!(await DelegationStatusAsync(recipient,200))
+                .GetProperty("has_active_delegation").GetBoolean(),
+                "Unaccepted pending invitations exposed a live delegated player grant.");
             Check.Equal(0,(await RecipientAsync(recipient,200)).GetProperty("items").GetArrayLength(),
                 "The verified target fan saw a nonexistent invitation.");
             Check.Equal(0,(await RecipientAsync(fan,200)).GetProperty("items").GetArrayLength(),
@@ -434,6 +443,14 @@ internal sealed partial class IdentityHttpChecks
                     """).SingleAsync();
                 Check.Equal(1,eventCount,"Acceptance replay added duplicate audit history.");
             }
+            var acceptedStatus=await DelegationStatusAsync(recipient,200);
+            Check.True(acceptedStatus.GetProperty("has_active_delegation").GetBoolean(),
+                "Verified recipient status did not reflect a current accepted grant.");
+            Check.Equal(1,acceptedStatus.EnumerateObject().Count(),
+                "Recipient delegation status exposed child or guardian metadata.");
+            Check.True(!(await DelegationStatusAsync(renewedRecipient,200))
+                .GetProperty("has_active_delegation").GetBoolean(),
+                "A different verified fan learned someone else's delegation status.");
             // Persisted grant is not itself a player login. The existing fan
             // token may not switch roles until the complete authorization
             // projection and revocation checks have been implemented.
@@ -529,6 +546,9 @@ internal sealed partial class IdentityHttpChecks
                 await CalendarRequestAsync(parent,HttpMethod.Post,revokePath,null,404);
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
+                Check.True(!(await DelegationStatusAsync(recipient,200))
+                    .GetProperty("has_active_delegation").GetBoolean(),
+                    "Recipient status did not clear immediately after guardian revocation.");
                 await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
                     new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
                         .UseNpgsql(database.AppConnectionStringForTest()).Options))

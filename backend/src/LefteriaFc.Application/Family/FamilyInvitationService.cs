@@ -15,6 +15,11 @@ public sealed record PendingFamilyInvitationDto(
 
 public sealed record FamilyOperationResult([property: JsonPropertyName("ok")] bool Ok);
 
+// This safe recipient-facing projection discloses neither child nor guardian
+// identity. It never claims that the recipient has a player login role.
+public sealed record FamilyDelegationAvailabilityDto(
+    [property: JsonPropertyName("has_active_delegation")] bool HasActiveDelegation);
+
 // Outgoing reservation metadata for a currently verified guardian only.
 // Never return the recipient's phone number, invite target or source record JSON.
 public sealed record ParentOutgoingInvitationDto(
@@ -190,6 +195,15 @@ public sealed class FamilyInvitationService(
             return new(true);
         }
         catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<FamilyDelegationAvailabilityDto> GetDelegationAvailabilityAsync(
+        MobileSession session, CancellationToken token)
+    {
+        // A false result is intentional: historical grants, inactive guardians,
+        // conflicting canonical numbers and revoked slots all disappear.
+        var current = await ReadCurrentDelegationAsync(session, token);
+        return new(current is not null);
     }
 
     // A current stored grant is not sufficient authority: the repository
