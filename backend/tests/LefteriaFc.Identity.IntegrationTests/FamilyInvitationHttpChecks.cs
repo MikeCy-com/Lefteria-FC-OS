@@ -438,6 +438,73 @@ internal sealed partial class IdentityHttpChecks
             await CalendarRequestAsync(recipient,HttpMethod.Post,
                 "/api/mobile/auth/switch-role",new{role="player"},403);
 
+            // Current delegated access is a revalidated projection, not a
+            // stored active flag. The OTP recipient can inspect only their
+            // own grant, which disappears as soon as the guardian or the
+            // grant is revoked. No player session is issued by this query.
+            await using(var connection=new NpgsqlConnection(database.AppConnectionStringForTest()))
+            {
+                await connection.OpenAsync();
+                async Task<(Guid GrantId,string PlayerId,string OrganizationId)?> CurrentAsync(
+                    Guid identity,string phone,string role)
+                {
+                    await using var command=new NpgsqlCommand("""
+                        SELECT grant_id,player_id,organization_id
+                        FROM identity.read_current_family_delegation(@identity,@phone,@role,@expires)
+                        """,connection);
+                    command.Parameters.AddWithValue("identity",identity);
+                    command.Parameters.AddWithValue("phone",phone);
+                    command.Parameters.AddWithValue("role",role);
+                    command.Parameters.AddWithValue("expires",DateTimeOffset.UtcNow.AddMinutes(5));
+                    await using var reader=await command.ExecuteReaderAsync();
+                    if(!await reader.ReadAsync())return null;
+                    var result=(reader.GetGuid(0),reader.GetString(1),reader.GetString(2));
+                    Check.True(!await reader.ReadAsync(),"One fan saw overlapping active delegated grants.");
+                    return result;
+                }
+                var current=await CurrentAsync(recipientFan.Id,target.Digits,"fan");
+                Check.True(current.HasValue,"Accepted active grant was not revalidated.");
+                Check.Equal(child,current!.Value.PlayerId,"Recipient grant returned another child.");
+                Check.Equal(OrganizationIds.Academy,current.Value.OrganizationId,
+                    "Recipient grant crossed the organization boundary.");
+                Check.True((await CurrentAsync(verifiedFan.Id,nextTarget.Digits,"fan")) is null,
+                    "A different OTP fan read the recipient's active grant.");
+                try { await CurrentAsync(recipientFan.Id,target.Digits,"parent");
+                    throw new InvalidOperationException("An unverified role read a private delegation."); }
+                catch(PostgresException ex) when(ex.SqlState=="P0001" &&
+                    ex.MessageText=="family_invitation_denied") { }
+                await using(var context=database.CreateContext())
+                    await context.MobileIdentities.Where(row=>row.Id==parentId)
+                        .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsActive,false));
+                try {
+                    Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
+                        "Deactivated guardian retained live delegated child access.");
+                }
+                finally {
+                    await using var restore=database.CreateContext();
+                    await restore.MobileIdentities.Where(row=>row.Id==parentId)
+                        .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsActive,true));
+                }
+                Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")).HasValue,
+                    "Restored guardian did not recover the still-active grant.");
+                await using(var command=new NpgsqlCommand("""
+                    SELECT identity.revoke_family_delegated_player_grant(
+                      @identity,@phone,@role,@expires,@device,@player)
+                    """,connection))
+                {
+                    command.Parameters.AddWithValue("identity",parentId);
+                    command.Parameters.AddWithValue("phone",accounts.ParentPhone.Digits);
+                    command.Parameters.AddWithValue("role","parent");
+                    command.Parameters.AddWithValue("expires",DateTimeOffset.UtcNow.AddMinutes(5));
+                    command.Parameters.AddWithValue("device",Guid.NewGuid());
+                    command.Parameters.AddWithValue("player",child);
+                    Check.True((bool)(await command.ExecuteScalarAsync()??false),
+                        "Guardian could not revoke an actually accepted grant.");
+                }
+                Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
+                    "Revoked grant remained visible to the former recipient.");
+            }
+
             using(var unavailableAccept=await recipient.PostAsync(
                 "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null))
                 Check.Equal(404,(int)unavailableAccept.StatusCode,

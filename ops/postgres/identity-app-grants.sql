@@ -179,6 +179,14 @@ REVOKE ALL ON FUNCTION
 GRANT EXECUTE ON FUNCTION
   identity.accept_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid,uuid)
   TO :"app_role";
+-- Only this scoped function may inspect a current accepted recipient's
+-- delegation; no direct SELECT on the grant/phone-bearing invitation tables.
+REVOKE ALL ON FUNCTION
+  identity.read_current_family_delegation(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION
+  identity.read_current_family_delegation(uuid,text,text,timestamptz)
+  TO :"app_role";
 -- The runtime can request a guardian-verified revoke but cannot directly
 -- read, create, or mutate the private delegated grant row.
 REVOKE ALL ON FUNCTION
