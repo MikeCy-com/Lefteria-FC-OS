@@ -35,7 +35,8 @@ function calendarPayload(overrides={}) {
 }
 function setup(person=user, serve=()=>Response.json({items:[invitation()]}),
   accept=()=>Response.json({ok:true}), delegation=()=>Response.json({has_active_delegation:false}),
-  calendar=()=>Response.json(calendarPayload())) {
+  calendar=()=>Response.json(calendarPayload()),
+  rsvp=()=>Response.json({event_id:'training-1',event_type:'training',player_id:'academy-child-id',status:'maybe'})) {
   const requests=[];
   const storage=createMobileSessionStorage({
     getItem:key=>key==='mobile_token'?'synthetic-otp-session':null,
@@ -50,6 +51,10 @@ function setup(person=user, serve=()=>Response.json({items:[invitation()]}),
       if(path==='/api/mobile/family/invitations')return await serve();
       if(path==='/api/mobile/family/active-delegation')return await delegation();
       if(path==='/api/mobile/family/calendar')return await calendar();
+      if(path==='/api/mobile/family/availability'){
+        requests.at(-1).body=await request.clone().json();
+        return await rsvp();
+      }
       if(path==='/api/mobile/family/invitations/'+id+'/accept')return await accept();
       throw new Error('Unexpected endpoint '+path);
     }
@@ -129,6 +134,66 @@ test('refreshing recipient grant status immediately clears stale child calendar 
   assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
 });
 
+test('verified fan submits only the sole current child RSVP and reloads server state',async()=>{
+  let current='going';
+  const {controller,requests}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),
+    ()=>Response.json(calendarPayload({items:[{
+      ...calendarPayload().items[0],responses:[{player_id:'academy-child-id',status:current}]
+    }]})),
+    ()=>{current='maybe';return Response.json({event_id:'training-1',event_type:'training',
+      player_id:'academy-child-id',status:'maybe'});});
+  await controller.bootstrap();
+  assert.equal(await controller.loadDelegationAvailability(),true);
+  const candidate=calendarPayload().items[0];
+  assert.equal(await controller.submitDelegatedAvailability(candidate,'maybe'),false);
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),true);
+  assert.equal(await controller.submitDelegatedAvailability({...candidate,id:'unrelated'},'maybe'),false);
+  assert.equal(await controller.submitDelegatedAvailability(candidate,'invalid'),false);
+  assert.equal(await controller.submitDelegatedAvailability(candidate,'maybe'),true);
+  assert.equal(controller.getState().delegatedCalendar.items[0].responses[0].status,'maybe');
+  assert.match(controller.getState().delegatedRespondSuccess,/αποθηκεύτηκε/);
+  assert.deepEqual(requests.filter(x=>x.method==='POST'),[{
+    path:'/api/mobile/family/availability',method:'POST',
+    authorization:'Bearer synthetic-otp-session',
+    body:{event_id:'training-1',event_type:'training',status:'maybe'}
+  }]);
+  controller.logout();
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedRespondSuccess,null);
+});
+
+test('delegated RSVP completion after logout cannot restore player information',async()=>{
+  const delayed=Promise.withResolvers();
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),undefined,()=>delayed.promise);
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  await controller.loadDelegatedCalendar('2026-11');
+  const pending=controller.submitDelegatedAvailability(calendarPayload().items[0],'maybe');
+  assert.equal(controller.getState().delegatedRespondingKey,'training:training-1');
+  controller.logout();
+  delayed.resolve(Response.json({event_id:'training-1',event_type:'training',
+    player_id:'academy-child-id',status:'maybe'}));
+  assert.equal(await pending,false);
+  assert.equal(controller.getState().status,'anonymous');
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedRespondSuccess,null);
+});
+
+test('revoked delegated RSVP denies without retaining the child calendar',async()=>{
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),undefined,
+    ()=>Response.json({code:'invalid_calendar_input',detail:'Grant revoked'},{status:403}));
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  await controller.loadDelegatedCalendar('2026-11');
+  assert.equal(await controller.submitDelegatedAvailability(calendarPayload().items[0],'maybe'),false);
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegationAvailability,null);
+  assert.equal(controller.getState().delegationStatus,'error');
+});
+
 test('delegated calendar denies another player and clears revoked data immediately',async()=>{
   let revoked=false;
   const {controller}=setup(user,undefined,undefined,
@@ -189,7 +254,7 @@ test('verified fan accepts only current pending invitation and cannot replay it'
   assert.equal(await controller.acceptRecipientInvitation('33333333-3333-4333-8333-333333333333'),false);
   assert.equal(await controller.acceptRecipientInvitation(id),true);
   assert.deepEqual(controller.getState().recipientInvitations.items,[]);
-  assert.match(controller.getState().recipientAcceptSuccess,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(controller.getState().recipientAcceptSuccess,/Ελέγχουμε την πρόσβαση στο πρόγραμμα/);
   assert.equal(await controller.acceptRecipientInvitation(id),false);
   assert.deepEqual(requests.filter(x=>x.method==='POST'),[{
     path:'/api/mobile/family/invitations/'+id+'/accept',method:'POST',
@@ -302,7 +367,7 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   assert.match(rendered,/Ακαδημία Λευτεριά FC/);
   assert.match(rendered,/ΣΕ ΑΝΑΜΟΝΗ/);
   assert.match(rendered,/Δεν έχει αποσταλεί SMS/);
-  assert.match(rendered,/Under Developments/);
+  assert.match(rendered,/Όρια οικογενειακής πρόσβασης/);
   assert.doesNotMatch(rendered,/secret-child-id|target_phone|parent_phone|recipient-accept-submit/);
   const empty=render(Inbox,{props:{...props,inbox:{items:[]}}}).body;
   assert.match(empty,/recipient-invites-empty/);
@@ -312,18 +377,23 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   const active=render(Inbox,{props:{...props,onLoadDelegation:()=>true,
     delegationStatus:'ready',delegationAvailability:{has_active_delegation:true}}}).body;
   assert.match(active,/recipient-delegation-active/);
-  assert.match(active,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(active,/Μπορείς να δεις το πρόγραμμα και να δηλώσεις συμμετοχή/);
   assert.doesNotMatch(active,/secret-child-id|guardian_phone|target_phone|recipient-accept-submit/);
   const accept=render(Inbox,{props:{...props,onAccept:async()=>true}}).body;
   assert.match(accept,/recipient-accept-start/);
   assert.doesNotMatch(rendered,/recipient-accept-start/);
-  assert.match(accept,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.match(accept,/Δεν δημιουργείται λογαριασμός αθλητή/);
   const {default:Calendar}=await import('../src/lib/mobile/components/MobileDelegatedCalendar.svelte');
   const delegated=render(Calendar,{props:{calendar:calendarPayload(),status:'ready',error:null,
     onLoad:()=>true}}).body;
   assert.match(delegated,/family-delegated-calendar/);
   assert.match(delegated,/Προπόνηση Ακαδημίας/);
   assert.doesNotMatch(delegated,/calendar-rsvp-|availability|onRespond|Απαντήσεις συμμετοχής/);
+  const writable=render(Calendar,{props:{calendar:calendarPayload(),status:'ready',error:null,
+    onLoad:()=>true,onRespond:async()=>true}}).body;
+  assert.match(writable,/delegated-rsvp-going/);
+  assert.match(writable,/delegated-rsvp-not_going/);
+  assert.doesNotMatch(delegated,/delegated-rsvp-controls/);
   const attached=render(Inbox,{props:{...props,onLoadCalendar:()=>true,
     delegationStatus:'ready',delegationAvailability:{has_active_delegation:true},
     delegatedCalendar:calendarPayload(),delegatedCalendarStatus:'ready'}}).body;
