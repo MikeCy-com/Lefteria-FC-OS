@@ -332,6 +332,33 @@
         ],
         "type": "object"
       },
+      "FirstTeamTrialsSettings": {
+        "properties": {
+          "button_text": {
+            "type": "string"
+          },
+          "closed_message": {
+            "type": "string"
+          },
+          "headline": {
+            "type": "string"
+          },
+          "open": {
+            "type": "boolean"
+          },
+          "subtitle": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "open",
+          "headline",
+          "subtitle",
+          "button_text",
+          "closed_message"
+        ],
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -8311,6 +8338,26 @@
         ]
       }
     },
+    "/api/trials/settings": {
+      "get": {
+        "operationId": "GetFirstTeamTrialSettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialsSettings"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "tags": [
+          "First-team trials"
+        ]
+      }
+    },
     "/api/uploads/avatars/{fileName}": {
       "get": {
         "operationId": "GetMobileAvatar",
@@ -8386,6 +8433,9 @@
     },
     {
       "name": "Mobile calendar"
+    },
+    {
+      "name": "First-team trials"
     },
     {
       "name": "Public website"
