@@ -96,7 +96,7 @@ internal sealed partial class IdentityHttpChecks
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
                 new{event_id=hostEvent,event_type="event",status="maybe",player_id=child},400);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
-                new{event_id=input.Id("outside"),event_type="event",status="going"},403);
+                new{event_id=input.Id("group-two"),event_type="event",status="going"},403);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
                 new{event_id=hostEvent,event_type="event",status="invalid"},400);
             await using(var verified=database.CreateContext())
