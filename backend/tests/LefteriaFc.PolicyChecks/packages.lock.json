@@ -3,7 +3,10 @@
   "dependencies": {
     "net10.0": {
       "lefteriafc.application": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "LefteriaFc.Domain": "[1.0.0, )"
+        }
       },
       "lefteriafc.domain": {
         "type": "Project"
