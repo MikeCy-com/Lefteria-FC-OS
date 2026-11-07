@@ -15,11 +15,26 @@ public sealed record PendingFamilyInvitationDto(
 
 public sealed record FamilyOperationResult([property: JsonPropertyName("ok")] bool Ok);
 
+// Outgoing reservation metadata for a currently verified guardian only.
+// Never return the recipient's phone number, invite target or source record JSON.
+public sealed record ParentOutgoingInvitationDto(
+    [property: JsonPropertyName("id")] Guid Id,
+    [property: JsonPropertyName("player_id")] string PlayerId,
+    [property: JsonPropertyName("organization_id")] string OrganizationId,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
+
+public sealed record ParentOutgoingInvitationsResult(
+    [property: JsonPropertyName("items")] IReadOnlyList<ParentOutgoingInvitationDto> Items);
+
 public interface IFamilyInvitationRepository
 {
     Task<PendingFamilyInvitationDto> IssueAsync(MobileSession session, string childId,
         string normalizedTargetPhone, Guid invitationId, CancellationToken token);
     Task CancelAsync(MobileSession session, Guid invitationId, CancellationToken token);
+    Task<IReadOnlyList<ParentOutgoingInvitationDto>> ReadOutgoingAsync(
+        MobileSession session, CancellationToken token);
 }
 
 public sealed class FamilyInvitationService(
@@ -54,6 +69,23 @@ public sealed class FamilyInvitationService(
         {
             await repository.CancelAsync(session, invitationId, token);
             return new(true);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<ParentOutgoingInvitationsResult> ReadOutgoingAsync(
+        MobileSession session, CancellationToken token)
+    {
+        RequireParent(session);
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        try
+        {
+            var items = await repository.ReadOutgoingAsync(session, token);
+            // Returning a silently truncated private list misleads the parent
+            // into believing they have seen all pending reservations.
+            if (items.Count > 100)
+                throw Unavailable();
+            return new(items);
         }
         catch (DbException) { throw Unavailable(); }
     }

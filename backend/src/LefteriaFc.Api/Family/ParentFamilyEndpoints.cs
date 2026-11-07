@@ -18,6 +18,19 @@ public static class ParentFamilyEndpoints
             .WithName("GetParentFamily")
             .Produces<ParentFamilyResult>()
             .WithMobileErrors();
+        // Distinct from the future *recipient* invitation inbox path.
+        // Only the currently verified guardian can see their outgoing pending
+        // reservations; recipient phones and inactive history are not exposed.
+        endpoints.MapGet("/api/mobile/family/outgoing-invitations",
+            (HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.ReadOutgoingAsync(MobilePrincipal.Read(context.User), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetParentOutgoingInvitations")
+            .Produces<ParentOutgoingInvitationsResult>()
+            .WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/family/children/{playerId}/invitations",
             (string playerId, IssueFamilyInvitationBody body, HttpContext context,
                 FamilyInvitationService service, CancellationToken token) =>

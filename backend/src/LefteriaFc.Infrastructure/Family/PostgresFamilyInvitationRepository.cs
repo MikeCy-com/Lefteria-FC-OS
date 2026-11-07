@@ -54,6 +54,42 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
         finally{await database.Database.CloseConnectionAsync();}
     }
 
+    public async Task<IReadOnlyList<ParentOutgoingInvitationDto>> ReadOutgoingAsync(
+        MobileSession session, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT invitation_id,player_id,organization_id,created_at,expires_at
+                FROM identity.read_parent_family_outgoing(@identity,@phone,@role,@expires)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            command.Parameters.AddWithValue("identity", session.IdentityId);
+            command.Parameters.AddWithValue("phone", session.NormalizedPhone);
+            command.Parameters.AddWithValue("role", session.Role.ToWireValue());
+            command.Parameters.AddWithValue("expires", session.ExpiresAt.ToUniversalTime());
+            await using var reader = await ExecuteOutgoingAsync(command, token);
+            var rows = new List<ParentOutgoingInvitationDto>();
+            while (await reader.ReadAsync(token))
+            {
+                if (rows.Count >= 101)
+                    throw Unavailable();
+                rows.Add(new(reader.GetGuid(0), reader.GetString(1), reader.GetString(2),
+                    "pending", reader.GetFieldValue<DateTimeOffset>(3),
+                    reader.GetFieldValue<DateTimeOffset>(4)));
+            }
+            return rows;
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
+    private static async Task<NpgsqlDataReader> ExecuteOutgoingAsync(
+        NpgsqlCommand command, CancellationToken token)
+    {
+        try { return await command.ExecuteReaderAsync(token); }
+        catch (PostgresException issue) { throw Fault(issue); }
+    }
+
     private static async Task<NpgsqlDataReader> ExecuteIssuanceAsync(NpgsqlCommand command,CancellationToken token)
     {
         try {return await command.ExecuteReaderAsync(token);}
@@ -73,6 +109,7 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
             {
                 "family_invitation_denied"=>new(MobileAuthFaultKind.Forbidden,
                     MobileAuthErrorCode.AccountUnavailable,"Family access is unavailable."),
+                "family_invitation_unavailable"=>Unavailable(),
                 "family_invitation_missing"=>new(MobileAuthFaultKind.NotFound,
                     MobileAuthErrorCode.InvalidInput,"Invitation not found."),
                 "family_invitation_conflict"=>new(MobileAuthFaultKind.Conflict,

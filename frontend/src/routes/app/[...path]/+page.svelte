@@ -90,6 +90,10 @@
         {#key `${user.id}:${role}`}
           <MobileFamily family={$controller.family} status={$controller.familyStatus}
             error={$controller.familyError} busy={$controller.busy}
+            outgoingInvitations={$controller.outgoingInvitations}
+            outgoingStatus={$controller.outgoingStatus}
+            outgoingError={$controller.outgoingError}
+            onLoadOutgoing={() => controller.loadOutgoingInvitations()}
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}

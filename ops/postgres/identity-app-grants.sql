@@ -158,8 +158,10 @@ GRANT INSERT ON audit.security_events TO :"app_role";
 -- Never grant direct SELECT/DML on phone-bearing family records.
 REVOKE ALL ON FUNCTION identity.issue_family_invitation(uuid,text,text,timestamptz,uuid,text,text,uuid) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.cancel_family_invitation(uuid,text,text,timestamptz,uuid,uuid) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION identity.read_parent_family_outgoing(uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.issue_family_invitation(uuid,text,text,timestamptz,uuid,text,text,uuid) TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.cancel_family_invitation(uuid,text,text,timestamptz,uuid,uuid) TO :"app_role";
+GRANT EXECUTE ON FUNCTION identity.read_parent_family_outgoing(uuid,text,text,timestamptz) TO :"app_role";
 GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
   is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
