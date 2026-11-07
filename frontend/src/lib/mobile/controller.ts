@@ -13,6 +13,7 @@ type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 type Family = components['schemas']['ParentFamilyResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
+type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
 export type MobilePlayerOption = components['schemas']['MobilePlayerOptionDto'];
@@ -50,6 +51,9 @@ export interface MobileAuthState {
   outgoingError: string | null;
   outgoingCancellingId: string | null;
   outgoingCancelError: string | null;
+  recipientInvitations: RecipientInvitations | null;
+  recipientStatus: 'idle' | 'loading' | 'ready' | 'error';
+  recipientError: string | null;
   calendar: MobileCalendar | null;
   calendarStatus: CalendarLoadStatus;
   calendarError: string | null;
@@ -98,6 +102,7 @@ export function createMobileAuthController(options: {
     family: null, familyStatus: 'idle', familyError: null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
+    recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
     calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
@@ -109,6 +114,7 @@ export function createMobileAuthController(options: {
   let playerOptionsRevision = 0;
   let familyRevision = 0;
   let outgoingRevision = 0;
+  let recipientRevision = 0;
   let calendarRevision = 0;
   let calendarResponsesRevision = 0;
 
@@ -126,6 +132,11 @@ export function createMobileAuthController(options: {
     ++outgoingRevision;
     update({ outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
       outgoingCancellingId: null, outgoingCancelError: null });
+  }
+
+  function clearRecipientInvitations() {
+    ++recipientRevision;
+    update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null });
   }
 
   function clearFamily() {
@@ -158,6 +169,7 @@ export function createMobileAuthController(options: {
     clearPlayerOptions();
     clearCalendar();
     clearFamily();
+    clearRecipientInvitations();
     token = null;
     pendingCode = null;
     options.storage.clear();
@@ -200,6 +212,7 @@ export function createMobileAuthController(options: {
       clearCalendar();
     }
     clearFamily();
+    clearRecipientInvitations();
     update({ status: 'authenticated', user, availableRoles: roles, error: null,
       ...(behavior.preserveOrganization && user.current_role_available ? {} : { organization: null, organizationError: null }),
       identities: [], detectedRole: null, phone: user.phone });
@@ -552,6 +565,59 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function loadRecipientInvitations() {
+    const identity = state.user;
+    if (state.busy || state.recipientStatus === 'loading' ||
+        state.status !== 'authenticated' || !identity?.current_role_available ||
+        identity.role !== 'fan' || !token) return false;
+    const operationRevision = ++recipientRevision;
+    const bearer = token;
+    const isCurrent = () => recipientRevision === operationRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'fan' &&
+      state.user.current_role_available;
+    update({ recipientInvitations: null, recipientStatus: 'loading', recipientError: null });
+    try {
+      const data = responseData(await api.GET('/api/mobile/family/invitations',
+        { headers: authorization() }));
+      if (!isCurrent()) return false;
+      const seen = new Set<string>();
+      const now = Date.now();
+      if (!data || !Array.isArray(data.items) || data.items.length > 1 ||
+          !data.items.every(item => item &&
+            typeof item.id === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id) &&
+            !seen.has(item.id) && !!seen.add(item.id) &&
+            (item.organization_id === 'lefteria_fc' ||
+              item.organization_id === 'lefteria_fc_academy') &&
+            item.status === 'pending' &&
+            typeof item.created_at === 'string' &&
+            typeof item.expires_at === 'string' &&
+            Number.isFinite(Date.parse(item.created_at)) &&
+            Number.isFinite(Date.parse(item.expires_at)) &&
+            Date.parse(item.expires_at) > Date.parse(item.created_at) &&
+            Date.parse(item.expires_at) > now))
+        throw new Error('Invalid recipient invitation response');
+      // Exact projection prevents retaining unexpected youth or guardian
+      // fields even if a compromised upstream includes extra JSON keys.
+      const items = data.items.map(item => ({
+        id: item.id, organization_id: item.organization_id,
+        status: item.status, created_at: item.created_at,
+        expires_at: item.expires_at
+      }));
+      update({ recipientInvitations: {items}, recipientStatus: 'ready', recipientError: null });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 &&
+          error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else update({ recipientInvitations: null, recipientStatus: 'error',
+        recipientError: message(error) });
+      return false;
+    }
+  }
+
   return {
     subscribe: store.subscribe,
     getState: () => state,
@@ -560,6 +626,7 @@ export function createMobileAuthController(options: {
         clearPlayerOptions();
         clearCalendar();
         clearFamily();
+        clearRecipientInvitations();
         pendingCode = null;
         update({ status: 'initializing', user: null, availableRoles: [], organization: null,
           organizationError: null, identities: [], detectedRole: null, phone: '', step: 'phone' });
@@ -667,6 +734,7 @@ export function createMobileAuthController(options: {
     loadFamily,
     loadOutgoingInvitations,
     cancelOutgoingInvitation,
+    loadRecipientInvitations,
     loadCalendar,
     loadMoreCalendar() {
       const calendar = state.calendar;
@@ -782,7 +850,7 @@ export function createMobileAuthController(options: {
       }, true);
     },
     logout() { endSession(); },
-    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); }
+    dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }
   };
 }
 
