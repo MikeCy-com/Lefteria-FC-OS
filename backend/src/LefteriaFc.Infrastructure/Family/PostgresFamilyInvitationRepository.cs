@@ -54,6 +54,33 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
         finally{await database.Database.CloseConnectionAsync();}
     }
 
+    public async Task<IReadOnlyList<ParentActiveDelegationDto>> ReadActiveForParentAsync(
+        MobileSession session, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT player_id, organization_id
+                FROM identity.read_parent_active_family_delegations(
+                  @identity,@phone,@role,@expires)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            command.Parameters.AddWithValue("identity", session.IdentityId);
+            command.Parameters.AddWithValue("phone", session.NormalizedPhone);
+            command.Parameters.AddWithValue("role", session.Role.ToWireValue());
+            command.Parameters.AddWithValue("expires", session.ExpiresAt.ToUniversalTime());
+            await using var reader = await ExecuteOutgoingAsync(command, token);
+            var rows = new List<ParentActiveDelegationDto>();
+            while (await reader.ReadAsync(token))
+            {
+                if (rows.Count >= 101) throw Unavailable();
+                rows.Add(new(reader.GetString(0),reader.GetString(1)));
+            }
+            return rows;
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
     public async Task<IReadOnlyList<ParentOutgoingInvitationDto>> ReadOutgoingAsync(
         MobileSession session, CancellationToken token)
     {
