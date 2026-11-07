@@ -26,6 +26,9 @@ internal sealed class GatedCalendarRepository(IMobileCalendarRepository inner,Ca
 {
     public async Task<CalendarMonthSnapshot> GetMonthAsync(MobileSession session,DateOnly month,string? playerId,int offset,CancellationToken token)
     {await gate.WaitAsync(token);return await inner.GetMonthAsync(session,month,playerId,offset,token);}
+    public async Task<CalendarMonthSnapshot> GetDelegatedMonthAsync(
+        MobileSession session,DateOnly month,int offset,CancellationToken token)
+    {await gate.WaitAsync(token);return await inner.GetDelegatedMonthAsync(session,month,offset,token);}
     public async Task<CalendarWriteSnapshot> SubmitAvailabilityAsync(MobileSession session,MobileAvailabilityCommand command,CancellationToken token)
     {await gate.WaitAsync(token);return await inner.SubmitAvailabilityAsync(session,command,token);}
     public async Task<CalendarAvailabilitySnapshot> GetOwnAvailabilityAsync(MobileSession session,CancellationToken token)
