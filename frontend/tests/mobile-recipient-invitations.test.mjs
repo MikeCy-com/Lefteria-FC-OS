@@ -34,6 +34,7 @@ function setup(person=user, serve=()=>Response.json({items:[invitation()]})) {
       requests.push({path,method:request.method,authorization:request.headers.get('Authorization')});
       if(path==='/api/mobile/auth/me')return Response.json(person);
       if(path==='/api/mobile/family/invitations')return await serve();
+      if(path==='/api/mobile/family/active-delegation')return Response.json({has_active_delegation:false});
       throw new Error('Unexpected endpoint '+path);
     }
   });
@@ -63,6 +64,27 @@ test('only a verified current fan can fetch private recipient metadata, projecte
   assert.equal(controller.getState().status,'anonymous');
   assert.equal(controller.getState().recipientInvitations,null);
   assert.equal(controller.getState().recipientStatus,'idle');
+});
+
+test('verified fan reads only the Boolean delegation status and clears it on logout',async()=>{
+  const {controller,requests}=setup();
+  await controller.bootstrap();
+  assert.equal(await controller.loadDelegationAvailability(),true);
+  assert.deepEqual(controller.getState().delegationAvailability,{has_active_delegation:false});
+  assert.equal(controller.getState().delegationStatus,'ready');
+  assert.deepEqual(requests.at(-1),{path:'/api/mobile/family/active-delegation',method:'GET',authorization:'Bearer synthetic-otp-session'});
+  controller.logout();
+  assert.equal(controller.getState().delegationAvailability,null);
+  assert.equal(controller.getState().delegationStatus,'idle');
+});
+
+test('formal roles cannot read recipient delegation status',async()=>{
+  for(const role of ['parent','player','coach','management']){
+    const {controller,requests}=setup({...user,role,available_roles:[role,'fan']});
+    await controller.bootstrap();
+    assert.equal(await controller.loadDelegationAvailability(),false);
+    assert.ok(!requests.some(x=>x.path==='/api/mobile/family/active-delegation'));
+  }
 });
 
 test('formal parent/player/coach roles cannot query the recipient inbox',async()=>{
@@ -149,6 +171,11 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   const error=render(Inbox,{props:{...props,inbox:null,status:'error',error:'Η υπηρεσία δεν είναι διαθέσιμη'}}).body;
   assert.match(error,/recipient-invites-error/);
   assert.doesNotMatch(error,/ΣΕ ΑΝΑΜΟΝΗ/);
+  const active=render(Inbox,{props:{...props,onLoadDelegation:()=>true,
+    delegationStatus:'ready',delegationAvailability:{has_active_delegation:true}}}).body;
+  assert.match(active,/recipient-delegation-active/);
+  assert.match(active,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  assert.doesNotMatch(active,/secret-child-id|guardian_phone|target_phone|recipient-accept-submit/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
   assert.match(route,/onLoad=\{\(\) => controller\.loadRecipientInvitations\(\)\}/);
