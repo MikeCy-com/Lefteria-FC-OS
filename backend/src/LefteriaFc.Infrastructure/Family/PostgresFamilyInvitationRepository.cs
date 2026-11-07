@@ -83,6 +83,24 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
         finally { await database.Database.CloseConnectionAsync(); }
     }
 
+    public async Task DeclineAsync(MobileSession session, Guid invitationId, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT identity.decline_recipient_family_invitation(
+                  @identity,@phone,@role,@expires,@device,@invitation)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            BindSession(command, session);
+            command.Parameters.AddWithValue("invitation", invitationId);
+            var result = await ExecuteCancellationAsync(command, token);
+            if (result is not true)
+                throw new InvalidOperationException("Recipient decline function did not confirm.");
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
     public async Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
         MobileSession session, CancellationToken token)
     {

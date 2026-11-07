@@ -33,6 +33,9 @@ internal sealed partial class IdentityHttpChecks
         async Task<JsonElement> RecipientAsync(HttpClient client,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Get,
                 "/api/mobile/family/invitations",null,status);
+        async Task<JsonElement> DeclineAsync(HttpClient client,Guid invitation,int status)=>
+            await CalendarRequestAsync(client,HttpMethod.Post,
+                "/api/mobile/family/invitations/"+invitation.ToString("D")+"/decline",null,status);
 
         try
         {
@@ -212,6 +215,47 @@ internal sealed partial class IdentityHttpChecks
                 Check.True(await context.SecurityAuditEvents.CountAsync(row=>
                     row.ActorIdentityId==parentId&&row.Action=="mobile.family.invitation.cancel")==1,
                     "Cancellation replay generated a second successful audit entry.");
+            }
+
+            // The phone-verified recipient may close ONLY their own pending
+            // slot. A decline does not create or link a player identity.
+            await DeclineAsync(unauthenticated,renewedId,401);
+            foreach(var otherRole in new[]{parent,player,coach,management})
+                await DeclineAsync(otherRole,renewedId,403);
+            await DeclineAsync(recipient,renewedId,404);
+            await DeclineAsync(renewedRecipient,Guid.NewGuid(),404);
+            var declined=await DeclineAsync(renewedRecipient,renewedId,200);
+            Check.True(declined.GetProperty("ok").GetBoolean(),
+                "Verified recipient did not receive an actual decline confirmation.");
+            await DeclineAsync(renewedRecipient,renewedId,404);
+            Check.Equal(0,(await RecipientAsync(renewedRecipient,200))
+                .GetProperty("items").GetArrayLength(),
+                "Declined invitation remained visible in recipient inbox.");
+            Check.Equal(0,(await OutgoingAsync(parent,200))
+                .GetProperty("items").GetArrayLength(),
+                "Declined invitation remained in source guardian's pending outbox.");
+            var verifiedFan=(await database.IdentityAsync(nextTarget,
+                LefteriaFc.Domain.Identity.MobileRole.Fan))!;
+            await using(var context=database.CreateContext())
+            {
+                var declinedStatus=await context.Database.SqlQuery<string>($"""
+                    SELECT status AS "Value" FROM identity.family_invitations
+                    WHERE invitation_id={renewedId}
+                    """).SingleAsync();
+                Check.Equal("declined",declinedStatus,
+                    "Decline did not transition the durable reserved slot.");
+                var count=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value" FROM identity.family_invitation_events
+                    WHERE invitation_id={renewedId} AND action='declined'
+                    """).SingleAsync();
+                Check.Equal(1,count,"Replay wrote more than one private decline event.");
+                Check.Equal(1,await context.SecurityAuditEvents.CountAsync(row=>
+                    row.ActorIdentityId==verifiedFan.Id &&
+                    row.Action=="mobile.family.invitation.decline"),
+                    "Decline audit did not record the exact verified recipient.");
+                Check.True(!await context.MobileIdentities.AnyAsync(row=>
+                    row.NormalizedPhone==nextTarget.Digits && row.Role=="player"),
+                    "Declining an invitation silently provisioned a player login.");
             }
 
             await using var restricted=new NpgsqlConnection(database.AppConnectionStringForTest());

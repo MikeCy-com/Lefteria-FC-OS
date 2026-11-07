@@ -43,6 +43,16 @@ public static class ParentFamilyEndpoints
             .Produces<RecipientPendingInvitationsResult>()
             .WithMobileErrors();
 
+        endpoints.MapPost("/api/mobile/family/invitations/{invitationId:guid}/decline",
+            (Guid invitationId, HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.DeclineAsync(MobilePrincipal.Read(context.User), invitationId, token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("DeclineRecipientPendingFamilyInvitation")
+            .Produces<FamilyOperationResult>()
+            .WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/family/children/{playerId}/invitations",
             (string playerId, IssueFamilyInvitationBody body, HttpContext context,
                 FamilyInvitationService service, CancellationToken token) =>
