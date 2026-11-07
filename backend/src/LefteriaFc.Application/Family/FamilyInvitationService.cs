@@ -50,6 +50,7 @@ public interface IFamilyInvitationRepository
         MobileSession session, CancellationToken token);
     Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
         MobileSession session, CancellationToken token);
+    Task DeclineAsync(MobileSession session, Guid invitationId, CancellationToken token);
 }
 
 public sealed class FamilyInvitationService(
@@ -121,6 +122,25 @@ public sealed class FamilyInvitationService(
             if (items.Count > 1)
                 throw Unavailable();
             return new(items);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<FamilyOperationResult> DeclineAsync(
+        MobileSession session, Guid invitationId, CancellationToken token)
+    {
+        if (session.Role != MobileRole.Fan)
+            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                MobileAuthErrorCode.RoleUnavailable,
+                "Declining an invitation requires the verified target's fan session.");
+        if (invitationId == Guid.Empty) throw InvalidInput();
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        await ThrottleAsync(MobileAuthThrottleScope.FamilyInvitation,
+            session.IdentityId.ToString("N"), token);
+        try
+        {
+            await repository.DeclineAsync(session, invitationId, token);
+            return new(true);
         }
         catch (DbException) { throw Unavailable(); }
     }
