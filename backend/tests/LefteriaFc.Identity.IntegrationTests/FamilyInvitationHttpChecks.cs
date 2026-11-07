@@ -516,16 +516,17 @@ internal sealed partial class IdentityHttpChecks
                 }
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")).HasValue,
                     "Restored guardian did not recover the still-active grant.");
-                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
-                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
-                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
-                {
-                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
-                    var session=new LefteriaFc.Domain.Identity.MobileSession(
-                        Guid.NewGuid(),parentId,accounts.ParentPhone.Digits,
-                        LefteriaFc.Domain.Identity.MobileRole.Parent,DateTimeOffset.UtcNow.AddMinutes(5));
-                    await repository.RevokeGrantAsync(session,child,CancellationToken.None);
-                }
+                var revokePath="/api/mobile/family/children/"+child+"/revoke";
+                await CalendarRequestAsync(unauthenticated,HttpMethod.Post,revokePath,null,401);
+                foreach(var otherRole in new[]{player,coach,management,fan,recipient})
+                    await CalendarRequestAsync(otherRole,HttpMethod.Post,revokePath,null,403);
+                // A guardian cannot revoke another child's player identity.
+                await CalendarRequestAsync(parent,HttpMethod.Post,
+                    "/api/mobile/family/children/"+accounts.PlayerId+"/revoke",null,404);
+                var response=await CalendarRequestAsync(parent,HttpMethod.Post,revokePath,null,200);
+                Check.True(response.GetProperty("ok").GetBoolean(),
+                    "Parent API did not confirm the genuine delegated grant revocation.");
+                await CalendarRequestAsync(parent,HttpMethod.Post,revokePath,null,404);
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
                 await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
