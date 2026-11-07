@@ -372,7 +372,6 @@ internal sealed partial class IdentityHttpChecks
             var recipientFan=(await database.IdentityAsync(target,
                 LefteriaFc.Domain.Identity.MobileRole.Fan))!;
             acceptedRecipientId=recipientFan.Id;
-            acceptedRecipientId=recipientFan.Id;
             await using(var connection=new NpgsqlConnection(database.AppConnectionStringForTest()))
             {
                 await connection.OpenAsync();
@@ -395,8 +394,18 @@ internal sealed partial class IdentityHttpChecks
                     throw new InvalidOperationException("Non-fan session activated a delegated grant."); }
                 catch(PostgresException ex) when(ex.SqlState=="P0001" &&
                     ex.MessageText=="family_invitation_denied") { }
-                Check.True(await AcceptAsync("fan"),
-                    "OTP-verified recipient could not atomically accept an active guardian invitation.");
+                // Exercise the production repository adapter, rather than
+                // only calling the SQL function from the integration test.
+                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
+                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
+                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
+                {
+                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
+                    var session=new LefteriaFc.Domain.Identity.MobileSession(
+                        Guid.NewGuid(),recipientFan.Id,target.Digits,
+                        LefteriaFc.Domain.Identity.MobileRole.Fan,DateTimeOffset.UtcNow.AddMinutes(5));
+                    await repository.AcceptGrantAsync(session,candidateId,Guid.NewGuid(),CancellationToken.None);
+                }
                 try { await AcceptAsync("fan");
                     throw new InvalidOperationException("Acceptance replay provisioned another grant."); }
                 catch(PostgresException ex) when(ex.SqlState=="P0001" &&
@@ -462,6 +471,21 @@ internal sealed partial class IdentityHttpChecks
                     Check.True(!await reader.ReadAsync(),"One fan saw overlapping active delegated grants.");
                     return result;
                 }
+                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
+                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
+                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
+                {
+                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
+                    var session=new LefteriaFc.Domain.Identity.MobileSession(
+                        Guid.NewGuid(),recipientFan.Id,target.Digits,
+                        LefteriaFc.Domain.Identity.MobileRole.Fan,DateTimeOffset.UtcNow.AddMinutes(5));
+                    var snapshot=await repository.ReadCurrentDelegationAsync(session,CancellationToken.None);
+                    Check.True(snapshot is not null && snapshot.PlayerId==child &&
+                        snapshot.OrganizationId==OrganizationIds.Academy,
+                        "The production repository failed to revalidate an accepted grant.");
+                    Check.True(!snapshot.ToString()!.Contains(child,StringComparison.Ordinal),
+                        "Delegation logging exposed a private child identifier.");
+                }
                 var current=await CurrentAsync(recipientFan.Id,target.Digits,"fan");
                 Check.True(current.HasValue,"Accepted active grant was not revalidated.");
                 Check.Equal(child,current!.Value.PlayerId,"Recipient grant returned another child.");
@@ -503,6 +527,18 @@ internal sealed partial class IdentityHttpChecks
                 }
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
+                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
+                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
+                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
+                {
+                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
+                    var session=new LefteriaFc.Domain.Identity.MobileSession(
+                        Guid.NewGuid(),recipientFan.Id,target.Digits,
+                        LefteriaFc.Domain.Identity.MobileRole.Fan,DateTimeOffset.UtcNow.AddMinutes(5));
+                    Check.True(await repository.ReadCurrentDelegationAsync(session,CancellationToken.None) is null,
+                        "Production repository returned a grant after guardian revocation.");
+                }
+
             }
 
             using(var unavailableAccept=await recipient.PostAsync(
