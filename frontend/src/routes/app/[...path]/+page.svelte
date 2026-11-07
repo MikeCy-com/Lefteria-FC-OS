@@ -104,6 +104,11 @@
             delegationAvailability={$controller.delegationAvailability}
             delegationStatus={$controller.delegationStatus}
             delegationError={$controller.delegationError}
+            delegatedCalendar={$controller.delegatedCalendar}
+            delegatedCalendarStatus={$controller.delegatedCalendarStatus}
+            delegatedCalendarError={$controller.delegatedCalendarError}
+            delegatedCalendarLoadingMore={$controller.delegatedCalendarLoadingMore}
+            onLoadCalendar={(month, append) => controller.loadDelegatedCalendar(month, append)}
             onLoadDelegation={() => controller.loadDelegationAvailability()}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
