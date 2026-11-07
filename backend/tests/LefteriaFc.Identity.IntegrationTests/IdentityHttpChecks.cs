@@ -19,6 +19,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
     [
         ("Public website import allowlists exclude private settings and source records", PublicContentPolicyAsync),
         ("Public website reads use separate initialized projections and explicit organization scope", PublicContentEndToEndAsync),
+        ("First-team trials GET serves closed source defaults without enabling applicant POST", FirstTeamTrialSettingsClosedAsync),
         ("Versioned public sections preserve youth privacy, immutable evidence and scoped reads", PublicSectionsEndToEndAsync),
         ("Scoped calendar import, role visibility and atomic own-player RSVP use current canonical authority", CalendarEndToEndAsync),
         ("Owner account import, canonical role revocation and legacy fan OTP preserve source authority", AccountImportEndToEndAsync),
