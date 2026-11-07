@@ -10,6 +10,7 @@ using LefteriaFc.Api.Family;
 using LefteriaFc.Api.ClubCalendar;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Api.PublicContent;
+using LefteriaFc.Api.Trials;
 using LefteriaFc.Infrastructure.PublicContent;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -99,6 +100,7 @@ app.MapParentFamily();
 app.MapMobileCalendar();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
+app.MapFirstTeamTrialPublic();
 app.MapPublicSections();
 app.MapAdminClub();
 
