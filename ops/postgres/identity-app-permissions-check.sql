@@ -232,6 +232,8 @@ BEGIN
     OR NOT has_function_privilege(current_user,
     'identity.decline_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
     OR NOT has_function_privilege(current_user,
+    'identity.accept_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid,uuid)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
     'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
