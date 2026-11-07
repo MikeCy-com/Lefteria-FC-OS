@@ -9,6 +9,7 @@
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
+  import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
@@ -97,6 +98,8 @@
             onDecline={(id) => controller.declineRecipientInvitation(id)}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
+      {:else if activeTab === 'education' && role === 'parent' && !composing}
+        <MobileAcademyEducation />
       {:else if activeTab === 'children' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}
           <MobileFamily family={$controller.family} status={$controller.familyStatus}
