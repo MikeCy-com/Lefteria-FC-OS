@@ -182,13 +182,50 @@ internal sealed partial class IdentityHttpChecks
                 .SequenceEqual(CalendarIds(own)),
                 "Restored active guardian relationship did not recover the scoped member calendar.");
 
-            // Revocation committed while the delegated request is parked
-            // immediately before its final SQL data SELECT must deny events.
-            await FinalQueryRevocationAsync(async()=>
+            // A parent revokes between the fan's HTTP identity preflight
+            // and the final RSVP statement. The write must fail closed,
+            // without mutating existing RSVP or appending a success audit.
+            var rsvpGate=factory.CalendarGate.HoldNext();
+            var concurrentRsvp=CalendarRequestAsync(recipient,HttpMethod.Post,
+                rsvpPath,new{event_id=hostEvent,event_type="event",status="going"},403);
+            try
             {
+                var entered=rsvpGate.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+                if(await Task.WhenAny(entered,concurrentRsvp)==concurrentRsvp)
+                {
+                    await concurrentRsvp;
+                    throw new InvalidOperationException(
+                        "Delegated RSVP completed before the final SQL write gate.");
+                }
+                await entered;
                 await CalendarRequestAsync(parent,HttpMethod.Post,
                     "/api/mobile/family/children/"+child+"/revoke",null,200);
-            });
+                rsvpGate.Release.TrySetResult();
+                var denied=await concurrentRsvp;
+                Check.True(!denied.TryGetProperty("player_id",out _) &&
+                    !denied.TryGetProperty("status",out _),
+                    "Revoked delegated RSVP returned a forged success response.");
+            }
+            finally
+            {
+                rsvpGate.Release.TrySetResult();
+                await concurrentRsvp;
+            }
+            await using(var afterRevoke=database.CreateContext())
+            {
+                var rows=await afterRevoke.CalendarResponses.AsNoTracking()
+                    .Where(x=>x.EventId==hostEvent && x.PlayerId==child &&
+                        (x.Collection=="availability" || x.Collection=="event_attendance"))
+                    .ToArrayAsync();
+                Check.Equal(2,rows.Length,"Revocation race removed an existing response.");
+                Check.True(rows.All(x=>x.Status=="maybe" &&
+                    x.ActorIdentityId==identity.Id),
+                    "Revoked recipient modified a previously saved delegated RSVP.");
+                Check.Equal(1,await afterRevoke.SecurityAuditEvents.CountAsync(x=>
+                    x.ActorIdentityId==identity.Id &&
+                    x.ReasonCode=="delegated_family_rsvp"),
+                    "Denied grant-revocation race appended an extra success audit.");
+            }
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
                 new{event_id=hostEvent,event_type="event",status="going"},403);
