@@ -117,8 +117,9 @@ test('nonparent cannot call outgoing route, and family revalidation erases prior
   assert.equal(await controller.loadFamily(), true);
   assert.equal(controller.getState().outgoingInvitations, null);
   assert.equal(controller.getState().outgoingStatus, 'idle');
-  assert.equal(await controller.loadOutgoingInvitations(), true);
-  assert.equal(controller.getState().outgoingInvitations.items.length, 1);
+  assert.equal(await controller.loadOutgoingInvitations(), false);
+  assert.equal(controller.getState().outgoingInvitations, null);
+  assert.equal(controller.getState().outgoingStatus, 'error');
 });
 
 test('stale outgoing HTTP response after logout cannot restore private details', async () => {
