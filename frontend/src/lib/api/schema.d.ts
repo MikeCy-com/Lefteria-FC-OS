@@ -300,7 +300,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Submits the current parent/player's RSVP. Status is going, not_going or maybe and defaults to going only when omitted. event_type is match, fixture (match alias), event or training; omission requires a unique event ID. Cancelled and archived events reject new RSVPs; past events otherwise remain eligible. Unknown properties are ignored; duplicate JSON keys and bodies over 16 KiB are rejected. */
+        /** @description Submits an RSVP for the sole active, phone-verified, accepted family delegation. No player_id selector, player-role elevation or staff access. Each mutation revalidates the current guardian, child and revocation inside the final SQL statement. */
         post: operations["SubmitDelegatedFamilyAvailability"];
         delete?: never;
         options?: never;
