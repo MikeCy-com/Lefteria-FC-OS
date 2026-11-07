@@ -1,7 +1,8 @@
 <script lang="ts">
   import PublicShell from '../../lib/public/PublicShell.svelte';
   import type { PublicPageData } from '../../lib/public/types';
-  import type { FirstTeamTrialSettings } from '../../lib/server/trials-settings';
+  import type { components } from '../../lib/api/schema';
+  type FirstTeamTrialSettings = components['schemas']['FirstTeamTrialsSettings'];
   let { data }: { data: PublicPageData & { trialSettings: FirstTeamTrialSettings } } = $props();
 </script>
 
