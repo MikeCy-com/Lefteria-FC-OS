@@ -48,6 +48,8 @@ export interface MobileAuthState {
   outgoingInvitations: OutgoingInvitations | null;
   outgoingStatus: 'idle' | 'loading' | 'ready' | 'error';
   outgoingError: string | null;
+  outgoingCancellingId: string | null;
+  outgoingCancelError: string | null;
   calendar: MobileCalendar | null;
   calendarStatus: CalendarLoadStatus;
   calendarError: string | null;
@@ -95,6 +97,7 @@ export function createMobileAuthController(options: {
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
     family: null, familyStatus: 'idle', familyError: null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
+    outgoingCancellingId: null, outgoingCancelError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
     calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
@@ -121,7 +124,8 @@ export function createMobileAuthController(options: {
 
   function clearOutgoingInvitations() {
     ++outgoingRevision;
-    update({ outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null });
+    update({ outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
+      outgoingCancellingId: null, outgoingCancelError: null });
   }
 
   function clearFamily() {
@@ -502,6 +506,52 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function cancelOutgoingInvitation(invitationId: string) {
+    const identity = state.user;
+    const family = state.family;
+    const outbox = state.outgoingInvitations;
+    if (!identity || state.status !== 'authenticated' || !identity.current_role_available ||
+        identity.role !== 'parent' || !token || state.busy || state.outgoingCancellingId ||
+        state.familyStatus !== 'ready' || !family || state.outgoingStatus !== 'ready' || !outbox ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationId))
+      return false;
+    const invite = outbox.items.find(item => item.id === invitationId &&
+      family.children.some(child => child.id === item.player_id &&
+        child.organization_id === item.organization_id));
+    if (!invite) return false;
+
+    const operationRevision = ++outgoingRevision;
+    const linkedRevision = familyRevision;
+    const bearer = token;
+    const isCurrent = () => outgoingRevision === operationRevision &&
+      familyRevision === linkedRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'parent' &&
+      state.user.current_role_available && state.family === family;
+    update({ outgoingCancellingId: invitationId, outgoingCancelError: null });
+    try {
+      const result = responseData(await api.POST('/api/mobile/family/invitations/{invitationId}/cancel', {
+        headers: authorization(), params: {path: {invitationId}}
+      }));
+      if (!isCurrent()) return false;
+      if (!result || result.ok !== true) throw new Error('Invalid cancellation response');
+      update({ outgoingInvitations: {items: outbox.items.filter(item => item.id !== invitationId)},
+        outgoingCancellingId: null, outgoingCancelError: null });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 &&
+          error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else if (error instanceof ApiFailure && (error.status === 403 || error.status === 404)) {
+        clearFamily();
+        update({ outgoingCancelError: 'Η οικογενειακή σύνδεση άλλαξε. Ανανέωσε τα στοιχεία.' });
+      }
+      else update({ outgoingCancellingId: null, outgoingCancelError: message(error) });
+      return false;
+    }
+  }
+
   return {
     subscribe: store.subscribe,
     getState: () => state,
@@ -616,6 +666,7 @@ export function createMobileAuthController(options: {
     },
     loadFamily,
     loadOutgoingInvitations,
+    cancelOutgoingInvitation,
     loadCalendar,
     loadMoreCalendar() {
       const calendar = state.calendar;
