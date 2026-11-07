@@ -30,6 +30,13 @@ public sealed record ParentOutgoingInvitationDto(
     [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
     [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
 
+// Only canonical child identifiers already visible to this authenticated parent.
+public sealed record ParentActiveDelegationDto(
+    [property: JsonPropertyName("player_id")] string PlayerId,
+    [property: JsonPropertyName("organization_id")] string OrganizationId);
+public sealed record ParentActiveDelegationsResult(
+    [property: JsonPropertyName("items")] IReadOnlyList<ParentActiveDelegationDto> Items);
+
 public sealed record ParentOutgoingInvitationsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<ParentOutgoingInvitationDto> Items);
 
@@ -58,6 +65,8 @@ public interface IFamilyInvitationRepository
     Task<PendingFamilyInvitationDto> IssueAsync(MobileSession session, string childId,
         string normalizedTargetPhone, Guid invitationId, CancellationToken token);
     Task CancelAsync(MobileSession session, Guid invitationId, CancellationToken token);
+    Task<IReadOnlyList<ParentActiveDelegationDto>> ReadActiveForParentAsync(
+        MobileSession session, CancellationToken token);
     Task<IReadOnlyList<ParentOutgoingInvitationDto>> ReadOutgoingAsync(
         MobileSession session, CancellationToken token);
     Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
@@ -100,6 +109,21 @@ public sealed class FamilyInvitationService(
         {
             await repository.CancelAsync(session, invitationId, token);
             return new(true);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<ParentActiveDelegationsResult> ReadActiveForParentAsync(
+        MobileSession session, CancellationToken token)
+    {
+        RequireParent(session);
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        try
+        {
+            var rows = await repository.ReadActiveForParentAsync(session, token);
+            if (rows.Count > 100 || rows.Select(x => x.PlayerId).Distinct().Count() != rows.Count)
+                throw Unavailable();
+            return new(rows);
         }
         catch (DbException) { throw Unavailable(); }
     }

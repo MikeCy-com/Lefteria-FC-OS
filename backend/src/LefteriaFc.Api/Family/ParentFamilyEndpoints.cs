@@ -21,6 +21,18 @@ public static class ParentFamilyEndpoints
         // Distinct from the future *recipient* invitation inbox path.
         // Only the currently verified guardian can see their outgoing pending
         // reservations; recipient phones and inactive history are not exposed.
+        // Parent sees only the verified children that currently have a live
+        // delegate. Recipient identity, phone and grant identifiers stay hidden.
+        endpoints.MapGet("/api/mobile/family/active-children",
+            (HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.ReadActiveForParentAsync(MobilePrincipal.Read(context.User), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetParentActiveFamilyDelegations")
+            .Produces<ParentActiveDelegationsResult>()
+            .WithMobileErrors();
+
         endpoints.MapGet("/api/mobile/family/outgoing-invitations",
             (HttpContext context, FamilyInvitationService service,
                 CancellationToken token) =>
