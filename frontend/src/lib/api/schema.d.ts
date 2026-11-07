@@ -339,22 +339,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/mobile/family/invitations/{invitationId}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["CancelPendingFamilyInvitation"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/mobile/family/invitations/{invitationId}/accept": {
         parameters: {
             query?: never;
@@ -365,6 +349,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["AcceptVerifiedRecipientFamilyInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/family/invitations/{invitationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelPendingFamilyInvitation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3429,7 +3429,7 @@ export interface operations {
             };
         };
     };
-    CancelPendingFamilyInvitation: {
+    AcceptVerifiedRecipientFamilyInvitation: {
         parameters: {
             query?: never;
             header?: never;
@@ -3523,7 +3523,7 @@ export interface operations {
             };
         };
     };
-    AcceptVerifiedRecipientFamilyInvitation: {
+    CancelPendingFamilyInvitation: {
         parameters: {
             query?: never;
             header?: never;
