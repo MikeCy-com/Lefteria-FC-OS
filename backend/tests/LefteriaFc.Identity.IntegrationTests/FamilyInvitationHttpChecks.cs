@@ -362,6 +362,11 @@ internal sealed partial class IdentityHttpChecks
             // End-to-end SQL boundary: issue through the real parent API,
             // accept only as the OTP-backed fan, and verify that an accepted
             // grant does not silently promote that fan to a player identity.
+            // The preceding invitation/cancel/decline/revoke scenarios spend
+            // the real per-parent hourly rate-limit budget. Start a separate
+            // owner-controlled fixture phase instead of weakening production
+            // throttling or letting the acceptance regression fail with 429.
+            await database.CleanupFamilyThrottleAsync(parentId);
             var candidate=await IssueAsync(parent,path,target.WireValue,200);
             var candidateId=Guid.Parse(candidate.GetProperty("id").GetString()!);
             var recipientFan=(await database.IdentityAsync(target,
