@@ -22,11 +22,19 @@ internal sealed partial class IdentityHttpChecks
         async Task<JsonElement> CancelAsync(HttpClient client,Guid id,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Post,
                 "/api/mobile/family/invitations/"+id.ToString("D")+"/cancel",null,status);
+        async Task<JsonElement> OutgoingAsync(HttpClient client,int status)=>
+            await CalendarRequestAsync(client,HttpMethod.Get,
+                "/api/mobile/family/outgoing-invitations",null,status);
 
         try
         {
             using var unauthenticated=Client();
             await IssueAsync(unauthenticated,path,target.WireValue,401);
+            await OutgoingAsync(unauthenticated,401);
+            foreach(var client in new[]{player,coach,management,fan})
+                await OutgoingAsync(client,403);
+            Check.Equal(0, (await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
+                "Parent invitation outbox is not initially empty.");
             foreach(var client in new[]{player,coach,management,fan})
                 await IssueAsync(client,path,target.WireValue,403);
             await IssueAsync(parent,"/api/mobile/family/children/"+accounts.PlayerId+"/invitations",
@@ -42,6 +50,25 @@ internal sealed partial class IdentityHttpChecks
 
             var invitation=await IssueAsync(parent,path,target.WireValue,200);
             var invitationId=Guid.Parse(invitation.GetProperty("id").GetString()!);
+            var outbox=await OutgoingAsync(parent,200);
+            var pendingRows=outbox.GetProperty("items").EnumerateArray().ToArray();
+            Check.Equal(1,pendingRows.Length,"Newly issued pending invitation is absent from guardian outbox.");
+            var row=pendingRows[0];
+            Check.Equal(invitationId,Guid.Parse(row.GetProperty("id").GetString()!),
+                "Outbox invitation receipt did not match issued reservation.");
+            Check.Equal(child,row.GetProperty("player_id").GetString(),
+                "Outbox lost the intended child scope.");
+            Check.Equal(OrganizationIds.Academy,row.GetProperty("organization_id").GetString(),
+                "Outbox lost the child's current Academy organization.");
+            Check.Equal("pending",row.GetProperty("status").GetString(),
+                "Outbox reported an inactive invitation as a pending reservation.");
+            Check.True(row.GetProperty("expires_at").GetDateTimeOffset() >
+                row.GetProperty("created_at").GetDateTimeOffset(),
+                "Outbox reported an invalid reservation validity period.");
+            Check.True(!outbox.GetRawText().Contains(target.Digits,StringComparison.Ordinal) &&
+                !outbox.GetRawText().Contains(accounts.ParentPhone.Digits,StringComparison.Ordinal) &&
+                !outbox.TryGetProperty("target_phone",out _),
+                "Outbox leaked contact or target data.");
             Check.Equal("pending",invitation.GetProperty("status").GetString(),"New invitation did not remain pending.");
             Check.True(!invitation.GetRawText().Contains(target.Digits,StringComparison.Ordinal) &&
                 !invitation.GetRawText().Contains(child,StringComparison.Ordinal),
@@ -69,12 +96,18 @@ internal sealed partial class IdentityHttpChecks
             var cancelled=await CancelAsync(parent,invitationId,200);
             Check.True(cancelled.GetProperty("ok").GetBoolean(),"Parent cancellation was not confirmed.");
             await CancelAsync(parent,invitationId,200);
+            Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
+                "Cancelled reservations remained visible as active pending invitations.");
 
             // A completed cancellation frees the slot for a new unique target
             // without inventing player-role ownership.
             var renewed=await IssueAsync(parent,path,nextTarget.WireValue,200);
             var renewedId=Guid.Parse(renewed.GetProperty("id").GetString()!);
             Check.True(renewedId!=invitationId,"Reissue did not rotate invitation ID.");
+            var renewedOutbox=await OutgoingAsync(parent,200);
+            var renewedRow=renewedOutbox.GetProperty("items").EnumerateArray().Single();
+            Check.Equal(renewedId,Guid.Parse(renewedRow.GetProperty("id").GetString()!),
+                "Outbox leaked stale reservation after new issue.");
 
             await using(var context=database.CreateContext())
             {
@@ -84,6 +117,8 @@ internal sealed partial class IdentityHttpChecks
                 try
                 {
                     await IssueAsync(parent,path,database.NewPhone().WireValue,403);
+                    Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
+                        "Revoked guardian still received a private reservation.");
                 }
                 finally
                 {
@@ -91,11 +126,24 @@ internal sealed partial class IdentityHttpChecks
                 }
                 await context.MobileIdentities.Where(row=>row.Id==parentId)
                     .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsActive,false));
-                try { await IssueAsync(parent,path,database.NewPhone().WireValue,403); }
+                try {
+                    await IssueAsync(parent,path,database.NewPhone().WireValue,403);
+                    await OutgoingAsync(parent,403);
+                }
                 finally
                 {
                     await context.MobileIdentities.Where(row=>row.Id==parentId)
                         .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsActive,true));
+                }
+                await context.RosterPlayers.Where(row=>row.Id==child)
+                    .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsArchived,true));
+                try {
+                    Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
+                        "Archived child invitation was visible in outgoing parent view.");
+                }
+                finally {
+                    await context.RosterPlayers.Where(row=>row.Id==child)
+                        .ExecuteUpdateAsync(setter=>setter.SetProperty(row=>row.IsArchived,false));
                 }
                 Check.True(!await context.MobileIdentities.AnyAsync(row=>
                     row.Role=="player"&&row.NormalizedPhone==target.Digits),
