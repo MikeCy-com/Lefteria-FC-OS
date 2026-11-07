@@ -33,6 +33,26 @@ public static class MobileCalendarEndpoints
             .WithDescription("Returns a scoped calendar month. month is required in YYYY-MM form; offset is an integer from 0 to 100000. Each page contains at most 200 items. player_id selects an already authorized player and grants no access.")
             .Produces<MobileCalendarResult>().WithMobileErrors();
 
+        // Separate read-only member-calendar view for an OTP-verified fan with
+        // exactly one current, revocable guardian-delegated player. This
+        // endpoint never accepts player_id or grants player-role RSVP rights.
+        endpoints.MapGet("/api/mobile/family/calendar",
+            (string? month,string? offset,HttpContext context,
+                MobileCalendarService service,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(()=>
+            {
+                if(context.Request.Query.Keys.Any(key=>key is not ("month" or "offset")))
+                    throw InvalidInput();
+                return service.GetDelegatedMonthAsync(MobilePrincipal.Read(context.User),
+                    SingleQuery(context,"month",month),
+                    ParseOffset(SingleQuery(context,"offset",offset)),token);
+            },context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile family")
+            .WithName("GetDelegatedFamilyCalendar")
+            .WithDescription("Read-only member calendar for the exact player whose accepted family delegation is live at the same SQL statement as event visibility. Requires OTP fan role. No player selector, staff projection, RSVP write, or player-role elevation.")
+            .Produces<MobileCalendarResult>().WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/availability",(HttpContext context,MobileCalendarService service,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(async()=>
             {
