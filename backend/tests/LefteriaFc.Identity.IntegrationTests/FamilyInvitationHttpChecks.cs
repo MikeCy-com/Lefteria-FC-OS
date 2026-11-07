@@ -483,7 +483,7 @@ internal sealed partial class IdentityHttpChecks
                     Check.True(snapshot is not null && snapshot.PlayerId==child &&
                         snapshot.OrganizationId==OrganizationIds.Academy,
                         "The production repository failed to revalidate an accepted grant.");
-                    Check.True(!snapshot.ToString()!.Contains(child,StringComparison.Ordinal),
+                    Check.True(!(snapshot?.ToString() ?? string.Empty).Contains(child,StringComparison.Ordinal),
                         "Delegation logging exposed a private child identifier.");
                     var otherSession=new LefteriaFc.Domain.Identity.MobileSession(
                         Guid.NewGuid(),verifiedFan.Id,nextTarget.Digits,
