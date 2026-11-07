@@ -26,6 +26,30 @@ public sealed class MobileCalendarService(MobileAuthService identity,IMobileCale
         catch(DbException){throw Unavailable();}
     }
 
+    // Read-only guardian-delegated calendar view for a verified FAN session.
+    // This deliberately does not mint a player role or permit RSVP mutation.
+    public async Task<MobileCalendarResult> GetDelegatedMonthAsync(
+        MobileSession session,string? month,int offset,CancellationToken token)
+    {
+        if(session.Role!=MobileRole.Fan)throw new MobileAuthException(
+            MobileAuthFaultKind.Forbidden,MobileAuthErrorCode.RoleUnavailable,
+            "Delegated family calendar requires a currently verified fan identity.");
+        try
+        {
+            await identity.AuthorizeCurrentIdentityAsync(session,token);
+            var day=Month(month);Offset(offset);
+            var snapshot=await calendar.GetDelegatedMonthAsync(session,day,offset,token);
+            RequireReady(snapshot.IdentityAvailable,snapshot.CalendarReady,snapshot.OrganizationReady);
+            if(!snapshot.PlayerSelectionValid||snapshot.Players.Count!=1)
+                throw NotAssigned();
+            return new(session.IdentityId,session.Role.ToWireValue(),
+                day.ToString("yyyy-MM",CultureInfo.InvariantCulture),snapshot.TimeZone,
+                snapshot.OrganizationId,snapshot.Players,snapshot.SelectedPlayerId,
+                snapshot.Items,snapshot.NextOffset);
+        }
+        catch(DbException){throw Unavailable();}
+    }
+
     public async Task<MobileAvailabilityResult> SubmitAvailabilityAsync(MobileSession session,MobileAvailabilityCommand command,CancellationToken token)
     {
         try
