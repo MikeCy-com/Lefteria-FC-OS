@@ -96,7 +96,7 @@
         <p role="alert">{delegationError || 'Δεν είναι δυνατός ο έλεγχος σύνδεσης.'}</p>
       {:else if delegationAvailability?.has_active_delegation}
         <p role="status" data-testid="recipient-delegation-active">Υπάρχει ενεργή καταχώριση οικογενειακής σύνδεσης.</p>
-        <p>Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη.</p>
+        <p>Μπορείς να δεις μόνο το πρόγραμμα του αθλητή που έχει εγκρίνει ο γονέας και τη δική του κατάσταση συμμετοχής. Δεν μπορείς να αλλάξεις συμμετοχή ή να συνδεθείς ως αθλητής.</p>
       {:else}
         <p data-testid="recipient-delegation-inactive">Δεν υπάρχει ενεργή οικογενειακή σύνδεση.</p>
       {/if}
@@ -131,12 +131,12 @@
           <span class="recipient-card-label">ΣΕ ΑΝΑΜΟΝΗ</span>
           <h3>{label(item.organization_id)}</h3>
           <p>Ισχύει έως {formatExpiry(item.expires_at)}</p>
-          <p class="recipient-note">Αυτή η καταχώριση δεν ενεργοποιεί πρόσβαση σε αθλητή.</p>
+          <p class="recipient-note">Μετά την αποδοχή και τον έλεγχο της σύνδεσης θα μπορείς να βλέπεις μόνο το πρόγραμμα του συγκεκριμένου αθλητή. Δεν δημιουργείται λογαριασμός αθλητή.</p>
           {#if onAccept}
             {#if confirmingAcceptId === item.id}
               <div class="recipient-decline-confirm" data-testid="recipient-accept-confirm">
                 <p>Να αποδεχτείς την οικογενειακή σύνδεση από {label(item.organization_id)};
-                  Δεν δίνει ακόμα πρόσβαση ως αθλητής και μπορεί να ανακληθεί από τον γονέα.</p>
+                  Με την έγκριση θα μπορείς να βλέπεις το πρόγραμμα και την κατάσταση συμμετοχής του συγκεκριμένου αθλητή, μόνο όσο η σύνδεση είναι ενεργή. Δεν μπορείς να απαντάς σε προσκλήσεις συμμετοχής, να βλέπεις άλλους αθλητές ή να αλλάζεις ρόλο. Ο γονέας μπορεί να ανακαλέσει την πρόσβαση.</p>
                 <div class="recipient-decline-actions">
                   <button type="button" disabled={busy || !!acceptingId || !!decliningId}
                     onclick={() => { confirmingAcceptId = null; }} data-testid="recipient-accept-back">Όχι</button>
@@ -190,8 +190,8 @@
   {/if}
 
   <p class="recipient-development" data-testid="recipient-acceptance-unavailable">
-    <strong>Under Developments</strong>
-    Η σύνδεση δεν δημιουργεί λογαριασμό αθλητή. Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη.
+    <strong>Όρια οικογενειακής πρόσβασης</strong>
+    Η αποδοχή δίνει μόνο προβολή του προγράμματος που έχει εγκρίνει ο γονέας. Δεν δημιουργεί λογαριασμό αθλητή, δεν επιτρέπει αλλαγή συμμετοχής και δεν δίνει πρόσβαση σε άλλους αθλητές.
     Δεν έχει αποσταλεί SMS από αυτές τις καταχωρίσεις.
   </p>
   <button type="button" class="recipient-refresh" disabled={busy || !!decliningId || !!acceptingId || status === 'loading'}
