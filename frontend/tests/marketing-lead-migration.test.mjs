@@ -12,8 +12,8 @@ test('marketing lead inbox requires exact organization, consent and source attri
   assert.match(migration,/consent_marketing boolean NOT NULL DEFAULT false/);
   assert.match(migration,/partner_slug varchar\(64\)/);
   assert.match(migration,/source='partner_referral'/);
-  assert.match(migration,/NULLIF\(btrim\(phone\),'') IS NOT NULL/);
-  assert.match(migration,/NULLIF\(btrim\(email\),'') IS NOT NULL/);
+  assert.ok(migration.includes("NULLIF(btrim(phone),'') IS NOT NULL"));
+  assert.ok(migration.includes("NULLIF(btrim(email),'') IS NOT NULL"));
   assert.match(migration,/player_age IS NULL OR player_age BETWEEN 4 AND 99/);
 });
 
