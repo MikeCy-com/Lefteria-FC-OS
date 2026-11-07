@@ -10,7 +10,7 @@ export const TAB_NAMES = {
   profile: 'Προφίλ', notifications: 'Ειδοποιήσεις', more: 'Περισσότερα',
   social: 'Lefteria', financials: 'Οικονομικά', reels: 'Στιγμές', gamehub: 'Παιχνίδια',
   news: 'Νέα', announcements: 'Ανακοινώσεις', shop: 'Κατάστημα', team: 'Ομάδα & Ακαδημία',
-  teams: 'Ομάδες', squad: 'Ρόστερ', children: 'Παιδιά', fixtures: 'Πρόγραμμα αγώνων',
+  teams: 'Ομάδες', squad: 'Ρόστερ', children: 'Παιδιά', education: 'Εκπαίδευση', fixtures: 'Πρόγραμμα αγώνων',
   standings: 'Βαθμολογία', predict: 'Προβλέψεις', potm: 'Παίκτης του μήνα'
 } as const;
 
@@ -45,7 +45,7 @@ export const MOBILE_ROLE_DEFINITIONS = {
     label: ROLE_NAMES.parent,
     defaultTab: 'home',
     primaryTabs: ['home', 'calendar', 'children', 'chat', 'more'],
-    allowedTabs: [...commonTabs, ...memberTabs, 'children', 'financials']
+    allowedTabs: [...commonTabs, ...memberTabs, 'children', 'education', 'financials']
   },
   coach: {
     label: ROLE_NAMES.coach,
