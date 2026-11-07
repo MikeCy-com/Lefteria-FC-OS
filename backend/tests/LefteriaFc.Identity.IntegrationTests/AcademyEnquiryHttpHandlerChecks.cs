@@ -26,7 +26,7 @@ internal static class AcademyEnquiryHttpHandlerChecks
         var missingOrigin=await Post(writer,ValidBody,origin:null);
         Require(missingOrigin==403 && writer.Calls==0,"Missing Origin was not denied.");
 
-        var withoutIp=await Post(writer,ValidBody,remote:null);
+        var withoutIp=await Post(writer,ValidBody,withoutRemote:true);
         Require(withoutIp==503 && writer.Calls==0,"Missing trusted remote was not denied.");
 
         var malformedKey=await Post(writer,ValidBody,key:"not-base64");
@@ -60,14 +60,14 @@ internal static class AcademyEnquiryHttpHandlerChecks
 
     private static async Task<int> Post(
         FakeWriter writer,string payload,bool enabled=true,string? origin=AllowedOrigin,
-        IPAddress? remote=null,string? key=null)
+        bool withoutRemote=false,string? key=null)
     {
         var ctx=new DefaultHttpContext();
         ctx.Request.Method="POST";
         ctx.Request.ContentType="application/json";
         ctx.Request.Body=new MemoryStream(Encoding.UTF8.GetBytes(payload));
         ctx.Request.ContentLength=Encoding.UTF8.GetByteCount(payload);
-        ctx.Connection.RemoteIpAddress=remote??IPAddress.Parse("192.0.2.40");
+        ctx.Connection.RemoteIpAddress=withoutRemote?null:IPAddress.Parse("192.0.2.40");
         if(origin is not null)ctx.Request.Headers.Origin=origin;
         ctx.Request.Headers["X-Forwarded-For"]="203.0.113.41";
         var config=new ConfigurationBuilder().AddInMemoryCollection(
