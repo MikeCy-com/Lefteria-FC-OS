@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { AVAILABILITY_LABELS, CALENDAR_KIND_LABELS, clubToday,
     formatCalendarDate, safeCalendarLink, shiftCalendarMonth } from '../calendar.ts';
-  import type { CalendarKind, CalendarLoadStatus, MobileCalendar, MobileCalendarItem } from '../calendar.ts';
+  import type { AvailabilityStatus, CalendarKind, CalendarLoadStatus, MobileCalendar, MobileCalendarItem } from '../calendar.ts';
   import './mobile-theme.css';
 
   interface Props {
@@ -12,9 +12,14 @@
     busy?: boolean;
     loadingMore?: boolean;
     onLoad: (month: string, append?: boolean) => boolean | Promise<boolean>;
+    onRespond?: (item: MobileCalendarItem, status: AvailabilityStatus) => boolean | Promise<boolean>;
+    respondingKey?: string | null;
+    respondError?: string | null;
+    respondSuccess?: string | null;
   }
 
-  let { calendar,status,error,busy=false,loadingMore=false,onLoad }: Props=$props();
+  let { calendar,status,error,busy=false,loadingMore=false,onLoad,
+    onRespond,respondingKey=null,respondError=null,respondSuccess=null }: Props=$props();
   const id=$props.id();
   let month=$state(untrack(()=>calendar?.month ?? clubToday().slice(0,7)));
   let requested=$state(false);
@@ -50,7 +55,7 @@
   <header>
     <p class="eyebrow">ΟΙΚΟΓΕΝΕΙΑΚΗ ΣΥΝΔΕΣΗ</p>
     <h3 id={id+'-title'}>Πρόγραμμα αθλητή</h3>
-    <p>Προβολή μόνο. Η οικογενειακή σύνδεση δεν επιτρέπει δηλώσεις συμμετοχής ή αλλαγή ρόλου.</p>
+    <p>Η σύνδεση αφορά μόνο τον συγκεκριμένο αθλητή. Δεν ενεργοποιεί ρόλο αθλητή ή πρόσβαση σε άλλες ομάδες.</p>
     {#if child}<p class="child-name">{child.name}</p>{/if}
   </header>
   <nav aria-label="Μήνας οικογενειακού προγράμματος" class="month-nav">
@@ -89,11 +94,25 @@
             {#if item.member_summary}<p>{item.member_summary}</p>{/if}
             {#if item.preparation}<p>{item.preparation}</p>{/if}
             <p class="response">Δήλωση συμμετοχής: {responseLabel(response(item))}</p>
+            {#if onRespond && !item.is_cancelled}
+              <fieldset class="rsvp-options" disabled={busy || !!respondingKey} data-testid="delegated-rsvp-controls">
+                <legend>Ενημέρωση δήλωσης συμμετοχής</legend>
+                {#each (['going','not_going','maybe'] as AvailabilityStatus[]) as choice}
+                  <button type="button" aria-pressed={response(item)===choice}
+                    data-testid={'delegated-rsvp-'+choice}
+                    onclick={()=>void onRespond(item,choice)}>
+                    {AVAILABILITY_LABELS[choice]}
+                  </button>
+                {/each}
+              </fieldset>
+            {/if}
           </article>
         {/each}
       </div>
     {/if}
     {#if error}<p role="alert">{error}</p>{/if}
+    {#if respondError}<p role="alert" data-testid="delegated-rsvp-error">{respondError}</p>{/if}
+    {#if respondSuccess}<p role="status" data-testid="delegated-rsvp-success">{respondSuccess}</p>{/if}
     {#if calendar.next_offset!==null}
       <button type="button" disabled={busy||loadingMore}
         data-testid="delegated-calendar-load-more" onclick={()=>void onLoad(month,true)}>
@@ -117,4 +136,7 @@
   .event h4 { font-size:16px; margin:0 0 8px; }
   .event p,.event time,.event a { font-size:12px; line-height:1.7; }
   .event .response { margin:9px 0 0; color:var(--lf-muted); }
+  .rsvp-options { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:12px 0 0; border:1px solid #4c5649; border-radius:7px; padding:9px; }
+  .rsvp-options legend { font-size:12px; color:var(--lf-muted); padding:0 4px; }
+  .rsvp-options button[aria-pressed='true'] { border-color:var(--lf-gold); font-weight:700; }
 </style>
