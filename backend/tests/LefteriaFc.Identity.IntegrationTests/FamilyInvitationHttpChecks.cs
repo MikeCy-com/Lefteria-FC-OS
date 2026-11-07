@@ -485,6 +485,11 @@ internal sealed partial class IdentityHttpChecks
                         "The production repository failed to revalidate an accepted grant.");
                     Check.True(!snapshot.ToString()!.Contains(child,StringComparison.Ordinal),
                         "Delegation logging exposed a private child identifier.");
+                    var otherSession=new LefteriaFc.Domain.Identity.MobileSession(
+                        Guid.NewGuid(),verifiedFan.Id,nextTarget.Digits,
+                        LefteriaFc.Domain.Identity.MobileRole.Fan,DateTimeOffset.UtcNow.AddMinutes(5));
+                    Check.True(await repository.ReadCurrentDelegationAsync(otherSession,CancellationToken.None) is null,
+                        "A different recipient read the active grant through the production adapter.");
                 }
                 var current=await CurrentAsync(recipientFan.Id,target.Digits,"fan");
                 Check.True(current.HasValue,"Accepted active grant was not revalidated.");
