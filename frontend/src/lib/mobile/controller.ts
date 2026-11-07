@@ -12,6 +12,7 @@ type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 type Family = components['schemas']['ParentFamilyResult'];
+type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
 export type MobilePlayerOption = components['schemas']['MobilePlayerOptionDto'];
@@ -44,6 +45,9 @@ export interface MobileAuthState {
   family: Family | null;
   familyStatus: 'idle' | 'loading' | 'ready' | 'error';
   familyError: string | null;
+  outgoingInvitations: OutgoingInvitations | null;
+  outgoingStatus: 'idle' | 'loading' | 'ready' | 'error';
+  outgoingError: string | null;
   calendar: MobileCalendar | null;
   calendarStatus: CalendarLoadStatus;
   calendarError: string | null;
@@ -90,6 +94,7 @@ export function createMobileAuthController(options: {
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
     family: null, familyStatus: 'idle', familyError: null,
+    outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
     calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
@@ -100,6 +105,7 @@ export function createMobileAuthController(options: {
   let revision = 0;
   let playerOptionsRevision = 0;
   let familyRevision = 0;
+  let outgoingRevision = 0;
   let calendarRevision = 0;
   let calendarResponsesRevision = 0;
 
@@ -113,8 +119,14 @@ export function createMobileAuthController(options: {
     update({ playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null });
   }
 
+  function clearOutgoingInvitations() {
+    ++outgoingRevision;
+    update({ outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null });
+  }
+
   function clearFamily() {
     ++familyRevision;
+    clearOutgoingInvitations();
     update({ family: null, familyStatus: 'idle', familyError: null });
   }
 
@@ -411,6 +423,7 @@ export function createMobileAuthController(options: {
       state.status === 'authenticated' && state.user?.id === identity.id &&
       state.user?.phone === identity.phone && state.user?.role === 'parent' &&
       state.user.current_role_available;
+    clearOutgoingInvitations();
     update({ family: null, familyStatus: 'loading', familyError: null });
     try {
       const data = responseData(await api.GET('/api/mobile/family', { headers: authorization() }));
@@ -435,6 +448,56 @@ export function createMobileAuthController(options: {
       else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable')
         revokeCurrentRole(error.message);
       else update({ family: null, familyStatus: 'error', familyError: message(error) });
+      return false;
+    }
+  }
+
+  async function loadOutgoingInvitations() {
+    const identity = state.user;
+    const family = state.family;
+    if (state.busy || state.outgoingStatus === 'loading' ||
+        state.status !== 'authenticated' || !identity?.current_role_available ||
+        identity.role !== 'parent' || !token || state.familyStatus !== 'ready' || !family) return false;
+    const operationRevision = ++outgoingRevision;
+    const linkedRevision = familyRevision;
+    const bearer = token;
+    const isCurrent = () => outgoingRevision === operationRevision &&
+      familyRevision === linkedRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'parent' &&
+      state.user.current_role_available && state.familyStatus === 'ready' &&
+      state.family === family;
+    update({ outgoingInvitations: null, outgoingStatus: 'loading', outgoingError: null });
+    try {
+      const data = responseData(await api.GET('/api/mobile/family/outgoing-invitations',
+        { headers: authorization() }));
+      if (!isCurrent()) return false;
+      const byChild = new Map(family.children.map(child => [child.id, child.organization_id]));
+      const seenInvitations = new Set<string>();
+      const seenChildren = new Set<string>();
+      const now = Date.now();
+      if (!data || !Array.isArray(data.items) || data.items.length > 100 ||
+          !data.items.every((item) =>
+            item && typeof item.id === 'string' &&
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.id) &&
+            !seenInvitations.has(item.id) && !!seenInvitations.add(item.id) &&
+            typeof item.player_id === 'string' && !seenChildren.has(item.player_id) &&
+            !!seenChildren.add(item.player_id) &&
+            typeof item.organization_id === 'string' &&
+            byChild.get(item.player_id) === item.organization_id &&
+            item.status === 'pending' &&
+            typeof item.created_at === 'string' && Number.isFinite(Date.parse(item.created_at)) &&
+            typeof item.expires_at === 'string' && Number.isFinite(Date.parse(item.expires_at)) &&
+            Date.parse(item.expires_at) > Date.parse(item.created_at) &&
+            Date.parse(item.expires_at) > now)) throw new Error('Invalid outgoing invitation response');
+      update({ outgoingInvitations: data, outgoingStatus: 'ready', outgoingError: null });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable')
+        revokeCurrentRole(error.message);
+      else update({ outgoingInvitations: null, outgoingStatus: 'error', outgoingError: message(error) });
       return false;
     }
   }
@@ -552,6 +615,7 @@ export function createMobileAuthController(options: {
       }, true);
     },
     loadFamily,
+    loadOutgoingInvitations,
     loadCalendar,
     loadMoreCalendar() {
       const calendar = state.calendar;
