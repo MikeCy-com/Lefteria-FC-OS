@@ -582,7 +582,7 @@ internal sealed partial class IdentityHttpChecks
             // Revoked acceptance is final; a stale fan token cannot replay
             // the old invitation to regain private family delegation.
             await CalendarRequestAsync(recipient,HttpMethod.Post,
-                "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null,503);
+                "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null,404);
             Check.True(!(await DelegationStatusAsync(recipient,200))
                 .GetProperty("has_active_delegation").GetBoolean(),
                 "Stale acceptance replay restored a revoked delegation.");
