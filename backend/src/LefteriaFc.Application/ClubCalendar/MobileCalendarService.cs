@@ -67,6 +67,33 @@ public sealed class MobileCalendarService(MobileAuthService identity,IMobileCale
         catch(DbException){throw Unavailable();}
     }
 
+    // An explicitly accepted OTP-verified family delegation can submit an
+    // RSVP for its *sole* current child, without ever changing to player role.
+    // The DB's write statement must independently recheck the live grant.
+    public async Task<MobileAvailabilityResult> SubmitDelegatedAvailabilityAsync(
+        MobileSession session,MobileAvailabilityCommand command,CancellationToken token)
+    {
+        if(session.Role!=MobileRole.Fan)throw new MobileAuthException(
+            MobileAuthFaultKind.Forbidden,MobileAuthErrorCode.RoleUnavailable,
+            "Only an OTP-verified fan can use the delegated family response.");
+        try
+        {
+            await identity.AuthorizeCurrentIdentityAsync(session,token);
+            if(command is null || command.PlayerId is not null)throw InvalidInput();
+            var eventId=Identifier(command.EventId,true)!;
+            var kind=Kind(command.EventType);
+            if(command.Status is not ("going" or "not_going" or "maybe"))throw InvalidInput();
+            var snapshot=await calendar.SubmitDelegatedAvailabilityAsync(
+                session,new(eventId,null,kind,command.Status),token);
+            RequireReady(snapshot.IdentityAvailable,snapshot.CalendarReady,snapshot.OrganizationReady);
+            RequireDecision(snapshot.Decision);
+            if(snapshot.PlayerId is null||snapshot.Kind is not ("match" or "event" or "training"))
+                throw Unavailable();
+            return new("Availability submitted",command.Status,snapshot.PlayerId,eventId,snapshot.Kind);
+        }
+        catch(DbException){throw Unavailable();}
+    }
+
     public async Task<IReadOnlyList<MobileAvailabilityRow>> GetOwnAvailabilityAsync(MobileSession session,CancellationToken token)
     {
         try
