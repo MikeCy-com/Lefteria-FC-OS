@@ -43,6 +43,10 @@ public static class MobileCalendarEndpoints
             {
                 if(context.Request.Query.Keys.Any(key=>key is not ("month" or "offset")))
                     throw InvalidInput();
+                // This is child-specific information. Never allow a browser,
+                // proxy, or shared cache to reuse a now-revoked response.
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
                 return service.GetDelegatedMonthAsync(MobilePrincipal.Read(context.User),
                     SingleQuery(context,"month",month),
                     ParseOffset(SingleQuery(context,"offset",offset)),token);
