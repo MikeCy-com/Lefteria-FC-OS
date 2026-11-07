@@ -114,6 +114,10 @@
             outgoingError={$controller.outgoingError}
             outgoingCancellingId={$controller.outgoingCancellingId}
             outgoingCancelError={$controller.outgoingCancelError}
+            activeDelegations={$controller.activeFamilyDelegations}
+            activeStatus={$controller.activeFamilyStatus}
+            activeError={$controller.activeFamilyError}
+            onLoadActive={() => controller.loadActiveFamilyDelegations()}
             onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
             revokingPlayerId={$controller.familyRevokingPlayerId}
             revokeError={$controller.familyRevokeError}
