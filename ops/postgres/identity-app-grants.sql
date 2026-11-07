@@ -76,7 +76,8 @@ REVOKE ALL PRIVILEGES ON TABLE
   club.calendar_responses,migration.calendar_source_documents,migration.calendar_import_issues,
   public_content.documents,public_content.import_state,migration.public_content_import_evidence,migration.public_content_source_documents,
   identity.admin_sessions,identity.admin_auth_rate_buckets,public_content.edits,
-  identity.family_invitations,identity.family_invitation_events
+  identity.family_invitations,identity.family_invitation_events,
+  identity.family_delegated_player_grants
 FROM PUBLIC, :"app_role";
 
 -- Also remove prior column grants, which a table-level REVOKE does not remove.
@@ -103,7 +104,8 @@ BEGIN
       ('club','calendar_responses'),('migration','calendar_source_documents'),('migration','calendar_import_issues'),
       ('public_content','documents'),('public_content','import_state'),('migration','public_content_import_evidence'),
       ('migration','public_content_source_documents'),('identity','admin_sessions'),('identity','admin_auth_rate_buckets'),('public_content','edits'),
-      ('identity','family_invitations'),('identity','family_invitation_events'))
+      ('identity','family_invitations'),('identity','family_invitation_events'),
+      ('identity','family_delegated_player_grants'))
   LOOP
     SELECT string_agg(format('%I', a.attname), ', ' ORDER BY a.attnum)
       INTO column_names
