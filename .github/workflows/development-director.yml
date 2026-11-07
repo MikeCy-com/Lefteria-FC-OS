@@ -1,0 +1,49 @@
+name: Lefteria development director dispatch
+
+# No cron: wake only from a queued issue, a verified main build, or an
+# authorized manual bootstrap. No Hostinger or production deployment hooks.
+on:
+  issues:
+    types: [labeled]
+  workflow_run:
+    workflows: ["Rewrite build"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: read
+
+concurrency:
+  group: lefteria-development-director-dispatch
+  cancel-in-progress: false
+
+jobs:
+  assign-next:
+    if: >-
+      github.repository == 'MikeCy-com/Lefteria-FC-OS' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'issues' && github.event.label.name == 'agent-ready') ||
+        (github.event_name == 'workflow_run' &&
+         github.event.workflow_run.head_repository.full_name == 'MikeCy-com/Lefteria-FC-OS' &&
+         github.event.workflow_run.head_branch == 'main' &&
+         github.event.workflow_run.event == 'push' &&
+         github.event.workflow_run.conclusion == 'success')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out trusted OS dispatcher on default branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Validate dispatcher shell syntax
+        run: bash -n ops/agents/dispatch-next.sh
+
+      - name: Hand next queued task to Lefteria Developer
+        env:
+          GH_TOKEN: ${{ secrets.LEFTERIA_COPILOT_ASSIGN_TOKEN }}
+        run: bash ops/agents/dispatch-next.sh
