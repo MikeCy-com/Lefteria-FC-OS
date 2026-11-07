@@ -22,6 +22,7 @@ internal sealed partial class IdentityHttpChecks
         var path="/api/mobile/family/children/"+child+"/invitations";
         var secondPath="/api/mobile/family/children/"+second+"/invitations";
         var parentId=accounts.Plan.Mobiles.Single(row=>row.Role=="parent").Id;
+        Guid? acceptedRecipientId=null;
         async Task<JsonElement> IssueAsync(HttpClient client,string url,string phone,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Post,url,new{phone},status);
         async Task<JsonElement> CancelAsync(HttpClient client,Guid id,int status)=>
@@ -299,6 +300,7 @@ internal sealed partial class IdentityHttpChecks
             var candidateId=Guid.Parse(candidate.GetProperty("id").GetString()!);
             var recipientFan=(await database.IdentityAsync(target,
                 LefteriaFc.Domain.Identity.MobileRole.Fan))!;
+            acceptedRecipientId=recipientFan.Id;
             await using(var connection=new NpgsqlConnection(database.AppConnectionStringForTest()))
             {
                 await connection.OpenAsync();
@@ -387,7 +389,7 @@ internal sealed partial class IdentityHttpChecks
                 (row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
                     row.Action=="mobile.family.invitation.cancel")) ||
                     (row.Action=="mobile.family.grant.accept" &&
-                      row.ActorIdentityId!=parentId)).ExecuteDeleteAsync();
+                      row.ActorIdentityId==acceptedRecipientId)).ExecuteDeleteAsync();
             // This calendar test creates two independent OTP-verified fan
             // identities beyond the imported source manifest. Exact synthetic
             // phone cleanup is required before the next native identity suite.
