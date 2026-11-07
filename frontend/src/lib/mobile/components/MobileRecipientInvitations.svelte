@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import type { components } from '../../api/schema';
-  import type { MobileCalendar, CalendarLoadStatus } from '../calendar.ts';
+  import type { AvailabilityStatus, MobileCalendar, CalendarLoadStatus, MobileCalendarItem } from '../calendar.ts';
   import MobileDelegatedCalendar from './MobileDelegatedCalendar.svelte';
   import './mobile-theme.css';
 
@@ -29,6 +29,10 @@
     delegatedCalendarError?: string | null;
     delegatedCalendarLoadingMore?: boolean;
     onLoadCalendar?: (month: string, append?: boolean) => boolean | Promise<boolean>;
+    onRespondCalendar?: (item: MobileCalendarItem, status: AvailabilityStatus) => boolean | Promise<boolean>;
+    calendarRespondingKey?: string | null;
+    calendarRespondError?: string | null;
+    calendarRespondSuccess?: string | null;
   }
 
   let { inbox, status, error, busy = false, onLoad,
@@ -37,7 +41,8 @@
     delegationAvailability = null, delegationStatus = 'idle', delegationError = null,
     onLoadDelegation,delegatedCalendar=null,delegatedCalendarStatus='idle',
     delegatedCalendarError=null,delegatedCalendarLoadingMore=false,
-    onLoadCalendar }: Props = $props();
+    onLoadCalendar,onRespondCalendar,calendarRespondingKey=null,
+    calendarRespondError=null,calendarRespondSuccess=null }: Props = $props();
   const id = $props.id();
   let requested = $state(false);
   let delegationRequested = $state(false);
@@ -108,7 +113,9 @@
   {#if onLoadCalendar && delegationStatus === 'ready' && delegationAvailability?.has_active_delegation}
     <MobileDelegatedCalendar calendar={delegatedCalendar} status={delegatedCalendarStatus}
       error={delegatedCalendarError} busy={busy}
-      loadingMore={delegatedCalendarLoadingMore} onLoad={onLoadCalendar} />
+      loadingMore={delegatedCalendarLoadingMore} onLoad={onLoadCalendar}
+      onRespond={onRespondCalendar} respondingKey={calendarRespondingKey}
+      respondError={calendarRespondError} respondSuccess={calendarRespondSuccess} />
   {/if}
 
   {#if status === 'loading' || status === 'idle'}
