@@ -543,7 +543,7 @@ internal sealed partial class IdentityHttpChecks
                     "Live delegated calendar scope rejected the valid accepted grant.");
                 Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",accounts.PlayerId,OrganizationIds.Academy),
                     "A delegated recipient gained access to an unrelated player.");
-                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.FirstTeam),
+                Check.True(!await ScopeAsync(recipientFan.Id,target.Digits,"fan",child,OrganizationIds.Club),
                     "A delegated recipient crossed the child's organization scope.");
                 Check.True(!await ScopeAsync(verifiedFan.Id,nextTarget.Digits,"fan",child,OrganizationIds.Academy),
                     "Another verified phone received the delegated player's calendar scope.");
