@@ -17,8 +17,10 @@ public sealed class FamilyDelegatedPlayerGrants : Migration
         migrationBuilder.Sql("""
             CREATE TABLE identity.family_delegated_player_grants (
               grant_id uuid PRIMARY KEY,
-              invitation_id uuid NOT NULL UNIQUE
-                REFERENCES identity.family_invitations(invitation_id) ON DELETE RESTRICT,
+              -- Historical invitation ID must survive when the reusable child
+              -- invitation slot is rotated after a revocation. Never FK this
+              -- value to the mutable family_invitations.invitation_id column.
+              invitation_id uuid NOT NULL UNIQUE,
               player_id varchar(128) COLLATE "C" NOT NULL,
               organization_id varchar(32) NOT NULL,
               recipient_identity_id uuid NOT NULL
