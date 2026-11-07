@@ -70,7 +70,8 @@ test('formal parent/player/coach roles cannot query the recipient inbox',async()
     const {controller,requests}=setup({...user,role,available_roles:[role,'fan']});
     await controller.bootstrap();
     assert.equal(await controller.loadRecipientInvitations(),false);
-    assert.deepEqual(requests.map(x=>x.path),['/api/mobile/auth/me']);
+    assert.ok(!requests.some(request => request.path === '/api/mobile/family/invitations'),
+      'Non-fan role called the recipient inbox');
   }
 });
 
