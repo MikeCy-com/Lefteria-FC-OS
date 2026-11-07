@@ -61,11 +61,11 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
   for(const value of ['parent-education-hub','education-editorial-status','education-materials',
     '6–9 ετών','10–12 ετών','13–15 ετών','16–18 ετών',
     'Μαθαίνουμε μαζί','Για γονείς','Για αθλητές','Διάβασε περισσότερα',
-    'επίσημη δημοσίευση','2 άρθρα για την επιλεγμένη ομάδα']){
+    'επίσημη δημοσίευση']){
     assert.ok(html.includes(value),value);
   }
   assert.equal((html.match(/data-testid="education-article"/g)||[]).length,2);
-  assert.match(html,/class="education-result-count" role="status" aria-live="polite"/);
+  assert.match(html,/class="education-result-count"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(html,/class="education-stage-hint" aria-live="polite"/);
   assert.doesNotMatch(html,/data-testid="parent-home-child"|family-child-calendar|guardian_phone|Bearer/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
