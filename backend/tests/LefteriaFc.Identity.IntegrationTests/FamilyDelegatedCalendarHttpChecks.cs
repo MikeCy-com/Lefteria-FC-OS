@@ -29,7 +29,7 @@ internal sealed partial class IdentityHttpChecks
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
             var rsvpPath="/api/mobile/family/availability";
             var hostEvent=input.Id("host");
-            var delegatedRsvp=new{event_id=hostEvent,event_type="training",status="maybe"};
+            var delegatedRsvp=new{event_id=hostEvent,event_type="event",status="maybe"};
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
             await CalendarRequestAsync(parent,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
             await CalendarRequestAsync(fan,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
@@ -94,11 +94,11 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal("maybe",delegatedResult.GetProperty("status").GetString(),
                 "Delegated RSVP returned the wrong server-confirmed status.");
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
-                new{event_id=hostEvent,event_type="training",status="maybe",player_id=child},400);
+                new{event_id=hostEvent,event_type="event",status="maybe",player_id=child},400);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
                 new{event_id=input.Id("outside"),event_type="event",status="going"},403);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
-                new{event_id=hostEvent,event_type="training",status="invalid"},400);
+                new{event_id=hostEvent,event_type="event",status="invalid"},400);
             await using(var verified=database.CreateContext())
             {
                 var stored=await verified.CalendarResponses.AsNoTracking()
@@ -170,7 +170,7 @@ internal sealed partial class IdentityHttpChecks
             {
                 await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
                 await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
-                    new{event_id=hostEvent,event_type="training",status="going"},403);
+                    new{event_id=hostEvent,event_type="event",status="going"},403);
             }
             finally
             {
@@ -191,7 +191,7 @@ internal sealed partial class IdentityHttpChecks
             });
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
             await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
-                new{event_id=hostEvent,event_type="training",status="going"},403);
+                new{event_id=hostEvent,event_type="event",status="going"},403);
             Check.True(!(await CalendarRequestAsync(recipient,HttpMethod.Get,
                 "/api/mobile/family/active-delegation",null,200))
                 .GetProperty("has_active_delegation").GetBoolean(),
