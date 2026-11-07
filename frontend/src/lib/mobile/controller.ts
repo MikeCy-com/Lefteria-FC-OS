@@ -14,6 +14,7 @@ type LoginResult = components['schemas']['MobileVerificationResultMobileLoginRes
 type Family = components['schemas']['ParentFamilyResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
+type DelegationAvailability = components['schemas']['FamilyDelegationAvailabilityDto'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
 export type MobileProfileUpdate = components['schemas']['MobileProfileUpdateBody'];
 export type MobilePlayerOption = components['schemas']['MobilePlayerOptionDto'];
@@ -52,6 +53,9 @@ export interface MobileAuthState {
   outgoingCancellingId: string | null;
   outgoingCancelError: string | null;
   recipientInvitations: RecipientInvitations | null;
+  delegationAvailability: DelegationAvailability | null;
+  delegationStatus: 'idle' | 'loading' | 'ready' | 'error';
+  delegationError: string | null;
   recipientStatus: 'idle' | 'loading' | 'ready' | 'error';
   recipientError: string | null;
   recipientDecliningId: string | null;
@@ -105,6 +109,7 @@ export function createMobileAuthController(options: {
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
+    delegationAvailability: null, delegationStatus: 'idle', delegationError: null,
     recipientDecliningId: null, recipientDeclineError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
@@ -118,6 +123,7 @@ export function createMobileAuthController(options: {
   let familyRevision = 0;
   let outgoingRevision = 0;
   let recipientRevision = 0;
+  let delegationRevision = 0;
   let calendarRevision = 0;
   let calendarResponsesRevision = 0;
 
@@ -139,8 +145,10 @@ export function createMobileAuthController(options: {
 
   function clearRecipientInvitations() {
     ++recipientRevision;
+    ++delegationRevision;
     update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
-      recipientDecliningId: null, recipientDeclineError: null });
+      recipientDecliningId: null, recipientDeclineError: null,
+      delegationAvailability: null, delegationStatus: 'idle', delegationError: null });
   }
 
   function clearFamily() {
@@ -569,6 +577,40 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function loadDelegationAvailability() {
+    const identity = state.user;
+    if (state.busy || state.delegationStatus === 'loading' ||
+        state.status !== 'authenticated' || !identity?.current_role_available ||
+        identity.role !== 'fan' || !token) return false;
+    const operationRevision = ++delegationRevision;
+    const bearer = token;
+    const isCurrent = () => delegationRevision === operationRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'fan' &&
+      state.user.current_role_available;
+    update({ delegationAvailability: null, delegationStatus: 'loading', delegationError: null });
+    try {
+      const data = responseData(await api.GET('/api/mobile/family/active-delegation',
+        { headers: authorization() }));
+      if (!isCurrent()) return false;
+      if (!data || typeof data.has_active_delegation !== 'boolean')
+        throw new Error('Invalid recipient delegation status');
+      // Whitelist the sole public field; never retain unexpected player,
+      // guardian, grant, or phone information returned by a faulty server.
+      update({ delegationAvailability: {has_active_delegation: data.has_active_delegation},
+        delegationStatus: 'ready', delegationError: null });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 &&
+          error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else update({ delegationAvailability: null, delegationStatus: 'error',
+        delegationError: message(error) });
+      return false;
+    }
+  }
+
   async function loadRecipientInvitations() {
     const identity = state.user;
     if (state.busy || state.recipientDecliningId || state.recipientStatus === 'loading' ||
@@ -780,6 +822,7 @@ export function createMobileAuthController(options: {
     loadOutgoingInvitations,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
+    loadDelegationAvailability,
     declineRecipientInvitation,
     loadCalendar,
     loadMoreCalendar() {
