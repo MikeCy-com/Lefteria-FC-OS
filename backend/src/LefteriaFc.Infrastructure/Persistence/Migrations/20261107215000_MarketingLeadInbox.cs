@@ -50,7 +50,8 @@ public sealed class MarketingLeadInbox : Migration
                        (partner_slug IS NULL OR partner_slug ~
                          '^[a-z0-9]([a-z0-9-]{0,62}[a-z0-9])?$')),
               CONSTRAINT ck_marketing_lead_consent CHECK (consent_gdpr IS TRUE),
-              CONSTRAINT ck_marketing_lead_status CHECK (status='new')
+              CONSTRAINT ck_marketing_lead_status
+                CHECK (status IN ('new','contacted','trial_booked','registered','lost'))
             );
 
             CREATE INDEX ix_marketing_leads_scope_time
