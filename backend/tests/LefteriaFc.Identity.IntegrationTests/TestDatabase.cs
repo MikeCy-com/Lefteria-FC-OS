@@ -150,12 +150,15 @@ internal sealed partial class TestDatabase(FixtureConfiguration fixture, string 
                    NOT has_schema_privilege(current_user, 'identity', 'CREATE'),
                    has_table_privilege(current_user, 'audit.security_events', 'INSERT'),
                    NOT has_table_privilege(current_user, 'audit.security_events', 'UPDATE'),
-                   NOT has_table_privilege(current_user, 'audit.security_events', 'DELETE')
+                   NOT has_table_privilege(current_user, 'audit.security_events', 'DELETE'),
+                   NOT has_schema_privilege(current_user, 'marketing', 'USAGE'),
+                   NOT has_table_privilege(current_user, 'marketing.public_leads', 'SELECT'),
+                   NOT has_table_privilege(current_user, 'marketing.public_leads', 'INSERT')
             FROM pg_roles WHERE rolname = current_user
             """, connection);
         await using var reader = await command.ExecuteReaderAsync();
         Check.True(await reader.ReadAsync(), "Restricted application role was not found.");
-        for (var column = 0; column < 6; column++)
+        for (var column = 0; column < 9; column++)
             Check.True(reader.GetBoolean(column), "The application role has unexpected database privileges.");
     }
 
