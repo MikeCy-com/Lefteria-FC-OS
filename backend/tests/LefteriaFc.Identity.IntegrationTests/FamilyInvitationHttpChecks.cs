@@ -242,6 +242,15 @@ internal sealed partial class IdentityHttpChecks
             await context.SecurityAuditEvents.Where(row=>
                 row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
                     row.Action=="mobile.family.invitation.cancel")).ExecuteDeleteAsync();
+            // This calendar test creates two independent OTP-verified fan
+            // identities beyond the imported source manifest. Exact synthetic
+            // phone cleanup is required before the next native identity suite.
+            // Live users never run these fixture-only cleanup statements.
+            var targetPhones = new[] { target.Digits, nextTarget.Digits };
+            await context.OtpChallenges.Where(row =>
+                targetPhones.Contains(row.NormalizedPhone)).ExecuteDeleteAsync();
+            await context.MobileIdentities.Where(row =>
+                targetPhones.Contains(row.NormalizedPhone)).ExecuteDeleteAsync();
             await database.CleanupFamilyThrottleAsync(parentId);
         }
     }
