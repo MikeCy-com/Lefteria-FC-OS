@@ -42,6 +42,17 @@ BEGIN
       OR has_function_privilege(current_user,'identity.lock_admin_club_authority(text,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Public runtime exceeds safe club payload read boundary';
   END IF;
+  -- The only authorized trial settings permission is the fixed,
+  -- source-backed, closed-only function; never the private settings table.
+  IF NOT has_function_privilege(current_user,
+       'club.read_first_team_trial_display()','EXECUTE')
+     OR has_table_privilege(current_user,'club.first_team_trial_settings',
+       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') THEN
+    RAISE EXCEPTION 'Runtime first-team trials reader exceeds public display boundary';
+  END IF;
+  IF EXISTS (SELECT 1 FROM club.read_first_team_trial_display() WHERE is_open) THEN
+    RAISE EXCEPTION 'Unverified trial registration unexpectedly opened';
+  END IF;
   PERFORM legacy_subject,identity_id FROM identity.imported_mobile_subjects LIMIT 1;
   PERFORM id,time_zone,is_complete FROM club.calendar_import_state LIMIT 1;
   PERFORM id,organization_id FROM club.teams LIMIT 1;
