@@ -376,6 +376,13 @@ internal sealed partial class IdentityHttpChecks
             // owner-controlled fixture phase instead of weakening production
             // throttling or letting the acceptance regression fail with 429.
             await database.CleanupFamilyThrottleAsync(parentId);
+            const string activePath="/api/mobile/family/active-children";
+            await CalendarRequestAsync(unauthenticated,HttpMethod.Get,activePath,null,401);
+            foreach(var nonParent in new[]{player,coach,management,fan,recipient})
+                await CalendarRequestAsync(nonParent,HttpMethod.Get,activePath,null,403);
+            var before=await CalendarRequestAsync(parent,HttpMethod.Get,activePath,null,200);
+            Check.Equal(0,before.GetProperty("items").GetArrayLength(),
+                "An unaccepted family invitation was counted as an active parent grant.");
             var candidate=await IssueAsync(parent,path,target.WireValue,200);
             var candidateId=Guid.Parse(candidate.GetProperty("id").GetString()!);
             var recipientFan=(await database.IdentityAsync(target,
@@ -443,6 +450,17 @@ internal sealed partial class IdentityHttpChecks
                     """).SingleAsync();
                 Check.Equal(1,eventCount,"Acceptance replay added duplicate audit history.");
             }
+            var parentActive=await CalendarRequestAsync(parent,HttpMethod.Get,activePath,null,200);
+            var activeRows=parentActive.GetProperty("items").EnumerateArray().ToArray();
+            Check.Equal(1,activeRows.Length,
+                "A verified parent must see exactly one current accepted delegation.");
+            Check.Equal(child,activeRows[0].GetProperty("player_id").GetString(),
+                "Parent delegation listed an unrelated child.");
+            Check.Equal(OrganizationIds.Academy,
+                activeRows[0].GetProperty("organization_id").GetString(),
+                "Parent delegation crossed the club scope.");
+            Check.Equal(2,activeRows[0].EnumerateObject().Count(),
+                "Parent delegation leaked recipient or grant metadata.");
             var acceptedStatus=await DelegationStatusAsync(recipient,200);
             Check.True(acceptedStatus.GetProperty("has_active_delegation").GetBoolean(),
                 "Verified recipient status did not reflect a current accepted grant.");
@@ -546,6 +564,9 @@ internal sealed partial class IdentityHttpChecks
                 await CalendarRequestAsync(parent,HttpMethod.Post,revokePath,null,404);
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
+                var after=await CalendarRequestAsync(parent,HttpMethod.Get,activePath,null,200);
+                Check.Equal(0,after.GetProperty("items").GetArrayLength(),
+                    "Revoked delegation remained active in the parent's summary.");
                 Check.True(!(await DelegationStatusAsync(recipient,200))
                     .GetProperty("has_active_delegation").GetBoolean(),
                     "Recipient status did not clear immediately after guardian revocation.");
