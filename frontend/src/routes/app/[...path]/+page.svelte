@@ -97,6 +97,10 @@
             decliningId={$controller.recipientDecliningId}
             declineError={$controller.recipientDeclineError}
             onDecline={(id) => controller.declineRecipientInvitation(id)}
+            delegationAvailability={$controller.delegationAvailability}
+            delegationStatus={$controller.delegationStatus}
+            delegationError={$controller.delegationError}
+            onLoadDelegation={() => controller.loadDelegationAvailability()}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
       {:else if activeTab === 'education' && role === 'parent' && !composing}
