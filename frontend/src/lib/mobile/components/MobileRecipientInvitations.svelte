@@ -4,6 +4,7 @@
   import './mobile-theme.css';
 
   type Inbox = components['schemas']['RecipientPendingInvitationsResult'];
+  type DelegationAvailability = components['schemas']['FamilyDelegationAvailabilityDto'];
   interface Props {
     inbox: Inbox | null;
     status: 'idle' | 'loading' | 'ready' | 'error';
@@ -13,12 +14,19 @@
     onDecline?: (invitationId: string) => boolean | Promise<boolean>;
     decliningId?: string | null;
     declineError?: string | null;
+    delegationAvailability?: DelegationAvailability | null;
+    delegationStatus?: 'idle' | 'loading' | 'ready' | 'error';
+    delegationError?: string | null;
+    onLoadDelegation?: () => boolean | Promise<boolean>;
   }
 
   let { inbox, status, error, busy = false, onLoad,
-    onDecline, decliningId = null, declineError = null }: Props = $props();
+    onDecline, decliningId = null, declineError = null,
+    delegationAvailability = null, delegationStatus = 'idle', delegationError = null,
+    onLoadDelegation }: Props = $props();
   const id = $props.id();
   let requested = $state(false);
+  let delegationRequested = $state(false);
   let confirmingId = $state<string | null>(null);
 
   async function confirmDecline(invitationId: string) {
@@ -32,6 +40,13 @@
     if (!requested && status === 'idle' && !busy) {
       requested = true;
       untrack(() => { void onLoad(); });
+    }
+  });
+
+  $effect(() => {
+    if (!delegationRequested && delegationStatus === 'idle' && !busy && onLoadDelegation) {
+      delegationRequested = true;
+      untrack(() => { void onLoadDelegation(); });
     }
   });
 
@@ -50,6 +65,25 @@
     <h2 id={id + '-heading'}>Εκκρεμείς προσκλήσεις</h2>
     <p>Καταχωρίσεις που αφορούν τον επιβεβαιωμένο αριθμό σου.</p>
   </div>
+
+  {#if onLoadDelegation}
+    <section class="recipient-delegation-status" aria-label="Κατάσταση οικογενειακής σύνδεσης"
+      data-testid="recipient-delegation-status">
+      <h3>Οικογενειακή σύνδεση</h3>
+      {#if delegationStatus === 'idle' || delegationStatus === 'loading'}
+        <p role="status">Έλεγχος σύνδεσης…</p>
+      {:else if delegationStatus === 'error'}
+        <p role="alert">{delegationError || 'Δεν είναι δυνατός ο έλεγχος σύνδεσης.'}</p>
+      {:else if delegationAvailability?.has_active_delegation}
+        <p role="status" data-testid="recipient-delegation-active">Υπάρχει ενεργή καταχώριση οικογενειακής σύνδεσης.</p>
+        <p>Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη.</p>
+      {:else}
+        <p data-testid="recipient-delegation-inactive">Δεν υπάρχει ενεργή οικογενειακή σύνδεση.</p>
+      {/if}
+      <button type="button" class="recipient-refresh" disabled={busy || delegationStatus === 'loading'}
+        onclick={() => void onLoadDelegation()} data-testid="recipient-delegation-refresh">Έλεγχος ξανά</button>
+    </section>
+  {/if}
 
   {#if status === 'loading' || status === 'idle'}
     <p class="recipient-notice" role="status" data-testid="recipient-invites-loading">
@@ -116,6 +150,9 @@
     color: #f1f1f1; background: linear-gradient(135deg,#181a1a,#101212);
     border: 1px solid #3c3528; border-radius: 10px; }
   .recipient-heading { margin-bottom: 18px; }
+  .recipient-delegation-status { padding: 15px; margin: 0 0 18px; background: #171d1c; border: 1px solid #47544a; border-radius: 8px; }
+  .recipient-delegation-status h3 { font-size: 16px; margin: 0 0 8px; }
+  .recipient-delegation-status p { font-size: 13px; line-height: 1.6; color: #c7d8ce; margin: 7px 0; }
   .recipient-eyebrow { color: #f5a623; font-size: 10px; font-weight: 700;
     letter-spacing: .1em; margin: 0 0 9px; }
   .recipient-heading h2 { font-size: clamp(21px,4vw,26px); line-height: 1.2; margin: 0 0 7px; }
