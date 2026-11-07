@@ -110,6 +110,10 @@
             outgoingError={$controller.outgoingError}
             outgoingCancellingId={$controller.outgoingCancellingId}
             outgoingCancelError={$controller.outgoingCancelError}
+            onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
+            revokingPlayerId={$controller.familyRevokingPlayerId}
+            revokeError={$controller.familyRevokeError}
+            revokeSuccess={$controller.familyRevokeSuccess}
             onCancelOutgoing={(id) => controller.cancelOutgoingInvitation(id)}
             onLoadOutgoing={() => controller.loadOutgoingInvitations()}
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
