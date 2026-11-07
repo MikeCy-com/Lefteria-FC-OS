@@ -115,6 +115,20 @@ test('delegated fan calendar requires server-verified live grant and uses only m
   assert.equal(controller.getState().delegatedCalendarStatus,'idle');
 });
 
+test('refreshing recipient grant status immediately clears stale child calendar events',async()=>{
+  let active=true;
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:active}));
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),true);
+  active=false;
+  await controller.loadDelegationAvailability();
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedCalendarStatus,'idle');
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+});
+
 test('delegated calendar denies another player and clears revoked data immediately',async()=>{
   let revoked=false;
   const {controller}=setup(user,undefined,undefined,
