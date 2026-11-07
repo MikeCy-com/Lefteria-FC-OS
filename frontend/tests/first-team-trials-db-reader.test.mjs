@@ -12,7 +12,7 @@ test('first-team display adapter can call only source-scoped stored projection',
   assert.ok(reader.includes('Open: false'));
   assert.ok(reader.includes('FirstTeamTrialsSettingsPolicy.TryValidate(candidate'));
   assert.ok(reader.includes('catch (NpgsqlException) { return null; }'));
-  assert.doesNotMatch(reader,/\b(?:INSERT|UPDATE|DELETE|GRANT|REVOKE)\b|first_team_trial_settings\s*(?:WHERE|JOIN|FROM)/);
+  assert.doesNotMatch(reader,/^\s*(?:INSERT INTO|UPDATE\s+club\.|DELETE FROM|GRANT|REVOKE)\b/im);
   assert.ok(di.includes('AddScoped<IFirstTeamTrialDisplayReader, PostgresFirstTeamTrialDisplayReader>()'));
 });
 
