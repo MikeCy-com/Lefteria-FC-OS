@@ -24,7 +24,7 @@
         <span class="team-badge">ΠΡΩΤΗ ΟΜΑΔΑ</span>
       </div>
       <h1 data-testid="trials-headline">ΕΤΟΙΜΟΣ ΝΑ ΞΕΚΙΝΗΣΕΙΣ ΤΟ ΤΑΞΙΔΙ ΣΟΥ;</h1>
-      <p class="subtitle">Δοκιμαστικά ποδοσφαίρου · Λευτεριά FC</p>
+      <p class="subtitle">Γίνε μέλος της πρώτης ομάδας LEFTERIA FC και κάνε το πρώτο βήμα για να γίνεις επαγγελματίας ποδοσφαιριστής.</p>
     </header>
 
     <section class="closed-card" aria-labelledby="trials-closed-heading" data-testid="trials-closed">
@@ -34,7 +34,7 @@
         </svg>
       </div>
       <h2 id="trials-closed-heading">ΟΙ ΑΙΤΗΣΕΙΣ ΔΕΝ ΕΙΝΑΙ ΑΚΟΜΗ ΑΝΟΙΧΤΕΣ</h2>
-      <p class="source-closed">Οι εγγραφές είναι κλειστές αυτή τη στιγμή.</p>
+      <p class="source-closed">Οι εγγραφές για δοκιμαστικά είναι προσωρινά κλειστές. Παρακαλούμε δοκιμάστε ξανά σύντομα.</p>
       <p class="safety-note">Δεν έχει επιβεβαιωθεί διαθέσιμη περίοδος δοκιμαστικών στο OS. Η υποβολή αίτησης δεν είναι ενεργή, επομένως δεν ζητάμε προσωπικά στοιχεία αθλητών και δεν εμφανίζουμε ψευδή επιβεβαίωση.</p>
       <div class="actions" aria-label="Επίσημες πληροφορίες">
         <a class="action-primary" href="/team">ΓΝΩΡΙΣΕ ΤΗΝ ΠΡΩΤΗ ΟΜΑΔΑ <span aria-hidden="true">↗</span></a>
