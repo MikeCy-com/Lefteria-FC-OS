@@ -187,6 +187,13 @@ REVOKE ALL ON FUNCTION
 GRANT EXECUTE ON FUNCTION
   identity.read_current_family_delegation(uuid,text,text,timestamptz)
   TO :"app_role";
+-- Parent can read only exact current own-child identifiers, no recipient PII.
+REVOKE ALL ON FUNCTION
+  identity.read_parent_active_family_delegations(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION
+  identity.read_parent_active_family_delegations(uuid,text,text,timestamptz)
+  TO :"app_role";
 -- The runtime can request a guardian-verified revoke but cannot directly
 -- read, create, or mutate the private delegated grant row.
 REVOKE ALL ON FUNCTION
