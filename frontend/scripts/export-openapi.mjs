@@ -53,7 +53,7 @@ try {
     if (startupError) throw startupError;
     if (child.exitCode !== null) throw new Error(`API exited during startup. ${logs}`);
     try {
-      response = await fetch(`${origin}/api/openapi/v1.json`, { signal: AbortSignal.timeout(1000) });
+      response = await fetch(`${origin}/api/openapi/v1.json`, { signal: AbortSignal.timeout(5000) });
       if (response.ok) break;
       lastAttempt = `HTTP ${response.status}`;
     } catch (error) {
@@ -114,6 +114,7 @@ try {
   for (const [path, method] of [
     ['/api/mobile/calendar', 'get'], ['/api/mobile/availability', 'post'],
     ['/api/mobile/my-availability', 'get'],
+    ['/api/mobile/family/availability', 'post'],
     ['/api/mobile/calendar/{event_type}/{event_id}/responses', 'get']
   ]) {
     const operation = document.paths[path][method];
