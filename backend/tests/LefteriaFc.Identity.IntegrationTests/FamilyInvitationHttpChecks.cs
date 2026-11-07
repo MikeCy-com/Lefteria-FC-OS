@@ -292,6 +292,70 @@ internal sealed partial class IdentityHttpChecks
                     "A pending invitation unexpectedly created an active or historical delegated grant.");
             }
 
+            // End-to-end SQL boundary: issue through the real parent API,
+            // accept only as the OTP-backed fan, and verify that an accepted
+            // grant does not silently promote that fan to a player identity.
+            var candidate=await IssueAsync(parent,path,target.WireValue,200);
+            var candidateId=Guid.Parse(candidate.GetProperty("id").GetString()!);
+            var recipientFan=(await database.IdentityAsync(target,
+                LefteriaFc.Domain.Identity.MobileRole.Fan))!;
+            await using(var connection=new NpgsqlConnection(database.AppConnectionStringForTest()))
+            {
+                await connection.OpenAsync();
+                async Task<bool> AcceptAsync(string role)
+                {
+                    await using var command=new NpgsqlCommand("""
+                        SELECT identity.accept_recipient_family_invitation(
+                          @recipient,@phone,@role,@expires,@device,@invitation,@grant)
+                        """,connection);
+                    command.Parameters.AddWithValue("recipient",recipientFan.Id);
+                    command.Parameters.AddWithValue("phone",target.Digits);
+                    command.Parameters.AddWithValue("role",role);
+                    command.Parameters.AddWithValue("expires",DateTimeOffset.UtcNow.AddMinutes(5));
+                    command.Parameters.AddWithValue("device",Guid.NewGuid());
+                    command.Parameters.AddWithValue("invitation",candidateId);
+                    command.Parameters.AddWithValue("grant",Guid.NewGuid());
+                    return (bool)(await command.ExecuteScalarAsync()??false);
+                }
+                try { await AcceptAsync("player");
+                    throw new InvalidOperationException("Non-fan session activated a delegated grant."); }
+                catch(PostgresException ex) when(ex.SqlState=="P0001" &&
+                    ex.MessageText=="family_invitation_denied") { }
+                Check.True(await AcceptAsync("fan"),
+                    "OTP-verified recipient could not atomically accept an active guardian invitation.");
+                try { await AcceptAsync("fan");
+                    throw new InvalidOperationException("Acceptance replay provisioned another grant."); }
+                catch(PostgresException ex) when(ex.SqlState=="P0001" &&
+                    ex.MessageText=="family_invitation_missing") { }
+            }
+            await using(var context=database.CreateContext())
+            {
+                var activeCount=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value" FROM identity.family_delegated_player_grants
+                    WHERE invitation_id={candidateId} AND status='active'
+                      AND recipient_identity_id={recipientFan.Id}
+                    """).SingleAsync();
+                Check.Equal(1,activeCount,
+                    "Verified acceptance did not persist exactly one active delegated grant.");
+                var status=await context.Database.SqlQuery<string>($"""
+                    SELECT status AS "Value" FROM identity.family_invitations
+                    WHERE invitation_id={candidateId}
+                    """).SingleAsync();
+                Check.Equal("active",status,"Accepted reservation remained pending.");
+                Check.True(!await context.MobileIdentities.AnyAsync(row=>
+                    row.NormalizedPhone==target.Digits && row.Role=="player"),
+                    "Acceptance silently elevated the recipient fan to a player identity.");
+                var eventCount=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value" FROM identity.family_invitation_events
+                    WHERE invitation_id={candidateId} AND action='accepted'
+                    """).SingleAsync();
+                Check.Equal(1,eventCount,"Acceptance replay added duplicate audit history.");
+            }
+            using(var unavailableAccept=await recipient.PostAsync(
+                "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null))
+                Check.Equal(404,(int)unavailableAccept.StatusCode,
+                    "Player-authorization API was exposed before role switching was implemented.");
+
             await using var restricted=new NpgsqlConnection(database.AppConnectionStringForTest());
             await restricted.OpenAsync();
             foreach(var statement in new[]{
@@ -314,12 +378,16 @@ internal sealed partial class IdentityHttpChecks
             // test's unique child records; production has no such endpoint.
             await using var context=database.CreateContext();
             await context.Database.ExecuteSqlInterpolatedAsync(
+                $@"DELETE FROM identity.family_delegated_player_grants WHERE player_id IN ({child},{second})");
+            await context.Database.ExecuteSqlInterpolatedAsync(
                 $@"DELETE FROM identity.family_invitation_events WHERE player_id IN ({child},{second})");
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $@"DELETE FROM identity.family_invitations WHERE player_id IN ({child},{second})");
             await context.SecurityAuditEvents.Where(row=>
-                row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
-                    row.Action=="mobile.family.invitation.cancel")).ExecuteDeleteAsync();
+                (row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
+                    row.Action=="mobile.family.invitation.cancel")) ||
+                    (row.Action=="mobile.family.grant.accept" &&
+                      row.ActorIdentityId!=parentId)).ExecuteDeleteAsync();
             // This calendar test creates two independent OTP-verified fan
             // identities beyond the imported source manifest. Exact synthetic
             // phone cleanup is required before the next native identity suite.
