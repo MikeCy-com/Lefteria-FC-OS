@@ -8,6 +8,7 @@
   import './HomepageRefinements.css';
   import './SidelineBanner.css';
   import './editorial.css';
+  import './brand-parity.css';
   let { site, branding, home = false, organization = 'lefteria_fc', navigationGroups = [], children }: { site: PublicSite | null; branding?: PublicClub | null; home?: boolean; organization?: PublicOrganization; navigationGroups?: PublicGroup[]; children: Snippet } = $props();
   const club = $derived(branding === undefined ? site?.club ?? null : branding);
 </script>
