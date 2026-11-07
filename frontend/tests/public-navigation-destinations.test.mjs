@@ -19,8 +19,11 @@ test('all original top-level menu journeys have a real, safely branded destinati
       // Source-first team trials now has its own accessible branded closed
       // state. Preserve real navigation and privacy boundaries without
       // incorrectly requiring the shared Academy/utility journey component.
-      assert.match(page,/<main\b[^>]*data-testid="trials-page"/);
+      assert.match(page,/<div\b[^>]*data-testid="trials-page"/);
       assert.match(page,/data-testid="trials-closed"/);
+      assert.match(page,/PublicShell/);
+      assert.ok(page.includes('organization="lefteria_fc"'));
+      assert.doesNotMatch(page,/<main\\b/);
       assert.match(page,/ΠΡΩΤΗ ΟΜΑΔΑ/);
       assert.match(page,/#f5a623/);
       assert.match(page,/href="\/team"/);
