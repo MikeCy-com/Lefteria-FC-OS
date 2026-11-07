@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { AVAILABILITY_LABELS, CALENDAR_KIND_LABELS, clubToday,
     formatCalendarDate, safeCalendarLink, shiftCalendarMonth } from '../calendar.ts';
-  import type { CalendarLoadStatus, MobileCalendar, MobileCalendarItem } from '../calendar.ts';
+  import type { CalendarKind, CalendarLoadStatus, MobileCalendar, MobileCalendarItem } from '../calendar.ts';
   import './mobile-theme.css';
 
   interface Props {
@@ -79,7 +79,7 @@
         {#each items as item (`${item.kind}:${item.id}`)}
           {@const mapUrl=safeCalendarLink(item.location_url)}
           <article class="event" data-testid="delegated-calendar-event">
-            <p class="eyebrow">{CALENDAR_KIND_LABELS[item.kind]}</p>
+            <p class="eyebrow">{CALENDAR_KIND_LABELS[item.kind as CalendarKind]}</p>
             <h4>{item.title}</h4>
             <time datetime={item.date}>{formatCalendarDate(item.date)}</time>
             {#if item.start_time}<p>{item.start_time}</p>{/if}
