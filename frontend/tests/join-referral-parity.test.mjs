@@ -13,8 +13,7 @@ test('source join referral accepts only one bounded safe lowercase slug',()=>{
   for(const query of ['', '?partner=', '?partner=A', '?partner=../admin',
     '?partner=%3Cscript%3E', '?partner=%20abc', '?partner=a--', '?partner=-abc',
     '?partner=abc&partner=other','?partner='+('a'.repeat(65))]){
-    const expected=query==='?partner=a--'?'a--':null;
-    assert.equal(partnerReferralSlug(url(query)),expected,query);
+    assert.equal(partnerReferralSlug(url(query)),null,query);
   }
   assert.equal(partnerReferralSlug(url('?partner=academy&organization_id=lefteria_fc')),'academy');
 });
