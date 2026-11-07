@@ -18,7 +18,7 @@
 </script>
 
 <PublicShell site={data.site} branding={data.branding} {organization} navigationGroups={data.navigationGroups}>
-  <main class="source-journey" data-testid="public-journey-page">
+  <div class="source-journey" data-testid="public-journey-page">
     <nav class="journey-breadcrumbs" aria-label="Διαδρομή">
       <a href="/">ΑΡΧΙΚΗ</a><span aria-hidden="true">/</span><span aria-current="page">{title}</span>
     </nav>
@@ -35,7 +35,7 @@
         <a class="journey-secondary" href={secondaryHref} data-testid="journey-secondary">{secondaryLabel}<span aria-hidden="true">↗</span></a>
       </div>
     </section>
-  </main>
+  </div>
 </PublicShell>
 
 <style>
