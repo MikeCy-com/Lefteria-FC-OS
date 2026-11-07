@@ -155,7 +155,7 @@ var checks = new (string Name, Action Check)[]
 };
 
 var failures = 0;
-var allChecks = checks.Concat(AdminPermissionChecks.Checks()).Concat(AcademyLeadChecks.Checks()).Concat(AcademyLeadSubmissionChecks.Checks()).Concat(AcademyLeadFingerprintChecks.Checks()).ToArray();
+var allChecks = checks.Concat(AdminPermissionChecks.Checks()).Concat(AcademyLeadChecks.Checks()).Concat(AcademyLeadSubmissionChecks.Checks()).Concat(AcademyLeadFingerprintChecks.Checks()).Concat(AcademyEnquiryActivationGateChecks.Checks()).ToArray();
 foreach (var (name, check) in allChecks)
 {
     try
