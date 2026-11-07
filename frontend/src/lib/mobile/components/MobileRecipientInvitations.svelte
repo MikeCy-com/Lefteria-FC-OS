@@ -10,11 +10,21 @@
     error: string | null;
     busy?: boolean;
     onLoad: () => boolean | Promise<boolean>;
+    onDecline?: (invitationId: string) => boolean | Promise<boolean>;
+    decliningId?: string | null;
+    declineError?: string | null;
   }
 
-  let { inbox, status, error, busy = false, onLoad }: Props = $props();
+  let { inbox, status, error, busy = false, onLoad,
+    onDecline, decliningId = null, declineError = null }: Props = $props();
   const id = $props.id();
   let requested = $state(false);
+  let confirmingId = $state<string | null>(null);
+
+  async function confirmDecline(invitationId: string) {
+    if (!onDecline || decliningId) return;
+    if (await onDecline(invitationId)) confirmingId = null;
+  }
 
   // The mobile controller separately authorizes this request using the active
   // OTP-verified FAN session. Never issue a request during SSR.
@@ -62,17 +72,42 @@
           <h3>{label(item.organization_id)}</h3>
           <p>Ισχύει έως {formatExpiry(item.expires_at)}</p>
           <p class="recipient-note">Αυτή η καταχώριση δεν ενεργοποιεί πρόσβαση σε αθλητή.</p>
+          {#if onDecline}
+            {#if confirmingId === item.id}
+              <div class="recipient-decline-confirm" data-testid="recipient-decline-confirm">
+                <p>Να απορριφθεί η εκκρεμής καταχώριση από {label(item.organization_id)}; Η ενέργεια δεν δίνει πρόσβαση σε αθλητή.</p>
+                <div class="recipient-decline-actions">
+                  <button type="button" disabled={busy || !!decliningId}
+                    onclick={() => { confirmingId = null; }} data-testid="recipient-decline-back">Όχι</button>
+                  <button type="button" disabled={busy || !!decliningId}
+                    onclick={() => void confirmDecline(item.id)} data-testid="recipient-decline-submit">
+                    {decliningId === item.id ? 'Απόρριψη…' : 'Ναι, απόρριψη'}
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <button type="button" class="recipient-decline-start"
+                disabled={busy || !!decliningId}
+                aria-label={'Απόρριψη εκκρεμούς πρόσκλησης από ' + label(item.organization_id)}
+                onclick={() => { confirmingId = item.id; }}
+                data-testid="recipient-decline-start">Απόρριψη καταχώρισης</button>
+            {/if}
+          {/if}
         </article>
       {/each}
     </div>
   {/if}
 
+  {#if declineError}
+    <p class="recipient-notice recipient-error" role="alert" data-testid="recipient-decline-error">{declineError}</p>
+  {/if}
+
   <p class="recipient-development" data-testid="recipient-acceptance-unavailable">
     <strong>Under Developments</strong>
-    Η αποστολή πρόσκλησης, η αποδοχή, η απόρριψη και η ενεργοποίηση πρόσβασης δεν είναι ακόμη διαθέσιμες.
+    Η αποστολή πρόσκλησης, η αποδοχή και η ενεργοποίηση πρόσβασης δεν είναι ακόμη διαθέσιμες.
     Δεν έχει αποσταλεί SMS από αυτές τις καταχωρίσεις.
   </p>
-  <button type="button" class="recipient-refresh" disabled={busy || status === 'loading'}
+  <button type="button" class="recipient-refresh" disabled={busy || !!decliningId || status === 'loading'}
     onclick={() => void onLoad()} data-testid="recipient-invites-refresh">Ανανέωση</button>
 </section>
 
@@ -98,6 +133,18 @@
   .recipient-card h3 { font-size: 19px; margin: 8px 0; }
   .recipient-card>p { color: #c5c6c4; font-size: 12px; margin: 6px 0; }
   .recipient-card .recipient-note { color: #cbbca1; }
+  .recipient-decline-start { display:block; margin-top: 14px; min-height:44px; padding:10px 14px;
+    color:#f7b9a3; background:#302018; border:1px solid #84533b; border-radius:7px; cursor:pointer; }
+  .recipient-decline-confirm { margin-top:15px; padding:14px; border:1px solid #a45e46; border-radius:8px;
+    background:#251a16; }
+  .recipient-decline-confirm>p { margin:0 0 12px; color:#eac8bc; font-size:12px; line-height:1.6; }
+  .recipient-decline-actions { display:flex; flex-wrap:wrap; gap:10px; }
+  .recipient-decline-actions button { min-height:44px; padding:10px 15px; border-radius:7px;
+    background:#221e1a; border:1px solid #7a6343; color:#f8dec3; cursor:pointer; }
+  .recipient-decline-actions button:last-child { background:#421e19; border-color:#ac614e; color:#ffd5c9; }
+  .recipient-decline-start:focus-visible,.recipient-decline-actions button:focus-visible {
+    outline:2px solid #ffcf62; outline-offset:3px;
+  }
   .recipient-development { margin: 17px 0; padding: 14px; border-top: 1px solid #393d3e;
     color: #b5b6b2; font-size: 12px; line-height: 1.7; }
   .recipient-development strong { display: block; color: #f5b847; margin-bottom: 4px; }
