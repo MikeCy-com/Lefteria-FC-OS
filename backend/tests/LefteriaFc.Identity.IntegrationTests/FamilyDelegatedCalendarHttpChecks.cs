@@ -234,9 +234,20 @@ internal sealed partial class IdentityHttpChecks
                 .GetProperty("has_active_delegation").GetBoolean(),
                 "Revocation left the previous recipient's delegated calendar enabled.");
         }
+        catch(Exception fault)
+        {
+            Console.Error.WriteLine("Delegated family RSVP test primary failure: "+fault);
+            throw;
+        }
         finally
         {
             await using var context=database.CreateContext();
+            // This synthetic OTP fan is deleted below. Delete only the two
+            // response rows it authored before the guarded calendar fixture
+            // cleanup checks every remaining actor's source phone.
+            await context.CalendarResponses.Where(x=>
+                x.ActorIdentityId==recipientId && x.EventId==input.Id("host") &&
+                x.PlayerId==child).ExecuteDeleteAsync();
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $@"DELETE FROM identity.family_delegated_player_grants WHERE player_id={child}");
             await context.Database.ExecuteSqlInterpolatedAsync(
