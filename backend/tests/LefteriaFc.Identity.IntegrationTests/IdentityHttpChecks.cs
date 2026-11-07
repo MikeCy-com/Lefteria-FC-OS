@@ -28,6 +28,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Twilio adapter encodes provider request and role sender fallback without network", TwilioAdapterChecks.ConfiguredRequestAsync),
         ("Unconfigured Twilio adapter refuses delivery without HTTP", TwilioAdapterChecks.UnconfiguredDoesNotCallHttpAsync),
         ("Restricted application role has no schema or audit mutation privilege", database.AssertRestrictedApplicationRoleAsync),
+        ("Academy enquiry HTTP handler stays closed, checks origin/consent/size and confirms only committed writes", AcademyEnquiryHttpHandlerChecks.RequestGuardsAsync),
         ("Private Academy lead function atomically limits writes, scopes audit and rolls test data back", database.AssertMarketingAtomicWriteAsync),
         ("Marketing runtime writer refuses unapproved function execution without data writes", database.AssertMarketingRuntimeWriterUnavailableAsync),
         ("Real HTTP health, authentication boundary and no-store headers", HttpBoundaryAsync),
