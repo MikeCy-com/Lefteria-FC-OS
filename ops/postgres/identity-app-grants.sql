@@ -172,6 +172,13 @@ GRANT EXECUTE ON FUNCTION identity.read_recipient_family_invitations(uuid,text,t
   TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.decline_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid)
   TO :"app_role";
+-- Acceptance stores a revocable grant without changing a fan login role.
+REVOKE ALL ON FUNCTION
+  identity.accept_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid,uuid)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION
+  identity.accept_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid,uuid)
+  TO :"app_role";
 -- The runtime can request a guardian-verified revoke but cannot directly
 -- read, create, or mutate the private delegated grant row.
 REVOKE ALL ON FUNCTION
