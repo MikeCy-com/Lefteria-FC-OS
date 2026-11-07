@@ -230,7 +230,9 @@ BEGIN
     OR NOT has_function_privilege(current_user,
     'identity.read_recipient_family_invitations(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(current_user,
-    'identity.decline_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE') THEN
+    'identity.decline_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+    'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
