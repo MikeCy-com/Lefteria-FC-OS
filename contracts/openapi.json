@@ -1383,10 +1383,10 @@
       },
       "ParentActiveDelegationDto": {
         "properties": {
-          "player_id": {
+          "organization_id": {
             "type": "string"
           },
-          "organization_id": {
+          "player_id": {
             "type": "string"
           }
         },
