@@ -78,16 +78,15 @@ internal sealed partial class IdentityHttpChecks
 
             var invitation=await IssueAsync(parent,path,target.WireValue,200);
             var invitationId=Guid.Parse(invitation.GetProperty("id").GetString()!);
-            // Safety gate: acceptance is deliberately unavailable until a
-            // collision-safe, revocable player grant is implemented. An OTP
-            // fan session and a pending reservation alone grant no access.
-            // Replace this negative assertion with end-to-end grant/revoke
-            // checks only when the full acceptance slice is implemented.
-            using(var prematureAccept=await recipient.PostAsync(
-                "/api/mobile/family/invitations/"+invitationId.ToString("D")+"/accept",
-                content:null))
-                Check.Equal(404,(int)prematureAccept.StatusCode,
-                    "A player invitation acceptance route became exposed without verified grant provisioning.");
+            var firstAcceptPath="/api/mobile/family/invitations/"+invitationId.ToString("D")+"/accept";
+            await CalendarRequestAsync(unauthenticated,HttpMethod.Post,firstAcceptPath,null,401);
+            foreach(var nonRecipient in new[]{parent,player,coach,management})
+                await CalendarRequestAsync(nonRecipient,HttpMethod.Post,firstAcceptPath,null,403);
+            // A different OTP-verified fan has the correct *role*, but not
+            // the invitation's phone. Conceal invitation existence via 404.
+            await CalendarRequestAsync(fan,HttpMethod.Post,firstAcceptPath,null,404);
+            // No acceptance here: cancellation and recipient inbox tests must
+            // still cover an actually pending invitation.
             var recipientInbox=await RecipientAsync(recipient,200);
             var recipientRows=recipientInbox.GetProperty("items").EnumerateArray().ToArray();
             Check.Equal(1,recipientRows.Length,
@@ -410,18 +409,14 @@ internal sealed partial class IdentityHttpChecks
                     throw new InvalidOperationException("Non-fan session activated a delegated grant."); }
                 catch(PostgresException ex) when(ex.SqlState=="P0001" &&
                     ex.MessageText=="family_invitation_denied") { }
-                // Exercise the production repository adapter, rather than
-                // only calling the SQL function from the integration test.
-                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
-                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
-                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
-                {
-                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
-                    var session=new LefteriaFc.Domain.Identity.MobileSession(
-                        Guid.NewGuid(),recipientFan.Id,target.Digits,
-                        LefteriaFc.Domain.Identity.MobileRole.Fan,DateTimeOffset.UtcNow.AddMinutes(5));
-                    await repository.AcceptGrantAsync(session,candidateId,Guid.NewGuid(),CancellationToken.None);
-                }
+                // End-to-end acceptance uses the actual OTP bearer token,
+                // current identity service, throttling and restricted DB role.
+                var accepted=await CalendarRequestAsync(recipient,HttpMethod.Post,
+                    "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null,200);
+                Check.True(accepted.GetProperty("ok").GetBoolean(),
+                    "Verified recipient acceptance API did not persist the delegation.");
+                Check.Equal(1,accepted.EnumerateObject().Count(),
+                    "Acceptance response revealed player or guardian data.");
                 try { await AcceptAsync("fan");
                     throw new InvalidOperationException("Acceptance replay provisioned another grant."); }
                 catch(PostgresException ex) when(ex.SqlState=="P0001" &&
@@ -584,10 +579,13 @@ internal sealed partial class IdentityHttpChecks
 
             }
 
-            using(var unavailableAccept=await recipient.PostAsync(
-                "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null))
-                Check.Equal(404,(int)unavailableAccept.StatusCode,
-                    "Player-authorization API was exposed before role switching was implemented.");
+            // Revoked acceptance is final; a stale fan token cannot replay
+            // the old invitation to regain private family delegation.
+            await CalendarRequestAsync(recipient,HttpMethod.Post,
+                "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null,404);
+            Check.True(!(await DelegationStatusAsync(recipient,200))
+                .GetProperty("has_active_delegation").GetBoolean(),
+                "Stale acceptance replay restored a revoked delegation.");
 
             await using var restricted=new NpgsqlConnection(database.AppConnectionStringForTest());
             await restricted.OpenAsync();
