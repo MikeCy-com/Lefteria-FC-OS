@@ -40,7 +40,8 @@ public sealed class MarketingLeadInbox : Migration
                 CHECK (length(btrim(contact_name)) BETWEEN 1 AND 120 AND
                        contact_name = btrim(contact_name)),
               CONSTRAINT ck_marketing_lead_contact
-                CHECK (phone IS NOT NULL OR email IS NOT NULL),
+                CHECK (NULLIF(btrim(phone),'') IS NOT NULL OR
+                       NULLIF(btrim(email),'') IS NOT NULL),
               CONSTRAINT ck_marketing_lead_age
                 CHECK (player_age IS NULL OR player_age BETWEEN 4 AND 99),
               CONSTRAINT ck_marketing_lead_source
