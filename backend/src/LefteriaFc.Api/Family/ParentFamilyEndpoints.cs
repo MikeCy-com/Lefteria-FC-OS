@@ -53,6 +53,19 @@ public static class ParentFamilyEndpoints
             .Produces<FamilyOperationResult>()
             .WithMobileErrors();
 
+        // A currently verified canonical guardian can revoke an existing
+        // accepted delegation. The protected SQL operation clears both grant
+        // and invitation atomically; it never creates player access.
+        endpoints.MapPost("/api/mobile/family/children/{playerId}/revoke",
+            (string playerId, HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.RevokeGrantAsync(MobilePrincipal.Read(context.User), playerId, token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("RevokeCurrentFamilyPlayerDelegation")
+            .Produces<FamilyOperationResult>()
+            .Produces<MobileAuthError>(409).WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/family/children/{playerId}/invitations",
             (string playerId, IssueFamilyInvitationBody body, HttpContext context,
                 FamilyInvitationService service, CancellationToken token) =>
