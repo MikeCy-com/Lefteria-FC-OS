@@ -873,7 +873,7 @@ export function createMobileAuthController(options: {
       if (!result || result.ok !== true) throw new Error('Invalid acceptance confirmation');
       update({recipientInvitations:{items:inbox.items.filter(item=>item.id!==invitationId)},
         recipientAcceptingId:null,recipientAcceptError:null,
-        recipientAcceptSuccess:'Η οικογενειακή σύνδεση καταχωρίστηκε. Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη.',
+        recipientAcceptSuccess:'Η οικογενειακή σύνδεση έγινε αποδεκτή. Ελέγχουμε την πρόσβαση στο πρόγραμμα του αθλητή. Δεν ενεργοποιείται σύνδεση ως αθλητής.',
         delegationAvailability:null,delegationStatus:'idle',delegationError:null});
       // Server status is queried afresh, never inferred from the POST reply.
       void loadDelegationAvailability();
