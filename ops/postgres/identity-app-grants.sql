@@ -156,6 +156,30 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON identity.otp_challenges TO :"app_role";
 GRANT SELECT, INSERT ON identity.auth_rate_buckets TO :"app_role";
 GRANT UPDATE (tokens, updated_at) ON identity.auth_rate_buckets TO :"app_role";
 GRANT INSERT ON audit.security_events TO :"app_role";
+-- First-team trial public DISPLAY projection only: no direct access to
+-- private admin settings, and no permission to open applications or collect
+-- athlete data. Assert the reviewed definer/search-path before granting.
+REVOKE ALL ON TABLE club.first_team_trial_settings FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_first_team_trial_display() FROM PUBLIC, :"app_role";
+DO $trial_reader_guard$
+DECLARE
+  p record;
+BEGIN
+  SELECT prosecdef,provolatile,proconfig INTO p
+  FROM pg_catalog.pg_proc
+  WHERE oid='club.read_first_team_trial_display()'::regprocedure;
+  IF NOT FOUND OR p.prosecdef IS DISTINCT FROM true
+      OR p.provolatile IS DISTINCT FROM 's'
+      OR NOT ('search_path=pg_catalog,pg_temp'=ANY(coalesce(p.proconfig,ARRAY[]::text[]))) THEN
+    RAISE EXCEPTION 'Unreviewed first-team trials display function; deny runtime grant';
+  END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_catalog.pg_class
+          WHERE oid='club.first_team_trial_settings'::regclass) THEN
+    RAISE EXCEPTION 'Private first-team trial settings must have RLS';
+  END IF;
+END
+$trial_reader_guard$;
+GRANT EXECUTE ON FUNCTION club.read_first_team_trial_display() TO :"app_role";
 -- Pending family invitations are callable through owner-checked functions ONLY.
 -- Never grant direct SELECT/DML on phone-bearing family records.
 REVOKE ALL ON FUNCTION identity.issue_family_invitation(uuid,text,text,timestamptz,uuid,text,text,uuid) FROM PUBLIC, :"app_role";
