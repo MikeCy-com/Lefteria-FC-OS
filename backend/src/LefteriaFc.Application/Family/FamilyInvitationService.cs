@@ -5,8 +5,8 @@ using LefteriaFc.Domain.Identity;
 
 namespace LefteriaFc.Application.Family;
 
-// Pending invitation reservation only. Acceptance never creates a player grant
-// in this phase; only a future OTP-confirmed provisioner may do that.
+// A pending invitation never grants player access. Internal grant operations
+// are not routed to HTTP until complete player authorization is implemented.
 public sealed record PendingFamilyInvitationDto(
     [property: JsonPropertyName("id")] Guid Id,
     [property: JsonPropertyName("status")] string Status,
@@ -41,6 +41,13 @@ public sealed record RecipientPendingInvitationDto(
 public sealed record RecipientPendingInvitationsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<RecipientPendingInvitationDto> Items);
 
+// Internal authorization projection only. Never serialize this raw child ID,
+// grant identifier, or organization to an untrusted mobile response.
+public sealed record FamilyDelegationSnapshot(Guid GrantId, string PlayerId, string OrganizationId)
+{
+    public override string ToString() => "Current revalidated family delegation";
+}
+
 public interface IFamilyInvitationRepository
 {
     Task<PendingFamilyInvitationDto> IssueAsync(MobileSession session, string childId,
@@ -51,6 +58,9 @@ public interface IFamilyInvitationRepository
     Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
         MobileSession session, CancellationToken token);
     Task DeclineAsync(MobileSession session, Guid invitationId, CancellationToken token);
+    Task AcceptGrantAsync(MobileSession session, Guid invitationId, Guid grantId, CancellationToken token);
+    Task RevokeGrantAsync(MobileSession session, string playerId, CancellationToken token);
+    Task<FamilyDelegationSnapshot?> ReadCurrentDelegationAsync(MobileSession session, CancellationToken token);
 }
 
 public sealed class FamilyInvitationService(
@@ -145,6 +155,55 @@ public sealed class FamilyInvitationService(
         catch (DbException) { throw Unavailable(); }
     }
 
+    // Internal only: no HTTP acceptance route or player-role elevation.
+    // The database rechecks the live OTP fan, canonical guardian, roster,
+    // collision boundaries, and pending invitation under transaction locks.
+    public async Task<FamilyOperationResult> AcceptGrantAsync(
+        MobileSession session, Guid invitationId, CancellationToken token)
+    {
+        RequireFan(session);
+        if (invitationId == Guid.Empty) throw InvalidInput();
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        await ThrottleAsync(MobileAuthThrottleScope.FamilyInvitation,
+            session.IdentityId.ToString("N"), token);
+        try
+        {
+            await repository.AcceptGrantAsync(session, invitationId, Guid.NewGuid(), token);
+            return new(true);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    // Internal only: the guardian's original player association is verified
+    // again by the scoped PostgreSQL function before any grant is revoked.
+    public async Task<FamilyOperationResult> RevokeGrantAsync(
+        MobileSession session, string? playerId, CancellationToken token)
+    {
+        RequireParent(session);
+        var child = ChildId(playerId);
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        await ThrottleAsync(MobileAuthThrottleScope.FamilyInvitation,
+            session.IdentityId.ToString("N"), token);
+        try
+        {
+            await repository.RevokeGrantAsync(session, child, token);
+            return new(true);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    // A current stored grant is not sufficient authority: the repository
+    // invokes the guardian/roster/phone revalidation function on every read.
+    // Consumers must still enforce player data authorization independently.
+    public async Task<FamilyDelegationSnapshot?> ReadCurrentDelegationAsync(
+        MobileSession session, CancellationToken token)
+    {
+        RequireFan(session);
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        try { return await repository.ReadCurrentDelegationAsync(session, token); }
+        catch (DbException) { throw Unavailable(); }
+    }
+
     private async Task ThrottleAsync(MobileAuthThrottleScope scope, string key, CancellationToken token)
     {
         try
@@ -167,6 +226,14 @@ public sealed class FamilyInvitationService(
             value != value.Trim() || value.Any(char.IsControl))
             throw InvalidInput();
         return value;
+    }
+
+    private static void RequireFan(MobileSession session)
+    {
+        if (session.Role != MobileRole.Fan)
+            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                MobileAuthErrorCode.RoleUnavailable,
+                "Delegated family access requires the recipient's verified fan role.");
     }
 
     private static void RequireParent(MobileSession session)
