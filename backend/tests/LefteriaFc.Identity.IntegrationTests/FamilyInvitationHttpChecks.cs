@@ -68,6 +68,16 @@ internal sealed partial class IdentityHttpChecks
 
             var invitation=await IssueAsync(parent,path,target.WireValue,200);
             var invitationId=Guid.Parse(invitation.GetProperty("id").GetString()!);
+            // Safety gate: acceptance is deliberately unavailable until a
+            // collision-safe, revocable player grant is implemented. An OTP
+            // fan session and a pending reservation alone grant no access.
+            // Replace this negative assertion with end-to-end grant/revoke
+            // checks only when the full acceptance slice is implemented.
+            using(var prematureAccept=await recipient.PostAsync(
+                "/api/mobile/family/invitations/"+invitationId.ToString("D")+"/accept",
+                content:null))
+                Check.Equal(404,(int)prematureAccept.StatusCode,
+                    "A player invitation acceptance route became exposed without verified grant provisioning.");
             var recipientInbox=await RecipientAsync(recipient,200);
             var recipientRows=recipientInbox.GetProperty("items").EnumerateArray().ToArray();
             Check.Equal(1,recipientRows.Length,
