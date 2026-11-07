@@ -36,6 +36,8 @@ function createFixture(cancel) {
       if(row.path==='/api/mobile/family/outgoing-invitations')return Response.json(outbox);
       if(row.path==='/api/mobile/family/invitations/'+invitationId+'/cancel')
         return await cancel(row);
+      if(row.path==='/api/mobile/family/children/child-1/revoke')
+        return Response.json({ok:true});
       throw Error('Unexpected test-only request '+row.path);
     }
   });
@@ -60,6 +62,21 @@ test('only an already verified pending invitation can be cancelled by current pa
   }]);
   assert.equal(await controller.cancelOutgoingInvitation(invitationId),false);
   assert.equal(calls.filter(x=>x.method==='POST').length,1);
+});
+
+test('parent revocation uses a canonical child and rechecks authorization',async()=>{
+  const {controller,calls}=createFixture(()=>Response.json({ok:true}));
+  await controller.bootstrap();
+  assert.equal(await controller.revokeFamilyDelegation('child-1'),false);
+  assert.equal(await controller.loadFamily(),true);
+  assert.equal(await controller.revokeFamilyDelegation('unknown-child'),false);
+  assert.equal(await controller.revokeFamilyDelegation('child-1'),true);
+  assert.equal(controller.getState().familyRevokeSuccess,'Η οικογενειακή πρόσβαση ανακλήθηκε.');
+  const actions=calls.filter(x=>x.method==='POST');
+  assert.deepEqual(actions,[{path:'/api/mobile/family/children/child-1/revoke',
+    method:'POST',authorization:'Bearer parent-fixture-token'}]);
+  controller.logout();
+  assert.equal(controller.getState().familyRevokeSuccess,null);
 });
 
 test('cancel failure preserves pending record and displays error without claiming success',async()=>{
@@ -137,4 +154,8 @@ test('Svelte pending card only offers cancellation when explicitly enabled; no f
   assert.match(route,/onCancelOutgoing=\{\(id\) => controller\.cancelOutgoingInvitation\(id\)\}/);
   assert.match(component,/data-testid="family-cancel-confirm"/);
   assert.match(component,/data-testid="family-cancel-submit"/);
+  const revokable=render(MobileFamily,{props:{...props,onRevokeDelegation:async()=>true}}).body;
+  assert.match(revokable,/family-revoke-start/);
+  assert.doesNotMatch(readOnly,/family-revoke-start/);
+  assert.match(route,/onRevokeDelegation=\\{\\(id\\) => controller\\.revokeFamilyDelegation\\(id\\)\\}/);
 });
