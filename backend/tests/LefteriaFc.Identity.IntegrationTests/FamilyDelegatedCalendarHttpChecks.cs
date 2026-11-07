@@ -27,6 +27,12 @@ internal sealed partial class IdentityHttpChecks
             await CalendarRequestAsync(player,HttpMethod.Get,get,null,403);
             await CalendarRequestAsync(fan,HttpMethod.Get,get,null,403);
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
+            var rsvpPath="/api/mobile/family/availability";
+            var hostEvent=input.Id("host");
+            var delegatedRsvp=new{event_id=hostEvent,event_type="training",status="maybe"};
+            await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
+            await CalendarRequestAsync(parent,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
+            await CalendarRequestAsync(fan,HttpMethod.Post,rsvpPath,delegatedRsvp,403);
             await CalendarRequestAsync(recipient,HttpMethod.Get,get+"&player_id="+child,null,400);
             await CalendarRequestAsync(recipient,HttpMethod.Get,
                 "/api/mobile/family/calendar?month=2026-10&month=2026-11",null,400);
@@ -77,6 +83,36 @@ internal sealed partial class IdentityHttpChecks
                 foreach(var response in item.GetProperty("responses").EnumerateArray())
                     Check.Equal(child,response.GetProperty("player_id").GetString(),
                         "Delegation exposed another child's response.");
+            }
+
+            // A delegated fan can only RSVP for their one current child;
+            // no caller-selected player ID or role switch is accepted.
+            var delegatedResult=await CalendarRequestAsync(recipient,HttpMethod.Post,
+                rsvpPath,delegatedRsvp,200);
+            Check.Equal(child,delegatedResult.GetProperty("player_id").GetString(),
+                "Delegated RSVP updated a child other than the accepted grant.");
+            Check.Equal("maybe",delegatedResult.GetProperty("status").GetString(),
+                "Delegated RSVP returned the wrong server-confirmed status.");
+            await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
+                new{event_id=hostEvent,event_type="training",status="maybe",player_id=child},400);
+            await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
+                new{event_id=input.Id("outside"),event_type="event",status="going"},403);
+            await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
+                new{event_id=hostEvent,event_type="training",status="invalid"},400);
+            await using(var verified=database.CreateContext())
+            {
+                var stored=await verified.CalendarResponses.AsNoTracking()
+                    .Where(x=>x.EventId==hostEvent && x.PlayerId==child &&
+                        (x.Collection=="availability" || x.Collection=="event_attendance"))
+                    .ToArrayAsync();
+                Check.Equal(2,stored.Length,"Delegated RSVP did not synchronize both response collections.");
+                Check.True(stored.All(x=>x.Status=="maybe" && x.ActorIdentityId==identity.Id),
+                    "Delegated RSVP was not attributed to the verified fan or diverged between collections.");
+                Check.Equal(1,await verified.SecurityAuditEvents.CountAsync(x=>
+                    x.ActorIdentityId==identity.Id &&
+                    x.Action=="mobile.calendar.availability" &&
+                    x.ReasonCode=="delegated_family_rsvp"),
+                    "Delegated RSVP did not append exactly one scoped success audit.");
             }
 
             // The original parent/player RSVP endpoint must stay inaccessible
@@ -133,6 +169,8 @@ internal sealed partial class IdentityHttpChecks
             try
             {
                 await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
+                await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
+                    new{event_id=hostEvent,event_type="training",status="going"},403);
             }
             finally
             {
@@ -152,6 +190,8 @@ internal sealed partial class IdentityHttpChecks
                     "/api/mobile/family/children/"+child+"/revoke",null,200);
             });
             await CalendarRequestAsync(recipient,HttpMethod.Get,get,null,403);
+            await CalendarRequestAsync(recipient,HttpMethod.Post,rsvpPath,
+                new{event_id=hostEvent,event_type="training",status="going"},403);
             Check.True(!(await CalendarRequestAsync(recipient,HttpMethod.Get,
                 "/api/mobile/family/active-delegation",null,200))
                 .GetProperty("has_active_delegation").GetBoolean(),
@@ -169,7 +209,8 @@ internal sealed partial class IdentityHttpChecks
             await context.SecurityAuditEvents.Where(x=>
                 (x.ActorIdentityId==parentId && (x.Action=="mobile.family.invitation.issue"
                     || x.Action=="mobile.family.grant.revoke")) ||
-                (x.ActorIdentityId==recipientId && x.Action=="mobile.family.grant.accept"))
+                (x.ActorIdentityId==recipientId && (x.Action=="mobile.family.grant.accept" ||
+                    x.Action=="mobile.calendar.availability")))
                 .ExecuteDeleteAsync();
             await context.OtpChallenges.Where(x=>x.NormalizedPhone==target.Digits)
                 .ExecuteDeleteAsync();
