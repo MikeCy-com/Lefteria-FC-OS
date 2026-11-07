@@ -268,6 +268,30 @@ internal sealed partial class IdentityHttpChecks
                     "Declining an invitation silently provisioned a player login.");
             }
 
+            // Delegated grants are deliberately storage-only in this slice.
+            // The table has two independent active-uniqueness boundaries and
+            // cannot be used by the API runtime until accept/revoke and all
+            // private player authorization are implemented and tested.
+            await using(var context=database.CreateContext())
+            {
+                var uniqueIndexes=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value" FROM pg_indexes
+                    WHERE schemaname='identity'
+                      AND tablename='family_delegated_player_grants'
+                      AND indexname IN ('family_delegate_one_active_player',
+                        'family_delegate_one_active_recipient')
+                      AND indexdef LIKE '%UNIQUE INDEX%'
+                    """).SingleAsync();
+                Check.Equal(2,uniqueIndexes,
+                    "Delegated family grant storage lacks active recipient/child uniqueness constraints.");
+                var count=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value"
+                    FROM identity.family_delegated_player_grants
+                    """).SingleAsync();
+                Check.Equal(0,count,
+                    "A pending invitation unexpectedly created an active or historical delegated grant.");
+            }
+
             await using var restricted=new NpgsqlConnection(database.AppConnectionStringForTest());
             await restricted.OpenAsync();
             foreach(var statement in new[]{
