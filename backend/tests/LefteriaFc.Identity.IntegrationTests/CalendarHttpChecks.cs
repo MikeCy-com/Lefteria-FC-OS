@@ -30,6 +30,25 @@ internal sealed partial class IdentityHttpChecks
             using var player=Client();using var parent=Client();using var coach=Client();using var management=Client();using var fan=Client();
             await LoginAsync(player,accounts.PlayerPhone,"player");await LoginAsync(parent,accounts.ParentPhone,"parent");
             await LoginAsync(coach,accounts.StaffPhone,"coach");await LoginAsync(management,accounts.StaffPhone,"management");await LoginAsync(fan,accounts.PlayerPhone,"fan");
+            // Every /api/mobile response, including a failed authorization,
+            // contains private auth context and must never be cached by an
+            // intermediary, browser history, or a shared proxy.
+            using(var authorized=await parent.GetAsync("/api/mobile/auth/me"))
+            {
+                Check.Equal(200,(int)authorized.StatusCode,"Mobile profile cache-policy probe failed.");
+                Check.True(authorized.Headers.CacheControl?.Private==true &&
+                    authorized.Headers.CacheControl.NoStore &&
+                    authorized.Headers.Pragma.Any(x=>x.Name=="no-cache"),
+                    "Authorized mobile profile did not prohibit caching.");
+            }
+            using(var rejected=await fan.GetAsync("/api/mobile/calendar?month=2026-10"))
+            {
+                Check.Equal(403,(int)rejected.StatusCode,"Mobile role denial cache-policy probe failed.");
+                Check.True(rejected.Headers.CacheControl?.Private==true &&
+                    rejected.Headers.CacheControl.NoStore,
+                    "Denied mobile calendar response could be cached.");
+            }
+
             await FamilyReadChecksAsync(accounts,parent,player,coach,management,fan);
             await FamilyInvitationChecksAsync(accounts,parent,player,coach,management,fan);
             await CalendarRequestAsync(player,HttpMethod.Get,"/api/mobile/calendar?month=2026-10",null,503);
