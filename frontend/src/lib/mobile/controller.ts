@@ -744,7 +744,8 @@ export function createMobileAuthController(options: {
         (append && (!previous || previous.month!==month || previous.next_offset===null))) return false;
     const operationRevision=++delegatedCalendarRevision;
     const bearer=token;
-    const offset=append ? previous!.next_offset! : 0;
+    const offset=append ? Number(previous!.next_offset) : 0;
+    if (!Number.isSafeInteger(offset) || offset<0 || offset>100000) return false;
     const isCurrent=()=>delegatedCalendarRevision===operationRevision && token===bearer &&
       state.status==='authenticated' && state.user?.id===identity.id &&
       state.user?.phone===identity.phone && state.user?.role==='fan' &&
