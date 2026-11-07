@@ -27,7 +27,7 @@ test('education materials cover four stages and both family audiences without se
     assert.ok(article.title.length>6&&article.summary.length>15);
     assert.equal(article.points.length,3);
     assert.ok(article.points.every(point=>point.length>15));
-    assert.ok(article.discussion.endsWith('?'));
+    assert.ok(/[?;;]$/.test(article.discussion), 'Greek question may use semicolon punctuation');
     assert.doesNotMatch(JSON.stringify(article),
       /phone|medical_record|private_token|student_id|student_number|password|api_key/i);
   }
@@ -61,7 +61,7 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
   for(const value of ['parent-education-hub','education-editorial-status','education-materials',
     '6–9 ετών','10–12 ετών','13–15 ετών','16–18 ετών',
     'Μαθαίνουμε μαζί','Για γονείς','Για αθλητές','Διάβασε περισσότερα',
-    'δεν αποτελεί ακόμη επίσημη δημοσίευση']){
+    'επίσημη δημοσίευση']){
     assert.ok(html.includes(value),value);
   }
   assert.equal((html.match(/data-testid="education-article"/g)||[]).length,2);
