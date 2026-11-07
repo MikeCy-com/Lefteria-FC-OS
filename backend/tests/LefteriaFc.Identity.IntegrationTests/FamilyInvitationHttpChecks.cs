@@ -80,8 +80,11 @@ internal sealed partial class IdentityHttpChecks
             var invitationId=Guid.Parse(invitation.GetProperty("id").GetString()!);
             var firstAcceptPath="/api/mobile/family/invitations/"+invitationId.ToString("D")+"/accept";
             await CalendarRequestAsync(unauthenticated,HttpMethod.Post,firstAcceptPath,null,401);
-            foreach(var nonRecipient in new[]{parent,player,coach,management,fan})
+            foreach(var nonRecipient in new[]{parent,player,coach,management})
                 await CalendarRequestAsync(nonRecipient,HttpMethod.Post,firstAcceptPath,null,403);
+            // A different OTP-verified fan has the correct *role*, but not
+            // the invitation's phone. Conceal invitation existence via 404.
+            await CalendarRequestAsync(fan,HttpMethod.Post,firstAcceptPath,null,404);
             // No acceptance here: cancellation and recipient inbox tests must
             // still cover an actually pending invitation.
             var recipientInbox=await RecipientAsync(recipient,200);
