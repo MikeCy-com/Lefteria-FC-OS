@@ -21,7 +21,7 @@ function invitation(overrides={}) {
     created_at:new Date(Date.now()-60_000).toISOString(),
     expires_at:new Date(Date.now()+86_400_000).toISOString(),...overrides};
 }
-function setup(person=user, serve=()=>Response.json({items:[invitation()]})) {
+function setup(person=user, serve=()=>Response.json({items:[invitation()]}), accept=()=>Response.json({ok:true})) {
   const requests=[];
   const storage=createMobileSessionStorage({
     getItem:key=>key==='mobile_token'?'synthetic-otp-session':null,
@@ -35,7 +35,7 @@ function setup(person=user, serve=()=>Response.json({items:[invitation()]})) {
       if(path==='/api/mobile/auth/me')return Response.json(person);
       if(path==='/api/mobile/family/invitations')return await serve();
       if(path==='/api/mobile/family/active-delegation')return Response.json({has_active_delegation:false});
-      if(path==='/api/mobile/family/invitations/'+id+'/accept')return Response.json({ok:true});
+      if(path==='/api/mobile/family/invitations/'+id+'/accept')return await accept();
       throw new Error('Unexpected endpoint '+path);
     }
   });
@@ -103,6 +103,32 @@ test('verified fan accepts only current pending invitation and cannot replay it'
     authorization:'Bearer synthetic-otp-session'
   }]);
   controller.logout();
+  assert.equal(controller.getState().recipientAcceptSuccess,null);
+});
+
+test('failed acceptance preserves pending invitation and never reports success',async()=>{
+  const {controller}=setup(user,()=>Response.json({items:[invitation()]}),
+    ()=>Response.json({detail:'Invitation revoked',code:'invalid_input'},{status:404}));
+  await controller.bootstrap();
+  assert.equal(await controller.loadRecipientInvitations(),true);
+  assert.equal(await controller.acceptRecipientInvitation(id),false);
+  assert.equal(controller.getState().recipientInvitations,null);
+  assert.equal(controller.getState().recipientAcceptSuccess,null);
+  assert.ok(controller.getState().recipientAcceptError);
+});
+
+test('late acceptance response after logout cannot restore pending or grant data',async()=>{
+  const deferred=Promise.withResolvers();
+  const {controller}=setup(user,()=>Response.json({items:[invitation()]}),()=>deferred.promise);
+  await controller.bootstrap();
+  assert.equal(await controller.loadRecipientInvitations(),true);
+  const accepting=controller.acceptRecipientInvitation(id);
+  assert.equal(controller.getState().recipientAcceptingId,id);
+  controller.logout();
+  deferred.resolve(Response.json({ok:true}));
+  assert.equal(await accepting,false);
+  assert.equal(controller.getState().status,'anonymous');
+  assert.equal(controller.getState().recipientInvitations,null);
   assert.equal(controller.getState().recipientAcceptSuccess,null);
 });
 
