@@ -7,7 +7,7 @@ internal sealed partial class IdentityHttpChecks
 {
     private async Task FirstTeamTrialSettingsClosedAsync()
     {
-        using var client=factory.CreateClient(new() { AllowAutoRedirect=false });
+        using var client=Client();
         using var response=await client.GetAsync("/api/trials/settings");
         Check.Equal(HttpStatusCode.OK,response.StatusCode,
             "First-team trial settings GET did not return source closed defaults.");
