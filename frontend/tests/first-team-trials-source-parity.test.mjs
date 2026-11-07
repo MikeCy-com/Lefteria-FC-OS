@@ -13,7 +13,8 @@ test('first-team trials retain original Lefteria branding and closed state',()=>
   assert.ok(page.includes('organization="lefteria_fc"'));
   assert.doesNotMatch(page,/<main\b/);
   assert.ok(page.includes('ΠΡΩΤΗ ΟΜΑΔΑ'));
-  assert.ok(page.includes('Οι εγγραφές είναι κλειστές αυτή τη στιγμή.'));
+  assert.ok(page.includes('Γίνε μέλος της πρώτης ομάδας LEFTERIA FC'));
+  assert.ok(page.includes('Οι εγγραφές για δοκιμαστικά είναι προσωρινά κλειστές. Παρακαλούμε δοκιμάστε ξανά σύντομα.'));
   assert.ok(page.includes('ΕΤΟΙΜΟΣ ΝΑ ΞΕΚΙΝΗΣΕΙΣ ΤΟ ΤΑΞΙΔΙ ΣΟΥ;'));
   assert.ok(page.includes('#f5a623'));
   assert.ok(page.includes("'Fira Sans'"));
