@@ -171,12 +171,14 @@ internal sealed partial class TestDatabase(FixtureConfiguration fixture, string 
                    (SELECT NOT has_function_privilege(current_user,fun.oid,'EXECUTE')
                       FROM pg_catalog.pg_proc fun
                       JOIN pg_catalog.pg_namespace ns ON ns.oid=fun.pronamespace
-                      WHERE ns.nspname='marketing' AND fun.proname='store_academy_lead')
+                      WHERE ns.nspname='marketing' AND fun.proname='store_academy_lead'),
+                   NOT has_table_privilege(current_user, 'club.first_team_trial_settings', 'SELECT'),
+                   NOT has_table_privilege(current_user, 'club.first_team_trial_settings', 'UPDATE')
             FROM pg_roles WHERE rolname = current_user
             """, connection);
         await using var reader = await command.ExecuteReaderAsync();
         Check.True(await reader.ReadAsync(), "Restricted application role was not found.");
-        for (var column = 0; column < 12; column++)
+        for (var column = 0; column < 14; column++)
             Check.True(reader.GetBoolean(column), "The application role has unexpected database privileges.");
     }
 
