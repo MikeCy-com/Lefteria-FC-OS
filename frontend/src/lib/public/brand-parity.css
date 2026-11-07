@@ -94,7 +94,7 @@
   .public-hero-description { font-size:clamp(15px,.7vw,19px);max-width:520px; }
   .public-hero-fixture { width:370px;padding:24px; }
   .public-main .max-w-7xl { max-width:1780px; }
-  .public-menu-dialog { width:460px; }
+  dialog.public-menu-dialog { width:460px; }
   .public-dialog .public-menu-row { font-size:23px;min-height:58px; }
 }
 @media (max-width:767px) {
