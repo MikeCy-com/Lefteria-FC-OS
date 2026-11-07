@@ -10,7 +10,7 @@ test('director is GitHub-event-driven, strictly OS-scoped and never deploys', ()
   assert.match(workflow, /workflow_run:/);
   assert.match(workflow, /issues:/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.doesNotMatch(workflow, /schedule:|cron:/);
+  assert.doesNotMatch(workflow, /^\s*(?:schedule|cron):/m);
   assert.match(workflow, /head_branch == 'main'/);
   assert.match(workflow, /conclusion == 'success'/);
   assert.match(workflow, /github\.repository == 'MikeCy-com\/Lefteria-FC-OS'/);
