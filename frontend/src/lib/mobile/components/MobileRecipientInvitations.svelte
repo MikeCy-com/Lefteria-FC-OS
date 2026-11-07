@@ -10,9 +10,18 @@
     error: string | null;
     busy?: boolean;
     onLoad: () => boolean | Promise<boolean>;
+    onDecline?: (invitationId: string) => boolean | Promise<boolean>;
+    decliningId?: string | null;
+    declineError?: string | null;
   }
 
-  let { inbox, status, error, busy = false, onLoad }: Props = $props();
+  let { inbox, status, error, busy = false, onLoad, onDecline,
+    decliningId = null, declineError = null }: Props = $props();
+  let confirmingId = $state<string | null>(null);
+  async function confirmDecline(id: string) {
+    if (!onDecline || decliningId) return;
+    if (await onDecline(id)) confirmingId = null;
+  }
   const id = $props.id();
   let requested = $state(false);
 
@@ -62,14 +71,38 @@
           <h3>{label(item.organization_id)}</h3>
           <p>Ισχύει έως {formatExpiry(item.expires_at)}</p>
           <p class="recipient-note">Αυτή η καταχώριση δεν ενεργοποιεί πρόσβαση σε αθλητή.</p>
+          {#if onDecline}
+            {#if confirmingId === item.id}
+              <div class="recipient-decline-confirm" data-testid="recipient-decline-confirm">
+                <p>Να απορριφθεί αυτή η εκκρεμής καταχώριση;</p>
+                <div class="recipient-decline-actions">
+                  <button type="button" disabled={busy || !!decliningId}
+                    onclick={() => { confirmingId = null; }} data-testid="recipient-decline-back">Όχι</button>
+                  <button type="button" disabled={busy || !!decliningId}
+                    onclick={() => void confirmDecline(item.id)} data-testid="recipient-decline-submit">
+                    {decliningId === item.id ? 'Απόρριψη…' : 'Ναι, απόρριψη'}
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <button type="button" class="recipient-decline-start"
+                disabled={busy || !!decliningId}
+                onclick={() => { confirmingId = item.id; }}
+                aria-label={'Απόρριψη πρόσκλησης για ' + label(item.organization_id)}
+                data-testid="recipient-decline-start">Απόρριψη καταχώρισης</button>
+            {/if}
+          {/if}
         </article>
       {/each}
     </div>
   {/if}
 
+  {#if declineError}
+    <p class="recipient-notice recipient-error" role="alert" data-testid="recipient-decline-error">{declineError}</p>
+  {/if}
   <p class="recipient-development" data-testid="recipient-acceptance-unavailable">
     <strong>Under Developments</strong>
-    Η αποστολή πρόσκλησης, η αποδοχή, η απόρριψη και η ενεργοποίηση πρόσβασης δεν είναι ακόμη διαθέσιμες.
+    Η αποστολή πρόσκλησης, η αποδοχή και η ενεργοποίηση πρόσβασης δεν είναι ακόμη διαθέσιμες.
     Δεν έχει αποσταλεί SMS από αυτές τις καταχωρίσεις.
   </p>
   <button type="button" class="recipient-refresh" disabled={busy || status === 'loading'}
@@ -102,6 +135,12 @@
     color: #b5b6b2; font-size: 12px; line-height: 1.7; }
   .recipient-development strong { display: block; color: #f5b847; margin-bottom: 4px; }
   .recipient-refresh { font-size: 12px; }
+  .recipient-decline-start { min-height:44px; margin-top:12px; padding:9px 13px; border:1px solid #91594a; border-radius:7px; background:#2f1b16; color:#ffd2c4; cursor:pointer; }
+  .recipient-decline-confirm { margin-top:13px; padding:13px; border:1px solid #aa654e; border-radius:7px; }
+  .recipient-decline-confirm>p { margin:0 0 10px; color:#f0cabc; font-size:13px; }
+  .recipient-decline-actions { display:flex; flex-wrap:wrap; gap:10px; }
+  .recipient-decline-actions button { min-height:44px; padding:9px 13px; border:1px solid #795f45; background:#211d17; color:#f9d8a6; border-radius:6px; cursor:pointer; }
+  .recipient-decline-actions button:last-child { border-color:#a75b48; background:#402019; color:#ffd5cb; }
   button:focus-visible { outline: 2px solid #ffcf62; outline-offset: 3px; }
   button:disabled { cursor: default; opacity: .6; }
   @media(max-width:620px){.recipient-invites{padding:17px;}}
