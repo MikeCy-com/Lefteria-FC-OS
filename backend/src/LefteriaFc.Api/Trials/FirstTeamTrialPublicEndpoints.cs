@@ -11,13 +11,22 @@ public static class FirstTeamTrialPublicEndpoints
 {
     public static IEndpointRouteBuilder MapFirstTeamTrialPublic(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("/api/trials/settings", (HttpContext context) =>
+        endpoints.MapGet("/api/trials/settings",
+            async (HttpContext context, IFirstTeamTrialDisplayReader reader, CancellationToken token) =>
         {
             context.Response.Headers.CacheControl = "no-store";
             context.Response.Headers.Pragma = "no-cache";
-            // Explicit source defaults, not an assertion about the original
-            // live site and not a substitute for a future approved DB read.
-            return Results.Ok(FirstTeamTrialsSettingsPolicy.Default);
+            // Read only the hard-scoped, closed-only DB function. Any missing,
+            // uninitialized or rejected data falls back to source defaults;
+            // there is no pathway to opening submissions in this endpoint.
+            try
+            {
+                var settings = await reader.ReadAsync(token);
+                return Results.Ok(settings is { Open: false }
+                    ? settings : FirstTeamTrialsSettingsPolicy.Default);
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+            catch (Exception) { return Results.Ok(FirstTeamTrialsSettingsPolicy.Default); }
         })
         .AllowAnonymous()
         .WithTags("First-team trials")
