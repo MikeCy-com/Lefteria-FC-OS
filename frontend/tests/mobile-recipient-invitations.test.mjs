@@ -333,6 +333,10 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   const inactive=render(Inbox,{props:{...props,onLoadCalendar:()=>true,
     delegationStatus:'ready',delegationAvailability:{has_active_delegation:false}}}).body;
   assert.doesNotMatch(inactive,/family-delegated-calendar/);
+  const source=readFileSync(new URL('../src/lib/mobile/components/MobileRecipientInvitations.svelte',import.meta.url),'utf8');
+  assert.match(source,/Με την έγκριση θα μπορείς να βλέπεις το πρόγραμμα/);
+  assert.match(source,/Ο γονέας μπορεί να ανακαλέσει την πρόσβαση/);
+  assert.doesNotMatch(source,/Under Developments|Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
   assert.match(route,/onLoad=\{\(\) => controller\.loadRecipientInvitations\(\)\}/);
