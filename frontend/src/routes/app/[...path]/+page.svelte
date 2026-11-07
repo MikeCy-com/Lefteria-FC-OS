@@ -5,6 +5,7 @@
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
+  import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
@@ -86,6 +87,13 @@
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
+        {#key `${user.id}:${user.phone}`}
+          <MobileRecipientInvitations
+            inbox={$controller.recipientInvitations}
+            status={$controller.recipientStatus}
+            error={$controller.recipientError} busy={$controller.busy}
+            onLoad={() => controller.loadRecipientInvitations()} />
+        {/key}
       {:else if activeTab === 'children' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}
           <MobileFamily family={$controller.family} status={$controller.familyStatus}
