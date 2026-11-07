@@ -163,6 +163,24 @@ test('verified fan submits only the sole current child RSVP and reloads server s
   assert.equal(controller.getState().delegatedRespondSuccess,null);
 });
 
+test('delegated RSVP completion after logout cannot restore player information',async()=>{
+  const delayed=Promise.withResolvers();
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),undefined,()=>delayed.promise);
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  await controller.loadDelegatedCalendar('2026-11');
+  const pending=controller.submitDelegatedAvailability(calendarPayload().items[0],'maybe');
+  assert.equal(controller.getState().delegatedRespondingKey,'training:training-1');
+  controller.logout();
+  delayed.resolve(Response.json({event_id:'training-1',event_type:'training',
+    player_id:'academy-child-id',status:'maybe'}));
+  assert.equal(await pending,false);
+  assert.equal(controller.getState().status,'anonymous');
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedRespondSuccess,null);
+});
+
 test('revoked delegated RSVP denies without retaining the child calendar',async()=>{
   const {controller}=setup(user,undefined,undefined,
     ()=>Response.json({has_active_delegation:true}),undefined,
