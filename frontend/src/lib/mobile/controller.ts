@@ -12,6 +12,7 @@ type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 type Family = components['schemas']['ParentFamilyResult'];
+type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
 type DelegationAvailability = components['schemas']['FamilyDelegationAvailabilityDto'];
@@ -47,6 +48,9 @@ export interface MobileAuthState {
   family: Family | null;
   familyStatus: 'idle' | 'loading' | 'ready' | 'error';
   familyError: string | null;
+  activeFamilyDelegations: ParentActiveDelegations | null;
+  activeFamilyStatus: 'idle' | 'loading' | 'ready' | 'error';
+  activeFamilyError: string | null;
   familyRevokingPlayerId: string | null;
   familyRevokeError: string | null;
   familyRevokeSuccess: string | null;
@@ -109,6 +113,7 @@ export function createMobileAuthController(options: {
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
     family: null, familyStatus: 'idle', familyError: null,
+    activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null,
     familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
@@ -125,6 +130,7 @@ export function createMobileAuthController(options: {
   let revision = 0;
   let playerOptionsRevision = 0;
   let familyRevision = 0;
+  let activeFamilyRevision = 0;
   let outgoingRevision = 0;
   let recipientRevision = 0;
   let delegationRevision = 0;
@@ -157,9 +163,11 @@ export function createMobileAuthController(options: {
 
   function clearFamily() {
     ++familyRevision;
+    ++activeFamilyRevision;
     clearOutgoingInvitations();
     update({ family: null, familyStatus: 'idle', familyError: null,
-      familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null });
+      familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
+      activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null });
   }
 
   function clearCalendarResponses() {
@@ -486,13 +494,54 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function loadActiveFamilyDelegations() {
+    const identity = state.user;
+    const family = state.family;
+    if (state.busy || state.activeFamilyStatus === 'loading' ||
+        state.status !== 'authenticated' || !identity?.current_role_available ||
+        identity.role !== 'parent' || !token || !family || state.familyStatus !== 'ready') return false;
+    const operationRevision = ++activeFamilyRevision;
+    const linkedRevision = familyRevision;
+    const bearer = token;
+    const isCurrent = () => activeFamilyRevision === operationRevision &&
+      familyRevision === linkedRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'parent' &&
+      state.user.current_role_available && state.family === family;
+    update({activeFamilyDelegations:null,activeFamilyStatus:'loading',activeFamilyError:null});
+    try {
+      const data=responseData(await api.GET('/api/mobile/family/active-children',
+        {headers:authorization()}));
+      if (!isCurrent()) return false;
+      const allowed=new Map(family.children.map(child=>[child.id,child.organization_id]));
+      const seen=new Set<string>();
+      if (!data || !Array.isArray(data.items) || data.items.length>100 ||
+          !data.items.every(item=>item && typeof item.player_id==='string' &&
+            allowed.get(item.player_id)===item.organization_id &&
+            !seen.has(item.player_id) && !!seen.add(item.player_id)))
+        throw new Error('Invalid active delegation response');
+      const items=data.items.map(item=>({player_id:item.player_id,organization_id:item.organization_id}));
+      update({activeFamilyDelegations:{items},activeFamilyStatus:'ready',activeFamilyError:null});
+      return true;
+    } catch(error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status===401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status===403 &&
+          error.code==='account_unavailable') revokeCurrentRole(error.message);
+      else update({activeFamilyDelegations:null,activeFamilyStatus:'error',activeFamilyError:message(error)});
+      return false;
+    }
+  }
+
   async function revokeFamilyDelegation(playerId: string) {
     const identity = state.user;
     const family = state.family;
     if (state.status !== 'authenticated' || !identity?.current_role_available ||
         identity.role !== 'parent' || !token || state.busy || state.familyRevokingPlayerId ||
-        state.familyStatus !== 'ready' || !family ||
-        !family.children.some(child => child.id === playerId)) return false;
+        state.familyStatus !== 'ready' || !family || state.activeFamilyStatus !== 'ready' ||
+        !state.activeFamilyDelegations?.items.some(item=>item.player_id===playerId &&
+          family.children.some(child=>child.id===item.player_id &&
+            child.organization_id===item.organization_id))) return false;
     const operationRevision = familyRevision;
     const bearer = token;
     const isCurrent = () => familyRevision === operationRevision && token === bearer &&
@@ -508,6 +557,9 @@ export function createMobileAuthController(options: {
       if (!isCurrent()) return false;
       if (!result || result.ok !== true) throw new Error('Invalid revocation response');
       update({familyRevokingPlayerId: null,
+        activeFamilyDelegations: state.activeFamilyDelegations ? {
+          items:state.activeFamilyDelegations.items.filter(item=>item.player_id!==playerId)
+        } : null,
         familyRevokeSuccess: 'Η οικογενειακή πρόσβαση ανακλήθηκε.',familyRevokeError: null});
       return true;
     } catch (error) {
@@ -863,6 +915,7 @@ export function createMobileAuthController(options: {
       }, true);
     },
     loadFamily,
+    loadActiveFamilyDelegations,
     loadOutgoingInvitations,
     revokeFamilyDelegation,
     cancelOutgoingInvitation,
