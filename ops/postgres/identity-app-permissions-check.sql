@@ -236,6 +236,8 @@ BEGIN
     OR NOT has_function_privilege(current_user,
     'identity.read_current_family_delegation(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(current_user,
+    'identity.read_parent_active_family_delegations(uuid,text,text,timestamptz)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
     'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
