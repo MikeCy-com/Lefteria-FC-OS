@@ -93,6 +93,9 @@
             outgoingInvitations={$controller.outgoingInvitations}
             outgoingStatus={$controller.outgoingStatus}
             outgoingError={$controller.outgoingError}
+            outgoingCancellingId={$controller.outgoingCancellingId}
+            outgoingCancelError={$controller.outgoingCancelError}
+            onCancelOutgoing={(id) => controller.cancelOutgoingInvitation(id)}
             onLoadOutgoing={() => controller.loadOutgoingInvitations()}
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
