@@ -15,9 +15,22 @@ test('all original top-level menu journeys have a real, safely branded destinati
     assert.ok(existsSync(url(route+'/+page.server.ts')),route);
     const page=text(route+'/+page.svelte');
     const server=text(route+'/+page.server.ts');
-    assert.match(page,/PublicJourney/);
-    assert.ok(page.includes('organization="'+organization+'"'),route);
-    assert.match(page,/status="[^"]+"/);
+    if(route==='trials'){
+      // Source-first team trials now has its own accessible branded closed
+      // state. Preserve real navigation and privacy boundaries without
+      // incorrectly requiring the shared Academy/utility journey component.
+      assert.match(page,/<main\\b[^>]*data-testid="trials-page"/);
+      assert.match(page,/data-testid="trials-closed"/);
+      assert.match(page,/ΠΡΩΤΗ ΟΜΑΔΑ/);
+      assert.match(page,/#f5a623/);
+      assert.match(page,/href="\\/team"/);
+      assert.match(page,/href="\\/contact"/);
+      assert.match(page,/δεν ζητάμε προσωπικά στοιχεία/);
+    }else{
+      assert.match(page,/PublicJourney/);
+      assert.ok(page.includes('organization="'+organization+'"'),route);
+      assert.match(page,/status="[^"]+"/);
+    }
     assert.match(server,/loadPublicSite\(url/);
     assert.doesNotMatch(page,/<form|type="submit"|medical|payment|stripe|axios/i,
       'Do not fake collecting personal, child-medical or financial data');
