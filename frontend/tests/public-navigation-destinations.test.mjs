@@ -23,7 +23,7 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.match(page,/data-testid="trials-closed"/);
       assert.match(page,/PublicShell/);
       assert.ok(page.includes('organization="lefteria_fc"'));
-      assert.doesNotMatch(page,/<main\\b/);
+      assert.doesNotMatch(page,/<main\b/);
       assert.match(page,/ΠΡΩΤΗ ΟΜΑΔΑ/);
       assert.match(page,/#f5a623/);
       assert.match(page,/href="\/team"/);
