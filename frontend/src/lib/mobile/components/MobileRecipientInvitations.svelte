@@ -14,6 +14,10 @@
     onDecline?: (invitationId: string) => boolean | Promise<boolean>;
     decliningId?: string | null;
     declineError?: string | null;
+    onAccept?: (invitationId: string) => boolean | Promise<boolean>;
+    acceptingId?: string | null;
+    acceptError?: string | null;
+    acceptSuccess?: string | null;
     delegationAvailability?: DelegationAvailability | null;
     delegationStatus?: 'idle' | 'loading' | 'ready' | 'error';
     delegationError?: string | null;
@@ -22,12 +26,19 @@
 
   let { inbox, status, error, busy = false, onLoad,
     onDecline, decliningId = null, declineError = null,
+    onAccept, acceptingId = null, acceptError = null, acceptSuccess = null,
     delegationAvailability = null, delegationStatus = 'idle', delegationError = null,
     onLoadDelegation }: Props = $props();
   const id = $props.id();
   let requested = $state(false);
   let delegationRequested = $state(false);
   let confirmingId = $state<string | null>(null);
+  let confirmingAcceptId = $state<string | null>(null);
+
+  async function confirmAccept(invitationId: string) {
+    if (!onAccept || acceptingId || decliningId) return;
+    if (await onAccept(invitationId)) confirmingAcceptId = null;
+  }
 
   async function confirmDecline(invitationId: string) {
     if (!onDecline || decliningId) return;
@@ -106,6 +117,26 @@
           <h3>{label(item.organization_id)}</h3>
           <p>Ισχύει έως {formatExpiry(item.expires_at)}</p>
           <p class="recipient-note">Αυτή η καταχώριση δεν ενεργοποιεί πρόσβαση σε αθλητή.</p>
+          {#if onAccept}
+            {#if confirmingAcceptId === item.id}
+              <div class="recipient-decline-confirm" data-testid="recipient-accept-confirm">
+                <p>Να αποδεχτείς την οικογενειακή σύνδεση από {label(item.organization_id)};
+                  Δεν δίνει ακόμα πρόσβαση ως αθλητής και μπορεί να ανακληθεί από τον γονέα.</p>
+                <div class="recipient-decline-actions">
+                  <button type="button" disabled={busy || !!acceptingId || !!decliningId}
+                    onclick={() => { confirmingAcceptId = null; }} data-testid="recipient-accept-back">Όχι</button>
+                  <button type="button" disabled={busy || !!acceptingId || !!decliningId}
+                    onclick={() => void confirmAccept(item.id)} data-testid="recipient-accept-submit">
+                    {acceptingId === item.id ? 'Αποδοχή…' : 'Ναι, αποδοχή'}
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <button type="button" class="recipient-refresh" disabled={busy || !!acceptingId || !!decliningId}
+                onclick={() => { confirmingAcceptId = item.id; confirmingId = null; }}
+                data-testid="recipient-accept-start">Αποδοχή οικογενειακής σύνδεσης</button>
+            {/if}
+          {/if}
           {#if onDecline}
             {#if confirmingId === item.id}
               <div class="recipient-decline-confirm" data-testid="recipient-decline-confirm">
@@ -132,16 +163,23 @@
     </div>
   {/if}
 
+  {#if acceptError}
+    <p class="recipient-notice recipient-error" role="alert" data-testid="recipient-accept-error">{acceptError}</p>
+  {/if}
+  {#if acceptSuccess}
+    <p class="recipient-notice" role="status" data-testid="recipient-accept-success">{acceptSuccess}</p>
+  {/if}
+
   {#if declineError}
     <p class="recipient-notice recipient-error" role="alert" data-testid="recipient-decline-error">{declineError}</p>
   {/if}
 
   <p class="recipient-development" data-testid="recipient-acceptance-unavailable">
     <strong>Under Developments</strong>
-    Η αποστολή πρόσκλησης, η αποδοχή και η ενεργοποίηση πρόσβασης δεν είναι ακόμη διαθέσιμες.
+    Η σύνδεση δεν δημιουργεί λογαριασμό αθλητή. Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη.
     Δεν έχει αποσταλεί SMS από αυτές τις καταχωρίσεις.
   </p>
-  <button type="button" class="recipient-refresh" disabled={busy || !!decliningId || status === 'loading'}
+  <button type="button" class="recipient-refresh" disabled={busy || !!decliningId || !!acceptingId || status === 'loading'}
     onclick={() => void onLoad()} data-testid="recipient-invites-refresh">Ανανέωση</button>
 </section>
 
