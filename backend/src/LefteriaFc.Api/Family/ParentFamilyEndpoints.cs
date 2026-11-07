@@ -68,6 +68,21 @@ public static class ParentFamilyEndpoints
             .Produces<RecipientPendingInvitationsResult>()
             .WithMobileErrors();
 
+        // An OTP-verified fan may accept only the invitation currently tied
+        // to their own phone. The database checks current canonical guardian,
+        // active child, collision rules and invitation status atomically.
+        // This stores a *revocable* delegation but deliberately never issues
+        // a player token, adds a player role or unlocks player-data endpoints.
+        endpoints.MapPost("/api/mobile/family/invitations/{invitationId:guid}/accept",
+            (Guid invitationId, HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.AcceptGrantAsync(MobilePrincipal.Read(context.User), invitationId, token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("AcceptVerifiedRecipientFamilyInvitation")
+            .Produces<FamilyOperationResult>()
+            .Produces<MobileAuthError>(409).WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/family/invitations/{invitationId:guid}/decline",
             (Guid invitationId, HttpContext context, FamilyInvitationService service,
                 CancellationToken token) =>
