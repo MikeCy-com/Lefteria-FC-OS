@@ -92,6 +92,9 @@
             inbox={$controller.recipientInvitations}
             status={$controller.recipientStatus}
             error={$controller.recipientError} busy={$controller.busy}
+            decliningId={$controller.recipientDecliningId}
+            declineError={$controller.recipientDeclineError}
+            onDecline={(id) => controller.declineRecipientInvitation(id)}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
       {:else if activeTab === 'children' && role === 'parent' && !composing}
