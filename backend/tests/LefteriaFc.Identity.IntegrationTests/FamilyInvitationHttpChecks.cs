@@ -511,19 +511,15 @@ internal sealed partial class IdentityHttpChecks
                 }
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")).HasValue,
                     "Restored guardian did not recover the still-active grant.");
-                await using(var command=new NpgsqlCommand("""
-                    SELECT identity.revoke_family_delegated_player_grant(
-                      @identity,@phone,@role,@expires,@device,@player)
-                    """,connection))
+                await using(var appDatabase=new LefteriaFc.Infrastructure.Persistence.LefteriaDbContext(
+                    new DbContextOptionsBuilder<LefteriaFc.Infrastructure.Persistence.LefteriaDbContext>()
+                        .UseNpgsql(database.AppConnectionStringForTest()).Options))
                 {
-                    command.Parameters.AddWithValue("identity",parentId);
-                    command.Parameters.AddWithValue("phone",accounts.ParentPhone.Digits);
-                    command.Parameters.AddWithValue("role","parent");
-                    command.Parameters.AddWithValue("expires",DateTimeOffset.UtcNow.AddMinutes(5));
-                    command.Parameters.AddWithValue("device",Guid.NewGuid());
-                    command.Parameters.AddWithValue("player",child);
-                    Check.True((bool)(await command.ExecuteScalarAsync()??false),
-                        "Guardian could not revoke an actually accepted grant.");
+                    var repository=new LefteriaFc.Infrastructure.Family.PostgresFamilyInvitationRepository(appDatabase);
+                    var session=new LefteriaFc.Domain.Identity.MobileSession(
+                        Guid.NewGuid(),parentId,accounts.ParentPhone.Digits,
+                        LefteriaFc.Domain.Identity.MobileRole.Parent,DateTimeOffset.UtcNow.AddMinutes(5));
+                    await repository.RevokeGrantAsync(session,child,CancellationToken.None);
                 }
                 Check.True((await CurrentAsync(recipientFan.Id,target.Digits,"fan")) is null,
                     "Revoked grant remained visible to the former recipient.");
