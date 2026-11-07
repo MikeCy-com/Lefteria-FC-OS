@@ -21,7 +21,7 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   assert.doesNotMatch(refinements,/#[0-9a-f]{6}[^\n]*(?:blue|navy)/i);
 });
 
-test('native main/public menu preserves original nine categories and restores keyboard focus',()=>{
+test('native main/public menu preserves original nine categories and restores keyboard focus',async()=>{
   const menu=read('lib/public/PublicNavigation.svelte');
   const {publicNavigation}=await import('../src/lib/public/navigation.ts');
   assert.deepEqual(publicNavigation.map(x=>x.id),
