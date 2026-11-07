@@ -20,17 +20,27 @@
     onCancelOutgoing?: (invitationId: string) => boolean | Promise<boolean>;
     outgoingCancellingId?: string | null;
     outgoingCancelError?: string | null;
+    onRevokeDelegation?: (playerId: string) => boolean | Promise<boolean>;
+    revokingPlayerId?: string | null;
+    revokeError?: string | null;
+    revokeSuccess?: string | null;
   }
 
   let { family, status, error, busy = false, onLoad, onCalendar,
     outgoingInvitations = null, outgoingStatus = 'idle', outgoingError = null,
     onLoadOutgoing, onCancelOutgoing, outgoingCancellingId = null,
-    outgoingCancelError = null }: Props = $props();
+    outgoingCancelError = null, onRevokeDelegation,
+    revokingPlayerId = null, revokeError = null, revokeSuccess = null }: Props = $props();
   let confirmingId = $state<string | null>(null);
+  let confirmingRevokeId = $state<string | null>(null);
 
   async function confirmCancel(id: string) {
     if (!onCancelOutgoing || outgoingCancellingId) return;
     if (await onCancelOutgoing(id)) confirmingId = null;
+  }
+  async function confirmRevoke(childId: string) {
+    if (!onRevokeDelegation || revokingPlayerId) return;
+    if (await onRevokeDelegation(childId)) confirmingRevokeId = null;
   }
   const id = $props.id();
 
@@ -86,10 +96,36 @@
                 class="family-calendar-link" aria-label={`Πρόγραμμα για ${child.name}`} data-testid="family-child-calendar">
                 Το πρόγραμμα <span aria-hidden="true">→</span>
               </button>
+              {#if onRevokeDelegation}
+                {#if confirmingRevokeId === child.id}
+                  <div class="family-cancel-confirm" data-testid="family-revoke-confirm">
+                    <p>Να ανακληθεί η ενεργή πρόσβαση οικογενειακής σύνδεσης για {child.name};</p>
+                    <div class="family-cancel-actions">
+                      <button type="button" disabled={busy || !!revokingPlayerId}
+                        data-testid="family-revoke-back" onclick={() => { confirmingRevokeId = null; }}>Όχι</button>
+                      <button type="button" disabled={busy || !!revokingPlayerId}
+                        data-testid="family-revoke-submit" onclick={() => void confirmRevoke(child.id)}>
+                        {revokingPlayerId === child.id ? 'Ανάκληση…' : 'Ναι, ανάκληση'}
+                      </button>
+                    </div>
+                  </div>
+                {:else}
+                  <button type="button" class="family-cancel-start"
+                    disabled={busy || !!revokingPlayerId} data-testid="family-revoke-start"
+                    aria-label={'Ανάκληση οικογενειακής πρόσβασης για ' + child.name}
+                    onclick={() => { confirmingRevokeId = child.id; }}>Ανάκληση οικογενειακής πρόσβασης</button>
+                {/if}
+              {/if}
             </div>
           </article>
         {/each}
       </div>
+    {/if}
+    {#if revokeError}
+      <p class="family-notice family-error" role="alert" data-testid="family-revoke-error">{revokeError}</p>
+    {/if}
+    {#if revokeSuccess}
+      <p class="family-notice" role="status" data-testid="family-revoke-success">{revokeSuccess}</p>
     {/if}
     {#if onLoadOutgoing}
       <section class="family-invitations" aria-labelledby={id + '-outgoing'} data-testid="family-outgoing-invitations">
