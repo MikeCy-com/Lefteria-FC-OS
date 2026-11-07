@@ -197,7 +197,8 @@ BEGIN
     RAISE EXCEPTION 'Runtime can truncate audit rows';
   END IF;
   -- Direct reads and writes of private invitations are prohibited.
-  FOR private_table IN SELECT unnest(ARRAY['identity.family_invitations','identity.family_invitation_events']) LOOP
+  FOR private_table IN SELECT unnest(ARRAY['identity.family_invitations','identity.family_invitation_events',
+    'identity.family_delegated_player_grants']) LOOP
     IF has_table_privilege(current_user,private_table,'SELECT')
       OR has_table_privilege(current_user,private_table,'INSERT')
       OR has_table_privilege(current_user,private_table,'UPDATE')
@@ -206,6 +207,20 @@ BEGIN
       RAISE EXCEPTION 'Runtime may directly access protected family data: %',private_table;
     END IF;
   END LOOP;
+  IF has_any_column_privilege(current_user,
+      'identity.family_delegated_player_grants','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'identity.family_delegated_player_grants',
+      'TRIGGER') THEN
+    RAISE EXCEPTION 'Runtime can access delegated family grant columns or triggers';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM 1 FROM identity.family_delegated_player_grants LIMIT 1;
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'Runtime can read protected delegated family grants';
+  END IF;
   IF NOT has_function_privilege(current_user,
     'identity.issue_family_invitation(uuid,text,text,timestamptz,uuid,text,text,uuid)','EXECUTE')
     OR NOT has_function_privilege(current_user,
