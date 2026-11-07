@@ -63,6 +63,10 @@ export interface MobileAuthState {
   delegationAvailability: DelegationAvailability | null;
   delegationStatus: 'idle' | 'loading' | 'ready' | 'error';
   delegationError: string | null;
+  delegatedCalendar: MobileCalendar | null;
+  delegatedCalendarStatus: CalendarLoadStatus;
+  delegatedCalendarError: string | null;
+  delegatedCalendarLoadingMore: boolean;
   recipientStatus: 'idle' | 'loading' | 'ready' | 'error';
   recipientError: string | null;
   recipientDecliningId: string | null;
@@ -122,6 +126,8 @@ export function createMobileAuthController(options: {
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
     delegationAvailability: null, delegationStatus: 'idle', delegationError: null,
+    delegatedCalendar: null, delegatedCalendarStatus: 'idle',
+    delegatedCalendarError: null, delegatedCalendarLoadingMore: false,
     recipientDecliningId: null, recipientDeclineError: null,
     recipientAcceptingId: null, recipientAcceptError: null, recipientAcceptSuccess: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
@@ -138,6 +144,7 @@ export function createMobileAuthController(options: {
   let outgoingRevision = 0;
   let recipientRevision = 0;
   let delegationRevision = 0;
+  let delegatedCalendarRevision = 0;
   let calendarRevision = 0;
   let calendarResponsesRevision = 0;
 
@@ -157,7 +164,14 @@ export function createMobileAuthController(options: {
       outgoingCancellingId: null, outgoingCancelError: null });
   }
 
+  function clearDelegatedCalendar() {
+    ++delegatedCalendarRevision;
+    update({delegatedCalendar:null,delegatedCalendarStatus:'idle',
+      delegatedCalendarError:null,delegatedCalendarLoadingMore:false});
+  }
+
   function clearRecipientInvitations() {
+    clearDelegatedCalendar();
     ++recipientRevision;
     ++delegationRevision;
     update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
@@ -689,6 +703,9 @@ export function createMobileAuthController(options: {
       state.status === 'authenticated' && state.user?.id === identity.id &&
       state.user?.phone === identity.phone && state.user?.role === 'fan' &&
       state.user.current_role_available;
+    // A status refresh invalidates previously displayed private child data
+    // until the current grant is verified again by the server.
+    clearDelegatedCalendar();
     update({ delegationAvailability: null, delegationStatus: 'loading', delegationError: null });
     try {
       const data = responseData(await api.GET('/api/mobile/family/active-delegation',
@@ -698,6 +715,7 @@ export function createMobileAuthController(options: {
         throw new Error('Invalid recipient delegation status');
       // Whitelist the sole public field; never retain unexpected player,
       // guardian, grant, or phone information returned by a faulty server.
+      if (!data.has_active_delegation) clearDelegatedCalendar();
       update({ delegationAvailability: {has_active_delegation: data.has_active_delegation},
         delegationStatus: 'ready', delegationError: null });
       return true;
@@ -708,6 +726,71 @@ export function createMobileAuthController(options: {
           error.code === 'account_unavailable') revokeCurrentRole(error.message);
       else update({ delegationAvailability: null, delegationStatus: 'error',
         delegationError: message(error) });
+      return false;
+    }
+  }
+
+  // Only the already-accepted, dynamically revalidated grant can populate
+  // this separate READ-ONLY member calendar. It is not a player role.
+  async function loadDelegatedCalendar(month: string, append = false) {
+    const identity=state.user;
+    const grant=state.delegationAvailability;
+    const previous=state.delegatedCalendar;
+    if (state.busy || state.delegatedCalendarStatus==='loading' ||
+        state.delegatedCalendarLoadingMore || !isCalendarMonth(month) ||
+        state.status!=='authenticated' || !identity?.current_role_available ||
+        identity.role!=='fan' || !token || state.delegationStatus!=='ready' ||
+        !grant?.has_active_delegation ||
+        (append && (!previous || previous.month!==month || previous.next_offset===null))) return false;
+    const operationRevision=++delegatedCalendarRevision;
+    const bearer=token;
+    const offset=append ? Number(previous!.next_offset) : 0;
+    if (!Number.isSafeInteger(offset) || offset<0 || offset>100000) return false;
+    const isCurrent=()=>delegatedCalendarRevision===operationRevision && token===bearer &&
+      state.status==='authenticated' && state.user?.id===identity.id &&
+      state.user?.phone===identity.phone && state.user?.role==='fan' &&
+      state.user.current_role_available && state.delegationAvailability===grant &&
+      state.delegationStatus==='ready';
+    update(append?{delegatedCalendarLoadingMore:true,delegatedCalendarError:null}:
+      {delegatedCalendar:null,delegatedCalendarStatus:'loading',delegatedCalendarError:null});
+    try {
+      const data=responseData(await api.GET('/api/mobile/family/calendar',{
+        headers:authorization(),params:{query:{month,offset:String(offset)}}
+      }));
+      if (!isCurrent()) return false;
+      const child=data?.players?.[0];
+      if (!data || data.role!=='fan' || data.month!==month ||
+          !Array.isArray(data.players) || data.players.length!==1 ||
+          !child || !child.id || !data.organization_id ||
+          child.organization_id!==data.organization_id ||
+          data.selected_player_id!==child.id || !Array.isArray(data.items) ||
+          data.items.length>200 ||
+          (data.next_offset!==null && (typeof data.next_offset!=='number' ||
+            !Number.isSafeInteger(data.next_offset) || data.next_offset<=offset || data.next_offset>100000)) ||
+          !data.items.every(item=>item && isCalendarKind(item.kind) &&
+            isCalendarDate(item.date) && isCalendarDate(item.end_date) &&
+            item.end_date>=item.date && typeof item.title==='string' &&
+            item.title.length>0 && item.title.length<=2048 &&
+            item.organization_id===data.organization_id && Array.isArray(item.responses) &&
+            item.responses.every(response=>response.player_id===child.id)))
+        throw new Error('Invalid delegated calendar response');
+      const prior=append ? previous!.items : [];
+      const keys=new Set(prior.map(calendarItemKey));
+      if(data.items.some(item=>{const key=calendarItemKey(item);if(keys.has(key))return true;keys.add(key);return false;}))
+        throw new Error('Repeated delegated calendar event');
+      update({delegatedCalendar:{...data,items:[...prior,...data.items]},
+        delegatedCalendarStatus:'ready',delegatedCalendarLoadingMore:false,delegatedCalendarError:null});
+      return true;
+    } catch(error) {
+      if (!isCurrent()) return false;
+      if(error instanceof ApiFailure && error.status===401) endSession(error.message);
+      else if(error instanceof ApiFailure && error.status===403){
+        clearDelegatedCalendar();
+        update({delegationAvailability:null,delegationStatus:'error',
+          delegationError:'Η οικογενειακή πρόσβαση άλλαξε. Έλεγξε ξανά τη σύνδεση.'});
+      } else update({delegatedCalendar:append?previous:null,
+        delegatedCalendarStatus:append?'ready':'error',delegatedCalendarLoadingMore:false,
+        delegatedCalendarError:message(error)});
       return false;
     }
   }
@@ -969,6 +1052,7 @@ export function createMobileAuthController(options: {
     cancelOutgoingInvitation,
     loadRecipientInvitations,
     loadDelegationAvailability,
+    loadDelegatedCalendar,
     declineRecipientInvitation,
     acceptRecipientInvitation,
     loadCalendar,

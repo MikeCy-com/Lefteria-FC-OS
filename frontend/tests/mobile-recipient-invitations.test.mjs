@@ -21,7 +21,21 @@ function invitation(overrides={}) {
     created_at:new Date(Date.now()-60_000).toISOString(),
     expires_at:new Date(Date.now()+86_400_000).toISOString(),...overrides};
 }
-function setup(person=user, serve=()=>Response.json({items:[invitation()]}), accept=()=>Response.json({ok:true})) {
+function calendarPayload(overrides={}) {
+  const child='academy-child-id';
+  const organization='lefteria_fc_academy';
+  return {identity_id:user.id,role:'fan',month:'2026-11',time_zone:'Asia/Nicosia',
+    organization_id:organization,selected_player_id:child,
+    players:[{id:child,name:'Αθλητής δοκιμής',organization_id:organization}],
+    items:[{id:'training-1',kind:'training',event_type:'training',organization_id:organization,
+      title:'Προπόνηση Ακαδημίας',date:'2026-11-08',end_date:'2026-11-08',
+      start_time:'17:00',location:'Γήπεδο',is_cancelled:false,
+      member_summary:'Προπόνηση ομάδας',content_status:null,responses:[{player_id:child,status:'going'}]}],
+    next_offset:null,...overrides};
+}
+function setup(person=user, serve=()=>Response.json({items:[invitation()]}),
+  accept=()=>Response.json({ok:true}), delegation=()=>Response.json({has_active_delegation:false}),
+  calendar=()=>Response.json(calendarPayload())) {
   const requests=[];
   const storage=createMobileSessionStorage({
     getItem:key=>key==='mobile_token'?'synthetic-otp-session':null,
@@ -34,7 +48,8 @@ function setup(person=user, serve=()=>Response.json({items:[invitation()]}), acc
       requests.push({path,method:request.method,authorization:request.headers.get('Authorization')});
       if(path==='/api/mobile/auth/me')return Response.json(person);
       if(path==='/api/mobile/family/invitations')return await serve();
-      if(path==='/api/mobile/family/active-delegation')return Response.json({has_active_delegation:false});
+      if(path==='/api/mobile/family/active-delegation')return await delegation();
+      if(path==='/api/mobile/family/calendar')return await calendar();
       if(path==='/api/mobile/family/invitations/'+id+'/accept')return await accept();
       throw new Error('Unexpected endpoint '+path);
     }
@@ -77,6 +92,84 @@ test('verified fan reads only the Boolean delegation status and clears it on log
   controller.logout();
   assert.equal(controller.getState().delegationAvailability,null);
   assert.equal(controller.getState().delegationStatus,'idle');
+});
+
+test('delegated fan calendar requires server-verified live grant and uses only member projection',async()=>{
+  const {controller,requests}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}));
+  await controller.bootstrap();
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+  assert.equal(await controller.loadDelegationAvailability(),true);
+  assert.equal(await controller.loadDelegatedCalendar('bad-month'),false);
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),true);
+  const data=controller.getState().delegatedCalendar;
+  assert.equal(data.role,'fan');
+  assert.equal(data.players.length,1);
+  assert.equal(data.items[0].content_status,null);
+  assert.deepEqual(data.items[0].responses,[{player_id:'academy-child-id',status:'going'}]);
+  assert.ok(requests.some(x=>x.path==='/api/mobile/family/calendar'&&
+    x.authorization==='Bearer synthetic-otp-session'&&x.method==='GET'));
+  assert.equal(await controller.loadDelegationAvailability(),true);
+  controller.logout();
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedCalendarStatus,'idle');
+});
+
+test('refreshing recipient grant status immediately clears stale child calendar events',async()=>{
+  let active=true;
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:active}));
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),true);
+  active=false;
+  await controller.loadDelegationAvailability();
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedCalendarStatus,'idle');
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+});
+
+test('delegated calendar denies another player and clears revoked data immediately',async()=>{
+  let revoked=false;
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),
+    ()=>revoked ? Response.json({detail:'Grant revoked',code:'invalid_calendar_input'},{status:403})
+      :Response.json(calendarPayload()));
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),true);
+  revoked=true;
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegationAvailability,null);
+  assert.equal(controller.getState().delegationStatus,'error');
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+});
+
+test('late delegated calendar response after logout never restores private child events',async()=>{
+  const delayed=Promise.withResolvers();
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),()=>delayed.promise);
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  const pending=controller.loadDelegatedCalendar('2026-11');
+  controller.logout();
+  delayed.resolve(Response.json(calendarPayload()));
+  assert.equal(await pending,false);
+  assert.equal(controller.getState().delegatedCalendar,null);
+});
+
+test('delegated calendar rejects cross-club events from a faulty response',async()=>{
+  const {controller}=setup(user,undefined,undefined,
+    ()=>Response.json({has_active_delegation:true}),
+    ()=>Response.json(calendarPayload({items:[{
+      ...calendarPayload().items[0],organization_id:'lefteria_fc'
+    }]})));
+  await controller.bootstrap();
+  await controller.loadDelegationAvailability();
+  assert.equal(await controller.loadDelegatedCalendar('2026-11'),false);
+  assert.equal(controller.getState().delegatedCalendar,null);
+  assert.equal(controller.getState().delegatedCalendarStatus,'error');
 });
 
 test('formal roles cannot read recipient delegation status',async()=>{
@@ -225,6 +318,19 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
   assert.match(accept,/recipient-accept-start/);
   assert.doesNotMatch(rendered,/recipient-accept-start/);
   assert.match(accept,/Η πρόσβαση ως αθλητής δεν είναι ακόμη διαθέσιμη/);
+  const {default:Calendar}=await import('../src/lib/mobile/components/MobileDelegatedCalendar.svelte');
+  const delegated=render(Calendar,{props:{calendar:calendarPayload(),status:'ready',error:null,
+    onLoad:()=>true}}).body;
+  assert.match(delegated,/family-delegated-calendar/);
+  assert.match(delegated,/Προπόνηση Ακαδημίας/);
+  assert.doesNotMatch(delegated,/calendar-rsvp-|availability|onRespond|Απαντήσεις συμμετοχής/);
+  const attached=render(Inbox,{props:{...props,onLoadCalendar:()=>true,
+    delegationStatus:'ready',delegationAvailability:{has_active_delegation:true},
+    delegatedCalendar:calendarPayload(),delegatedCalendarStatus:'ready'}}).body;
+  assert.match(attached,/family-delegated-calendar/);
+  const inactive=render(Inbox,{props:{...props,onLoadCalendar:()=>true,
+    delegationStatus:'ready',delegationAvailability:{has_active_delegation:false}}}).body;
+  assert.doesNotMatch(inactive,/family-delegated-calendar/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
   assert.match(route,/onLoad=\{\(\) => controller\.loadRecipientInvitations\(\)\}/);
