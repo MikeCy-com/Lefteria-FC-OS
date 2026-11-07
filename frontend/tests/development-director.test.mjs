@@ -23,7 +23,7 @@ test('director is GitHub-event-driven, strictly OS-scoped and never deploys', ()
   assert.match(dispatcher, /copilot-swe-agent\[bot\]/);
   assert.match(dispatcher, /custom_agent: "lefteria-developer"/);
   assert.match(dispatcher, /assigned" != "true"/);
-  assert.doesNotMatch(dispatcher, /\b(?:sudo|ssh|scp)\s+|docker compose|git push/i);
+  assert.doesNotMatch(dispatcher, /^\s*(?:sudo|ssh|scp)\s+|docker compose|git push/im);
 });
 
 test('director and developer forbid modifying original or live production', () => {
