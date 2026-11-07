@@ -109,6 +109,10 @@
             delegatedCalendarError={$controller.delegatedCalendarError}
             delegatedCalendarLoadingMore={$controller.delegatedCalendarLoadingMore}
             onLoadCalendar={(month, append) => controller.loadDelegatedCalendar(month, append)}
+            onRespondCalendar={(item, status) => controller.submitDelegatedAvailability(item, status)}
+            calendarRespondingKey={$controller.delegatedRespondingKey}
+            calendarRespondError={$controller.delegatedRespondError}
+            calendarRespondSuccess={$controller.delegatedRespondSuccess}
             onLoadDelegation={() => controller.loadDelegationAvailability()}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
