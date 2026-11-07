@@ -54,6 +54,8 @@ export interface MobileAuthState {
   recipientInvitations: RecipientInvitations | null;
   recipientStatus: 'idle' | 'loading' | 'ready' | 'error';
   recipientError: string | null;
+  recipientDecliningId: string | null;
+  recipientDeclineError: string | null;
   calendar: MobileCalendar | null;
   calendarStatus: CalendarLoadStatus;
   calendarError: string | null;
@@ -103,6 +105,7 @@ export function createMobileAuthController(options: {
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
+    recipientDecliningId: null, recipientDeclineError: null,
     calendar: null, calendarStatus: 'idle', calendarError: null, calendarLoadingMore: false,
     calendarResponses: null, calendarResponsesKey: null, calendarResponsesStatus: 'idle',
     calendarResponsesError: null, calendarResponsesLoadingMore: false, resendAvailableAt: 0
@@ -136,7 +139,8 @@ export function createMobileAuthController(options: {
 
   function clearRecipientInvitations() {
     ++recipientRevision;
-    update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null });
+    update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
+      recipientDecliningId: null, recipientDeclineError: null });
   }
 
   function clearFamily() {
@@ -618,6 +622,50 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function declineRecipientInvitation(invitationId: string) {
+    const identity = state.user;
+    const inbox = state.recipientInvitations;
+    if (!identity || state.status !== 'authenticated' ||
+        !identity.current_role_available || identity.role !== 'fan' ||
+        !token || state.busy || state.recipientDecliningId ||
+        state.recipientStatus !== 'ready' || !inbox ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(invitationId) ||
+        !inbox.items.some(item => item.id === invitationId && item.status === 'pending' &&
+          Date.parse(item.expires_at) > Date.now())) return false;
+
+    const operationRevision = ++recipientRevision;
+    const bearer = token;
+    const isCurrent = () => recipientRevision === operationRevision && token === bearer &&
+      state.status === 'authenticated' && state.user?.id === identity.id &&
+      state.user?.phone === identity.phone && state.user?.role === 'fan' &&
+      state.user.current_role_available;
+    update({ recipientDecliningId: invitationId, recipientDeclineError: null });
+    try {
+      const result = responseData(await api.POST('/api/mobile/family/invitations/{invitationId}/decline', {
+        headers: authorization(), params: {path: {invitationId}}
+      }));
+      if (!isCurrent()) return false;
+      if (!result || result.ok !== true) throw new Error('Invalid decline response');
+      update({
+        recipientInvitations: {items: inbox.items.filter(item => item.id !== invitationId)},
+        recipientDecliningId: null, recipientDeclineError: null
+      });
+      return true;
+    } catch (error) {
+      if (!isCurrent()) return false;
+      if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
+      else if (error instanceof ApiFailure && error.status === 403 &&
+        error.code === 'account_unavailable') revokeCurrentRole(error.message);
+      else if (error instanceof ApiFailure &&
+        (error.status === 403 || error.status === 404 || error.status === 409)) {
+        clearRecipientInvitations();
+        update({ recipientDeclineError: 'Η καταχώριση δεν είναι πλέον διαθέσιμη. Ανανέωσε τη λίστα.' });
+      }
+      else update({ recipientDecliningId: null, recipientDeclineError: message(error) });
+      return false;
+    }
+  }
+
   return {
     subscribe: store.subscribe,
     getState: () => state,
@@ -735,6 +783,7 @@ export function createMobileAuthController(options: {
     loadOutgoingInvitations,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
+    declineRecipientInvitation,
     loadCalendar,
     loadMoreCalendar() {
       const calendar = state.calendar;
