@@ -292,6 +292,72 @@ internal sealed partial class IdentityHttpChecks
                     "A pending invitation unexpectedly created an active or historical delegated grant.");
             }
 
+            // Owner-only test fixture simulates a future accepted grant. The
+            // public acceptance route remains absent; this verifies that the
+            // narrowly granted revoke primitive itself is atomic and scoped.
+            var syntheticGrantId=Guid.NewGuid();
+            await using(var context=database.CreateContext())
+            {
+                await context.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE identity.family_invitations SET status='active',
+                      version=version+1,updated_at=now()
+                    WHERE invitation_id={renewedId} AND status='declined'
+                    """);
+                await context.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO identity.family_delegated_player_grants
+                      (grant_id,invitation_id,player_id,organization_id,
+                       recipient_identity_id,granted_by_identity_id,status,granted_at)
+                    VALUES ({syntheticGrantId},{renewedId},{child},{OrganizationIds.Academy},
+                      {verifiedFan.Id},{parentId},'active',now())
+                    """);
+            }
+            await using(var revokeConnection=new NpgsqlConnection(database.AppConnectionStringForTest()))
+            {
+                await revokeConnection.OpenAsync();
+                async Task<bool> RevokeAsync(Guid actor,string role)
+                {
+                    await using var cmd=new NpgsqlCommand("""
+                        SELECT identity.revoke_family_delegated_player_grant(
+                          @actor,@phone,@role,@expires,@device,@player)
+                        """,revokeConnection);
+                    cmd.Parameters.AddWithValue("actor",actor);
+                    cmd.Parameters.AddWithValue("phone",accounts.ParentPhone.Digits);
+                    cmd.Parameters.AddWithValue("role",role);
+                    cmd.Parameters.AddWithValue("expires",DateTimeOffset.UtcNow.AddMinutes(5));
+                    cmd.Parameters.AddWithValue("device",Guid.NewGuid());
+                    cmd.Parameters.AddWithValue("player",child);
+                    return (bool)(await cmd.ExecuteScalarAsync() ?? false);
+                }
+                try { await RevokeAsync(parentId,"fan");
+                    throw new InvalidOperationException("Fan session revoked a private player grant."); }
+                catch(PostgresException e) when(e.SqlState=="P0001" &&
+                    e.MessageText=="family_invitation_denied") { }
+                Check.True(await RevokeAsync(parentId,"parent"),
+                    "The verified guardian failed to revoke an active grant.");
+                try { await RevokeAsync(parentId,"parent");
+                    throw new InvalidOperationException("Revocation replay was treated as a fresh success."); }
+                catch(PostgresException e) when(e.SqlState=="P0001" &&
+                    e.MessageText=="family_invitation_missing") { }
+            }
+            await using(var context=database.CreateContext())
+            {
+                var revoked=await context.Database.SqlQuery<string>($"""
+                    SELECT status AS "Value" FROM identity.family_delegated_player_grants
+                    WHERE grant_id={syntheticGrantId}
+                    """).SingleAsync();
+                Check.Equal("revoked",revoked,"Revocation left a reusable active grant.");
+                var slot=await context.Database.SqlQuery<string>($"""
+                    SELECT status AS "Value" FROM identity.family_invitations
+                    WHERE invitation_id={renewedId}
+                    """).SingleAsync();
+                Check.Equal("revoked",slot,"Invitation state was not revoked atomically.");
+                var events=await context.Database.SqlQuery<int>($"""
+                    SELECT count(*)::integer AS "Value" FROM identity.family_invitation_events
+                    WHERE invitation_id={renewedId} AND action='revoked'
+                    """).SingleAsync();
+                Check.Equal(1,events,"A single grant revocation did not create exactly one event.");
+            }
+
             await using var restricted=new NpgsqlConnection(database.AppConnectionStringForTest());
             await restricted.OpenAsync();
             foreach(var statement in new[]{
@@ -314,12 +380,14 @@ internal sealed partial class IdentityHttpChecks
             // test's unique child records; production has no such endpoint.
             await using var context=database.CreateContext();
             await context.Database.ExecuteSqlInterpolatedAsync(
+                $@"DELETE FROM identity.family_delegated_player_grants WHERE player_id IN ({child},{second})");
+            await context.Database.ExecuteSqlInterpolatedAsync(
                 $@"DELETE FROM identity.family_invitation_events WHERE player_id IN ({child},{second})");
             await context.Database.ExecuteSqlInterpolatedAsync(
                 $@"DELETE FROM identity.family_invitations WHERE player_id IN ({child},{second})");
             await context.SecurityAuditEvents.Where(row=>
                 row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
-                    row.Action=="mobile.family.invitation.cancel")).ExecuteDeleteAsync();
+                    row.Action=="mobile.family.invitation.cancel" || row.Action=="mobile.family.grant.revoke")).ExecuteDeleteAsync();
             // This calendar test creates two independent OTP-verified fan
             // identities beyond the imported source manifest. Exact synthetic
             // phone cleanup is required before the next native identity suite.

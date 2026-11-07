@@ -172,6 +172,14 @@ GRANT EXECUTE ON FUNCTION identity.read_recipient_family_invitations(uuid,text,t
   TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.decline_recipient_family_invitation(uuid,text,text,timestamptz,uuid,uuid)
   TO :"app_role";
+-- The runtime can request a guardian-verified revoke but cannot directly
+-- read, create, or mutate the private delegated grant row.
+REVOKE ALL ON FUNCTION
+  identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION
+  identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)
+  TO :"app_role";
 GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
   is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
