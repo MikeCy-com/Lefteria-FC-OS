@@ -420,6 +420,19 @@ internal sealed partial class IdentityHttpChecks
                     """).SingleAsync();
                 Check.Equal(1,eventCount,"Acceptance replay added duplicate audit history.");
             }
+            // Persisted grant is not itself a player login. The existing fan
+            // token may not switch roles until the complete authorization
+            // projection and revocation checks have been implemented.
+            var fanMe=await CalendarRequestAsync(recipient,HttpMethod.Get,
+                "/api/mobile/auth/me",null,200);
+            Check.Equal("fan",fanMe.GetProperty("role").GetString(),
+                "Acceptance changed the verified session's fan role.");
+            Check.True(!fanMe.GetProperty("available_roles").EnumerateArray()
+                .Any(role=>role.GetString()=="player"),
+                "Unimplemented player authorization was advertised after acceptance.");
+            await CalendarRequestAsync(recipient,HttpMethod.Post,
+                "/api/mobile/auth/switch-role",new{role="player"},403);
+
             using(var unavailableAccept=await recipient.PostAsync(
                 "/api/mobile/family/invitations/"+candidateId.ToString("D")+"/accept",null))
                 Check.Equal(404,(int)unavailableAccept.StatusCode,
