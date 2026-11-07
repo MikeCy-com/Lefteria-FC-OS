@@ -31,6 +31,18 @@ public static class ParentFamilyEndpoints
             .Produces<ParentOutgoingInvitationsResult>()
             .WithMobileErrors();
 
+        // This is the recipient's private phone-verified inbox, intentionally
+        // separate from the parent-owned outgoing list. No child PII is returned.
+        endpoints.MapGet("/api/mobile/family/invitations",
+            (HttpContext context, FamilyInvitationService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.ReadRecipientAsync(MobilePrincipal.Read(context.User), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetRecipientPendingFamilyInvitations")
+            .Produces<RecipientPendingInvitationsResult>()
+            .WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/family/children/{playerId}/invitations",
             (string playerId, IssueFamilyInvitationBody body, HttpContext context,
                 FamilyInvitationService service, CancellationToken token) =>
