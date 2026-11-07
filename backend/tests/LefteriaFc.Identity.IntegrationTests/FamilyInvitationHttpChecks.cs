@@ -12,6 +12,11 @@ internal sealed partial class IdentityHttpChecks
     {
         var target=database.NewPhone();
         var nextTarget=database.NewPhone();
+        // The recipient must prove the exact target number through the real
+        // OTP login; an existing guardian/player/coach token cannot substitute.
+        await database.SeedIdentityAsync(target, LefteriaFc.Domain.Identity.MobileRole.Fan);
+        using var recipient=Client();
+        await LoginAsync(recipient,target,"fan");
         var child=accounts.ChildId;
         var second=accounts.Prefix+"-child-two";
         var path="/api/mobile/family/children/"+child+"/invitations";
@@ -25,12 +30,22 @@ internal sealed partial class IdentityHttpChecks
         async Task<JsonElement> OutgoingAsync(HttpClient client,int status)=>
             await CalendarRequestAsync(client,HttpMethod.Get,
                 "/api/mobile/family/outgoing-invitations",null,status);
+        async Task<JsonElement> RecipientAsync(HttpClient client,int status)=>
+            await CalendarRequestAsync(client,HttpMethod.Get,
+                "/api/mobile/family/invitations",null,status);
 
         try
         {
             using var unauthenticated=Client();
             await IssueAsync(unauthenticated,path,target.WireValue,401);
             await OutgoingAsync(unauthenticated,401);
+            await RecipientAsync(unauthenticated,401);
+            foreach(var otherRole in new[]{parent,player,coach,management})
+                await RecipientAsync(otherRole,403);
+            Check.Equal(0,(await RecipientAsync(recipient,200)).GetProperty("items").GetArrayLength(),
+                "The verified target fan saw a nonexistent invitation.");
+            Check.Equal(0,(await RecipientAsync(fan,200)).GetProperty("items").GetArrayLength(),
+                "The unrelated verified fan obtained another phone's invitation.");
             foreach(var client in new[]{player,coach,management,fan})
                 await OutgoingAsync(client,403);
             Check.Equal(0, (await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
@@ -50,6 +65,30 @@ internal sealed partial class IdentityHttpChecks
 
             var invitation=await IssueAsync(parent,path,target.WireValue,200);
             var invitationId=Guid.Parse(invitation.GetProperty("id").GetString()!);
+            var recipientInbox=await RecipientAsync(recipient,200);
+            var recipientRows=recipientInbox.GetProperty("items").EnumerateArray().ToArray();
+            Check.Equal(1,recipientRows.Length,
+                "The OTP-verified recipient phone could not retrieve its one pending reservation.");
+            Check.Equal(invitationId,Guid.Parse(recipientRows[0].GetProperty("id").GetString()!),
+                "Recipient inbox does not match the reserved invitation.");
+            Check.Equal("pending",recipientRows[0].GetProperty("status").GetString(),
+                "Recipient inbox claimed an invitation had already been accepted.");
+            Check.Equal(OrganizationIds.Academy,
+                recipientRows[0].GetProperty("organization_id").GetString(),
+                "Recipient inbox lost the verified child's scoped organization.");
+            Check.True(recipientRows[0].GetProperty("expires_at").GetDateTimeOffset() >
+                DateTimeOffset.UtcNow,"Recipient inbox returned an expired record.");
+            foreach(var privateKey in new[]{
+                "player_id","parent_identity_id","parent_phone","target_phone",
+                "child_name","guardian","linked_player_id","phone"})
+                Check.True(!recipientInbox.GetRawText().Contains("\""+privateKey+"\"",StringComparison.OrdinalIgnoreCase),
+                    "Recipient inbox exposed a private minor/guardian field: "+privateKey);
+            Check.True(!recipientInbox.GetRawText().Contains(child,StringComparison.Ordinal)
+                && !recipientInbox.GetRawText().Contains(target.Digits,StringComparison.Ordinal)
+                && !recipientInbox.GetRawText().Contains(accounts.ParentPhone.Digits,StringComparison.Ordinal),
+                "Recipient inbox leaked a raw child ID or someone's phone.");
+            Check.Equal(0,(await RecipientAsync(fan,200)).GetProperty("items").GetArrayLength(),
+                "A different phone's fan session saw the invitation.");
             var outbox=await OutgoingAsync(parent,200);
             var pendingRows=outbox.GetProperty("items").EnumerateArray().ToArray();
             Check.Equal(1,pendingRows.Length,"Newly issued pending invitation is absent from guardian outbox.");
@@ -96,6 +135,8 @@ internal sealed partial class IdentityHttpChecks
             var cancelled=await CancelAsync(parent,invitationId,200);
             Check.True(cancelled.GetProperty("ok").GetBoolean(),"Parent cancellation was not confirmed.");
             await CancelAsync(parent,invitationId,200);
+            Check.Equal(0,(await RecipientAsync(recipient,200)).GetProperty("items").GetArrayLength(),
+                "Cancelled invitation was still exposed to the target phone.");
             Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
                 "Cancelled reservations remained visible as active pending invitations.");
 
@@ -104,6 +145,17 @@ internal sealed partial class IdentityHttpChecks
             var renewed=await IssueAsync(parent,path,nextTarget.WireValue,200);
             var renewedId=Guid.Parse(renewed.GetProperty("id").GetString()!);
             Check.True(renewedId!=invitationId,"Reissue did not rotate invitation ID.");
+            // Reissue for another phone must never resurrect a stale record in
+            // the original target's session. The new phone must independently
+            // establish a real OTP-confirmed fan session.
+            Check.Equal(0,(await RecipientAsync(recipient,200)).GetProperty("items").GetArrayLength(),
+                "Reissue leaked a different phone's invitation.");
+            await database.SeedIdentityAsync(nextTarget,LefteriaFc.Domain.Identity.MobileRole.Fan);
+            using var renewedRecipient=Client();
+            await LoginAsync(renewedRecipient,nextTarget,"fan");
+            Check.Equal(renewedId,Guid.Parse((await RecipientAsync(renewedRecipient,200))
+                .GetProperty("items").EnumerateArray().Single().GetProperty("id").GetString()!),
+                "New target failed current phone proof or could not read its reservation.");
             var renewedOutbox=await OutgoingAsync(parent,200);
             var renewedRow=renewedOutbox.GetProperty("items").EnumerateArray().Single();
             Check.Equal(renewedId,Guid.Parse(renewedRow.GetProperty("id").GetString()!),
@@ -119,6 +171,8 @@ internal sealed partial class IdentityHttpChecks
                     await IssueAsync(parent,path,database.NewPhone().WireValue,403);
                     Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
                         "Revoked guardian still received a private reservation.");
+                    Check.Equal(0,(await RecipientAsync(renewedRecipient,200)).GetProperty("items").GetArrayLength(),
+                        "Recipient obtained a reservation after the source guardian link was revoked.");
                 }
                 finally
                 {
@@ -129,6 +183,8 @@ internal sealed partial class IdentityHttpChecks
                 try {
                     await IssueAsync(parent,path,database.NewPhone().WireValue,403);
                     await OutgoingAsync(parent,403);
+                    Check.Equal(0,(await RecipientAsync(renewedRecipient,200)).GetProperty("items").GetArrayLength(),
+                        "Recipient could still read an invitation when the source guardian was deactivated.");
                 }
                 finally
                 {
@@ -140,6 +196,8 @@ internal sealed partial class IdentityHttpChecks
                 try {
                     Check.Equal(0,(await OutgoingAsync(parent,200)).GetProperty("items").GetArrayLength(),
                         "Archived child invitation was visible in outgoing parent view.");
+                    Check.Equal(0,(await RecipientAsync(renewedRecipient,200)).GetProperty("items").GetArrayLength(),
+                        "Archived child reservation remained in recipient inbox.");
                 }
                 finally {
                     await context.RosterPlayers.Where(row=>row.Id==child)
@@ -184,6 +242,15 @@ internal sealed partial class IdentityHttpChecks
             await context.SecurityAuditEvents.Where(row=>
                 row.ActorIdentityId==parentId && (row.Action=="mobile.family.invitation.issue" ||
                     row.Action=="mobile.family.invitation.cancel")).ExecuteDeleteAsync();
+            // This calendar test creates two independent OTP-verified fan
+            // identities beyond the imported source manifest. Exact synthetic
+            // phone cleanup is required before the next native identity suite.
+            // Live users never run these fixture-only cleanup statements.
+            var targetPhones = new[] { target.Digits, nextTarget.Digits };
+            await context.OtpChallenges.Where(row =>
+                targetPhones.Contains(row.NormalizedPhone)).ExecuteDeleteAsync();
+            await context.MobileIdentities.Where(row =>
+                targetPhones.Contains(row.NormalizedPhone)).ExecuteDeleteAsync();
             await database.CleanupFamilyThrottleAsync(parentId);
         }
     }

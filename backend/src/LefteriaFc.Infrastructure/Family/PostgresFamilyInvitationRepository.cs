@@ -83,6 +83,34 @@ public sealed class PostgresFamilyInvitationRepository(LefteriaDbContext databas
         finally { await database.Database.CloseConnectionAsync(); }
     }
 
+    public async Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
+        MobileSession session, CancellationToken token)
+    {
+        await database.Database.OpenConnectionAsync(token);
+        try
+        {
+            await using var command = new NpgsqlCommand("""
+                SELECT invitation_id,organization_id,created_at,expires_at
+                FROM identity.read_recipient_family_invitations(@identity,@phone,@role,@expires)
+                """, (NpgsqlConnection)database.Database.GetDbConnection());
+            command.Parameters.AddWithValue("identity", session.IdentityId);
+            command.Parameters.AddWithValue("phone", session.NormalizedPhone);
+            command.Parameters.AddWithValue("role", session.Role.ToWireValue());
+            command.Parameters.AddWithValue("expires", session.ExpiresAt.ToUniversalTime());
+            await using var reader = await ExecuteOutgoingAsync(command, token);
+            var rows = new List<RecipientPendingInvitationDto>();
+            while (await reader.ReadAsync(token))
+            {
+                if (rows.Count >= 2) throw Unavailable();
+                rows.Add(new(reader.GetGuid(0), reader.GetString(1), "pending",
+                    reader.GetFieldValue<DateTimeOffset>(2),
+                    reader.GetFieldValue<DateTimeOffset>(3)));
+            }
+            return rows;
+        }
+        finally { await database.Database.CloseConnectionAsync(); }
+    }
+
     private static async Task<NpgsqlDataReader> ExecuteOutgoingAsync(
         NpgsqlCommand command, CancellationToken token)
     {

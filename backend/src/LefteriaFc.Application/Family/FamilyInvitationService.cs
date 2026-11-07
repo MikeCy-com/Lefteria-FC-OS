@@ -28,12 +28,27 @@ public sealed record ParentOutgoingInvitationDto(
 public sealed record ParentOutgoingInvitationsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<ParentOutgoingInvitationDto> Items);
 
+// No child, guardian, phone, or player-role details are returned to the target.
+// A fan can see a reservation after verifying ownership of their own number,
+// but cannot accept it or gain a new identity in this read-only slice.
+public sealed record RecipientPendingInvitationDto(
+    [property: JsonPropertyName("id")] Guid Id,
+    [property: JsonPropertyName("organization_id")] string OrganizationId,
+    [property: JsonPropertyName("status")] string Status,
+    [property: JsonPropertyName("created_at")] DateTimeOffset CreatedAt,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
+
+public sealed record RecipientPendingInvitationsResult(
+    [property: JsonPropertyName("items")] IReadOnlyList<RecipientPendingInvitationDto> Items);
+
 public interface IFamilyInvitationRepository
 {
     Task<PendingFamilyInvitationDto> IssueAsync(MobileSession session, string childId,
         string normalizedTargetPhone, Guid invitationId, CancellationToken token);
     Task CancelAsync(MobileSession session, Guid invitationId, CancellationToken token);
     Task<IReadOnlyList<ParentOutgoingInvitationDto>> ReadOutgoingAsync(
+        MobileSession session, CancellationToken token);
+    Task<IReadOnlyList<RecipientPendingInvitationDto>> ReadRecipientAsync(
         MobileSession session, CancellationToken token);
 }
 
@@ -84,6 +99,26 @@ public sealed class FamilyInvitationService(
             // Returning a silently truncated private list misleads the parent
             // into believing they have seen all pending reservations.
             if (items.Count > 100)
+                throw Unavailable();
+            return new(items);
+        }
+        catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<RecipientPendingInvitationsResult> ReadRecipientAsync(
+        MobileSession session, CancellationToken token)
+    {
+        if (session.Role != MobileRole.Fan)
+            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                MobileAuthErrorCode.RoleUnavailable,
+                "Recipient invitations require a current verified fan session.");
+        await identity.AuthorizeCurrentIdentityAsync(session, token);
+        try
+        {
+            var items = await repository.ReadRecipientAsync(session, token);
+            // A single target phone can have only one pending slot. If a
+            // database error causes multiple results, fail closed.
+            if (items.Count > 1)
                 throw Unavailable();
             return new(items);
         }
