@@ -47,6 +47,7 @@ test('first-team SSR uses only credential-free fixed-scope public API',()=>{
   assert.ok(loader.includes('loadFirstTeamTrialSettings()'));
   assert.ok(page.includes('data.trialSettings.headline'));
   assert.ok(page.includes('data.trialSettings.closed_message'));
+  assert.doesNotMatch(page,/\{#if[^\n]*trialSettings\.open/);
   assert.doesNotMatch(page,/<form\b|type="submit"|data-testid="trials-success"/i);
   assert.doesNotMatch(server,/cookie|authorization|X-Forwarded|process\.env|fetch\(url/i);
 });
