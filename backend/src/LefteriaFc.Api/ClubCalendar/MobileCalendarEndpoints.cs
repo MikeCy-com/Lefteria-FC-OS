@@ -69,6 +69,26 @@ public static class MobileCalendarEndpoints
             .Accepts<MobileAvailabilityBody>("application/json").Produces<MobileAvailabilityResult>()
             .Produces<MobileAuthError>(StatusCodes.Status413PayloadTooLarge).WithMobileErrors();
 
+        // OTP-verified and parent-authorized delegate RSVP. Separate from
+        // regular /availability so a fan cannot impersonate a player role or
+        // choose a child in the request body; final write checks live grant.
+        endpoints.MapPost("/api/mobile/family/availability",
+            (HttpContext context,MobileCalendarService service,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(async()=>
+            {
+                var session=MobilePrincipal.Read(context.User);
+                var command=await ReadAvailabilityAsync(context.Request,token);
+                return await service.SubmitDelegatedAvailabilityAsync(session,command,token);
+            },context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile family")
+            .WithName("SubmitDelegatedFamilyAvailability")
+            .WithDescription("Submits an RSVP for the sole active, phone-verified, accepted family delegation. No player_id selector, player-role elevation or staff access. Each mutation revalidates the current guardian, child and revocation inside the final SQL statement.")
+            .Accepts<MobileAvailabilityBody>("application/json")
+            .Produces<MobileAvailabilityResult>()
+            .Produces<MobileAuthError>(StatusCodes.Status413PayloadTooLarge)
+            .WithMobileErrors();
+
         endpoints.MapGet("/api/mobile/my-availability",(HttpContext context,MobileCalendarService service,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(()=>service.GetOwnAvailabilityAsync(MobilePrincipal.Read(context.User),token),context))
             .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile calendar").WithName("GetMobileOwnAvailability")
