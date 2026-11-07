@@ -9,7 +9,7 @@ const migration=readFileSync(new URL(
 test('Academy enquiry throttle stores only a hashed canonical fingerprint',()=>{
   assert.match(migration,/CREATE TABLE marketing\.lead_rate_buckets/);
   assert.match(migration,/fingerprint varchar\(64\) PRIMARY KEY/);
-  assert.match(migration,/fingerprint ~ '\^\[0-9a-f\]\{64\}\$'/);
+  assert.ok(migration.includes("fingerprint ~ '^[0-9a-f]{64}$'"));
   assert.match(migration,/attempts BETWEEN 1 AND 5/);
   assert.match(migration,/window_started_at timestamptz NOT NULL/);
   assert.match(migration,/last_attempt_at timestamptz NOT NULL/);
