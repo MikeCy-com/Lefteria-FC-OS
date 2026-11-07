@@ -11,9 +11,16 @@ Original Lefteria-FC is **reference only**. This change belongs exclusively to L
 - HTTP integration exercises no-auth and wrong-role denial, current/updated pending state, cancellation, revoked relationship, disabled parent, archived child, organization scope and phone redaction.
 - No new authorization token, SMS, child identity, payment, database write, external provider side effect or production migration is triggered by this GET.
 
+## Parent app integration
+
+- The Parent → Children screen displays the current outbox status with a clearly labeled reservation, expiry date and verified child display name. It does not show a target phone number or expose raw invitation IDs in visible text.
+- The SvelteKit controller loads invitations through the generated authenticated client **only after** a current family read. It rejects unknown child IDs, organization mismatches, expired/duplicate IDs, invalid statuses and malformed timestamps.
+- In-memory outbox state is invalidated when guardian relationships refresh, on logout, role switch or a relevant access failure. Private data is never cached in browser storage or public pages.
+- The UI explicitly states that no SMS or invitation was sent. The existing server-side cancel endpoint is not yet exposed as a new UI action.
+
 ## Not included
 
-The parent app presentation and cancellation UI, recipient inbox, OTP acceptance/decline, child grant activation and active-grant revocation remain separate implementation steps. A pending record **does not send a message or grant access**. After backend CI succeeds, wire the read through the authenticated SvelteKit controller and show an explicit 'not yet sent' pending label.
+The parent cancellation UI, recipient inbox, OTP acceptance/decline, child grant activation and active-grant revocation remain separate implementation steps. A pending record **does not send a message or grant access**.
 
 ## Verification required
 
