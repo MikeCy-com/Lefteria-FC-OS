@@ -63,3 +63,70 @@
 .admin-signin .admin-panel { border-top:3px solid #f5a623; }
 .admin-signin h1 { font-size:2.6rem; }
 @media(max-width:720px) { .admin-sidebar .admin-nav-label,.admin-sidebar-context { display:none; } .admin-workspace-body { min-height:0; } .admin-content { padding:28px 18px 48px; } .admin-header { padding:16px 18px; } .admin-brand { font-size:20px; } }
+
+/* Original Lefteria FC admin brand continuity: high-density (including 4K)
+   while preserving its Fira typography and black/gold identity. This is only
+   presentation: no permission, data, navigation or authentication bypass. */
+.admin-app {
+  --admin-black:#080808;
+  --admin-gold-highlight:#ffd67c;
+  --admin-muted:#b4bab3;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+.admin-app .admin-header {
+  box-shadow:0 8px 30px rgb(0 0 0 / 20%);
+}
+.admin-app .admin-brand img {
+  object-fit:contain;
+  filter:drop-shadow(0 1px 11px rgb(245 166 35 / 12%));
+}
+.admin-app .admin-primary {
+  background:linear-gradient(125deg,#ffd67c -80%,#f5a623 64%,#e89a1b 150%);
+  box-shadow:inset 0 1px rgb(255 255 255 / 16%);
+}
+.admin-app .admin-primary:is(:hover,:focus-visible):not(:disabled) {
+  background:linear-gradient(125deg,#fff0bd,#f5a623);
+}
+.admin-app .admin-panel {
+  background:linear-gradient(150deg,#181716,#121212 55%,#101010);
+  border-color:#36312a;
+  box-shadow:0 16px 48px rgb(0 0 0 / 12%);
+}
+.admin-app .admin-sidebar a[aria-current='page'] {
+  box-shadow:inset 2px 0 0 #f5a623;
+  font-weight:700;
+}
+.admin-app :is(input,select,textarea):focus-visible {
+  outline-color:#ffca65;
+  border-color:#b98e4e;
+}
+.admin-app :is(button,a) {
+  -webkit-tap-highlight-color:rgb(245 166 35 / 12%);
+}
+@media (min-width:2560px) {
+  .admin-app .admin-header { min-height:104px;padding:22px clamp(36px,3vw,112px); }
+  .admin-app .admin-brand { font-size:29px; }
+  .admin-app .admin-brand img { width:52px;height:52px; }
+  .admin-app .admin-workspace-body { grid-template-columns:300px minmax(0,1fr); }
+  .admin-app .admin-sidebar { padding:44px 25px;gap:8px; }
+  .admin-app .admin-sidebar a { font-size:16px;padding:17px; }
+  .admin-app .admin-content { width:min(100%,1800px);padding:clamp(50px,3vw,110px); }
+  .admin-app .admin-content .admin-panel { padding:clamp(35px,2vw,62px); }
+  .admin-app h1 { font-size:clamp(58px,3vw,84px); }
+  .admin-app h2 { font-size:clamp(28px,1.6vw,44px); }
+}
+@media (max-width:720px) {
+  .admin-app .admin-header { gap:12px; }
+  .admin-app .admin-actions { gap:8px; }
+  .admin-app .admin-sidebar { overscroll-behavior-x:contain;scrollbar-width:thin; }
+  .admin-app .admin-content { min-width:0;overflow-wrap:anywhere; }
+  .admin-app .admin-details div { grid-template-columns:minmax(0,1fr);gap:4px; }
+}
+@media (prefers-contrast:more) {
+  .admin-app .admin-muted,.admin-app .admin-details dt { color:#e0e0e0; }
+  .admin-app .admin-panel { border-color:#777; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .admin-app button,.admin-app a { transition:none !important; }
+}
