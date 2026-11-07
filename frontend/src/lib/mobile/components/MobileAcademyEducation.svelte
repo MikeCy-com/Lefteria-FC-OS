@@ -1,14 +1,15 @@
 <script lang="ts">
   import {
     ACADEMY_EDUCATION_ARTICLES, EDUCATION_STAGES, EDUCATION_TOPICS,
-    academyEducationFor, type EducationAudience, type EducationStage
+    academyEducationFor, type EducationAudience, type EducationStage, type EducationTopic
   } from '../academy-education.ts';
   import './mobile-theme.css';
 
   let stage = $state<EducationStage>('10-12');
   let audience = $state<EducationAudience | 'all'>('all');
   let expanded = $state<string | null>(null);
-  const cards = $derived(academyEducationFor(stage,audience));
+  let topic = $state<EducationTopic | 'all'>('all');
+  const cards = $derived(academyEducationFor(stage,audience,topic));
   const id = $props.id();
 </script>
 
@@ -51,10 +52,23 @@
       <button type="button" aria-pressed={audience === 'player'}
         class:chosen={audience === 'player'} onclick={() => {audience = 'player'; expanded = null;}}>Για αθλητές</button>
     </div>
+    <div class="education-topics" role="group" aria-label="Θέμα">
+      <button type="button" aria-pressed={topic === 'all'} class:chosen={topic === 'all'}
+        onclick={() => {topic = 'all'; expanded = null;}}>Όλα τα θέματα</button>
+      {#each EDUCATION_TOPICS as option (option.id)}
+        <button type="button" aria-pressed={topic === option.id}
+          class:chosen={topic === option.id} onclick={() => {topic = option.id; expanded = null;}}>
+          {option.title}
+        </button>
+      {/each}
+    </div>
   </section>
 
   <section class="education-articles" aria-labelledby={id+'-materials'} data-testid="education-materials">
     <h2 id={id+'-materials'}>Ιδέες για συζήτηση</h2>
+    {#if cards.length === 0}
+      <p class="education-empty" role="status">Δεν υπάρχουν άρθρα για αυτόν τον συνδυασμό. Δοκίμασε άλλο θέμα.</p>
+    {/if}
     <div class="education-card-grid">
       {#each cards as article (article.id)}
         <article class="education-card" data-testid="education-article">
@@ -106,11 +120,12 @@
   .education-editorial{padding:13px 16px;border:1px solid #45413a;border-radius:9px;color:#b9bbba;background:#171a1b;font-size:12px;line-height:1.65;margin-bottom:26px}
   .education-filters h2,.education-articles h2,.education-boundary h2{font-size:22px;margin:0 0 9px}
   .education-filters>p{color:#b6bbbd;font-size:13px;line-height:1.5}
-  .education-age-tabs,.education-audiences{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
-  .education-age-tabs button,.education-audiences button{min-height:44px;padding:10px 15px;border:1px solid #383d3d;border-radius:8px;background:#202323;color:#d2d6d5;cursor:pointer;font-size:13px}
-  .education-age-tabs button.chosen,.education-audiences button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
+  .education-age-tabs,.education-audiences,.education-topics{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+  .education-age-tabs button,.education-audiences button,.education-topics button{min-height:44px;padding:10px 15px;border:1px solid #383d3d;border-radius:8px;background:#202323;color:#d2d6d5;cursor:pointer;font-size:13px}
+  .education-age-tabs button.chosen,.education-audiences button.chosen,.education-topics button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
   .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
   .education-articles{margin:28px 0}
+  .education-empty{padding:12px 15px;border:1px solid #48433b;border-radius:8px;color:#e1d5ba;font-size:13px}
   .education-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:15px}
   .education-card{min-width:0;padding:20px;border:1px solid #3a3b37;border-radius:12px;background:linear-gradient(145deg,#202323,#151718)}
   .education-card-heading{display:flex;flex-wrap:wrap;gap:8px;font-size:10px;color:#f8b844;margin-bottom:14px}
