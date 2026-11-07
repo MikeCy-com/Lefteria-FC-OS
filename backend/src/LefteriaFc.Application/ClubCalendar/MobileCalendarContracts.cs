@@ -32,6 +32,10 @@ public sealed record CalendarResponsesSnapshot(bool IdentityAvailable,bool Calen
 
 public interface IMobileCalendarRepository
 {
+    // Strictly read-only member projection for an OTP-verified delegated fan.
+    // Repository MUST validate live grant in the same SQL statement as data.
+    Task<CalendarMonthSnapshot> GetDelegatedMonthAsync(
+        MobileSession session,DateOnly month,int offset,CancellationToken token);
     Task<CalendarMonthSnapshot> GetMonthAsync(MobileSession session,DateOnly month,string? playerId,int offset,CancellationToken token);
     Task<CalendarWriteSnapshot> SubmitAvailabilityAsync(MobileSession session,MobileAvailabilityCommand command,CancellationToken token);
     Task<CalendarAvailabilitySnapshot> GetOwnAvailabilityAsync(MobileSession session,CancellationToken token);
