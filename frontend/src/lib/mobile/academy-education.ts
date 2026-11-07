@@ -123,8 +123,10 @@ export const ACADEMY_EDUCATION_ARTICLES: readonly AcademyEducationArticle[] = [
 
 export function academyEducationFor(
   stage: EducationStage,
-  audience: EducationAudience | 'all' = 'all'
+  audience: EducationAudience | 'all' = 'all',
+  topic: EducationTopic | 'all' = 'all'
 ): readonly AcademyEducationArticle[] {
   return ACADEMY_EDUCATION_ARTICLES.filter(article =>
-    article.stage === stage && (audience === 'all' || audience === article.audience));
+    article.stage === stage && (audience === 'all' || audience === article.audience) &&
+    (topic === 'all' || topic === article.topic));
 }
