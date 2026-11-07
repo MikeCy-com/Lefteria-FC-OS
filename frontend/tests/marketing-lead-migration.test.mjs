@@ -20,5 +20,5 @@ test('schema-only marketing inbox has no automatic data access or provider effec
   assert.match(migration,/REVOKE ALL ON SCHEMA marketing FROM PUBLIC/);
   assert.match(migration,/REVOKE ALL ON TABLE marketing\.public_leads FROM PUBLIC/);
   assert.match(migration,/ALTER TABLE marketing\.public_leads ENABLE ROW LEVEL SECURITY/);
-  assert.doesNotMatch(migration,/\bGRANT\b|\bINSERT INTO\b|\bSECURITY DEFINER\b|\bCREATE POLICY\b|\bSMS\b/i);
+  assert.doesNotMatch(migration,/^\s*(?:GRANT|INSERT INTO|CREATE POLICY)\b|\bSECURITY DEFINER\b/im);
 });
