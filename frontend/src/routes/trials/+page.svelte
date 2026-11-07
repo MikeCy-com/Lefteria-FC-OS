@@ -1,9 +1,16 @@
+<script lang="ts">
+  import PublicShell from '../../lib/public/PublicShell.svelte';
+  import type { PublicPageData } from '../../lib/public/types';
+  let { data }: { data: PublicPageData } = $props();
+</script>
+
 <svelte:head>
   <title>ΔΟΚΙΜΑΣΤΙΚΑ ΠΡΩΤΗΣ ΟΜΑΔΑΣ | ΛΕΥΤΕΡΙΑ FC</title>
   <meta name="description" content="Πληροφορίες για τις αιτήσεις δοκιμαστικών της πρώτης ομάδας Λευτεριά FC. Η διαθεσιμότητα και η αποστολή αίτησης δεν έχουν ακόμη ενεργοποιηθεί στο OS." />
 </svelte:head>
 
-<main class="trials-page" data-testid="trials-page">
+<PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}>
+<div class="trials-page" data-testid="trials-page">
   <div class="trials-shell">
     <a class="back-link" href="/" data-testid="trials-back-link">
       <span aria-hidden="true">←</span> Πίσω στην αρχική
@@ -35,7 +42,8 @@
       </div>
     </section>
   </div>
-</main>
+</div>
+</PublicShell>
 
 <style>
   .trials-page {
@@ -74,7 +82,7 @@
   .action-primary:hover, .action-primary:focus-visible { background: #ffd077; }
   .action-secondary { color: #f5f5f5; border: 1px solid #5a554b; }
   .action-secondary:hover, .action-secondary:focus-visible { color: var(--trial-gold); border-color: var(--trial-gold); }
-  :global(a:focus-visible) { outline: 2px solid #f5a623; outline-offset: 4px; }
+  .trials-page :global(a:focus-visible) { outline: 2px solid #f5a623; outline-offset: 4px; }
   @media (max-width: 540px) {
     .trials-page { min-height: 72vh; }
     .actions { flex-direction: column; }
