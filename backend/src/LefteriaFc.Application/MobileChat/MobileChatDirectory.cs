@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Domain.Identity;
@@ -42,6 +43,8 @@ public sealed class MobileChatDirectoryService(
             return new(true,snapshot.Groups);
         }
         catch(DbException){throw Unavailable();}
+        catch(JsonException){throw Unavailable();}
+        catch(InvalidOperationException){throw Unavailable();}
     }
     private static MobileAuthException Unavailable()=>new(
         MobileAuthFaultKind.ServiceUnavailable,MobileAuthErrorCode.RosterUnavailable,
