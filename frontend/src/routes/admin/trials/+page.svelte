@@ -66,7 +66,7 @@
       <section class="admin-panel trials-admin" data-testid="admin-trials-readonly">
         <p class="admin-eyebrow">ΠΡΩΤΗ ΟΜΑΔΑ · ΔΟΚΙΜΑΣΤΙΚΑ</p>
         <h1>Κατάσταση εγγραφών</h1>
-        <p class="admin-muted">Επαληθευμένη ιδιωτική προβολή με έλεγχο πρόσβασης. Η επεξεργασία ρυθμίσεων και οι αιτήσεις αθλητών δεν έχουν ενεργοποιηθεί.</p>
+        <p class="admin-muted">Προβολή κλειστών εγγραφών μέσω της προστατευμένης υπηρεσίας διαχείρισης. Η επεξεργασία ρυθμίσεων και οι αιτήσεις αθλητών δεν έχουν ενεργοποιηθεί.</p>
         {#if loading}
           <p role="status" data-testid="admin-trials-loading">Έλεγχος κατάστασης…</p>
         {:else if unavailable || !settings}
