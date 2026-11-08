@@ -142,6 +142,9 @@ GRANT EXECUTE ON FUNCTION club.create_admin_group(text,text,text,text) TO :"admi
 -- No raw roster or group table write privileges are granted.
 REVOKE ALL ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) TO :"admin_auth_role";
+-- Audited, manager-only coach assignment replace; no direct staff DML.
+REVOKE ALL ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) TO :"admin_auth_role";
 -- Manager-only active coach/staff assignment projection; no direct staff SELECT.
 REVOKE ALL ON FUNCTION club.read_admin_coaches(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO :"admin_auth_role";
@@ -158,6 +161,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-player-directory-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
+\ir admin-coach-assignment-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -187,7 +191,8 @@ BEGIN
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
-                  'club.read_admin_coaches(text,text,integer,integer)'::regprocedure)) THEN
+                  'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
+                  'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN
