@@ -145,46 +145,6 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,currentReaderIds.Count,
                 "The recorded readers did not match actual authenticated participants.");
 
-            // Only currently linked Academy parents may acknowledge. Their
-            // stored receipt ceases to be revealed after roster removal.
-            await PostAsync(management,"/api/mobile/management/organization",
-                new{organization_id=OrganizationIds.Academy},200);
-            try
-            {
-                var academyManagerSent=await PostAsync(management,academy,
-                    new{content="Academy management read verification"},200);
-                var academyManagerId=Guid.Parse(academyManagerSent.GetProperty("id").GetString()!);
-                var academyManagerPath=academy+"/"+academyManagerId;
-                await AcknowledgeAsync(parent,academyManagerPath,200);
-                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
-                    .GetProperty("readers").GetArrayLength(),
-                    "Academy parent acknowledgment was not recorded.");
-                await using(var db=database.CreateContext())
-                {
-                    await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
-                        .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
-                    try
-                    {
-                        await AcknowledgeAsync(parent,academyManagerPath,403);
-                        Check.Equal(0,(await GetAsync(management,academyManagerPath+"/readers",200))
-                            .GetProperty("readers").GetArrayLength(),
-                            "Removed guardian remained visible as a current reader.");
-                    }
-                    finally
-                    {
-                        await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
-                            .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));
-                    }
-                }
-                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
-                    .GetProperty("readers").GetArrayLength(),
-                    "Restored current room guardian was not included as a verified reader.");
-            }
-            finally
-            {
-                await PostAsync(management,"/api/mobile/management/organization",
-                    new{organization_id=OrganizationIds.Club},200);
-            }
             var before=(await GetAsync(parent,academy,200)).GetProperty("messages").GetArrayLength();
             await PostAsync(parent,academy,new{content=new string('X',10001)},422);
             await GetAsync(parent,academy+"?offset=100001",422);
@@ -342,6 +302,46 @@ internal sealed partial class IdentityHttpChecks
                 Check.Equal(3L,revisions,"Message edits and deletion did not write exact revision audit rows.");
             }
 
+            // Only currently linked Academy parents may acknowledge. Their
+            // stored receipt ceases to be revealed after roster removal.
+            await PostAsync(management,"/api/mobile/management/organization",
+                new{organization_id=OrganizationIds.Academy},200);
+            try
+            {
+                var academyManagerSent=await PostAsync(management,academy,
+                    new{content="Academy management read verification"},200);
+                var academyManagerId=Guid.Parse(academyManagerSent.GetProperty("id").GetString()!);
+                var academyManagerPath=academy+"/"+academyManagerId;
+                await AcknowledgeAsync(parent,academyManagerPath,200);
+                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
+                    .GetProperty("readers").GetArrayLength(),
+                    "Academy parent acknowledgment was not recorded.");
+                await using(var db=database.CreateContext())
+                {
+                    await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                        .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
+                    try
+                    {
+                        await AcknowledgeAsync(parent,academyManagerPath,403);
+                        Check.Equal(0,(await GetAsync(management,academyManagerPath+"/readers",200))
+                            .GetProperty("readers").GetArrayLength(),
+                            "Removed guardian remained visible as a current reader.");
+                    }
+                    finally
+                    {
+                        await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                            .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));
+                    }
+                }
+                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
+                    .GetProperty("readers").GetArrayLength(),
+                    "Restored current room guardian was not included as a verified reader.");
+            }
+            finally
+            {
+                await PostAsync(management,"/api/mobile/management/organization",
+                    new{organization_id=OrganizationIds.Club},200);
+            }
         }
         finally
         {
