@@ -19,7 +19,8 @@ public sealed class PayablOptions
         !value.Enabled || (value.Sandbox &&
         value.MerchantId is { Length: >= 1 and <= 40 } &&
         value.MerchantId.All(c => c is >= 'a' and <= 'z' or >= 'A' and <= 'Z' or >= '0' and <= '9' or '_' or '-') &&
-        value.Secret.Length >= 16 &&
+        value.Secret.Length is >= 16 and <= 128 &&
+        value.Secret.All(c => c >= '!' && c <= '~') &&
         Uri.TryCreate(value.PublicOrigin, UriKind.Absolute, out var origin) &&
         origin.Scheme == Uri.UriSchemeHttps && origin.UserInfo.Length == 0 &&
         origin.AbsolutePath == "/" && origin.Query.Length == 0 && origin.Fragment.Length == 0);
