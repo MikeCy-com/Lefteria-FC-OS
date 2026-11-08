@@ -203,7 +203,9 @@
       const query=new URLSearchParams({organization_id:owner,version:String(item.version)});
       const reply=await fetch('/api/admin/communications/app-announcements/'+encodeURIComponent(item.id)+'?'+query,{
         method:'DELETE',credentials:'same-origin',cache:'no-store',
-        headers:{'X-Lefteria-Admin':'1'}
+        // The web-admin mutation guard requires JSON even for versioned DELETE.
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:'{}'
       });
       if(organization!==owner||actor!==$auth.session?.user.id)return;
       if(reply.status===401){auth.invalidateSession();return;}
