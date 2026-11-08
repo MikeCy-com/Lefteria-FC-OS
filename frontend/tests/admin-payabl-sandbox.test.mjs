@@ -59,3 +59,11 @@ test('finance roles get exact functions without private finance table access',()
   assert.match(workspace,/href="\/admin\/finance"/);
   assert.doesNotMatch(api,/payment_cft|payment_refund|bank_transfer/i);
 });
+
+test('public payer return page cannot claim that a browser redirect means payment',()=>{
+  const page = read('frontend/src/routes/payments/return/+page.svelte');
+  assert.match(api,/\/payments\/return/);
+  assert.match(page,/data-testid="payabl-public-return"/);
+  assert.match(page,/δεν αποτελεί επιβεβαίωση εξόφλησης/);
+  assert.doesNotMatch(page,/fetch\(|\{@html\}|payment\.status|paid = true/i);
+});
