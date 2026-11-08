@@ -2,6 +2,7 @@ using LefteriaFc.Api.Identity;
 using LefteriaFc.Application.Messaging;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Infrastructure.Messaging;
+using LefteriaFc.Domain.Identity;
 
 namespace LefteriaFc.Api.Messaging;
 
