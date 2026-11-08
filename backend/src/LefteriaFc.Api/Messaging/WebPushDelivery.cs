@@ -42,9 +42,18 @@ public sealed class WebPushDeliverySettings
            privateBytes.Length!=32)
             throw new InvalidOperationException("Web Push requires a valid P-256 public/private VAPID key pair.");
         using var signingKey=CreateKey(publicBytes,privateBytes);
-        var material=signingKey.ExportParameters(false);
-        if(!CryptographicOperations.FixedTimeEquals(material.Q.X!,publicBytes.AsSpan(1,32))||
-           !CryptographicOperations.FixedTimeEquals(material.Q.Y!,publicBytes.AsSpan(33,32)))
+        // Q and D can each be independently syntactically valid; prove the
+        // private key really signs for the advertised public key.
+        var probe=Encoding.ASCII.GetBytes("lefteria-push-keypair-verification");
+        var sig=signingKey.SignData(probe,HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        using var verifier=ECDsa.Create(new ECParameters{
+            Curve=ECCurve.NamedCurves.nistP256,
+            Q=new ECPoint{X=publicBytes.AsSpan(1,32).ToArray(),
+                Y=publicBytes.AsSpan(33,32).ToArray()}
+        });
+        if(!verifier.VerifyData(probe,sig,HashAlgorithmName.SHA256,
+            DSASignatureFormat.IeeeP1363FixedFieldConcatenation))
             throw new InvalidOperationException("Web Push configured VAPID key pair does not match.");
         PublicKey=WebPushEndpointPolicy.Base64Url(publicBytes);
         _privateKey=privateBytes;
