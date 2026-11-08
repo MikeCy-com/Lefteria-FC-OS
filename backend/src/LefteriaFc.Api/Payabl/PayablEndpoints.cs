@@ -118,7 +118,7 @@ public static class PayablEndpoints
                 checkout_url = checkoutUrl, replay = true });
             var origin = settings.Value.PublicOrigin.TrimEnd('/');
             var callbackUrl = origin + "/api/payabl/webhooks/" + storedId.ToString("D") + "/" + callbackNonce;
-            var returnUrl = origin + "/admin/finance";
+            var returnUrl = origin + "/payments/return";
             PayablCheckoutResult hosted;
             try
             {
