@@ -19,7 +19,7 @@ internal sealed partial class WebAdminHttpChecks
             player_id=player,expected_group_ids=expected,group_ids=desired
         }));
         request.Method=HttpMethod.Put;
-        request.Headers.Add("Cookie",cookie);
+        if(!string.IsNullOrEmpty(cookie)) request.Headers.Add("Cookie",cookie);
         return await client.SendAsync(request);
     }
 
