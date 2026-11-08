@@ -104,20 +104,22 @@
     }finally{if(alive)mutationBusy=false;}
   }
 
-  function seenOnScreen(node:HTMLElement,message:GroupChatMessage) {
+  function seenOnScreen(node:HTMLElement,initial:GroupChatMessage) {
     const room=selected;
-    if(!room||message.sender_id===actorId||message.is_deleted)return;
-    const key=room.organization_id+'/'+room.group_id+'/'+message.id;
+    if(!room||initial.sender_id===actorId||initial.is_deleted)return;
+    let message=initial;
     let visible=false;
     function acknowledge(){
+      const current=message;
+      const key=room!.organization_id+'/'+room!.group_id+'/'+current.id+':'+current.version;
       if(!alive||!visible||document.visibilityState!=='visible'||
          !document.hasFocus()||selected!==room||
          acknowledged.has(key)||acknowledgmentsInFlight.has(key)||
-         !messages.some(m=>m.id===message.id&&!m.is_deleted))return;
+         !messages.some(m=>m.id===current.id&&!m.is_deleted&&m.version===current.version))return;
       acknowledgmentsInFlight.add(key);
-      void controller.acknowledgeChatRead(room!,message.id).then(confirmed=>{
+      void controller.acknowledgeChatRead(room!,current.id,current.version).then(confirmed=>{
         if(confirmed)acknowledged.add(key);
-      }).catch(()=>{/* Never invent read status after a rejected receipt. */})
+      }).catch(()=>{/* Never infer read status from a stale or rejected version. */})
         .finally(()=>acknowledgmentsInFlight.delete(key));
     }
     const observer=new IntersectionObserver(entries=>{
@@ -127,11 +129,19 @@
     observer.observe(node);
     document.addEventListener('visibilitychange',acknowledge);
     window.addEventListener('focus',acknowledge);
-    return {destroy(){
-      observer.disconnect();
-      document.removeEventListener('visibilitychange',acknowledge);
-      window.removeEventListener('focus',acknowledge);
-    }};
+    return {
+      update(updated:GroupChatMessage){
+        // Editing produces a new message version and requires a fresh
+        // acknowledgment. The backend never credits stale versions.
+        message=updated;
+        acknowledge();
+      },
+      destroy(){
+        observer.disconnect();
+        document.removeEventListener('visibilitychange',acknowledge);
+        window.removeEventListener('focus',acknowledge);
+      }
+    };
   }
 
   async function send(){

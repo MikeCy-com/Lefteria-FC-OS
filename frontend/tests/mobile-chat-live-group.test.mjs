@@ -115,7 +115,8 @@ test('seen-by is explicit, visible-only and limited to management authors',()=>{
   assert.match(ui,/entry\.intersectionRatio>=0\.75/);
   assert.match(ui,/document\.visibilityState!=='visible'/);
   assert.match(ui,/document\.hasFocus\(\)/);
-  assert.match(ui,/controller\.acknowledgeChatRead\(room!,message\.id\)/);
+  assert.match(ui,/controller\.acknowledgeChatRead\(room!,current\.id,current\.version\)/);
+  assert.match(ui,/update\(updated:GroupChatMessage\)/);
   assert.match(ui,/onSeenBy=\{role==='management'\?/);
   const controller=read('../src/lib/mobile/controller.ts');
   assert.match(controller,/async acknowledgeChatRead\(/);

@@ -19,9 +19,9 @@ internal sealed partial class IdentityHttpChecks
     }
 
     private static async Task<JsonElement> AcknowledgeAsync(HttpClient client,
-        string messagePath,int status)
+        string messagePath,int status,long version=1)
     {
-        using var response=await client.PostAsync(messagePath+"/seen",null);
+        using var response=await client.PostAsJsonAsync(messagePath+"/seen",new{version});
         return await ExpectAsync(response,status);
     }
 
@@ -119,7 +119,8 @@ internal sealed partial class IdentityHttpChecks
             await AcknowledgeAsync(fan,managerPath,403);
             var coachSeen=await AcknowledgeAsync(coach,managerPath,200);
             Check.True(coachSeen.GetProperty("seen").GetBoolean() &&
-                coachSeen.GetProperty("message_id").GetString()==managerMessageId.ToString(),
+                coachSeen.GetProperty("message_id").GetString()==managerMessageId.ToString() &&
+                coachSeen.GetProperty("version").GetInt64()==1,
                 "Coach explicit read did not acknowledge the manager's exact message.");
             await AcknowledgeAsync(coach,managerPath,200);
             await AcknowledgeAsync(player,managerPath,200);
@@ -144,6 +145,16 @@ internal sealed partial class IdentityHttpChecks
             }
             Check.Equal(0,currentReaderIds.Count,
                 "The recorded readers did not match actual authenticated participants.");
+            await PutAsync(management,managerPath,
+                new{content="Edited manager receipt verification",version=1},200);
+            Check.Equal(0,(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers").GetArrayLength(),
+                "Old-version receipts falsely counted as readers of newly edited content.");
+            await AcknowledgeAsync(coach,managerPath,403,1);
+            await AcknowledgeAsync(coach,managerPath,200,2);
+            Check.Equal(1,(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers").GetArrayLength(),
+                "Current message version acknowledgment was lost.");
 
             var before=(await GetAsync(parent,academy,200)).GetProperty("messages").GetArrayLength();
             await PostAsync(parent,academy,new{content=new string('X',10001)},422);
@@ -250,7 +261,7 @@ internal sealed partial class IdentityHttpChecks
                 finally{await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
             }
-            await AcknowledgeAsync(coach,ownEditPath,200);
+            await AcknowledgeAsync(coach,ownEditPath,200,2);
             var removed=await DeleteVersionAsync(parent,ownEditPath,2,200);
             Check.True(removed.GetProperty("is_deleted").GetBoolean() &&
                 removed.GetProperty("content").GetString()=="" &&
@@ -299,7 +310,7 @@ internal sealed partial class IdentityHttpChecks
                 var revisions=await db.Database.SqlQueryRaw<long>(
                     "SELECT count(*) AS \"Value\" FROM club.app_chat_message_revisions")
                     .SingleAsync();
-                Check.Equal(3L,revisions,"Message edits and deletion did not write exact revision audit rows.");
+                Check.Equal(4L,revisions,"Message edits and deletion did not write exact revision audit rows.");
             }
 
             // Only currently linked Academy parents may acknowledge. Their

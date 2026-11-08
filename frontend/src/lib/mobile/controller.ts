@@ -1303,14 +1303,16 @@ export function createMobileAuthController(options: {
         throw new Error('Server did not confirm the reaction.');
       return response;
     },
-    async acknowledgeChatRead(room:GroupChatRoom,messageId:string):Promise<boolean> {
-      if(!/^[a-f0-9-]{36}$/i.test(messageId))throw new Error('Invalid receipt ID.');
+    async acknowledgeChatRead(room:GroupChatRoom,messageId:string,version:number):Promise<boolean> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId)||!Number.isSafeInteger(version)||version<1)
+        throw new Error('Invalid receipt ID or version.');
       // Explicit POST after verified visibility; fetching a message never
       // creates a read receipt.
-      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/seen','POST');
+      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/seen','POST',{version});
       if(!result||typeof result!=='object'||Array.isArray(result)||
          !('message_id' in result)||result.message_id!==messageId||
-         !('seen' in result)||result.seen!==true)
+         !('seen' in result)||result.seen!==true||
+         !('version' in result)||result.version!==version)
         throw new Error('Read acknowledgement not confirmed.');
       return true;
     },
