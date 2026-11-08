@@ -18,6 +18,10 @@
   let mutationBusy=$state(false);
   let directoryBusy=$state(true),messageBusy=$state(false),sending=$state(false);
   let error=$state<string|null>(null),sendError=$state<string|null>(null);
+  // Only acknowledgments explicitly triggered after viewport visibility.
+  // No GET or offline inference may mark the message seen.
+  const acknowledged=new Set<string>();
+  const acknowledgmentsInFlight=new Set<string>();
   let requestNumber=0;
   let alive=true;
   onMount(()=>{
@@ -100,6 +104,36 @@
     }finally{if(alive)mutationBusy=false;}
   }
 
+  function seenOnScreen(node:HTMLElement,message:GroupChatMessage) {
+    const room=selected;
+    if(!room||message.sender_id===actorId||message.is_deleted)return;
+    const key=room.organization_id+'/'+room.group_id+'/'+message.id;
+    let visible=false;
+    function acknowledge(){
+      if(!alive||!visible||document.visibilityState!=='visible'||
+         !document.hasFocus()||selected!==room||
+         acknowledged.has(key)||acknowledgmentsInFlight.has(key)||
+         !messages.some(m=>m.id===message.id&&!m.is_deleted))return;
+      acknowledgmentsInFlight.add(key);
+      void controller.acknowledgeChatRead(room!,message.id).then(confirmed=>{
+        if(confirmed)acknowledged.add(key);
+      }).catch(()=>{/* Never invent read status after a rejected receipt. */})
+        .finally(()=>acknowledgmentsInFlight.delete(key));
+    }
+    const observer=new IntersectionObserver(entries=>{
+      visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.75);
+      acknowledge();
+    },{threshold:0.75});
+    observer.observe(node);
+    document.addEventListener('visibilitychange',acknowledge);
+    window.addEventListener('focus',acknowledge);
+    return {destroy(){
+      observer.disconnect();
+      document.removeEventListener('visibilitychange',acknowledge);
+      window.removeEventListener('focus',acknowledge);
+    }};
+  }
+
   async function send(){
     const room=selected,body=draft.trim();
     if(!room||sending||messageBusy||!validTextMessage(body))return;
@@ -153,7 +187,8 @@
       {:else if messages.length===0 && !error}<p class="empty">Δεν υπάρχουν ακόμη μηνύματα.</p>{/if}
       <ol class="messages" aria-live="polite">
         {#each [...messages].reverse() as message (message.id)}
-          <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}>
+          <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}
+            use:seenOnScreen={message}>
             <MobileHoldAction enabled={!message.is_deleted&&!mutationBusy&&!sending&&!messageBusy}
               onOpen={()=>{menuMessage=message;}} label="Ενέργειες μηνύματος">
               <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
@@ -194,12 +229,14 @@
   <MobileMessageActionMenu
     context={{kind:'message',role,actorId,senderId:menuMessage.sender_id,
       isDeleted:menuMessage.is_deleted,isParticipant:true,canReply:true,
-      canEdit:true,canDelete:true,canReact:true,canSeeReaders:false}}
+      canEdit:true,canDelete:true,canReact:true,canSeeReaders:role==='management'}}
     content={menuMessage.content}
     onClose={()=>{menuMessage=null;}}
     onEdit={(text)=>mutateMessage(menuMessage,'edit',text)}
     onDelete={()=>mutateMessage(menuMessage,'delete')}
     onReact={(emoji)=>toggleReaction(menuMessage,emoji)}
+    onSeenBy={role==='management'?
+      ()=>controller.getChatReaders(selected!,menuMessage!.id):undefined}
   />
 {/if}
 
