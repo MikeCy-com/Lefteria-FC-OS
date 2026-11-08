@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the forty-four explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the forty-five explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 44);
+  assert.equal(operations.length, 45);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -117,6 +117,12 @@ test('only the forty-four explicitly declared Mobile operations receive Bearer r
   for(const method of ['GET','PUT','DELETE','PATCH'])
     assert.equal(permits(contract,method,appSeen),false);
   assert.equal(permits(contract,'POST',appSeen+'/extra'),false);
+  const mediaPath='/api/mobile/app/announcements/lefteria_fc_academy/u13/ann_'+
+    'a'.repeat(32)+'/media/11111111-2222-4333-8444-555555555555';
+  assert.equal(permits(contract,'GET',mediaPath),true);
+  for(const method of ['POST','PUT','DELETE','PATCH'])
+    assert.equal(permits(contract,method,mediaPath),false);
+  assert.equal(permits(contract,'GET',mediaPath+'/extra'),false);
   assert.equal(permits(contract,'POST',appReaction),true);
   for(const method of ['GET','PUT','DELETE','PATCH'])
     assert.equal(permits(contract,method,appReaction),false);
@@ -145,7 +151,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 44);
+  assert.equal(protectedOperations(changed).length, 45);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
@@ -199,6 +205,14 @@ test('public reads remain credential-free and private restored media remains una
 });
 
 test('only reviewed login/session, club editor and sanitized-avatar operations reach their application policies', () => {
+  const adminMedia='/api/admin/communications/announcement-drafts/ann_'+
+    'a'.repeat(32)+'/media';
+  const adminMediaDelete=adminMedia+'/11111111-2222-4333-8444-555555555555';
+  assert.equal(entryRouteGroups(contract).some(group=>group.method==='POST'&&
+    new RegExp(group.expression).test(adminMedia)),true);
+  assert.equal(entryRouteGroups(contract).some(group=>group.method==='DELETE'&&
+    new RegExp(group.expression).test(adminMediaDelete)),true);
+  assert.equal(permits(contract,'POST',adminMedia),false);
   const adminReaders='/api/admin/communications/app-announcements/ann_'+
     'a'.repeat(32)+'/readers';
   assert.equal(entryRouteGroups(contract).some(group=>group.method==='GET'&&

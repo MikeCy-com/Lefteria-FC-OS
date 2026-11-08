@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using LefteriaFc.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ internal sealed partial class IdentityHttpChecks
         var academyId="ann_"+Guid.NewGuid().ToString("N");
         var teamId="ann_"+Guid.NewGuid().ToString("N");
         var draftId="ann_"+Guid.NewGuid().ToString("N");
+        var pdfMediaId=Guid.NewGuid();
+        var pdfContent=Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
         var academyPath=AppAnnouncementPath(OrganizationIds.Academy,fixture.GroupId);
         var teamPath=AppAnnouncementPath(OrganizationIds.Club,fixture.TeamId);
         try
@@ -59,6 +62,12 @@ internal sealed partial class IdentityHttpChecks
                     VALUES({teamId},{OrganizationIds.Club},{fixture.TeamId},
                       'Club fixture announcement','Team members only',{admin})
                     """);
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO club.app_announcement_media(
+                      id,announcement_id,kind,file_name,content_type,content)
+                    VALUES({pdfMediaId},{academyId},'attachment','academy-guide.pdf',
+                      'application/pdf',{pdfContent})
+                    """);
             }
 
             var academy=await GetAsync(parent,academyPath,200);
@@ -68,7 +77,7 @@ internal sealed partial class IdentityHttpChecks
                 "Guardian cannot read exactly their currently linked Academy notice.");
             Check.True(!academy.GetRawText().Contains("Internal unpublished secret",
                 StringComparison.Ordinal),"Unpublished admin draft leaked to the mobile app.");
-            Check.Equal(8,academy.GetProperty("announcements")[0].EnumerateObject().Count(),
+            Check.Equal(9,academy.GetProperty("announcements")[0].EnumerateObject().Count(),
                 "App notice included draft, author, contact details or hidden internal fields.");
             Check.Equal(0,academy.GetProperty("announcements")[0]
                 .GetProperty("reactions").GetArrayLength(),
@@ -110,6 +119,21 @@ internal sealed partial class IdentityHttpChecks
             await PostAsync(fan,seenAcademy,new{},403);
             await PostAsync(player,seenAcademy,new{},403);
             await PostAsync(parent,seenTeam,new{},403);
+            var pdfPath=academyPath+"/"+academyId+"/media/"+pdfMediaId;
+            var media=academy.GetProperty("announcements")[0].GetProperty("media");
+            Check.True(media.GetArrayLength()==1&&
+                media[0].GetProperty("id").GetGuid()==pdfMediaId&&
+                !academy.GetRawText().Contains("base64",StringComparison.Ordinal),
+                "Announcement list leaked raw bytes or dropped private PDF metadata.");
+            var downloaded=await GetAsync(parent,pdfPath,200);
+            Check.True(downloaded.GetProperty("kind").GetString()=="attachment"&&
+                downloaded.GetProperty("content_type").GetString()=="application/pdf"&&
+                Convert.FromBase64String(downloaded.GetProperty("base64").GetString()!)
+                    .SequenceEqual(pdfContent),
+                "Current guardian could not download exact private PDF bytes.");
+            await GetAsync(fan,pdfPath,403);
+            await GetAsync(player,pdfPath,403);
+            await GetAsync(parent,teamPath+"/"+teamId+"/media/"+pdfMediaId,403);
             await GetAsync(parent,teamPath,403);
             await GetAsync(player,academyPath,403);
             await GetAsync(fan,academyPath,403);
@@ -153,7 +177,7 @@ internal sealed partial class IdentityHttpChecks
             {
                 await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(r=>r.IsArchived,true));
-                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);await PostAsync(parent,seenAcademy,new{},403);}
+                try {await GetAsync(parent,academyPath,403);await GetAsync(parent,pdfPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);await PostAsync(parent,seenAcademy,new{},403);}
                 finally
                 {
                     await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
@@ -170,6 +194,7 @@ internal sealed partial class IdentityHttpChecks
                     """);
             await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},403);
             await PostAsync(parent,seenAcademy,new{},403);
+            await GetAsync(parent,pdfPath,403);
             Check.Equal(0,(await GetAsync(parent,academyPath,200))
                 .GetProperty("announcements").GetArrayLength(),
                 "Admin-removed announcement was still visible in mobile reader.");
@@ -186,6 +211,8 @@ internal sealed partial class IdentityHttpChecks
                     $"DELETE FROM club.app_announcement_read_receipts WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_reactions WHERE announcement_id={id}");
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_announcement_media WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcements WHERE id={id}");
             }

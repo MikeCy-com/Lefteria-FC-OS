@@ -123,3 +123,31 @@ test('announcement read acknowledgement requires focused card and admin names us
   assert.match(mobileGrants,/GRANT EXECUTE ON FUNCTION club\.ack_mobile_app_announcement_read/);
   assert.match(authGrants,/GRANT EXECUTE ON FUNCTION club\.read_admin_app_announcement_readers/);
 });
+
+test('private announcement media uses sanitized JPEG, versioned draft PDF, current member delivery and no public object URL',()=>{
+  const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108300000_AppAnnouncementPrivateMedia.cs');
+  const guard=read('backend/src/LefteriaFc.Api/WebAdmin/WebAdminRequestGuards.cs');
+  const admin=read('frontend/src/routes/admin/announcements/+page.svelte');
+  const mobile=read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
+  const banner=read('frontend/src/lib/mobile/components/MobileAnnouncementBanner.svelte');
+  const controller=read('frontend/src/lib/mobile/controller.ts');
+  const appGrants=read('ops/postgres/identity-app-grants.sql');
+  const authGrants=read('ops/postgres/web-admin-auth-grants.sql');
+  compile(admin,{filename:'+page.svelte',generate:'server'});
+  compile(mobile,{filename:'MobileAppAnnouncements.svelte',generate:'server'});
+  compile(banner,{filename:'MobileAnnouncementBanner.svelte',generate:'server'});
+  assert.match(migration,/CREATE TABLE club\.app_announcement_media/);
+  assert.match(migration,/CREATE UNIQUE INDEX ux_app_announcement_single_banner/);
+  assert.match(migration,/club\.app_announcement_admin_actor/);
+  assert.match(migration,/club\.read_mobile_chat_groups/);
+  assert.match(migration,/a\.removed_at IS NULL/);
+  assert.match(migration,/SET version=version\+1/);
+  assert.match(migration,/INSERT INTO audit\.security_events/);
+  assert.match(guard,/mediaPath \? 4 \* 1024 \* 1024 \+ 128 \* 1024/);
+  assert.match(appGrants,/GRANT EXECUTE ON FUNCTION club\.read_mobile_app_announcement_media/);
+  assert.match(authGrants,/GRANT EXECUTE ON FUNCTION club\.write_admin_app_announcement_media/);
+  assert.match(controller,/validAppAnnouncementMediaDownload/);
+  assert.match(mobile,/controller\.getAppAnnouncementMedia/);
+  assert.match(banner,/URL\.revokeObjectURL/);
+  assert.doesNotMatch(mobile,/localStorage|sessionStorage|@html|public_attachments/);
+});

@@ -4,14 +4,22 @@ namespace LefteriaFc.Application.Audiences;
 // Target group remains a canonical ID, resolved again at eventual publish.
 public sealed record AdminAnnouncementDraftCommand(
     string? GroupId,string? Title,string? Body);
+public sealed record AdminAnnouncementMediaDto(Guid Id,string Kind,string FileName,
+    string ContentType,int Size);
+public sealed record AdminAnnouncementMediaUploadBody(string? Kind,string? FileName,
+    string? ContentType,string? Base64,long Version);
+public sealed record AdminAnnouncementMediaMutationDto(string AnnouncementId,long Version,
+    IReadOnlyList<AdminAnnouncementMediaDto> Media);
+
 public sealed record AdminAnnouncementDraftDto(
     string Id,string OrganizationId,string GroupId,string Title,string Body,
-    string Status,long Version);
+    string Status,long Version,IReadOnlyList<AdminAnnouncementMediaDto>? Media=null);
 public sealed record AdminAnnouncementDraftsDto(
     string OrganizationId,IReadOnlyList<AdminAnnouncementDraftDto> Drafts);
 public sealed record AdminAnnouncementPublishBody(long Version);
 public sealed record AdminAppAnnouncementDto(string Id,string OrganizationId,string GroupId,
-    string Title,string Body,DateTimeOffset PublishedAt,string Status,long Version);
+    string Title,string Body,DateTimeOffset PublishedAt,string Status,long Version,
+    IReadOnlyList<AdminAnnouncementMediaDto>? Media=null);
 public sealed record AdminAppAnnouncementsDto(string OrganizationId,
     IReadOnlyList<AdminAppAnnouncementDto> Announcements);
 public sealed record AdminAppAnnouncementRemovedDto(string Id,bool Removed,long Version);
@@ -34,4 +42,9 @@ public interface IAdminAnnouncementDraftStore
         string id,long version,CancellationToken token);
     Task<AdminAppAnnouncementReadersDto> ReadPublishedReadersAsync(string cookie,string owner,
         string id,CancellationToken token);
+    Task<AdminAnnouncementMediaMutationDto> AddMediaAsync(string cookie,string owner,
+        string id,long version,string kind,string fileName,string contentType,
+        byte[] content,CancellationToken token);
+    Task<AdminAnnouncementMediaMutationDto> RemoveMediaAsync(string cookie,string owner,
+        string id,long version,Guid mediaId,CancellationToken token);
 }

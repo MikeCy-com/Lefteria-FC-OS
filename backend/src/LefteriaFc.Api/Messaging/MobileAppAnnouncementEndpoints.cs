@@ -42,6 +42,20 @@ public static class MobileAppAnnouncementEndpoints
             .WithTags("Mobile app announcements")
             .WithName("AcknowledgeMobileAppAnnouncementRead")
             .Produces<MobileAppAnnouncementSeenAckDto>().WithMobileErrors();
+        app.MapGet("/api/mobile/app/announcements/{organization}/{group}/{announcementId}/media/{mediaId:guid}",(
+                string organization,string group,string announcementId,Guid mediaId,
+                HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.XContentTypeOptions="nosniff";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.DownloadAppAnnouncementMediaAsync(MobilePrincipal.Read(context.User),
+                        organization,group,announcementId,mediaId,token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile app announcements")
+            .WithName("GetMobileAppAnnouncementMedia")
+            .Produces<AppAnnouncementMediaDownloadDto>().WithMobileErrors();
         return app;
     }
     private static int ParseOffset(HttpContext context,string? raw)

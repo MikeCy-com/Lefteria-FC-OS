@@ -10,9 +10,11 @@
   type Organization='lefteria_fc'|'lefteria_fc_academy';
   type Group={id:string;name:string;kind:string;active_players:number};
   type Directory={organization_id:Organization;ready:true;groups:Group[]};
-  type Draft={id:string;organization_id:Organization;group_id:string;title:string;body:string;status:'draft';version:number};
+  type Media={id:string;kind:'banner'|'attachment';file_name:string;content_type:string;size:number};
+  type Draft={id:string;organization_id:Organization;group_id:string;title:string;body:string;
+    status:'draft';version:number;media?:Media[]};
   type Published={id:string;organization_id:Organization;group_id:string;title:string;body:string;
-    published_at:string;status:'published';version:number};
+    published_at:string;status:'published';version:number;media?:Media[]};
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const permitted=$derived($auth.status==='authenticated' && $auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role)
@@ -53,6 +55,24 @@
           Number.isSafeInteger(g.active_players) && (g.active_players as number)>=0;
       });
   }
+  function validMedia(raw:unknown):raw is Media[] {
+    return Array.isArray(raw)&&raw.length<=4&&
+      raw.filter((f:Media)=>f.kind==='banner').length<=1&&
+      raw.filter((f:Media)=>f.kind==='attachment').length<=3&&
+      raw.every((file:unknown)=>{
+        if(!file||typeof file!=='object'||Array.isArray(file))return false;
+        const f=file as Record<string,unknown>;
+        return typeof f.id==='string'&&
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(f.id)&&
+          typeof f.file_name==='string'&&f.file_name.length>0&&f.file_name.length<=96&&
+          Number.isInteger(f.size)&&
+          (f.kind==='banner'&&f.file_name==='banner.jpg'&&
+            f.content_type==='image/jpeg'&&(f.size as number)>0&&(f.size as number)<=1048576||
+           f.kind==='attachment'&&f.content_type==='application/pdf'&&
+            /^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$/i.test(f.file_name)&&
+            (f.size as number)>0&&(f.size as number)<=2097152);
+      })&&new Set(raw.map((f:Media)=>f.id)).size===raw.length;
+  }
   function validDrafts(raw:unknown,owner:Organization):raw is {organization_id:Organization;drafts:Draft[]}{
     if(!raw || typeof raw!=='object' || Array.isArray(raw))return false;
     const d=raw as Record<string,unknown>;
@@ -64,7 +84,8 @@
           x.organization_id===owner && typeof x.group_id==='string' && x.group_id.length<=128 &&
           typeof x.title==='string' && x.title.length<=140 &&
           typeof x.body==='string' && x.body.length<=4000 &&
-          x.status==='draft' && Number.isSafeInteger(x.version) && (x.version as number)>=1;
+          x.status==='draft' && Number.isSafeInteger(x.version) && (x.version as number)>=1 &&
+          (x.media===undefined||validMedia(x.media));
       });
   }
   function validPublished(raw:unknown,owner:Organization):raw is {organization_id:Organization;announcements:Published[]} {
@@ -79,7 +100,8 @@
           typeof x.title==='string'&&x.title.length>0&&x.title.length<=140&&
           typeof x.body==='string'&&x.body.length>0&&x.body.length<=4000&&
           x.status==='published'&&Number.isSafeInteger(x.version)&&(x.version as number)>=1&&
-          typeof x.published_at==='string'&&!Number.isNaN(Date.parse(x.published_at));
+          typeof x.published_at==='string'&&!Number.isNaN(Date.parse(x.published_at))&&
+          (x.media===undefined||validMedia(x.media));
       });
   }
   $effect(()=>{
@@ -160,7 +182,7 @@
         saved.status!=='draft' || saved.version!==1 ||
         typeof saved.id!=='string' || !/^ann_[0-9a-f]{32}$/.test(saved.id))
         throw new Error('Μη επαληθευμένη αποθήκευση.');
-      drafts=[saved as Draft,...drafts].slice(0,100);
+      drafts=[{...(saved as Draft),media:[]},...drafts].slice(0,100);
       title='';body='';
       success='Το πρόχειρο αποθηκεύτηκε. Δεν στάλθηκε καμία ειδοποίηση.';
     }catch(e){
@@ -194,7 +216,7 @@
         typeof item.published_at!=='string'||Number.isNaN(Date.parse(item.published_at)))
         throw new Error('Μη επαληθευμένη δημοσίευση.');
       drafts=drafts.filter(row=>row.id!==draft.id);
-      published=[item as Published,...published].slice(0,100);
+      published=[{...(item as Published),media:draft.media??[]},...published].slice(0,100);
       success='Η ανακοίνωση δημοσιεύτηκε μόνο στην επιλεγμένη ομάδα της εφαρμογής.';
     }catch(e){
       if(organization===owner&&actor===$auth.session?.user.id)
@@ -269,6 +291,86 @@
     }finally{readerBusy=false;}
   }
 
+  const bannerTypes=['image/jpeg','image/png','image/webp','image/gif'];
+  async function uploadDraftMedia(draft:Draft,kind:'banner'|'attachment',file:File){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!browser||!owner||owner!==draft.organization_id||busy||loading||
+      !permitted.some(o=>o.id===owner))return;
+    if(file.size===0||file.size>(kind==='banner'?3145728:2097152)||
+      (kind==='banner'&&!bannerTypes.includes(file.type))||
+      (kind==='attachment'&&(file.type!=='application/pdf'||
+        !/^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$/i.test(file.name)))||
+      (kind==='attachment'&&(draft.media??[]).filter(x=>x.kind==='attachment').length>=3)){
+      error='Εικόνα έως 3 MB (JPEG/PNG/WebP/GIF) ή PDF έως 2 MB. Έως τρία PDF, με απλό λατινικό όνομα.';
+      return;
+    }
+    busy=true;error=null;success=null;
+    try{
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      const chunks:string[]=[];
+      for(let i=0;i<bytes.length;i+=0x4000)
+        chunks.push(String.fromCharCode(...bytes.subarray(i,i+0x4000)));
+      const base64=btoa(chunks.join(''));
+      const query=new URLSearchParams({organization_id:owner});
+      const response=await fetch('/api/admin/communications/announcement-drafts/'+
+        encodeURIComponent(draft.id)+'/media?'+query,{
+          method:'POST',credentials:'same-origin',cache:'no-store',
+          headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+          body:JSON.stringify({version:draft.version,kind,
+            file_name:kind==='banner'?'banner.jpg':file.name,
+            content_type:file.type,base64})
+        });
+      if(owner!==organization||actor!==$auth.session?.user.id)return;
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error('Το αρχείο δεν αποθηκεύτηκε. Ελέγξτε τον τύπο και την έκδοση του προχείρου.');
+      const data:unknown=await response.json();
+      if(!data||typeof data!=='object'||Array.isArray(data))
+        throw new Error('Μη επαληθευμένη αποθήκευση αρχείου.');
+      const confirmed=data as Record<string,unknown>;
+      if(confirmed.announcement_id!==draft.id||confirmed.version!==draft.version+1||
+        !validMedia(confirmed.media)||!(confirmed.media as Media[]).some(m=>
+          m.kind===kind&&(kind==='banner'||m.file_name===file.name)))
+        throw new Error('Μη επαληθευμένη αποθήκευση αρχείου.');
+      drafts=drafts.map(d=>d.id===draft.id
+        ?{...d,version:confirmed.version as number,media:confirmed.media as Media[]}:d);
+      success='Το αρχείο αποθηκεύτηκε μόνο στο πρόχειρο.';
+    }catch(e){if(owner===organization&&actor===$auth.session?.user.id)
+      error=e instanceof Error?e.message:'Αποτυχία αποθήκευσης.';}
+    finally{busy=false;}
+  }
+  async function removeDraftMedia(draft:Draft,media:Media){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!browser||!owner||owner!==draft.organization_id||busy||loading||
+      !window.confirm('Αφαίρεση συνημμένου από το πρόχειρο;'))return;
+    busy=true;error=null;success=null;
+    try{
+      const query=new URLSearchParams({organization_id:owner});
+      const response=await fetch('/api/admin/communications/announcement-drafts/'+
+        encodeURIComponent(draft.id)+'/media/'+encodeURIComponent(media.id)+'?'+query,{
+          method:'DELETE',credentials:'same-origin',cache:'no-store',
+          headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+          body:JSON.stringify({version:draft.version})
+        });
+      if(owner!==organization||actor!==$auth.session?.user.id)return;
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error('Δεν ήταν δυνατή η αφαίρεση συνημμένου.');
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result))
+        throw new Error('Μη επαληθευμένη αφαίρεση.');
+      const x=result as Record<string,unknown>;
+      if(x.announcement_id!==draft.id||x.version!==draft.version+1||
+        !validMedia(x.media)||(x.media as Media[]).some(m=>m.id===media.id))
+        throw new Error('Μη επαληθευμένη αφαίρεση.');
+      drafts=drafts.map(d=>d.id===draft.id
+        ?{...d,version:x.version as number,media:x.media as Media[]}:d);
+      success='Το συνημμένο αφαιρέθηκε.';
+    }catch(e){if(owner===organization&&actor===$auth.session?.user.id)
+      error=e instanceof Error?e.message:'Αποτυχία αφαίρεσης.';}
+    finally{busy=false;}
+  }
+
 </script>
 
 <svelte:head><title>Πρόχειρες ανακοινώσεις | Λευτεριά FC</title></svelte:head>
@@ -313,6 +415,28 @@
             <li><strong>{draft.title}</strong>
               <small>{groups.find(g=>g.id===draft.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Πρόχειρο</small>
               <p>{draft.body}</p>
+              <div class="media-editor" data-testid="announcement-media">
+                <label>Εικόνα banner (έως 3 MB)
+                  <input type="file" accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={busy||loading}
+                    onchange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';
+                      if(f)void uploadDraftMedia(draft,'banner',f);}}/>
+                </label>
+                <label>Συνημμένο PDF (έως 2 MB, τρία συνολικά)
+                  <input type="file" accept="application/pdf,.pdf"
+                    disabled={busy||loading||(draft.media??[]).filter(f=>f.kind==='attachment').length>=3}
+                    onchange={e=>{const f=e.currentTarget.files?.[0];e.currentTarget.value='';
+                      if(f)void uploadDraftMedia(draft,'attachment',f);}}/>
+                </label>
+                {#each draft.media??[] as file (file.id)}
+                  <div class="media-row">
+                    <span>{file.kind==='banner'?'🖼️ Banner':'📎 '+file.file_name}
+                      · {Math.ceil(file.size/1024)} KB</span>
+                    <button type="button" class="admin-secondary" disabled={busy||loading}
+                      onclick={()=>void removeDraftMedia(draft,file)}>Αφαίρεση</button>
+                  </div>
+                {/each}
+              </div>
               <button type="button" class="admin-primary" disabled={busy||loading||
                 !groups.some(g=>g.id===draft.group_id)} onclick={()=>void publishDraft(draft)}
                 data-testid="announcement-publish">Δημοσίευση στην εφαρμογή</button>
@@ -329,6 +453,13 @@
               <small>{groups.find(g=>g.id===item.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Δημοσιεύτηκε
                 {new Date(item.published_at).toLocaleString('el-CY')}</small>
               <p>{item.body}</p>
+              {#if item.media?.length}
+                <div class="media-row">Υλικό εφαρμογής:
+                  {#each item.media as file (file.id)}
+                    <span>{file.kind==='banner'?'🖼️ Banner':'📎 '+file.file_name}</span>
+                  {/each}
+                </div>
+              {/if}
               <button type="button" class="admin-secondary" disabled={busy||loading||readerBusy}
                 onclick={()=>void showReaders(item)} data-testid="announcement-readers">
                 Διαβάστηκε από
@@ -360,6 +491,12 @@
     onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
+  .media-editor{display:grid;gap:9px;margin:14px 0;padding:12px;border:1px solid #444943;
+    background:#131918;border-radius:11px}
+  .media-editor label{display:grid;gap:6px;font-size:12px;color:#e2d9bd}
+  .media-editor input{max-width:100%;font:inherit}
+  .media-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+    padding:6px 0;font-size:12px;color:#e3d5a9}
   .draft-heading{display:flex;gap:12px;align-items:center;justify-content:space-between}
   .draft-list{list-style:none;margin:0;padding:0}
   .draft-list li{padding:15px 0;border-top:1px solid #303335}

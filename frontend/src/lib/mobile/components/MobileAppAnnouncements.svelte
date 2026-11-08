@@ -4,6 +4,8 @@
   import type {GroupChatRoom} from '../group-chat.ts';
   import type {AppAnnouncement} from '../app-announcements.ts';
   import {CHAT_REACTION_EMOJIS,type ChatReaction} from '../chat-actions.ts';
+  import MobileAnnouncementBanner from './MobileAnnouncementBanner.svelte';
+  import type {AppAnnouncementMedia} from '../app-announcements.ts';
 
   let {controller}:{controller:MobileAuthController}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
@@ -92,6 +94,27 @@
       window.removeEventListener('focus',acknowledge);
     }};
   }
+  let downloading=$state<string|null>(null);
+  async function downloadFile(notice:AppAnnouncement,media:AppAnnouncementMedia){
+    const room=selected,revision=requestNumber;
+    if(!room||media.kind!=='attachment'||downloading)return;
+    downloading=media.id;error=null;
+    try{
+      const blob=await controller.getAppAnnouncementMedia(room,notice.id,media);
+      if(!alive||requestNumber!==revision||selected!==room)return;
+      const url=URL.createObjectURL(blob);
+      try{
+        const link=document.createElement('a');
+        link.href=url;link.download=media.file_name;link.rel='noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();link.remove();
+      }finally{
+        // A temporary in-memory URL is not a persistent or public media link.
+        window.setTimeout(()=>URL.revokeObjectURL(url),30000);
+      }
+    }catch(e){if(alive&&requestNumber===revision)error=fault(e);}
+    finally{if(alive&&requestNumber===revision)downloading=null;}
+  }
   async function toggleReaction(notice:AppAnnouncement,emoji:ChatReaction){
     const room=selected;
     if(!room||reacting!==null||!announcements.some(a=>a.id===notice.id))return;
@@ -147,6 +170,19 @@
             </div>
             <h3>{notice.title}</h3>
             <p>{notice.body}</p>
+            {#each notice.media??[] as media (media.id)}
+              {#if media.kind==='banner'}
+                <MobileAnnouncementBanner {controller} room={selected}
+                  announcementId={notice.id} {media}/>
+              {:else}
+                <button type="button" class="attachment" disabled={downloading!==null}
+                  onclick={()=>void downloadFile(notice,media)}
+                  aria-label={'Λήψη αρχείου '+media.file_name}>
+                  <span aria-hidden="true">📎</span> {media.file_name}
+                  <small>{Math.ceil(media.size/1024)} KB · PDF</small>
+                </button>
+              {/if}
+            {/each}
             <div class="reaction-summary" role="group" aria-label="Αντιδράσεις ανακοίνωσης">
               {#each notice.reactions as reaction (reaction.emoji)}
                 <button type="button" class:mine={reaction.mine} disabled={reacting!==null}
@@ -211,6 +247,11 @@
   .reaction-summary button:disabled,.reaction-palette button:disabled{opacity:.5;cursor:default}
   .reaction-summary span{font-size:11px;color:var(--lf-gold-light)}
   .reaction-palette{padding:8px;border:1px solid var(--lf-brand-edge);border-radius:12px}
+  .attachment{display:flex;gap:9px;align-items:center;flex-wrap:wrap;
+    margin-top:10px;padding:10px 12px;min-height:44px;border:1px solid var(--lf-brand-edge);
+    border-radius:9px;background:var(--lf-elevated);color:var(--lf-gold-light);
+    cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+  .attachment small{color:var(--lf-muted);font-size:10px}
   .more{width:100%;margin-top:15px}
   .error{background:#2a1b1a;border:1px solid #7b3e35;color:#ffcdbe;border-radius:8px;padding:11px;font-size:12px}
   button:focus-visible{outline:2px solid var(--lf-gold);outline-offset:2px}

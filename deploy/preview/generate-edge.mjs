@@ -14,6 +14,8 @@ const entryOperations = [
   ['get','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
   ['post','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
   ['post','/api/admin/communications/announcement-drafts/{id}/publish',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts/{id}/media',[{ WebAdmin: [] }]],
+  ['delete','/api/admin/communications/announcement-drafts/{id}/media/{mediaId}',[{ WebAdmin: [] }]],
   ['get','/api/admin/communications/app-announcements',[{ WebAdmin: [] }]],
   ['get','/api/admin/communications/app-announcements/{id}/readers',[{ WebAdmin: [] }]],
   ['delete','/api/admin/communications/app-announcements/{id}',[{ WebAdmin: [] }]],
@@ -98,8 +100,8 @@ export function entryRouteGroups(document) {
     if (!operation || JSON.stringify(operation.security ?? []) !== JSON.stringify(security)) {
       throw new Error('Reviewed application entry security changed.');
     }
-    const expression = path.replace(/\{(?:fileName|id)\}/g, '[^/]+');
-    for (const parameter of ['fileName','id']) {
+    const expression = path.replace(/\{(?:fileName|id|mediaId)\}/g, '[^/]+');
+    for (const parameter of ['fileName','id','mediaId']) {
       if (path.includes('{'+parameter+'}') &&
           ![...(document.paths[path]?.parameters ?? []),...(operation.parameters ?? [])]
             .some(value => value?.name === parameter && value.in === 'path' && value.required === true)) {

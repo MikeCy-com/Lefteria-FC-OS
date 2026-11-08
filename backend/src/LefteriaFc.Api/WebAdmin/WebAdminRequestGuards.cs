@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Text.RegularExpressions;
 using LefteriaFc.Application.WebAdmin;
 using LefteriaFc.Infrastructure.WebAdmin;
 using Microsoft.Extensions.Options;
@@ -30,7 +31,15 @@ public static class WebAdminRequestGuards
                 }
                 // Safe full public history/description are independently bounded;
                 // credential and session endpoints keep their original small cap.
-                var limit = HttpMethods.IsPut(context.Request.Method) && context.Request.Path == "/api/admin/club" ? 1024 * 1024 : 16 * 1024;
+                // Only the exact draft-media POST gets a larger JSON budget.
+                // The trusted Origin/header check above remains compulsory.
+                var mediaPath = HttpMethods.IsPost(context.Request.Method) &&
+                    Regex.IsMatch(context.Request.Path.Value ?? "",
+                      @"\A/api/admin/communications/announcement-drafts/ann_[0-9a-f]{32}/media\z",
+                      RegexOptions.CultureInvariant);
+                var limit = mediaPath ? 4 * 1024 * 1024 + 128 * 1024 :
+                    HttpMethods.IsPut(context.Request.Method) && context.Request.Path == "/api/admin/club"
+                    ? 1024 * 1024 : 16 * 1024;
                 if (context.Request.ContentLength > limit)
                 {
                     await Reject(context, 413, "request_too_large", "The request is too large.");

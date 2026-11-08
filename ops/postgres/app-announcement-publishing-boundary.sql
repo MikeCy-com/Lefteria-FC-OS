@@ -28,6 +28,24 @@ BEGIN
       RAISE EXCEPTION 'App announcement publish boundary grants are unsafe';
     END IF;
   END LOOP;
+  IF NOT has_function_privilege(auth_role,
+       'club.write_admin_app_announcement_media(text,text,text,bigint,uuid,text,text,text,bytea)','EXECUTE')
+    OR NOT has_function_privilege(auth_role,
+       'club.remove_admin_app_announcement_media(text,text,text,bigint,uuid)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.read_mobile_app_announcement_media(uuid,text,text,timestamptz,text,text,text,uuid)','EXECUTE')
+    OR has_function_privilege(mobile_role,
+       'club.write_admin_app_announcement_media(text,text,text,bigint,uuid,text,text,text,bytea)','EXECUTE')
+    OR has_function_privilege(mobile_role,
+       'club.remove_admin_app_announcement_media(text,text,text,bigint,uuid)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.read_mobile_app_announcement_media(uuid,text,text,timestamptz,text,text,text,uuid)','EXECUTE')
+    OR has_any_column_privilege(auth_role,'club.app_announcement_media','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,'club.app_announcement_media','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(mobile_role,'club.app_announcement_media','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,'club.app_announcement_media','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Private announcement media boundary leaked';
+  END IF;
   IF NOT has_function_privilege(mobile_role,
        'club.ack_mobile_app_announcement_read(uuid,text,text,timestamptz,text,text,text)','EXECUTE')
     OR has_function_privilege(auth_role,
