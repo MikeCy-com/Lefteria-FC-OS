@@ -88,7 +88,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Admin audiences derive live FC/Academy membership counts without exposing child data", AdminAudienceDirectoryAsync),
         ("Admin team/group POST creates one audited canonical group and honors current owner and role", AdminGroupCreateAsync),
         ("Admin roster players are manager-only and reflect private scoped memberships", AdminRosterPlayerDirectoryAsync),
-        ("Admin roster membership writes are scoped, audited and conflict-checked", AdminRosterAssignmentsAsync)
+        ("Admin roster membership writes are scoped, audited and conflict-checked", AdminRosterAssignmentsAsync),
+        ("Admin coach directory preserves owner-scoped canonical staff relations", AdminCoachDirectoryAsync)
     ];
 
     private HttpClient Client()

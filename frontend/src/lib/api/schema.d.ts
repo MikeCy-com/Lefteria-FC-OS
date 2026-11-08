@@ -96,6 +96,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/coaches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAdminCoaches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/groups": {
         parameters: {
             query?: never;
@@ -839,6 +855,23 @@ export interface components {
             club: components["schemas"]["AdminClubEditable"];
             /** Format: int64 */
             expected_version: number;
+        };
+        AdminCoachDto: {
+            group_ids: string[];
+            id: string;
+            job_role: string;
+            name: string;
+        };
+        AdminCoachPageDto: {
+            coaches: components["schemas"]["AdminCoachDto"][];
+            /** Format: int32 */
+            limit: number | string;
+            /** Format: int32 */
+            offset: number | string;
+            organization_id: string;
+            ready: boolean;
+            /** Format: int32 */
+            total: number | string;
         };
         AdminCreateGroupCommand: {
             name: null | string;
@@ -2447,6 +2480,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminAudienceDirectoryDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    GetAdminCoaches: {
+        parameters: {
+            query: {
+                limit?: number | string;
+                offset?: number | string;
+                /** @description Exact current assigned football or Academy owner; never all or inferred. */
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminCoachPageDto"];
                 };
             };
             /** @description Bad Request */
