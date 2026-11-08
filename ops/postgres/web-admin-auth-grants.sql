@@ -146,6 +146,20 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcements(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement(
   text,text,text,bigint) TO :"admin_auth_role";
+-- Every raw banner or document is private. Only managers with the
+-- exact club grant can mutate unpublished draft media via audited routines.
+REVOKE ALL ON TABLE club.app_announcement_media
+  FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_app_announcement_media(
+  uuid,text,text,timestamptz,text,text,text,uuid) FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.write_admin_app_announcement_media(
+  text,text,text,bigint,uuid,text,text,text,bytea) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_app_announcement_media(
+  text,text,text,bigint,uuid,text,text,text,bytea) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.remove_admin_app_announcement_media(
+  text,text,text,bigint,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement_media(
+  text,text,text,bigint,uuid) TO :"admin_auth_role";
 -- Readers of official app notices are visible ONLY via this exact,
 -- manager/organization/active-group verified helper, never direct mobile data.
 REVOKE ALL ON TABLE club.app_announcement_read_receipts
@@ -224,6 +238,8 @@ BEGIN
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
                   'club.read_admin_app_announcements(text,text)'::regprocedure,
                   'club.read_admin_app_announcement_readers(text,text,text)'::regprocedure,
+                  'club.write_admin_app_announcement_media(text,text,text,bigint,uuid,text,text,text,bytea)'::regprocedure,
+                  'club.remove_admin_app_announcement_media(text,text,text,bigint,uuid)'::regprocedure,
                   'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
