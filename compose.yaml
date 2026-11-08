@@ -105,6 +105,11 @@ services:
       Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
       Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
       Twilio__FromNumber: ${TWILIO_FROM_NUMBER:-}
+      Payabl__Enabled: "${PAYABL_ENABLED:-false}"
+      Payabl__Environment: ${PAYABL_ENVIRONMENT:-sandbox}
+      Payabl__MerchantId: ${PAYABL_MERCHANT_ID:-}
+      Payabl__MerchantSecret: ${PAYABL_MERCHANT_SECRET:-}
+      Payabl__PublicOrigin: ${PUBLIC_ORIGIN:?Set PUBLIC_ORIGIN in .env}
     depends_on:
       postgres:
         condition: service_healthy
