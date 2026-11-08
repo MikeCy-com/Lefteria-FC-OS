@@ -81,7 +81,8 @@ public sealed class PostgresAdminAnnouncementDraftStore(
                     d.Id is null or {Length:0 or >128} ||
                     d.GroupId is null or {Length:0 or >128} ||
                     d.Title is null or {Length:0 or >140} ||
-                    d.Body is null or {Length:0 or >4000}))
+                    d.Body is null or {Length:0 or >4000} ||
+                    (d.Media is not null && !ValidMedia(d.Media))))
                 throw new WebAdminException(503,"announcement_draft_unavailable","Draft list verification failed.");
             return result;
         }
@@ -134,7 +135,8 @@ public sealed class PostgresAdminAnnouncementDraftStore(
                 !ValidAnnouncementId(item.Id)||item.OrganizationId!=owner||
                 item.Status!="published"||item.Version<1||
                 item.Title is null or {Length:0 or >140}||
-                item.Body is null or {Length:0 or >4000}))
+                item.Body is null or {Length:0 or >4000}||
+                (item.Media is not null && !ValidMedia(item.Media))))
                 throw new WebAdminException(503,"app_announcement_unavailable",
                     "Published notice list verification failed.");
             return data;
@@ -193,6 +195,96 @@ public sealed class PostgresAdminAnnouncementDraftStore(
         }
         catch(PostgresException error){throw TranslatePublished(error);}
     }
+    public async Task<AdminAnnouncementMediaMutationDto> AddMediaAsync(string cookie,string owner,
+        string id,long version,string kind,string fileName,string contentType,
+        byte[] content,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        if(!ValidAnnouncementId(id)||version<1||
+           !ValidInputMedia(kind,fileName,contentType,content))
+            throw InvalidPublication();
+        var mediaId=Guid.NewGuid();
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.write_admin_app_announcement_media(
+                  @digest,@owner,@announcement,@version,@media,
+                  @kind,@file,@mime,@bytes)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("announcement",id);
+            command.Parameters.AddWithValue("version",version);
+            command.Parameters.AddWithValue("media",mediaId);
+            command.Parameters.AddWithValue("kind",kind);
+            command.Parameters.AddWithValue("file",fileName);
+            command.Parameters.AddWithValue("mime",contentType);
+            command.Parameters.Add("bytes",NpgsqlTypes.NpgsqlDbType.Bytea).Value=content;
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var data=raw is null?null:JsonSerializer.Deserialize<AdminAnnouncementMediaMutationDto>(raw,Json);
+            if(data is null||data.AnnouncementId!=id||data.Version!=version+1||
+               data.Media is null||!ValidMedia(data.Media)||
+               !data.Media.Any(m=>m.Id==mediaId&&m.Kind==kind&&m.FileName==fileName))
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Uploaded media could not be verified.");
+            return data;
+        }
+        catch(PostgresException error){throw TranslatePublished(error);}
+    }
+
+    public async Task<AdminAnnouncementMediaMutationDto> RemoveMediaAsync(string cookie,string owner,
+        string id,long version,Guid mediaId,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        if(!ValidAnnouncementId(id)||version<1||mediaId==Guid.Empty)throw InvalidPublication();
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.remove_admin_app_announcement_media(
+                  @digest,@owner,@announcement,@version,@media)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("announcement",id);
+            command.Parameters.AddWithValue("version",version);
+            command.Parameters.AddWithValue("media",mediaId);
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var data=raw is null?null:JsonSerializer.Deserialize<AdminAnnouncementMediaMutationDto>(raw,Json);
+            if(data is null||data.AnnouncementId!=id||data.Version!=version+1||
+                data.Media is null||!ValidMedia(data.Media)||data.Media.Any(m=>m.Id==mediaId))
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Media removal could not be verified.");
+            return data;
+        }
+        catch(PostgresException error){throw TranslatePublished(error);}
+    }
+
+    private static bool ValidInputMedia(string kind,string file,string mime,byte[] bytes)=>
+        bytes.Length>0 && (kind=="banner" &&
+          file=="banner.jpg" && mime=="image/jpeg" &&
+          bytes.Length<=1048576 && bytes.Length>=4 &&
+          bytes[0]==0xff && bytes[1]==0xd8 &&
+          bytes[^2]==0xff && bytes[^1]==0xd9 ||
+        kind=="attachment" && mime=="application/pdf" &&
+          bytes.Length is >=8 and <=2097152 &&
+          System.Text.RegularExpressions.Regex.IsMatch(file,
+            @"\A[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf\z",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase|
+            System.Text.RegularExpressions.RegexOptions.CultureInvariant) &&
+          bytes.AsSpan(0,5).SequenceEqual("%PDF-"u8) &&
+          bytes.AsSpan(bytes.Length-5,5).SequenceEqual("%%EOF"u8));
+    private static bool ValidMedia(IReadOnlyList<AdminAnnouncementMediaDto> entries)=>
+        entries.Count<=4&&entries.Count(m=>m.Kind=="banner")<=1&&
+        entries.Count(m=>m.Kind=="attachment")<=3&&
+        entries.Select(m=>m.Id).Distinct().Count()==entries.Count&&entries.All(m=>
+          m.Id!=Guid.Empty&&m.FileName is {Length:>0 and <=96}&&
+          ((m.Kind=="banner"&&m.ContentType=="image/jpeg"&&
+            m.FileName=="banner.jpg"&&m.Size is >=4 and <=1048576)||
+           (m.Kind=="attachment"&&m.ContentType=="application/pdf"&&
+            m.Size is >=8 and <=2097152)));
+
     private static bool ValidAnnouncementId(string? id)=>
         id is {Length:36} && id.StartsWith("ann_",StringComparison.Ordinal) &&
         id.AsSpan(4).ToString().All(char.IsAsciiHexDigit);
