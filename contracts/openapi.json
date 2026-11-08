@@ -1272,6 +1272,15 @@
             "format": "date-time",
             "type": "string"
           },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/MobileChatReactionDto"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "status": {
             "type": "string"
           },
@@ -1311,6 +1320,24 @@
         "required": [
           "announcements",
           "next_offset"
+        ],
+        "type": "object"
+      },
+      "MobileAppAnnouncementReactionSnapshotDto": {
+        "properties": {
+          "announcement_id": {
+            "type": "string"
+          },
+          "reactions": {
+            "items": {
+              "$ref": "#/components/schemas/MobileChatReactionDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "announcement_id",
+          "reactions"
         ],
         "type": "object"
       },
@@ -8780,6 +8807,137 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MobileAppAnnouncementPageDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app announcements"
+        ]
+      }
+    },
+    "/api/mobile/app/announcements/{organization}/{group}/{announcementId}/reactions": {
+      "post": {
+        "operationId": "SetMobileAppAnnouncementReaction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "group",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "announcementId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileChatReactionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAppAnnouncementReactionSnapshotDto"
                 }
               }
             },
