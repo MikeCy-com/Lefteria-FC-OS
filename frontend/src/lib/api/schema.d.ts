@@ -1890,26 +1890,6 @@ export interface components {
         MobilePrivateSendBody: {
             content: null | string;
         };
-        MobilePushConfigDto: {
-            /** Format: int32 */
-            active_devices: number | string;
-            enabled: boolean;
-            public_key: null | string;
-        };
-        MobilePushKeysBody: {
-            auth: null | string;
-            p256dh: null | string;
-        };
-        MobilePushSubscriptionBody: {
-            endpoint: null | string;
-            keys: null | components["schemas"]["MobilePushKeysBody"];
-        };
-        MobilePushSubscriptionStateDto: {
-            subscribed: boolean;
-        };
-        MobilePushUnsubscribeBody: {
-            endpoint: null | string;
-        };
         MobileProfilePreferenceBody: {
             favorite_team?: ("first_team" | "academy" | "both") | null;
         };
@@ -1931,6 +1911,26 @@ export interface components {
             notification_prefs?: {
                 [key: string]: boolean;
             } | null;
+        };
+        MobilePushConfigDto: {
+            /** Format: int32 */
+            active_devices: number | string;
+            enabled: boolean;
+            public_key: null | string;
+        };
+        MobilePushKeysBody: {
+            auth: null | string;
+            p256dh: null | string;
+        };
+        MobilePushSubscriptionBody: {
+            endpoint: null | string;
+            keys: (null | components["schemas"]["MobilePushKeysBody"]) & components["schemas"]["MobilePushKeysBody"];
+        };
+        MobilePushSubscriptionStateDto: {
+            subscribed: boolean;
+        };
+        MobilePushUnsubscribeBody: {
+            endpoint: null | string;
         };
         MobileRoleSwitchResult: {
             available_roles?: null | string[];
@@ -5557,7 +5557,7 @@ export interface operations {
             };
         };
     };
-    UnsubscribeMobileWebPushDevice: {
+    SubscribeMobileWebPushDevice: {
         parameters: {
             query?: never;
             header?: never;
@@ -5566,7 +5566,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MobilePushUnsubscribeBody"];
+                "application/json": components["schemas"]["MobilePushSubscriptionBody"];
             };
         };
         responses: {
@@ -5644,7 +5644,7 @@ export interface operations {
             };
         };
     };
-    SubscribeMobileWebPushDevice: {
+    UnsubscribeMobileWebPushDevice: {
         parameters: {
             query?: never;
             header?: never;
@@ -5653,7 +5653,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MobilePushSubscriptionBody"];
+                "application/json": components["schemas"]["MobilePushUnsubscribeBody"];
             };
         };
         responses: {
