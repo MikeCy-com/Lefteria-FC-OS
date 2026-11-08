@@ -11,8 +11,9 @@ public sealed class AdminAudienceOperationTransformer : IOpenApiOperationTransfo
     public Task TransformAsync(OpenApiOperation operation,
         OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
-        if (context.Description.RelativePath?.Split('?')[0].Trim('/') !=
-            "api/admin/football/audiences" || operation.Parameters is null)
+        if (context.Description.RelativePath?.Split('?')[0].Trim('/') is not
+            ("api/admin/football/audiences" or "api/admin/football/groups") ||
+            operation.Parameters is null)
             return Task.CompletedTask;
         foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()
             .Where(item => item.Name == "organization_id"))
