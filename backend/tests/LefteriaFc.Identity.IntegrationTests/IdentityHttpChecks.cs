@@ -34,6 +34,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Academy enquiry HTTP handler stays closed, checks origin/consent/size and confirms only committed writes", AcademyEnquiryHttpHandlerChecks.RequestGuardsAsync),
         ("Private Academy lead function atomically limits writes, scopes audit and rolls test data back", database.AssertMarketingAtomicWriteAsync),
         ("Concurrent Academy lead requests cannot bypass five-per-hour throttle or split audit", database.AssertMarketingConcurrentRateLimitAsync),
+        ("Trusted proxy forwarding accepts one edge hop but ignores direct and forged forwarding headers", AcademyEnquiryProxyTrustChecks.RunAsync),
         ("Marketing runtime writer refuses unapproved function execution without data writes", database.AssertMarketingRuntimeWriterUnavailableAsync),
         ("Real HTTP health, authentication boundary and no-store headers", HttpBoundaryAsync),
         ("Unknown verified phone consumes its proof before 404", UnknownPhoneAsync),

@@ -7,6 +7,7 @@ The original Lefteria FC Academy `/join` still does **not** accept public lead s
 The following items are prerequisites to mapping any public POST endpoint:
 
 1. Verify the Hostinger/Traefik trusted-forwarded-headers configuration against the actual deployment path, and test spoofed headers, direct traffic and proxy chains.
+   - The isolated forwarding middleware fixture tests one configured edge proxy, a direct untrusted peer, forged left-hand multi-hop headers, and spoofed forwarding host. This does **not** establish the actual Hostinger/Traefik chain or authorize route activation.
 2. Approve Academy-specific retention, guardian consent, contact-data minimization and abuse controls.
 3. Restrict `marketing.store_academy_lead` execution to the least-privileged runtime role with no direct lead/bucket table grants, validate SQL owner and function security, and run real PostgreSQL denial, concurrency, throttle, rollback and audit tests.
    - The isolated identity fixture includes a nine-request simultaneous write test using one unique synthetic fingerprint; it verifies at most five committed leads, matching audit events, denied excess requests and exact-record cleanup. The runtime role remains denied function access until a separate grant review.
