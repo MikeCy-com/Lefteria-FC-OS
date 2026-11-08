@@ -151,3 +151,36 @@ test('private announcement media uses sanitized JPEG, versioned draft PDF, curre
   assert.match(banner,/URL\.revokeObjectURL/);
   assert.doesNotMatch(mobile,/localStorage|sessionStorage|@html|public_attachments/);
 });
+
+test('app-only notification inbox rechecks membership and preferences instead of producing device push',()=>{
+  const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108310000_AppAnnouncementNotificationInbox.cs');
+  const memberEndpoint=read('backend/src/LefteriaFc.Api/Messaging/MobileAppAnnouncementEndpoints.cs');
+  const grants=read('ops/postgres/identity-app-grants.sql');
+  const boundary=read('ops/postgres/app-announcement-publishing-boundary.sql');
+  const notifications=read('frontend/src/lib/mobile/components/MobileAppNotificationInbox.svelte');
+  const routes=read('frontend/src/routes/app/[...path]/+page.svelte');
+  const controller=read('frontend/src/lib/mobile/controller.ts');
+  const validator=read('frontend/src/lib/mobile/notification-inbox.ts');
+  compile(notifications,{filename:'MobileAppNotificationInbox.svelte',generate:'server'});
+  compile(routes,{filename:'+page.svelte',generate:'server'});
+  assert.match(migration,/CREATE TABLE club\.app_announcement_notification_events/);
+  assert.match(migration,/PRIMARY KEY/);
+  assert.match(migration,/AFTER INSERT ON club\.app_announcements/);
+  assert.match(migration,/ON CONFLICT \(announcement_id\) DO NOTHING/);
+  assert.match(migration,/club\.read_mobile_chat_groups/);
+  assert.match(migration,/notification_preferences @>/);
+  assert.match(migration,/app_announcement_read_receipts/);
+  assert.match(migration,/a\.removed_at IS NULL/);
+  assert.match(migration,/IF v_opted_out THEN/);
+  assert.match(memberEndpoint,/GetMobileAppNotificationInbox/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_mobile_app_notification_inbox/);
+  assert.match(boundary,/Raw table access leaked|outbox\/raw table access leaked|outbox\/raw table/i);
+  assert.match(validator,/validAppNotificationInbox/);
+  assert.match(validator,/new Set\(items\.map/);
+  assert.match(controller,/getAppNotificationInbox/);
+  assert.match(routes,/notificationCount=\$state\(0\)/);
+  assert.match(routes,/MobileAppNotificationInbox/);
+  assert.match(routes,/openNotification/);
+  assert.match(notifications,/onUnreadChange/);
+  assert.doesNotMatch(notifications,/Notification\.requestPermission|PushManager|serviceWorker\.register|localStorage|sessionStorage|@html/);
+});
