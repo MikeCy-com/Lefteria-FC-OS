@@ -113,7 +113,11 @@
           },
           "size": {
             "format": "int32",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -1206,7 +1210,11 @@
           },
           "size": {
             "format": "int32",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -1236,7 +1244,11 @@
           },
           "size": {
             "format": "int32",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -7220,6 +7232,16 @@
             },
             "description": "Unprocessable Entity"
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
           "503": {
             "content": {
               "application/json": {
@@ -7254,18 +7276,18 @@
             }
           },
           {
-            "in": "query",
-            "name": "organization_id",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
             "in": "path",
             "name": "mediaId",
             "required": true,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
               "type": "string"
             }
           }
@@ -7360,6 +7382,16 @@
               }
             },
             "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
           },
           "503": {
             "content": {
