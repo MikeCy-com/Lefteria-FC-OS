@@ -101,6 +101,23 @@ try {
   assert.deepEqual(document.components.schemas.AdminAudienceGroupDto.required,
     ['id','name','kind','active_players']);
 
+  const rosterPlayers = document.paths['/api/admin/football/players'];
+  assert.deepEqual(Object.keys(rosterPlayers), ['get']);
+  assert.deepEqual(rosterPlayers.get.security, [{WebAdmin:[]}]);
+  assert.deepEqual(rosterPlayers.get.parameters.filter(p => p.name === 'organization_id')
+    .map(p => ({required:p.required,values:p.schema.enum})),
+    [{required:true,values:['lefteria_fc','lefteria_fc_academy']}]);
+  assert.deepEqual(rosterPlayers.get.parameters.map(p => p.name),
+    ['organization_id','offset','limit']);
+  assert.deepEqual(Object.keys(rosterPlayers.get.responses).sort(),
+    ['200','400','401','403','503']);
+  assert.equal(rosterPlayers.get.responses['200'].content['application/json'].schema.$ref,
+    '#/components/schemas/AdminRosterPlayersPageDto');
+  assert.deepEqual(document.components.schemas.AdminRosterPlayerDto.required,
+    ['id','name','team_id','academy_group_ids']);
+  assert.deepEqual(document.components.schemas.AdminRosterPlayersPageDto.required,
+    ['organization_id','ready','offset','limit','total','players']);
+
   const createGroup = document.paths['/api/admin/football/groups'];
   assert.deepEqual(Object.keys(createGroup), ['post']);
   assert.deepEqual(createGroup.post.security, [{WebAdmin:[]}]);

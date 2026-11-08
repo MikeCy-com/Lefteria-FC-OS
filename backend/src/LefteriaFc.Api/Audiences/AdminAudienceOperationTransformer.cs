@@ -12,7 +12,8 @@ public sealed class AdminAudienceOperationTransformer : IOpenApiOperationTransfo
         OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
         if (context.Description.RelativePath?.Split('?')[0].Trim('/') is not
-            ("api/admin/football/audiences" or "api/admin/football/groups") ||
+            ("api/admin/football/audiences" or "api/admin/football/groups" or
+              "api/admin/football/players") ||
             operation.Parameters is null)
             return Task.CompletedTask;
         foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()

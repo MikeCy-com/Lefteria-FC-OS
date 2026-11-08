@@ -96,6 +96,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/players": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAdminRosterPlayers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/pos/catalog": {
         parameters: {
             query?: never;
@@ -874,6 +890,23 @@ export interface components {
             name: string;
             /** Format: int32 */
             price_cents: number | string;
+        };
+        AdminRosterPlayerDto: {
+            academy_group_ids: string[];
+            id: string;
+            name: string;
+            team_id: null | string;
+        };
+        AdminRosterPlayersPageDto: {
+            /** Format: int32 */
+            limit: number | string;
+            /** Format: int32 */
+            offset: number | string;
+            organization_id: string;
+            players: components["schemas"]["AdminRosterPlayerDto"][];
+            ready: boolean;
+            /** Format: int32 */
+            total: number | string;
         };
         CalendarOwnResponse: {
             player_id: string;
@@ -2409,6 +2442,67 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    GetAdminRosterPlayers: {
+        parameters: {
+            query: {
+                limit?: number | string;
+                offset?: number | string;
+                /** @description Exact current assigned football or Academy owner; never all or inferred. */
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminRosterPlayersPageDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

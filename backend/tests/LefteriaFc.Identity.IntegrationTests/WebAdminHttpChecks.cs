@@ -86,7 +86,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("POS categories POST/PUT atomically audit and honor owner, versions, origin and revocation", AdminPosCategoryWritesAsync),
         ("POS products POST/PUT replace whole variants atomically with fresh grants and audit", AdminPosProductWritesAsync),
         ("Admin audiences derive live FC/Academy membership counts without exposing child data", AdminAudienceDirectoryAsync),
-        ("Admin team/group POST creates one audited canonical group and honors current owner and role", AdminGroupCreateAsync)
+        ("Admin team/group POST creates one audited canonical group and honors current owner and role", AdminGroupCreateAsync),
+        ("Admin roster players are manager-only and reflect private scoped memberships", AdminRosterPlayerDirectoryAsync)
     ];
 
     private HttpClient Client()
