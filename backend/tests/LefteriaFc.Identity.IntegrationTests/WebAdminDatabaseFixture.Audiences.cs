@@ -128,10 +128,15 @@ internal sealed partial class WebAdminDatabaseFixture
             cmd.Parameters.AddWithValue("ids",ids);
             cmd.Parameters.AddWithValue("teams",new[]{fixture.Team1,fixture.Team2});
             cmd.Parameters.AddWithValue("groups",new[]{fixture.Group1,fixture.Group2});
-            if(await cmd.ExecuteNonQueryAsync()!=count)
+            var affected=await cmd.ExecuteNonQueryAsync();
+            // The read-only audience check removes one membership, while
+            // group-creation checks leave all three. Both are exact keys
+            // owned by this disposable fixture, never imported child rows.
+            if ((count == -1 && affected != 2 && affected != 3) ||
+                (count != -1 && affected != count))
                 throw new InvalidOperationException("Unexpected synthetic audience cleanup row count.");
         }
-        await Delete("DELETE FROM club.player_academy_groups WHERE player_id=ANY(@ids)",2);
+        await Delete("DELETE FROM club.player_academy_groups WHERE player_id=ANY(@ids)",-1);
         await Delete("DELETE FROM club.players WHERE id=ANY(@ids)",7);
         await Delete("DELETE FROM club.teams WHERE id=ANY(@teams)",2);
         await Delete("DELETE FROM club.academy_groups WHERE id=ANY(@groups)",2);

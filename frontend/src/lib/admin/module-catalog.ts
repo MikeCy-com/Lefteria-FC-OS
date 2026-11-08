@@ -45,7 +45,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'football', name: 'Αγωνιστικό & Ακαδημία', description: 'Ομάδες, προπονήσεις, αγώνες και δοκιμαστικά.', modules: [
     { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read', 'marketing:read'] },
-    { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Ζωντανές ομάδες και συμμετοχές του ρόστερ ανά οργανισμό, χωρίς στοιχεία παιδιών.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
+    { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Πραγματικές ομάδες, μέλη και ελεγχόμενη δημιουργία τμημάτων ανά οργανισμό.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
     { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
     { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Αγωνιστικό πρόγραμμα και ενημερώσεις.', status: 'planned', scope: 'first-team', anyPermission: ['fixtures:read', 'results:read'] }

@@ -25,6 +25,67 @@
   let loading = $state(false);
   let unavailable = $state(false);
   let retry = $state(0);
+  let showCreate = $state(false);
+  let groupName = $state('');
+  let saving = $state(false);
+  let createError = $state<string | null>(null);
+  const canCreate = $derived(
+    $auth.status === 'authenticated' && $auth.session && !!organization &&
+    assignments.some(org => org.id === organization) &&
+    hasAdminPermission($auth.session.user.permissions,
+      organization === 'lefteria_fc' ? 'teams:write' : 'academy:write')
+  );
+
+  async function createGroup() {
+    if (!browser || !canCreate || !organization || !directory || loading ||
+        saving || !showCreate) return;
+    const name = groupName;
+    if (!name || name.length > 120 || name !== name.trim() ||
+        /[\\x00-\\x1f\\x7f]/.test(name)) {
+      createError = 'Εισάγετε όνομα τμήματος χωρίς περιττά κενά (έως 120 χαρακτήρες).';
+      return;
+    }
+    const selected = organization;
+    const actor = $auth.session?.user.id;
+    saving = true;
+    createError = null;
+    try {
+      const query = new URLSearchParams({organization_id:selected});
+      const response = await fetch('/api/admin/football/groups?' + query.toString(), {
+        method:'POST', credentials:'same-origin', cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({name})
+      });
+      if (organization !== selected || $auth.session?.user.id !== actor || !canCreate) return;
+      if (response.status === 401 || response.status === 403) {
+        void auth.bootstrap();
+        showCreate = false;
+        throw new Error('Τα δικαιώματα ή η σύνδεσή σας άλλαξαν.');
+      }
+      if (response.status === 409) {
+        showCreate = false;
+        retry++;
+        throw new Error('Το τμήμα άλλαξε ή υπάρχει σύγκρουση. Ανανέωση καταλόγου.');
+      }
+      if (!response.ok) throw new Error('Το τμήμα δεν δημιουργήθηκε. Ελέγξτε το όνομα.');
+      const saved: unknown = await response.json();
+      if (!saved || typeof saved !== 'object' || Array.isArray(saved))
+        throw new Error('Μη επαληθευμένη απάντηση αποθήκευσης.');
+      const value = saved as Record<string,unknown>;
+      if (typeof value.id !== 'string' || !/^grp_[0-9a-f]{32}$/.test(value.id) ||
+          value.name !== name || value.kind !==
+            (selected === 'lefteria_fc' ? 'team' : 'academy_group') ||
+          value.active_players !== 0)
+        throw new Error('Μη επαληθευμένη καταχώριση τμήματος.');
+      showCreate = false;
+      groupName = '';
+      retry++;
+    } catch(error) {
+      if (organization === selected && $auth.session?.user.id === actor)
+        createError = error instanceof Error ? error.message : 'Η δημιουργία δεν ολοκληρώθηκε.';
+    } finally { saving = false; }
+  }
+
 
   function verifiedDirectory(value: unknown, expected: Organization): value is Directory {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -45,6 +106,14 @@
 
   $effect(() => {
     if (browser && $auth.status === 'anonymous') void goto('/admin/login', {replace:true});
+  });
+  $effect(() => {
+    const selected = organization;
+    const allowed = canCreate;
+    void selected; void allowed;
+    showCreate = false;
+    groupName = '';
+    createError = null;
   });
   $effect(() => {
     // An owner revoked by the server may never remain selected in the UI.
@@ -131,6 +200,35 @@
             <div><span>Ενεργές συμμετοχές</span><strong>{directory.groups.reduce((n,g) => n+g.active_players,0)}</strong></div>
             <div><span>Χωρίς τμήμα</span><strong>{directory.unassigned_players}</strong></div>
           </div>
+          {#if canCreate}
+            <section class="admin-panel admin-group-create" data-testid="admin-group-create" aria-labelledby="admin-group-create-heading">
+              <div class="admin-group-create-heading">
+                <div>
+                  <p class="admin-eyebrow">ΔΗΜΙΟΥΡΓΙΑ · ΕΛΕΓΧΟΣ ΔΙΚΑΙΩΜΑΤΩΝ</p>
+                  <h2 id="admin-group-create-heading">Νέο {organization === 'lefteria_fc' ? 'τμήμα / ομάδα' : 'τμήμα Ακαδημίας'}</h2>
+                </div>
+                {#if !showCreate}
+                  <button type="button" class="admin-secondary" onclick={() => {showCreate=true;createError=null;}} disabled={saving}>Προσθήκη τμήματος</button>
+                {/if}
+              </div>
+              {#if showCreate}
+                <form class="admin-group-create-form" data-testid="admin-group-create-form"
+                  onsubmit={event => {event.preventDefault(); void createGroup();}}>
+                  <label for="admin-group-name">Όνομα τμήματος</label>
+                  <input id="admin-group-name" type="text" required maxlength="120"
+                    bind:value={groupName} disabled={saving}/>
+                  <div class="admin-group-create-actions">
+                    <button type="submit" class="admin-secondary" disabled={saving}>{saving ? 'Δημιουργία…' : 'Δημιουργία'}</button>
+                    <button type="button" class="admin-secondary" disabled={saving}
+                      onclick={() => {showCreate=false;createError=null;}}>Ακύρωση</button>
+                  </div>
+                </form>
+              {/if}
+              {#if createError}
+                <p role="alert" class="admin-group-error">{createError}</p>
+              {/if}
+            </section>
+          {/if}
           <section class="admin-panel" aria-labelledby="admin-audiences-title">
             <div class="admin-audiences-heading">
               <h2 id="admin-audiences-title">{organization === 'lefteria_fc' ? 'Ομάδες πρώτης ομάδας' : 'Τμήματα Ακαδημίας'}</h2>
@@ -171,6 +269,14 @@
   .admin-audiences-select{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-bottom:14px}
   .admin-audiences-select label{display:flex;flex-direction:column;gap:7px;font-size:12px;color:#b9bcbe}
   .admin-audiences-select select{width:min(100%,350px)}
+  .admin-group-create{margin:0 0 15px}
+  .admin-group-create-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+  .admin-group-create-heading h2{margin:0}
+  .admin-group-create-form{display:grid;gap:10px;max-width:500px;margin-top:16px}
+  .admin-group-create-form>label{font-size:12px;color:#b9bcbe}
+  .admin-group-create-form input{width:100%}
+  .admin-group-create-actions{display:flex;flex-wrap:wrap;gap:9px}
+  .admin-group-error{color:#ffd29b;margin-top:12px}
   .admin-audiences-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:0 0 16px}
   .admin-audiences-stats>div{padding:16px;background:#121415;border:1px solid #303335;border-radius:12px;display:flex;flex-direction:column;gap:7px}
   .admin-audiences-stats span,.admin-audiences-caption,.admin-audiences-count span{font-size:12px;color:#aab0b3}
