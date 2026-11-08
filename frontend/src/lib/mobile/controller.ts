@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import {validReaders} from './chat-actions.ts';
 import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
@@ -1301,6 +1302,23 @@ export function createMobileAuthController(options: {
          (active&&!response.reactions.some(r=>r.emoji===emoji&&r.mine)))
         throw new Error('Server did not confirm the reaction.');
       return response;
+    },
+    async acknowledgeChatRead(room:GroupChatRoom,messageId:string):Promise<boolean> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId))throw new Error('Invalid receipt ID.');
+      // Explicit POST after verified visibility; fetching a message never
+      // creates a read receipt.
+      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/seen','POST');
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+         !('message_id' in result)||result.message_id!==messageId||
+         !('seen' in result)||result.seen!==true)
+        throw new Error('Read acknowledgement not confirmed.');
+      return true;
+    },
+    async getChatReaders(room:GroupChatRoom,messageId:string):Promise<unknown> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId))throw new Error('Invalid receipt ID.');
+      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/readers');
+      if(!validReaders(result,150))throw new Error('Unexpected verified readers format.');
+      return result;
     },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }
