@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'fo
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/finance/payabl';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -45,6 +45,7 @@ const catalog: readonly Section[] = [
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
+    { id: 'payabl_links', name: 'payabl. · Σύνδεσμοι πληρωμών', description: 'Αιτήματα EUR, εξωτερικό ασφαλές checkout και υπογεγραμμένη επαλήθευση πληρωμών. Απενεργοποιημένο χωρίς ρυθμίσεις εμπόρου.', status: 'live', href: '/admin/finance/payabl', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'charges', name: 'Χρεώσεις & εισπράξεις', description: 'Οφειλές και πληρωμές.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'reports', name: 'Αναφορές & έξοδα', description: 'Οικονομικά ανά οργανισμό.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] }
   ] },
