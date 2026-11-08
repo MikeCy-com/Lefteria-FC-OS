@@ -154,15 +154,19 @@ internal sealed partial class WebAdminHttpChecks
                 "admin.app.announcement.publish",async()=>
                 {
                     using var denied=await CreateDraft(client,login.Cookie,fcPublish,new{version=1});
+                    Console.WriteLine("CHECK announcements stage: publish-audit status="+(int)denied.StatusCode);
                     await ExpectJsonAsync(denied,503,"app_announcement_unavailable");
                 });
+            Console.WriteLine("CHECK announcements stage: publish-audit failure returned");
             Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0,
                 "Failed audit persisted a published app announcement.");
+            Console.WriteLine("CHECK announcements stage: publish-audit database unchanged");
             using(var stillDraft=await GetAsync(client,FcDraftsPath,login.Cookie))
                 Require((await ExpectJsonAsync(stillDraft,200)).GetProperty("drafts")
                     .EnumerateArray().Any(d=>d.GetProperty("id").GetString()==fcDraftId),
                     "Failed publication silently consumed a draft.");
 
+            Console.WriteLine("CHECK announcements stage: post-audit original draft exists");
             Console.WriteLine("CHECK announcements stage: successful publish");
             using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
             {
