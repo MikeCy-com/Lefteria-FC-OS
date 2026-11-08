@@ -23,6 +23,7 @@ using LefteriaFc.Infrastructure.PublicContent;
 using LefteriaFc.Api.MobileChat;
 using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Infrastructure.MobileChat;
+using LefteriaFc.Api.Payabl;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -80,6 +81,7 @@ builder.Services.AddScoped<PostgresMobileGroupChatStore>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
+builder.Services.AddPayabl(builder.Configuration);
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
@@ -131,6 +133,7 @@ app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
 app.MapWebAdmin();
+app.MapPayabl();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
