@@ -50,8 +50,8 @@ public sealed class MobileChatMessageStore : Migration
             RAISE EXCEPTION 'chat_invalid_scope' USING ERRCODE='22023';
           END IF;
           IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(
-            club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') r
-            WHERE r->>'organization_id'=_organization AND r->>'id'=_group) THEN
+            club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') AS entry(value)
+            WHERE entry.value->>'organization_id'=_organization AND entry.value->>'id'=_group) THEN
             RAISE EXCEPTION 'chat_denied' USING ERRCODE='42501';
           END IF;
           SELECT coalesce(jsonb_agg(jsonb_build_object(
@@ -67,8 +67,8 @@ public sealed class MobileChatMessageStore : Migration
               AND c.group_kind=CASE WHEN _organization='lefteria_fc'
                 THEN 'team' ELSE 'academy_group' END
               AND EXISTS(SELECT 1 FROM jsonb_array_elements(
-                  club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') r
-                  WHERE r->>'organization_id'=_organization AND r->>'id'=_group)
+                  club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') AS entry(value)
+                  WHERE entry.value->>'organization_id'=_organization AND entry.value->>'id'=_group)
             ORDER BY c.created_at DESC,c.id DESC
             LIMIT 50 OFFSET _offset
           ) m;
@@ -100,8 +100,8 @@ public sealed class MobileChatMessageStore : Migration
             CASE WHEN _organization='lefteria_fc' THEN 'team' ELSE 'academy_group' END,
             _actor,_content
           WHERE EXISTS (SELECT 1 FROM jsonb_array_elements(
-            club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') r
-            WHERE r->>'organization_id'=_organization AND r->>'id'=_group)
+            club.read_mobile_chat_groups(_actor,_phone,_role,_expires)->'groups') AS entry(value)
+            WHERE entry.value->>'organization_id'=_organization AND entry.value->>'id'=_group)
           RETURNING * INTO v_row;
           IF NOT FOUND THEN
             RAISE EXCEPTION 'chat_denied' USING ERRCODE='42501';
