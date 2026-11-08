@@ -15,6 +15,9 @@ using LefteriaFc.Api.Pos;
 using LefteriaFc.Api.Audiences;
 using LefteriaFc.Api.Messaging;
 using LefteriaFc.Infrastructure.Messaging;
+using LefteriaFc.Api.Finance;
+using LefteriaFc.Application.Finance;
+using LefteriaFc.Infrastructure.Finance;
 using LefteriaFc.Application.Audiences;
 using LefteriaFc.Infrastructure.Audiences;
 using LefteriaFc.Application.Pos;
@@ -78,6 +81,16 @@ builder.Services.AddOpenApi(options =>
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
+builder.Services.AddSingleton(new PayablGatewaySettings(builder.Configuration));
+builder.Services.AddHttpClient("payabl-gateway",client=>
+    client.Timeout=TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(()=>new SocketsHttpHandler{
+        AllowAutoRedirect=false,UseCookies=false,
+        AutomaticDecompression=System.Net.DecompressionMethods.None,
+        MaxConnectionsPerServer=4
+    });
+builder.Services.AddSingleton<PayablHostedClient>();
+builder.Services.AddScoped<IPayablFinanceStore,PostgresPayablFinanceStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPublicContent();
@@ -130,6 +143,7 @@ app.MapMobileCalendar();
 app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
+app.MapPayablFinance();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
