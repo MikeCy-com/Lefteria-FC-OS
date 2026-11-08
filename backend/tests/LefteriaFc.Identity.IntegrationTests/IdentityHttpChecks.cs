@@ -30,6 +30,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Unconfigured Twilio adapter refuses delivery without HTTP", TwilioAdapterChecks.UnconfiguredDoesNotCallHttpAsync),
         ("Restricted application role has no schema or audit mutation privilege", database.AssertRestrictedApplicationRoleAsync),
         ("First-team trial display stays closed and denied until verified public read release", database.AssertFirstTeamTrialDisplayProjectionClosedAsync),
+        ("Restricted runtime first-team trial reader returns only the verified closed display", database.AssertFirstTeamTrialRuntimeReaderClosedAsync),
         ("Academy enquiry HTTP handler stays closed, checks origin/consent/size and confirms only committed writes", AcademyEnquiryHttpHandlerChecks.RequestGuardsAsync),
         ("Private Academy lead function atomically limits writes, scopes audit and rolls test data back", database.AssertMarketingAtomicWriteAsync),
         ("Marketing runtime writer refuses unapproved function execution without data writes", database.AssertMarketingRuntimeWriterUnavailableAsync),

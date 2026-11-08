@@ -13,6 +13,8 @@ using LefteriaFc.Application.Family;
 using LefteriaFc.Infrastructure.Family;
 using LefteriaFc.Application.Marketing;
 using LefteriaFc.Infrastructure.Marketing;
+using LefteriaFc.Application.Trials;
+using LefteriaFc.Infrastructure.Trials;
 
 namespace LefteriaFc.Infrastructure;
 
@@ -32,6 +34,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<FamilyInvitationService>();
         services.AddScoped<IAcademyLeadWriter, PostgresAcademyLeadWriter>();
         services.AddScoped<AcademyLeadSubmissionService>();
+        services.AddScoped<IFirstTeamTrialDisplayReader, PostgresFirstTeamTrialDisplayReader>();
         services.AddDbContext<LefteriaDbContext>((provider, options) =>
         {
             var configuration = provider.GetRequiredService<IConfiguration>();
