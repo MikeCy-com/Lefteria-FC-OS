@@ -130,10 +130,15 @@ GRANT EXECUTE ON FUNCTION pos.write_admin_category(text,text,text,text,boolean,b
 -- no direct table or sales privilege is added.
 REVOKE ALL ON FUNCTION pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb) TO :"admin_auth_role";
+-- Live canonical team/Academy counts, without direct SELECT on player
+-- identities or memberships. No messages and no delivery authority.
+REVOKE ALL ON FUNCTION club.read_admin_audiences(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
+\ir admin-audience-directory-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -158,7 +163,8 @@ BEGIN
                 AND p.oid NOT IN ('identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
-                  'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure)) THEN
+                  'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_audiences(text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN

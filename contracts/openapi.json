@@ -1,6 +1,65 @@
 {
   "components": {
     "schemas": {
+      "AdminAudienceDirectoryDto": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/AdminAudienceGroupDto"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "ready": {
+            "type": "boolean"
+          },
+          "unassigned_players": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "organization_id",
+          "ready",
+          "unassigned_players",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "AdminAudienceGroupDto": {
+        "properties": {
+          "active_players": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "active_players"
+        ],
+        "type": "object"
+      },
       "AdminClubEditable": {
         "additionalProperties": false,
         "description": "Complete safe public club fields only. Null clears optional fields. Unknown keys and duplicate JSON keys are rejected.",
@@ -5436,6 +5495,86 @@
         ]
       }
     },
+    "/api/admin/football/audiences": {
+      "get": {
+        "operationId": "GetAdminAudienceDirectory",
+        "parameters": [
+          {
+            "description": "Exact current assigned football or Academy owner; never all or inferred.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc",
+                "lefteria_fc_academy"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminAudienceDirectoryDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Football administration"
+        ]
+      }
+    },
     "/api/admin/pos/catalog": {
       "get": {
         "operationId": "GetAdminPosCatalog",
@@ -9583,6 +9722,9 @@
     },
     {
       "name": "POS administration"
+    },
+    {
+      "name": "Football administration"
     },
     {
       "name": "Mobile organization"

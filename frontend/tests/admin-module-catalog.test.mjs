@@ -17,12 +17,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['products', '/admin/pos'], ['trials', '/admin/trials']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups'].includes(item.href));
   }
 });
 
@@ -35,10 +35,10 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
   assert.deepEqual(ids(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'charges', 'reports']);
   assert.ok(!ids(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
-  assert.deepEqual(ids(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'academy']);
+  assert.deepEqual(ids(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'assigned_groups']);
   assert.deepEqual(ids(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['leads', 'campaigns']);
   assert.ok(ids(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
-  assert.equal(ids(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('teams'), false);
+  assert.equal(ids(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
 });
 
 test('all planned admin modules are visibly disabled, never wired to mutations or unavailable routes', () => {
@@ -70,4 +70,16 @@ test('admin font scale and high-density sizing match the original parent dashboa
   assert.match(admin,/\.admin-app \.admin-tool-copy strong\{[^}]*font-size:19px/);
   assert.match(admin,/\.admin-app \.admin-hub-grid\{display:grid/);
   assert.match(admin,/@media\(max-width:720px\)/);
+});
+
+test('one canonical live groups module removes duplicate team/Academy admin links',()=>{
+  const manager=user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin');
+  assert.equal(ids(manager).filter(id=>id==='groups').length,1);
+  assert.ok(!ids(manager).includes('teams'));
+  assert.ok(!ids(manager).includes('academy'));
+  assert.ok(ids(user(['teams:read'],['lefteria_fc'])).includes('groups'));
+  assert.ok(ids(user(['academy:read'],['lefteria_fc_academy'])).includes('groups'));
+  assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'])).includes('groups'));
+  assert.ok(!ids(user(['academy:read'],['lefteria_fc'])).includes('groups'));
+  assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('groups'));
 });

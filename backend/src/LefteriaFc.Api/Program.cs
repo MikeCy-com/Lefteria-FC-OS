@@ -12,6 +12,9 @@ using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Api.PublicContent;
 using LefteriaFc.Api.Trials;
 using LefteriaFc.Api.Pos;
+using LefteriaFc.Api.Audiences;
+using LefteriaFc.Application.Audiences;
+using LefteriaFc.Infrastructure.Audiences;
 using LefteriaFc.Application.Pos;
 using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
@@ -65,6 +68,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
     options.AddOperationTransformer<AdminNewsOperationTransformer>();
     options.AddOperationTransformer<AdminPosCatalogOperationTransformer>();
+    options.AddOperationTransformer<AdminAudienceOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
@@ -74,6 +78,7 @@ builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
 builder.Services.AddScoped<IAdminPosCategoryWriter, PostgresAdminPosCategoryWriter>();
 builder.Services.AddScoped<IAdminPosProductWriter, PostgresAdminPosProductWriter>();
+builder.Services.AddScoped<IAdminAudienceDirectory, PostgresAdminAudienceDirectory>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
@@ -117,6 +122,7 @@ app.MapAdminNews();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
+app.MapAdminAudiences();
 
 if (app.Environment.IsDevelopment())
 {
