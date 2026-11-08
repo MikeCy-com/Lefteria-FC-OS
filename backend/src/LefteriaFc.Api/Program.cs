@@ -11,6 +11,9 @@ using LefteriaFc.Api.ClubCalendar;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Api.PublicContent;
 using LefteriaFc.Api.Trials;
+using LefteriaFc.Api.Pos;
+using LefteriaFc.Application.Pos;
+using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -61,12 +64,14 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<AdminClubOperationTransformer>();
     options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
     options.AddOperationTransformer<AdminNewsOperationTransformer>();
+    options.AddOperationTransformer<AdminPosCatalogOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
+builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
@@ -107,6 +112,7 @@ app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapAdminClub();
 app.MapAdminNews();
+app.MapAdminPosCatalog();
 
 if (app.Environment.IsDevelopment())
 {

@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'crm' | 'pos' | 'finance' | 'football' 
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -36,7 +36,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
     { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Χειριστές, βάρδιες και τοποθεσίες.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] },
-    { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Είδη και κατηγορίες.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] },
+    { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένη ιδιωτική προβολή προϊόντων και τιμών · χωρίς πωλήσεις ή αλλαγές.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [

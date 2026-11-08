@@ -87,6 +87,19 @@ try {
   assert.equal(adminNews.get.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/PublicNewsResult');
   assert.equal(adminNews.get.responses['403'].content['application/json'].schema.$ref, '#/components/schemas/WebAdminError');
 
+  const adminPos = document.paths['/api/admin/pos/catalog'];
+  assert.deepEqual(Object.keys(adminPos), ['get']);
+  assert.deepEqual(adminPos.get.security, [{ WebAdmin: [] }]);
+  assert.deepEqual(adminPos.get.parameters.filter(parameter => parameter.name === 'organization_id').map(parameter => ({
+    required: parameter.required, values: parameter.schema.enum
+  })), [{ required:true, values:['lefteria_fc','lefteria_fc_academy'] }]);
+  assert.deepEqual(Object.keys(adminPos.get.responses).sort(), ['200','400','401','403','503']);
+  assert.equal(adminPos.get.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/AdminPosCatalogDto');
+  assert.equal(adminPos.get.responses['403'].content['application/json'].schema.$ref, '#/components/schemas/WebAdminError');
+  assert.deepEqual(document.components.schemas.AdminPosCatalogDto.required,
+    ['organization_id','categories','products']);
+
+
   for (const method of ['get', 'put']) {
     const operation = document.paths['/api/admin/club'][method];
     assert.deepEqual(operation.security, [{ WebAdmin: [] }]);

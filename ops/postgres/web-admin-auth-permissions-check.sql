@@ -19,6 +19,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
        set_config('lefteria.mobile_runtime_role', :'app_role', true) AS mobile_runtime_role_setting
 \gset
 \ir admin-club-lock-boundary.sql
+\ir pos-catalog-reader-boundary.sql
 
 DO $checks$
 DECLARE
@@ -68,7 +69,8 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
-                AND p.oid<>'identity.lock_admin_club_authority(text,text)'::regprocedure) THEN
+                AND p.oid NOT IN ('identity.lock_admin_club_authority(text,text)'::regprocedure,
+                  'pos.read_admin_catalog(text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;
 
@@ -101,7 +103,8 @@ BEGIN
     'migration.roster_source_documents','migration.staff_source_documents','migration.contact_provenance',
     'migration.account_source_documents','migration.account_import_state','migration.account_import_issues',
     'migration.legacy_account_mappings','migration.imported_admin_grants',
-    'migration.calendar_source_documents','migration.calendar_import_issues']
+    'migration.calendar_source_documents','migration.calendar_import_issues',
+    'pos.categories','pos.products','pos.product_variants']
   LOOP
     SELECT c.oid INTO STRICT target_id FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname=split_part(target,'.',1) AND c.relname=split_part(target,'.',2);
