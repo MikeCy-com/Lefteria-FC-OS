@@ -74,3 +74,27 @@ test('mobile announcements compile and are restricted to current member tab and 
   assert.match(feed,/controller\.getAppAnnouncements\(room,0\)/);
   assert.doesNotMatch(feed,/localStorage|sessionStorage|innerHTML|@html/);
 });
+
+test('app notice reactions use current roster scope, audited private storage and server-confirmed mobile controls',()=>{
+  const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108280000_AppAnnouncementEmojiReactions.cs');
+  const endpoint=read('backend/src/LefteriaFc.Api/Messaging/MobileAppAnnouncementEndpoints.cs');
+  const grants=read('ops/postgres/identity-app-grants.sql');
+  const feed=read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
+  const controller=read('frontend/src/lib/mobile/controller.ts');
+  const boundary=read('ops/postgres/app-announcement-publishing-boundary.sql');
+  compile(feed,{filename:'MobileAppAnnouncements.svelte',generate:'server'});
+  assert.match(migration,/CREATE TABLE club\.app_announcement_reactions/);
+  assert.match(migration,/club\.read_mobile_chat_groups\(_actor,_phone,_role,_expires\)/);
+  assert.match(migration,/a\.removed_at IS NULL/);
+  assert.match(migration,/FOR UPDATE OF a/);
+  assert.match(migration,/ON CONFLICT DO NOTHING/);
+  assert.match(migration,/INSERT INTO audit\.security_events/);
+  assert.match(endpoint,/SetMobileAppAnnouncementReaction/);
+  assert.match(endpoint,/RequireAuthorization\(IdentityServices\.Policy\)/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.set_mobile_app_announcement_reaction/);
+  assert.match(boundary,/Raw announcement reaction participants leaked/);
+  assert.match(controller,/validAppAnnouncementReactionSnapshot/);
+  assert.match(feed,/controller\.setAppAnnouncementReaction/);
+  assert.match(feed,/CHAT_REACTION_EMOJIS/);
+  assert.doesNotMatch(feed,/localStorage|sessionStorage|@html/);
+});
