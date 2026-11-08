@@ -2,6 +2,7 @@
   import type { WebAdminSession } from './controller.ts';
   import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole, pendingAdminModules } from './permissions.ts';
   import { canReadClub } from './club-controller.ts';
+  import { canViewFirstTeamTrials } from './trials-access.ts';
   import AdminFrame from './AdminFrame.svelte';
 
   let { session, busy = false, onLogout, onRefresh }: {
@@ -18,6 +19,7 @@
       <div class="admin-workspace-intro"><p class="admin-eyebrow">LEFTERIA FC · ΔΙΑΧΕΙΡΙΣΗ</p><h1>Καλώς ήρθατε,<br />{user.name || user.username}</h1>
       <p class="admin-muted">Ο λογαριασμός, η σύνδεση και τα τρέχοντα δικαιώματά σας.</p></div>
       {#if canReadClub(user)}<section class="admin-panel" aria-labelledby="website-title"><p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ</p><h2 id="website-title">Προφίλ συλλόγου</h2><p class="admin-muted">Τα δημόσια στοιχεία, η ιστορία, η επικοινωνία και τα κοινωνικά δίκτυα κάθε οργανισμού σας.</p><a class="admin-module-link" href="/admin/club">Άνοιγμα προφίλ συλλόγου <span aria-hidden="true">↗</span></a></section>{/if}
+      {#if canViewFirstTeamTrials(user)}<section class="admin-panel" aria-labelledby="trials-admin-title" data-testid="admin-trials-module"><p class="admin-eyebrow">ΠΡΩΤΗ ΟΜΑΔΑ</p><h2 id="trials-admin-title">Δοκιμαστικά</h2><p class="admin-muted">Προβολή επαληθευμένης κατάστασης. Η αποστολή αιτήσεων και η διαχείριση υποψηφίων παραμένουν ανενεργές.</p><a class="admin-module-link" href="/admin/trials">Προβολή δοκιμαστικών <span aria-hidden="true">↗</span></a></section>{/if}
       <section class="admin-panel" id="account" aria-labelledby="account-title">
         <h2 id="account-title">Λογαριασμός</h2>
         <dl class="admin-details"><div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div><div><dt>Όνομα χρήστη</dt><dd>{user.username}</dd></div><div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div></dl>
