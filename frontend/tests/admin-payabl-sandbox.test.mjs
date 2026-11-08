@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
-const read = relative => readFileSync(new URL('../' + relative, import.meta.url),'utf8');
+const read = relative => readFileSync(new URL(relative.startsWith('frontend/') ? '../' + relative.slice(9) : '../../' + relative, import.meta.url),'utf8');
 const gateway = read('backend/src/LefteriaFc.Api/Payabl/PayablGateway.cs');
 const api = read('backend/src/LefteriaFc.Api/Payabl/PayablEndpoints.cs');
 const migration = read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108320000_PayablPaymentRequests.cs');
