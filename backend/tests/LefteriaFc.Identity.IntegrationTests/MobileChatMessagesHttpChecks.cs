@@ -10,6 +10,15 @@ internal sealed partial class IdentityHttpChecks
         "/api/mobile/chat/groups/"+Uri.EscapeDataString(organization)+"/"+
         Uri.EscapeDataString(group)+"/messages";
 
+
+    private async Task<JsonElement> DeleteVersionAsync(HttpClient client,string url,long version,int status)
+    {
+        using var reply=await client.DeleteAsync(url+"?version="+version);
+        await ExpectAsync(reply,status);
+        using var document=JsonDocument.Parse(await reply.Content.ReadAsStringAsync());
+        return document.RootElement.Clone();
+    }
+
     private async Task ChatMessageHttpChecksAsync(AccountImportFixture fixture,
         HttpClient parent,HttpClient player,HttpClient coach,HttpClient management,HttpClient fan)
     {
@@ -82,12 +91,77 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(before,(await GetAsync(parent,academy,200))
                 .GetProperty("messages").GetArrayLength(),
                 "Rejected chat write changed persisted conversation history.");
+            var ownEditPath=academy+"/"+academyId;
+            var otherEditPath=team+"/"+teamId;
+            await PutAsync(coach,ownEditPath,new{content="Not my message",version=1},403);
+            await PutAsync(parent,otherEditPath,new{content="Wrong room",version=1},403);
+            await PutAsync(fan,ownEditPath,new{content="Fan cannot edit",version=1},403);
+            await PutAsync(parent,ownEditPath,new{content=" ",version=1},422);
+            var edited=await PutAsync(parent,ownEditPath,
+                new{content="Updated Academy message",version=1},200);
+            Check.Equal("Updated Academy message",edited.GetProperty("content").GetString(),
+                "Author edit did not persist the confirmed new content.");
+            Check.Equal(2L,edited.GetProperty("version").GetInt64(),"First edit version mismatch.");
+            Check.True(edited.GetProperty("edited_at").ValueKind==JsonValueKind.String &&
+                !edited.GetProperty("is_deleted").GetBoolean(),"Edited text was marked deleted.");
+            await PutAsync(parent,ownEditPath,new{content="Stale edit denied",version=1},409);
+            Check.Equal("Updated Academy message",(await GetAsync(coach,academy,200))
+                .GetProperty("messages")[0].GetProperty("content").GetString(),
+                "Coach did not see the newly verified edit.");
+            await DeleteVersionAsync(coach,ownEditPath,2,403);
+            await DeleteVersionAsync(parent,ownEditPath,1,409);
+
+            // Membership revoked in the canonical roster must immediately
+            // block further author writes even with a still-valid JWT.
+            await using(var db=database.CreateContext())
+            {
+                await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                    .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
+                try{await DeleteVersionAsync(parent,ownEditPath,2,403);}
+                finally{await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                    .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
+            }
+            var removed=await DeleteVersionAsync(parent,ownEditPath,2,200);
+            Check.True(removed.GetProperty("is_deleted").GetBoolean() &&
+                removed.GetProperty("content").GetString()=="" &&
+                removed.GetProperty("version").GetInt64()==3,
+                "Author deletion did not return a safe versioned tombstone.");
+            var tombstone=(await GetAsync(coach,academy,200)).GetProperty("messages")[0];
+            Check.True(tombstone.GetProperty("is_deleted").GetBoolean() &&
+                tombstone.GetProperty("content").GetString()=="" &&
+                tombstone.GetProperty("version").GetInt64()==3,
+                "Private deleted content remained in a member's normal read.");
+            await PutAsync(parent,ownEditPath,new{content="Reappear",version=3},403);
+            await DeleteVersionAsync(parent,ownEditPath,3,403);
+            await DeleteVersionAsync(parent,ownEditPath,0,422);
+            await DeleteVersionAsync(parent,ownEditPath,2,403);
+
+            // A different legitimate author in another organization retains
+            // ownership of their separate message.
+            var teamEdit=await PutAsync(player,otherEditPath,
+                new{content="Revised first-team message",version=1},200);
+            Check.Equal(2L,teamEdit.GetProperty("version").GetInt64(),
+                "Player team message edit version did not advance.");
+            await PutAsync(management,otherEditPath,
+                new{content="Management cannot impersonate sender",version=2},403);
+            await using(var db=database.CreateContext())
+            {
+                var revisions=await db.Database.SqlQueryRaw<long>(
+                    "SELECT count(*) AS \"Value\" FROM club.app_chat_message_revisions")
+                    .SingleAsync();
+                Check.Equal(3L,revisions,"Message edits and deletion did not write exact revision audit rows.");
+            }
+
         }
         finally
         {
             // Only the fictional identities in this disposable fixture may be
             // cleaned up. The test cannot touch real club messages or users.
             await using var context=database.CreateContext();
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                DELETE FROM club.app_chat_message_revisions
+                WHERE actor_identity_id = ANY({sentByFixture})
+                """);
             await context.Database.ExecuteSqlInterpolatedAsync($"""
                 DELETE FROM club.app_chat_messages
                 WHERE sender_identity_id = ANY({sentByFixture})
