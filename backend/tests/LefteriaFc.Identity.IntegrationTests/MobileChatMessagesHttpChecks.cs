@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Net.Http.Json;
 using LefteriaFc.Domain.Organizations;
 using Microsoft.EntityFrameworkCore;
 
@@ -11,12 +12,16 @@ internal sealed partial class IdentityHttpChecks
         Uri.EscapeDataString(group)+"/messages";
 
 
+    private static async Task<JsonElement> PutAsync(HttpClient client,string url,object body,int status)
+    {
+        using var reply=await client.PutAsJsonAsync(url,body);
+        return await ExpectAsync(reply,status);
+    }
+
     private async Task<JsonElement> DeleteVersionAsync(HttpClient client,string url,long version,int status)
     {
         using var reply=await client.DeleteAsync(url+"?version="+version);
-        await ExpectAsync(reply,status);
-        using var document=JsonDocument.Parse(await reply.Content.ReadAsStringAsync());
-        return document.RootElement.Clone();
+        return await ExpectAsync(reply,status);
     }
 
     private async Task ChatMessageHttpChecksAsync(AccountImportFixture fixture,
