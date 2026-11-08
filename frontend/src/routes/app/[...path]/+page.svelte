@@ -11,6 +11,8 @@
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
+  import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
+  import {mobileGuide} from '../../../lib/onboarding/guides.ts';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
   import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
 
@@ -34,7 +36,9 @@
     if (await controller.switchRole(nextRole)) await openTab('home');
   }
   async function openProfile() {
-    if (role === 'fan' || await controller.switchRole('fan')) await openTab('profile');
+    // Own-profile updates are supported for the current mobile identity.
+    // Never switch a parent, player or coach into the fan identity to edit it.
+    await openTab('profile');
   }
   function logout() { controller.logout(); }
 </script>
@@ -70,6 +74,15 @@
           </section>
         {/if}
       {/if}
+      {#if activeTab === 'home' && !composing}
+        {#key user.id+':'+role}
+          <GuidedSetup
+            steps={mobileGuide({...user,role})}
+            scope={'mobile:'+user.id+':'+role}
+            title="Πρώτα βήματα στον ρόλο μου"
+            onNavigate={async href=>{await goto(href);}}/>
+        {/key}
+      {/if}
       {#if activeTab === 'home' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}
           <MobileParentHome identityId={user.id} parentName={user.name}
@@ -82,13 +95,14 @@
             onEducation={() => openTab('education')}
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
-      {:else if activeTab === 'profile' && role === 'fan' && !composing}
+      {:else if activeTab === 'profile' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
           playerOptions={$controller.playerOptions} playerOptionsStatus={$controller.playerOptionsStatus} playerOptionsError={$controller.playerOptionsError}
           onLoadPlayerOptions={() => controller.loadPlayerOptions()}
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
+        {#if role === 'fan'}
         {#key `${user.id}:${user.phone}`}
           <MobileRecipientInvitations
             inbox={$controller.recipientInvitations}
@@ -116,6 +130,7 @@
             onLoadDelegation={() => controller.loadDelegationAvailability()}
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
+        {/if}
       {:else if activeTab === 'education' && role === 'parent' && !composing}
         <MobileAcademyEducation />
       {:else if activeTab === 'children' && role === 'parent' && !composing}
@@ -158,6 +173,13 @@
           {/key}
         {/if}
       {:else if activeTab === 'more' && !composing}
+        {#key user.id+':'+role}
+          <GuidedSetup
+            steps={mobileGuide({...user,role})}
+            scope={'mobile:'+user.id+':'+role}
+            title="Οδηγός χρήσης εφαρμογής"
+            onNavigate={async href=>{await goto(href);}}/>
+        {/key}
         <section class="content-card" aria-labelledby="more-title"><h1 id="more-title">{TAB_NAMES.more}</h1>
           <div class="more-links">
             {#each allowedTabs(role).filter((tab) => !['home', 'more', 'profile'].includes(tab)) as tab (tab)}
