@@ -25,7 +25,7 @@
   }
   async function refreshRooms(){
     const request=++requestNumber;
-    directoryBusy=true;error=null;selected=null;messages=[];nextOffset=null;
+    directoryBusy=true;messageBusy=false;error=null;selected=null;messages=[];nextOffset=null;
     try{
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
@@ -36,6 +36,9 @@
   }
   async function chooseRoom(room:GroupChatRoom){
     if(sending)return;
+    // Invalidate any in-flight read before changing rooms. A response from
+    // the previous group must never appear in the newly selected room.
+    ++requestNumber;messageBusy=false;
     selected=room;messages=[];nextOffset=null;error=null;sendError=null;
     await loadMessages(false);
   }
