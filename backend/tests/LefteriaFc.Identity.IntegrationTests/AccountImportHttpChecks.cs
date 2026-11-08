@@ -125,6 +125,7 @@ internal sealed partial class IdentityHttpChecks
         await LoginAsync(player,input.PlayerPhone,"player");await LoginAsync(parent,input.ParentPhone,"parent");
         await LoginAsync(coach,input.StaffPhone,"coach");await LoginAsync(management,input.StaffPhone,"management");await LoginAsync(fan,input.PlayerPhone,"fan");
         await ChatGroupDirectoryHttpChecksAsync(input,parent,player,coach,management,fan);
+        await ChatMessageHttpChecksAsync(input,parent,player,coach,management,fan);
         var playerMe=await GetAsync(player,"/api/mobile/auth/me",200);var parentMe=await GetAsync(parent,"/api/mobile/auth/me",200);
         var coachMe=await GetAsync(coach,"/api/mobile/auth/me",200);var managementMe=await GetAsync(management,"/api/mobile/auth/me",200);
         Check.Equal(input.PlayerId,playerMe.GetProperty("linked_player_id").GetString(),"Imported player self link was not freshly projected.");
