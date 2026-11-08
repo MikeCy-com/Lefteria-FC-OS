@@ -25,6 +25,7 @@ internal sealed partial class WebAdminHttpChecks
 
     private async Task AdminRosterAssignmentsAsync()
     {
+        Console.WriteLine("CHECK roster assignment stage: anonymous");
         using(var anonymous=Client())
         using(var denied=await PutAssignment(anonymous,"",FcAssignmentPath,
             "no-such-player",[],[]))
@@ -33,9 +34,11 @@ internal sealed partial class WebAdminHttpChecks
         var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,admin);
+        Console.WriteLine("CHECK roster assignment stage: fixture");
         var fixture=await database.SeedAudienceAsync();
         try
         {
+            Console.WriteLine("CHECK roster assignment stage: first-team save");
             using(var result=await PutAssignment(client,login.Cookie,FcAssignmentPath,
                 fixture.Player(3),[],[fixture.Team2]))
             {
@@ -48,6 +51,7 @@ internal sealed partial class WebAdminHttpChecks
             var fc=await ReadRosterPagesAsync(client,FcPlayersPath,login.Cookie);
             Require(PlayerRow(fc.Rows,fixture.Player(3)).GetProperty("team_id").GetString()==fixture.Team2,
                 "Assignment was not reflected in live player directory.");
+            Console.WriteLine("CHECK roster assignment stage: compare-and-set conflict");
             using(var stale=await PutAssignment(client,login.Cookie,FcAssignmentPath,
                 fixture.Player(3),[],[fixture.Team1]))
                 await ExpectJsonAsync(stale,409,"assignment_conflict");
@@ -58,6 +62,7 @@ internal sealed partial class WebAdminHttpChecks
                 fixture.Player(3),[fixture.Team2],[]))
                 await ExpectJsonAsync(restore,200);
 
+            Console.WriteLine("CHECK roster assignment stage: academy save");
             using(var academy=await PutAssignment(client,login.Cookie,AcademyAssignmentPath,
                 fixture.Player(4),[fixture.Group1,fixture.Group2],[fixture.Group2]))
             {
@@ -75,6 +80,7 @@ internal sealed partial class WebAdminHttpChecks
                 fixture.Player(4),[fixture.Group2],[fixture.Group1,fixture.Group2]))
                 await ExpectJsonAsync(restore,200);
 
+            Console.WriteLine("CHECK roster assignment stage: audit rollback");
             Require(await database.AssignmentAuditCountAsync(admin)==4,
                 "Each successful membership replacement must produce an audit record.");
             await database.WithAssignmentAuditFailureAsync(admin,async()=>{
@@ -98,6 +104,7 @@ internal sealed partial class WebAdminHttpChecks
                 fixture.Player(3),[],["not_existing_group"]))
                 await ExpectJsonAsync(invalid,422,"invalid_assignment");
 
+            Console.WriteLine("CHECK roster assignment stage: authorization");
             var coach=await database.SeedAsync(role:"coach",organizations:["lefteria_fc_academy"]);
             using(var coachClient=Client())
             {
@@ -115,6 +122,7 @@ internal sealed partial class WebAdminHttpChecks
                     FcAssignmentPath,fixture.Player(3),[],[fixture.Team1]);
                 await ExpectJsonAsync(denied,403,"not_authorized");
             }
+            Console.WriteLine("CHECK roster assignment stage: raw SQL denial");
             using(var scope=factory.Services.CreateScope())
             await using(var connection=await scope.ServiceProvider
                 .GetRequiredService<WebAdminConnections>().OpenAsync(CancellationToken.None))
@@ -129,6 +137,7 @@ internal sealed partial class WebAdminHttpChecks
                 catch(PostgresException e) when(e.SqlState=="42501"){denied=true;}
                 Require(denied,"Admin-auth role unexpectedly obtained raw player UPDATE.");
             }
+            Console.WriteLine("CHECK roster assignment stage: revoked grants");
             await database.SetStateAsync(admin,role:"coach");
             using(var denied=await PutAssignment(client,login.Cookie,FcAssignmentPath,
                 fixture.Player(3),[],[fixture.Team1]))
