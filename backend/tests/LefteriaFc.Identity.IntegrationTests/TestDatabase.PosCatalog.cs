@@ -34,6 +34,18 @@ internal sealed partial class TestDatabase
             for (var index=0; index<3; index++)
                 Check.True(check.GetBoolean(index),
                     "The runtime unexpectedly acquired POS catalog access.");
+            await check.CloseAsync();
+
+            // An actual query must fail with 42501; catalog privilege
+            // metadata alone is not proof of runtime isolation.
+            var denied = false;
+            try
+            {
+                await using var forbidden = new NpgsqlCommand("SELECT count(*) FROM pos.products", app);
+                await forbidden.ExecuteScalarAsync();
+            }
+            catch (PostgresException error) when (error.SqlState == "42501") { denied = true; }
+            Check.True(denied, "The runtime unexpectedly read private POS products.");
         }
 
         var fcCategory = "fc-category-" + Guid.NewGuid().ToString("N");
