@@ -29,7 +29,40 @@ internal sealed partial class WebAdminDatabaseFixture
         return (int)(await cmd.ExecuteScalarAsync())!;
     }
 
-    public async Task WithAnnouncementDraftAuditFailureAsync(Account actor,Func<Task> action)
+    public async Task<int> AppAnnouncementCountAsync(string owner)
+    {
+        await using var con=await OwnerAsync();
+        await using var command=new NpgsqlCommand("""
+            SELECT count(*)::integer FROM club.app_announcements
+            WHERE organization_id=@owner AND removed_at IS NULL
+            """,con);
+        command.Parameters.AddWithValue("owner",owner);
+        return (int)(await command.ExecuteScalarAsync())!;
+    }
+
+    public async Task<long> AppAnnouncementAuditCountAsync(Account actor,string action)
+    {
+        RequireOwned(actor);
+        if(action is not ("admin.app.announcement.publish" or "admin.app.announcement.remove"))
+            throw new InvalidOperationException("Unexpected announcement audit operation.");
+        await using var con=await OwnerAsync();
+        await using var command=new NpgsqlCommand("""
+            SELECT count(*) FROM audit.security_events
+            WHERE actor_realm='admin' AND actor_identity_id=@actor AND action=@action
+            """,con);
+        command.Parameters.AddWithValue("actor",actor.Id);
+        command.Parameters.AddWithValue("action",action);
+        return (long)(await command.ExecuteScalarAsync())!;
+    }
+
+    public Task WithAppAnnouncementAuditFailureAsync(Account actor,string operation,Func<Task> action)
+    {
+        if(operation is not ("admin.app.announcement.publish" or "admin.app.announcement.remove"))
+            throw new InvalidOperationException("Unexpected published announcement audit operation.");
+        return WithAnnouncementDraftAuditFailureAsync(actor,action,operation);
+    }
+
+    public async Task WithAnnouncementDraftAuditFailureAsync(Account actor,Func<Task> action,string auditAction="admin.announcement.draft.create")
     {
         RequireOwned(actor);
         await using var con=await OwnerAsync();
@@ -38,7 +71,7 @@ internal sealed partial class WebAdminDatabaseFixture
             LANGUAGE plpgsql AS $audit$
             BEGIN
               IF NEW.actor_identity_id='{actor.Id:D}'::uuid
-                 AND NEW.action='admin.announcement.draft.create' THEN
+                 AND NEW.action='{auditAction}' THEN
                 RAISE EXCEPTION 'fixture_audit_denied';
               END IF;
               RETURN NEW;
@@ -63,6 +96,8 @@ internal sealed partial class WebAdminDatabaseFixture
         RequireOwned(actor);
         await using var con=await OwnerAsync();
         await using var cmd=new NpgsqlCommand("""
+            DELETE FROM club.app_announcements
+            WHERE published_by=@actor AND id LIKE 'ann_%';
             DELETE FROM club.admin_announcement_drafts
             WHERE created_by=@actor AND id LIKE 'ann_%'
             """,con);
