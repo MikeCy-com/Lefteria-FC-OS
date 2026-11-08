@@ -81,6 +81,7 @@ builder.Services.AddScoped<IAdminPosProductWriter, PostgresAdminPosProductWriter
 builder.Services.AddScoped<IAdminAudienceDirectory, PostgresAdminAudienceDirectory>();
 builder.Services.AddScoped<IAdminRosterGroupWriter, PostgresAdminRosterGroupWriter>();
 builder.Services.AddScoped<IAdminRosterPlayerDirectory, PostgresAdminRosterPlayerDirectory>();
+builder.Services.AddScoped<IAdminRosterAssignmentWriter, PostgresAdminRosterAssignmentWriter>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
@@ -127,6 +128,7 @@ app.MapAdminPosProducts();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
 app.MapAdminRosterPlayers();
+app.MapAdminRosterAssignments();
 
 if (app.Environment.IsDevelopment())
 {

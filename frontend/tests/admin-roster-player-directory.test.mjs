@@ -44,6 +44,7 @@ test('admin player list uses current backend membership, not fake data or stale 
   assert.match(ui,/verified\(json,currentOwner,currentOffset\)/);
   assert.match(ui,/academy_group_ids/);
   assert.match(ui,/groupLabels\(player\)/);
-  assert.match(ui,/Η τροποποίηση αναθέσεων δεν έχει ενεργοποιηθεί/);
+  assert.match(ui,/admin-player-assignment-editor/);
+  assert.match(ui,/onChanged\(\)/);
   assert.doesNotMatch(ui,/\{@html|innerHTML|fetch\([^\n]*method:'POST'|\bmockPlayers\b/);
 });

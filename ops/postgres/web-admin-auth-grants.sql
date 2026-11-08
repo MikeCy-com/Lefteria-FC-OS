@@ -138,6 +138,10 @@ GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_r
 -- the reviewed function. No SELECT/INSERT rights on club player/team tables.
 REVOKE ALL ON FUNCTION club.create_admin_group(text,text,text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_group(text,text,text,text) TO :"admin_auth_role";
+-- Only an audited, per-player version-checked membership transaction is callable.
+-- No raw roster or group table write privileges are granted.
+REVOKE ALL ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) TO :"admin_auth_role";
 -- Manager-only, paginated and minimized active player/group projection.
 -- The web-admin role still cannot SELECT club.players directly.
 REVOKE ALL ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
@@ -149,6 +153,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-roster-assignment-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -176,7 +181,8 @@ BEGIN
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
-                  'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure)) THEN
+                  'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN

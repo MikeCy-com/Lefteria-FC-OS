@@ -253,7 +253,8 @@
               <AdminRosterPlayersPanel owner={organization as Organization}
                 actorId={$auth.session.user.id} groups={directory.groups}
                 onExpired={() => auth.invalidateSession()}
-                onRevoked={() => void auth.bootstrap()}/>
+                onRevoked={() => void auth.bootstrap()}
+                onChanged={() => retry++}/>
             {/key}
           {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
