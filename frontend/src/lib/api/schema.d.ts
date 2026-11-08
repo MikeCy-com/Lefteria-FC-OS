@@ -749,7 +749,7 @@ export interface components {
         AdminPosCategoryUpdateCommand: {
             active: null | boolean;
             /** Format: int64 */
-            expected_version: null | number;
+            expected_version: null | number | string;
             name: null | string;
         };
         AdminPosProductDto: {
