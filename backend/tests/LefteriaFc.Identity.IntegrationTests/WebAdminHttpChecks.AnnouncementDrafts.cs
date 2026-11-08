@@ -35,6 +35,7 @@ internal sealed partial class WebAdminHttpChecks
         string fcDraftId="",academyDraftId="";
         try
         {
+            Console.WriteLine("CHECK announcements stage: draft creation");
             using(var saved=await CreateDraft(client,login.Cookie,FcDraftsPath,
                 new{group_id=roster.Team1,title="Fixture FC announcement",body="Private draft only."}))
             {
@@ -75,6 +76,7 @@ internal sealed partial class WebAdminHttpChecks
                     !response.GetRawText().Contains(roster.Team1,StringComparison.Ordinal),
                     "Academy draft list leaked FC draft.");
             }
+            Console.WriteLine("CHECK announcements stage: audit draft rollback");
             await database.WithAnnouncementDraftAuditFailureAsync(admin,async()=>{
                 using var denied=await CreateDraft(client,login.Cookie,FcDraftsPath,
                     new{group_id=roster.Team1,title="Must rollback",body="Audit unavailable."});
@@ -125,6 +127,7 @@ internal sealed partial class WebAdminHttpChecks
                 catch(PostgresException e) when(e.SqlState=="42501"){denied=true;}
                 Require(denied,"Admin-auth obtained direct announcement draft table read.");
             }
+            Console.WriteLine("CHECK announcements stage: publish preflight");
             var fcPublish="/api/admin/communications/announcement-drafts/"+fcDraftId+
                 "/publish?organization_id=lefteria_fc";
             var academyPublish="/api/admin/communications/announcement-drafts/"+academyDraftId+
@@ -146,6 +149,7 @@ internal sealed partial class WebAdminHttpChecks
 
             // A failed security audit must roll back the draft transition and
             // published notice atomically; it must not create an orphaned push.
+            Console.WriteLine("CHECK announcements stage: publish audit rollback");
             await database.WithAppAnnouncementAuditFailureAsync(admin,
                 "admin.app.announcement.publish",async()=>
                 {
@@ -159,6 +163,7 @@ internal sealed partial class WebAdminHttpChecks
                     .EnumerateArray().Any(d=>d.GetProperty("id").GetString()==fcDraftId),
                     "Failed publication silently consumed a draft.");
 
+            Console.WriteLine("CHECK announcements stage: successful publish");
             using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
             {
                 var item=await ExpectJsonAsync(published,200);
@@ -191,6 +196,7 @@ internal sealed partial class WebAdminHttpChecks
                     .GetProperty("announcements")[0].GetProperty("id").GetString()==academyDraftId,
                     "Academy published list omitted its sole canonical notice.");
 
+            Console.WriteLine("CHECK announcements stage: stale removal");
             var removeFc="/api/admin/communications/app-announcements/"+fcDraftId+
                 "?organization_id=lefteria_fc&version=1";
             using(var staleRequest=new HttpRequestMessage(HttpMethod.Delete,
@@ -203,6 +209,7 @@ internal sealed partial class WebAdminHttpChecks
                 using var denied=await client.SendAsync(staleRequest);
                 await ExpectJsonAsync(denied,409,"app_announcement_conflict");
             }
+            Console.WriteLine("CHECK announcements stage: remove audit rollback");
             await database.WithAppAnnouncementAuditFailureAsync(admin,
                 "admin.app.announcement.remove",async()=>
                 {
@@ -215,6 +222,7 @@ internal sealed partial class WebAdminHttpChecks
                 });
             Require(await database.AppAnnouncementCountAsync("lefteria_fc")==1,
                 "Failed removal audit erased a published announcement.");
+            Console.WriteLine("CHECK announcements stage: successful removal");
             using(var request=new HttpRequestMessage(HttpMethod.Delete,removeFc))
             {
                 request.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
@@ -234,6 +242,7 @@ internal sealed partial class WebAdminHttpChecks
                 Require((await ExpectJsonAsync(removedList,200)).GetProperty("announcements").GetArrayLength()==0,
                     "Admin removal did not remove the published notice from the official feed.");
 
+            Console.WriteLine("CHECK announcements stage: permissions and revoked role");
             var coach=await database.SeedAsync(role:"coach",organizations:["lefteria_fc_academy"]);
             using(var coachClient=Client())
             {
@@ -261,6 +270,7 @@ internal sealed partial class WebAdminHttpChecks
         }
         finally
         {
+            Console.WriteLine("CHECK announcements stage: fixture cleanup");
             await database.CleanupAnnouncementDraftsAsync(admin);
             await database.CleanupAudienceAsync(roster);
         }
