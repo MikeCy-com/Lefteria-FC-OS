@@ -5,7 +5,7 @@ using LefteriaFc.Api.WebAdmin;
 namespace LefteriaFc.Api.Trials;
 
 /// <summary>
-/// UNMAPPED read-only private admin preview of verified first-team settings.
+/// Session-verified read-only private admin projection of verified first-team settings.
 /// Never uses source mobile auth, anonymous query data or legacy admin JWTs.
 /// Changes still require a separate, audited consent/organization write contract.
 /// </summary>
@@ -14,7 +14,7 @@ public static class FirstTeamTrialsAdminEndpoints
     public static IEndpointRouteBuilder MapFirstTeamTrialsAdmin(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/admin/trials/settings",
-            async (HttpContext context,string? organization_id,
+            async (HttpContext context, string? organization_id,
                    WebAdminService admin,IFirstTeamTrialDisplayReader reader,CancellationToken token) =>
             {
                 context.Response.Headers.CacheControl="private, no-store";

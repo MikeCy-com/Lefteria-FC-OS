@@ -20,7 +20,13 @@ test('future admin trials GET must recheck current session and FC role in backen
   assert.doesNotMatch(handler,/MapPost\(|MapPut\(|MapDelete\(|INSERT INTO|UPDATE club\.|applicant|medical|date_of_birth/i);
 });
 
-test('admin trial preview remains unreachable until full OpenAPI and auth integration',()=>{
-  assert.doesNotMatch(program,/app\.MapFirstTeamTrialsAdmin\(\)/);
-  assert.doesNotMatch(openapi,/"\/api\/admin\/trials\/settings"/);
+test('admin trials GET is mapped with explicit protected OpenAPI scope and has no submit operations',()=>{
+  assert.match(program,/app\\.MapFirstTeamTrialsAdmin\\(\\)/);
+  const api=JSON.parse(openapi);
+  const route=api.paths['/api/admin/trials/settings'];
+  assert.deepEqual(Object.keys(route),['get']);
+  assert.deepEqual(route.get.security,[{WebAdmin:[]}]);
+  assert.deepEqual(route.get.parameters.filter(p=>p.name==='organization_id').map(p=>p.schema.enum),[['lefteria_fc']]);
+  assert.ok(route.get.responses['503']);
+  assert.doesNotMatch(program,/app\\.MapAcademyEnquiry/);
 });
