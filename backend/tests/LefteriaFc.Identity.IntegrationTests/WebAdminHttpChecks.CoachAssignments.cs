@@ -25,6 +25,7 @@ internal sealed partial class WebAdminHttpChecks
 
     private async Task AdminCoachAssignmentsAsync()
     {
+        Console.WriteLine("CHECK coach assignment stage: anonymous");
         using(var anonymous=Client())
         using(var denied=await PutCoach(anonymous,"",FcCoachAssignmentPath,"unknown",[],[]))
             await ExpectJsonAsync(denied,401,"not_authenticated");
@@ -36,6 +37,7 @@ internal sealed partial class WebAdminHttpChecks
         try
         {
             coach=await database.SeedCoachesAsync(roster);
+            Console.WriteLine("CHECK coach assignment stage: first-team add");
             using(var changed=await PutCoach(client,login.Cookie,FcCoachAssignmentPath,
                 coach.Coach1,[roster.Team1],[roster.Team1,roster.Team2]))
             {
@@ -53,6 +55,7 @@ internal sealed partial class WebAdminHttpChecks
                     c.GetProperty("group_ids").GetArrayLength()==2),
                     "Coach directory did not refresh from canonical FC memberships.");
             }
+            Console.WriteLine("CHECK coach assignment stage: stale conflict");
             using(var stale=await PutCoach(client,login.Cookie,FcCoachAssignmentPath,
                 coach.Coach1,[roster.Team1],[]))
                 await ExpectJsonAsync(stale,409,"coach_assignment_conflict");
@@ -60,10 +63,12 @@ internal sealed partial class WebAdminHttpChecks
                 coach.Coach1,[roster.Team1,roster.Team2],[roster.Team1]))
                 await ExpectJsonAsync(restored,200);
 
+            Console.WriteLine("CHECK coach assignment stage: designated protected");
             using(var designated=await PutCoach(client,login.Cookie,AcademyCoachAssignmentPath,
                 coach.Coach1,[roster.Group1,roster.Group2],[roster.Group1]))
                 await ExpectJsonAsync(designated,409,"coach_assignment_conflict");
 
+            Console.WriteLine("CHECK coach assignment stage: Academy remove");
             using(var changed=await PutCoach(client,login.Cookie,AcademyCoachAssignmentPath,
                 coach.Coach1,[roster.Group1,roster.Group2],[roster.Group2]))
                 await ExpectJsonAsync(changed,200);
@@ -87,6 +92,7 @@ internal sealed partial class WebAdminHttpChecks
                 coach.Coach1,[roster.Team1],[roster.Group1]))
                 await ExpectJsonAsync(invalid,422,"invalid_coach_assignment");
 
+            Console.WriteLine("CHECK coach assignment stage: permissions");
             var actorCoach=await database.SeedAsync(role:"coach",organizations:["lefteria_fc_academy"]);
             using(var actorClient=Client())
             {
@@ -116,6 +122,7 @@ internal sealed partial class WebAdminHttpChecks
                 }catch(PostgresException e) when(e.SqlState=="42501"){denied=true;}
                 Require(denied,"Admin auth obtained raw coach team deletion authority.");
             }
+            Console.WriteLine("CHECK coach assignment stage: revocations");
             await database.SetStateAsync(admin,role:"editor");
             using(var denied=await PutCoach(client,login.Cookie,FcCoachAssignmentPath,
                 coach.Coach1,[roster.Team1],[]))
