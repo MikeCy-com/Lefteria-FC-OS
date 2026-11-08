@@ -90,7 +90,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Admin roster players are manager-only and reflect private scoped memberships", AdminRosterPlayerDirectoryAsync),
         ("Admin roster membership writes are scoped, audited and conflict-checked", AdminRosterAssignmentsAsync),
         ("Admin coach directory preserves owner-scoped canonical staff relations", AdminCoachDirectoryAsync),
-        ("Admin coach assignment writes are owner-scoped and preserve designated coach links", AdminCoachAssignmentsAsync)
+        ("Admin coach assignment writes are owner-scoped and preserve designated coach links", AdminCoachAssignmentsAsync),
+        ("Admin announcement drafts are audited, owner scoped and never delivered", AdminAnnouncementDraftsAsync)
     ];
 
     private HttpClient Client()

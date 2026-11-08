@@ -17,12 +17,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements'].includes(item.href));
   }
 });
 
@@ -82,4 +82,11 @@ test('one canonical live groups module removes duplicate team/Academy admin link
   assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'])).includes('groups'));
   assert.ok(!ids(user(['academy:read'],['lefteria_fc'])).includes('groups'));
   assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('groups'));
+});
+
+test('announcement drafting is visible only to authorized owners and managers',()=>{
+  assert.ok(ids(user(['teams:write'],['lefteria_fc'],'manager')).includes('announcements'));
+  assert.ok(ids(user(['academy:write'],['lefteria_fc_academy'],'manager')).includes('announcements'));
+  assert.ok(!ids(user(['teams:write'],['lefteria_fc'],'coach')).includes('announcements'));
+  assert.ok(!ids(user(['teams:read'],['lefteria_fc'],'manager')).includes('announcements'));
 });
