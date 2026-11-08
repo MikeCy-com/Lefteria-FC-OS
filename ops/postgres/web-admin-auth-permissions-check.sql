@@ -20,6 +20,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \gset
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
+\ir pos-category-writer-boundary.sql
 
 DO $checks$
 DECLARE
@@ -70,7 +71,8 @@ BEGIN
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.lock_admin_club_authority(text,text)'::regprocedure,
-                  'pos.read_admin_catalog(text,text)'::regprocedure)) THEN
+                  'pos.read_admin_catalog(text,text)'::regprocedure,
+                  'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;
 
