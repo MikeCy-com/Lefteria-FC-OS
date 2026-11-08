@@ -14,13 +14,15 @@
 \endif
 
 BEGIN;
+SELECT set_config('lefteria.finance_admin_role', :'admin_auth_role', true);
+SELECT set_config('lefteria.finance_app_role', :'app_role', true);
 DO $validate$
 DECLARE
   admin_role pg_roles%ROWTYPE;
   runtime_role pg_roles%ROWTYPE;
 BEGIN
-  SELECT * INTO admin_role FROM pg_roles WHERE rolname=:'admin_auth_role';
-  SELECT * INTO runtime_role FROM pg_roles WHERE rolname=:'app_role';
+  SELECT * INTO admin_role FROM pg_roles WHERE rolname=current_setting('lefteria.finance_admin_role');
+  SELECT * INTO runtime_role FROM pg_roles WHERE rolname=current_setting('lefteria.finance_app_role');
   IF NOT FOUND OR admin_role.rolname IS NULL
     OR admin_role.rolname=runtime_role.rolname
     OR admin_role.rolsuper OR runtime_role.rolsuper
@@ -54,17 +56,17 @@ GRANT EXECUTE ON FUNCTION finance.apply_payabl_notification(
 DO $verify$
 DECLARE r text;
 BEGIN
-  FOREACH r IN ARRAY ARRAY[:'admin_auth_role',:'app_role'] LOOP
+  FOREACH r IN ARRAY ARRAY[current_setting('lefteria.finance_admin_role'),current_setting('lefteria.finance_app_role')] LOOP
     IF has_table_privilege(r,'finance.payment_requests','SELECT,INSERT,UPDATE,DELETE')
       OR has_table_privilege(r,'finance.payment_notifications','SELECT,INSERT,UPDATE,DELETE')
       OR has_schema_privilege(r,'finance','CREATE')
-      OR has_function_privilege(r,'finance.payment_requests'::regclass::oid,'EXECUTE') THEN
+      THEN
       RAISE EXCEPTION 'Finance privilege boundary exceeded for %',r;
     END IF;
   END LOOP;
-  IF has_function_privilege(:'app_role',
+  IF has_function_privilege(current_setting('lefteria.finance_app_role'),
        'finance.create_admin_payment_request(text,text,uuid,uuid,text,text,bigint,text,text,text)','EXECUTE')
-    OR has_function_privilege(:'admin_auth_role',
+    OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
        'finance.apply_payabl_notification(uuid,text,text,text,integer,bigint)','EXECUTE')
   THEN
     RAISE EXCEPTION 'Finance cross-role function leakage';
