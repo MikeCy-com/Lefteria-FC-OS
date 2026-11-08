@@ -402,7 +402,8 @@ test('fan inbox Svelte SSR shows only organization and expiry, never target/chil
     delegationStatus:'ready',delegationAvailability:{has_active_delegation:false}}}).body;
   assert.doesNotMatch(inactive,/family-delegated-calendar/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
-  assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
+  assert.match(route,/activeTab === 'profile' && !composing/);
+  assert.match(route,/\{#if role === 'fan'\}[\s\S]*?<MobileRecipientInvitations/);
   assert.match(route,/onLoad=\{\(\) => controller\.loadRecipientInvitations\(\)\}/);
   assert.match(route,/inbox=\{\$controller\.recipientInvitations\}/);
 });
