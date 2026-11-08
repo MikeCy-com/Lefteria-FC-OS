@@ -2332,6 +2332,7 @@ export interface operations {
     PutAdminRosterAssignment: {
         parameters: {
             query: {
+                /** @description Exact current assigned football or Academy owner; never all or inferred. */
                 organization_id: "lefteria_fc" | "lefteria_fc_academy";
             };
             header?: never;
