@@ -75,6 +75,19 @@ internal sealed partial class WebAdminHttpChecks
                 fixture.Player(4),[fixture.Group2],[fixture.Group1,fixture.Group2]))
                 await ExpectJsonAsync(restore,200);
 
+            Require(await database.AssignmentAuditCountAsync(admin)==4,
+                "Each successful membership replacement must produce an audit record.");
+            await database.WithAssignmentAuditFailureAsync(admin,async()=>{
+                using var denied=await PutAssignment(client,login.Cookie,FcAssignmentPath,
+                    fixture.Player(3),[],[fixture.Team1]);
+                await ExpectJsonAsync(denied,503,"assignment_unavailable");
+            });
+            var rollback=await ReadRosterPagesAsync(client,FcPlayersPath,login.Cookie);
+            Require(PlayerRow(rollback.Rows,fixture.Player(3))
+                    .GetProperty("team_id").ValueKind==JsonValueKind.Null &&
+                    await database.AssignmentAuditCountAsync(admin)==4,
+                "Audit failure did not roll back canonical player assignment.");
+
             using(var invalid=await PutAssignment(client,login.Cookie,FcAssignmentPath,
                 fixture.Player(2),[fixture.Team1],[]))
                 await ExpectJsonAsync(invalid,422,"invalid_assignment");
