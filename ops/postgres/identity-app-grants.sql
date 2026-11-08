@@ -314,6 +314,18 @@ GRANT EXECUTE ON FUNCTION club.write_mobile_private_message(
 GRANT EXECUTE ON FUNCTION club.hide_mobile_private_conversation(
   uuid,text,text,timestamptz,uuid) TO :"app_role";
 
+-- Draft media bytes never have raw access. Published content is fetched
+-- only by an authenticated, current roster-scoped read procedure.
+REVOKE ALL ON TABLE club.app_announcement_media FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_app_announcement_media(
+  uuid,text,text,timestamptz,text,text,text,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_app_announcement_media(
+  uuid,text,text,timestamptz,text,text,text,uuid) TO :"app_role";
+REVOKE ALL ON FUNCTION club.write_admin_app_announcement_media(
+  text,text,text,bigint,uuid,text,text,text,bytea) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.remove_admin_app_announcement_media(
+  text,text,text,bigint,uuid) FROM PUBLIC, :"app_role";
+
 -- App announcement reactions: one current member per emoji and notice.
 -- No client role can read raw reactors or enumerate names.
 REVOKE ALL ON TABLE club.app_announcement_reactions FROM PUBLIC, :"app_role";
