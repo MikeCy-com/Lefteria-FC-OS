@@ -42,6 +42,7 @@ public static partial class MobileIdentityEndpoints
             if (context.Request.Path.StartsWithSegments("/api/mobile/auth") ||
                 context.Request.Path.StartsWithSegments("/api/mobile/family") ||
                 context.Request.Path.StartsWithSegments("/api/mobile/chat") ||
+                context.Request.Path.StartsWithSegments("/api/mobile/private") ||
                 string.Equals(context.Request.Path.Value?.TrimEnd('/'), "/api/mobile/profile", StringComparison.OrdinalIgnoreCase))
             {
                 const long limit = 16 * 1024;

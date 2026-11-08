@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the thirty-two explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the forty-one explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 32);
+  assert.equal(operations.length, 41);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -84,6 +84,29 @@ test('only the thirty-two explicitly declared Mobile operations receive Bearer r
   assert.equal(permits(contract,'PATCH',ownMessage+'/seen'),false);
   assert.equal(permits(contract,'GET',ownMessage+'/readers/extra'),false);
   assert.equal(permits(contract,'POST','/api/mobile/chat/groups/lefteria_fc/first_team/messages/reactions'),false);
+  const privateId='11111111-2222-4333-8444-555555555555';
+  const privateMessage='aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
+  assert.equal(permits(contract,'GET','/api/mobile/private/contacts'),true);
+  assert.equal(permits(contract,'GET','/api/mobile/private/conversations'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/private/invitations'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/private/conversations/'+privateId+'/respond'),true);
+  assert.equal(permits(contract,'GET','/api/mobile/private/conversations/'+privateId+'/messages'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/private/conversations/'+privateId+'/messages'),true);
+  assert.equal(permits(contract,'PUT','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage),true);
+  assert.equal(permits(contract,'DELETE','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage),true);
+  assert.equal(permits(contract,'DELETE','/api/mobile/private/conversations/'+privateId+'/for-me'),true);
+  for(const [method,path] of [
+    ['GET','/api/mobile/private/invitations'],
+    ['POST','/api/mobile/private/contacts'],
+    ['DELETE','/api/mobile/private/conversations'],
+    ['GET','/api/mobile/private/conversations/'+privateId+'/respond'],
+    ['GET','/api/mobile/private/conversations/'+privateId+'/for-me'],
+    ['POST','/api/mobile/private/conversations/'+privateId+'/for-me'],
+    ['GET','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage],
+    ['PATCH','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage],
+    ['DELETE','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage+'/extra'],
+    ['GET','/api/mobile/private/contact-phones']
+  ])assert.equal(permits(contract,method,path),false,method+' '+path);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc_academy/under_13/messages'), true);
   assert.equal(permits(contract, 'DELETE', '/api/mobile/chat/groups/lefteria_fc/first_team/messages'), false);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc/first_team/messages/extra'), false);
@@ -98,7 +121,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 32);
+  assert.equal(protectedOperations(changed).length, 41);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });

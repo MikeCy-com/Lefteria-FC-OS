@@ -1,5 +1,9 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
+import {validPrivateContact,validPrivateContacts,validPrivateConversation,
+  validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
+  type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
+} from './private-chat.ts';
 import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
@@ -1321,6 +1325,87 @@ export function createMobileAuthController(options: {
       const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/readers');
       if(!validReaders(result,150))throw new Error('Unexpected verified readers format.');
       return result;
+    },
+    async getPrivateContacts(room:GroupChatRoom):Promise<PrivateContact[]> {
+      if(!validRoom(room))throw new Error('Invalid shared room.');
+      const q=new URLSearchParams({organization:room.organization_id,group:room.group_id});
+      const result=await chatRequest('/api/mobile/private/contacts?'+q.toString());
+      if(!validPrivateContacts(result))throw new Error('Invalid private contacts.');
+      return result.contacts;
+    },
+    async getPrivateConversations():Promise<PrivateConversation[]> {
+      const result=await chatRequest('/api/mobile/private/conversations');
+      if(!validPrivateInbox(result))throw new Error('Invalid private inbox.');
+      return result.conversations;
+    },
+    async invitePrivateContact(room:GroupChatRoom,recipientId:string):Promise<PrivateConversation> {
+      if(!validRoom(room)||!validUuid(recipientId))throw new Error('Invalid invitation.');
+      const result=await chatRequest('/api/mobile/private/invitations','POST',
+        {organization_id:room.organization_id,group_id:room.group_id,recipient_id:recipientId});
+      if(!validPrivateConversation(result)||result.partner_id!==recipientId||
+        result.organization_id!==room.organization_id||result.group_id!==room.group_id||
+        !result.is_initiator||result.status!=='pending')
+        throw new Error('Invitation was not confirmed.');
+      return result;
+    },
+    async respondPrivateInvitation(id:string,accept:boolean):Promise<PrivateConversation|null> {
+      if(!validUuid(id)||typeof accept!=='boolean')throw new Error('Invalid response.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/respond','POST',{accept});
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+         !('id' in result)||result.id!==id||!('status' in result)||
+         result.status!==(accept?'accepted':'declined')||
+         !('is_initiator' in result)||result.is_initiator!==false)
+        throw new Error('The recipient response was not confirmed.');
+      if(!accept)return null;
+      if(!validPrivateConversation(result))throw new Error('Invalid private conversation.');
+      return result;
+    },
+    async getPrivateMessages(id:string,offset=0):Promise<PrivatePage> {
+      if(!validUuid(id)||!Number.isInteger(offset)||offset<0||offset>100000)
+        throw new Error('Invalid private message page.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/messages?offset='+offset);
+      if(!validPrivatePage(result,id))throw new Error('Invalid private message page.');
+      return result;
+    },
+    async sendPrivateMessage(id:string,content:string):Promise<PrivateMessage> {
+      if(!validUuid(id)||!validPrivateText(content))throw new Error('Invalid private message.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/messages','POST',{content});
+      if(!validPrivateMessage(result,id)||result.content!==content||result.is_deleted)
+        throw new Error('Private message not confirmed.');
+      return result;
+    },
+    async editPrivateMessage(id:string,message:string,version:number,content:string):Promise<PrivateMessage> {
+      if(!validUuid(id)||!validUuid(message)||!Number.isSafeInteger(version)||version<1||
+        !validPrivateText(content))throw new Error('Invalid private message edit.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/messages/'+encodeURIComponent(message),'PUT',{version,content});
+      if(!validPrivateMessage(result,id)||result.id!==message||
+         result.version!==version+1||result.is_deleted||result.content!==content)
+        throw new Error('Private message edit not confirmed.');
+      return result;
+    },
+    async deletePrivateMessage(id:string,message:string,version:number):Promise<PrivateMessage> {
+      if(!validUuid(id)||!validUuid(message)||!Number.isSafeInteger(version)||version<1)
+        throw new Error('Invalid private message deletion.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/messages/'+encodeURIComponent(message)+'?version='+version,'DELETE');
+      if(!validPrivateMessage(result,id)||result.id!==message||result.version!==version+1||
+         !result.is_deleted||result.content!=='')
+        throw new Error('Private message deletion not confirmed.');
+      return result;
+    },
+    async hidePrivateConversationForMe(id:string):Promise<boolean> {
+      if(!validUuid(id))throw new Error('Invalid private conversation.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(id)+
+        '/for-me','DELETE');
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+        !('conversation_id' in result)||result.conversation_id!==id||
+        !('hidden' in result)||result.hidden!==true)
+        throw new Error('Private chat hide not confirmed.');
+      return true;
     },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }

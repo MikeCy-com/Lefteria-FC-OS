@@ -77,6 +77,7 @@ builder.Services.AddOpenApi(options =>
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
+builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPublicContent();
@@ -127,6 +128,7 @@ app.MapMobileRoster();
 app.MapParentFamily();
 app.MapMobileCalendar();
 app.MapMobileGroupChat();
+app.MapMobilePrivateChat();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();

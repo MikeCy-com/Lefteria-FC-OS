@@ -287,6 +287,56 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Guessed room leaked private readers'; END IF;
+  FOR private_table IN SELECT unnest(ARRAY[
+    'club.app_private_conversations','club.app_private_messages',
+    'club.app_private_message_revisions','club.app_private_conversation_views']) LOOP
+    IF has_table_privilege(current_user,private_table,
+         'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_any_column_privilege(current_user,private_table,
+         'SELECT,INSERT,UPDATE,REFERENCES') THEN
+      RAISE EXCEPTION 'Runtime can inspect private chat rows: %',private_table;
+    END IF;
+  END LOOP;
+  IF has_function_privilege(current_user,
+      'club.mobile_private_pair_allowed(uuid,text,text,timestamptz,uuid,text,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'club.private_conversation_json(club.app_private_conversations,uuid)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.read_mobile_private_contacts(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.read_mobile_private_conversations(uuid,text,text,timestamptz)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.request_mobile_private_conversation(uuid,text,text,timestamptz,text,text,uuid)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.respond_mobile_private_conversation(uuid,text,text,timestamptz,uuid,boolean)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.read_mobile_private_messages(uuid,text,text,timestamptz,uuid,integer)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.write_mobile_private_message(uuid,text,text,timestamptz,uuid,text,uuid,bigint,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'club.hide_mobile_private_conversation(uuid,text,text,timestamptz,uuid)','EXECUTE') THEN
+    RAISE EXCEPTION 'Private messaging function boundary violated';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.request_mobile_private_conversation(
+      gen_random_uuid(),'invalid','fan',now()+interval '1 day',
+      'lefteria_fc','invented_group',gen_random_uuid());
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'A fan could create an unauthorized private invitation';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.write_mobile_private_message(
+      gen_random_uuid(),'invalid','player',now()+interval '1 day',
+      gen_random_uuid(),'send',NULL,NULL,'unguarded');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'A player could bypass private conversation approval';
+  END IF;
   -- A fan cannot use a member chat directory, even with guessed group IDs.
   denied := false;
   BEGIN
