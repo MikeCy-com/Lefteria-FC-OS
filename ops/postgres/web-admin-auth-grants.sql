@@ -179,6 +179,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
+\ir app-announcement-publishing-boundary.sql
 
 DO $boundary$
 DECLARE
