@@ -1,0 +1,35 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const base=new URL('../../',import.meta.url);
+const read=p=>readFileSync(new URL(p,base),'utf8');
+const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108160000_AdminCoachDirectory.cs');
+const api=read('backend/src/LefteriaFc.Api/Audiences/AdminCoachDirectoryEndpoints.cs');
+const ui=read('frontend/src/lib/admin/AdminCoachDirectoryPanel.svelte');
+const parent=read('frontend/src/routes/admin/groups/+page.svelte');
+const grants=read('ops/postgres/web-admin-auth-grants.sql');
+const check=read('ops/postgres/admin-coach-directory-boundary.sql');
+test('private coach projection is current, owner-locked and contains no contact details',()=>{
+  assert.match(sql,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+  assert.match(sql,/v_role NOT IN \('manager','super_admin'\)/);
+  assert.match(sql,/migration\.staff_relationship_import_state/);
+  assert.match(sql,/club\.staff_teams/);
+  assert.match(sql,/club\.staff_academy_groups/);
+  assert.match(sql,/club\.academy_group_coaches/);
+  assert.match(sql,/s\.is_active AND NOT s\.is_archived/);
+  assert.doesNotMatch(sql,/raw_value|contact_provenance|parent_phone|guardian/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_admin_coaches/);
+  assert.match(check,/has_any_column_privilege\(auth_name,c\.oid,'SELECT,INSERT,UPDATE,REFERENCES'\)/);
+});
+test('coach UI uses real scoped pages and invalidates stale owner reads',()=>{
+  assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(api,/AdminPermissions\.Has\(session\.User\.Role,capability\)/);
+  assert.match(ui,/data-testid="admin-coach-directory"/);
+  assert.match(ui,/credentials:'same-origin',cache:'no-store'/);
+  assert.match(ui,/controller\.abort\(\)/);
+  assert.match(ui,/verified\(raw,selectedOwner,selectedOffset\)/);
+  assert.match(ui,/response\.status===401/);
+  assert.match(ui,/response\.status===403/);
+  assert.match(parent,/AdminCoachDirectoryPanel/);
+  assert.doesNotMatch(ui,/@html|innerHTML|method:'POST'|mockCoaches/);
+});
