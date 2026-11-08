@@ -9,6 +9,7 @@ The following items are prerequisites to mapping any public POST endpoint:
 1. Verify the Hostinger/Traefik trusted-forwarded-headers configuration against the actual deployment path, and test spoofed headers, direct traffic and proxy chains.
 2. Approve Academy-specific retention, guardian consent, contact-data minimization and abuse controls.
 3. Restrict `marketing.store_academy_lead` execution to the least-privileged runtime role with no direct lead/bucket table grants, validate SQL owner and function security, and run real PostgreSQL denial, concurrency, throttle, rollback and audit tests.
+   - The isolated identity fixture includes a nine-request simultaneous write test using one unique synthetic fingerprint; it verifies at most five committed leads, matching audit events, denied excess requests and exact-record cleanup. The runtime role remains denied function access until a separate grant review.
 4. Register only an explicitly opted-in, bounded public API contract with no success unless the committed DB write returns `stored`. Ensure rate-limit responses do not reveal stored contact information and no SMS is initiated.
 5. Update versioned OpenAPI and generated Svelte client, build an accessible real form, test network errors, privacy notices, consent and partner attribution.
 6. Pass all five Rewrite build jobs on the reviewed branch, then separately authorize any **isolated preview** release after snapshot/rollback validation.
