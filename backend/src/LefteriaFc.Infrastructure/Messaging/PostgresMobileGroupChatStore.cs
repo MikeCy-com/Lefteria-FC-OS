@@ -71,7 +71,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 var connection=(NpgsqlConnection)database.Database.GetDbConnection();
                 await using var command=new NpgsqlCommand(sql,connection);
                 command.Parameters.AddWithValue("identity",actor.IdentityId);
-                command.Parameters.AddWithValue("phone",actor.Phone);
+                command.Parameters.AddWithValue("phone",actor.NormalizedPhone);
                 command.Parameters.AddWithValue("role",actor.Role.ToString().ToLowerInvariant());
                 command.Parameters.AddWithValue("expires",actor.ExpiresAt);
                 if(organization is not null)command.Parameters.AddWithValue("organization",organization);
