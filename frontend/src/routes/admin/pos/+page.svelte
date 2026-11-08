@@ -41,6 +41,143 @@
   let writeError = $state<string | null>(null);
 
 
+  type VariantInput = { id: string; name: string; cost: string; price: string };
+  let showProductForm = $state(false);
+  let editingProductId = $state<string | null>(null);
+  let productVersion = $state<number | null>(null);
+  let productCategory = $state('');
+  let productName = $state('');
+  let productImage = $state('');
+  let productActive = $state(true);
+  let productVariants = $state<VariantInput[]>([]);
+  let productWriting = $state(false);
+  let productError = $state<string | null>(null);
+
+  function newVariant(index: number): VariantInput {
+    return { id: 'variant_' + index, name: '', cost: '0.00', price: '1.00' };
+  }
+  function startNewProduct() {
+    if (!canEdit || !catalog || !catalog.categories.some(c => c.active)) return;
+    editingProductId = null;
+    productVersion = null;
+    productCategory = catalog.categories.find(c => c.active)?.id ?? '';
+    productName = '';
+    productImage = '';
+    productActive = true;
+    productVariants = [newVariant(1)];
+    productError = null;
+    showProductForm = true;
+  }
+  function editProduct(product: Product) {
+    if (!canEdit || !catalog) return;
+    editingProductId = product.id;
+    productVersion = product.version;
+    productCategory = product.category_id;
+    productName = product.name;
+    productImage = product.image_url ?? '';
+    productActive = product.active;
+    productVariants = product.variants.map(v => ({
+      id: v.id, name: v.name,
+      cost: (v.cost_cents / 100).toFixed(2),
+      price: (v.price_cents / 100).toFixed(2)
+    }));
+    productError = null;
+    showProductForm = true;
+  }
+  function centsFromEuros(value: string): number | null {
+    if (!/^\\d{1,6}([.,]\\d{1,2})?$/.test(value)) return null;
+    const [whole, decimal = ''] = value.replace(',', '.').split('.');
+    const cents = Number(whole) * 100 + Number(decimal.padEnd(2, '0'));
+    return Number.isSafeInteger(cents) && cents <= 10000000 ? cents : null;
+  }
+  function verifiedProduct(raw: unknown, id: string | null, name: string,
+    expectedVariants: { id: string; name: string; cost_cents: number; price_cents: number }[]): boolean {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+    const item = raw as Record<string, unknown>;
+    if (typeof item.id !== 'string' || !(id === null ? /^prod_[0-9a-f]{32}$/.test(item.id) : item.id === id) ||
+        item.category_id !== productCategory || item.name !== name ||
+        item.active !== productActive || item.image_url !== (productImage || null) ||
+        !Number.isSafeInteger(item.version) || (item.version as number) < 0 ||
+        !Array.isArray(item.variants) || item.variants.length !== expectedVariants.length) return false;
+    return expectedVariants.every(wanted => item.variants.some((value: unknown) => {
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+      const actual = value as Record<string, unknown>;
+      return actual.id === wanted.id && actual.name === wanted.name &&
+        actual.cost_cents === wanted.cost_cents && actual.price_cents === wanted.price_cents;
+    }));
+  }
+  async function saveProduct() {
+    if (!browser || !canEdit || !owner || !showProductForm || productWriting ||
+        !catalog || busy || writing) return;
+    const selectedOwner = owner;
+    const userId = $auth.session?.user.id;
+    const currentId = editingProductId;
+    const name = productName;
+    const image = productImage;
+    const selectedCategory = productCategory;
+    if (!name || name.length > 100 || name !== name.trim() ||
+        !catalog.categories.some(c => c.id === selectedCategory && c.active) ||
+        !Array.isArray(productVariants) || productVariants.length < 1 ||
+        productVariants.length > 16 || (image && (!/^https:\/\/[^\\s]+$/.test(image) ||
+        image.length > 2048 || /[\\x00-\\x1f\\x7f]/.test(image))) ||
+        (currentId !== null && (productVersion === null ||
+        !Number.isSafeInteger(productVersion) || productVersion < 0))) {
+      productError = 'Ελέγξτε την κατηγορία, το όνομα, τις παραλλαγές και την έκδοση του προϊόντος.';
+      return;
+    }
+    const variants: { id: string; name: string; cost_cents: number; price_cents: number }[] = [];
+    const ids = new Set<string>();
+    for (const variant of productVariants) {
+      const cost = centsFromEuros(variant.cost);
+      const price = centsFromEuros(variant.price);
+      if (!/^[A-Za-z0-9_-]{1,60}$/.test(variant.id) || !variant.name ||
+          variant.name !== variant.name.trim() || variant.name.length > 80 ||
+          ids.has(variant.id) || cost === null || price === null || price <= 0) {
+        productError = 'Κάθε παραλλαγή χρειάζεται μοναδικό κωδικό, όνομα και έγκυρα ποσά σε €.';
+        return;
+      }
+      ids.add(variant.id);
+      variants.push({id:variant.id,name:variant.name,cost_cents:cost,price_cents:price});
+    }
+    productWriting = true;
+    productError = null;
+    try {
+      const query = new URLSearchParams({organization_id:selectedOwner});
+      const target = '/api/admin/pos/products' +
+        (currentId === null ? '' : '/' + encodeURIComponent(currentId)) + '?' + query.toString();
+      const payload = {
+        category_id:selectedCategory,name,image_url:image || null,active:productActive,variants,
+        ...(currentId === null ? {} : {expected_version:productVersion})
+      };
+      const response = await fetch(target,{
+        method:currentId===null ? 'POST' : 'PUT',
+        credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify(payload)
+      });
+      if (owner !== selectedOwner || $auth.session?.user.id !== userId || !canEdit) return;
+      if (response.status===401 || response.status===403) {
+        void auth.bootstrap();
+        showProductForm=false;
+        throw new Error('Η πρόσβαση άλλαξε. Επαληθεύστε ξανά τη σύνδεσή σας.');
+      }
+      if (response.status===409) {
+        showProductForm=false;
+        retry++;
+        throw new Error('Το προϊόν άλλαξε. Ο κατάλογος ανανεώνεται πριν από νέα αποθήκευση.');
+      }
+      if (!response.ok) throw new Error('Το προϊόν δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και τα ποσά.');
+      const result: unknown = await response.json();
+      if (!verifiedProduct(result,currentId,name,variants))
+        throw new Error('Η επιβεβαίωση προϊόντος ή παραλλαγών δεν ήταν έγκυρη.');
+      showProductForm=false;
+      retry++;
+    } catch(error) {
+      if (owner===selectedOwner && $auth.session?.user.id===userId)
+        productError=error instanceof Error ? error.message : 'Η αλλαγή δεν ολοκληρώθηκε.';
+    } finally { productWriting=false; }
+  }
+
   const euro = (cents: number) => new Intl.NumberFormat('el-CY',
     { style: 'currency', currency: 'EUR' }).format(cents / 100);
 
@@ -161,6 +298,10 @@
     editingId = null;
     expectedVersion = null;
     writeError = null;
+    showProductForm = false;
+    editingProductId = null;
+    productVersion = null;
+    productError = null;
   });
 
   $effect(() => {
@@ -227,7 +368,7 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>Προϊόντα & κατηγορίες</h1>
-        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η επεξεργασία κατηγοριών γίνεται με ελεγχόμενη καταγραφή αλλαγών. Οι αλλαγές προϊόντων, τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές.</p>
+        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <label for="admin-pos-organization">Οργανισμός</label>
           <select id="admin-pos-organization" value={owner ?? ''} data-testid="admin-pos-organization"
@@ -284,6 +425,80 @@
               {/if}
             </section>
           {/if}
+          {#if canEdit}
+            <section class="admin-panel admin-pos-editor" aria-labelledby="pos-products-editor-heading" data-testid="admin-pos-product-editor">
+              <div class="admin-pos-editor-heading">
+                <div>
+                  <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΠΡΟΪΟΝΤΩΝ · ΤΙΜΕΣ ΣΕ €</p>
+                  <h2 id="pos-products-editor-heading">Προϊόντα & παραλλαγές</h2>
+                </div>
+                {#if !showProductForm}
+                  <button type="button" class="admin-secondary" disabled={productWriting || writing || !catalog.categories.some(c => c.active)}
+                    onclick={startNewProduct}>Προσθήκη προϊόντος</button>
+                {/if}
+              </div>
+              {#if showProductForm}
+                <form class="admin-pos-product-form" data-testid="admin-pos-product-form"
+                  onsubmit={event => {event.preventDefault(); void saveProduct();}}>
+                  <div class="admin-pos-product-fields">
+                    <label>Όνομα προϊόντος
+                      <input type="text" maxlength="100" required bind:value={productName} disabled={productWriting}/>
+                    </label>
+                    <label>Κατηγορία
+                      <select required bind:value={productCategory} disabled={productWriting}>
+                        {#each catalog.categories.filter(c => c.active || c.id === productCategory) as category (category.id)}
+                          <option value={category.id}>{category.name}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    <label>HTTPS εικόνας (προαιρετικό)
+                      <input type="url" maxlength="2048" placeholder="https://" bind:value={productImage} disabled={productWriting}/>
+                    </label>
+                    <label class="admin-pos-checkbox">
+                      <input type="checkbox" bind:checked={productActive} disabled={productWriting}/>
+                      Ενεργό προϊόν
+                    </label>
+                  </div>
+                  <div class="admin-pos-variant-editor">
+                    <h3>Παραλλαγές & ποσά (€)</h3>
+                    <p class="admin-muted">Τιμές πώλησης και κόστη με έως δύο δεκαδικά. Η αποθήκευση αντικαθιστά ολόκληρο τον κατάλογο παραλλαγών του προϊόντος.</p>
+                    {#each productVariants as variant, index (index)}
+                      <div class="admin-pos-variant-row">
+                        <label>Κωδικός
+                          <input type="text" required pattern="[A-Za-z0-9_-]{1,60}" maxlength="60"
+                            bind:value={variant.id} disabled={productWriting}/>
+                        </label>
+                        <label>Όνομα / μέγεθος
+                          <input type="text" required maxlength="80" bind:value={variant.name} disabled={productWriting}/>
+                        </label>
+                        <label>Κόστος (€)
+                          <input type="text" required inputmode="decimal" pattern="[0-9]{1,6}([.,][0-9]{1,2})?"
+                            bind:value={variant.cost} disabled={productWriting}/>
+                        </label>
+                        <label>Τιμή πώλησης (€)
+                          <input type="text" required inputmode="decimal" pattern="[0-9]{1,6}([.,][0-9]{1,2})?"
+                            bind:value={variant.price} disabled={productWriting}/>
+                        </label>
+                        <button type="button" class="admin-secondary" disabled={productWriting || productVariants.length === 1}
+                          aria-label={'Αφαίρεση παραλλαγής '+(index+1)}
+                          onclick={() => {productVariants=productVariants.filter((_,i)=>i!==index);}}>Αφαίρεση</button>
+                      </div>
+                    {/each}
+                    <button type="button" class="admin-secondary" disabled={productWriting || productVariants.length >= 16}
+                      onclick={() => {productVariants=[...productVariants,newVariant(productVariants.length+1)];}}>Προσθήκη παραλλαγής</button>
+                  </div>
+                  <div class="admin-pos-form-actions">
+                    <button type="submit" class="admin-secondary" disabled={productWriting || writing}>{productWriting ? 'Αποθήκευση…' : 'Αποθήκευση προϊόντος'}</button>
+                    <button type="button" class="admin-secondary" disabled={productWriting}
+                      onclick={() => {showProductForm=false;productError=null;}}>Ακύρωση</button>
+                  </div>
+                </form>
+              {/if}
+              {#if productError}
+                <p role="alert" class="admin-pos-write-error">{productError}</p>
+              {/if}
+            </section>
+          {/if}
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -316,7 +531,13 @@
                     <li>
                       <div class="admin-pos-product-title">
                         <div><h3>{product.name}</h3><small>{catalog.categories.find(c => c.id === product.category_id)?.name ?? '—'}</small></div>
-                        <span class:inactive={!product.active} class="admin-pos-state">{product.active ? 'Ενεργό' : 'Αρχειοθετημένο'}</span>
+                        <div class="admin-pos-category-actions">
+                          <span class:inactive={!product.active} class="admin-pos-state">{product.active ? 'Ενεργό' : 'Αρχειοθετημένο'}</span>
+                          {#if canEdit}
+                            <button type="button" class="admin-secondary" disabled={productWriting || writing}
+                              onclick={() => editProduct(product)}>Επεξεργασία</button>
+                          {/if}
+                        </div>
                       </div>
                       <ul class="admin-pos-variants">
                         {#each product.variants as variant (variant.id)}
@@ -358,6 +579,18 @@
   .admin-pos-category-actions button{min-height:44px}
   .admin-pos-write-error{color:#ffd29b;margin-top:12px}
 
+  .admin-pos-product-form{display:grid;gap:18px;margin-top:18px}
+  .admin-pos-product-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;align-items:end}
+  .admin-pos-product-form label{display:flex;flex-direction:column;gap:6px;color:#b9bcbe;font-size:12px;min-width:0}
+  .admin-pos-product-form input:not([type=checkbox]),.admin-pos-product-form select{width:100%;min-width:0}
+  .admin-pos-product-form .admin-pos-checkbox{display:flex;flex-direction:row;align-items:center;gap:9px;min-height:44px}
+  .admin-pos-variant-editor{display:grid;gap:11px}
+  .admin-pos-variant-editor h3{margin:0;font-size:19px}
+  .admin-pos-variant-editor p{margin:0;font-size:12px}
+  .admin-pos-variant-row{display:grid;grid-template-columns:1fr 1.5fr .85fr .85fr auto;gap:9px;align-items:end;padding:12px;border:1px solid #303335;border-radius:10px;background:#0c0e0e}
+  .admin-pos-variant-row .admin-secondary{white-space:nowrap}
+  @media(max-width:1050px){.admin-pos-variant-row{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-pos-variant-row .admin-secondary{justify-self:start}}
+  @media(max-width:600px){.admin-pos-product-fields,.admin-pos-variant-row{grid-template-columns:minmax(0,1fr)}}
   .admin-pos-owner label{display:block;color:#b9bcbe;font-size:12px;margin-bottom:6px}
   .admin-pos-owner select{width:min(100%,350px)}
   .admin-pos-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px}
