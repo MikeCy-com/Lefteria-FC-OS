@@ -28,6 +28,24 @@ BEGIN
       RAISE EXCEPTION 'App announcement publish boundary grants are unsafe';
     END IF;
   END LOOP;
+  IF NOT has_function_privilege(mobile_role,
+       'club.read_mobile_app_notification_inbox(uuid,text,text,timestamptz,integer)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.read_mobile_app_notification_inbox(uuid,text,text,timestamptz,integer)','EXECUTE')
+    OR has_function_privilege(mobile_role,
+       'club.enqueue_app_announcement_notification()','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.enqueue_app_announcement_notification()','EXECUTE')
+    OR has_any_column_privilege(mobile_role,
+       'club.app_announcement_notification_events','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,
+       'club.app_announcement_notification_events','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(auth_role,
+       'club.app_announcement_notification_events','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,
+       'club.app_announcement_notification_events','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Notification event outbox/raw table access leaked';
+  END IF;
   IF NOT has_function_privilege(auth_role,
        'club.write_admin_app_announcement_media(text,text,text,bigint,uuid,text,text,text,bytea)','EXECUTE')
     OR NOT has_function_privilege(auth_role,

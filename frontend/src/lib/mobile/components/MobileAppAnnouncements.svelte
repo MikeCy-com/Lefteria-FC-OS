@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {onMount} from 'svelte';
+  import {onMount,tick} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {GroupChatRoom} from '../group-chat.ts';
   import type {AppAnnouncement} from '../app-announcements.ts';
@@ -7,7 +7,12 @@
   import MobileAnnouncementBanner from './MobileAnnouncementBanner.svelte';
   import type {AppAnnouncementMedia} from '../app-announcements.ts';
 
-  let {controller}:{controller:MobileAuthController}=$props();
+  let {controller,initialOrganization=null,initialGroup=null,
+    initialAnnouncementId=null}:{
+      controller:MobileAuthController;
+      initialOrganization?:string|null;initialGroup?:string|null;
+      initialAnnouncementId?:string|null;
+    }=$props();
   let rooms=$state<GroupChatRoom[]>([]);
   let selected=$state<GroupChatRoom|null>(null);
   let announcements=$state<AppAnnouncement[]>([]);
@@ -36,7 +41,10 @@
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
       rooms=result;
-      if(result.length===1)void chooseRoom(result[0]);
+      const requested=result.find(room=>
+        room.organization_id===initialOrganization&&room.group_id===initialGroup);
+      if(requested)void chooseRoom(requested);
+      else if(result.length===1)void chooseRoom(result[0]);
     }catch(e){if(alive&&request===requestNumber)error=fault(e);}
     finally{if(alive&&request===requestNumber)loading=false;}
   }
@@ -48,6 +56,13 @@
       const result=await controller.getAppAnnouncements(room,0);
       if(!alive||request!==requestNumber||selected!==room)return;
       announcements=result.announcements;nextOffset=result.next_offset;
+      if(initialAnnouncementId&&
+        result.announcements.some(item=>item.id===initialAnnouncementId)){
+        await tick();
+        if(alive&&request===requestNumber&&selected===room)
+          document.getElementById('app-announcement-'+initialAnnouncementId)
+            ?.scrollIntoView({behavior:'smooth',block:'center'});
+      }
     }catch(e){if(alive&&request===requestNumber)error=fault(e);}
     finally{if(alive&&request===requestNumber)busy=false;}
   }
@@ -162,7 +177,7 @@
       {/if}
       <ol>
         {#each announcements as notice (notice.id)}
-          <li use:seenOnScreen={notice}>
+          <li id={'app-announcement-'+notice.id} use:seenOnScreen={notice}>
             <div class="notice-top"><span class="official">Επίσημη ανακοίνωση</span>
               <time datetime={notice.published_at}>
                 {new Date(notice.published_at).toLocaleString('el-CY',{dateStyle:'medium',timeStyle:'short'})}

@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
+import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
   validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
   type AppAnnouncementPage,type AppAnnouncementReactionSnapshot,
@@ -1260,6 +1261,14 @@ export function createMobileAuthController(options: {
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);
+    },
+    async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
+      if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
+        throw new Error('Invalid notification page.');
+      const result=await chatRequest('/api/mobile/app/notifications?offset='+offset);
+      if(!validAppNotificationInbox(result))
+        throw new Error('Unverified notification inbox.');
+      return result;
     },
     async getAppAnnouncements(room:GroupChatRoom,offset=0):Promise<AppAnnouncementPage> {
       if(!validRoom(room)||!Number.isInteger(offset)||offset<0||offset>100000)

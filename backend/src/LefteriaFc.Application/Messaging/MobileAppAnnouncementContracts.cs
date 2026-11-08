@@ -15,3 +15,10 @@ public sealed record MobileAppAnnouncementPageDto(
 public sealed record MobileAppAnnouncementReactionSnapshotDto(
     string AnnouncementId,IReadOnlyList<MobileChatReactionDto> Reactions);
 public sealed record MobileAppAnnouncementSeenAckDto(string AnnouncementId,bool Seen);
+
+ // One durable event per published notice. Mobile inbox is not a device push.
+public sealed record MobileAppNotificationDto(string AnnouncementId,string OrganizationId,
+    string GroupId,string GroupName,string Title,DateTimeOffset PublishedAt,bool Seen);
+public sealed record MobileAppNotificationInboxDto(
+    IReadOnlyList<MobileAppNotificationDto> Notifications,int UnreadCount,
+    int? NextOffset,bool Enabled);

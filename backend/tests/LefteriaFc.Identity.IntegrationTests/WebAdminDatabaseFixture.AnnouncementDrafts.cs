@@ -29,6 +29,17 @@ internal sealed partial class WebAdminDatabaseFixture
         return (int)(await cmd.ExecuteScalarAsync())!;
     }
 
+    public async Task<int> AppAnnouncementNotificationEventCountAsync(string owner)
+    {
+        await using var con=await OwnerAsync();
+        await using var command=new NpgsqlCommand("""
+            SELECT count(*)::integer FROM club.app_announcement_notification_events
+            WHERE organization_id=@owner
+            """,con);
+        command.Parameters.AddWithValue("owner",owner);
+        return (int)(await command.ExecuteScalarAsync())!;
+    }
+
     public async Task<int> AppAnnouncementCountAsync(string owner)
     {
         await using var con=await OwnerAsync();
@@ -96,6 +107,10 @@ internal sealed partial class WebAdminDatabaseFixture
         RequireOwned(actor);
         await using var con=await OwnerAsync();
         await using var cmd=new NpgsqlCommand("""
+            DELETE FROM club.app_announcement_notification_events
+            WHERE announcement_id IN
+              (SELECT id FROM club.admin_announcement_drafts
+               WHERE created_by=@actor AND id LIKE 'ann_%');
             DELETE FROM club.app_announcement_media
             WHERE announcement_id IN
               (SELECT id FROM club.admin_announcement_drafts
@@ -109,7 +124,7 @@ internal sealed partial class WebAdminDatabaseFixture
         var deleted=await cmd.ExecuteNonQueryAsync();
         // Two bounded media rows (one FC PDF, one Academy banner) now
         // accompany the existing at-most-five owner-owned notice rows.
-        if(deleted is <0 or >7)
+        if(deleted is <0 or >9)
             throw new InvalidOperationException("Unexpected fictional draft cleanup.");
     }
 }

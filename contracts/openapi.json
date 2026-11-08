@@ -1591,6 +1591,79 @@
         ],
         "type": "object"
       },
+      "MobileAppNotificationDto": {
+        "properties": {
+          "announcement_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "seen": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "announcement_id",
+          "organization_id",
+          "group_id",
+          "group_name",
+          "title",
+          "published_at",
+          "seen"
+        ],
+        "type": "object"
+      },
+      "MobileAppNotificationInboxDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "next_offset": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "notifications": {
+            "items": {
+              "$ref": "#/components/schemas/MobileAppNotificationDto"
+            },
+            "type": "array"
+          },
+          "unread_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "notifications",
+          "unread_count",
+          "next_offset",
+          "enabled"
+        ],
+        "type": "object"
+      },
       "MobileAuthError": {
         "properties": {
           "code": {
@@ -9940,6 +10013,110 @@
         ]
       }
     },
+    "/api/mobile/app/notifications": {
+      "get": {
+        "operationId": "GetMobileAppNotificationInbox",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAppNotificationInboxDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app notifications"
+        ]
+      }
+    },
     "/api/mobile/auth/exchange-legacy": {
       "post": {
         "operationId": "ExchangeLegacyMobileSession",
@@ -15253,6 +15430,9 @@
     },
     {
       "name": "Mobile calendar"
+    },
+    {
+      "name": "Mobile app notifications"
     },
     {
       "name": "Mobile app announcements"

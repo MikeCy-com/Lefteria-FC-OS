@@ -342,6 +342,15 @@ REVOKE ALL ON FUNCTION club.ack_mobile_app_announcement_read(
 GRANT EXECUTE ON FUNCTION club.ack_mobile_app_announcement_read(
   uuid,text,text,timestamptz,text,text,text) TO :"app_role";
 
+-- Official notice notification events are queued by the table-owner
+-- trigger, never by the member API; members only get a scoped projection.
+REVOKE ALL ON TABLE club.app_announcement_notification_events FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.enqueue_app_announcement_notification() FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_app_notification_inbox(
+  uuid,text,text,timestamptz,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_app_notification_inbox(
+  uuid,text,text,timestamptz,integer) TO :"app_role";
+
 -- Only published and currently member-scoped app notices reach mobile.
 REVOKE ALL ON TABLE club.app_announcements FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION club.app_announcement_admin_actor(text,text)
