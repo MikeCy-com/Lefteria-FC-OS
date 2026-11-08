@@ -80,6 +80,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/communications/announcement-drafts/{id}/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["UploadAdminAppAnnouncementMedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/communications/announcement-drafts/{id}/media/{mediaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["RemoveAdminAppAnnouncementMedia"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/communications/announcement-drafts/{id}/publish": {
         parameters: {
             query?: never;
@@ -392,6 +424,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetMobileAppAnnouncements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/app/announcements/{organization}/{group}/{announcementId}/media/{mediaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMobileAppAnnouncementMedia"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1172,6 +1220,7 @@ export interface components {
             body: string;
             group_id: string;
             id: string;
+            media?: null | components["schemas"]["AdminAnnouncementMediaDto"][];
             organization_id: string;
             status: string;
             title: string;
@@ -1182,6 +1231,29 @@ export interface components {
             drafts: components["schemas"]["AdminAnnouncementDraftDto"][];
             organization_id: string;
         };
+        AdminAnnouncementMediaDto: {
+            content_type: string;
+            file_name: string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int32 */
+            size: number | string;
+        };
+        AdminAnnouncementMediaMutationDto: {
+            announcement_id: string;
+            media: components["schemas"]["AdminAnnouncementMediaDto"][];
+            /** Format: int64 */
+            version: number | string;
+        };
+        AdminAnnouncementMediaUploadBody: {
+            base64: null | string;
+            content_type: null | string;
+            file_name: null | string;
+            kind: null | string;
+            /** Format: int64 */
+            version: number | string;
+        };
         AdminAnnouncementPublishBody: {
             /** Format: int64 */
             version: number | string;
@@ -1190,6 +1262,7 @@ export interface components {
             body: string;
             group_id: string;
             id: string;
+            media?: null | components["schemas"]["AdminAnnouncementMediaDto"][];
             organization_id: string;
             /** Format: date-time */
             published_at: string;
@@ -1385,6 +1458,25 @@ export interface components {
             /** Format: int32 */
             total: number | string;
         };
+        AppAnnouncementMediaDownloadDto: {
+            base64: string;
+            content_type: string;
+            file_name: string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int32 */
+            size: number | string;
+        };
+        AppAnnouncementMediaDto: {
+            content_type: string;
+            file_name: string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: int32 */
+            size: number | string;
+        };
         CalendarOwnResponse: {
             player_id: string;
             status: string;
@@ -1442,6 +1534,7 @@ export interface components {
             body: string;
             group_id: string;
             id: string;
+            media?: null | components["schemas"]["AppAnnouncementMediaDto"][];
             organization_id: string;
             /** Format: date-time */
             published_at: string;
@@ -3144,6 +3237,207 @@ export interface operations {
             };
         };
     };
+    UploadAdminAppAnnouncementMedia: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAnnouncementMediaUploadBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnnouncementMediaMutationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    RemoveAdminAppAnnouncementMedia: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+                mediaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminAnnouncementPublishBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAnnouncementMediaMutationDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
     PublishAdminAppAnnouncement: {
         parameters: {
             query?: {
@@ -4658,6 +4952,94 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileAppAnnouncementPageDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetMobileAppAnnouncementMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: string;
+                group: string;
+                mediaId: string;
+                organization: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AppAnnouncementMediaDownloadDto"];
                 };
             };
             /** @description Bad Request */
