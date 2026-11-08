@@ -266,6 +266,27 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Invalid fan reacted to a guessed room'; END IF;
+  IF has_table_privilege(current_user,'club.app_chat_read_receipts',
+       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_any_column_privilege(current_user,'club.app_chat_read_receipts',
+        'SELECT,INSERT,UPDATE,REFERENCES')
+      OR has_function_privilege(current_user,
+        'club.is_current_mobile_chat_reader(uuid,text,text)','EXECUTE')
+      OR NOT has_function_privilege(current_user,
+        'club.ack_mobile_chat_read(uuid,text,text,timestamptz,text,text,uuid)','EXECUTE')
+      OR NOT has_function_privilege(current_user,
+        'club.read_mobile_chat_readers(uuid,text,text,timestamptz,text,text,uuid)','EXECUTE')
+    THEN
+    RAISE EXCEPTION 'Read receipt storage, private helper, or scoped endpoints lack proper permissions';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.read_mobile_chat_readers(
+      gen_random_uuid(),'invalid','management',now()+interval '1 day',
+      'lefteria_fc','invented_room',gen_random_uuid());
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Guessed room leaked private readers'; END IF;
   -- A fan cannot use a member chat directory, even with guessed group IDs.
   denied := false;
   BEGIN
