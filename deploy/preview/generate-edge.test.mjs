@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the forty-one explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the forty-two explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 41);
+  assert.equal(operations.length, 42);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -107,6 +107,15 @@ test('only the forty-one explicitly declared Mobile operations receive Bearer ro
     ['DELETE','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage+'/extra'],
     ['GET','/api/mobile/private/contact-phones']
   ])assert.equal(permits(contract,method,path),false,method+' '+path);
+  // Announcements are app-only, GET-only and scoped to a canonical room.
+  const appNotice='/api/mobile/app/announcements/lefteria_fc_academy/u13';
+  assert.equal(permits(contract,'GET',appNotice),true);
+  for(const [method,path] of [
+    ['POST',appNotice],['PUT',appNotice],['DELETE',appNotice],
+    ['GET',appNotice+'/extra'],['GET','/api/mobile/app/announcements'],
+    ['GET','/api/mobile/app/announcements/lefteria_fc_academy'],
+    ['GET','/api/mobile/app/announcements/lefteria_fc_academy/u13/seen']
+  ])assert.equal(permits(contract,method,path),false,method+' '+path);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc_academy/under_13/messages'), true);
   assert.equal(permits(contract, 'DELETE', '/api/mobile/chat/groups/lefteria_fc/first_team/messages'), false);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc/first_team/messages/extra'), false);
@@ -121,7 +130,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 41);
+  assert.equal(protectedOperations(changed).length, 42);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
@@ -179,6 +188,11 @@ test('only reviewed login/session, club editor and sanitized-avatar operations r
   const entryPermits = (method,path) => groups.some(group => group.method === method && new RegExp(group.expression).test(path));
   for (const [method,path] of [['POST','/api/admin/auth/login'],['POST','/api/admin/auth/logout'],['GET','/api/admin/auth/me'],
     ['GET','/api/admin/club'],['PUT','/api/admin/club'],
+    ['GET','/api/admin/communications/announcement-drafts'],
+    ['POST','/api/admin/communications/announcement-drafts'],
+    ['POST','/api/admin/communications/announcement-drafts/ann_12345678901234567890123456789012/publish'],
+    ['GET','/api/admin/communications/app-announcements'],
+    ['DELETE','/api/admin/communications/app-announcements/ann_12345678901234567890123456789012'],
     ['POST','/api/mobile/auth/request-otp'],['POST','/api/mobile/auth/verify-otp'],['POST','/api/mobile/auth/register-fan'],
     ['POST','/api/mobile/auth/exchange-legacy'],['GET','/api/uploads/avatars/opaque.jpg'],['HEAD','/api/uploads/avatars/opaque.jpg']]) {
     assert.equal(entryPermits(method,path),true,method+' '+path);
@@ -187,7 +201,23 @@ test('only reviewed login/session, club editor and sanitized-avatar operations r
   for (const path of ['/api/health/ready','/api/openapi/v1.json','/api/mobile/auth/future','/api/admin/future','/api/uploads/private.jpg','/api/uploads/avatars/'])
     assert.equal(entryPermits('GET',path),false,path);
   for (const method of ['POST','DELETE','PATCH','HEAD','OPTIONS']) assert.equal(entryPermits(method,'/api/admin/club'),false);
-  for (const [path,method,security] of [['/api/admin/auth/me','get',[]],['/api/admin/auth/login','post',[{Mobile:[]}]],['/api/admin/club','get',[]],['/api/admin/club','put',[]]]) {
+  const draft='/api/admin/communications/announcement-drafts';
+  const published='/api/admin/communications/app-announcements';
+  const noticeId='ann_12345678901234567890123456789012';
+  for(const [method,path] of [
+    ['DELETE',draft],['PUT',draft],['PATCH',draft],
+    ['GET',draft+'/'+noticeId+'/publish'],
+    ['DELETE',draft+'/'+noticeId+'/publish'],
+    ['GET',published+'/'+noticeId],['POST',published],
+    ['POST',published+'/'+noticeId],['PUT',published+'/'+noticeId],
+    ['GET',draft+'/'+noticeId+'/publish/extra'],
+    ['DELETE',published+'/'+noticeId+'/extra'],
+    ['GET','/api/admin/communications/announcement-drafts/'+noticeId],
+    ['GET','/api/admin/communications/user-directory']
+  ])assert.equal(entryPermits(method,path),false,method+' '+path);
+  for (const [path,method,security] of [['/api/admin/auth/me','get',[]],['/api/admin/auth/login','post',[{Mobile:[]}]],['/api/admin/club','get',[]],['/api/admin/club','put',[]],
+    [draft,'get',[]],[draft,'post',[]],[draft+'/{id}/publish','post',[]],
+    [published,'get',[]],[published+'/{id}','delete',[]]]) {
     const changed=structuredClone(contract); changed.paths[path][method].security=security;
     assert.throws(()=>generateEdge(changed,hostname,digest),/entry security|Unexpected Mobile operation path/);
   }

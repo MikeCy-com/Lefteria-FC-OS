@@ -29,6 +29,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
+\ir app-announcement-publishing-boundary.sql
 
 DO $checks$
 DECLARE
@@ -89,7 +90,10 @@ BEGIN
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
-                  'club.read_admin_announcement_drafts(text,text)'::regprocedure)) THEN
+                  'club.read_admin_announcement_drafts(text,text)'::regprocedure,
+                  'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
+                  'club.read_admin_app_announcements(text,text)'::regprocedure,
+                  'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;
 

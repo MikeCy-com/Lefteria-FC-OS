@@ -32,8 +32,10 @@ internal sealed partial class WebAdminHttpChecks
         using var client=Client();
         var login=await LoginAsync(client,admin);
         var roster=await database.SeedAudienceAsync();
+        string fcDraftId="",academyDraftId="";
         try
         {
+            Console.WriteLine("CHECK announcements stage: draft creation");
             using(var saved=await CreateDraft(client,login.Cookie,FcDraftsPath,
                 new{group_id=roster.Team1,title="Fixture FC announcement",body="Private draft only."}))
             {
@@ -44,10 +46,14 @@ internal sealed partial class WebAdminHttpChecks
                     draft.GetProperty("status").GetString()=="draft" &&
                     draft.GetProperty("version").GetInt64()==1,
                     "FC announcement was not a private canonical draft.");
+                fcDraftId=draft.GetProperty("id").GetString()!;
             }
             using(var saved=await CreateDraft(client,login.Cookie,AcademyDraftsPath,
                 new{group_id=roster.Group2,title="Fixture Academy announcement",body="No notification delivered."}))
-                await ExpectJsonAsync(saved,200);
+            {
+                var draft=await ExpectJsonAsync(saved,200);
+                academyDraftId=draft.GetProperty("id").GetString()!;
+            }
 
             Require(await database.AnnouncementDraftCountAsync("lefteria_fc",roster.Team1)==1 &&
                 await database.AnnouncementDraftCountAsync("lefteria_fc_academy",roster.Group2)==1 &&
@@ -70,6 +76,7 @@ internal sealed partial class WebAdminHttpChecks
                     !response.GetRawText().Contains(roster.Team1,StringComparison.Ordinal),
                     "Academy draft list leaked FC draft.");
             }
+            Console.WriteLine("CHECK announcements stage: audit draft rollback");
             await database.WithAnnouncementDraftAuditFailureAsync(admin,async()=>{
                 using var denied=await CreateDraft(client,login.Cookie,FcDraftsPath,
                     new{group_id=roster.Team1,title="Must rollback",body="Audit unavailable."});
@@ -120,15 +127,145 @@ internal sealed partial class WebAdminHttpChecks
                 catch(PostgresException e) when(e.SqlState=="42501"){denied=true;}
                 Require(denied,"Admin-auth obtained direct announcement draft table read.");
             }
+            Console.WriteLine("CHECK announcements stage: publish preflight");
+            var fcPublish="/api/admin/communications/announcement-drafts/"+fcDraftId+
+                "/publish?organization_id=lefteria_fc";
+            var academyPublish="/api/admin/communications/announcement-drafts/"+academyDraftId+
+                "/publish?organization_id=lefteria_fc_academy";
+            var fcPublishedList="/api/admin/communications/app-announcements?organization_id=lefteria_fc";
+            var academyPublishedList="/api/admin/communications/app-announcements?organization_id=lefteria_fc_academy";
+            using(var before=await GetAsync(client,fcPublishedList,login.Cookie))
+                Require((await ExpectJsonAsync(before,200)).GetProperty("announcements").GetArrayLength()==0,
+                    "Unpublished notice drafts unexpectedly appeared in mobile publication storage.");
+            using(var invalid=await CreateDraft(client,login.Cookie,fcPublish,new{version=0}))
+                await ExpectJsonAsync(invalid,400,"invalid_json");
+            using(var cross=await CreateDraft(client,login.Cookie,
+                "/api/admin/communications/announcement-drafts/"+fcDraftId+
+                    "/publish?organization_id=lefteria_fc_academy",new{version=1}))
+                await ExpectJsonAsync(cross,403,"not_authorized");
+            using(var malformed=await CreateDraft(client,login.Cookie,fcPublish,
+                new{version=1,unknown="disallowed"}))
+                await ExpectJsonAsync(malformed,400,"invalid_json");
+
+            // A failed security audit must roll back the draft transition and
+            // published notice atomically; it must not create an orphaned push.
+            Console.WriteLine("CHECK announcements stage: publish audit rollback");
+            await database.WithAppAnnouncementAuditFailureAsync(admin,
+                "admin.app.announcement.publish",async()=>
+                {
+                    using var denied=await CreateDraft(client,login.Cookie,fcPublish,new{version=1});
+                    Console.WriteLine("CHECK announcements stage: publish-audit status="+(int)denied.StatusCode);
+                    await ExpectJsonAsync(denied,503,"app_announcement_unavailable");
+                });
+            Console.WriteLine("CHECK announcements stage: publish-audit failure returned");
+            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0,
+                "Failed audit persisted a published app announcement.");
+            Console.WriteLine("CHECK announcements stage: publish-audit database unchanged");
+            using(var stillDraft=await GetAsync(client,FcDraftsPath,login.Cookie))
+                Require((await ExpectJsonAsync(stillDraft,200)).GetProperty("drafts")
+                    .EnumerateArray().Any(d=>d.GetProperty("id").GetString()==fcDraftId),
+                    "Failed publication silently consumed a draft.");
+
+            Console.WriteLine("CHECK announcements stage: post-audit original draft exists");
+            Console.WriteLine("CHECK announcements stage: successful publish");
+            using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
+            {
+                var item=await ExpectJsonAsync(published,200);
+                Require(item.GetProperty("id").GetString()==fcDraftId &&
+                    item.GetProperty("organization_id").GetString()=="lefteria_fc" &&
+                    item.GetProperty("group_id").GetString()==roster.Team1 &&
+                    item.GetProperty("status").GetString()=="published" &&
+                    item.GetProperty("version").GetInt64()==1,
+                    "Published FC announcement had an invalid canonical target or version.");
+            }
+            using(var published=await CreateDraft(client,login.Cookie,academyPublish,new{version=1}))
+                await ExpectJsonAsync(published,200);
+            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==1 &&
+                await database.AppAnnouncementCountAsync("lefteria_fc_academy")==1 &&
+                await database.AppAnnouncementAuditCountAsync(admin,"admin.app.announcement.publish")==2,
+                "Published app notices were not scoped and audited atomically.");
+            using(var repeated=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
+                await ExpectJsonAsync(repeated,403,"not_authorized");
+            using(var fcLive=await GetAsync(client,fcPublishedList,login.Cookie))
+            {
+                var item=await ExpectJsonAsync(fcLive,200);
+                Require(item.GetProperty("organization_id").GetString()=="lefteria_fc" &&
+                    item.GetProperty("announcements").GetArrayLength()==1 &&
+                    item.GetProperty("announcements")[0].GetProperty("id").GetString()==fcDraftId &&
+                    !item.GetRawText().Contains(academyDraftId,StringComparison.Ordinal),
+                    "Admin published FC list leaked Academy content.");
+            }
+            using(var academyLive=await GetAsync(client,academyPublishedList,login.Cookie))
+                Require((await ExpectJsonAsync(academyLive,200))
+                    .GetProperty("announcements")[0].GetProperty("id").GetString()==academyDraftId,
+                    "Academy published list omitted its sole canonical notice.");
+
+            Console.WriteLine("CHECK announcements stage: stale removal");
+            var removeFc="/api/admin/communications/app-announcements/"+fcDraftId+
+                "?organization_id=lefteria_fc&version=1";
+            using(var staleRequest=new HttpRequestMessage(HttpMethod.Delete,
+                "/api/admin/communications/app-announcements/"+fcDraftId+
+                    "?organization_id=lefteria_fc&version=2"))
+            {
+                staleRequest.Content=new StringContent("{}",Encoding.UTF8,"application/json");
+                staleRequest.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
+                staleRequest.Headers.Add("X-Lefteria-Admin","1");
+                staleRequest.Headers.Add("Cookie",login.Cookie);
+                using var denied=await client.SendAsync(staleRequest);
+                await ExpectJsonAsync(denied,409,"app_announcement_conflict");
+            }
+            Console.WriteLine("CHECK announcements stage: remove audit rollback");
+            await database.WithAppAnnouncementAuditFailureAsync(admin,
+                "admin.app.announcement.remove",async()=>
+                {
+                    using var request=new HttpRequestMessage(HttpMethod.Delete,removeFc);
+                    request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
+                    request.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
+                    request.Headers.Add("X-Lefteria-Admin","1");
+                    request.Headers.Add("Cookie",login.Cookie);
+                    using var denied=await client.SendAsync(request);
+                    await ExpectJsonAsync(denied,503,"app_announcement_unavailable");
+                });
+            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==1,
+                "Failed removal audit erased a published announcement.");
+            Console.WriteLine("CHECK announcements stage: successful removal");
+            using(var request=new HttpRequestMessage(HttpMethod.Delete,removeFc))
+            {
+                request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
+                request.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
+                request.Headers.Add("X-Lefteria-Admin","1");
+                request.Headers.Add("Cookie",login.Cookie);
+                using var reply=await client.SendAsync(request);
+                var removed=await ExpectJsonAsync(reply,200);
+                Require(removed.GetProperty("id").GetString()==fcDraftId &&
+                    removed.GetProperty("removed").GetBoolean() &&
+                    removed.GetProperty("version").GetInt64()==2,
+                    "Admin-only notice removal did not advance the version.");
+            }
+            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0 &&
+                await database.AppAnnouncementAuditCountAsync(admin,"admin.app.announcement.remove")==1,
+                "Removed FC notice still appears or was not audited.");
+            using(var removedList=await GetAsync(client,fcPublishedList,login.Cookie))
+                Require((await ExpectJsonAsync(removedList,200)).GetProperty("announcements").GetArrayLength()==0,
+                    "Admin removal did not remove the published notice from the official feed.");
+
+            Console.WriteLine("CHECK announcements stage: permissions and revoked role");
             var coach=await database.SeedAsync(role:"coach",organizations:["lefteria_fc_academy"]);
             using(var coachClient=Client())
             {
                 var coachLogin=await LoginAsync(coachClient,coach);
                 using var denied=await GetAsync(coachClient,AcademyDraftsPath,coachLogin.Cookie);
                 await ExpectJsonAsync(denied,403,"not_authorized");
+                using var deniedPublished=await GetAsync(coachClient,academyPublishedList,coachLogin.Cookie);
+                await ExpectJsonAsync(deniedPublished,403,"not_authorized");
+                using var deniedPublish=await CreateDraft(coachClient,coachLogin.Cookie,
+                    academyPublish,new{version=1});
+                await ExpectJsonAsync(deniedPublish,403,"not_authorized");
             }
             await database.SetStateAsync(admin,role:"editor");
             using(var denied=await GetAsync(client,FcDraftsPath,login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var denied=await GetAsync(client,academyPublishedList,login.Cookie))
                 await ExpectJsonAsync(denied,403,"not_authorized");
             await database.SetStateAsync(admin,role:"manager");
             await database.RevokeOrganizationAsync(admin,"lefteria_fc");
@@ -140,6 +277,7 @@ internal sealed partial class WebAdminHttpChecks
         }
         finally
         {
+            Console.WriteLine("CHECK announcements stage: fixture cleanup");
             await database.CleanupAnnouncementDraftsAsync(admin);
             await database.CleanupAudienceAsync(roster);
         }

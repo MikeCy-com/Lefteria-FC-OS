@@ -9,6 +9,13 @@ const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
   ['get', '/api/admin/club', [{ WebAdmin: [] }]], ['put', '/api/admin/club', [{ WebAdmin: [] }]],
+  // Reviewed admin announcement operations only. Caddy still defers every
+  // session, permission and organization check to the secured ASP.NET API.
+  ['get','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts/{id}/publish',[{ WebAdmin: [] }]],
+  ['get','/api/admin/communications/app-announcements',[{ WebAdmin: [] }]],
+  ['delete','/api/admin/communications/app-announcements/{id}',[{ WebAdmin: [] }]],
   ['post', '/api/mobile/auth/request-otp', []], ['post', '/api/mobile/auth/verify-otp', []],
   ['post', '/api/mobile/auth/register-fan', []],
   ['post', '/api/mobile/auth/exchange-legacy', [{ LegacyMobile: [] }]],
@@ -90,9 +97,13 @@ export function entryRouteGroups(document) {
     if (!operation || JSON.stringify(operation.security ?? []) !== JSON.stringify(security)) {
       throw new Error('Reviewed application entry security changed.');
     }
-    const expression = path.replace('{fileName}', '[^/]+');
-    if (path.includes('{fileName}') && !operation.parameters?.some(value => value.name === 'fileName' && value.in === 'path' && value.required)) {
-      throw new Error('The sanitized avatar filename must remain a required path parameter.');
+    const expression = path.replace(/\{(?:fileName|id)\}/g, '[^/]+');
+    for (const parameter of ['fileName','id']) {
+      if (path.includes('{'+parameter+'}') &&
+          ![...(document.paths[path]?.parameters ?? []),...(operation.parameters ?? [])]
+            .some(value => value?.name === parameter && value.in === 'path' && value.required === true)) {
+        throw new Error('Reviewed entry route requires a declared path parameter.');
+      }
     }
     const paths = groups.get(method.toUpperCase()) ?? [];
     paths.push(expression); groups.set(method.toUpperCase(), paths);

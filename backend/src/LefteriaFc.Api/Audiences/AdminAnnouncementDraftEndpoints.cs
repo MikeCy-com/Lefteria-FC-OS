@@ -48,6 +48,56 @@ public static class AdminAnnouncementDraftEndpoints
             get.Produces<WebAdminError>(status);
             post.Produces<WebAdminError>(status);
         }
+
+        var publish=endpoints.MapPost("/api/admin/communications/announcement-drafts/{id}/publish",
+            async (string id,string? organization_id,WebAdminService admin,
+                IAdminAnnouncementDraftStore store,HttpContext context,CancellationToken token)=>
+            {
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                var body=await ParsePublish(context,token);
+                return Results.Ok(await store.PublishAsync(cookie,organization_id!,
+                    id,body.Version,token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("App announcements administration")
+            .WithName("PublishAdminAppAnnouncement")
+            .Accepts<AdminAnnouncementPublishBody>("application/json")
+            .Produces<AdminAppAnnouncementDto>(200);
+        var published=endpoints.MapGet("/api/admin/communications/app-announcements",
+            async (string? organization_id,WebAdminService admin,
+                IAdminAnnouncementDraftStore store,HttpContext context,CancellationToken token)=>
+            {
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                return Results.Ok(await store.ReadPublishedAsync(cookie,organization_id!,token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("App announcements administration")
+            .WithName("GetAdminAppAnnouncements")
+            .Produces<AdminAppAnnouncementsDto>(200);
+        var remove=endpoints.MapDelete("/api/admin/communications/app-announcements/{id}",
+            async (string id,string? organization_id,string? version,
+                WebAdminService admin,IAdminAnnouncementDraftStore store,
+                HttpContext context,CancellationToken token)=>
+            {
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                if(context.Request.Query["version"].Count!=1 ||
+                    !long.TryParse(version,System.Globalization.NumberStyles.None,
+                      System.Globalization.CultureInfo.InvariantCulture,out var expected)||
+                    expected<1)
+                    throw new WebAdminException(422,"invalid_app_announcement",
+                        "Select the current announcement version.");
+                return Results.Ok(await store.RemovePublishedAsync(
+                    cookie,organization_id!,id,expected,token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("App announcements administration")
+            .WithName("RemoveAdminAppAnnouncement")
+            .Produces<AdminAppAnnouncementRemovedDto>(200);
+        foreach(var route in new[]{publish,published,remove})
+        {
+            foreach(var status in new[]{400,401,403,409,413,415,422,503})
+                route.Produces<WebAdminError>(status);
+        }
         return endpoints;
     }
     private static async Task<string> AuthorizedCookie(string? organization,
@@ -67,6 +117,28 @@ public static class AdminAnnouncementDraftEndpoints
             !session.User.Organizations.Any(o=>o.Id==organization))
             throw new WebAdminException(403,"not_authorized","Draft access denied.");
         return cookie!;
+    }
+    private static async Task<AdminAnnouncementPublishBody> ParsePublish(
+        HttpContext context,CancellationToken token)
+    {
+        try
+        {
+            using var doc=await JsonDocument.ParseAsync(context.Request.Body,
+                new JsonDocumentOptions{MaxDepth=4},token);
+            if(doc.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();
+            var fields=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var property in doc.RootElement.EnumerateObject())
+                if(!fields.Add(property.Name)||property.Name!="version")
+                    throw new JsonException();
+            var body=doc.Deserialize<AdminAnnouncementPublishBody>(Json);
+            if(body is null||body.Version<1)throw new JsonException();
+            return body;
+        }
+        catch(JsonException)
+        {
+            throw new WebAdminException(400,"invalid_json",
+                "Provide the current draft version for publication.");
+        }
     }
     private static async Task<AdminAnnouncementDraftCommand> Parse(
         HttpContext context,CancellationToken token)

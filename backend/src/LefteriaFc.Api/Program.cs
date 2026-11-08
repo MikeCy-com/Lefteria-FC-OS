@@ -129,6 +129,7 @@ app.MapParentFamily();
 app.MapMobileCalendar();
 app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
+app.MapMobileAppAnnouncements();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();

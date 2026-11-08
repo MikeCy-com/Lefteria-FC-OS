@@ -314,6 +314,21 @@ GRANT EXECUTE ON FUNCTION club.write_mobile_private_message(
 GRANT EXECUTE ON FUNCTION club.hide_mobile_private_conversation(
   uuid,text,text,timestamptz,uuid) TO :"app_role";
 
+-- Only published and currently member-scoped app notices reach mobile.
+REVOKE ALL ON TABLE club.app_announcements FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.app_announcement_admin_actor(text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.publish_admin_app_announcement(text,text,text,bigint)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_admin_app_announcements(text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.remove_admin_app_announcement(text,text,text,bigint)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_app_announcements(
+  uuid,text,text,timestamptz,text,text,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_app_announcements(
+  uuid,text,text,timestamptz,text,text,integer) TO :"app_role";
+
 -- Canonical auth reads expose only validated ownership/status/assignment facts.
 -- Raw contacts, source archives, quarantine and owner import state remain denied.
 GRANT SELECT (player_id, organization_id, academy_group_id) ON club.player_academy_groups TO :"app_role";
