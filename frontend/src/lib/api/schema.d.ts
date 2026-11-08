@@ -1343,6 +1343,12 @@ export interface components {
             /** Format: uuid */
             message_id: string;
             seen: boolean;
+            /** Format: int64 */
+            version: number | string;
+        };
+        MobileChatSeenBody: {
+            /** Format: int64 */
+            version: number | string;
         };
         MobileChatSendBody: {
             content: null | string;
@@ -5420,7 +5426,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChatSeenBody"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
