@@ -122,8 +122,13 @@ GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"adm
 -- Raw products, variants, categories and sales are NEVER granted.
 REVOKE ALL ON FUNCTION pos.read_admin_catalog(text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION pos.read_admin_catalog(text,text) TO :"admin_auth_role";
+-- Only this exact audited function can change a POS category. Direct table
+-- INSERT/UPDATE and any sales/checkout routine remain prohibited.
+REVOKE ALL ON FUNCTION pos.write_admin_category(text,text,text,text,boolean,bigint) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION pos.write_admin_category(text,text,text,text,boolean,bigint) TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
+\ir pos-category-writer-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -146,7 +151,8 @@ BEGIN
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.lock_admin_club_authority(text,text)'::regprocedure,
-                  'pos.read_admin_catalog(text,text)'::regprocedure)) THEN
+                  'pos.read_admin_catalog(text,text)'::regprocedure,
+                  'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN

@@ -8,8 +8,10 @@ public sealed class AdminPosCatalogOperationTransformer : IOpenApiOperationTrans
 {
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken token)
     {
-        if (context.Description.RelativePath?.Split('?')[0].Trim('/') != "api/admin/pos/catalog" ||
-            operation.Parameters is null) return Task.CompletedTask;
+        var route = context.Description.RelativePath?.Split('?')[0].Trim('/');
+        if (route is not ("api/admin/pos/catalog" or "api/admin/pos/categories" or
+            "api/admin/pos/categories/{id}") || operation.Parameters is null)
+            return Task.CompletedTask;
 
         foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()
             .Where(item => item.Name == "organization_id"))

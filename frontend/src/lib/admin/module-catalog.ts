@@ -36,7 +36,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
     { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Χειριστές, βάρδιες και τοποθεσίες.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] },
-    { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένη ιδιωτική προβολή προϊόντων και τιμών · χωρίς πωλήσεις ή αλλαγές.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
+    { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένος κατάλογος και ελεγχόμενη διαχείριση κατηγοριών · χωρίς πωλήσεις.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
