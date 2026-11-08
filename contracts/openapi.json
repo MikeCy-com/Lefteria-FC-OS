@@ -1574,6 +1574,47 @@
         ],
         "type": "object"
       },
+      "MobileChatDirectoryDto": {
+        "properties": {
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/MobileChatGroupDto"
+            },
+            "type": "array"
+          },
+          "ready": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ready",
+          "groups"
+        ],
+        "type": "object"
+      },
+      "MobileChatGroupDto": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "organization_id"
+        ],
+        "type": "object"
+      },
       "MobileIdentityOption": {
         "properties": {
           "name": {
@@ -8696,6 +8737,102 @@
         ]
       }
     },
+    "/api/mobile/chat/groups": {
+      "get": {
+        "description": "Scoped group directory only. Returns current canonical FC/Academy group IDs and names, never private participants or messages. Fan role denied; no chat send/delete endpoints are enabled by this read.",
+        "operationId": "GetMobileChatGroups",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChatDirectoryDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile chat"
+        ]
+      }
+    },
     "/api/mobile/family": {
       "get": {
         "operationId": "GetParentFamily",
@@ -10946,6 +11083,9 @@
     },
     {
       "name": "Communications administration"
+    },
+    {
+      "name": "Mobile chat"
     },
     {
       "name": "Mobile organization"

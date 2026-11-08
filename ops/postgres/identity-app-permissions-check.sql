@@ -207,6 +207,17 @@ BEGIN
   IF has_table_privilege(current_user, 'audit.security_events', 'TRUNCATE') THEN
     RAISE EXCEPTION 'Runtime can truncate audit rows';
   END IF;
+  IF NOT has_function_privilege(current_user,
+      'club.read_mobile_chat_groups(uuid,text,text,timestamptz)','EXECUTE') THEN
+    RAISE EXCEPTION 'Scoped chat directory function unavailable';
+  END IF;
+  -- A fan cannot use a member chat directory, even with guessed group IDs.
+  denied := false;
+  BEGIN
+    PERFORM club.read_mobile_chat_groups(gen_random_uuid(),'invalid','fan',now()+interval '1 day');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan accepted by member chat group directory'; END IF;
   -- Direct reads and writes of private invitations are prohibited.
   FOR private_table IN SELECT unnest(ARRAY['identity.family_invitations','identity.family_invitation_events',
     'identity.family_delegated_player_grants']) LOOP

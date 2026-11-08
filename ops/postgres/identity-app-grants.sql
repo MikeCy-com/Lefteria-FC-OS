@@ -253,6 +253,13 @@ GRANT SELECT ON identity.mobile_record_links, identity.admin_staff_links TO :"ap
 GRANT SELECT (id, normalized_phone, first_name, last_name, birthday, is_active, avatar_url, favourite_player_id, notification_preferences_json)
 ON identity.fan_registration_evidence TO :"app_role";
 
+-- The private chat directory exposes only canonical group names to the exact authenticated mobile identity.
+-- No raw staff/guardian contacts, chat messages or participant identities are granted.
+REVOKE ALL ON FUNCTION club.read_mobile_chat_groups(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_chat_groups(uuid,text,text,timestamptz)
+  TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
