@@ -84,7 +84,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Website news CMS private GET serves published owner-scoped content and honors fresh role revocation", WebsiteNewsAdminHttpAsync),
         ("POS private catalog GET uses locked current shop grants, rejects table access and is read-only", AdminPosCatalogHttpAsync),
         ("POS categories POST/PUT atomically audit and honor owner, versions, origin and revocation", AdminPosCategoryWritesAsync),
-        ("POS products POST/PUT replace whole variants atomically with fresh grants and audit", AdminPosProductWritesAsync)
+        ("POS products POST/PUT replace whole variants atomically with fresh grants and audit", AdminPosProductWritesAsync),
+        ("Admin audiences derive live FC/Academy membership counts without exposing child data", AdminAudienceDirectoryAsync)
     ];
 
     private HttpClient Client()
