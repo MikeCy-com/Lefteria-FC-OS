@@ -746,7 +746,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** @description Complete safe public club fields only. Null clears optional fields. Unknown keys and duplicate JSON keys are rejected. */
         AdminAudienceDirectoryDto: {
             groups: components["schemas"]["AdminAudienceGroupDto"][];
             organization_id: string;
@@ -761,6 +760,7 @@ export interface components {
             kind: string;
             name: string;
         };
+        /** @description Complete safe public club fields only. Null clears optional fields. Unknown keys and duplicate JSON keys are rejected. */
         AdminClubEditable: {
             address: null | string;
             city: null | string;

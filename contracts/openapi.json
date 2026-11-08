@@ -5500,7 +5500,7 @@
         "operationId": "GetAdminAudienceDirectory",
         "parameters": [
           {
-            "description": "Exact current admin-assigned POS catalog owner; no global or inferred owner.",
+            "description": "Exact current assigned football or Academy owner; never all or inferred.",
             "in": "query",
             "name": "organization_id",
             "required": true,
