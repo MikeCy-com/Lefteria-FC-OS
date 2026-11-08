@@ -153,7 +153,7 @@ internal sealed partial class IdentityHttpChecks
             {
                 await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(r=>r.IsArchived,true));
-                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=trueawait PostAsync(parent,seenAcademy,new{},403);},403);}
+                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);await PostAsync(parent,seenAcademy,new{},403);}
                 finally
                 {
                     await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
