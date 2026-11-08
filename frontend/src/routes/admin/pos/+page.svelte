@@ -27,6 +27,19 @@
   let busy = $state(false);
   let unavailable = $state(false);
   let retry = $state(0);
+  const canEdit = $derived(
+    $auth.status === 'authenticated' && $auth.session &&
+    hasAdminPermission($auth.session.user.permissions, 'shop:write') &&
+    !!owner && assignments.some(org => org.id === owner)
+  );
+  let showCategoryForm = $state(false);
+  let editingId = $state<string | null>(null);
+  let expectedVersion = $state<number | null>(null);
+  let categoryName = $state('');
+  let categoryActive = $state(true);
+  let writing = $state(false);
+  let writeError = $state<string | null>(null);
+
 
   const euro = (cents: number) => new Intl.NumberFormat('el-CY',
     { style: 'currency', currency: 'EUR' }).format(cents / 100);
@@ -64,6 +77,91 @@
         });
     });
   }
+
+  function createCategory() {
+    showCategoryForm = true;
+    editingId = null;
+    expectedVersion = null;
+    categoryName = '';
+    categoryActive = true;
+    writeError = null;
+  }
+
+  function editCategory(category: Category) {
+    showCategoryForm = true;
+    editingId = category.id;
+    expectedVersion = category.version;
+    categoryName = category.name;
+    categoryActive = category.active;
+    writeError = null;
+  }
+
+  async function saveCategory() {
+    if (!browser || !canEdit || !owner || !showCategoryForm || writing) return;
+    const trimmed = categoryName.trim();
+    if (!trimmed || trimmed.length > 100 || trimmed !== categoryName) {
+      writeError = 'Εισαγάγετε όνομα χωρίς περιττά κενά (έως 100 χαρακτήρες).';
+      return;
+    }
+    const selected = owner;
+    const currentUser = $auth.session?.user.id;
+    const modifying = editingId !== null;
+    if (modifying && (!Number.isSafeInteger(expectedVersion) || expectedVersion === null || expectedVersion < 0)) {
+      writeError = 'Η έκδοση της κατηγορίας δεν είναι έγκυρη. Ανανεώστε τη σελίδα.';
+      return;
+    }
+    writing = true;
+    writeError = null;
+    try {
+      const query = new URLSearchParams({ organization_id: selected });
+      const target = modifying
+        ? '/api/admin/pos/categories/' + encodeURIComponent(editingId!) + '?' + query.toString()
+        : '/api/admin/pos/categories?' + query.toString();
+      const payload = modifying
+        ? {name:trimmed,active:categoryActive,expected_version:expectedVersion}
+        : {name:trimmed,active:categoryActive};
+      const response = await fetch(target, {
+        method: modifying ? 'PUT' : 'POST',
+        credentials: 'same-origin', cache:'no-store',
+        headers: {'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body: JSON.stringify(payload)
+      });
+      if (owner !== selected || $auth.session?.user.id !== currentUser || !canEdit) return;
+      if (response.status === 401 || response.status === 403) {
+        void auth.bootstrap();
+        showCategoryForm = false;
+        throw new Error('Η πρόσβαση άλλαξε. Επαληθεύστε ξανά τη σύνδεσή σας.');
+      }
+      if (response.status === 409) {
+        showCategoryForm = false;
+        retry++;
+        throw new Error('Η κατηγορία άλλαξε. Ο κατάλογος ανανεώνεται.');
+      }
+      if (!response.ok) throw new Error('Η αλλαγή δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία σας.');
+      const value: unknown = await response.json();
+      if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+          !('id' in value) || typeof value.id !== 'string' ||
+          !('name' in value) || value.name !== trimmed ||
+          !('active' in value) || value.active !== categoryActive ||
+          !('version' in value) || !Number.isSafeInteger(value.version))
+        throw new Error('Η επιβεβαίωση αποθήκευσης δεν είναι έγκυρη.');
+      showCategoryForm = false;
+      retry++;
+    } catch (error) {
+      if (owner === selected && $auth.session?.user.id === currentUser)
+        writeError = error instanceof Error ? error.message : 'Η αλλαγή δεν ολοκληρώθηκε.';
+    } finally { writing = false; }
+  }
+
+  $effect(() => {
+    const selected = owner;
+    const permission = canEdit;
+    void selected; void permission;
+    showCategoryForm = false;
+    editingId = null;
+    expectedVersion = null;
+    writeError = null;
+  });
 
   $effect(() => {
     if (browser && $auth.status === 'anonymous') void goto('/admin/login', { replace: true });
@@ -129,7 +227,7 @@
       <div class="admin-pos" data-testid="admin-pos-readonly">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>Προϊόντα & κατηγορίες</h1>
-        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Οι αλλαγές καταλόγου, τα ταμεία, οι πωλήσεις και οι πληρωμές δεν είναι ακόμη διαθέσιμες.</p>
+        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η επεξεργασία κατηγοριών γίνεται με ελεγχόμενη καταγραφή αλλαγών. Οι αλλαγές προϊόντων, τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <label for="admin-pos-organization">Οργανισμός</label>
           <select id="admin-pos-organization" value={owner ?? ''} data-testid="admin-pos-organization"
@@ -155,6 +253,37 @@
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
             <div><span>Παραλλαγές</span><strong>{catalog.products.reduce((count, p) => count + p.variants.length, 0)}</strong></div>
           </div>
+          {#if canEdit}
+            <section class="admin-panel admin-pos-editor" aria-labelledby="pos-editor-heading" data-testid="admin-pos-category-editor">
+              <div class="admin-pos-editor-heading">
+                <div>
+                  <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ ΚΑΤΗΓΟΡΙΩΝ</p>
+                  <h2 id="pos-editor-heading">Κατηγορίες καταλόγου</h2>
+                </div>
+                {#if !showCategoryForm}
+                  <button type="button" class="admin-secondary" disabled={writing} onclick={createCategory}>Προσθήκη κατηγορίας</button>
+                {/if}
+              </div>
+              {#if showCategoryForm}
+                <form class="admin-pos-category-form" data-testid="admin-pos-category-form" onsubmit={event => {event.preventDefault(); void saveCategory();}}>
+                  <label for="pos-category-name">Όνομα κατηγορίας</label>
+                  <input id="pos-category-name" type="text" maxlength="100" required bind:value={categoryName} disabled={writing}/>
+                  <label class="admin-pos-checkbox" for="pos-category-active">
+                    <input id="pos-category-active" type="checkbox" bind:checked={categoryActive} disabled={writing}/>
+                    Ενεργή
+                  </label>
+                  <div class="admin-pos-form-actions">
+                    <button type="submit" class="admin-secondary" disabled={writing}>{writing ? 'Αποθήκευση…' : 'Αποθήκευση'}</button>
+                    <button type="button" class="admin-secondary" disabled={writing}
+                      onclick={() => {showCategoryForm=false;writeError=null;}}>Ακύρωση</button>
+                  </div>
+                </form>
+              {/if}
+              {#if writeError}
+                <p role="alert" class="admin-pos-write-error">{writeError}</p>
+              {/if}
+            </section>
+          {/if}
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -163,7 +292,16 @@
               {:else}
                 <ul class="admin-pos-categories">
                   {#each catalog.categories as category (category.id)}
-                    <li><span>{category.name}</span><span class:inactive={!category.active} class="admin-pos-state">{category.active ? 'Ενεργή' : 'Αρχειοθετημένη'}</span></li>
+                    <li>
+                      <span>{category.name}</span>
+                      <div class="admin-pos-category-actions">
+                        <span class:inactive={!category.active} class="admin-pos-state">{category.active ? 'Ενεργή' : 'Αρχειοθετημένη'}</span>
+                        {#if canEdit}
+                          <button type="button" class="admin-secondary" disabled={writing}
+                            onclick={() => editCategory(category)}>Επεξεργασία</button>
+                        {/if}
+                      </div>
+                    </li>
                   {/each}
                 </ul>
               {/if}
@@ -207,6 +345,19 @@
   .admin-pos>h1{margin:0 0 10px}
   .admin-pos>.admin-muted{max-width:75ch;margin:0 0 20px}
   .admin-pos-owner{margin:0 0 15px}
+  .admin-pos-editor{margin:0 0 15px}
+  .admin-pos-editor-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+  .admin-pos-editor-heading h2{margin:0}
+  .admin-pos-category-form{display:flex;flex-direction:column;gap:9px;max-width:480px;margin-top:16px}
+  .admin-pos-category-form>label{color:#b9bcbe;font-size:12px}
+  .admin-pos-category-form input[type=text]{width:100%}
+  .admin-pos-category-form .admin-pos-checkbox{display:flex;align-items:center;gap:9px;min-height:44px}
+  .admin-pos-checkbox input{width:20px;height:20px}
+  .admin-pos-form-actions{display:flex;flex-wrap:wrap;gap:9px}
+  .admin-pos-category-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+  .admin-pos-category-actions button{min-height:44px}
+  .admin-pos-write-error{color:#ffd29b;margin-top:12px}
+
   .admin-pos-owner label{display:block;color:#b9bcbe;font-size:12px;margin-bottom:6px}
   .admin-pos-owner select{width:min(100%,350px)}
   .admin-pos-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px}
