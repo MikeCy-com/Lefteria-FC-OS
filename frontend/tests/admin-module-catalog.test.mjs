@@ -49,7 +49,7 @@ test('all planned admin modules are visibly disabled, never wired to mutations o
   assert.match(workspace,/module.status === 'live' && module.id === 'trials'/);
   assert.match(workspace,/admin-tool-planned/);
   assert.match(workspace,/Under Developments/);
-  assert.match(workspace,/data-testid="admin-section-'/);
+  assert.ok(workspace.includes("data-testid={'admin-section-' + section.id}"));
   assert.match(frame,/adminSectionsFor\(user\)/);
   assert.match(frame,/canReadClub\(user\)/);
   assert.match(frame,/canViewFirstTeamTrials\(user\)/);
