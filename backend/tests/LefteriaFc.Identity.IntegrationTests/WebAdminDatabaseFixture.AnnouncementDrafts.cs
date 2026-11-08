@@ -107,7 +107,9 @@ internal sealed partial class WebAdminDatabaseFixture
             """,con);
         cmd.Parameters.AddWithValue("actor",actor.Id);
         var deleted=await cmd.ExecuteNonQueryAsync();
-        if(deleted is <0 or >5)
+        // Two bounded media rows (one FC PDF, one Academy banner) now
+        // accompany the existing at-most-five owner-owned notice rows.
+        if(deleted is <0 or >7)
             throw new InvalidOperationException("Unexpected fictional draft cleanup.");
     }
 }
