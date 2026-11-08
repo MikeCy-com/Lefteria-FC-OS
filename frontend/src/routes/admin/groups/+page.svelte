@@ -6,6 +6,7 @@
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -247,6 +248,14 @@
               </ul>
             {/if}
           </section>
+          {#if canCreate && organization && $auth.session}
+            {#key organization + ':' + $auth.session.user.id + ':' + $auth.session.user.role + ':' + $auth.session.user.permissions.join('|')}
+              <AdminRosterPlayersPanel owner={organization as Organization}
+                actorId={$auth.session.user.id} groups={directory.groups}
+                onExpired={() => auth.invalidateSession()}
+                onRevoked={() => void auth.bootstrap()}/>
+            {/key}
+          {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
       </div>
