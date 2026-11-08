@@ -891,6 +891,23 @@ export interface components {
             /** Format: int32 */
             price_cents: number | string;
         };
+        AdminRosterPlayerDto: {
+            academy_group_ids: string[];
+            id: string;
+            name: string;
+            team_id: null | string;
+        };
+        AdminRosterPlayersPageDto: {
+            /** Format: int32 */
+            limit: number | string;
+            /** Format: int32 */
+            offset: number | string;
+            organization_id: string;
+            players: components["schemas"]["AdminRosterPlayerDto"][];
+            ready: boolean;
+            /** Format: int32 */
+            total: number | string;
+        };
         CalendarOwnResponse: {
             player_id: string;
             status: string;
@@ -927,23 +944,6 @@ export interface components {
             phone: string;
             role_detected: string;
             simulated?: boolean;
-        };
-        AdminRosterPlayerDto: {
-            academy_group_ids: string[];
-            id: string;
-            name: string;
-            team_id: null | string;
-        };
-        AdminRosterPlayersPageDto: {
-            /** Format: int32 */
-            limit: number | string;
-            /** Format: int32 */
-            offset: number | string;
-            organization_id: string;
-            players: components["schemas"]["AdminRosterPlayerDto"][];
-            ready: boolean;
-            /** Format: int32 */
-            total: number | string;
         };
         FirstTeamTrialAdminError: {
             code: string;
@@ -2463,12 +2463,10 @@ export interface operations {
     GetAdminRosterPlayers: {
         parameters: {
             query: {
+                limit?: number | string;
+                offset?: number | string;
                 /** @description Exact current assigned football or Academy owner; never all or inferred. */
                 organization_id: "lefteria_fc" | "lefteria_fc_academy";
-                /** Format: int32 */
-                offset?: number | string;
-                /** Format: int32 */
-                limit?: number | string;
             };
             header?: never;
             path?: never;
