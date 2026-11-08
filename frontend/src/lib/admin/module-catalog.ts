@@ -4,11 +4,11 @@ import { canReadClub } from './club-controller.ts';
 import { canViewFirstTeamTrials } from './trials-access.ts';
 
 type AdminUser = WebAdminSession['user'];
-export type AdminSectionId = 'website' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
+export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -28,11 +28,15 @@ const catalog: readonly Section[] = [
     { id: 'media', name: 'Βιβλιοθήκη πολυμέσων', description: 'Φωτογραφίες και άλμπουμ.', status: 'planned', scope: 'any', anyPermission: ['gallery:read'] },
     { id: 'social', name: 'Social Control Centre', description: 'Επίσημοι κοινωνικοί λογαριασμοί.', status: 'planned', scope: 'any', anyPermission: ['social:write'] }
   ] },
-  { id: 'crm', name: 'CRM & επικοινωνία', description: 'Επαφές, ενδιαφέρον και επικοινωνία με οικογένειες.', modules: [
+  { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
+    { id: 'announcements', name: 'Ανακοινώσεις εφαρμογής · πρόχειρα', description: 'Πρόχειρα για ομάδες και Ακαδημία. Η δημοσίευση και η προβολή στην εφαρμογή δεν έχουν ενεργοποιηθεί ακόμη.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
+    { id: 'messages', name: 'Μηνύματα εφαρμογής', description: 'Ιδιωτικές συνομιλίες, ομαδικά μηνύματα, αντιδράσεις και επιβεβαιώσεις ανάγνωσης· σε υλοποίηση.', status: 'planned', scope: 'any', anyPermission: ['messages:read'] },
+    { id: 'app_notifications', name: 'Ειδοποιήσεις εφαρμογής', description: 'Ειδοποιήσεις προς τρέχοντα και επιτρεπόμενα μέλη, με απόπειρες και επαναλήψεις.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] },
+    { id: 'app_media', name: 'Συνημμένα εφαρμογής', description: 'Προστατευμένα αρχεία και banner ανακοινώσεων. Καμία δημόσια ανάρτηση.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] }
+  ] },
+  { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
     { id: 'leads', name: 'Ενδιαφερόμενοι & επαφές', description: 'Απαιτεί ιδιωτικό API και πολιτική δεδομένων.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] },
     { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Αιτήματα γονέων και κηδεμόνων.', status: 'planned', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
-    { id: 'announcements', name: 'Πρόχειρες ανακοινώσεις', description: 'Ασφαλής σύνταξη πρόχειρων για πραγματικά τμήματα, χωρίς αποστολή.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
-    { id: 'messages', name: 'Μηνύματα', description: 'Επικοινωνία με μέλη και οικογένειες.', status: 'planned', scope: 'any', anyPermission: ['messages:read'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
@@ -52,6 +56,7 @@ const catalog: readonly Section[] = [
     { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Αγωνιστικό πρόγραμμα και ενημερώσεις.', status: 'planned', scope: 'first-team', anyPermission: ['fixtures:read', 'results:read'] }
   ] },
   { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
+    { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
     { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Στελέχη και αναθέσεις.', status: 'planned', scope: 'any', anyPermission: ['staff:read'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Χώροι και πόροι.', status: 'planned', scope: 'any', anyPermission: ['facilities:read'] },
     { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Εξουσιοδοτήσεις λογαριασμών.', status: 'planned', scope: 'any', anyPermission: ['users:read', 'users:write'] },
@@ -71,6 +76,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
+      if (item.id === 'onboarding') return true;
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
