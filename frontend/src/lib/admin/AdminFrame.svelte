@@ -7,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'finance'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -42,6 +42,9 @@
           {/if}
           {#if section.id === 'app' && section.modules.some(item => item.id === 'announcements' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/announcements" aria-current={active === 'announcements' ? 'page' : undefined} data-testid="admin-announcements-link">Πρόχειρες ανακοινώσεις</a>
+          {/if}
+          {#if section.id === 'finance' && section.modules.some(item => item.id === 'payabl_links' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/finance/payabl" aria-current={active === 'finance' ? 'page' : undefined} data-testid="admin-payabl-link">payabl. · Πληρωμές</a>
           {/if}
           {#if section.id === 'pos' && section.modules.some(item => item.id === 'products' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/pos" aria-current={active === 'pos' ? 'page' : undefined} data-testid="admin-pos-link">Κατάλογος προϊόντων</a>
