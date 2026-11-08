@@ -52,6 +52,11 @@
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
                     <span class="admin-tool-arrow" aria-hidden="true">↗</span>
                   </a>
+                {:else if module.status === 'live' && module.id === 'news'}
+                  <a class="admin-tool admin-tool-live" href="/admin/news" data-testid="admin-news-module">
+                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
+                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
+                  </a>
                 {:else if module.status === 'live' && module.id === 'trials'}
                   <a class="admin-tool admin-tool-live" href="/admin/trials" data-testid="admin-trials-module">
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>

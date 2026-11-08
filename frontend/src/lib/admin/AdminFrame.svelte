@@ -7,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'trials'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'trials'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -36,6 +36,9 @@
           <a class="admin-nav-section" href={'/admin#workspace-' + section.id}>{section.name} <span aria-hidden="true">›</span></a>
           {#if section.id === 'website' && canReadClub(user)}
             <a class="admin-nav-tool" href="/admin/club" aria-current={active === 'club' ? 'page' : undefined} data-testid="admin-club-link">Προφίλ συλλόγου</a>
+          {/if}
+          {#if section.id === 'website' && section.modules.some(item => item.id === 'news' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/news" aria-current={active === 'news' ? 'page' : undefined} data-testid="admin-news-link">Άρθρα & νέα</a>
           {/if}
           {#if section.id === 'football' && canViewFirstTeamTrials(user)}
             <a class="admin-nav-tool" href="/admin/trials" aria-current={active === 'trials' ? 'page' : undefined} data-testid="admin-trials-link">Δοκιμαστικά πρώτης ομάδας</a>

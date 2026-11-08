@@ -17,12 +17,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['trials', '/admin/trials']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['trials', '/admin/trials']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/trials'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/trials'].includes(item.href));
   }
 });
 
