@@ -64,6 +64,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/audiences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAdminAudienceDirectory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/pos/catalog": {
         parameters: {
             query?: never;
@@ -731,6 +747,20 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         /** @description Complete safe public club fields only. Null clears optional fields. Unknown keys and duplicate JSON keys are rejected. */
+        AdminAudienceDirectoryDto: {
+            groups: components["schemas"]["AdminAudienceGroupDto"][];
+            organization_id: string;
+            ready: boolean;
+            /** Format: int32 */
+            unassigned_players: number | string;
+        };
+        AdminAudienceGroupDto: {
+            /** Format: int32 */
+            active_players: number | string;
+            id: string;
+            kind: string;
+            name: string;
+        };
         AdminClubEditable: {
             address: null | string;
             city: null | string;
@@ -2202,6 +2232,65 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    GetAdminAudienceDirectory: {
+        parameters: {
+            query: {
+                /** @description Exact current assigned football or Academy owner; never all or inferred. */
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAudienceDirectoryDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
