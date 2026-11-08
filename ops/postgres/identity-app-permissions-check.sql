@@ -231,6 +231,24 @@ BEGIN
   IF NOT denied THEN
     RAISE EXCEPTION 'Guessed chat room accepted an invalid mobile identity';
   END IF;
+  IF has_table_privilege(current_user,'club.app_chat_message_revisions',
+       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_any_column_privilege(current_user,'club.app_chat_message_revisions',
+        'SELECT,INSERT,UPDATE,REFERENCES')
+      OR NOT has_function_privilege(current_user,
+        'club.mutate_mobile_chat_message(uuid,text,text,timestamptz,text,text,uuid,bigint,text,text)','EXECUTE') THEN
+    RAISE EXCEPTION 'Chat revision audit or mutation function privilege violated';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.mutate_mobile_chat_message(
+      gen_random_uuid(),'invalid','fan',now()+interval '1 day',
+      'lefteria_fc','invented_group',gen_random_uuid(),1,'delete',null);
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'Guessed edit/delete was accepted without source identity';
+  END IF;
   -- A fan cannot use a member chat directory, even with guessed group IDs.
   denied := false;
   BEGIN
