@@ -134,11 +134,16 @@ GRANT EXECUTE ON FUNCTION pos.write_admin_product(text,text,text,text,text,text,
 -- identities or memberships. No messages and no delivery authority.
 REVOKE ALL ON FUNCTION club.read_admin_audiences(text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_role";
+-- Manager-only roster creation; role/grant and atomic audit checked INSIDE
+-- the reviewed function. No SELECT/INSERT rights on club player/team tables.
+REVOKE ALL ON FUNCTION club.create_admin_group(text,text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_group(text,text,text,text) TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
 \ir admin-audience-directory-boundary.sql
+\ir admin-group-create-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -164,7 +169,8 @@ BEGIN
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
-                  'club.read_admin_audiences(text,text)'::regprocedure)) THEN
+                  'club.read_admin_audiences(text,text)'::regprocedure,
+                  'club.create_admin_group(text,text,text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN
