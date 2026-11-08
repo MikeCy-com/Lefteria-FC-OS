@@ -16,6 +16,10 @@ public sealed record AdminAppAnnouncementsDto(string OrganizationId,
     IReadOnlyList<AdminAppAnnouncementDto> Announcements);
 public sealed record AdminAppAnnouncementRemovedDto(string Id,bool Removed,long Version);
 
+public sealed record AdminAppAnnouncementReaderDto(Guid Id,string Name);
+public sealed record AdminAppAnnouncementReadersDto(string AnnouncementId,
+    IReadOnlyList<AdminAppAnnouncementReaderDto> Readers);
+
 public interface IAdminAnnouncementDraftStore
 {
     Task<AdminAnnouncementDraftDto> CreateAsync(string cookie,string owner,
@@ -28,4 +32,6 @@ public interface IAdminAnnouncementDraftStore
         CancellationToken token);
     Task<AdminAppAnnouncementRemovedDto> RemovePublishedAsync(string cookie,string owner,
         string id,long version,CancellationToken token);
+    Task<AdminAppAnnouncementReadersDto> ReadPublishedReadersAsync(string cookie,string owner,
+        string id,CancellationToken token);
 }
