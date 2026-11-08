@@ -67,9 +67,12 @@ public static class PayablSignature
         // become reconciliation exceptions, never automatic paid status.
         if ((now - eventTime).Duration() > TimeSpan.FromMinutes(15)) return false;
         var expected = SHA256.HashData(Encoding.UTF8.GetBytes(transaction + type + code + timestamp + secret));
-        Span<byte> provided = stackalloc byte[32];
-        return Convert.TryFromHexString(supplied, provided, out var written) &&
-            written == 32 && CryptographicOperations.FixedTimeEquals(expected, provided);
+        try
+        {
+            var provided = Convert.FromHexString(supplied);
+            return CryptographicOperations.FixedTimeEquals(expected, provided);
+        }
+        catch (FormatException) { return false; }
     }
 
     public static string CallbackDigest(string nonce) =>
