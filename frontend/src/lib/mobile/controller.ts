@@ -1,7 +1,9 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
-  type AppAnnouncementPage,type AppAnnouncementReactionSnapshot} from './app-announcements.ts';
+  validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
+  type AppAnnouncementPage,type AppAnnouncementReactionSnapshot,
+  type AppAnnouncementMedia} from './app-announcements.ts';
 import {validPrivateContact,validPrivateContacts,validPrivateConversation,
   validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
   type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
@@ -1268,6 +1270,30 @@ export function createMobileAuthController(options: {
       if(!validAppAnnouncementPage(result,room))
         throw new Error('Unverified app announcement response.');
       return result;
+    },
+    async getAppAnnouncementMedia(room:GroupChatRoom,announcementId:string,
+      media:AppAnnouncementMedia):Promise<Blob> {
+      if(!validRoom(room)||!/^ann_[a-f0-9]{32}$/.test(announcementId)||
+        !validAppAnnouncementMedia(media))
+        throw new Error('Invalid announcement media reference.');
+      const path='/api/mobile/app/announcements/'+encodeURIComponent(room.organization_id)+
+        '/'+encodeURIComponent(room.group_id)+'/'+encodeURIComponent(announcementId)+
+        '/media/'+encodeURIComponent(media.id);
+      const response=await chatRequest(path);
+      if(!validAppAnnouncementMediaDownload(response,media))
+        throw new Error('Unverified private announcement media.');
+      const binary=atob(response.base64.replace(/\s/g,''));
+      if(binary.length!==media.size)throw new Error('Unexpected media size.');
+      const bytes=new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);
+      if(media.kind==='banner'&&
+        (bytes[0]!==0xff||bytes[1]!==0xd8||
+         bytes[bytes.length-2]!==0xff||bytes[bytes.length-1]!==0xd9))
+        throw new Error('Unverified banner format.');
+      if(media.kind==='attachment'&&
+        (binary.slice(0,5)!=='%PDF-'||binary.slice(-5)!=='%%EOF'))
+        throw new Error('Unverified PDF format.');
+      return new Blob([bytes],{type:media.content_type});
     },
     async acknowledgeAppAnnouncementRead(room:GroupChatRoom,announcementId:string):
       Promise<boolean> {
