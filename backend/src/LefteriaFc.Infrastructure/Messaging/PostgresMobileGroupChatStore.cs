@@ -43,6 +43,30 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             """,actor,organization,group,null,content,token);
     }
 
+    public Task<MobileChatMessageDto> EditAsync(MobileSession actor,string organization,
+        string group,Guid messageId,long version,string? content,CancellationToken token) =>
+        MutateAsync(actor,organization,group,messageId,version,"edit",content,token);
+
+    public Task<MobileChatMessageDto> DeleteAsync(MobileSession actor,string organization,
+        string group,Guid messageId,long version,CancellationToken token) =>
+        MutateAsync(actor,organization,group,messageId,version,"delete",null,token);
+
+    private Task<MobileChatMessageDto> MutateAsync(MobileSession actor,string organization,
+        string group,Guid messageId,long version,string operation,string? content,CancellationToken token)
+    {
+        ValidateRoom(organization,group);
+        if(messageId==Guid.Empty || version<1 ||
+          (operation=="edit" && (content is null || content.Length is <1 or >10000 ||
+             content!=content.Trim() || content.Any(char.IsControl))) ||
+          (operation=="delete" && content is not null))
+            throw Invalid();
+        return QueryAsync<MobileChatMessageDto>("""
+            SELECT club.mutate_mobile_chat_message(
+              @identity,@phone,@role,@expires,@organization,@group,
+              @message,@version,@operation,@content)::text
+            """,actor,organization,group,null,null,token,messageId,version,operation,content);
+    }
+
     private static void ValidateRoom(string organization,string group)
     {
         if(organization is not ("lefteria_fc" or "lefteria_fc_academy") ||
@@ -52,7 +76,8 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
     }
 
     private async Task<T> QueryAsync<T>(string sql,MobileSession actor,string? organization,
-        string? group,int? offset,string? content,CancellationToken token)
+        string? group,int? offset,string? content,CancellationToken token,
+        Guid? messageId=null,long? version=null,string? operation=null)
     {
         try
         {
@@ -68,7 +93,15 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 if(organization is not null)command.Parameters.AddWithValue("organization",organization);
                 if(group is not null)command.Parameters.AddWithValue("group",group);
                 if(offset is not null)command.Parameters.AddWithValue("offset",offset.Value);
-                if(content is not null)command.Parameters.AddWithValue("content",content);
+                if(operation is not null)
+                {
+                    command.Parameters.AddWithValue("message",messageId!.Value);
+                    command.Parameters.AddWithValue("version",version!.Value);
+                    command.Parameters.AddWithValue("operation",operation);
+                    command.Parameters.Add("content",NpgsqlTypes.NpgsqlDbType.Text).Value=
+                        (object?)content??DBNull.Value;
+                }
+                else if(content is not null)command.Parameters.AddWithValue("content",content);
                 var raw=await command.ExecuteScalarAsync(token) as string;
                 var dto=raw is null ? default : JsonSerializer.Deserialize<T>(raw,Json);
                 return dto is null?throw Unavailable():dto;
@@ -82,6 +115,8 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 "42501" => new MobileAuthException(MobileAuthFaultKind.Forbidden,
                     MobileAuthErrorCode.RoleUnavailable,"You no longer have access to this group."),
                 "22023" or "23503" => Invalid(),
+                "40001" => new MobileAuthException(MobileAuthFaultKind.Conflict,
+                    MobileAuthErrorCode.InvalidInput,"Message changed; refresh and retry."),
                 "55000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
                     MobileAuthErrorCode.RosterUnavailable,"Group messaging is awaiting roster synchronization."),
                 _ => Unavailable()
