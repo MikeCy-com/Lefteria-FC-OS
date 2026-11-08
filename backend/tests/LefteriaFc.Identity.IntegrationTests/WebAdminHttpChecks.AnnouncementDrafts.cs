@@ -200,6 +200,25 @@ internal sealed partial class WebAdminHttpChecks
                     .GetProperty("announcements")[0].GetProperty("id").GetString()==academyDraftId,
                     "Academy published list omitted its sole canonical notice.");
 
+            var fcReaders="/api/admin/communications/app-announcements/"+fcDraftId+
+                "/readers?organization_id=lefteria_fc";
+            var academyReaders="/api/admin/communications/app-announcements/"+academyDraftId+
+                "/readers?organization_id=lefteria_fc_academy";
+            using(var readerList=await GetAsync(client,fcReaders,login.Cookie))
+            {
+                var data=await ExpectJsonAsync(readerList,200);
+                Require(data.GetProperty("announcement_id").GetString()==fcDraftId &&
+                    data.GetProperty("readers").GetArrayLength()==0,
+                    "Management reader lookup invented an unobserved member.");
+            }
+            using(var denied=await GetAsync(client,
+                "/api/admin/communications/app-announcements/"+academyDraftId+
+                "/readers?organization_id=lefteria_fc",login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var denied=await GetAsync(client,
+                "/api/admin/communications/app-announcements/ann_"+new string('f',32)+
+                "/readers?organization_id=lefteria_fc",login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
             Console.WriteLine("CHECK announcements stage: stale removal");
             var removeFc="/api/admin/communications/app-announcements/"+fcDraftId+
                 "?organization_id=lefteria_fc&version=1";
@@ -242,6 +261,8 @@ internal sealed partial class WebAdminHttpChecks
                     removed.GetProperty("version").GetInt64()==2,
                     "Admin-only notice removal did not advance the version.");
             }
+            using(var denied=await GetAsync(client,fcReaders,login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
             Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0 &&
                 await database.AppAnnouncementAuditCountAsync(admin,"admin.app.announcement.remove")==1,
                 "Removed FC notice still appears or was not audited.");
@@ -256,6 +277,8 @@ internal sealed partial class WebAdminHttpChecks
                 var coachLogin=await LoginAsync(coachClient,coach);
                 using var denied=await GetAsync(coachClient,AcademyDraftsPath,coachLogin.Cookie);
                 await ExpectJsonAsync(denied,403,"not_authorized");
+                using(var deniedReaders=await GetAsync(coachClient,academyReaders,coachLogin.Cookie))
+                    await ExpectJsonAsync(deniedReaders,403,"not_authorized");
                 using var deniedPublished=await GetAsync(coachClient,academyPublishedList,coachLogin.Cookie);
                 await ExpectJsonAsync(deniedPublished,403,"not_authorized");
                 using var deniedPublish=await CreateDraft(coachClient,coachLogin.Cookie,
@@ -263,6 +286,8 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(deniedPublish,403,"not_authorized");
             }
             await database.SetStateAsync(admin,role:"editor");
+            using(var denied=await GetAsync(client,academyReaders,login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
             using(var denied=await GetAsync(client,FcDraftsPath,login.Cookie))
                 await ExpectJsonAsync(denied,403,"not_authorized");
             using(var denied=await GetAsync(client,academyPublishedList,login.Cookie))
