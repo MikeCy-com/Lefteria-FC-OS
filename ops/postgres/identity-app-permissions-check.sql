@@ -337,6 +337,30 @@ BEGIN
   IF NOT denied THEN
     RAISE EXCEPTION 'A player could bypass private conversation approval';
   END IF;
+  IF has_table_privilege(current_user,'club.app_announcements',
+       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_any_column_privilege(current_user,'club.app_announcements',
+        'SELECT,INSERT,UPDATE,REFERENCES')
+      OR has_function_privilege(current_user,
+        'club.publish_admin_app_announcement(text,text,text,bigint)','EXECUTE')
+      OR has_function_privilege(current_user,
+        'club.read_admin_app_announcements(text,text)','EXECUTE')
+      OR has_function_privilege(current_user,
+        'club.remove_admin_app_announcement(text,text,text,bigint)','EXECUTE')
+      OR has_function_privilege(current_user,
+        'club.app_announcement_admin_actor(text,text)','EXECUTE')
+      OR NOT has_function_privilege(current_user,
+        'club.read_mobile_app_announcements(uuid,text,text,timestamptz,text,text,integer)','EXECUTE') THEN
+    RAISE EXCEPTION 'App notice mobile runtime can publish/read raw rows';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.read_mobile_app_announcements(
+      gen_random_uuid(),'invalid','fan',now()+interval '1 day',
+      'lefteria_fc','invented_team',0);
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan/forged group read an app notice'; END IF;
   -- A fan cannot use a member chat directory, even with guessed group IDs.
   denied := false;
   BEGIN
