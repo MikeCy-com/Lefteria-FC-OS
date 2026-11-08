@@ -2122,65 +2122,6 @@ export interface operations {
             };
         };
     };
-    GetAdminFirstTeamTrialSettings: {
-        parameters: {
-            query: {
-                /** @description Exact first-team owner only; no Academy or global selector. */
-                organization_id: "lefteria_fc";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FirstTeamTrialsSettings"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
-                };
-            };
-        };
-    };
     GetAdminPosCatalog: {
         parameters: {
             query: {
@@ -2236,6 +2177,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    GetAdminFirstTeamTrialSettings: {
+        parameters: {
+            query: {
+                /** @description Exact first-team owner only; no Academy or global selector. */
+                organization_id: "lefteria_fc";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstTeamTrialsSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FirstTeamTrialAdminError"];
                 };
             };
         };
