@@ -2331,8 +2331,8 @@ export interface operations {
     };
     PutAdminRosterAssignment: {
         parameters: {
-            query?: {
-                organization_id?: string;
+            query: {
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
             };
             header?: never;
             path?: never;
