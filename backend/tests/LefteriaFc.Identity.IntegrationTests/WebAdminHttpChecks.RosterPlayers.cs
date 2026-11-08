@@ -57,8 +57,13 @@ internal sealed partial class WebAdminHttpChecks
         {
             using(var response=await GetAsync(client,FcPlayersPath,login.Cookie))
             {
+                Console.WriteLine("ROSTER_PICKER_PROBE fc_status="+(int)response.StatusCode);
                 var body=await ExpectJsonAsync(response,200);
+                Console.WriteLine("ROSTER_PICKER_PROBE fc_parsed player_count="+body.GetProperty("players").GetArrayLength());
+
                 var first=PlayerRow(body,fixture.Player(1));
+                Console.WriteLine("ROSTER_PICKER_PROBE fc_first_found fields="+first.EnumerateObject().Count());
+
                 Require(body.GetProperty("organization_id").GetString()=="lefteria_fc" &&
                     body.GetProperty("ready").GetBoolean() &&
                     body.GetProperty("offset").GetInt32()==0 &&
@@ -69,6 +74,7 @@ internal sealed partial class WebAdminHttpChecks
                     first.GetProperty("academy_group_ids").GetArrayLength()==0 &&
                     PlayerRow(body,fixture.Player(3)).GetProperty("team_id").ValueKind==JsonValueKind.Null,
                     "FC player membership directory differs from real canonical roster.");
+                Console.WriteLine("ROSTER_PICKER_PROBE fc_assignment_checks_ok");
                 Require(!body.GetRawText().Contains(fixture.Player(2),StringComparison.Ordinal) &&
                     !body.GetRawText().Contains(fixture.Player(4),StringComparison.Ordinal) &&
                     !body.GetRawText().Contains("phone",StringComparison.OrdinalIgnoreCase) &&
