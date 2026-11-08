@@ -1,3 +1,4 @@
+using SkiaSharp;
 using System.Net.Http.Json;
 using System.Text;
 using LefteriaFc.Infrastructure.WebAdmin;
@@ -167,8 +168,61 @@ internal sealed partial class WebAdminHttpChecks
                     "Failed publication silently consumed a draft.");
 
             Console.WriteLine("CHECK announcements stage: post-audit original draft exists");
+
+            Console.WriteLine("CHECK announcements stage: draft PDF/banner media");
+            var fcMedia="/api/admin/communications/announcement-drafts/"+fcDraftId+
+                "/media?organization_id=lefteria_fc";
+            var academyMedia="/api/admin/communications/announcement-drafts/"+academyDraftId+
+                "/media?organization_id=lefteria_fc_academy";
+            var pdf=Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+            using(var invalid=await CreateDraft(client,login.Cookie,fcMedia,
+                new{version=1,kind="attachment",file_name="guide.pdf",
+                    content_type="application/pdf",base64=Convert.ToBase64String(Encoding.UTF8.GetBytes("not a PDF"))}))
+                await ExpectJsonAsync(invalid,422,"invalid_announcement_media");
+            using(var saved=await CreateDraft(client,login.Cookie,fcMedia,
+                new{version=1,kind="attachment",file_name="guide.pdf",
+                    content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
+            {
+                var result=await ExpectJsonAsync(saved,200);
+                Require(result.GetProperty("announcement_id").GetString()==fcDraftId&&
+                    result.GetProperty("version").GetInt64()==2&&
+                    result.GetProperty("media").GetArrayLength()==1&&
+                    result.GetProperty("media")[0].GetProperty("kind").GetString()=="attachment",
+                    "Manager draft PDF was not saved with version and metadata.");
+            }
+            using(var stale=await CreateDraft(client,login.Cookie,fcMedia,
+                new{version=1,kind="attachment",file_name="guide.pdf",
+                    content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
+                await ExpectJsonAsync(stale,409,"app_announcement_conflict");
+            using(var cross=await CreateDraft(client,login.Cookie,
+                "/api/admin/communications/announcement-drafts/"+fcDraftId+
+                    "/media?organization_id=lefteria_fc_academy",
+                new{version=2,kind="attachment",file_name="guide.pdf",
+                    content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
+                await ExpectJsonAsync(cross,403,"not_authorized");
+            using(var bmp=new SKBitmap(20,12))
+            {
+                bmp.Erase(SKColors.Gold);
+                using var image=SKImage.FromBitmap(bmp);
+                using var bytes=image.Encode(SKEncodedImageFormat.Png,100);
+                using var added=await CreateDraft(client,login.Cookie,academyMedia,
+                    new{version=1,kind="banner",file_name="banner.jpg",
+                        content_type="image/png",base64=Convert.ToBase64String(bytes.ToArray())});
+                var result=await ExpectJsonAsync(added,200);
+                Require(result.GetProperty("version").GetInt64()==2&&
+                    result.GetProperty("media")[0].GetProperty("content_type").GetString()=="image/jpeg",
+                    "Banner was not sanitized to a bounded JPEG.");
+            }
+            using(var activeDraft=await GetAsync(client,FcDraftsPath,login.Cookie))
+            {
+                var row=(await ExpectJsonAsync(activeDraft,200)).GetProperty("drafts")
+                    .EnumerateArray().Single(x=>x.GetProperty("id").GetString()==fcDraftId);
+                Require(row.GetProperty("version").GetInt64()==2&&
+                    row.GetProperty("media").GetArrayLength()==1,
+                    "Draft reload lost private media metadata or current version.");
+            }
             Console.WriteLine("CHECK announcements stage: successful publish");
-            using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
+            using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=2}))
             {
                 var item=await ExpectJsonAsync(published,200);
                 Require(item.GetProperty("id").GetString()==fcDraftId &&
@@ -178,7 +232,7 @@ internal sealed partial class WebAdminHttpChecks
                     item.GetProperty("version").GetInt64()==1,
                     "Published FC announcement had an invalid canonical target or version.");
             }
-            using(var published=await CreateDraft(client,login.Cookie,academyPublish,new{version=1}))
+            using(var published=await CreateDraft(client,login.Cookie,academyPublish,new{version=2}))
                 await ExpectJsonAsync(published,200);
             Require(await database.AppAnnouncementCountAsync("lefteria_fc")==1 &&
                 await database.AppAnnouncementCountAsync("lefteria_fc_academy")==1 &&
@@ -192,6 +246,7 @@ internal sealed partial class WebAdminHttpChecks
                 Require(item.GetProperty("organization_id").GetString()=="lefteria_fc" &&
                     item.GetProperty("announcements").GetArrayLength()==1 &&
                     item.GetProperty("announcements")[0].GetProperty("id").GetString()==fcDraftId &&
+                    item.GetProperty("announcements")[0].GetProperty("media").GetArrayLength()==1 &&
                     !item.GetRawText().Contains(academyDraftId,StringComparison.Ordinal),
                     "Admin published FC list leaked Academy content.");
             }
@@ -219,6 +274,10 @@ internal sealed partial class WebAdminHttpChecks
                 "/api/admin/communications/app-announcements/ann_"+new string('f',32)+
                 "/readers?organization_id=lefteria_fc",login.Cookie))
                 await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var publishedMediaDenied=await CreateDraft(client,login.Cookie,fcMedia,
+                new{version=2,kind="attachment",file_name="guide.pdf",
+                    content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
+                await ExpectJsonAsync(publishedMediaDenied,403,"not_authorized");
             Console.WriteLine("CHECK announcements stage: stale removal");
             var removeFc="/api/admin/communications/app-announcements/"+fcDraftId+
                 "?organization_id=lefteria_fc&version=1";
