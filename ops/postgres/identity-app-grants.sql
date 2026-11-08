@@ -252,6 +252,11 @@ GRANT EXECUTE ON FUNCTION club.read_mobile_chat_messages(
   uuid,text,text,timestamptz,text,text,integer) TO :"app_role";
 GRANT EXECUTE ON FUNCTION club.send_mobile_chat_message(
   uuid,text,text,timestamptz,text,text,text) TO :"app_role";
+REVOKE ALL ON TABLE club.app_chat_message_revisions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.mutate_mobile_chat_message(
+  uuid,text,text,timestamptz,text,text,uuid,bigint,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.mutate_mobile_chat_message(
+  uuid,text,text,timestamptz,text,text,uuid,bigint,text,text) TO :"app_role";
 -- Canonical auth reads expose only validated ownership/status/assignment facts.
 -- Raw contacts, source archives, quarantine and owner import state remain denied.
 GRANT SELECT (player_id, organization_id, academy_group_id) ON club.player_academy_groups TO :"app_role";

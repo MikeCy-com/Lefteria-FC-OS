@@ -157,7 +157,7 @@
         {/key}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
         {#key user.id+':'+role}
-          <MobileGroupChat {controller} actorId={user.id} />
+          <MobileGroupChat {controller} actorId={user.id} {role} />
         {/key}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}

@@ -25,12 +25,16 @@ test('only source-backed FC/Academy room shapes pass validation',()=>{
 test('message snapshots never accept a cross-room payload',()=>{
   const message={id:'b8e46f68-5b63-4b93-99d1-926c216c33fe',sender_id:'4cb93bfb-4108-4ac9-a67b-c35346f7bc1d',
     sender_name:'Coach',organization_id:academy.organization_id,group_id:academy.group_id,
-    content:'Training notice',created_at:'2026-11-08T14:20:00Z'};
+    content:'Training notice',created_at:'2026-11-08T14:20:00Z',
+    edited_at:null,is_deleted:false,version:1};
   assert.ok(validMessage(message,academy));
   assert.ok(validPage({messages:[message],next_offset:null},academy));
   assert.equal(validPage({messages:[message],next_offset:100001},academy),true);
   assert.equal(validPage({messages:[message],next_offset:-1},academy),false);
   assert.equal(validMessage(message,team),false);
+  assert.equal(validMessage({...message,is_deleted:true,content:''},academy),true);
+  assert.equal(validMessage({...message,is_deleted:true},academy),false);
+  assert.equal(validMessage({...message,version:0},academy),false);
   assert.equal(validMessage({...message,content:''},academy),false);
   assert.equal(validPage({messages:Array(51).fill(message),next_offset:null},academy),false);
 });
@@ -58,4 +62,24 @@ test('authenticated app tab holds mobile chat within bearer session, no public w
   assert.match(controller,/cache:'no-store'/);
   assert.match(route,/activeTab === 'chat' && role !== 'fan'/);
   assert.match(route,/<MobileGroupChat \{controller\} actorId=\{user.id\}/);
+});
+
+test('live group uses existing 550 ms long-press menu only for the sender, without unimplemented actions',()=>{
+  const source=read('../src/lib/mobile/components/MobileGroupChat.svelte');
+  assert.match(source,/import MobileHoldAction from/);
+  assert.match(source,/import MobileMessageActionMenu from/);
+  assert.match(source,/message.sender_id===actorId&&!message.is_deleted&&!mutationBusy/);
+  assert.match(source,/onEdit=\{\(text\)=>mutateMessage\(menuMessage,'edit',text\)\}/);
+  assert.match(source,/onDelete=\{\(\)=>mutateMessage\(menuMessage,'delete'\)\}/);
+  assert.match(source,/canReact:false,canSeeReaders:false/);
+  assert.match(source,/message.is_deleted\?'Το μήνυμα διαγράφηκε':message.content/);
+});
+
+test('mutations require server-verified version increments and clear content for deletion',()=>{
+  const source=read('../src/lib/mobile/controller.ts');
+  assert.match(source,/result.version!==version\+1\|\|result.is_deleted\|\|result.content!==content/);
+  assert.match(source,/result.version!==version\+1\|\|!result.is_deleted\|\|result.content!==''/);
+  assert.match(source,/token!==sessionToken/);
+  assert.match(source,/method,cache:'no-store'/);
+  assert.doesNotMatch(source,/optimisticChatUpdate|localStorage\.setItem\('chat/);
 });

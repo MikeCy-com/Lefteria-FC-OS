@@ -2,7 +2,8 @@
 // storage or claim delivery/read status from successful HTTP responses.
 export type GroupChatRoom = {organization_id:string;group_id:string;kind:'team'|'academy_group';name:string};
 export type GroupChatMessage = {id:string;organization_id:string;group_id:string;
-  sender_id:string;sender_name:string;content:string;created_at:string};
+  sender_id:string;sender_name:string;content:string;created_at:string;
+  edited_at:string|null;is_deleted:boolean;version:number};
 export type GroupChatPage = {messages:GroupChatMessage[];next_offset:number|null};
 
 const value=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -24,7 +25,10 @@ export function validChatDirectory(v:unknown):v is {ready:true;groups:{id:string
 export function validMessage(v:unknown,room:GroupChatRoom):v is GroupChatMessage {
   return value(v)&&typeof v.id==='string'&&/^[a-f0-9-]{36}$/i.test(v.id)&&
     v.organization_id===room.organization_id&&v.group_id===room.group_id&&
-    text(v.sender_id,36)&&text(v.sender_name,200)&&text(v.content,10000)&&
+    text(v.sender_id,36)&&text(v.sender_name,200)&&
+    typeof v.is_deleted==='boolean'&&Number.isSafeInteger(v.version)&&(v.version as number)>=1&&
+    (v.edited_at===null||(text(v.edited_at,64)&&!Number.isNaN(Date.parse(v.edited_at))))&&
+    (v.is_deleted?v.content==='':text(v.content,10000))&&
     text(v.created_at,64)&&!Number.isNaN(Date.parse(v.created_at));
 }
 export function validPage(v:unknown,room:GroupChatRoom):v is GroupChatPage {

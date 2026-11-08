@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the twenty-seven explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the twenty-nine explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 27);
+  assert.equal(operations.length, 29);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -64,6 +64,14 @@ test('only the twenty-seven explicitly declared Mobile operations receive Bearer
   assert.equal(permits(contract, 'POST', '/api/mobile/chat/groups'), false);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc/first_team/messages'), true);
   assert.equal(permits(contract, 'POST', '/api/mobile/chat/groups/lefteria_fc/first_team/messages'), true);
+  const ownMessage='/api/mobile/chat/groups/lefteria_fc/first_team/messages/11111111-2222-4333-8444-555555555555';
+  assert.equal(permits(contract,'PUT',ownMessage),true);
+  assert.equal(permits(contract,'DELETE',ownMessage),true);
+  assert.equal(permits(contract,'POST',ownMessage),false);
+  assert.equal(permits(contract,'GET',ownMessage),false);
+  assert.equal(permits(contract,'PATCH',ownMessage),false);
+  assert.equal(permits(contract,'PUT',ownMessage+'/extra'),false);
+  assert.equal(permits(contract,'DELETE',ownMessage+'/extra'),false);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc_academy/under_13/messages'), true);
   assert.equal(permits(contract, 'DELETE', '/api/mobile/chat/groups/lefteria_fc/first_team/messages'), false);
   assert.equal(permits(contract, 'GET', '/api/mobile/chat/groups/lefteria_fc/first_team/messages/extra'), false);
@@ -78,7 +86,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 27);
+  assert.equal(protectedOperations(changed).length, 29);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });

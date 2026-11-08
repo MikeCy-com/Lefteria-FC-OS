@@ -3,13 +3,18 @@
   import type {MobileAuthController} from '../controller.ts';
   import type {GroupChatRoom,GroupChatMessage} from '../group-chat.ts';
   import {validTextMessage} from '../group-chat.ts';
+  import type {MobileRole} from '../navigation.ts';
+  import MobileHoldAction from './MobileHoldAction.svelte';
+  import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
 
-  let {controller,actorId}:{controller:MobileAuthController;actorId:string}=$props();
+  let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
   let selected=$state<GroupChatRoom|null>(null);
   let messages=$state<GroupChatMessage[]>([]);
   let nextOffset=$state<number|null>(null);
   let draft=$state('');
+  let menuMessage=$state<GroupChatMessage|null>(null);
+  let mutationBusy=$state(false);
   let directoryBusy=$state(true),messageBusy=$state(false),sending=$state(false);
   let error=$state<string|null>(null),sendError=$state<string|null>(null);
   let requestNumber=0;
@@ -25,7 +30,7 @@
   }
   async function refreshRooms(){
     const request=++requestNumber;
-    directoryBusy=true;messageBusy=false;error=null;selected=null;messages=[];nextOffset=null;
+    directoryBusy=true;messageBusy=false;menuMessage=null;error=null;selected=null;messages=[];nextOffset=null;
     try{
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
@@ -35,7 +40,8 @@
     finally{if(alive&&request===requestNumber)directoryBusy=false;}
   }
   async function chooseRoom(room:GroupChatRoom){
-    if(sending)return;
+    if(sending||mutationBusy)return;
+    menuMessage=null;
     // Invalidate any in-flight read before changing rooms. A response from
     // the previous group must never appear in the newly selected room.
     ++requestNumber;messageBusy=false;
@@ -44,7 +50,7 @@
   }
   async function loadMessages(more:boolean){
     const room=selected;
-    if(!room||messageBusy||sending)return;
+    if(!room||messageBusy||sending||mutationBusy)return;
     const request=++requestNumber;
     messageBusy=true;error=null;
     try{
@@ -54,6 +60,24 @@
       nextOffset=page.next_offset;
     }catch(caught){if(alive&&request===requestNumber)error=messageOf(caught);}
     finally{if(alive&&request===requestNumber)messageBusy=false;}
+  }
+  async function mutateMessage(target:GroupChatMessage|null,operation:'edit'|'delete',content?:string):Promise<boolean> {
+    const room=selected;
+    if(!room||!target||target.sender_id!==actorId||target.is_deleted||mutationBusy||
+       messageBusy||sending)return false;
+    mutationBusy=true;sendError=null;
+    try{
+      const updated=operation==='edit'
+        ?await controller.editChatMessage(room,target.id,target.version,content??'')
+        :await controller.deleteChatMessage(room,target.id,target.version);
+      if(!alive||selected!==room)return false;
+      messages=messages.map(message=>message.id===updated.id?updated:message);
+      menuMessage=null;
+      return true;
+    }catch(caught){
+      if(alive&&selected===room)sendError=messageOf(caught);
+      return false;
+    }finally{if(alive)mutationBusy=false;}
   }
   async function send(){
     const room=selected,body=draft.trim();
@@ -76,7 +100,7 @@
 <section class="chat-layout" aria-labelledby="group-chat-title" data-testid="mobile-group-chat">
   <div class="chat-heading">
     <div><p class="eyebrow">LEFTERIA FC · APP</p><h1 id="group-chat-title">Μηνύματα</h1></div>
-    <button type="button" class="outline" disabled={directoryBusy||sending}
+    <button type="button" class="outline" disabled={directoryBusy||sending||mutationBusy}
       onclick={()=>void refreshRooms()} aria-label="Ανανέωση ομάδων">Ανανέωση</button>
   </div>
   <p class="hint">Ιδιωτικά κανάλια μόνο για τα μέλη της ομάδας ή της Ακαδημίας σου.</p>
@@ -89,7 +113,7 @@
       {#each rooms as room (room.organization_id+':'+room.group_id)}
         <button type="button" class:active={selected?.organization_id===room.organization_id&&selected?.group_id===room.group_id}
           aria-pressed={selected?.organization_id===room.organization_id&&selected?.group_id===room.group_id}
-          disabled={sending} onclick={()=>void chooseRoom(room)}>
+          disabled={sending||mutationBusy} onclick={()=>void chooseRoom(room)}>
           <span class="room-mark">⚽</span>
           <span><strong>{room.name}</strong><small>{room.kind==='team'?'Πρώτη ομάδα':'Ακαδημία'}</small></span>
         </button>
@@ -98,7 +122,7 @@
   {/if}
   {#if selected}
     <section class="thread" aria-label={'Συζήτηση '+selected.name}>
-      <header><h2>{selected.name}</h2><button type="button" class="outline" disabled={messageBusy||sending}
+      <header><h2>{selected.name}</h2><button type="button" class="outline" disabled={messageBusy||sending||mutationBusy}
         onclick={()=>void loadMessages(false)}>Ανανέωση</button></header>
       {#if nextOffset!==null}
         <button type="button" class="outline load-more" disabled={messageBusy||sending}
@@ -108,10 +132,14 @@
       {:else if messages.length===0 && !error}<p class="empty">Δεν υπάρχουν ακόμη μηνύματα.</p>{/if}
       <ol class="messages" aria-live="polite">
         {#each [...messages].reverse() as message (message.id)}
-          <li class:own={message.sender_id===actorId}>
-            <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
-              <time datetime={message.created_at}>{new Date(message.created_at).toLocaleString('el-CY',{dateStyle:'short',timeStyle:'short'})}</time></div>
-            <p>{message.content}</p>
+          <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}>
+            <MobileHoldAction enabled={message.sender_id===actorId&&!message.is_deleted&&!mutationBusy}
+              onOpen={()=>{menuMessage=message;}} label="Ενέργειες δικού μου μηνύματος">
+              <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
+                <time datetime={message.created_at}>{new Date(message.created_at).toLocaleString('el-CY',{dateStyle:'short',timeStyle:'short'})}</time></div>
+              <p>{message.is_deleted?'Το μήνυμα διαγράφηκε':message.content}</p>
+              {#if message.edited_at&&!message.is_deleted}<small class="edited">Επεξεργάστηκε</small>{/if}
+            </MobileHoldAction>
           </li>
         {/each}
       </ol>
@@ -119,7 +147,7 @@
         <label for="group-message-input">Νέο μήνυμα</label>
         <input id="group-message-input" type="text" bind:value={draft} maxlength="10000"
           disabled={sending} placeholder="Γράψε μήνυμα στην ομάδα…" />
-        <button class="send" type="submit" disabled={sending||messageBusy||!validTextMessage(draft.trim())}>
+        <button class="send" type="submit" disabled={sending||messageBusy||mutationBusy||!validTextMessage(draft.trim())}>
           {sending?'Αποστολή…':'Αποστολή'}
         </button>
       </form>
@@ -128,6 +156,17 @@
   {/if}
   {#if error}<p role="alert" class="error">{error}</p>{/if}
 </section>
+{#if menuMessage && selected}
+  <MobileMessageActionMenu
+    context={{kind:'message',role,actorId,senderId:menuMessage.sender_id,
+      isDeleted:menuMessage.is_deleted,isParticipant:true,canReply:true,
+      canEdit:true,canDelete:true,canReact:false,canSeeReaders:false}}
+    content={menuMessage.content}
+    onClose={()=>{menuMessage=null;}}
+    onEdit={(text)=>mutateMessage(menuMessage,'edit',text)}
+    onDelete={()=>mutateMessage(menuMessage,'delete')}
+  />
+{/if}
 
 <style>
   .chat-layout{padding:16px 14px 28px;color:var(--lf-text);font-family:var(--lf-body);font-size:var(--lf-type-body)}
@@ -146,6 +185,8 @@
   .messages{list-style:none;margin:16px 0;padding:0;display:flex;flex-direction:column;gap:10px;max-height:55vh;overflow:auto}
   .messages li{align-self:flex-start;width:min(94%,360px);border:1px solid #343638;border-radius:12px;background:#202325;padding:10px 12px;overflow-wrap:anywhere}
   .messages li.own{align-self:flex-end;border-color:#7d581f;background:#2a2319}
+  .messages li.deleted{opacity:.74}.messages li.deleted p{font-style:italic;color:var(--lf-muted)}
+  .edited{display:block;margin-top:6px;font-size:10px;color:var(--lf-muted)}
   .message-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .message-head strong{font-size:11px;color:var(--lf-gold-light)}.message-head time{font-size:10px;color:var(--lf-muted)}
   .messages p{margin:7px 0 0;white-space:pre-wrap}

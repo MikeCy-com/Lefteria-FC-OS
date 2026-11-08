@@ -29,7 +29,35 @@ public static class MobileGroupChatEndpoints
                     organization,group,body.Content,token),context))
             .WithName("SendMobileChatMessage").Produces<MobileChatMessageDto>()
             .Produces(StatusCodes.Status413PayloadTooLarge).WithMobileErrors();
+        chat.MapPut("/groups/{organization}/{group}/messages/{messageId:guid}",(
+                string organization,string group,Guid messageId,MobileChatEditBody body,
+                HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.EditAsync(MobilePrincipal.Read(context.User),
+                    organization,group,messageId,body.Version,body.Content,token),context))
+            .WithName("EditMobileChatMessage").Produces<MobileChatMessageDto>()
+            .Produces<MobileAuthError>(StatusCodes.Status409Conflict).WithMobileErrors();
+
+        chat.MapDelete("/groups/{organization}/{group}/messages/{messageId:guid}",(
+                string organization,string group,Guid messageId,string? version,HttpContext context,
+                PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.DeleteAsync(MobilePrincipal.Read(context.User),
+                    organization,group,messageId,ParseVersion(context,version),token),context))
+            .WithName("DeleteMobileChatMessage").Produces<MobileChatMessageDto>()
+            .Produces<MobileAuthError>(StatusCodes.Status409Conflict).WithMobileErrors();
+
         return app;
+    }
+
+    private static long ParseVersion(HttpContext context,string? raw)
+    {
+        if(context.Request.Query["version"].Count!=1 ||
+           !long.TryParse(raw,NumberStyles.None,CultureInfo.InvariantCulture,out var number) ||
+           number<1)
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid message version.");
+        return number;
     }
 
     private static int ParseOffset(HttpContext context,string? raw)
