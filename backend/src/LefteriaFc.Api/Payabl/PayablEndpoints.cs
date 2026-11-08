@@ -187,7 +187,9 @@ public static class PayablEndpoints
                 if (!PayablSignature.Notification(values, settings.Value.Secret, DateTimeOffset.UtcNow))
                     return Results.BadRequest();
                 if (!int.TryParse(values["errorcode"], out var code) ||
-                    !long.TryParse(values["timestamp"], out var stamp))
+                    !long.TryParse(values["timestamp"], out var stamp) ||
+                    !values.TryGetValue("orderid", out var orderId) ||
+                    orderId != "LFC" + id.ToString("N"))
                     return Results.BadRequest();
                 var db = database.Database.GetDbConnection();
                 await database.Database.OpenConnectionAsync(ct);
@@ -196,13 +198,13 @@ public static class PayablEndpoints
                     await using var query = db.CreateCommand();
                     query.CommandText = """
                         SELECT finance.apply_payabl_notification(
-                          @id,@nonce,@transaction,@kind,@code,@stamp)
+                          @id,@nonce,@transaction,@kind,@code,@stamp,@order)
                         """;
                     var parameters = new (string, object)[]
                     {
                         ("id",id),("nonce",PayablSignature.CallbackDigest(nonce)),
                         ("transaction",values["transactionid"]),("kind",values["type"]),
-                        ("code",code),("stamp",stamp)
+                        ("code",code),("stamp",stamp),("order",orderId)
                     };
                     foreach (var (key, value) in parameters)
                     {
