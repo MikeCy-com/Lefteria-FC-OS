@@ -1,8 +1,9 @@
-import type {GroupChatRoom} from './group-chat.ts';
+import {validReactions,type GroupChatRoom,type GroupChatReaction} from './group-chat.ts';
 
 export type AppAnnouncement={
   id:string;organization_id:'lefteria_fc'|'lefteria_fc_academy';
-  group_id:string;title:string;body:string;published_at:string;status:'published'
+  group_id:string;title:string;body:string;published_at:string;status:'published';
+  reactions:GroupChatReaction[]
 };
 export type AppAnnouncementPage={announcements:AppAnnouncement[];next_offset:number|null};
 
@@ -11,7 +12,7 @@ const value=(v:unknown):v is Record<string,unknown>=>
 export function validAppAnnouncement(raw:unknown,room:GroupChatRoom):raw is AppAnnouncement {
   return value(raw)&&typeof raw.id==='string'&&/^ann_[a-f0-9]{32}$/.test(raw.id)&&
     raw.organization_id===room.organization_id&&raw.group_id===room.group_id&&
-    raw.status==='published'&&
+    raw.status==='published'&&validReactions(raw.reactions)&&
     typeof raw.title==='string'&&raw.title.length>0&&raw.title.length<=140&&
     typeof raw.body==='string'&&raw.body.length>0&&raw.body.length<=4000&&
     typeof raw.published_at==='string'&&raw.published_at.length<=64&&
@@ -24,4 +25,11 @@ export function validAppAnnouncementPage(raw:unknown,room:GroupChatRoom):raw is 
     new Set(items.map((a:AppAnnouncement)=>a.id)).size===items.length&&
     (raw.next_offset===null||(Number.isInteger(raw.next_offset)&&
       (raw.next_offset as number)>=0&&(raw.next_offset as number)<=100050));
+}
+export type AppAnnouncementReactionSnapshot={
+  announcement_id:string;reactions:GroupChatReaction[]
+};
+export function validAppAnnouncementReactionSnapshot(raw:unknown,id:string):
+  raw is AppAnnouncementReactionSnapshot {
+  return value(raw)&&raw.announcement_id===id&&validReactions(raw.reactions);
 }

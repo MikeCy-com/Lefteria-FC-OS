@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
-import {validAppAnnouncementPage,type AppAnnouncementPage} from './app-announcements.ts';
+import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
+  type AppAnnouncementPage,type AppAnnouncementReactionSnapshot} from './app-announcements.ts';
 import {validPrivateContact,validPrivateContacts,validPrivateConversation,
   validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
   type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
@@ -1267,6 +1268,20 @@ export function createMobileAuthController(options: {
       if(!validAppAnnouncementPage(result,room))
         throw new Error('Unverified app announcement response.');
       return result;
+    },
+    async setAppAnnouncementReaction(room:GroupChatRoom,announcementId:string,
+      emoji:string,active:boolean):Promise<AppAnnouncementReactionSnapshot> {
+      if(!validRoom(room)||!/^ann_[a-f0-9]{32}$/.test(announcementId)||
+        !['👍','❤️','😂','⚽','👏','🎉','🙏','🔥'].includes(emoji)||
+        typeof active!=='boolean')throw new Error('Invalid announcement reaction.');
+      const path='/api/mobile/app/announcements/'+encodeURIComponent(room.organization_id)+
+        '/'+encodeURIComponent(room.group_id)+'/'+encodeURIComponent(announcementId)+'/reactions';
+      const response=await chatRequest(path,'POST',{emoji,active});
+      if(!validAppAnnouncementReactionSnapshot(response,announcementId)||
+        response.reactions.some(r=>r.emoji===emoji&&r.mine!==active)||
+        (active&&!response.reactions.some(r=>r.emoji===emoji&&r.mine)))
+        throw new Error('Server did not confirm announcement reaction.');
+      return response;
     },
     async getChatRooms():Promise<GroupChatRoom[]> {
       const result=await chatRequest('/api/mobile/chat/groups');

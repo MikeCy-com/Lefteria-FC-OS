@@ -28,6 +28,16 @@ BEGIN
       RAISE EXCEPTION 'App announcement publish boundary grants are unsafe';
     END IF;
   END LOOP;
+  IF NOT has_function_privilege(mobile_role,
+       'club.set_mobile_app_announcement_reaction(uuid,text,text,timestamptz,text,text,text,text,boolean)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.set_mobile_app_announcement_reaction(uuid,text,text,timestamptz,text,text,text,text,boolean)','EXECUTE')
+    OR has_any_column_privilege(auth_role,'club.app_announcement_reactions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,'club.app_announcement_reactions','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(mobile_role,'club.app_announcement_reactions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,'club.app_announcement_reactions','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Raw announcement reaction participants leaked';
+  END IF;
   IF has_function_privilege(auth_role,
        'club.app_announcement_admin_actor(text,text)','EXECUTE')
     OR has_function_privilege(mobile_role,

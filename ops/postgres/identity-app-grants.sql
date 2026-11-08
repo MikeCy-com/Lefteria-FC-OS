@@ -314,6 +314,15 @@ GRANT EXECUTE ON FUNCTION club.write_mobile_private_message(
 GRANT EXECUTE ON FUNCTION club.hide_mobile_private_conversation(
   uuid,text,text,timestamptz,uuid) TO :"app_role";
 
+-- App announcement reactions: one current member per emoji and notice.
+-- No client role can read raw reactors or enumerate names.
+REVOKE ALL ON TABLE club.app_announcement_reactions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.set_mobile_app_announcement_reaction(
+  uuid,text,text,timestamptz,text,text,text,text,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.set_mobile_app_announcement_reaction(
+  uuid,text,text,timestamptz,text,text,text,text,boolean) TO :"app_role";
+
 -- Only published and currently member-scoped app notices reach mobile.
 REVOKE ALL ON TABLE club.app_announcements FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION club.app_announcement_admin_actor(text,text)

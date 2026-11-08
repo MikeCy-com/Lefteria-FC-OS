@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the forty-two explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the forty-three explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 42);
+  assert.equal(operations.length, 43);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -107,7 +107,16 @@ test('only the forty-two explicitly declared Mobile operations receive Bearer ro
     ['DELETE','/api/mobile/private/conversations/'+privateId+'/messages/'+privateMessage+'/extra'],
     ['GET','/api/mobile/private/contact-phones']
   ])assert.equal(permits(contract,method,path),false,method+' '+path);
-  // Announcements are app-only, GET-only and scoped to a canonical room.
+  // Publishing and removal remain web-admin-only, while mobile members can
+  // set or remove an allowed reaction only on an exact scoped notice ID.
+  const appReaction='/api/mobile/app/announcements/lefteria_fc_academy/u13/ann_'+
+    'a'.repeat(32)+'/reactions';
+  assert.equal(permits(contract,'POST',appReaction),true);
+  for(const method of ['GET','PUT','DELETE','PATCH'])
+    assert.equal(permits(contract,method,appReaction),false);
+  assert.equal(permits(contract,'POST',appReaction+'/extra'),false);
+  assert.equal(permits(contract,'POST','/api/mobile/app/announcements/lefteria_fc_academy/u13'),false);
+  // Announcements are app-only, GET and scoped to a canonical room.
   const appNotice='/api/mobile/app/announcements/lefteria_fc_academy/u13';
   assert.equal(permits(contract,'GET',appNotice),true);
   for(const [method,path] of [
@@ -130,7 +139,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 42);
+  assert.equal(protectedOperations(changed).length, 43);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
