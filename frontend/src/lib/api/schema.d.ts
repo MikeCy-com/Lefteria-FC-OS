@@ -3435,21 +3435,18 @@ export interface operations {
             };
         };
     };
-    PutAdminRosterAssignment: {
+    GetAdminAppAnnouncementReaders: {
         parameters: {
-            query: {
-                /** @description Exact current assigned football or Academy owner; never all or inferred. */
-                organization_id: "lefteria_fc" | "lefteria_fc_academy";
+            query?: {
+                organization_id?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                id: string;
+            };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminRosterAssignmentCommand"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -3457,7 +3454,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminRosterAssignmentDto"];
+                    "application/json": components["schemas"]["AdminAppAnnouncementReadersDto"];
                 };
             };
             /** @description Bad Request */
@@ -3534,18 +3531,21 @@ export interface operations {
             };
         };
     };
-    GetAdminAppAnnouncementReaders: {
+    PutAdminRosterAssignment: {
         parameters: {
-            query?: {
-                organization_id?: string;
+            query: {
+                /** @description Exact current assigned football or Academy owner; never all or inferred. */
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
             };
             header?: never;
-            path: {
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminRosterAssignmentCommand"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -3553,7 +3553,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminAppAnnouncementReadersDto"];
+                    "application/json": components["schemas"]["AdminRosterAssignmentDto"];
                 };
             };
             /** @description Bad Request */
