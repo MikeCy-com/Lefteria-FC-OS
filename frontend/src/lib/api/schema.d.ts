@@ -4589,8 +4589,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                group: string;
                 announcementId: string;
+                group: string;
                 organization: string;
             };
             cookie?: never;
