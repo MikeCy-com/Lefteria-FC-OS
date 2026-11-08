@@ -73,6 +73,7 @@ builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
 builder.Services.AddScoped<IAdminPosCategoryWriter, PostgresAdminPosCategoryWriter>();
+builder.Services.AddScoped<IAdminPosProductWriter, PostgresAdminPosProductWriter>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
@@ -115,6 +116,7 @@ app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
+app.MapAdminPosProducts();
 
 if (app.Environment.IsDevelopment())
 {

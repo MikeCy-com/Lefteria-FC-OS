@@ -10,7 +10,8 @@ public sealed class AdminPosCatalogOperationTransformer : IOpenApiOperationTrans
     {
         var route = context.Description.RelativePath?.Split('?')[0].Trim('/');
         if (route is not ("api/admin/pos/catalog" or "api/admin/pos/categories" or
-            "api/admin/pos/categories/{id}") || operation.Parameters is null)
+            "api/admin/pos/categories/{id}" or
+            "api/admin/pos/products" or "api/admin/pos/products/{id}") || operation.Parameters is null)
             return Task.CompletedTask;
 
         foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()

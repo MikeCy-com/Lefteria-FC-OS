@@ -115,6 +115,26 @@ try {
     assert.equal(operation.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/AdminPosCategoryDto');
     assert.deepEqual(Object.keys(operation.responses).sort(), ['200','400','401','403','409','413','415','422','503']);
   }
+  const createPosProduct = document.paths['/api/admin/pos/products'];
+  const updatePosProduct = document.paths['/api/admin/pos/products/{id}'];
+  assert.deepEqual(Object.keys(createPosProduct), ['post']);
+  assert.deepEqual(Object.keys(updatePosProduct), ['put']);
+  for (const [operation, command] of [
+    [createPosProduct.post, 'AdminPosProductCreateCommand'],
+    [updatePosProduct.put, 'AdminPosProductUpdateCommand']
+  ]) {
+    assert.deepEqual(operation.security, [{WebAdmin:[]}]);
+    assert.deepEqual(operation.parameters.filter(p => p.name === 'organization_id')
+      .map(p => ({required:p.required,values:p.schema.enum})),
+      [{required:true,values:['lefteria_fc','lefteria_fc_academy']}]);
+    assert.equal(operation.requestBody.content['application/json'].schema.$ref,
+      '#/components/schemas/' + command);
+    assert.equal(operation.responses['200'].content['application/json'].schema.$ref,
+      '#/components/schemas/AdminPosProductDto');
+    assert.deepEqual(Object.keys(operation.responses).sort(),
+      ['200','400','401','403','409','413','415','422','503']);
+  }
+
   assert.deepEqual(updatePosCategory.put.parameters.filter(p => p.name === 'id')
     .map(p => ({in:p.in,required:p.required})), [{in:'path',required:true}]);
 
