@@ -7,6 +7,7 @@
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
+  import MobileGroupChat from '../../../lib/mobile/components/MobileGroupChat.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
@@ -153,6 +154,10 @@
             onCancelOutgoing={(id) => controller.cancelOutgoingInvitation(id)}
             onLoadOutgoing={() => controller.loadOutgoingInvitations()}
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
+        {/key}
+      {:else if activeTab === 'chat' && role !== 'fan' && !composing}
+        {#key user.id+':'+role}
+          <MobileGroupChat {controller} actorId={user.id} />
         {/key}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
