@@ -60,7 +60,7 @@ npm test --prefix frontend
 cd frontend && npm run check && npm run build
 ```
 
-The contract generator requires a working pinned .NET 10 SDK and Node 24 environment (see root README). The new API will require regeneration of `contracts/openapi.json` and `frontend/src/lib/api/schema.d.ts` before CI drift checks can pass. The offline adapter check uses an in-memory fake HTTP handler; **do not call payabl. from CI**.
+The contract generator requires a working pinned .NET 10 SDK and Node 24 environment (see root README). The new API contracts have been regenerated in this branch: `contracts/openapi.json` and `frontend/src/lib/api/schema.d.ts`. CI must verify they remain in sync. The offline adapter check uses an in-memory fake HTTP handler; **do not call payabl. from CI**.
 
 Before a live rollout: written merchant approval and contract matrix for payment types, sandbox webhook signature/amount/order verification tests, event replay and idempotency tests in a disposable PostgreSQL DB, concurrency/ownership authorization tests, permissions-boundary audit, TLS callback ingress validation, monitoring, reconciliation controls, approved privacy terms and accounting policy. Integration UI must stay sandbox-labeled until every gate passes.
 
