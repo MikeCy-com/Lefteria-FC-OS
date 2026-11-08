@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'crm' | 'pos' | 'finance' | 'football' 
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -31,6 +31,7 @@ const catalog: readonly Section[] = [
   { id: 'crm', name: 'CRM & επικοινωνία', description: 'Επαφές, ενδιαφέρον και επικοινωνία με οικογένειες.', modules: [
     { id: 'leads', name: 'Ενδιαφερόμενοι & επαφές', description: 'Απαιτεί ιδιωτικό API και πολιτική δεδομένων.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] },
     { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Αιτήματα γονέων και κηδεμόνων.', status: 'planned', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
+    { id: 'announcements', name: 'Πρόχειρες ανακοινώσεις', description: 'Ασφαλής σύνταξη πρόχειρων για πραγματικά τμήματα, χωρίς αποστολή.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'messages', name: 'Μηνύματα', description: 'Επικοινωνία με μέλη και οικογένειες.', status: 'planned', scope: 'any', anyPermission: ['messages:read'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
@@ -70,6 +71,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
+      if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
+        (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
+        (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
       if (item.id === 'groups') return (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read'))
