@@ -26,6 +26,7 @@ jobs:
         with:
           node-version-file: .nvmrc
       - run: dotnet restore backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --locked-mode
+      - run: dotnet build backend/src/LefteriaFc.Api/LefteriaFc.Api.csproj --configuration Release --no-restore
       - run: npm ci --no-audit --no-fund
         working-directory: frontend
       - run: npm ci --prefix tools/api-client --no-audit --no-fund
