@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'crm' | 'pos' | 'finance' | 'football' 
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -45,8 +45,8 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'football', name: 'Αγωνιστικό & Ακαδημία', description: 'Ομάδες, προπονήσεις, αγώνες και δοκιμαστικά.', modules: [
     { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read', 'marketing:read'] },
-    { id: 'teams', name: 'Ομάδες & παίκτες', description: 'Ρόστερ και συνδέσεις ομάδων.', status: 'planned', scope: 'any', anyPermission: ['teams:read', 'teams:read_assigned'] },
-    { id: 'academy', name: 'Τμήματα Ακαδημίας', description: 'Τμήματα και ηλικιακές ομάδες.', status: 'planned', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
+    { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Ζωντανές ομάδες και συμμετοχές του ρόστερ ανά οργανισμό, χωρίς στοιχεία παιδιών.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
+    { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
     { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Αγωνιστικό πρόγραμμα και ενημερώσεις.', status: 'planned', scope: 'first-team', anyPermission: ['fixtures:read', 'results:read'] }
   ] },
@@ -70,6 +70,10 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
+      if (item.id === 'groups') return (
+        (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
+        (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read'))
+      );
       return item.anyPermission.some(permission => hasAdminPermission(user.permissions, permission));
     }).map(({ id, name, description, status, href }): AdminModule =>
       ({ id, name, description, status, ...(href ? { href } : {}) }));
