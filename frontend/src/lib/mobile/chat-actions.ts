@@ -36,7 +36,7 @@ export function availableChatActions(context:ChatSurface): readonly ChatAction[]
 }
 
 export function validReaders(
-  input:unknown,maximum=150
+  input:unknown,maximum=50
 ):input is {readers:{id:string;name:string}[]} {
   if(!input || typeof input!=='object' || Array.isArray(input))return false;
   const row=input as Record<string,unknown>;
