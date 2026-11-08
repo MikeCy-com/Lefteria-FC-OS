@@ -82,6 +82,36 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,academy.GetProperty("announcements")[0]
                 .GetProperty("reactions").GetArrayLength(),
                 "Fresh announcement unexpectedly has reaction participants.");
+            const string inboxPath="/api/mobile/app/notifications";
+            var memberInbox=await GetAsync(parent,inboxPath,200);
+            Check.True(memberInbox.GetProperty("enabled").GetBoolean() &&
+                memberInbox.GetProperty("notifications").GetArrayLength()==1 &&
+                memberInbox.GetProperty("unread_count").GetInt32()==1 &&
+                memberInbox.GetProperty("notifications")[0].GetProperty("announcement_id").GetString()==academyId &&
+                memberInbox.GetProperty("notifications")[0].GetProperty("group_id").GetString()==fixture.GroupId &&
+                !memberInbox.GetProperty("notifications")[0].GetProperty("seen").GetBoolean() &&
+                !memberInbox.GetRawText().Contains("Private Academy only",StringComparison.Ordinal),
+                "Notification inbox leaked content, missed a published event or inferred a read.");
+            await GetAsync(fan,inboxPath,403);
+            Check.True((await GetAsync(player,inboxPath,200))
+                .GetProperty("notifications")[0].GetProperty("announcement_id").GetString()==teamId,
+                "FC player saw another group's notification.");
+            await GetAsync(parent,inboxPath+"?offset=-1",422);
+            await GetAsync(parent,inboxPath+"?offset=0&offset=1",422);
+            var opted=await PutProfileDetailsAsync(parent,
+                new {notification_prefs=new Dictionary<string,bool> {["administrative"]=false}});
+            Check.True(!opted.GetProperty("notification_prefs").GetProperty("administrative").GetBoolean(),
+                "Notification preference opt-out did not persist.");
+            var off=await GetAsync(parent,inboxPath,200);
+            Check.True(!off.GetProperty("enabled").GetBoolean() &&
+                off.GetProperty("notifications").GetArrayLength()==0 &&
+                off.GetProperty("unread_count").GetInt32()==0,
+                "Opt-out still delivered an in-app notification.");
+            Check.True((await GetAsync(parent,academyPath,200))
+                .GetProperty("announcements").GetArrayLength()==1,
+                "Notification preference incorrectly revoked access to official announcements.");
+            await PutProfileDetailsAsync(parent,
+                new {notification_prefs=new Dictionary<string,bool> {["administrative"]=true}});
             var reactAcademy=academyPath+"/"+academyId+"/reactions";
             var reactTeam=teamPath+"/"+teamId+"/reactions";
             var added=await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},200);
@@ -113,6 +143,10 @@ internal sealed partial class IdentityHttpChecks
             Check.True(ack.GetProperty("announcement_id").GetString()==academyId &&
                 ack.GetProperty("seen").GetBoolean(),
                 "Explicit parent card acknowledgement did not persist.");
+            var afterReading=await GetAsync(parent,inboxPath,200);
+            Check.True(afterReading.GetProperty("unread_count").GetInt32()==0 &&
+                afterReading.GetProperty("notifications")[0].GetProperty("seen").GetBoolean(),
+                "Opening the visible announcement did not update its existing read receipt.");
             var duplicate=await PostAsync(parent,seenAcademy,new{},200);
             Check.True(duplicate.GetProperty("seen").GetBoolean(),
                 "Repeat visible announcement read was not idempotent.");
@@ -211,6 +245,8 @@ internal sealed partial class IdentityHttpChecks
                     $"DELETE FROM club.app_announcement_read_receipts WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_reactions WHERE announcement_id={id}");
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_announcement_notification_events WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_media WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
