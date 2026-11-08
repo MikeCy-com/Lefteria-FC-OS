@@ -211,7 +211,10 @@ BEGIN
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
-                  'club.read_admin_announcement_drafts(text,text)'::regprocedure)) THEN
+                  'club.read_admin_announcement_drafts(text,text)'::regprocedure,
+                  'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
+                  'club.read_admin_app_announcements(text,text)'::regprocedure,
+                  'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN
