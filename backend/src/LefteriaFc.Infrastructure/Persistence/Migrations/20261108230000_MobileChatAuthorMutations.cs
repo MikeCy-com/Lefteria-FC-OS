@@ -93,7 +93,7 @@ public sealed class MobileChatAuthorMutations : Migration
           IF _organization NOT IN ('lefteria_fc','lefteria_fc_academy')
             OR _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
             OR _message IS NULL OR _expected_version IS NULL OR _expected_version<1
-            OR _operation NOT IN ('edit','delete')
+            OR _operation IS NULL OR _operation NOT IN ('edit','delete')
             OR (_operation='edit' AND
               (_content IS NULL OR char_length(_content) NOT BETWEEN 1 AND 10000
                OR _content<>btrim(_content) OR _content ~ '[[:cntrl:]]'))
