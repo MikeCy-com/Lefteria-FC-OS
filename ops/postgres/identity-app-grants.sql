@@ -170,7 +170,11 @@ BEGIN
   WHERE oid='club.read_first_team_trial_display()'::regprocedure;
   IF NOT FOUND OR p.prosecdef IS DISTINCT FROM true
       OR p.provolatile IS DISTINCT FROM 's'
-      OR NOT ('search_path=pg_catalog,pg_temp'=ANY(coalesce(p.proconfig,ARRAY[]::text[]))) THEN
+      OR NOT EXISTS (
+          SELECT 1 FROM unnest(coalesce(p.proconfig,ARRAY[]::text[])) AS config(entry)
+          WHERE regexp_replace(config.entry,'[[:space:]]','','g') =
+            'search_path=pg_catalog,pg_temp'
+      ) THEN
     RAISE EXCEPTION 'Unreviewed first-team trials display function; deny runtime grant';
   END IF;
   IF NOT (SELECT relrowsecurity FROM pg_catalog.pg_class
