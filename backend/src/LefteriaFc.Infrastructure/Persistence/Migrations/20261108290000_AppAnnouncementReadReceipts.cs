@@ -60,9 +60,7 @@ public sealed class AppAnnouncementReadReceipts : Migration
             ) AS member(value) WHERE member.value->>'organization_id'=_organization
               AND member.value->>'id'=_group)
           ON CONFLICT DO NOTHING;
-          IF NOT FOUND THEN
-            RAISE EXCEPTION 'notice_read_denied' USING ERRCODE='42501';
-          END IF;
+          -- An existing receipt is a successful, idempotent acknowledgement.
           RETURN jsonb_build_object('announcement_id',v_announcement,'seen',true);
         END $notice_ack$;
         REVOKE ALL ON FUNCTION club.ack_mobile_app_announcement_read(
