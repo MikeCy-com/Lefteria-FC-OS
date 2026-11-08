@@ -26,7 +26,7 @@ public sealed class MobileScopedGroupChat : Migration
           CONSTRAINT ck_app_chat_kind CHECK (group_kind IN ('team','academy_group')),
           CONSTRAINT ck_app_chat_content CHECK (
             char_length(content) BETWEEN 1 AND 10000 AND content=btrim(content)
-            AND position(chr(0) IN content)=0),
+            AND content !~ '[[:cntrl:]]'),
           CONSTRAINT ck_app_chat_scope CHECK (
             (organization_id='lefteria_fc' AND group_kind='team') OR
             (organization_id='lefteria_fc_academy' AND group_kind='academy_group'))
