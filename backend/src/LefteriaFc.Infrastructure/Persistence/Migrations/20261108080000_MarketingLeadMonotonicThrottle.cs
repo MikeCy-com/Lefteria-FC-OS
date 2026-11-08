@@ -48,8 +48,10 @@ public sealed class MarketingLeadMonotonicThrottle : Migration
             WHERE oid='marketing.store_academy_lead(uuid,text,text,text,integer,text,text,text,boolean,boolean,text)'::regprocedure;
             IF NOT FOUND OR p.prosecdef IS DISTINCT FROM true
                 OR p.provolatile IS DISTINCT FROM 'v'
-                OR NOT ('search_path=pg_catalog,pg_temp'=ANY(
-                    COALESCE(p.proconfig,ARRAY[]::text[]))) THEN
+                OR NOT EXISTS (
+                    SELECT 1 FROM unnest(COALESCE(p.proconfig,ARRAY[]::text[])) AS cfg(entry)
+                    WHERE regexp_replace(cfg.entry,'[[:space:]]','','g') =
+                        'search_path=pg_catalog,pg_temp') THEN
                 RAISE EXCEPTION 'Private Academy lead security boundary changed';
             END IF;
         END
