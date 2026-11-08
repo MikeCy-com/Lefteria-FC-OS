@@ -22,9 +22,12 @@ test('admin first-team trials panel remains inside authenticated FC scope',()=>{
   assert.ok(frame.includes("active === 'trials'"));
 });
 
-test('admin first-team trial status is public projection only and never collects applicant data',()=>{
-  assert.ok(page.includes("fetch('/api/trials/settings'"));
-  assert.ok(page.includes("credentials: 'omit'"));
+test('admin first-team trial status uses session-bound private GET and never collects applicant data',()=>{
+  assert.ok(page.includes("fetch('/api/admin/trials/settings?organization_id=lefteria_fc'"));
+  assert.ok(page.includes("credentials: 'same-origin'"));
+  assert.ok(page.includes("$auth.status !== 'authenticated'"));
+  assert.ok(page.includes('controller.abort()'));
+  assert.ok(!page.includes("fetch('/api/trials/settings'"));
   assert.ok(page.includes("cache: 'no-store'"));
   assert.ok(page.includes('result.open === false'));
   assert.ok(page.includes('data-testid="admin-trials-closed"'));

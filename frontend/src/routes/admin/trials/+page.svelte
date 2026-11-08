@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext, onMount } from 'svelte';
+  import { getContext } from 'svelte';
   import { browser } from '$app/env';
   import { goto } from '$app/navigation';
   import type { components } from '../../../lib/api/schema';
@@ -18,21 +18,32 @@
     if (browser && $auth.status === 'anonymous') void goto('/admin/login', { replace: true });
   });
 
-  onMount(() => {
+  $effect(() => {
+    // Authenticate and authorize first. The view must never fetch this
+    // private endpoint for an anonymous or Academy-only browser session.
+    if (!browser || $auth.status !== 'authenticated' || !$auth.session ||
+        !canViewFirstTeamTrials($auth.session.user)) return;
+
+    settings = null;
+    loading = true;
+    unavailable = false;
     const controller = new AbortController();
     void (async () => {
       try {
-        // Public, credential-free closed-state projection only. Never read
-        // admin trial applicants, DOB, measurements or private form fields.
-        const response = await fetch('/api/trials/settings', {
-          method: 'GET', credentials: 'omit', cache: 'no-store', signal: controller.signal
+        // The server rechecks the fresh cookie and current FC grant on every
+        // call. No form, applicants or management writes are requested.
+        const response = await fetch('/api/admin/trials/settings?organization_id=lefteria_fc', {
+          method: 'GET', credentials: 'same-origin', cache: 'no-store',
+          signal: controller.signal
         });
         if (!response.ok) throw new Error('Trial status unavailable');
         const result: unknown = await response.json();
         if (result && typeof result === 'object' &&
+            Object.keys(result).length === 5 &&
             'open' in result && result.open === false &&
             'headline' in result && typeof result.headline === 'string' &&
             'subtitle' in result && typeof result.subtitle === 'string' &&
+            'button_text' in result && typeof result.button_text === 'string' &&
             'closed_message' in result && typeof result.closed_message === 'string') {
           settings = result as Settings;
         } else throw new Error('Unverified trial status');
@@ -55,7 +66,7 @@
       <section class="admin-panel trials-admin" data-testid="admin-trials-readonly">
         <p class="admin-eyebrow">ΠΡΩΤΗ ΟΜΑΔΑ · ΔΟΚΙΜΑΣΤΙΚΑ</p>
         <h1>Κατάσταση εγγραφών</h1>
-        <p class="admin-muted">Επαληθευμένη δημόσια προβολή. Η επεξεργασία ρυθμίσεων και οι αιτήσεις αθλητών δεν έχουν ενεργοποιηθεί.</p>
+        <p class="admin-muted">Προβολή κλειστών εγγραφών μέσω της προστατευμένης υπηρεσίας διαχείρισης. Η επεξεργασία ρυθμίσεων και οι αιτήσεις αθλητών δεν έχουν ενεργοποιηθεί.</p>
         {#if loading}
           <p role="status" data-testid="admin-trials-loading">Έλεγχος κατάστασης…</p>
         {:else if unavailable || !settings}
