@@ -39,7 +39,7 @@ internal static class PayablAdapterChecks
             ["orderid"]="LFC-test"
         };
         var expected = Convert.ToHexString(SHA1.HashData(Encoding.ASCII.GetBytes(
-            "15.00EURLFC-testunit_test" + secret))).ToLowerInvariant();
+            "15.00EURunit_testLFC-test" + secret))).ToLowerInvariant();
         Check(PayablSignature.Request(paramsA,secret)==expected, "ordered signature");
 
         var sent = 0;
