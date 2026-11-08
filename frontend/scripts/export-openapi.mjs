@@ -87,6 +87,20 @@ try {
   assert.equal(adminNews.get.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/PublicNewsResult');
   assert.equal(adminNews.get.responses['403'].content['application/json'].schema.$ref, '#/components/schemas/WebAdminError');
 
+  const audience = document.paths['/api/admin/football/audiences'];
+  assert.deepEqual(Object.keys(audience), ['get']);
+  assert.deepEqual(audience.get.security, [{WebAdmin:[]}]);
+  assert.deepEqual(audience.get.parameters.filter(p => p.name === 'organization_id').map(p =>
+    ({required:p.required,values:p.schema.enum})),
+    [{required:true,values:['lefteria_fc','lefteria_fc_academy']}]);
+  assert.deepEqual(Object.keys(audience.get.responses).sort(), ['200','400','401','403','503']);
+  assert.equal(audience.get.responses['200'].content['application/json'].schema.$ref,
+    '#/components/schemas/AdminAudienceDirectoryDto');
+  assert.deepEqual(document.components.schemas.AdminAudienceDirectoryDto.required,
+    ['organization_id','ready','unassigned_players','groups']);
+  assert.deepEqual(document.components.schemas.AdminAudienceGroupDto.required,
+    ['id','name','kind','active_players']);
+
   const adminPos = document.paths['/api/admin/pos/catalog'];
   assert.deepEqual(Object.keys(adminPos), ['get']);
   assert.deepEqual(adminPos.get.security, [{ WebAdmin: [] }]);

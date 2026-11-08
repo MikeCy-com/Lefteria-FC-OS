@@ -68,6 +68,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
     options.AddOperationTransformer<AdminNewsOperationTransformer>();
     options.AddOperationTransformer<AdminPosCatalogOperationTransformer>();
+    options.AddOperationTransformer<AdminAudienceOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
