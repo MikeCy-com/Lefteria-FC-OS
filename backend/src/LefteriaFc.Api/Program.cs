@@ -60,6 +60,7 @@ builder.Services.AddOpenApi(options =>
     options.AddSchemaTransformer<AdminClubSchemaTransformer>();
     options.AddOperationTransformer<AdminClubOperationTransformer>();
     options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
+    options.AddOperationTransformer<AdminNewsOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
@@ -105,6 +106,7 @@ app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapAdminClub();
+app.MapAdminNews();
 
 if (app.Environment.IsDevelopment())
 {
