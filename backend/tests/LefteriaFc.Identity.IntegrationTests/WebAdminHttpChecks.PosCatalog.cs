@@ -63,7 +63,7 @@ internal sealed partial class WebAdminHttpChecks
                     data.GetProperty("products").GetArrayLength() == 1 &&
                     data.GetProperty("categories")[0].GetProperty("id").GetString() == fixtureId &&
                     data.GetProperty("categories")[0].GetProperty("version").GetInt64() == 0 &&
-                    data.GetProperty("products")[0].GetProperty("organization_id").ValueKind == JsonValueKind.Undefined,
+                    !data.GetProperty("products")[0].TryGetProperty("organization_id", out _),
                     "Scoped POS response leaked unexpected data.");
             }
             using (var fc = await GetAsync(client, PosCatalogPath, login.Cookie))
