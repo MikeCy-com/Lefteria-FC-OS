@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,type GroupChatRoom,type GroupChatMessage,type GroupChatPage} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
@@ -241,6 +242,34 @@ export function createMobileAuthController(options: {
   function authorization() {
     if (!token) throw new ApiFailure(401, 'Απαιτείται σύνδεση.');
     return { Authorization: `Bearer ${token}` };
+  }
+
+  async function chatRequest(path:string,content?:string):Promise<unknown> {
+    const current=state.user;
+    if(state.status!=='authenticated' || !current?.current_role_available || !token)
+      throw new ApiFailure(401,'Απαιτείται ενεργή σύνδεση.');
+    const sessionToken=token, opRevision=revision;
+    const reply=await (options.fetch??globalThis.fetch)(options.baseUrl+path,{
+      method:content===undefined?'GET':'POST',cache:'no-store',
+      headers:{...authorization(),...(content===undefined?{}:{'Content-Type':'application/json'})},
+      ...(content===undefined?{}:{body:JSON.stringify({content})})
+    });
+    if(revision!==opRevision || token!==sessionToken ||
+       state.user?.id!==current.id || state.user?.role!==current.role ||
+       !state.user?.current_role_available)
+      throw new ApiFailure(401,'Η συνεδρία άλλαξε. Ανανέωσε τα μηνύματα.');
+    if(!reply.ok){
+      if(reply.status===401)endSession('Η συνεδρία έληξε.');
+      const payload:unknown=await reply.json().catch(()=>null);
+      const detail=payload&&typeof payload==='object'&&'detail' in payload&&
+        typeof payload.detail==='string'?payload.detail:'Η υπηρεσία μηνυμάτων δεν είναι διαθέσιμη.';
+      throw new ApiFailure(reply.status,detail);
+    }
+    return reply.json();
+  }
+  function chatRoomPath(room:GroupChatRoom):string {
+    if(!validRoom(room))throw new Error('Invalid chat room.');
+    return '/api/mobile/chat/groups/'+encodeURIComponent(room.organization_id)+'/'+encodeURIComponent(room.group_id)+'/messages';
   }
 
   function rememberValid(value: RememberDays) {
@@ -1222,6 +1251,23 @@ export function createMobileAuthController(options: {
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);
+    },
+    async getChatRooms():Promise<GroupChatRoom[]> {
+      const result=await chatRequest('/api/mobile/chat/groups');
+      if(!validChatDirectory(result))throw new Error('Invalid group directory response.');
+      return result.groups.map(g=>({organization_id:g.organization_id,group_id:g.id,kind:g.kind,name:g.name}));
+    },
+    async getChatMessages(room:GroupChatRoom,offset=0):Promise<GroupChatPage> {
+      if(!Number.isInteger(offset)||offset<0||offset>100000)throw new Error('Invalid page.');
+      const result=await chatRequest(chatRoomPath(room)+'?offset='+offset);
+      if(!validPage(result,room))throw new Error('Invalid chat messages response.');
+      return result;
+    },
+    async sendChatMessage(room:GroupChatRoom,content:string):Promise<GroupChatMessage> {
+      if(!validTextMessage(content))throw new Error('Invalid chat message.');
+      const result=await chatRequest(chatRoomPath(room),content);
+      if(!validMessage(result,room))throw new Error('Server did not confirm message.');
+      return result;
     },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }

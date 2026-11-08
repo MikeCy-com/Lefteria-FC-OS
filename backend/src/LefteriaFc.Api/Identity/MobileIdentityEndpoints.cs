@@ -41,6 +41,7 @@ public static partial class MobileIdentityEndpoints
             context.Response.Headers.CacheControl = "no-store";
             if (context.Request.Path.StartsWithSegments("/api/mobile/auth") ||
                 context.Request.Path.StartsWithSegments("/api/mobile/family") ||
+                context.Request.Path.StartsWithSegments("/api/mobile/chat") ||
                 string.Equals(context.Request.Path.Value?.TrimEnd('/'), "/api/mobile/profile", StringComparison.OrdinalIgnoreCase))
             {
                 const long limit = 16 * 1024;

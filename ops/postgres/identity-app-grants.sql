@@ -241,6 +241,17 @@ GRANT EXECUTE ON FUNCTION
 GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
   is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
+-- Chat is accessible only through current-role, current-roster functions.
+-- Direct reads/writes to the message table remain denied.
+REVOKE ALL ON TABLE club.app_chat_messages FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_chat_messages(
+  uuid,text,text,timestamptz,text,text,integer) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.send_mobile_chat_message(
+  uuid,text,text,timestamptz,text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_chat_messages(
+  uuid,text,text,timestamptz,text,text,integer) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.send_mobile_chat_message(
+  uuid,text,text,timestamptz,text,text,text) TO :"app_role";
 -- Canonical auth reads expose only validated ownership/status/assignment facts.
 -- Raw contacts, source archives, quarantine and owner import state remain denied.
 GRANT SELECT (player_id, organization_id, academy_group_id) ON club.player_academy_groups TO :"app_role";
