@@ -7,7 +7,7 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 
 /// <summary>
 /// Explicit device opt-in, private subscription keys and a bounded, leased,
-/// exactly-once-per-announcement/subscription push-service acceptance ledger.
+/// deduplicated per-announcement/subscription push-service attempt ledger.
 /// This migration never sends a push. Rollback only in disposable CI.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
@@ -58,7 +58,7 @@ public sealed class DeviceWebPushSubscriptions : Migration
           _hash text,_endpoint text,_p256dh text,_auth text)
         RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
         SET search_path=pg_catalog,pg_temp AS $push_subscribe$
-        DECLARE v_id uuid;v_existing uuid;v_count integer;
+        DECLARE v_id uuid;v_existing uuid;v_existing_revoked boolean;v_count integer;
         BEGIN
           IF _hash IS NULL OR _hash !~ '^[0-9a-f]{64}$'
             OR _endpoint IS NULL OR length(_endpoint) NOT BETWEEN 24 AND 2048
@@ -80,7 +80,9 @@ public sealed class DeviceWebPushSubscriptions : Migration
           IF NOT FOUND THEN
             RAISE EXCEPTION 'push_denied' USING ERRCODE='42501';
           END IF;
-          SELECT id INTO v_existing FROM club.mobile_push_subscriptions
+          SELECT id,(revoked_at IS NOT NULL)
+          INTO v_existing,v_existing_revoked
+          FROM club.mobile_push_subscriptions
           WHERE endpoint_hash=_hash FOR UPDATE;
           IF v_existing IS NOT NULL AND NOT EXISTS(
             SELECT 1 FROM club.mobile_push_subscriptions s
@@ -90,7 +92,7 @@ public sealed class DeviceWebPushSubscriptions : Migration
           SELECT count(*)::integer INTO v_count
           FROM club.mobile_push_subscriptions
           WHERE identity_id=_actor AND revoked_at IS NULL;
-          IF v_existing IS NULL AND v_count>=3 THEN
+          IF (v_existing IS NULL OR v_existing_revoked) AND v_count>=3 THEN
             RAISE EXCEPTION 'push_limit' USING ERRCODE='54000';
           END IF;
           IF v_existing IS NULL THEN
@@ -102,6 +104,8 @@ public sealed class DeviceWebPushSubscriptions : Migration
             v_id:=v_existing;
             UPDATE club.mobile_push_subscriptions SET
               endpoint=_endpoint,p256dh=_p256dh,auth_secret=_auth,
+              created_at=CASE WHEN revoked_at IS NULL THEN created_at
+                ELSE clock_timestamp() END,
               revoked_at=NULL,last_seen_at=clock_timestamp()
             WHERE id=v_id AND identity_id=_actor;
           END IF;
@@ -184,6 +188,10 @@ public sealed class DeviceWebPushSubscriptions : Migration
               WHERE r.announcement_id=a.id AND r.reader_identity_id=i.id)
             AND club.is_current_mobile_chat_reader(
               i.id,a.organization_id,a.group_id)
+            AND NOT EXISTS(
+              SELECT 1 FROM club.app_announcement_push_attempts prior
+              WHERE prior.announcement_id=e.announcement_id
+                AND prior.subscription_id=s.id)
           ORDER BY e.queued_at DESC,s.id
           LIMIT 150
           ON CONFLICT(announcement_id,subscription_id) DO NOTHING;
@@ -271,7 +279,8 @@ public sealed class DeviceWebPushSubscriptions : Migration
         SET search_path=pg_catalog,pg_temp AS $push_finish$
         DECLARE v_sub uuid;v_status text;v_attempts integer;
         BEGIN
-          IF _result NOT IN ('accepted','gone','rejected','retry','cancelled')
+          IF _result IS NULL
+            OR _result NOT IN ('accepted','gone','rejected','retry','cancelled')
             OR (_http IS NOT NULL AND _http NOT BETWEEN 100 AND 599) THEN
             RAISE EXCEPTION 'push_invalid' USING ERRCODE='22023';
           END IF;
