@@ -9,10 +9,23 @@ public sealed record AdminAnnouncementDraftDto(
     string Status,long Version);
 public sealed record AdminAnnouncementDraftsDto(
     string OrganizationId,IReadOnlyList<AdminAnnouncementDraftDto> Drafts);
+public sealed record AdminAnnouncementPublishBody(long Version);
+public sealed record AdminAppAnnouncementDto(string Id,string OrganizationId,string GroupId,
+    string Title,string Body,DateTimeOffset PublishedAt,string Status,long Version);
+public sealed record AdminAppAnnouncementsDto(string OrganizationId,
+    IReadOnlyList<AdminAppAnnouncementDto> Announcements);
+public sealed record AdminAppAnnouncementRemovedDto(string Id,bool Removed,long Version);
+
 public interface IAdminAnnouncementDraftStore
 {
     Task<AdminAnnouncementDraftDto> CreateAsync(string cookie,string owner,
         AdminAnnouncementDraftCommand command,CancellationToken token);
     Task<AdminAnnouncementDraftsDto> ReadAsync(string cookie,string owner,
         CancellationToken token);
+    Task<AdminAppAnnouncementDto> PublishAsync(string cookie,string owner,
+        string id,long version,CancellationToken token);
+    Task<AdminAppAnnouncementsDto> ReadPublishedAsync(string cookie,string owner,
+        CancellationToken token);
+    Task<AdminAppAnnouncementRemovedDto> RemovePublishedAsync(string cookie,string owner,
+        string id,long version,CancellationToken token);
 }
