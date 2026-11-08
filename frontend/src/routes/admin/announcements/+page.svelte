@@ -11,6 +11,8 @@
   type Group={id:string;name:string;kind:string;active_players:number};
   type Directory={organization_id:Organization;ready:true;groups:Group[]};
   type Draft={id:string;organization_id:Organization;group_id:string;title:string;body:string;status:'draft';version:number};
+  type Published={id:string;organization_id:Organization;group_id:string;title:string;body:string;
+    published_at:string;status:'published';version:number};
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const permitted=$derived($auth.status==='authenticated' && $auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role)
@@ -21,6 +23,7 @@
   let organization=$state<Organization|null>(null);
   let groups=$state<Group[]>([]);
   let drafts=$state<Draft[]>([]);
+  let published=$state<Published[]>([]);
   let groupId=$state('');
   let title=$state('');
   let body=$state('');
@@ -58,6 +61,21 @@
           x.status==='draft' && Number.isSafeInteger(x.version) && (x.version as number)>=1;
       });
   }
+  function validPublished(raw:unknown,owner:Organization):raw is {organization_id:Organization;announcements:Published[]} {
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
+    const d=raw as Record<string,unknown>;
+    return d.organization_id===owner&&Array.isArray(d.announcements)&&
+      d.announcements.length<=100&&d.announcements.every((item:unknown)=>{
+        if(!item||typeof item!=='object'||Array.isArray(item))return false;
+        const x=item as Record<string,unknown>;
+        return typeof x.id==='string'&&/^ann_[a-f0-9]{32}$/.test(x.id)&&
+          x.organization_id===owner&&typeof x.group_id==='string'&&x.group_id.length<=128&&
+          typeof x.title==='string'&&x.title.length>0&&x.title.length<=140&&
+          typeof x.body==='string'&&x.body.length>0&&x.body.length<=4000&&
+          x.status==='published'&&Number.isSafeInteger(x.version)&&(x.version as number)>=1&&
+          typeof x.published_at==='string'&&!Number.isNaN(Date.parse(x.published_at));
+      });
+  }
   $effect(()=>{
     if(browser && $auth.status==='anonymous')void goto('/admin/login',{replace:true});
   });
@@ -70,7 +88,7 @@
     const grants=permitted.map(o=>o.id).join('|');
     const generation=reload;
     void actor;void grants;void generation;
-    groups=[];drafts=[];groupId='';title='';body='';error=null;success=null;
+    groups=[];drafts=[];published=[];groupId='';title='';body='';error=null;success=null;
     loading=false;
     if(!browser || !owner || !permitted.some(o=>o.id===owner))return;
     const controller=new AbortController();
@@ -78,19 +96,24 @@
     void(async()=>{
       try{
         const query=new URLSearchParams({organization_id:owner});
-        const [audiences,stored]=await Promise.all([
+        const [audiences,stored,live]=await Promise.all([
           fetch('/api/admin/football/audiences?'+query,{credentials:'same-origin',cache:'no-store',signal:controller.signal}),
-          fetch('/api/admin/communications/announcement-drafts?'+query,{credentials:'same-origin',cache:'no-store',signal:controller.signal})
+          fetch('/api/admin/communications/announcement-drafts?'+query,{credentials:'same-origin',cache:'no-store',signal:controller.signal}),
+          fetch('/api/admin/communications/app-announcements?'+query,{credentials:'same-origin',cache:'no-store',signal:controller.signal})
         ]);
         if(controller.signal.aborted)return;
-        if(audiences.status===401 || stored.status===401){auth.invalidateSession();return;}
-        if(audiences.status===403 || stored.status===403){void auth.bootstrap();return;}
-        if(!audiences.ok || !stored.ok)throw new Error('Οι πρόχειρες ανακοινώσεις δεν είναι διαθέσιμες.');
+        if(audiences.status===401 || stored.status===401 || live.status===401){auth.invalidateSession();return;}
+        if(audiences.status===403 || stored.status===403 || live.status===403){void auth.bootstrap();return;}
+        if(!audiences.ok || !stored.ok || !live.ok)throw new Error('Οι πρόχειρες ανακοινώσεις δεν είναι διαθέσιμες.');
         const groupRaw:unknown=await audiences.json();
         const draftRaw:unknown=await stored.json();
-        if(!validGroups(groupRaw,owner) || !validDrafts(draftRaw,owner))
+        const liveRaw:unknown=await live.json();
+        if(!validGroups(groupRaw,owner) || !validDrafts(draftRaw,owner) ||
+          !validPublished(liveRaw,owner))
           throw new Error('Μη επαληθευμένη λίστα.');
-        if(!controller.signal.aborted){groups=groupRaw.groups;drafts=draftRaw.drafts;}
+        if(!controller.signal.aborted){
+          groups=groupRaw.groups;drafts=draftRaw.drafts;published=liveRaw.announcements;
+        }
       }catch{
         if(!controller.signal.aborted)error='Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση.';
       }finally{if(!controller.signal.aborted)loading=false;}
@@ -137,6 +160,67 @@
         error=e instanceof Error?e.message:'Η αποθήκευση απέτυχε.';
     }finally{busy=false;}
   }
+  async function publishDraft(draft:Draft){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!browser||!owner||draft.organization_id!==owner||busy||loading||
+      !permitted.some(o=>o.id===owner)||!groups.some(g=>g.id===draft.group_id))return;
+    if(!window.confirm('Δημοσίευση αυτής της ανακοίνωσης στην επιλεγμένη ομάδα της εφαρμογής;'))return;
+    busy=true;error=null;success=null;
+    try{
+      const query=new URLSearchParams({organization_id:owner});
+      const reply=await fetch('/api/admin/communications/announcement-drafts/'+encodeURIComponent(draft.id)+'/publish?'+query,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({version:draft.version})
+      });
+      if(organization!==owner||actor!==$auth.session?.user.id)return;
+      if(reply.status===401){auth.invalidateSession();return;}
+      if(reply.status===403){void auth.bootstrap();return;}
+      if(!reply.ok)throw new Error('Η δημοσίευση δεν ολοκληρώθηκε. Ανανέωσε τα πρόχειρα.');
+      const raw:unknown=await reply.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('Μη επαληθευμένη δημοσίευση.');
+      const item=raw as Record<string,unknown>;
+      if(item.id!==draft.id||item.organization_id!==owner||item.group_id!==draft.group_id||
+        item.title!==draft.title||item.body!==draft.body||
+        item.status!=='published'||item.version!==1||
+        typeof item.published_at!=='string'||Number.isNaN(Date.parse(item.published_at)))
+        throw new Error('Μη επαληθευμένη δημοσίευση.');
+      drafts=drafts.filter(row=>row.id!==draft.id);
+      published=[item as Published,...published].slice(0,100);
+      success='Η ανακοίνωση δημοσιεύτηκε μόνο στην επιλεγμένη ομάδα της εφαρμογής.';
+    }catch(e){
+      if(organization===owner&&actor===$auth.session?.user.id)
+        error=e instanceof Error?e.message:'Η δημοσίευση απέτυχε.';
+    }finally{busy=false;}
+  }
+  async function removeAnnouncement(item:Published){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!browser||!owner||item.organization_id!==owner||busy||loading||
+      !permitted.some(o=>o.id===owner))return;
+    if(!window.confirm('Απόσυρση ανακοίνωσης από την εφαρμογή;'))return;
+    busy=true;error=null;success=null;
+    try{
+      const query=new URLSearchParams({organization_id:owner,version:String(item.version)});
+      const reply=await fetch('/api/admin/communications/app-announcements/'+encodeURIComponent(item.id)+'?'+query,{
+        method:'DELETE',credentials:'same-origin',cache:'no-store',
+        headers:{'X-Lefteria-Admin':'1'}
+      });
+      if(organization!==owner||actor!==$auth.session?.user.id)return;
+      if(reply.status===401){auth.invalidateSession();return;}
+      if(reply.status===403){void auth.bootstrap();return;}
+      if(!reply.ok)throw new Error('Η απόσυρση δεν ολοκληρώθηκε. Ανανέωσε τη λίστα.');
+      const raw:unknown=await reply.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('Μη επαληθευμένη απόσυρση.');
+      const removed=raw as Record<string,unknown>;
+      if(removed.id!==item.id||removed.removed!==true||removed.version!==item.version+1)
+        throw new Error('Μη επαληθευμένη απόσυρση.');
+      published=published.filter(row=>row.id!==item.id);
+      success='Η ανακοίνωση αποσύρθηκε από την εφαρμογή.';
+    }catch(e){
+      if(organization===owner&&actor===$auth.session?.user.id)
+        error=e instanceof Error?e.message:'Η απόσυρση απέτυχε.';
+    }finally{busy=false;}
+  }
 </script>
 
 <svelte:head><title>Πρόχειρες ανακοινώσεις | Λευτεριά FC</title></svelte:head>
@@ -144,7 +228,7 @@
   <AdminFrame user={$auth.session.user} active="announcements" busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <p class="admin-eyebrow">CRM & ΕΠΙΚΟΙΝΩΝΙΑ · ΑΝΑΚΟΙΝΩΣΕΙΣ</p>
     <h1>Ανακοινώσεις</h1>
-    <p class="admin-muted">Προετοιμασία ανακοινώσεων για πραγματικές ομάδες του συλλόγου. Αυτή η ενότητα αποθηκεύει μόνο πρόχειρα — δεν δημοσιεύει ούτε στέλνει μηνύματα.</p>
+    <p class="admin-muted">Οι ανακοινώσεις δημιουργούνται ως πρόχειρα και δημοσιεύονται μόνο στην εφαρμογή της επιλεγμένης ομάδας. Η δημοσίευση απαιτεί ρητή επιβεβαίωση διαχειριστή. Δεν στέλνει SMS ή email.</p>
     {#if !permitted.length}
       <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα δημιουργίας πρόχειρων ανακοινώσεων.</section>
     {:else}
@@ -178,7 +262,29 @@
         {#if !drafts.length}<p class="admin-muted">Δεν υπάρχουν πρόχειρα σε αυτόν τον οργανισμό.</p>{/if}
         <ul class="draft-list">
           {#each drafts as draft (draft.id)}
-            <li><strong>{draft.title}</strong><small>{groups.find(g=>g.id===draft.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Πρόχειρο</small><p>{draft.body}</p></li>
+            <li><strong>{draft.title}</strong>
+              <small>{groups.find(g=>g.id===draft.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Πρόχειρο</small>
+              <p>{draft.body}</p>
+              <button type="button" class="admin-primary" disabled={busy||loading||
+                !groups.some(g=>g.id===draft.group_id)} onclick={()=>void publishDraft(draft)}
+                data-testid="announcement-publish">Δημοσίευση στην εφαρμογή</button>
+            </li>
+          {/each}
+        </ul>
+      </section>
+      <section class="admin-panel" data-testid="app-announcement-published-list">
+        <div class="draft-heading"><h2>Δημοσιευμένες ανακοινώσεις εφαρμογής</h2></div>
+        {#if !published.length}<p class="admin-muted">Δεν υπάρχουν δημοσιευμένες ανακοινώσεις στον οργανισμό.</p>{/if}
+        <ul class="draft-list">
+          {#each published as item (item.id)}
+            <li><strong>{item.title}</strong>
+              <small>{groups.find(g=>g.id===item.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Δημοσιεύτηκε
+                {new Date(item.published_at).toLocaleString('el-CY')}</small>
+              <p>{item.body}</p>
+              <button type="button" class="admin-secondary" disabled={busy||loading}
+                onclick={()=>void removeAnnouncement(item)}
+                data-testid="announcement-remove">Απόσυρση ανακοίνωσης</button>
+            </li>
           {/each}
         </ul>
       </section>
