@@ -101,7 +101,6 @@ app.MapMobileCalendar();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
-app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapAdminClub();
 
