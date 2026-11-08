@@ -18,7 +18,13 @@ test('POS catalog fetch is authenticated, scoped, no-store, and has no mutation 
   for(const state of ['admin-pos-loading','admin-pos-unavailable','admin-pos-denied','admin-pos-empty-products']) {
     assert.ok(page.includes(state),state);
   }
-  assert.doesNotMatch(page,/<form\b|<textarea\b|\{@html\}|\binnerHTML\b|method:\s*'POST'|method:\s*'PUT'|\/api\/pos\/sale/);
+  assert.match(page, /'X-Lefteria-Admin':'1'/);
+  assert.match(page, /'\/api\/admin\/pos\/categories\?'/);
+  assert.match(page, /'PUT' : 'POST'/);
+  assert.match(page, /expected_version:expectedVersion/);
+  assert.match(page, /response.status === 409/);
+  assert.match(page, /data-testid="admin-pos-category-form"/);
+  assert.doesNotMatch(page, /\{@html\}|\binnerHTML\b|\/api\/pos\/sale|\/api\/pos\/checkout/);
 });
 
 test('POS controls retain real page and prevent planned checkout/tools being clickable',()=>{

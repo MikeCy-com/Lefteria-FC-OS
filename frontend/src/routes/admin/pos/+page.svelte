@@ -224,7 +224,7 @@
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="pos" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if assignments.length}
-      <div class="admin-pos" data-testid="admin-pos-readonly">
+      <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>Προϊόντα & κατηγορίες</h1>
         <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η επεξεργασία κατηγοριών γίνεται με ελεγχόμενη καταγραφή αλλαγών. Οι αλλαγές προϊόντων, τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές.</p>

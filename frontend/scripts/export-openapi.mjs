@@ -99,6 +99,26 @@ try {
   assert.deepEqual(document.components.schemas.AdminPosCatalogDto.required,
     ['organization_id','categories','products']);
 
+  const createPosCategory = document.paths['/api/admin/pos/categories'];
+  assert.deepEqual(Object.keys(createPosCategory), ['post']);
+  const updatePosCategory = document.paths['/api/admin/pos/categories/{id}'];
+  assert.deepEqual(Object.keys(updatePosCategory), ['put']);
+  for(const [operation,schema] of [
+    [createPosCategory.post, 'AdminPosCategoryCreateCommand'],
+    [updatePosCategory.put, 'AdminPosCategoryUpdateCommand']
+  ]) {
+    assert.deepEqual(operation.security, [{ WebAdmin: [] }]);
+    assert.deepEqual(operation.parameters.filter(p => p.name === 'organization_id').map(p => ({
+      required:p.required, values:p.schema.enum
+    })), [{required:true, values:['lefteria_fc','lefteria_fc_academy']}]);
+    assert.equal(operation.requestBody.content['application/json'].schema.$ref, '#/components/schemas/' + schema);
+    assert.equal(operation.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/AdminPosCategoryDto');
+    assert.deepEqual(Object.keys(operation.responses).sort(), ['200','400','401','403','409','413','415','422','503']);
+  }
+  assert.deepEqual(updatePosCategory.put.parameters.filter(p => p.name === 'id')
+    .map(p => ({in:p.in,required:p.required})), [{in:'path',required:true}]);
+
+
 
   for (const method of ['get', 'put']) {
     const operation = document.paths['/api/admin/club'][method];
