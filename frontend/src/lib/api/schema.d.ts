@@ -1238,7 +1238,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number;
+            size: number | string;
         };
         AdminAnnouncementMediaMutationDto: {
             announcement_id: string;
@@ -1466,7 +1466,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number;
+            size: number | string;
         };
         AppAnnouncementMediaDto: {
             content_type: string;
@@ -1475,7 +1475,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number;
+            size: number | string;
         };
         CalendarOwnResponse: {
             player_id: string;
@@ -3326,6 +3326,15 @@ export interface operations {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
             };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
             /** @description Service Unavailable */
             503: {
                 headers: {
@@ -3420,6 +3429,15 @@ export interface operations {
             };
             /** @description Unprocessable Entity */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
