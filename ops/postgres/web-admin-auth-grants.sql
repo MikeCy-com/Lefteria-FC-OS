@@ -130,6 +130,11 @@ GRANT EXECUTE ON FUNCTION pos.write_admin_category(text,text,text,text,boolean,b
 -- no direct table or sales privilege is added.
 REVOKE ALL ON FUNCTION pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb) TO :"admin_auth_role";
+-- Explicitly gated announcement drafts; no publish, delivery or raw draft SELECT.
+REVOKE ALL ON FUNCTION club.create_admin_announcement_draft(text,text,text,text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_announcement_draft(text,text,text,text,text,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_admin_announcement_drafts(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_announcement_drafts(text,text) TO :"admin_auth_role";
 -- Live canonical team/Academy counts, without direct SELECT on player
 -- identities or memberships. No messages and no delivery authority.
 REVOKE ALL ON FUNCTION club.read_admin_audiences(text,text) FROM PUBLIC, :"app_role";
@@ -162,6 +167,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
+\ir admin-announcement-drafts-boundary.sql
 
 DO $boundary$
 DECLARE
@@ -192,7 +198,9 @@ BEGIN
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
-                  'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure)) THEN
+                  'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
+                  'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
+                  'club.read_admin_announcement_drafts(text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Review unexpected callable security-definer routines before enabling admin auth';
   END IF;
   FOR target IN
