@@ -28,7 +28,7 @@ export function validAppAnnouncementMediaDownload(raw:unknown,expected:AppAnnoun
   if(!value(raw)||!validAppAnnouncementMedia(raw))return false;
   return raw.id===expected.id&&raw.kind===expected.kind&&
     raw.file_name===expected.file_name&&raw.content_type===expected.content_type&&
-    raw.size===expected.size&&typeof raw.base64==='string'&&
+    raw.size===expected.size&&'base64' in raw&&typeof raw.base64==='string'&&
     raw.base64.length<=Math.ceil(expected.size/3)*4+Math.ceil(expected.size/57)*2+8&&
     /^[A-Za-z0-9+/=\r\n]*$/.test(raw.base64);
 }
