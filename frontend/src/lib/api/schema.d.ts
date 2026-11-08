@@ -1238,7 +1238,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number | string;
+            size: number;
         };
         AdminAnnouncementMediaMutationDto: {
             announcement_id: string;
@@ -1466,7 +1466,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number | string;
+            size: number;
         };
         AppAnnouncementMediaDto: {
             content_type: string;
@@ -1475,7 +1475,7 @@ export interface components {
             id: string;
             kind: string;
             /** Format: int32 */
-            size: number | string;
+            size: number;
         };
         CalendarOwnResponse: {
             player_id: string;
