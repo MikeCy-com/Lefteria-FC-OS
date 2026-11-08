@@ -86,7 +86,8 @@ test('popup actions require actual callbacks and verified server results; focus 
   compile(source,{filename:'MobileMessageActionMenu.svelte',generate:'server'});
   assert.match(source,/availableChatActions\(context\)\.filter/);
   assert.match(source,/if\(result===true\)onClose\(\)/);
-  assert.match(source,/validReaders\(response\)/);
+  assert.match(source,/validReaders\(response,150\)/);
+  assert.ok(validReaders({readers:Array.from({length:150},(_,i)=>({id:String(i),name:'Reader'}))},150));
   assert.match(source,/aria-modal="true"/);
   assert.match(source,/event\.key==='Escape'/);
   assert.match(source,/event\.key!=='Tab'/);
