@@ -1,5 +1,5 @@
-import type { WebAdminSession } from './controller';
-import { hasAdminPermission } from './permissions';
+import type { WebAdminSession } from './controller.ts';
+import { hasAdminPermission } from './permissions.ts';
 
 // Presentation access only. This read-only panel uses the public closed-state
 // projection; any future business writes must recheck DB-backed admin grants.
