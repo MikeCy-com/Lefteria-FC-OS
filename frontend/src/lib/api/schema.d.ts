@@ -64,6 +64,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/pos/catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAdminPosCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/trials/settings": {
         parameters: {
             query?: never;
@@ -681,6 +697,36 @@ export interface components {
             club: components["schemas"]["AdminClubEditable"];
             /** Format: int64 */
             expected_version: number;
+        };
+        AdminPosCatalogDto: {
+            categories: components["schemas"]["AdminPosCategoryDto"][];
+            organization_id: string;
+            products: components["schemas"]["AdminPosProductDto"][];
+        };
+        AdminPosCategoryDto: {
+            active: boolean;
+            id: string;
+            name: string;
+            /** Format: int64 */
+            version: number;
+        };
+        AdminPosProductDto: {
+            active: boolean;
+            category_id: string;
+            id: string;
+            image_url: null | string;
+            name: string;
+            variants: components["schemas"]["AdminPosVariantDto"][];
+            /** Format: int64 */
+            version: number;
+        };
+        AdminPosVariantDto: {
+            /** Format: int32 */
+            cost_cents: number;
+            id: string;
+            name: string;
+            /** Format: int32 */
+            price_cents: number;
         };
         CalendarOwnResponse: {
             player_id: string;
@@ -2131,6 +2177,65 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FirstTeamTrialAdminError"];
+                };
+            };
+        };
+    };
+    GetAdminPosCatalog: {
+        parameters: {
+            query: {
+                /** @description Exact current admin-assigned POS catalog owner; no global or inferred owner. */
+                organization_id: "lefteria_fc" | "lefteria_fc_academy";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPosCatalogDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
                 };
             };
         };
