@@ -72,7 +72,7 @@ test('live group uses existing 550 ms long-press menu for current members and ow
   assert.match(source,/enabled=\{!message.is_deleted&&!mutationBusy&&!sending&&!messageBusy\}/);
   assert.match(source,/onEdit=\{\(text\)=>mutateMessage\(menuMessage,'edit',text\)\}/);
   assert.match(source,/onDelete=\{\(\)=>mutateMessage\(menuMessage,'delete'\)\}/);
-  assert.match(source,/canReact:true,canSeeReaders:false/);
+  assert.match(source,/canReact:true,canSeeReaders:role==='management'/);
   assert.match(source,/onReact=\{\(emoji\)=>toggleReaction\(menuMessage,emoji\)\}/);
   assert.match(source,/message.is_deleted\?'Το μήνυμα διαγράφηκε':message.content/);
 });
@@ -107,4 +107,21 @@ test('send/edit/reaction transport sends exact JSON body and validates server co
   assert.match(screen,/const result=await controller.setChatReaction\(room,target.id,emoji,!mine\)/);
   assert.match(screen,/reactions:result.reactions/);
   assert.doesNotMatch(screen,/setTimeout\([^)]*reaction|localStorage\.setItem/);
+});
+
+test('seen-by is explicit, visible-only and limited to management authors',()=>{
+  const ui=read('../src/lib/mobile/components/MobileGroupChat.svelte');
+  assert.match(ui,/new IntersectionObserver\(/);
+  assert.match(ui,/entry\.intersectionRatio>=0\.75/);
+  assert.match(ui,/document\.visibilityState!=='visible'/);
+  assert.match(ui,/document\.hasFocus\(\)/);
+  assert.match(ui,/controller\.acknowledgeChatRead\(room!,current\.id,current\.version\)/);
+  assert.match(ui,/update\(updated:GroupChatMessage\)/);
+  assert.match(ui,/onSeenBy=\{role==='management'\?/);
+  const controller=read('../src/lib/mobile/controller.ts');
+  assert.match(controller,/async acknowledgeChatRead\(/);
+  assert.match(controller,/async getChatReaders\(/);
+  assert.match(controller,/validReaders\(result,150\)/);
+  assert.match(controller,/'\/seen','POST'/);
+  assert.doesNotMatch(controller,/getChatMessages[\s\S]{0,500}acknowledgeChatRead/);
 });

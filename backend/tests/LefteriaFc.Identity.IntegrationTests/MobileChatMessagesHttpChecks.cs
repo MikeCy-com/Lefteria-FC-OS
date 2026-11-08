@@ -18,6 +18,13 @@ internal sealed partial class IdentityHttpChecks
         return await ExpectAsync(reply,status);
     }
 
+    private static async Task<JsonElement> AcknowledgeAsync(HttpClient client,
+        string messagePath,int status,long version=1)
+    {
+        using var response=await client.PostAsJsonAsync(messagePath+"/seen",new{version});
+        return await ExpectAsync(response,status);
+    }
+
     private static Task<JsonElement> ReactAsync(HttpClient client,string messagePath,
         string emoji,bool active,int status) =>
         PostAsync(client,messagePath+"/reactions",new{emoji,active},status);
@@ -91,6 +98,63 @@ internal sealed partial class IdentityHttpChecks
                 await PostAsync(management,"/api/mobile/management/organization",
                     new{organization_id=OrganizationIds.Club},200);
             }
+
+
+            // Reading a thread is not a receipt. A distinct POST from a
+            // current participant is required, and only the manager who
+            // actually authored this particular message sees reader names.
+            var managerSent=await PostAsync(management,team,
+                new{content="Manager receipt verification"},200);
+            var managerMessageId=Guid.Parse(managerSent.GetProperty("id").GetString()!);
+            var managerPath=team+"/"+managerMessageId;
+            Check.Equal(0,(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers").GetArrayLength(),
+                "GET silently acknowledged unread messages.");
+            await GetAsync(coach,managerPath+"/readers",403);
+            await GetAsync(player,managerPath+"/readers",403);
+            await GetAsync(fan,managerPath+"/readers",403);
+            await GetAsync(management,team+"/"+teamId+"/readers",403);
+            await AcknowledgeAsync(management,managerPath,403);
+            await AcknowledgeAsync(parent,managerPath,403);
+            await AcknowledgeAsync(fan,managerPath,403);
+            var coachSeen=await AcknowledgeAsync(coach,managerPath,200);
+            Check.True(coachSeen.GetProperty("seen").GetBoolean() &&
+                coachSeen.GetProperty("message_id").GetString()==managerMessageId.ToString() &&
+                coachSeen.GetProperty("version").GetInt64()==1,
+                "Coach explicit read did not acknowledge the manager's exact message.");
+            await AcknowledgeAsync(coach,managerPath,200);
+            await AcknowledgeAsync(player,managerPath,200);
+            var readers=(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers");
+            Check.Equal(2,readers.GetArrayLength(),
+                "Repeated acknowledgment or GET fabricated a reader.");
+            var managerJson=(await GetAsync(management,team,200)).GetProperty("messages");
+            Check.True(!managerJson[0].TryGetProperty("readers",out _),
+                "Normal group messages exposed reader identities.");
+            var currentReaderIds=new HashSet<string>{
+                (await GetAsync(coach,"/api/mobile/auth/me",200)).GetProperty("id").GetString()!,
+                (await GetAsync(player,"/api/mobile/auth/me",200)).GetProperty("id").GetString()!
+            };
+            foreach(var reader in readers.EnumerateArray())
+            {
+                Check.Equal(2,reader.EnumerateObject().Count(),
+                    "Manager receipt leaked fields beyond identity ID and display name.");
+                Check.True(currentReaderIds.Remove(reader.GetProperty("id").GetString()!) &&
+                    !string.IsNullOrWhiteSpace(reader.GetProperty("name").GetString()),
+                    "Reader name did not belong to a verified actor.");
+            }
+            Check.Equal(0,currentReaderIds.Count,
+                "The recorded readers did not match actual authenticated participants.");
+            await PutAsync(management,managerPath,
+                new{content="Edited manager receipt verification",version=1},200);
+            Check.Equal(0,(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers").GetArrayLength(),
+                "Old-version receipts falsely counted as readers of newly edited content.");
+            await AcknowledgeAsync(coach,managerPath,403,1);
+            await AcknowledgeAsync(coach,managerPath,200,2);
+            Check.Equal(1,(await GetAsync(management,managerPath+"/readers",200))
+                .GetProperty("readers").GetArrayLength(),
+                "Current message version acknowledgment was lost.");
 
             var before=(await GetAsync(parent,academy,200)).GetProperty("messages").GetArrayLength();
             await PostAsync(parent,academy,new{content=new string('X',10001)},422);
@@ -197,6 +261,7 @@ internal sealed partial class IdentityHttpChecks
                 finally{await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
             }
+            await AcknowledgeAsync(coach,ownEditPath,200,2);
             var removed=await DeleteVersionAsync(parent,ownEditPath,2,200);
             Check.True(removed.GetProperty("is_deleted").GetBoolean() &&
                 removed.GetProperty("content").GetString()=="" &&
@@ -209,6 +274,14 @@ internal sealed partial class IdentityHttpChecks
                 "Private deleted content remained in a member's normal read.");
             Check.Equal(0,tombstone.GetProperty("reactions").GetArrayLength(),
                 "Deletion left visible reaction counts on a removed message.");
+            await AcknowledgeAsync(coach,ownEditPath,403);
+            await using(var receiptDb=database.CreateContext())
+            {
+                var lingering=await receiptDb.Database.SqlQueryRaw<long>(
+                    "SELECT count(*) AS \"Value\" FROM club.app_chat_read_receipts WHERE message_id={0}",academyId)
+                    .SingleAsync();
+                Check.Equal(0L,lingering,"Tombstone retained reader identities.");
+            }
             await ReactAsync(coach,ownEditPath,"⚽",true,403);
             await ReactAsync(parent,ownEditPath,"⚽",false,403);
             await using(var db=database.CreateContext())
@@ -237,15 +310,59 @@ internal sealed partial class IdentityHttpChecks
                 var revisions=await db.Database.SqlQueryRaw<long>(
                     "SELECT count(*) AS \"Value\" FROM club.app_chat_message_revisions")
                     .SingleAsync();
-                Check.Equal(3L,revisions,"Message edits and deletion did not write exact revision audit rows.");
+                Check.Equal(4L,revisions,"Message edits and deletion did not write exact revision audit rows.");
             }
 
+            // Only currently linked Academy parents may acknowledge. Their
+            // stored receipt ceases to be revealed after roster removal.
+            await PostAsync(management,"/api/mobile/management/organization",
+                new{organization_id=OrganizationIds.Academy},200);
+            try
+            {
+                var academyManagerSent=await PostAsync(management,academy,
+                    new{content="Academy management read verification"},200);
+                var academyManagerId=Guid.Parse(academyManagerSent.GetProperty("id").GetString()!);
+                var academyManagerPath=academy+"/"+academyManagerId;
+                await AcknowledgeAsync(parent,academyManagerPath,200);
+                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
+                    .GetProperty("readers").GetArrayLength(),
+                    "Academy parent acknowledgment was not recorded.");
+                await using(var db=database.CreateContext())
+                {
+                    await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                        .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
+                    try
+                    {
+                        await AcknowledgeAsync(parent,academyManagerPath,403);
+                        Check.Equal(0,(await GetAsync(management,academyManagerPath+"/readers",200))
+                            .GetProperty("readers").GetArrayLength(),
+                            "Removed guardian remained visible as a current reader.");
+                    }
+                    finally
+                    {
+                        await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                            .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));
+                    }
+                }
+                Check.Equal(1,(await GetAsync(management,academyManagerPath+"/readers",200))
+                    .GetProperty("readers").GetArrayLength(),
+                    "Restored current room guardian was not included as a verified reader.");
+            }
+            finally
+            {
+                await PostAsync(management,"/api/mobile/management/organization",
+                    new{organization_id=OrganizationIds.Club},200);
+            }
         }
         finally
         {
             // Only the fictional identities in this disposable fixture may be
             // cleaned up. The test cannot touch real club messages or users.
             await using var context=database.CreateContext();
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                DELETE FROM club.app_chat_read_receipts
+                WHERE reader_identity_id = ANY({sentByFixture})
+                """);
             await context.Database.ExecuteSqlInterpolatedAsync($"""
                 DELETE FROM club.app_chat_reactions
                 WHERE actor_identity_id = ANY({sentByFixture})

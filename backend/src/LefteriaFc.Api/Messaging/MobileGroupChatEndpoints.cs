@@ -57,6 +57,24 @@ public static class MobileGroupChatEndpoints
             .WithName("SetMobileChatReaction")
             .Produces<MobileChatReactionSnapshotDto>().WithMobileErrors();
 
+        chat.MapPost("/groups/{organization}/{group}/messages/{messageId:guid}/seen",(
+                string organization,string group,Guid messageId,MobileChatSeenBody body,
+                HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.AcknowledgeReadAsync(MobilePrincipal.Read(context.User),
+                    organization,group,messageId,body.Version,token),context))
+            .WithName("AcknowledgeMobileChatRead")
+            .Produces<MobileChatSeenAckDto>().WithMobileErrors();
+
+        chat.MapGet("/groups/{organization}/{group}/messages/{messageId:guid}/readers",(
+                string organization,string group,Guid messageId,HttpContext context,
+                PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.ReadersAsync(MobilePrincipal.Read(context.User),
+                    organization,group,messageId,token),context))
+            .WithName("GetMobileChatReaders")
+            .Produces<MobileChatReadersDto>().WithMobileErrors();
+
         return app;
     }
 
