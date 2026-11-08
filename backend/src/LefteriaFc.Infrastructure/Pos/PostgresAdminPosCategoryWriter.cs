@@ -77,8 +77,16 @@ public sealed class PostgresAdminPosCategoryWriter(WebAdminConnections connectio
         }
         catch (PostgresException e) when (e.SqlState == "P0001" && e.MessageText == "pos_category_version_conflict")
         { throw new WebAdminException(409, "pos_category_version_conflict", "The category changed; refresh before saving."); }
-        catch (PostgresException e) when (e.SqlState is "42501" or "P0001")
+        catch (PostgresException e) when (e.SqlState == "P0001" &&
+            e.MessageText == "admin_club_session_lock_missing")
+        { throw new WebAdminException(401, "not_authenticated", "Sign in again."); }
+        catch (PostgresException e) when (e.SqlState == "P0001" &&
+            e.MessageText == "admin_club_grant_lock_missing")
+        { throw new WebAdminException(403, "not_authorized", "The category owner is not assigned."); }
+        catch (PostgresException e) when (e.SqlState == "42501")
         { throw new WebAdminException(403, "not_authorized", "The category change is not authorized."); }
+        catch (PostgresException e) when (e.SqlState == "P0001")
+        { throw new WebAdminException(503, "pos_category_unavailable", "The category write failed safely."); }
         catch (PostgresException e) when (e.SqlState == "22023")
         { throw new WebAdminException(422, "invalid_category", "The category data is not valid."); }
         catch (PostgresException e) when (e.SqlState is "54000" or "57014" or "55P03")
