@@ -48,6 +48,21 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
               emoji:emoji,active:active,announcementId:announcementId);
     }
 
+    public Task<MobileAppAnnouncementSeenAckDto> AcknowledgeAppAnnouncementAsync(
+        MobileSession actor,string organization,string group,string announcementId,
+        CancellationToken token)
+    {
+        ValidateRoom(organization,group);
+        if(announcementId is not {Length:36} ||
+           !announcementId.StartsWith("ann_",StringComparison.Ordinal) ||
+           !announcementId.AsSpan(4).ToString().All(char.IsAsciiHexDigit))
+            throw Invalid();
+        return QueryAsync<MobileAppAnnouncementSeenAckDto>("""
+            SELECT club.ack_mobile_app_announcement_read(
+              @identity,@phone,@role,@expires,@organization,@group,@announcement)::text
+            """,actor,organization,group,null,null,token,announcementId:announcementId);
+    }
+
     public Task<MobileChatPageDto> MessagesAsync(MobileSession actor,string organization,
         string group,int offset,CancellationToken token)
     {
@@ -178,6 +193,8 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                     command.Parameters.Add("content",NpgsqlTypes.NpgsqlDbType.Text).Value=
                         (object?)content??DBNull.Value;
                 }
+                else if(announcementId is not null)
+                    command.Parameters.AddWithValue("announcement",announcementId);
                 else if(messageId is not null)
                 {
                     command.Parameters.AddWithValue("message",messageId.Value);

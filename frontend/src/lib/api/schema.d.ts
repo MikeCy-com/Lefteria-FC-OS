@@ -128,6 +128,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/communications/app-announcements/{id}/readers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetAdminAppAnnouncementReaders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/assignments": {
         parameters: {
             query?: never;
@@ -394,6 +410,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["SetMobileAppAnnouncementReaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/app/announcements/{organization}/{group}/{announcementId}/seen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["AcknowledgeMobileAppAnnouncementRead"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1166,6 +1198,15 @@ export interface components {
             /** Format: int64 */
             version: number | string;
         };
+        AdminAppAnnouncementReaderDto: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+        };
+        AdminAppAnnouncementReadersDto: {
+            announcement_id: string;
+            readers: components["schemas"]["AdminAppAnnouncementReaderDto"][];
+        };
         AdminAppAnnouncementRemovedDto: {
             id: string;
             removed: boolean;
@@ -1416,6 +1457,10 @@ export interface components {
         MobileAppAnnouncementReactionSnapshotDto: {
             announcement_id: string;
             reactions: components["schemas"]["MobileChatReactionDto"][];
+        };
+        MobileAppAnnouncementSeenAckDto: {
+            announcement_id: string;
+            seen: boolean;
         };
         MobileAuthError: {
             code: string;
@@ -3390,6 +3435,102 @@ export interface operations {
             };
         };
     };
+    GetAdminAppAnnouncementReaders: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAppAnnouncementReadersDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
     PutAdminRosterAssignment: {
         parameters: {
             query: {
@@ -4608,6 +4749,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileAppAnnouncementReactionSnapshotDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    AcknowledgeMobileAppAnnouncementRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                announcementId: string;
+                group: string;
+                organization: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAppAnnouncementSeenAckDto"];
                 };
             };
             /** @description Bad Request */

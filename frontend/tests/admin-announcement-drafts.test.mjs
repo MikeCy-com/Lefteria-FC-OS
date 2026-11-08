@@ -98,3 +98,28 @@ test('app notice reactions use current roster scope, audited private storage and
   assert.match(feed,/CHAT_REACTION_EMOJIS/);
   assert.doesNotMatch(feed,/localStorage|sessionStorage|@html/);
 });
+
+test('announcement read acknowledgement requires focused card and admin names use a separate guarded endpoint',()=>{
+  const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108290000_AppAnnouncementReadReceipts.cs');
+  const mobile=read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
+  const controller=read('frontend/src/lib/mobile/controller.ts');
+  const admin=read('frontend/src/routes/admin/announcements/+page.svelte');
+  const adminApi=read('backend/src/LefteriaFc.Api/Audiences/AdminAnnouncementDraftEndpoints.cs');
+  const authGrants=read('ops/postgres/web-admin-auth-grants.sql');
+  const mobileGrants=read('ops/postgres/identity-app-grants.sql');
+  compile(mobile,{filename:'MobileAppAnnouncements.svelte',generate:'server'});
+  compile(admin,{filename:'+page.svelte',generate:'server'});
+  assert.match(migration,/CREATE TABLE club\.app_announcement_read_receipts/);
+  assert.match(migration,/club\.is_current_mobile_chat_reader/);
+  assert.match(migration,/club\.app_announcement_admin_actor/);
+  assert.match(migration,/ON CONFLICT DO NOTHING/);
+  assert.match(mobile,/IntersectionObserver/);
+  assert.match(mobile,/intersectionRatio>=0\.75/);
+  assert.match(mobile,/document\.hasFocus\(\)/);
+  assert.match(mobile,/use:seenOnScreen/);
+  assert.match(controller,/acknowledgeAppAnnouncementRead/);
+  assert.match(adminApi,/GetAdminAppAnnouncementReaders/);
+  assert.match(admin,/readerDialog\?\.showModal\(\)/);
+  assert.match(mobileGrants,/GRANT EXECUTE ON FUNCTION club\.ack_mobile_app_announcement_read/);
+  assert.match(authGrants,/GRANT EXECUTE ON FUNCTION club\.read_admin_app_announcement_readers/);
+});

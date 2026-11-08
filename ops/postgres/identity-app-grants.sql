@@ -323,6 +323,13 @@ REVOKE ALL ON FUNCTION club.set_mobile_app_announcement_reaction(
 GRANT EXECUTE ON FUNCTION club.set_mobile_app_announcement_reaction(
   uuid,text,text,timestamptz,text,text,text,text,boolean) TO :"app_role";
 
+-- One explicitly acknowledged view per current member, never on GET.
+REVOKE ALL ON TABLE club.app_announcement_read_receipts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.ack_mobile_app_announcement_read(
+  uuid,text,text,timestamptz,text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.ack_mobile_app_announcement_read(
+  uuid,text,text,timestamptz,text,text,text) TO :"app_role";
+
 -- Only published and currently member-scoped app notices reach mobile.
 REVOKE ALL ON TABLE club.app_announcements FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION club.app_announcement_admin_actor(text,text)

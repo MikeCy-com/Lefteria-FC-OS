@@ -29,6 +29,20 @@ BEGIN
     END IF;
   END LOOP;
   IF NOT has_function_privilege(mobile_role,
+       'club.ack_mobile_app_announcement_read(uuid,text,text,timestamptz,text,text,text)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.ack_mobile_app_announcement_read(uuid,text,text,timestamptz,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege(auth_role,
+       'club.read_admin_app_announcement_readers(text,text,text)','EXECUTE')
+    OR has_function_privilege(mobile_role,
+       'club.read_admin_app_announcement_readers(text,text,text)','EXECUTE')
+    OR has_any_column_privilege(auth_role,'club.app_announcement_read_receipts','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,'club.app_announcement_read_receipts','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(mobile_role,'club.app_announcement_read_receipts','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,'club.app_announcement_read_receipts','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Raw announcement readership privileges leaked';
+  END IF;
+  IF NOT has_function_privilege(mobile_role,
        'club.set_mobile_app_announcement_reaction(uuid,text,text,timestamptz,text,text,text,text,boolean)','EXECUTE')
     OR has_function_privilege(auth_role,
        'club.set_mobile_app_announcement_reaction(uuid,text,text,timestamptz,text,text,text,text,boolean)','EXECUTE')

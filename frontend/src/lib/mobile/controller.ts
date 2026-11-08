@@ -1269,6 +1269,20 @@ export function createMobileAuthController(options: {
         throw new Error('Unverified app announcement response.');
       return result;
     },
+    async acknowledgeAppAnnouncementRead(room:GroupChatRoom,announcementId:string):
+      Promise<boolean> {
+      if(!validRoom(room)||!/^ann_[a-f0-9]{32}$/.test(announcementId))
+        throw new Error('Invalid announcement read acknowledgement.');
+      // An explicit POST from a visible card; GET does not grant read status.
+      const path='/api/mobile/app/announcements/'+encodeURIComponent(room.organization_id)+
+        '/'+encodeURIComponent(room.group_id)+'/'+encodeURIComponent(announcementId)+'/seen';
+      const result=await chatRequest(path,'POST');
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+        !('announcement_id' in result)||result.announcement_id!==announcementId||
+        !('seen' in result)||result.seen!==true)
+        throw new Error('Announcement read was not verified.');
+      return true;
+    },
     async setAppAnnouncementReaction(room:GroupChatRoom,announcementId:string,
       emoji:string,active:boolean):Promise<AppAnnouncementReactionSnapshot> {
       if(!validRoom(room)||!/^ann_[a-f0-9]{32}$/.test(announcementId)||

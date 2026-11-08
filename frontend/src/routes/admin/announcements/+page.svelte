@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { getContext } from 'svelte';
+  import { getContext, tick } from 'svelte';
   import { browser } from '$app/env';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
@@ -32,6 +32,12 @@
   let error=$state<string|null>(null);
   let success=$state<string|null>(null);
   let reload=$state(0);
+  type Reader={id:string;name:string};
+  let readerDialog:HTMLDialogElement;
+  let readerItem=$state<Published|null>(null);
+  let readerRows=$state<Reader[]>([]);
+  let readerBusy=$state(false);
+
 
   function validGroups(raw:unknown,owner:Organization):raw is Directory{
     if(!raw || typeof raw!=='object' || Array.isArray(raw))return false;
@@ -89,6 +95,8 @@
     const generation=reload;
     void actor;void grants;void generation;
     groups=[];drafts=[];published=[];groupId='';title='';body='';error=null;success=null;
+    readerItem=null;readerRows=[];
+    if(readerDialog?.open)readerDialog.close();
     loading=false;
     if(!browser || !owner || !permitted.some(o=>o.id===owner))return;
     const controller=new AbortController();
@@ -223,6 +231,44 @@
         error=e instanceof Error?e.message:'Η απόσυρση απέτυχε.';
     }finally{busy=false;}
   }
+  async function showReaders(item:Published){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!browser||!owner||!permitted.some(o=>o.id===owner)||
+      item.organization_id!==owner||busy||loading||readerBusy)return;
+    readerBusy=true;error=null;
+    try{
+      const query=new URLSearchParams({organization_id:owner});
+      const response=await fetch('/api/admin/communications/app-announcements/'+
+        encodeURIComponent(item.id)+'/readers?'+query,{
+          credentials:'same-origin',cache:'no-store'
+        });
+      if(owner!==organization||actor!==$auth.session?.user.id)return;
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error('Δεν είναι διαθέσιμη η λίστα αναγνωστών.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))
+        throw new Error('Μη επαληθευμένη λίστα αναγνωστών.');
+      const data=raw as Record<string,unknown>;
+      if(data.announcement_id!==item.id||!Array.isArray(data.readers)||
+         data.readers.length>150||!data.readers.every((v:unknown)=>{
+           if(!v||typeof v!=='object'||Array.isArray(v))return false;
+           const row=v as Record<string,unknown>;
+           return typeof row.id==='string'&&
+             /^[a-f0-9-]{36}$/i.test(row.id)&&
+             typeof row.name==='string'&&row.name.length>0&&row.name.length<=200;
+         })||new Set((data.readers as Reader[]).map(r=>r.id)).size!==data.readers.length)
+        throw new Error('Μη επαληθευμένη λίστα αναγνωστών.');
+      readerRows=data.readers as Reader[];
+      readerItem=item;
+      await tick();
+      if(owner===organization&&actor===$auth.session?.user.id)readerDialog?.showModal();
+    }catch(e){
+      if(owner===organization&&actor===$auth.session?.user.id)
+        error=e instanceof Error?e.message:'Η λίστα αναγνωστών δεν φορτώθηκε.';
+    }finally{readerBusy=false;}
+  }
+
 </script>
 
 <svelte:head><title>Πρόχειρες ανακοινώσεις | Λευτεριά FC</title></svelte:head>
@@ -283,6 +329,10 @@
               <small>{groups.find(g=>g.id===item.group_id)?.name??'Τμήμα μη διαθέσιμο'} · Δημοσιεύτηκε
                 {new Date(item.published_at).toLocaleString('el-CY')}</small>
               <p>{item.body}</p>
+              <button type="button" class="admin-secondary" disabled={busy||loading||readerBusy}
+                onclick={()=>void showReaders(item)} data-testid="announcement-readers">
+                Διαβάστηκε από
+              </button>
               <button type="button" class="admin-secondary" disabled={busy||loading}
                 onclick={()=>void removeAnnouncement(item)}
                 data-testid="announcement-remove">Απόσυρση ανακοίνωσης</button>
@@ -291,6 +341,19 @@
         </ul>
       </section>
     {/if}
+    <dialog bind:this={readerDialog} class="readers-dialog"
+      onclose={()=>{readerItem=null;readerRows=[];}}>
+      <h2>Διαβάστηκε από</h2>
+      {#if readerItem}
+        <p>{readerItem.title}</p>
+      {/if}
+      {#if readerRows.length}
+        <ul>{#each readerRows as reader (reader.id)}<li>{reader.name}</li>{/each}</ul>
+      {:else}
+        <p>Δεν υπάρχουν επιβεβαιωμένες αναγνώσεις από ενεργά μέλη.</p>
+      {/if}
+      <form method="dialog"><button type="submit" class="admin-secondary">Κλείσιμο</button></form>
+    </dialog>
   </AdminFrame>
 {:else}
   <AdminSessionStatus unavailable={$auth.status==='unavailable'} busy={$auth.busy} error={$auth.error}
@@ -304,5 +367,10 @@
   .draft-list small{color:#ffca46;margin-top:4px}
   .draft-list p{white-space:pre-wrap;overflow-wrap:anywhere;color:#d9dcdd}
   textarea{width:100%;min-height:140px;padding:12px;color:#fff;background:#090c0b;border:1px solid #5a6056;border-radius:8px;font:inherit}
+  .readers-dialog{width:min(92vw,480px);max-height:78vh;overflow:auto;padding:24px;
+    color:#fff;background:#161a19;border:1px solid #9c8344;border-radius:14px}
+  .readers-dialog::backdrop{background:rgba(0,0,0,.72)}
+  .readers-dialog ul{padding-left:20px;line-height:1.8}
+  .readers-dialog h2{margin-top:0}
   @media(max-width:600px){.draft-heading{align-items:start;flex-direction:column}}
 </style>

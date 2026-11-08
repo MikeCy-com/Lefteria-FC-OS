@@ -15,6 +15,9 @@
   let reactionFor=$state<string|null>(null);
   let reacting=$state<string|null>(null);
   let requestNumber=0,alive=true;
+  const acknowledged=new Set<string>();
+  const acknowledgmentsInFlight=new Set<string>();
+
   onMount(()=>{
     alive=true;void loadDirectory();
     return()=>{alive=false;requestNumber++;};
@@ -59,6 +62,35 @@
       nextOffset=page.next_offset;
     }catch(e){if(alive&&request===requestNumber)error=fault(e);}
     finally{if(alive&&request===requestNumber)busy=false;}
+  }
+  function seenOnScreen(node:HTMLElement,notice:AppAnnouncement) {
+    const room=selected;
+    if(!room)return;
+    let visible=false;
+    const key=room.organization_id+'/'+room.group_id+'/'+notice.id;
+    function acknowledge(){
+      if(!alive||!visible||document.visibilityState!=='visible'||
+        !document.hasFocus()||selected!==room||
+        acknowledged.has(key)||acknowledgmentsInFlight.has(key)||
+        !announcements.some(item=>item.id===notice.id))return;
+      acknowledgmentsInFlight.add(key);
+      void controller.acknowledgeAppAnnouncementRead(room!,notice.id).then(confirmed=>{
+        if(confirmed)acknowledged.add(key);
+      }).catch(()=>{/* Unverified observations are never marked read. */})
+        .finally(()=>acknowledgmentsInFlight.delete(key));
+    }
+    const observer=new IntersectionObserver(entries=>{
+      visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.75);
+      acknowledge();
+    },{threshold:0.75});
+    observer.observe(node);
+    document.addEventListener('visibilitychange',acknowledge);
+    window.addEventListener('focus',acknowledge);
+    return {destroy(){
+      observer.disconnect();
+      document.removeEventListener('visibilitychange',acknowledge);
+      window.removeEventListener('focus',acknowledge);
+    }};
   }
   async function toggleReaction(notice:AppAnnouncement,emoji:ChatReaction){
     const room=selected;
@@ -107,7 +139,7 @@
       {/if}
       <ol>
         {#each announcements as notice (notice.id)}
-          <li>
+          <li use:seenOnScreen={notice}>
             <div class="notice-top"><span class="official">Επίσημη ανακοίνωση</span>
               <time datetime={notice.published_at}>
                 {new Date(notice.published_at).toLocaleString('el-CY',{dateStyle:'medium',timeStyle:'short'})}

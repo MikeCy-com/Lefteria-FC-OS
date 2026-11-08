@@ -93,6 +93,7 @@ BEGIN
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
                   'club.read_admin_app_announcements(text,text)'::regprocedure,
+                  'club.read_admin_app_announcement_readers(text,text,text)'::regprocedure,
                   'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;

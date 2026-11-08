@@ -98,6 +98,18 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,(await GetAsync(parent,academyPath,200))
                 .GetProperty("announcements")[0].GetProperty("reactions").GetArrayLength(),
                 "Removed reaction was not cleared from member feed.");
+            var seenAcademy=academyPath+"/"+academyId+"/seen";
+            var seenTeam=teamPath+"/"+teamId+"/seen";
+            var ack=await PostAsync(parent,seenAcademy,new{},200);
+            Check.True(ack.GetProperty("announcement_id").GetString()==academyId &&
+                ack.GetProperty("seen").GetBoolean(),
+                "Explicit parent card acknowledgement did not persist.");
+            var duplicate=await PostAsync(parent,seenAcademy,new{},200);
+            Check.True(duplicate.GetProperty("seen").GetBoolean(),
+                "Repeat visible announcement read was not idempotent.");
+            await PostAsync(fan,seenAcademy,new{},403);
+            await PostAsync(player,seenAcademy,new{},403);
+            await PostAsync(parent,seenTeam,new{},403);
             await GetAsync(parent,teamPath,403);
             await GetAsync(player,academyPath,403);
             await GetAsync(fan,academyPath,403);
@@ -141,7 +153,7 @@ internal sealed partial class IdentityHttpChecks
             {
                 await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(r=>r.IsArchived,true));
-                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);}
+                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);await PostAsync(parent,seenAcademy,new{},403);}
                 finally
                 {
                     await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
@@ -157,6 +169,7 @@ internal sealed partial class IdentityHttpChecks
                     WHERE id={academyId}
                     """);
             await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},403);
+            await PostAsync(parent,seenAcademy,new{},403);
             Check.Equal(0,(await GetAsync(parent,academyPath,200))
                 .GetProperty("announcements").GetArrayLength(),
                 "Admin-removed announcement was still visible in mobile reader.");
@@ -169,6 +182,8 @@ internal sealed partial class IdentityHttpChecks
             await using var db=database.CreateContext();
             foreach(var id in new[]{academyId,teamId})
             {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_announcement_read_receipts WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_reactions WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(

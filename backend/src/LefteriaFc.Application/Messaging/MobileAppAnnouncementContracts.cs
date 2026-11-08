@@ -9,3 +9,4 @@ public sealed record MobileAppAnnouncementPageDto(
     IReadOnlyList<MobileAppAnnouncementDto> Announcements,int? NextOffset);
 public sealed record MobileAppAnnouncementReactionSnapshotDto(
     string AnnouncementId,IReadOnlyList<MobileChatReactionDto> Reactions);
+public sealed record MobileAppAnnouncementSeenAckDto(string AnnouncementId,bool Seen);

@@ -32,6 +32,16 @@ public static class MobileAppAnnouncementEndpoints
             .WithTags("Mobile app announcements")
             .WithName("SetMobileAppAnnouncementReaction")
             .Produces<MobileAppAnnouncementReactionSnapshotDto>().WithMobileErrors();
+        app.MapPost("/api/mobile/app/announcements/{organization}/{group}/{announcementId}/seen",(
+                string organization,string group,string announcementId,HttpContext context,
+                PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.AcknowledgeAppAnnouncementAsync(MobilePrincipal.Read(context.User),
+                    organization,group,announcementId,token),context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile app announcements")
+            .WithName("AcknowledgeMobileAppAnnouncementRead")
+            .Produces<MobileAppAnnouncementSeenAckDto>().WithMobileErrors();
         return app;
     }
     private static int ParseOffset(HttpContext context,string? raw)

@@ -93,7 +93,19 @@ public static class AdminAnnouncementDraftEndpoints
             .WithTags("App announcements administration")
             .WithName("RemoveAdminAppAnnouncement")
             .Produces<AdminAppAnnouncementRemovedDto>(200);
-        foreach(var route in new[]{publish,published,remove})
+        var readers=endpoints.MapGet("/api/admin/communications/app-announcements/{id}/readers",
+            async (string id,string? organization_id,WebAdminService admin,
+                IAdminAnnouncementDraftStore store,HttpContext context,CancellationToken token)=>
+            {
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                return Results.Ok(await store.ReadPublishedReadersAsync(
+                    cookie,organization_id!,id,token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("App announcements administration")
+            .WithName("GetAdminAppAnnouncementReaders")
+            .Produces<AdminAppAnnouncementReadersDto>(200);
+        foreach(var route in new[]{publish,published,remove,readers})
         {
             foreach(var status in new[]{400,401,403,409,413,415,422,503})
                 route.Produces<WebAdminError>(status);
