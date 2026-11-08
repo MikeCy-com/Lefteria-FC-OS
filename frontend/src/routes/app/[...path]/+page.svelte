@@ -10,6 +10,8 @@
   import MobileGroupChat from '../../../lib/mobile/components/MobileGroupChat.svelte';
   import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
   import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
+  import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
+  import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
@@ -25,6 +27,29 @@
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
+  let notificationCount=$state(0);
+  $effect(()=>{
+    const id=user?.id,currentRole=role,currentTab=activeTab,
+      managementOwner=$controller.organization?.organization_id,
+      hasSelection=$controller.organization?.requires_organization_selection;
+    void currentTab;void managementOwner;
+    if(!browser||!id||!currentRole||currentRole==='fan'||
+      !user?.current_role_available||(currentRole==='management'&&hasSelection)){
+      notificationCount=0;return;
+    }
+    let valid=true;
+    void controller.getAppNotificationInbox().then(result=>{
+      if(valid&&user?.id===id&&role===currentRole)
+        notificationCount=result.unread_count;
+    }).catch(()=>{if(valid)notificationCount=0;});
+    return()=>{valid=false;};
+  });
+  async function openNotification(notice:AppNotification){
+    const query=new URLSearchParams({tab:'announcements',
+      organization_id:notice.organization_id,
+      group:notice.group_id,notice:notice.announcement_id});
+    await goto('/app?'+query.toString(),{reset:true});
+  }
   $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
   $effect(() => { void role; composing = false; });
   $effect(() => { void user?.id; void role; chatMode='groups'; });
@@ -52,7 +77,7 @@
 
 {#if $controller.status === 'authenticated' && user && role}
   <MobileShell {role} {activeTab} availableRoles={user.current_role_available ? $controller.availableRoles : $controller.availableRoles.filter((option) => option === 'fan')} userName={user.name}
-    avatarUrl={user.avatar_url} busy={$controller.busy}
+    avatarUrl={user.avatar_url} notificationCount={notificationCount} busy={$controller.busy}
     onTabChange={openTab} onRoleChange={changeRole}
     onNotifications={async () => { await openTab('notifications'); }} onProfile={openProfile}
     onCreatePost={() => { composing = true; }}>
@@ -166,7 +191,29 @@
           </section>
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
-            <MobileAppAnnouncements {controller}/>
+            <MobileAppAnnouncements {controller}
+              initialOrganization={page.url.searchParams.get('organization_id')}
+              initialGroup={page.url.searchParams.get('group')}
+              initialAnnouncementId={page.url.searchParams.get('notice')}/>
+          {/key}
+        {/if}
+      {:else if activeTab === 'notifications' && !composing}
+        {#if role==='fan'}
+          <section class="content-card" aria-labelledby="fan-notification-title">
+            <h1 id="fan-notification-title">Ειδοποιήσεις</h1>
+            <p>Οι ομαδικές ανακοινώσεις είναι διαθέσιμες μόνο στα ενεργά
+              μέλη ομάδων και Ακαδημίας.</p>
+          </section>
+        {:else if role==='management' &&
+            (!$controller.organization?.organization_id ||
+             $controller.organization.requires_organization_selection)}
+          <section class="content-card"><h1>Ειδοποιήσεις</h1>
+            <p>Επίλεξε πρώτα οργανισμό.</p></section>
+        {:else}
+          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            <MobileAppNotificationInbox {controller}
+              onUnreadChange={count=>notificationCount=count}
+              onOpen={openNotification}/>
           {/key}
         {/if}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
