@@ -15,7 +15,7 @@ The new **Admin → Οικονομικά → payabl.** view supports private, ad
 | Private admin sandbox payment link creation | Code implemented; requires migration, grants, approved test merchant and verification |
 | HTTPS hosted checkout; no PAN/CVV handled in OS | Implemented gateway adapter |
 | Payment request audit and unique client idempotency | Private DB migration and audited, locked functions |
-| Signed asynchronous webhook | SHA-256 signature, time window, opaque callback nonce and transaction ID check |
+| Signed asynchronous webhook | SHA-256 signature, time window, opaque callback nonce and exact order-ID match |
 | Merchant refund and partial refund | Not enabled; needs settlement ledger, reversal API and reconciliation |
 | Parent/player/academy recurring tuition | Not enabled; needs guardian consent, mandates/tokenization and retry/dunning contract |
 | Website shop/order/POS settlement | Not enabled; needs authoritative orders, inventory/amount snapshots and POS orchestration |
@@ -68,7 +68,7 @@ Before a live rollout: written merchant approval and contract matrix for payment
 
 - Cents stored as integer; no client-reported amount becomes a verified order settlement.
 - A browser return, a created checkout URL, or a provider `init` response must never mark an invoice paid.
-- Only signed capture events matching the original initialized transaction may mark a test request paid. Other events require reconciliation and cannot silently downgrade a paid item.
+- Only signed capture events delivered to a unique callback URL and matching the exact OS order ID may mark a test request paid. Payabl capture transaction IDs can differ from initialization transaction IDs. Order IDs are not included in Payabl's simplified signature, so the nonce binding and signed transaction fields must both be verified. Enablement remains sandbox-only pending merchant reconciliation validation. Other events require reconciliation and cannot silently downgrade a paid item.
 - Webhook events are idempotent by request, transaction, event type, error and timestamp. A duplicate callback has no second financial side effect.
 - The sandbox screen requests only synthetic test payer details; no raw card number, expiry, CVV or employee payout card details.
 - Employee payouts should be a separately privileged service with two-person approval, dedicated business payout permissions, verified employee beneficiaries, per-recipient and batch limits, signed request storage, irreversible-transfer warnings and an immutable audit ledger. Never derive payout authority from `finance:write` alone.
