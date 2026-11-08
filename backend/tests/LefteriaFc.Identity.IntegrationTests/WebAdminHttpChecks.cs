@@ -82,7 +82,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Club editor safe overrides, fresh locked authority, concurrency and atomic audit preserve initial import", ClubEditorAsync),
         ("First-team trials private GET enforces current FC grants, role and read-only contract", FirstTeamTrialAdminHttpAsync),
         ("Website news CMS private GET serves published owner-scoped content and honors fresh role revocation", WebsiteNewsAdminHttpAsync),
-        ("POS private catalog GET uses locked current shop grants, rejects table access and is read-only", AdminPosCatalogHttpAsync)
+        ("POS private catalog GET uses locked current shop grants, rejects table access and is read-only", AdminPosCatalogHttpAsync),
+        ("POS categories POST/PUT atomically audit and honor owner, versions, origin and revocation", AdminPosCategoryWritesAsync)
     ];
 
     private HttpClient Client()
