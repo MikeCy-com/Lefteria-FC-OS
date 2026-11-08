@@ -191,15 +191,69 @@ public sealed class PayablPaymentRequests : Migration
         -- one order because payabl's simplified signature omits orderid.
         CREATE FUNCTION finance.apply_payabl_notification(
           _id uuid,_nonce_digest text,_transaction text,_kind text,
-          _code integer,_stamp bigint
+          _code integer,_stamp bigint,_order_id text
         ) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
         SET search_path=pg_catalog,pg_temp AS $payment_notice$
-        DECLARE v_status text; v_owner text; v_initial_transaction text; v_changed boolean:=false;
+        DECLARE v_status text; v_owner text; v_expected_order text; v_changed boolean:=false;
         BEGIN
           IF _id IS NULL OR _nonce_digest !~ '^[0-9a-f]{64}$'
             OR _transaction !~ '^[0-9]{1,40}$'
             OR _kind NOT IN ('capture','order','refund','cft','reversal')
-            OR _stamp NOT BETWEEN 1500000000 AND 4102444800 THEN
+            OR _stamp NOT BETWEEN 1500000000 AND 4102444800
+            OR _order_id IS NULL OR _order_id !~ '^LFC[0-9a-f]{32}
+            RAISE EXCEPTION 'payment_notice_invalid' USING ERRCODE='22023';
+          END IF;
+          SELECT status,organization_id,order_id INTO v_status,v_owner,v_expected_order
+          FROM finance.payment_requests
+          WHERE id=_id AND callback_digest=_nonce_digest FOR UPDATE;
+          IF NOT FOUND OR v_status='initiating'
+            OR v_expected_order<>_order_id THEN
+            RAISE EXCEPTION 'payment_notice_not_ready' USING ERRCODE='42501';
+          END IF;
+          INSERT INTO finance.payment_notifications(
+            request_id,transaction_id,event_type,error_code,provider_timestamp)
+          VALUES(_id,_transaction,_kind,_code,_stamp)
+          ON CONFLICT DO NOTHING;
+          IF NOT FOUND THEN RETURN false; END IF;
+          -- Capture is the ONLY positive receipt. All other messages require
+          -- reconciliation rather than assuming payment. Never downgrade PAID.
+          IF v_status<>'paid' AND _kind='capture' AND _code=0 THEN
+            UPDATE finance.payment_requests SET status='paid',
+              captured_transaction_id=_transaction,updated_at=clock_timestamp()
+            WHERE id=_id; v_changed:=true;
+          ELSIF v_status NOT IN ('paid','review_required') THEN
+            UPDATE finance.payment_requests SET status='review_required',
+              updated_at=clock_timestamp() WHERE id=_id;
+          END IF;
+          RETURN v_changed;
+        END $payment_notice$;
+        REVOKE ALL ON FUNCTION finance.create_admin_payment_request(
+          text,text,uuid,uuid,text,text,bigint,text,text,text) FROM PUBLIC;
+        REVOKE ALL ON FUNCTION finance.ready_admin_payment_request(
+          text,text,uuid,text,text) FROM PUBLIC;
+        REVOKE ALL ON FUNCTION finance.read_admin_payment_requests(
+          text,text) FROM PUBLIC;
+        REVOKE ALL ON FUNCTION finance.apply_payabl_notification(
+          uuid,text,text,text,integer,bigint,text) FROM PUBLIC;
+        """);
+
+    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+        DO $payment_rollback$ BEGIN
+          IF EXISTS(SELECT 1 FROM finance.payment_requests LIMIT 1) THEN
+            RAISE EXCEPTION 'payment_data_requires_forward_recovery';
+          END IF;
+        END $payment_rollback$;
+        DROP FUNCTION finance.apply_payabl_notification(
+          uuid,text,text,text,integer,bigint,text);
+        DROP FUNCTION finance.read_admin_payment_requests(text,text);
+        DROP FUNCTION finance.ready_admin_payment_request(text,text,uuid,text,text);
+        DROP FUNCTION finance.create_admin_payment_request(
+          text,text,uuid,uuid,text,text,bigint,text,text,text);
+        DROP TABLE finance.payment_notifications;
+        DROP TABLE finance.payment_requests;
+        """);
+}
+ THEN
             RAISE EXCEPTION 'payment_notice_invalid' USING ERRCODE='22023';
           END IF;
           SELECT status,organization_id,initial_transaction_id INTO v_status,v_owner,v_initial_transaction
@@ -233,7 +287,7 @@ public sealed class PayablPaymentRequests : Migration
         REVOKE ALL ON FUNCTION finance.read_admin_payment_requests(
           text,text) FROM PUBLIC;
         REVOKE ALL ON FUNCTION finance.apply_payabl_notification(
-          uuid,text,text,text,integer,bigint) FROM PUBLIC;
+          uuid,text,text,text,integer,bigint,text) FROM PUBLIC;
         """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -243,7 +297,7 @@ public sealed class PayablPaymentRequests : Migration
           END IF;
         END $payment_rollback$;
         DROP FUNCTION finance.apply_payabl_notification(
-          uuid,text,text,text,integer,bigint);
+          uuid,text,text,text,integer,bigint,text);
         DROP FUNCTION finance.read_admin_payment_requests(text,text);
         DROP FUNCTION finance.ready_admin_payment_request(text,text,uuid,text,text);
         DROP FUNCTION finance.create_admin_payment_request(
