@@ -82,6 +82,17 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,academy.GetProperty("announcements")[0]
                 .GetProperty("reactions").GetArrayLength(),
                 "Fresh announcement unexpectedly has reaction participants.");
+            // Production/preview config is disabled in the disposable test
+            // host; no subscription is persisted or sent without VAPID keys.
+            var pushConfig=await GetAsync(parent,"/api/mobile/app/push",200);
+            Check.True(!pushConfig.GetProperty("enabled").GetBoolean() &&
+                pushConfig.GetProperty("public_key").ValueKind==JsonValueKind.Null &&
+                pushConfig.GetProperty("active_devices").GetInt32()==0,
+                "Unconfigured push incorrectly activated or exposed a secret.");
+            await GetAsync(fan,"/api/mobile/app/push",403);
+            await PostAsync(parent,"/api/mobile/app/push/subscriptions",
+                new {endpoint="https://fcm.googleapis.com/fcm/send/test",
+                    keys=new {p256dh="example",auth="example"}},503);
             const string inboxPath="/api/mobile/app/notifications";
             var memberInbox=await GetAsync(parent,inboxPath,200);
             Check.True(memberInbox.GetProperty("enabled").GetBoolean() &&
