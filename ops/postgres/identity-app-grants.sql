@@ -276,6 +276,44 @@ GRANT EXECUTE ON FUNCTION club.ack_mobile_chat_read(
   uuid,text,text,timestamptz,text,text,uuid,bigint) TO :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_mobile_chat_readers(
   uuid,text,text,timestamptz,text,text,uuid) TO :"app_role";
+-- Consented app-only private messaging. Runtime gets no raw table data,
+-- no bypass of member/role checks and no private contact enumeration.
+REVOKE ALL ON TABLE club.app_private_conversations,
+  club.app_private_messages,club.app_private_message_revisions,
+  club.app_private_conversation_views FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.mobile_private_pair_allowed(
+  uuid,text,text,timestamptz,uuid,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.private_conversation_json(
+  club.app_private_conversations,uuid) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_private_contacts(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_private_conversations(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.request_mobile_private_conversation(
+  uuid,text,text,timestamptz,text,text,uuid) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.respond_mobile_private_conversation(
+  uuid,text,text,timestamptz,uuid,boolean) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_private_messages(
+  uuid,text,text,timestamptz,uuid,integer) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.write_mobile_private_message(
+  uuid,text,text,timestamptz,uuid,text,uuid,bigint,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.hide_mobile_private_conversation(
+  uuid,text,text,timestamptz,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_private_contacts(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_private_conversations(
+  uuid,text,text,timestamptz) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.request_mobile_private_conversation(
+  uuid,text,text,timestamptz,text,text,uuid) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.respond_mobile_private_conversation(
+  uuid,text,text,timestamptz,uuid,boolean) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_private_messages(
+  uuid,text,text,timestamptz,uuid,integer) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_mobile_private_message(
+  uuid,text,text,timestamptz,uuid,text,uuid,bigint,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.hide_mobile_private_conversation(
+  uuid,text,text,timestamptz,uuid) TO :"app_role";
+
 -- Canonical auth reads expose only validated ownership/status/assignment facts.
 -- Raw contacts, source archives, quarantine and owner import state remain denied.
 GRANT SELECT (player_id, organization_id, academy_group_id) ON club.player_academy_groups TO :"app_role";
