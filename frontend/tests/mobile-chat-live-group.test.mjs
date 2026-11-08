@@ -63,3 +63,23 @@ test('authenticated app tab holds mobile chat within bearer session, no public w
   assert.match(route,/activeTab === 'chat' && role !== 'fan'/);
   assert.match(route,/<MobileGroupChat \{controller\} actorId=\{user.id\}/);
 });
+
+test('live group uses existing 550 ms long-press menu only for the sender, without unimplemented actions',()=>{
+  const source=read('../src/lib/mobile/components/MobileGroupChat.svelte');
+  assert.match(source,/import MobileHoldAction from/);
+  assert.match(source,/import MobileMessageActionMenu from/);
+  assert.match(source,/message.sender_id===actorId&&!message.is_deleted&&!mutationBusy/);
+  assert.match(source,/onEdit=\{\(text\)=>mutateMessage\(menuMessage,'edit',text\)\}/);
+  assert.match(source,/onDelete=\{\(\)=>mutateMessage\(menuMessage,'delete'\)\}/);
+  assert.match(source,/canReact:false,canSeeReaders:false/);
+  assert.match(source,/message.is_deleted\?'Το μήνυμα διαγράφηκε':message.content/);
+});
+
+test('mutations require server-verified version increments and clear content for deletion',()=>{
+  const source=read('../src/lib/mobile/controller.ts');
+  assert.match(source,/result.version!==version\+1\|\|result.is_deleted\|\|result.content!==content/);
+  assert.match(source,/result.version!==version\+1\|\|!result.is_deleted\|\|result.content!==''/);
+  assert.match(source,/token!==sessionToken/);
+  assert.match(source,/method,cache:'no-store'/);
+  assert.doesNotMatch(source,/optimisticChatUpdate|localStorage\.setItem\('chat/);
+});
