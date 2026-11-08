@@ -14,25 +14,25 @@ const read = path => readFileSync(new URL('../src/lib/admin/' + path, import.met
 
 test('admin categories follow legacy website, CRM, POS, finance and football ownership', () => {
   const all = user(['*:*'], ['lefteria_fc', 'lefteria_fc_academy'], 'super_admin');
-  assert.deepEqual(groups(all), ['website', 'crm', 'pos', 'finance', 'football', 'operations']);
+  assert.deepEqual(groups(all), ['website', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['onboarding', '/admin/onboarding']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding'].includes(item.href));
   }
 });
 
 test('the dashboard cannot leak first-team, financial, POS or Academy modules across grants', () => {
   assert.deepEqual(adminSectionsFor(user(['*:*'], [])), []);
-  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website']);
-  assert.deepEqual(ids(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
-  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
-  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
-  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
+  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website', 'operations']);
+  assert.deepEqual(ids(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news', 'onboarding']);
+  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'onboarding', 'organization']);
+  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'onboarding', 'organization']);
+  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos', 'operations']);
   assert.deepEqual(ids(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'charges', 'reports']);
   assert.ok(!ids(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
   assert.deepEqual(ids(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'assigned_groups']);
@@ -89,4 +89,18 @@ test('announcement drafting is visible only to authorized owners and managers',(
   assert.ok(ids(user(['academy:write'],['lefteria_fc_academy'],'manager')).includes('announcements'));
   assert.ok(!ids(user(['teams:write'],['lefteria_fc'],'coach')).includes('announcements'));
   assert.ok(!ids(user(['teams:read'],['lefteria_fc'],'manager')).includes('announcements'));
+});
+
+
+test('application communications are isolated from the public website and CRM',()=>{
+  const sections=adminSectionsFor(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
+  const app=sections.find(s=>s.id==='app');
+  const website=sections.find(s=>s.id==='website');
+  const crm=sections.find(s=>s.id==='crm');
+  assert.ok(app && website && crm);
+  assert.ok(app.modules.some(m=>m.id==='announcements' && m.href==='/admin/announcements'));
+  assert.ok(app.modules.some(m=>m.id==='messages' && m.status==='planned' && !m.href));
+  assert.ok(!website.modules.some(m=>m.id==='announcements' || m.id==='messages'));
+  assert.ok(!crm.modules.some(m=>m.id==='announcements' || m.id==='messages'));
+  assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('announcements'));
 });
