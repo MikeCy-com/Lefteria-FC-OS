@@ -51,7 +51,7 @@ public sealed class AdminAnnouncementDrafts : Migration
             OR _title IS NULL OR char_length(_title) NOT BETWEEN 1 AND 140
             OR _title<>btrim(_title) OR _title ~ '[[:cntrl:]]'
             OR _body IS NULL OR char_length(_body) NOT BETWEEN 1 AND 4000
-            OR _body<>btrim(_body) OR position(chr(0) in _body)>0 THEN
+            OR _body<>btrim(_body) THEN
             RAISE EXCEPTION 'draft_invalid' USING ERRCODE='22023';
           END IF;
           PERFORM identity.lock_admin_club_authority(_digest,_owner);
