@@ -113,7 +113,7 @@ public sealed class PostgresAdminAnnouncementDraftStore(
                     "Publish verification failed.");
             return item;
         }
-        catch(PostgresException error){throw Translate(error);}
+        catch(PostgresException error){throw TranslatePublished(error);}
     }
     public async Task<AdminAppAnnouncementsDto> ReadPublishedAsync(
         string cookie,string owner,CancellationToken token)
@@ -139,7 +139,7 @@ public sealed class PostgresAdminAnnouncementDraftStore(
                     "Published notice list verification failed.");
             return data;
         }
-        catch(PostgresException error){throw Translate(error);}
+        catch(PostgresException error){throw TranslatePublished(error);}
     }
     public async Task<AdminAppAnnouncementRemovedDto> RemovePublishedAsync(
         string cookie,string owner,string id,long version,CancellationToken token)
@@ -164,13 +164,29 @@ public sealed class PostgresAdminAnnouncementDraftStore(
                     "Removal verification failed.");
             return result;
         }
-        catch(PostgresException error){throw Translate(error);}
+        catch(PostgresException error){throw TranslatePublished(error);}
     }
     private static bool ValidAnnouncementId(string? id)=>
         id is {Length:36} && id.StartsWith("ann_",StringComparison.Ordinal) &&
         id.AsSpan(4).ToString().All(char.IsAsciiHexDigit);
     private static WebAdminException InvalidPublication()=>new(422,
         "invalid_app_announcement","Invalid announcement or version.");
+
+    private static WebAdminException TranslatePublished(PostgresException error) =>
+        error.SqlState switch
+        {
+            "42501"=>new(403,"not_authorized","App announcement access denied."),
+            "22023" or "23503"=>new(422,"invalid_app_announcement",
+                "Invalid announcement or current roster target."),
+            "23505" or "40001"=>new(409,"app_announcement_conflict",
+                "The announcement changed; refresh and retry."),
+            "P0001" when error.MessageText=="admin_club_session_lock_missing" =>
+                new(401,"not_authenticated","Sign in again."),
+            "P0001" when error.MessageText=="admin_club_grant_lock_missing" =>
+                new(403,"not_authorized","Organization access changed."),
+            _=>new(503,"app_announcement_unavailable",
+                "App announcement service unavailable.")
+        };
 
     private static WebAdminException Translate(PostgresException e) =>
         e.SqlState switch
