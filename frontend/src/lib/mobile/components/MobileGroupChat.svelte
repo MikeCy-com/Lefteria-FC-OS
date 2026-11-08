@@ -29,13 +29,13 @@
     try{
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
-      rooms=result;
+      rooms=result;directoryBusy=false;
       if(result.length===1)void chooseRoom(result[0]);
     }catch(caught){if(alive&&request===requestNumber){rooms=[];error=messageOf(caught);}}
     finally{if(alive&&request===requestNumber)directoryBusy=false;}
   }
   async function chooseRoom(room:GroupChatRoom){
-    if(directoryBusy||sending)return;
+    if(sending)return;
     selected=room;messages=[];nextOffset=null;error=null;sendError=null;
     await loadMessages(false);
   }
@@ -114,8 +114,8 @@
       </ol>
       <form onsubmit={event=>{event.preventDefault();void send();}}>
         <label for="group-message-input">Νέο μήνυμα</label>
-        <textarea id="group-message-input" bind:value={draft} maxlength="10000" rows="2"
-          disabled={sending} placeholder="Γράψε μήνυμα στην ομάδα…"></textarea>
+        <input id="group-message-input" type="text" bind:value={draft} maxlength="10000"
+          disabled={sending} placeholder="Γράψε μήνυμα στην ομάδα…" />
         <button class="send" type="submit" disabled={sending||messageBusy||!validTextMessage(draft.trim())}>
           {sending?'Αποστολή…':'Αποστολή'}
         </button>
@@ -147,7 +147,7 @@
   .message-head strong{font-size:11px;color:var(--lf-gold-light)}.message-head time{font-size:10px;color:var(--lf-muted)}
   .messages p{margin:7px 0 0;white-space:pre-wrap}
   .thread label{display:block;font-weight:600;font-size:12px;margin:10px 0 7px}
-  .thread textarea{box-sizing:border-box;width:100%;min-height:64px;border:1px solid #56595a;border-radius:8px;background:#0b0d0e;color:#fff;padding:10px;font:inherit;resize:vertical}
+  .thread input{box-sizing:border-box;width:100%;min-height:44px;border:1px solid #56595a;border-radius:8px;background:#0b0d0e;color:#fff;padding:10px;font:inherit}
   .send{min-height:44px;border:0;background:var(--lf-gold);color:#111;border-radius:8px;font-weight:700;padding:10px 18px;margin-top:9px;cursor:pointer}
   .empty{color:var(--lf-muted);text-align:center;padding:15px}
   .error{border:1px solid #8b433d;border-radius:8px;color:#ffd3cd;background:#301918;padding:11px;margin:12px 0}
