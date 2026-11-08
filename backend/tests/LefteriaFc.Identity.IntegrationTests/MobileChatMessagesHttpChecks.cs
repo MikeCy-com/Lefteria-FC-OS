@@ -18,6 +18,10 @@ internal sealed partial class IdentityHttpChecks
         return await ExpectAsync(reply,status);
     }
 
+    private static Task<JsonElement> ReactAsync(HttpClient client,string messagePath,
+        string emoji,bool active,int status) =>
+        PostAsync(client,messagePath+"/reactions",new{emoji,active},status);
+
     private async Task<JsonElement> DeleteVersionAsync(HttpClient client,string url,long version,int status)
     {
         using var reply=await client.DeleteAsync(url+"?version="+version);
@@ -98,6 +102,65 @@ internal sealed partial class IdentityHttpChecks
                 "Rejected chat write changed persisted conversation history.");
             var ownEditPath=academy+"/"+academyId;
             var otherEditPath=team+"/"+teamId;
+            // Reactions must persist per exact account and emoji, never as
+            // guessed UI counts or a list of children's identities.
+            var parentReaction=await ReactAsync(parent,ownEditPath,"⚽",true,200);
+            Check.Equal(academyId.ToString(),parentReaction.GetProperty("message_id").GetString(),
+                "Reaction response did not bind to the selected Academy message.");
+            var ownSummary=parentReaction.GetProperty("reactions");
+            Check.Equal(1,ownSummary.GetArrayLength(),"Initial ⚽ reaction was not stored.");
+            Check.Equal("⚽",ownSummary[0].GetProperty("emoji").GetString(),
+                "Reaction emoji differed from the checked allowlist.");
+            Check.Equal(1,ownSummary[0].GetProperty("count").GetInt32(),
+                "Initial reaction did not count once.");
+            Check.True(ownSummary[0].GetProperty("mine").GetBoolean(),
+                "Parent's authenticated reaction was not marked as their own.");
+
+            var repeated=await ReactAsync(parent,ownEditPath,"⚽",true,200);
+            Check.Equal(1,repeated.GetProperty("reactions")[0].GetProperty("count").GetInt32(),
+                "Idempotent re-add unexpectedly duplicated a reaction.");
+            var coachAdded=await ReactAsync(coach,ownEditPath,"⚽",true,200);
+            Check.Equal(2,coachAdded.GetProperty("reactions")[0].GetProperty("count").GetInt32(),
+                "Coach reaction did not persist alongside the parent's own reaction.");
+
+            var teamReaction=await ReactAsync(player,otherEditPath,"👍",true,200);
+            Check.Equal(1,teamReaction.GetProperty("reactions")[0].GetProperty("count").GetInt32(),
+                "First team reaction missing.");
+            var managerTeamReaction=await ReactAsync(management,otherEditPath,"👍",true,200);
+            Check.Equal(2,managerTeamReaction.GetProperty("reactions")[0].GetProperty("count").GetInt32(),
+                "Management's selected FC room reaction missing.");
+            await ReactAsync(parent,otherEditPath,"⚽",true,403);
+            await ReactAsync(player,ownEditPath,"👍",true,403);
+            await ReactAsync(fan,ownEditPath,"⚽",true,403);
+            await ReactAsync(management,ownEditPath,"⚽",true,403);
+            await ReactAsync(coach,ownEditPath,"👻",true,422);
+            await ReactAsync(parent,ownEditPath,"⚽",false,200);
+            var withoutParent=(await GetAsync(parent,academy,200)).GetProperty("messages")[0]
+                .GetProperty("reactions")[0];
+            Check.Equal(1,withoutParent.GetProperty("count").GetInt32(),
+                "Removing the parent's reaction removed another member's reaction.");
+            Check.True(!withoutParent.GetProperty("mine").GetBoolean(),
+                "Removed parent's reaction still appeared as their own.");
+            var visibleToCoach=(await GetAsync(coach,academy,200)).GetProperty("messages")[0]
+                .GetProperty("reactions")[0];
+            Check.True(visibleToCoach.GetProperty("mine").GetBoolean(),
+                "Coach lost the personalized reaction flag.");
+            await ReactAsync(parent,ownEditPath,"⚽",false,200);
+            await ReactAsync(parent,ownEditPath,"⚽",true,200);
+            var two=(await GetAsync(coach,academy,200)).GetProperty("messages")[0]
+                .GetProperty("reactions")[0];
+            Check.Equal(2,two.GetProperty("count").GetInt32(),
+                "Persistence and idempotent toggles yielded a wrong shared count.");
+
+            // The response never discloses the names or IDs of reactors.
+            foreach(var user in new[]{parent,coach})
+            {
+                var view=(await GetAsync(user,academy,200)).GetProperty("messages")[0]
+                    .GetProperty("reactions")[0];
+                Check.Equal(3,view.EnumerateObject().Count(),
+                    "A reaction summary leaked participant identities.");
+            }
+
             await PutAsync(coach,ownEditPath,new{content="Not my message",version=1},403);
             await PutAsync(parent,otherEditPath,new{content="Wrong room",version=1},403);
             await PutAsync(fan,ownEditPath,new{content="Fan cannot edit",version=1},403);
@@ -126,6 +189,14 @@ internal sealed partial class IdentityHttpChecks
                 finally{await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
             }
+            await using(var db=database.CreateContext())
+            {
+                await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                    .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
+                try{await ReactAsync(parent,ownEditPath,"🔥",true,403);}
+                finally{await db.RosterPlayers.Where(row=>row.Id==fixture.ChildId)
+                    .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
+            }
             var removed=await DeleteVersionAsync(parent,ownEditPath,2,200);
             Check.True(removed.GetProperty("is_deleted").GetBoolean() &&
                 removed.GetProperty("content").GetString()=="" &&
@@ -136,6 +207,18 @@ internal sealed partial class IdentityHttpChecks
                 tombstone.GetProperty("content").GetString()=="" &&
                 tombstone.GetProperty("version").GetInt64()==3,
                 "Private deleted content remained in a member's normal read.");
+            Check.Equal(0,tombstone.GetProperty("reactions").GetArrayLength(),
+                "Deletion left visible reaction counts on a removed message.");
+            await ReactAsync(coach,ownEditPath,"⚽",true,403);
+            await ReactAsync(parent,ownEditPath,"⚽",false,403);
+            await using(var db=database.CreateContext())
+            {
+                var orphaned=await db.Database.SqlQueryRaw<long>(
+                    "SELECT count(*) AS \"Value\" FROM club.app_chat_reactions WHERE message_id={0}",academyId)
+                    .SingleAsync();
+                Check.Equal(0L,orphaned,"Deleted message retained reactable personal records.");
+            }
+
             await PutAsync(parent,ownEditPath,new{content="Reappear",version=3},403);
             await DeleteVersionAsync(parent,ownEditPath,3,403);
             await DeleteVersionAsync(parent,ownEditPath,0,422);
@@ -163,6 +246,10 @@ internal sealed partial class IdentityHttpChecks
             // Only the fictional identities in this disposable fixture may be
             // cleaned up. The test cannot touch real club messages or users.
             await using var context=database.CreateContext();
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                DELETE FROM club.app_chat_reactions
+                WHERE actor_identity_id = ANY({sentByFixture})
+                """);
             await context.Database.ExecuteSqlInterpolatedAsync($"""
                 DELETE FROM club.app_chat_message_revisions
                 WHERE actor_identity_id = ANY({sentByFixture})
