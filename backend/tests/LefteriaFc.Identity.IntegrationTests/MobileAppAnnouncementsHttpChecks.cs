@@ -68,8 +68,36 @@ internal sealed partial class IdentityHttpChecks
                 "Guardian cannot read exactly their currently linked Academy notice.");
             Check.True(!academy.GetRawText().Contains("Internal unpublished secret",
                 StringComparison.Ordinal),"Unpublished admin draft leaked to the mobile app.");
-            Check.Equal(7,academy.GetProperty("announcements")[0].EnumerateObject().Count(),
+            Check.Equal(8,academy.GetProperty("announcements")[0].EnumerateObject().Count(),
                 "App notice included draft, author, contact details or hidden internal fields.");
+            Check.Equal(0,academy.GetProperty("announcements")[0]
+                .GetProperty("reactions").GetArrayLength(),
+                "Fresh announcement unexpectedly has reaction participants.");
+            var reactAcademy=academyPath+"/"+academyId+"/reactions";
+            var reactTeam=teamPath+"/"+teamId+"/reactions";
+            var added=await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},200);
+            Check.True(added.GetProperty("announcement_id").GetString()==academyId &&
+                added.GetProperty("reactions").GetArrayLength()==1 &&
+                added.GetProperty("reactions")[0].GetProperty("count").GetInt32()==1 &&
+                added.GetProperty("reactions")[0].GetProperty("mine").GetBoolean(),
+                "Guardian's persisted announcement reaction was not confirmed.");
+            var repeat=await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},200);
+            Check.Equal(1,repeat.GetProperty("reactions")[0].GetProperty("count").GetInt32(),
+                "Repeated reaction incorrectly double-counted the member.");
+            var coachView=await GetAsync(coach,academyPath,200);
+            Check.True(coachView.GetProperty("announcements")[0].GetProperty("reactions")[0]
+                .GetProperty("count").GetInt32()==1 &&
+                !coachView.GetProperty("announcements")[0].GetProperty("reactions")[0]
+                    .GetProperty("mine").GetBoolean(),
+                "Reaction count leaked another member's reaction ownership.");
+            await PostAsync(fan,reactAcademy,new {emoji="👍",active=true},403);
+            await PostAsync(parent,reactTeam,new {emoji="👍",active=true},403);
+            await PostAsync(player,reactAcademy,new {emoji="👍",active=true},403);
+            await PostAsync(parent,reactAcademy,new {emoji="💣",active=true},422);
+            await PostAsync(parent,reactAcademy,new {emoji="👍",active=false},200);
+            Check.Equal(0,(await GetAsync(parent,academyPath,200))
+                .GetProperty("announcements")[0].GetProperty("reactions").GetArrayLength(),
+                "Removed reaction was not cleared from member feed.");
             await GetAsync(parent,teamPath,403);
             await GetAsync(player,academyPath,403);
             await GetAsync(fan,academyPath,403);
@@ -113,7 +141,7 @@ internal sealed partial class IdentityHttpChecks
             {
                 await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
                     .ExecuteUpdateAsync(setters=>setters.SetProperty(r=>r.IsArchived,true));
-                try {await GetAsync(parent,academyPath,403);}
+                try {await GetAsync(parent,academyPath,403);await PostAsync(parent,reactAcademy,new {emoji="⚽",active=true},403);}
                 finally
                 {
                     await db.RosterPlayers.Where(r=>r.Id==fixture.ChildId)
@@ -128,6 +156,7 @@ internal sealed partial class IdentityHttpChecks
                     UPDATE club.app_announcements SET removed_at=clock_timestamp()
                     WHERE id={academyId}
                     """);
+            await PostAsync(parent,reactAcademy,new {emoji="👍",active=true},403);
             Check.Equal(0,(await GetAsync(parent,academyPath,200))
                 .GetProperty("announcements").GetArrayLength(),
                 "Admin-removed announcement was still visible in mobile reader.");
@@ -139,8 +168,12 @@ internal sealed partial class IdentityHttpChecks
         {
             await using var db=database.CreateContext();
             foreach(var id in new[]{academyId,teamId})
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_announcement_reactions WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcements WHERE id={id}");
+            }
             foreach(var id in new[]{academyId,teamId,draftId})
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.admin_announcement_drafts WHERE id={id}");
