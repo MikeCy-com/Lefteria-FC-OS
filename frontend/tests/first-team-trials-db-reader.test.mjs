@@ -10,6 +10,9 @@ const di=source('backend/src/LefteriaFc.Infrastructure/InfrastructureServiceColl
 test('first-team display adapter can call only source-scoped stored projection',()=>{
   assert.ok(reader.includes('FROM club.read_first_team_trial_display()'));
   assert.ok(reader.includes('Open: false'));
+  assert.ok(reader.includes('if (await reader.ReadAsync(ct) ||'));
+  assert.ok(reader.includes('CommandTimeout = 5'));
+  assert.doesNotMatch(reader,/SELECT\s+\*|SELECT\s+.+\s+FROM\s+club\.first_team_trial_settings/i);
   assert.ok(reader.includes('FirstTeamTrialsSettingsPolicy.TryValidate(candidate'));
   assert.ok(reader.includes('catch (NpgsqlException) { return null; }'));
   assert.doesNotMatch(reader,/^\s*(?:INSERT INTO|UPDATE\s+club\.|DELETE FROM|GRANT|REVOKE)\b/im);
