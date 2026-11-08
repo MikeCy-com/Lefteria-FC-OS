@@ -159,8 +159,9 @@ internal sealed partial class WebAdminHttpChecks
                     await ExpectJsonAsync(denied,503,"app_announcement_unavailable");
                 });
             Console.WriteLine("CHECK announcements stage: publish-audit failure returned");
-            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0,
-                "Failed audit persisted a published app announcement.");
+            Require(await database.AppAnnouncementCountAsync("lefteria_fc")==0 &&
+                await database.AppAnnouncementNotificationEventCountAsync("lefteria_fc")==0,
+                "Failed publish audit persisted an announcement notification event.");
             Console.WriteLine("CHECK announcements stage: publish-audit database unchanged");
             using(var stillDraft=await GetAsync(client,FcDraftsPath,login.Cookie))
                 Require((await ExpectJsonAsync(stillDraft,200)).GetProperty("drafts")
@@ -236,8 +237,10 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(published,200);
             Require(await database.AppAnnouncementCountAsync("lefteria_fc")==1 &&
                 await database.AppAnnouncementCountAsync("lefteria_fc_academy")==1 &&
+                await database.AppAnnouncementNotificationEventCountAsync("lefteria_fc")==1 &&
+                await database.AppAnnouncementNotificationEventCountAsync("lefteria_fc_academy")==1 &&
                 await database.AppAnnouncementAuditCountAsync(admin,"admin.app.announcement.publish")==2,
-                "Published app notices were not scoped and audited atomically.");
+                "Published app notices and single notification events were not atomic.");
             using(var repeated=await CreateDraft(client,login.Cookie,fcPublish,new{version=1}))
                 await ExpectJsonAsync(repeated,403,"not_authorized");
             using(var fcLive=await GetAsync(client,fcPublishedList,login.Cookie))
