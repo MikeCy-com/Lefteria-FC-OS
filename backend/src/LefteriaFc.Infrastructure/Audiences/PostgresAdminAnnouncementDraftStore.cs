@@ -87,12 +87,99 @@ public sealed class PostgresAdminAnnouncementDraftStore(
         }
         catch(PostgresException e){throw Translate(e);}
     }
+    public async Task<AdminAppAnnouncementDto> PublishAsync(
+        string cookie,string owner,string id,long version,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        if(!ValidAnnouncementId(id) || version<1)throw InvalidPublication();
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.publish_admin_app_announcement(
+                  @digest,@owner,@id,@version)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("id",id);
+            command.Parameters.AddWithValue("version",version);
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var item=raw is null?null:JsonSerializer.Deserialize<AdminAppAnnouncementDto>(raw,Json);
+            if(item is null || item.Id!=id || item.OrganizationId!=owner ||
+               item.Status!="published" || item.Version<1 ||
+               item.Title is null or {Length:0 or >140} ||
+               item.Body is null or {Length:0 or >4000})
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Publish verification failed.");
+            return item;
+        }
+        catch(PostgresException error){throw Translate(error);}
+    }
+    public async Task<AdminAppAnnouncementsDto> ReadPublishedAsync(
+        string cookie,string owner,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.read_admin_app_announcements(@digest,@owner)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var data=raw is null?null:JsonSerializer.Deserialize<AdminAppAnnouncementsDto>(raw,Json);
+            if(data is null || data.OrganizationId!=owner || data.Announcements is null ||
+              data.Announcements.Count>100 || data.Announcements.Any(item=>
+                !ValidAnnouncementId(item.Id)||item.OrganizationId!=owner||
+                item.Status!="published"||item.Version<1||
+                item.Title is null or {Length:0 or >140}||
+                item.Body is null or {Length:0 or >4000}))
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Published notice list verification failed.");
+            return data;
+        }
+        catch(PostgresException error){throw Translate(error);}
+    }
+    public async Task<AdminAppAnnouncementRemovedDto> RemovePublishedAsync(
+        string cookie,string owner,string id,long version,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        if(!ValidAnnouncementId(id)||version<1)throw InvalidPublication();
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.remove_admin_app_announcement(
+                  @digest,@owner,@id,@version)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("id",id);
+            command.Parameters.AddWithValue("version",version);
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var result=raw is null?null:JsonSerializer.Deserialize<AdminAppAnnouncementRemovedDto>(raw,Json);
+            if(result is null || result.Id!=id||!result.Removed||result.Version!=version+1)
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Removal verification failed.");
+            return result;
+        }
+        catch(PostgresException error){throw Translate(error);}
+    }
+    private static bool ValidAnnouncementId(string? id)=>
+        id is {Length:36} && id.StartsWith("ann_",StringComparison.Ordinal) &&
+        id.AsSpan(4).ToString().All(char.IsAsciiHexDigit);
+    private static WebAdminException InvalidPublication()=>new(422,
+        "invalid_app_announcement","Invalid announcement or version.");
+
     private static WebAdminException Translate(PostgresException e) =>
         e.SqlState switch
         {
             "42501"=>new(403,"not_authorized","Announcement drafts denied."),
             "22023" or "23503"=>new(422,"invalid_announcement_draft","Invalid group or draft."),
             "23505"=>new(409,"announcement_draft_conflict","Draft identifier conflict."),
+            "40001"=>new(409,"app_announcement_conflict","Announcement changed; refresh and retry."),
+            "54000"=>new(503,"app_announcement_unavailable","Published notice limit reached."),
             "P0001" when e.MessageText=="admin_club_session_lock_missing" =>
                 new(401,"not_authenticated","Sign in again."),
             "P0001" when e.MessageText=="admin_club_grant_lock_missing" =>
