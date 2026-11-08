@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'crm' | 'pos' | 'finance' | 'football' 
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/trials';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -23,7 +23,7 @@ interface Section {
 const catalog: readonly Section[] = [
   { id: 'website', name: 'Ιστοσελίδα', description: 'Δημόσια παρουσία, περιεχόμενο και ταυτότητα συλλόγου.', modules: [
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
-    { id: 'news', name: 'Άρθρα & νέα', description: 'Δημοσιεύσεις, νέα και ενημερώσεις.', status: 'planned', scope: 'any', anyPermission: ['news:read'] },
+    { id: 'news', name: 'Άρθρα & νέα', description: 'Πραγματική προβολή δημοσιευμένου περιεχομένου ανά οργανισμό. Η επεξεργασία παραμένει ανενεργή.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
     { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
     { id: 'media', name: 'Βιβλιοθήκη πολυμέσων', description: 'Φωτογραφίες και άλμπουμ.', status: 'planned', scope: 'any', anyPermission: ['gallery:read'] },
     { id: 'social', name: 'Social Control Centre', description: 'Επίσημοι κοινωνικοί λογαριασμοί.', status: 'planned', scope: 'any', anyPermission: ['social:write'] }

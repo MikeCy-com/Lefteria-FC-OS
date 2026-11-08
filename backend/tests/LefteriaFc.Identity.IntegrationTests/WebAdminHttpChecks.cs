@@ -80,7 +80,8 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Web-admin cookie and mobile bearer realms remain independent", RealmIsolationAsync),
         ("Web-admin durable client and username throttle dimensions are independent", DurableThrottlesAsync),
         ("Club editor safe overrides, fresh locked authority, concurrency and atomic audit preserve initial import", ClubEditorAsync),
-        ("First-team trials private GET enforces current FC grants, role and read-only contract", FirstTeamTrialAdminHttpAsync)
+        ("First-team trials private GET enforces current FC grants, role and read-only contract", FirstTeamTrialAdminHttpAsync),
+        ("Website news CMS private GET serves published owner-scoped content and honors fresh role revocation", WebsiteNewsAdminHttpAsync)
     ];
 
     private HttpClient Client()

@@ -5190,6 +5190,110 @@
         ]
       }
     },
+    "/api/admin/website/news": {
+      "get": {
+        "operationId": "GetAdminWebsiteNews",
+        "parameters": [
+          {
+            "description": "Exact current authorized FC or Academy owner; never a global feed.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc",
+                "lefteria_fc_academy"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicNewsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
     "/api/health/live": {
       "get": {
         "operationId": "GetLiveness",
@@ -8532,6 +8636,9 @@
     },
     {
       "name": "Public website"
+    },
+    {
+      "name": "Website administration"
     },
     {
       "name": "Mobile organization"
