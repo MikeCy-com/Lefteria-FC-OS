@@ -86,8 +86,8 @@ public sealed class AdminCoachAssignment : Migration
           END IF;
           -- A shared staff identity can have assignments in two owners.
           -- Do not permit owner-wide enumeration of staff with no association.
-          IF v_team_type<>CASE WHEN _owner='lefteria_fc'
-              THEN 'First Team' ELSE 'Academy' END
+          IF (v_team_type<>(CASE WHEN _owner='lefteria_fc'
+              THEN 'First Team' ELSE 'Academy' END))
             AND NOT EXISTS(SELECT 1 FROM club.staff_teams t
                 WHERE _owner='lefteria_fc' AND t.staff_id=_staff
                   AND t.organization_id=_owner)
@@ -166,7 +166,7 @@ public sealed class AdminCoachAssignment : Migration
             'admin.coach.groups.replace','succeeded',_owner,'staff_group_membership');
           RETURN jsonb_build_object('organization_id',_owner,'staff_id',_staff,
             'group_ids',v_desired);
-        END
+        END;
         $coach_assignment$;
         REVOKE ALL ON FUNCTION club.write_admin_coach_assignment(
           text,text,text,jsonb,jsonb) FROM PUBLIC;
