@@ -791,6 +791,16 @@ export interface components {
             name: null | string;
             variants: null | components["schemas"]["AdminPosVariantCommand"][];
         };
+        AdminPosProductDto: {
+            active: boolean;
+            category_id: string;
+            id: string;
+            image_url: null | string;
+            name: string;
+            variants: components["schemas"]["AdminPosVariantDto"][];
+            /** Format: int64 */
+            version: number | string;
+        };
         AdminPosProductUpdateCommand: {
             active: null | boolean;
             category_id: null | string;
@@ -807,16 +817,6 @@ export interface components {
             name: null | string;
             /** Format: int32 */
             price_cents: null | number | string;
-        };
-        AdminPosProductDto: {
-            active: boolean;
-            category_id: string;
-            id: string;
-            image_url: null | string;
-            name: string;
-            variants: components["schemas"]["AdminPosVariantDto"][];
-            /** Format: int64 */
-            version: number | string;
         };
         AdminPosVariantDto: {
             /** Format: int32 */
