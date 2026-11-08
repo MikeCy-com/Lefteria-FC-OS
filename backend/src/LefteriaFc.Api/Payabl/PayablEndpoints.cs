@@ -181,7 +181,9 @@ public static class PayablEndpoints
                     if (buffer.Length + n > 4096) return Results.BadRequest();
                     await buffer.WriteAsync(chunk.AsMemory(0, n), ct);
                 }
-                var values = PayablGateway.ParseFields(Encoding.ASCII.GetString(buffer.ToArray()));
+                Dictionary<string, string> values;
+                try { values = PayablGateway.ParseFields(Encoding.ASCII.GetString(buffer.ToArray())); }
+                catch (PayablUnavailableException) { return Results.BadRequest(); }
                 if (!PayablSignature.Notification(values, settings.Value.Secret, DateTimeOffset.UtcNow))
                     return Results.BadRequest();
                 if (!int.TryParse(values["errorcode"], out var code) ||
