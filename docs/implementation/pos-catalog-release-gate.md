@@ -17,3 +17,21 @@ The old `MikeCy-com/Lefteria-FC` repository is a **read-only** functional refere
 3. Prior to any POS checkout: server-price every product/variant, forbid client price authority, build a durable idempotent sale snapshot/receipt and transactional audit, enforce quantity/amount limits, and verify reconciliation in PostgreSQL.
 4. Keep CRM consent-bound enquiry workflows separate from POS customers and private minors' information. Payments require separate release authorization and production compliance review.
 5. Preserve brand parity with the parent-role home; no production deployment, Hostinger changes, live transactions or source-repository mutations are authorized here.
+
+## Audited product-writer milestone (backend only)
+
+The admin product POST/PUT backend now accepts **one entire product with 1–16
+explicit cost/price variants**, validates strict nested JSON and unique
+variant codes, locks current admin cookie/role/organization in PostgreSQL,
+checks the current expected product version, replaces its variants atomically,
+and appends an audit event in the same transaction. Only an exact reviewed
+security-definer product function receives EXECUTE; raw tables remain denied
+to admin/mobile/public runtime roles. Product and variant write failures must
+leave the previous snapshot unchanged. This does **not** grant POS operator
+access, enable sales, or publish any new product to a shop automatically.
+
+The next distinct release gate is a source-faithful, accessible
+product-management form with refreshed catalog versions and explicit FC/
+Academy ownership. Public merchandising, stock by location, pricing used for
+actual checkout, receipts and payment collection remain separate disabled
+workstreams and require transaction and security reviews.
