@@ -8,6 +8,7 @@
   import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileGroupChat from '../../../lib/mobile/components/MobileGroupChat.svelte';
+  import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
@@ -19,11 +20,13 @@
 
   const controller = getContext<MobileAuthController>(MOBILE_AUTH_CONTEXT);
   let composing = $state(false);
+  let chatMode = $state<'groups'|'private'>('groups');
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
   $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
   $effect(() => { void role; composing = false; });
+  $effect(() => { void user?.id; void role; chatMode='groups'; });
 
   async function openTab(tab: MobileTab, childId?: string) {
     composing = false;
@@ -156,9 +159,25 @@
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
-        {#key user.id+':'+role}
-          <MobileGroupChat {controller} actorId={user.id} {role} />
-        {/key}
+        {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
+          <section class="content-card" data-testid="chat-organization-required"><h1>Μηνύματα</h1><p>Επίλεξε οργανισμό για να δεις τις συνομιλίες.</p></section>
+        {:else}
+          {#if role==='parent'||role==='coach'||role==='management'}
+            <div class="chat-mode-tabs" role="group" aria-label="Τύπος συνομιλίας">
+              <button type="button" class:current={chatMode==='groups'}
+                aria-pressed={chatMode==='groups'} onclick={()=>{chatMode='groups';}}>Ομάδες</button>
+              <button type="button" class:current={chatMode==='private'}
+                aria-pressed={chatMode==='private'} onclick={()=>{chatMode='private';}}>Ιδιωτικά</button>
+            </div>
+          {/if}
+          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode}
+            {#if chatMode==='private' && (role==='parent'||role==='coach'||role==='management')}
+              <MobilePrivateChat {controller} actorId={user.id} {role}/>
+            {:else}
+              <MobileGroupChat {controller} actorId={user.id} {role} />
+            {/if}
+          {/key}
+        {/if}
       {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
           <section class="content-card" data-testid="calendar-organization-required"><h1>Πρόγραμμα</h1><p>Επίλεξε οργανισμό για να δεις το πρόγραμμά του.</p></section>
@@ -231,4 +250,9 @@
   .more-links button { text-align:left; }
   .app-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
   .app-status p { max-width:32rem; text-align:center; }
+  .chat-mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 14px 0}
+  .chat-mode-tabs button{min-height:44px;background:#202325;border:1px solid #525252;
+    color:#f0e0bd;border-radius:10px;font-family:var(--lf-body);font-weight:700;cursor:pointer}
+  .chat-mode-tabs button.current{background:#3b301e;border-color:var(--lf-gold);color:var(--lf-gold-light)}
+  .chat-mode-tabs button:focus-visible{outline:2px solid var(--lf-gold);outline-offset:2px}
 </style>
