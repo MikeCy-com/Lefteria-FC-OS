@@ -21,12 +21,12 @@ test('future admin trials GET must recheck current session and FC role in backen
 });
 
 test('admin trials GET is mapped with explicit protected OpenAPI scope and has no submit operations',()=>{
-  assert.match(program,/app\.MapFirstTeamTrialsAdmin\(\\)/);
+  assert.ok(program.includes('app.MapFirstTeamTrialsAdmin();'));
   const api=JSON.parse(openapi);
   const route=api.paths['/api/admin/trials/settings'];
   assert.deepEqual(Object.keys(route),['get']);
   assert.deepEqual(route.get.security,[{WebAdmin:[]}]);
   assert.deepEqual(route.get.parameters.filter(p=>p.name==='organization_id').map(p=>p.schema.enum),[['lefteria_fc']]);
   assert.ok(route.get.responses['503']);
-  assert.doesNotMatch(program,/app\.MapAcademyEnquiry/);
+  assert.ok(!program.includes('app.MapAcademyEnquiry('));
 });
