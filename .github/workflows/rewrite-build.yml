@@ -25,11 +25,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Validate all workflow syntax and expression contexts
         run: |
-          curl --fail --silent --show-error --location \
-            https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
-            --output "$RUNNER_TEMP/actionlint.tar.gz"
-          printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
-          tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          # GitHub release assets occasionally return a transient 504. Keep
+          # the exact reviewed binary SHA256; if its CDN is unavailable,
+          # build the SAME version through Go's checksum-verified module proxy.
+          # Never skip actionlint or use an unpinned latest release.
+          if curl --fail --silent --show-error --location \
+              --retry 5 --retry-all-errors --retry-delay 2 \
+              --connect-timeout 10 --max-time 30 \
+              https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+              --output "$RUNNER_TEMP/actionlint.tar.gz"; then
+            printf '%s  %s\n' 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 "$RUNNER_TEMP/actionlint.tar.gz" | sha256sum --check --strict
+            tar -xzf "$RUNNER_TEMP/actionlint.tar.gz" -C "$RUNNER_TEMP" actionlint
+          else
+            echo "Pinned actionlint release archive unavailable; installing verified v1.7.12 Go module"
+            GOSUMDB=sum.golang.org GOPROXY=https://proxy.golang.org \
+              go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+            install -m 0755 "$(go env GOPATH)/bin/actionlint" "$RUNNER_TEMP/actionlint"
+          fi
           "$RUNNER_TEMP/actionlint" -shellcheck= -pyflakes=
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
