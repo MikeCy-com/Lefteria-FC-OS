@@ -213,7 +213,11 @@
           },
           "version": {
             "format": "int64",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -252,7 +256,11 @@
           },
           "version": {
             "format": "int64",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -270,7 +278,11 @@
         "properties": {
           "cost_cents": {
             "format": "int32",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           },
           "id": {
             "type": "string"
@@ -280,7 +292,11 @@
           },
           "price_cents": {
             "format": "int32",
-            "type": "integer"
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
           }
         },
         "required": [
@@ -8837,6 +8853,9 @@
       "name": "Website administration"
     },
     {
+      "name": "POS administration"
+    },
+    {
       "name": "Mobile organization"
     },
     {
@@ -8844,9 +8863,6 @@
     },
     {
       "name": "Club settings"
-    },
-    {
-      "name": "POS administration"
     }
   ]
 }

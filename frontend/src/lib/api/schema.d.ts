@@ -708,7 +708,7 @@ export interface components {
             id: string;
             name: string;
             /** Format: int64 */
-            version: number;
+            version: number | string;
         };
         AdminPosProductDto: {
             active: boolean;
@@ -718,15 +718,15 @@ export interface components {
             name: string;
             variants: components["schemas"]["AdminPosVariantDto"][];
             /** Format: int64 */
-            version: number;
+            version: number | string;
         };
         AdminPosVariantDto: {
             /** Format: int32 */
-            cost_cents: number;
+            cost_cents: number | string;
             id: string;
             name: string;
             /** Format: int32 */
-            price_cents: number;
+            price_cents: number | string;
         };
         CalendarOwnResponse: {
             player_id: string;
