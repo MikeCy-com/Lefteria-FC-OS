@@ -13,9 +13,13 @@ export function validRoom(v:unknown):v is GroupChatRoom {
     v.organization_id==='lefteria_fc_academy'&&v.kind==='academy_group')&&
     text(v.group_id,128)&&/^[a-zA-Z0-9_-]+$/.test(v.group_id)&&text(v.name,200);
 }
-export function validRooms(v:unknown):v is {rooms:GroupChatRoom[]} {
-  return value(v)&&Array.isArray(v.rooms)&&v.rooms.length<=200&&v.rooms.every(validRoom)&&
-    new Set(v.rooms.map((r:GroupChatRoom)=>r.organization_id+'/'+r.group_id)).size===v.rooms.length;
+export function validChatDirectory(v:unknown):v is {ready:true;groups:{id:string;organization_id:string;kind:'team'|'academy_group';name:string}[]} {
+  if(!value(v)||v.ready!==true||!Array.isArray(v.groups)||v.groups.length>150)return false;
+  const groups=v.groups;
+  return groups.every((group:unknown)=>{
+    if(!value(group))return false;
+    return validRoom({organization_id:group.organization_id,group_id:group.id,kind:group.kind,name:group.name});
+  })&&new Set(groups.map((r:{id:string;organization_id:string})=>r.organization_id+'/'+r.id)).size===groups.length;
 }
 export function validMessage(v:unknown,room:GroupChatRoom):v is GroupChatMessage {
   return value(v)&&typeof v.id==='string'&&/^[a-f0-9-]{36}$/i.test(v.id)&&
