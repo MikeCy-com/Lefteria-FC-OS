@@ -9,6 +9,7 @@
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileGroupChat from '../../../lib/mobile/components/MobileGroupChat.svelte';
   import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
+  import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
@@ -158,6 +159,16 @@
             onLoadOutgoing={() => controller.loadOutgoingInvitations()}
             onLoad={() => controller.loadFamily()} onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
+      {:else if activeTab === 'announcements' && role !== 'fan' && !composing}
+        {#if role==='management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
+          <section class="content-card" data-testid="announcements-organization-required">
+            <h1>Ανακοινώσεις</h1><p>Επίλεξε πρώτα οργανισμό.</p>
+          </section>
+        {:else}
+          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            <MobileAppAnnouncements {controller}/>
+          {/key}
+        {/if}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
           <section class="content-card" data-testid="chat-organization-required"><h1>Μηνύματα</h1><p>Επίλεξε οργανισμό για να δεις τις συνομιλίες.</p></section>
