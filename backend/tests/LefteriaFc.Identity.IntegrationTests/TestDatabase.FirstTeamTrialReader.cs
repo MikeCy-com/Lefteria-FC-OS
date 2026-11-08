@@ -15,7 +15,7 @@ internal sealed partial class TestDatabase
                 .UseNpgsql(fixture.AppConnectionString).Options);
         var reader = new PostgresFirstTeamTrialDisplayReader(context);
         var settings = await reader.ReadAsync(CancellationToken.None);
-        Check.True(settings is not null, "App role could not read approved trials projection.");
+        if (settings is null) throw new InvalidOperationException("App role could not read approved trials projection.");
         Check.True(!settings.Open, "Public trials opened without submission approval.");
         Check.Equal("Ετοιμος να Ξεκινησεις το Ταξιδι σου;", settings.Headline,
             "First-team trial read altered its source headline.");
