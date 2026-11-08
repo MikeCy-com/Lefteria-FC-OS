@@ -29,6 +29,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
+\ir app-announcement-publishing-boundary.sql
 
 DO $checks$
 DECLARE
