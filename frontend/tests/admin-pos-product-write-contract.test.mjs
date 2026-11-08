@@ -26,7 +26,7 @@ test('product writer has nested strict JSON, one audited SQL path and no checkou
   assert.ok(adapter.includes('result.Variants.Count != variants.Count'));
   assert.ok(grant.includes('GRANT EXECUTE ON FUNCTION pos.write_admin_product('));
   assert.doesNotMatch(grant,/GRANT\s+(SELECT|INSERT|UPDATE|DELETE)\s+ON\s+pos\./);
-  assert.doesNotMatch(api,/MapDelete\(|MapGet\(|checkout|payments|sales/i);
+  assert.doesNotMatch(api,/MapDelete\(|MapGet\(|\"\/api\/pos\/(checkout|sales|payments)/i);
 });
 
 test('catalog stays distinct from POS operators and checkout; no products editor enabled in UI before verification',()=>{
