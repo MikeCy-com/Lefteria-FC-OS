@@ -45,6 +45,7 @@ const catalog: readonly Section[] = [
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
+    { id: 'payabl', name: 'payabl. · σύνδεσμοι πληρωμών (sandbox)', description: 'Δοκιμαστικά ασφαλή αιτήματα πληρωμής, επιβεβαίωση μέσω υπογεγραμμένων ειδοποιήσεων. Πραγματικές εισπράξεις, συνδρομές και πληρωμές προσωπικού δεν έχουν ενεργοποιηθεί.', status: 'live', href: '/admin/finance', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'charges', name: 'Χρεώσεις & εισπράξεις', description: 'Οφειλές και πληρωμές.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'reports', name: 'Αναφορές & έξοδα', description: 'Οικονομικά ανά οργανισμό.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] }
   ] },
