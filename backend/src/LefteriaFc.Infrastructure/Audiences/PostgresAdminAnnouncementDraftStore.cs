@@ -166,6 +166,33 @@ public sealed class PostgresAdminAnnouncementDraftStore(
         }
         catch(PostgresException error){throw TranslatePublished(error);}
     }
+    public async Task<AdminAppAnnouncementReadersDto> ReadPublishedReadersAsync(
+        string cookie,string owner,string id,CancellationToken token)
+    {
+        Verify(cookie,owner,secrets);
+        if(!ValidAnnouncementId(id))throw InvalidPublication();
+        try
+        {
+            await using var connection=await connections.OpenAsync(token);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.read_admin_app_announcement_readers(
+                  @digest,@owner,@id)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("id",id);
+            var raw=await command.ExecuteScalarAsync(token) as string;
+            var readers=raw is null?null:JsonSerializer.Deserialize<AdminAppAnnouncementReadersDto>(raw,Json);
+            if(readers is null||readers.AnnouncementId!=id||
+               readers.Readers is null||readers.Readers.Count>150||
+               readers.Readers.Any(r=>r.Id==Guid.Empty||
+                 string.IsNullOrWhiteSpace(r.Name)||r.Name.Length>200))
+                throw new WebAdminException(503,"app_announcement_unavailable",
+                    "Readership verification failed.");
+            return readers;
+        }
+        catch(PostgresException error){throw TranslatePublished(error);}
+    }
     private static bool ValidAnnouncementId(string? id)=>
         id is {Length:36} && id.StartsWith("ann_",StringComparison.Ordinal) &&
         id.AsSpan(4).ToString().All(char.IsAsciiHexDigit);
