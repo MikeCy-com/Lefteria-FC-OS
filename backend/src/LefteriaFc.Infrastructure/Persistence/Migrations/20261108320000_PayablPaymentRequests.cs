@@ -194,7 +194,7 @@ public sealed class PayablPaymentRequests : Migration
           _code integer,_stamp bigint
         ) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
         SET search_path=pg_catalog,pg_temp AS $payment_notice$
-        DECLARE v_status text; v_owner text; v_changed boolean:=false;
+        DECLARE v_status text; v_owner text; v_initial_transaction text; v_changed boolean:=false;
         BEGIN
           IF _id IS NULL OR _nonce_digest !~ '^[0-9a-f]{64}$'
             OR _transaction !~ '^[0-9]{1,40}$'
@@ -202,7 +202,7 @@ public sealed class PayablPaymentRequests : Migration
             OR _stamp NOT BETWEEN 1500000000 AND 4102444800 THEN
             RAISE EXCEPTION 'payment_notice_invalid' USING ERRCODE='22023';
           END IF;
-          SELECT status,organization_id INTO v_status,v_owner
+          SELECT status,organization_id,initial_transaction_id INTO v_status,v_owner,v_initial_transaction
           FROM finance.payment_requests
           WHERE id=_id AND callback_digest=_nonce_digest FOR UPDATE;
           IF NOT FOUND OR v_status='initiating' THEN
@@ -215,7 +215,7 @@ public sealed class PayablPaymentRequests : Migration
           IF NOT FOUND THEN RETURN false; END IF;
           -- Capture is the ONLY positive receipt. All other messages require
           -- reconciliation rather than assuming payment. Never downgrade PAID.
-          IF v_status<>'paid' AND _kind='capture' AND _code=0 THEN
+          IF v_status<>'paid' AND _kind='capture' AND _code=0\n              AND v_initial_transaction=_transaction THEN
             UPDATE finance.payment_requests SET status='paid',
               captured_transaction_id=_transaction,updated_at=clock_timestamp()
             WHERE id=_id; v_changed:=true;
