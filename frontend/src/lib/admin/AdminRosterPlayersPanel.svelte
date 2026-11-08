@@ -81,14 +81,15 @@
       if(!raw || typeof raw!=='object' || Array.isArray(raw))
         throw new Error('Μη επαληθευμένη απάντηση.');
       const saved=raw as Record<string,unknown>;
+      const returnedGroups=saved.academy_group_ids;
       if(saved.organization_id!==selectedOwner || saved.player_id!==player.id ||
-        !Array.isArray(saved.academy_group_ids) ||
+        !Array.isArray(returnedGroups) ||
         (selectedOwner==='lefteria_fc' &&
-          (saved.team_id!==(desired[0]??null) || saved.academy_group_ids.length!==0)) ||
+          (saved.team_id!==(desired[0]??null) || returnedGroups.length!==0)) ||
         (selectedOwner==='lefteria_fc_academy' &&
           (saved.team_id!==null ||
-           saved.academy_group_ids.length!==desired.length ||
-           !desired.every(id=>saved.academy_group_ids?.includes(id)))))
+           returnedGroups.length!==desired.length ||
+           !desired.every(id=>returnedGroups.includes(id)))))
         throw new Error('Μη επαληθευμένη ανάθεση.');
       editing=null;
       selectedGroups=[];
