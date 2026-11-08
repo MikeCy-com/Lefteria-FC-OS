@@ -19,15 +19,6 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
         UnmappedMemberHandling=System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow
     };
 
-    public Task<MobileChatRoomsDto> RoomsAsync(MobileSession actor,CancellationToken token) =>
-        QueryAsync<MobileChatRoomsDto>("""
-            SELECT jsonb_build_object('rooms',coalesce(jsonb_agg(
-              jsonb_build_object('organization_id',r.organization_id,
-                'group_id',r.group_id,'kind',r.kind,'name',r.name)
-              ORDER BY r.name COLLATE "C",r.group_id COLLATE "C"),'[]'::jsonb))::text
-            FROM club.mobile_chat_rooms(@identity,@phone,@role,@expires) r
-            """,actor,null,null,null,null,token);
-
     public Task<MobileChatPageDto> MessagesAsync(MobileSession actor,string organization,
         string group,int offset,CancellationToken token)
     {
