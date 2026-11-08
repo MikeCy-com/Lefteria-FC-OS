@@ -10,17 +10,41 @@ internal sealed partial class WebAdminHttpChecks
     private const string FcPlayersPath="/api/admin/football/players?organization_id=lefteria_fc";
     private const string AcademyPlayersPath="/api/admin/football/players?organization_id=lefteria_fc_academy";
 
-    private static JsonElement PlayerRow(JsonElement body,string id)
+    // Test fixtures can coexist with other valid roster rows. Never assume
+    // a synthetic player appears on page one just because paging is correct.
+    private static JsonElement PlayerRow(IReadOnlyList<JsonElement> rows,string id)
     {
-        var row=body.GetProperty("players").EnumerateArray()
-            .FirstOrDefault(p=>p.GetProperty("id").GetString()==id);
-        Require(row.ValueKind==JsonValueKind.Object,"Synthetic roster member missing from scoped picker.");
+        var row=rows.FirstOrDefault(p=>p.GetProperty("id").GetString()==id);
+        Require(row.ValueKind==JsonValueKind.Object,"Synthetic player missing from scoped pages.");
         return row;
+    }
+
+    private async Task<(JsonElement First,IReadOnlyList<JsonElement> Rows)> ReadRosterPagesAsync(
+        HttpClient client,string path,string cookie)
+    {
+        const int pageSize=50;
+        var rows=new List<JsonElement>();
+        JsonElement first=default;
+        var total=0;
+        for(var offset=0;offset<=20000;offset+=pageSize)
+        {
+            using var response=await GetAsync(client,path+"&offset="+offset+"&limit="+pageSize,cookie);
+            var page=await ExpectJsonAsync(response,200);
+            if(offset==0){first=page.Clone();total=page.GetProperty("total").GetInt32();}
+            Require(page.GetProperty("offset").GetInt32()==offset &&
+                page.GetProperty("limit").GetInt32()==pageSize &&
+                page.GetProperty("total").GetInt32()==total,
+                "Owner roster pagination did not preserve its metadata.");
+            rows.AddRange(page.GetProperty("players").EnumerateArray().Select(p=>p.Clone()));
+            if(offset+pageSize>=total)break;
+            Require(offset<1000,"Disposable roster unexpectedly exceeds bounded test scan.");
+        }
+        Require(rows.Count==total,"Private player pages returned incomplete or duplicated rows.");
+        return (first,rows);
     }
 
     private async Task AdminRosterPlayerDirectoryAsync()
     {
-        Console.WriteLine("ROSTER_PICKER_PROBE start");
         using var anonymous=Client();
         using(var denied=await anonymous.GetAsync(FcPlayersPath))
             await ExpectJsonAsync(denied,401,"not_authenticated");
@@ -51,51 +75,42 @@ internal sealed partial class WebAdminHttpChecks
             Require(denied,"Roster picker accepted an unbound admin session digest.");
         }
 
-        Console.WriteLine("ROSTER_PICKER_PROBE token_and_raw_grants_ok");
         var fixture=await database.SeedAudienceAsync();
         try
         {
-            using(var response=await GetAsync(client,FcPlayersPath,login.Cookie))
-            {
-                Console.WriteLine("ROSTER_PICKER_PROBE fc_status="+(int)response.StatusCode);
-                var body=await ExpectJsonAsync(response,200);
-                Console.WriteLine("ROSTER_PICKER_PROBE fc_parsed player_count="+body.GetProperty("players").GetArrayLength());
+            var fc=await ReadRosterPagesAsync(client,FcPlayersPath,login.Cookie);
+            var fcBody=fc.First;
+            var first=PlayerRow(fc.Rows,fixture.Player(1));
+            Require(fcBody.GetProperty("organization_id").GetString()=="lefteria_fc" &&
+                fcBody.GetProperty("ready").GetBoolean() &&
+                fcBody.GetProperty("offset").GetInt32()==0 &&
+                fcBody.GetProperty("limit").GetInt32()==50 &&
+                fcBody.GetProperty("total").GetInt32()>=2 &&
+                first.EnumerateObject().Count()==4 &&
+                first.GetProperty("team_id").GetString()==fixture.Team1 &&
+                first.GetProperty("academy_group_ids").GetArrayLength()==0 &&
+                PlayerRow(fc.Rows,fixture.Player(3))
+                    .GetProperty("team_id").ValueKind==JsonValueKind.Null,
+                "FC player membership directory differs from real canonical roster.");
+            Require(!fc.Rows.Any(p => p.GetProperty("id").GetString()==fixture.Player(2) ||
+                    p.GetProperty("id").GetString()==fixture.Player(4)) &&
+                fc.Rows.All(p=>p.EnumerateObject().Count()==4) &&
+                !fcBody.GetRawText().Contains("phone",StringComparison.OrdinalIgnoreCase) &&
+                !fcBody.GetRawText().Contains("birth",StringComparison.OrdinalIgnoreCase),
+                "Inactive, cross-owner or private youth data leaked.");
 
-                var first=PlayerRow(body,fixture.Player(1));
-                Console.WriteLine("ROSTER_PICKER_PROBE fc_first_found fields="+first.EnumerateObject().Count());
+            var academy=await ReadRosterPagesAsync(client,AcademyPlayersPath,login.Cookie);
+            var academyGroups=PlayerRow(academy.Rows,fixture.Player(4))
+                .GetProperty("academy_group_ids");
+            Require(academy.First.GetProperty("organization_id").GetString()=="lefteria_fc_academy" &&
+                academy.First.GetProperty("total").GetInt32()>=3 &&
+                academyGroups.GetArrayLength()==2 &&
+                academyGroups[0].GetString()==fixture.Group1 &&
+                academyGroups[1].GetString()==fixture.Group2 &&
+                !academy.Rows.Any(p=>p.GetProperty("id").GetString()==fixture.Player(5) ||
+                    p.GetProperty("id").GetString()==fixture.Player(1)),
+                "Academy primary/plural memberships or tenant boundary invalid.");
 
-                Require(body.GetProperty("organization_id").GetString()=="lefteria_fc" &&
-                    body.GetProperty("ready").GetBoolean() &&
-                    body.GetProperty("offset").GetInt32()==0 &&
-                    body.GetProperty("limit").GetInt32()==20 &&
-                    body.GetProperty("total").GetInt32()>=2 &&
-                    first.EnumerateObject().Count()==4 &&
-                    first.GetProperty("team_id").GetString()==fixture.Team1 &&
-                    first.GetProperty("academy_group_ids").GetArrayLength()==0 &&
-                    PlayerRow(body,fixture.Player(3)).GetProperty("team_id").ValueKind==JsonValueKind.Null,
-                    "FC player membership directory differs from real canonical roster.");
-                Console.WriteLine("ROSTER_PICKER_PROBE fc_assignment_checks_ok");
-                Require(!body.GetRawText().Contains(fixture.Player(2),StringComparison.Ordinal) &&
-                    !body.GetRawText().Contains(fixture.Player(4),StringComparison.Ordinal) &&
-                    !body.GetRawText().Contains("phone",StringComparison.OrdinalIgnoreCase) &&
-                    !body.GetRawText().Contains("birth",StringComparison.OrdinalIgnoreCase),
-                    "Inactive, cross-owner or private youth data leaked.");
-            }
-            Console.WriteLine("ROSTER_PICKER_PROBE fc_membership_ok");
-            using(var response=await GetAsync(client,AcademyPlayersPath,login.Cookie))
-            {
-                var body=await ExpectJsonAsync(response,200);
-                var groups=PlayerRow(body,fixture.Player(4)).GetProperty("academy_group_ids");
-                Require(body.GetProperty("organization_id").GetString()=="lefteria_fc_academy" &&
-                    body.GetProperty("total").GetInt32()>=3 &&
-                    groups.GetArrayLength()==2 &&
-                    groups[0].GetString()==fixture.Group1 &&
-                    groups[1].GetString()==fixture.Group2 &&
-                    !body.GetRawText().Contains(fixture.Player(5),StringComparison.Ordinal) &&
-                    !body.GetRawText().Contains(fixture.Player(1),StringComparison.Ordinal),
-                    "Academy primary and plural membership union is wrong or leaked FC.");
-            }
-            Console.WriteLine("ROSTER_PICKER_PROBE academy_membership_ok");
             using(var response=await GetAsync(client,FcPlayersPath+"&offset=1&limit=1",login.Cookie))
             {
                 var body=await ExpectJsonAsync(response,200);
@@ -104,15 +119,11 @@ internal sealed partial class WebAdminHttpChecks
                     body.GetProperty("players").GetArrayLength()==1,
                     "Manager roster player pagination failed.");
             }
-            Console.WriteLine("ROSTER_PICKER_PROBE pagination_ok");
             await database.RemoveAudienceMembershipAsync(fixture);
-            using(var response=await GetAsync(client,AcademyPlayersPath,login.Cookie))
-            {
-                var body=await ExpectJsonAsync(response,200);
-                Require(PlayerRow(body,fixture.Player(6)).GetProperty("academy_group_ids").GetArrayLength()==0,
-                    "Player group display did not dynamically refresh from database.");
-            }
-            Console.WriteLine("ROSTER_PICKER_PROBE live_mutation_reflection_ok");
+            var updated=await ReadRosterPagesAsync(client,AcademyPlayersPath,login.Cookie);
+            Require(PlayerRow(updated.Rows,fixture.Player(6))
+                .GetProperty("academy_group_ids").GetArrayLength()==0,
+                "Player group display did not dynamically refresh from database.");
             foreach(var path in new[]{
                 "/api/admin/football/players",
                 "/api/admin/football/players?organization_id=all",
@@ -123,7 +134,6 @@ internal sealed partial class WebAdminHttpChecks
                 using(var response=await GetAsync(client,path,login.Cookie))
                     await ExpectStatusAsync(response,400);
 
-            Console.WriteLine("ROSTER_PICKER_PROBE invalid_filters_ok");
             var editor=await database.SeedAsync(role:"editor",organizations:["lefteria_fc"]);
             using(var editorClient=Client())
             {
@@ -147,7 +157,6 @@ internal sealed partial class WebAdminHttpChecks
                 using(var allowed=await GetAsync(academyClient,AcademyPlayersPath,session.Cookie))
                     await ExpectJsonAsync(allowed,200);
             }
-            Console.WriteLine("ROSTER_PICKER_PROBE role_denial_ok");
             await database.SetStateAsync(admin,role:"editor");
             using(var denied=await GetAsync(client,FcPlayersPath,login.Cookie))
                 await ExpectJsonAsync(denied,403,"not_authorized");
@@ -160,6 +169,5 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,401,"not_authenticated");
         }
         finally {await database.CleanupAudienceAsync(fixture);}
-        Console.WriteLine("ROSTER_PICKER_PROBE all_phases_ok");
     }
 }
