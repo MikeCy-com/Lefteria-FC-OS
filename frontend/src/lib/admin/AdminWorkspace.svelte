@@ -62,6 +62,11 @@
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
                     <span class="admin-tool-arrow" aria-hidden="true">↗</span>
                   </a>
+                {:else if module.status === 'live' && module.id === 'onboarding'}
+                  <a class="admin-tool admin-tool-live" href="/admin/onboarding" data-testid="admin-onboarding-module">
+                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
+                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
+                  </a>
                 {:else if module.status === 'live' && module.id === 'announcements'}
                   <a class="admin-tool admin-tool-live" href="/admin/announcements" data-testid="admin-announcements-module">
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>

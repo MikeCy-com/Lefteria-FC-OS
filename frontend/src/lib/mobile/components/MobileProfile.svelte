@@ -148,6 +148,7 @@
   }
 
   function openPlayer() {
+    if (user.role !== 'fan') return;
     playerDraft = savedPlayerId;
     playerSaved = false;
     editor = 'player';
@@ -220,7 +221,7 @@
   }
 </script>
 
-<section class="lf-mobile-theme profile" aria-labelledby={`${id}-title`} aria-busy={isBusy} data-testid="fan-profile">
+<section class="lf-mobile-theme profile" aria-labelledby={`${id}-title`} aria-busy={isBusy} data-testid="mobile-own-profile">
   <header class="profile-heading">
     <div class="avatar" aria-hidden="true">
       {#if avatar && !avatarFailed}<img src={avatar} alt="" onerror={() => { avatarFailed = true; }} />{:else}<span>{initial}</span>{/if}
@@ -240,7 +241,7 @@
   {#if avatarSaved}<p class="feedback success" role="status" data-testid="avatar-saved">Η φωτογραφία προφίλ αποθηκεύτηκε.</p>{/if}
   {#if playerSaved}<p class="feedback success" role="status" data-testid="favorite-player-saved">Η προτίμηση παίκτη αποθηκεύτηκε.</p>{/if}
 
-  {#if editor === 'player'}
+  {#if editor === 'player' && user.role === 'fan'}
     <form class="profile-editor" onsubmit={savePlayer} aria-labelledby={`${id}-player-title`} aria-busy={playerOptionsStatus === 'loading' || isBusy} data-testid="favorite-player-form">
       <h2 id={`${id}-player-title`}>Αγαπημένος παίκτης</h2>
       <p class="hint" id={`${id}-player-help`}>Επίλεξε παίκτη από την πρώτη ομάδα ή αφαίρεσε την προτίμησή σου.</p>
@@ -337,10 +338,11 @@
       <button bind:this={avatarTrigger} type="button" class="secondary" disabled={isBusy} onclick={openAvatar} data-testid="profile-edit-avatar">Αλλαγή φωτογραφίας</button>
       <button bind:this={detailsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openDetails} data-testid="profile-edit-details">Επεξεργασία στοιχείων</button>
       <button bind:this={notificationsTrigger} type="button" class="secondary" disabled={isBusy} onclick={openNotifications} data-testid="profile-edit-notifications">Προτιμήσεις ειδοποιήσεων</button>
-      <button bind:this={playerTrigger} type="button" class="secondary" disabled={isBusy} onclick={openPlayer} data-testid="profile-edit-favorite-player">Αγαπημένος παίκτης</button>
+      {#if user.role === 'fan'}<button bind:this={playerTrigger} type="button" class="secondary" disabled={isBusy} onclick={openPlayer} data-testid="profile-edit-favorite-player">Αγαπημένος παίκτης</button>{/if}
     </div>
   {/if}
 
+  {#if user.role === 'fan'}
   <form class="preference-form" onsubmit={save} aria-labelledby={`${id}-preference-title`} data-testid="favorite-team-form">
     <h2 id={`${id}-preference-title`}>Η ομάδα που υποστηρίζω</h2>
     <p id={`${id}-preference-help`}>Διάλεξε την προτίμησή σου για την πρώτη ομάδα και την Ακαδημία.</p>
@@ -356,6 +358,8 @@
     {#if saved}<p class="success" role="status" data-testid="favorite-team-saved">Η προτίμησή σου αποθηκεύτηκε.</p>{/if}
     <button type="submit" class="primary" disabled={isBusy || !changed || editor !== null} data-testid="favorite-team-save">{isBusy ? 'Αποθήκευση…' : 'Αποθήκευση προτίμησης'}</button>
   </form>
+
+  {/if}
 
   <button class="logout" type="button" disabled={isBusy} onclick={onLogout} data-testid="profile-logout">Αποσύνδεση</button>
 </section>

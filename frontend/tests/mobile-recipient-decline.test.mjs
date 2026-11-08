@@ -143,5 +143,6 @@ test('recipient invite SSR requires explicit decline callback and never shows an
   assert.match(src,/data-testid="recipient-decline-submit"/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
   assert.match(route,/onDecline=\{\(id\) => controller\.declineRecipientInvitation\(id\)\}/);
-  assert.match(route,/activeTab === 'profile' && role === 'fan' && !composing/);
+  assert.match(route,/activeTab === 'profile' && !composing/);
+  assert.match(route,/\{#if role === 'fan'\}[\s\S]*?<MobileRecipientInvitations/);
 });
