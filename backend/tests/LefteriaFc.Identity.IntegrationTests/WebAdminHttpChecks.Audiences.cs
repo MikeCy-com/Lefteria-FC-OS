@@ -22,7 +22,7 @@ internal sealed partial class WebAdminHttpChecks
     private async Task AdminAudienceDirectoryAsync()
     {
         using var anonymous=Client();
-        using(var response=await GetAsync(anonymous,FcAudiencePath))
+        using(var response=await anonymous.GetAsync(FcAudiencePath))
             await ExpectJsonAsync(response,401,"not_authenticated");
 
         var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
