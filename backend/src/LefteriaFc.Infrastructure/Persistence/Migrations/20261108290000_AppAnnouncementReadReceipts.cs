@@ -102,6 +102,12 @@ public sealed class AppAnnouncementReadReceipts : Migration
           IF jsonb_array_length(v_readers)>150 THEN
             RAISE EXCEPTION 'notice_read_limit' USING ERRCODE='54000';
           END IF;
+          INSERT INTO audit.security_events(
+            id,actor_realm,occurred_at,actor_identity_id,
+            action,outcome,organization_id,reason_code)
+          VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,
+            'admin.app.announcement.readers.view','succeeded',_owner,
+            'current_member_names');
           RETURN jsonb_build_object('announcement_id',_announcement,'readers',v_readers);
         END $notice_admin_readers$;
         REVOKE ALL ON FUNCTION club.read_admin_app_announcement_readers(
