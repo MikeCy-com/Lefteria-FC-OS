@@ -37,7 +37,7 @@ internal static class AcademyEnquiryProxyTrustChecks
             {
                 snapshot = new Snapshot(
                     context.Connection.RemoteIpAddress?.ToString() ?? "missing",
-                    context.Request.Scheme, context.Request.Host.Value);
+                    context.Request.Scheme, context.Request.Host.Value ?? "missing");
                 return Task.CompletedTask;
             };
             var middleware = new ForwardedHeadersMiddleware(next, logger, Options.Create(options));
