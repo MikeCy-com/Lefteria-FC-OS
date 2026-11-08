@@ -86,14 +86,14 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
     }
 
     public Task<MobileChatSeenAckDto> AcknowledgeReadAsync(MobileSession actor,
-        string organization,string group,Guid messageId,CancellationToken token)
+        string organization,string group,Guid messageId,long version,CancellationToken token)
     {
         ValidateRoom(organization,group);
-        if(messageId==Guid.Empty)throw Invalid();
+        if(messageId==Guid.Empty||version<1)throw Invalid();
         return QueryAsync<MobileChatSeenAckDto>("""
             SELECT club.ack_mobile_chat_read(
-              @identity,@phone,@role,@expires,@organization,@group,@message)::text
-            """,actor,organization,group,null,null,token,messageId);
+              @identity,@phone,@role,@expires,@organization,@group,@message,@version)::text
+            """,actor,organization,group,null,null,token,messageId,version);
     }
 
     public Task<MobileChatReadersDto> ReadersAsync(MobileSession actor,
@@ -149,7 +149,10 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                         (object?)content??DBNull.Value;
                 }
                 else if(messageId is not null)
+                {
                     command.Parameters.AddWithValue("message",messageId.Value);
+                    if(version is not null)command.Parameters.AddWithValue("version",version.Value);
+                }
                 else if(content is not null)command.Parameters.AddWithValue("content",content);
                 var raw=await command.ExecuteScalarAsync(token) as string;
                 var dto=raw is null ? default : JsonSerializer.Deserialize<T>(raw,Json);

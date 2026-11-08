@@ -14,6 +14,7 @@ public sealed record MobileChatPageDto(IReadOnlyList<MobileChatMessageDto> Messa
 public sealed record MobileChatSendBody(string? Content);
 public sealed record MobileChatEditBody(string? Content,long Version);
 
-public sealed record MobileChatSeenAckDto(Guid MessageId,bool Seen);
+public sealed record MobileChatSeenBody(long Version);
+public sealed record MobileChatSeenAckDto(Guid MessageId,bool Seen,long Version);
 public sealed record MobileChatReaderDto(Guid Id,string Name);
 public sealed record MobileChatReadersDto(IReadOnlyList<MobileChatReaderDto> Readers);

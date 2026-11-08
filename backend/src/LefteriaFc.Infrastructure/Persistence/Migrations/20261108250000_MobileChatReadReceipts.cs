@@ -16,6 +16,7 @@ public sealed class MobileChatReadReceipts : Migration
         CREATE TABLE club.app_chat_read_receipts (
           message_id uuid NOT NULL REFERENCES club.app_chat_messages(id) ON DELETE RESTRICT,
           reader_identity_id uuid NOT NULL REFERENCES identity.mobile_identities(id) ON DELETE RESTRICT,
+          message_version bigint NOT NULL CHECK (message_version>=1),
           read_at timestamptz NOT NULL DEFAULT clock_timestamp(),
           PRIMARY KEY(message_id,reader_identity_id)
         );
@@ -49,7 +50,7 @@ public sealed class MobileChatReadReceipts : Migration
 
         CREATE FUNCTION club.ack_mobile_chat_read(
           _actor uuid,_phone text,_role text,_expires timestamptz,
-          _organization text,_group text,_message uuid)
+          _organization text,_group text,_message uuid,_version bigint)
         RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
         SET search_path=pg_catalog,pg_temp
         AS $ack_read$
@@ -57,14 +58,14 @@ public sealed class MobileChatReadReceipts : Migration
         BEGIN
           IF _organization NOT IN ('lefteria_fc','lefteria_fc_academy')
              OR _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
-             OR _message IS NULL THEN
+             OR _message IS NULL OR _version IS NULL OR _version<1 THEN
             RAISE EXCEPTION 'receipt_invalid' USING ERRCODE='22023';
           END IF;
           -- Lock to serialize explicit acknowledgments against deletion.
           -- GET and message hydration NEVER call this function.
           SELECT m.id INTO v_id
           FROM club.app_chat_messages m
-          WHERE m.id=_message AND m.organization_id=_organization
+          WHERE m.id=_message AND m.version=_version AND m.organization_id=_organization
             AND m.group_id=_group AND NOT m.is_deleted
             AND m.sender_identity_id<>_actor
             AND m.group_kind=CASE WHEN _organization='lefteria_fc'
@@ -79,9 +80,9 @@ public sealed class MobileChatReadReceipts : Migration
           END IF;
           -- Final write repeats current-authority verification in this very
           -- INSERT statement. Conflicts are idempotent (first seen_at wins).
-          INSERT INTO club.app_chat_read_receipts(message_id,reader_identity_id)
-          SELECT m.id,_actor FROM club.app_chat_messages m
-          WHERE m.id=v_id AND m.organization_id=_organization
+          INSERT INTO club.app_chat_read_receipts(message_id,reader_identity_id,message_version)
+          SELECT m.id,_actor,m.version FROM club.app_chat_messages m
+          WHERE m.id=v_id AND m.version=_version AND m.organization_id=_organization
             AND m.group_id=_group AND NOT m.is_deleted
             AND m.sender_identity_id<>_actor
             AND EXISTS(SELECT 1 FROM jsonb_array_elements(
@@ -89,10 +90,10 @@ public sealed class MobileChatReadReceipts : Migration
             ) AS g(value) WHERE g.value->>'organization_id'=_organization
               AND g.value->>'id'=_group)
           ON CONFLICT DO NOTHING;
-          RETURN jsonb_build_object('message_id',v_id,'seen',true);
+          RETURN jsonb_build_object('message_id',v_id,'seen',true,'version',_version);
         END $ack_read$;
         REVOKE ALL ON FUNCTION club.ack_mobile_chat_read(
-          uuid,text,text,timestamptz,text,text,uuid) FROM PUBLIC;
+          uuid,text,text,timestamptz,text,text,uuid,bigint) FROM PUBLIC;
 
         CREATE FUNCTION club.read_mobile_chat_readers(
           _actor uuid,_phone text,_role text,_expires timestamptz,
@@ -130,6 +131,7 @@ public sealed class MobileChatReadReceipts : Migration
             FROM club.app_chat_read_receipts receipt
             JOIN identity.mobile_identities i ON i.id=receipt.reader_identity_id
             WHERE receipt.message_id=_message
+              AND receipt.message_version=(SELECT m.version FROM club.app_chat_messages m WHERE m.id=_message)
               AND club.is_current_mobile_chat_reader(i.id,_organization,_group)
             ORDER BY i.display_name COLLATE "C",i.id LIMIT 151) entry;
           IF jsonb_array_length(v_readers)>150 THEN
@@ -199,8 +201,9 @@ public sealed class MobileChatReadReceipts : Migration
 
           IF _operation='delete' THEN
             DELETE FROM club.app_chat_reactions WHERE message_id=v_row.id;
-            DELETE FROM club.app_chat_read_receipts WHERE message_id=v_row.id;
           END IF;
+          -- A message edit invalidates receipts for its old content version.
+          DELETE FROM club.app_chat_read_receipts WHERE message_id=v_row.id;
           INSERT INTO club.app_chat_message_revisions(
             message_id,version,actor_identity_id,operation)
           VALUES(v_row.id,v_row.version,_actor,_operation);
@@ -317,7 +320,7 @@ public sealed class MobileChatReadReceipts : Migration
         DROP FUNCTION club.read_mobile_chat_readers(
           uuid,text,text,timestamptz,text,text,uuid);
         DROP FUNCTION club.ack_mobile_chat_read(
-          uuid,text,text,timestamptz,text,text,uuid);
+          uuid,text,text,timestamptz,text,text,uuid,bigint);
         DROP FUNCTION club.is_current_mobile_chat_reader(uuid,text,text);
         DROP TABLE club.app_chat_read_receipts;
         """);

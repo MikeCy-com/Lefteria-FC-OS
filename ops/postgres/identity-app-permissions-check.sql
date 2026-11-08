@@ -273,7 +273,7 @@ BEGIN
       OR has_function_privilege(current_user,
         'club.is_current_mobile_chat_reader(uuid,text,text)','EXECUTE')
       OR NOT has_function_privilege(current_user,
-        'club.ack_mobile_chat_read(uuid,text,text,timestamptz,text,text,uuid)','EXECUTE')
+        'club.ack_mobile_chat_read(uuid,text,text,timestamptz,text,text,uuid,bigint)','EXECUTE')
       OR NOT has_function_privilege(current_user,
         'club.read_mobile_chat_readers(uuid,text,text,timestamptz,text,text,uuid)','EXECUTE')
     THEN
