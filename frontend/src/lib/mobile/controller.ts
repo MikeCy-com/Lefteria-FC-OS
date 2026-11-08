@@ -12,6 +12,7 @@ type Organization = components['schemas']['MobileOrganizationContextDto'];
 type Verification = components['schemas']['MobileVerificationResult'];
 type LoginResult = components['schemas']['MobileVerificationResultMobileLoginResult'];
 type Family = components['schemas']['ParentFamilyResult'];
+export type MobileChatDirectory = components['schemas']['MobileChatDirectoryDto'];
 type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
@@ -45,6 +46,9 @@ export interface MobileAuthState {
   playerOptions: readonly MobilePlayerOption[];
   playerOptionsStatus: MobilePlayerOptionsStatus;
   playerOptionsError: string | null;
+  chatGroups: MobileChatDirectory | null;
+  chatGroupsStatus: 'idle' | 'loading' | 'ready' | 'error';
+  chatGroupsError: string | null;
   family: Family | null;
   familyStatus: 'idle' | 'loading' | 'ready' | 'error';
   familyError: string | null;
@@ -122,6 +126,7 @@ export function createMobileAuthController(options: {
     status: 'initializing', busy: false, error: null, step: 'phone', phone: '',
     detectedRole: null, identities: [], user: null, availableRoles: [], organization: null,
     organizationError: null, playerOptions: [], playerOptionsStatus: 'idle', playerOptionsError: null,
+    chatGroups: null, chatGroupsStatus: 'idle', chatGroupsError: null,
     family: null, familyStatus: 'idle', familyError: null,
     activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null,
     familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
@@ -144,6 +149,7 @@ export function createMobileAuthController(options: {
   let revision = 0;
   let playerOptionsRevision = 0;
   let familyRevision = 0;
+  let chatGroupsRevision = 0;
   let activeFamilyRevision = 0;
   let outgoingRevision = 0;
   let recipientRevision = 0;
@@ -185,6 +191,11 @@ export function createMobileAuthController(options: {
       delegationAvailability: null, delegationStatus: 'idle', delegationError: null });
   }
 
+  function clearChatGroups() {
+    ++chatGroupsRevision;
+    update({chatGroups:null,chatGroupsStatus:'idle',chatGroupsError:null});
+  }
+
   function clearFamily() {
     ++familyRevision;
     ++activeFamilyRevision;
@@ -215,6 +226,7 @@ export function createMobileAuthController(options: {
   }
 
   function anonymous(error: string | null = null) {
+    clearChatGroups();
     clearPlayerOptions();
     clearCalendar();
     clearFamily();
@@ -255,6 +267,7 @@ export function createMobileAuthController(options: {
 
   function applyUser(user: User, behavior: { preserveOrganization?: boolean } = {}) {
     validateUser(user);
+    clearChatGroups();
     const roles = validRoles(user.available_roles);
     if (!user.current_role_available || state.user?.id !== user.id || state.user?.role !== user.role || state.user?.phone !== user.phone) {
       clearPlayerOptions();
@@ -475,6 +488,51 @@ export function createMobileAuthController(options: {
       else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable') revokeCurrentRole(error.message);
       else if (error instanceof ApiFailure && error.status === 403) denyCalendarAccess(error);
       else update({ calendarResponsesStatus: append ? 'ready' : 'error', calendarResponsesError: message(error), calendarResponsesLoadingMore: false });
+      return false;
+    }
+  }
+
+  async function loadChatGroups() {
+    const identity=state.user;
+    if(state.busy || state.chatGroupsStatus==='loading' || state.status!=='authenticated' ||
+      !identity?.current_role_available || identity.role==='fan' || !token ||
+      (identity.role==='management' &&
+        (!state.organization?.organization_id || state.organization.requires_organization_selection)))
+      return false;
+    const bearer=token;
+    const owner=state.organization?.organization_id;
+    const operationRevision=++chatGroupsRevision;
+    const isCurrent=()=>chatGroupsRevision===operationRevision && token===bearer &&
+      state.status==='authenticated' && state.user?.id===identity.id &&
+      state.user?.phone===identity.phone && state.user?.role===identity.role &&
+      state.user.current_role_available &&
+      (identity.role!=='management' || state.organization?.organization_id===owner);
+    update({chatGroups:null,chatGroupsStatus:'loading',chatGroupsError:null});
+    try{
+      const data=responseData(await api.GET('/api/mobile/chat/groups',
+        {headers:authorization()}));
+      if(!isCurrent())return false;
+      const ids=new Set<string>();
+      if(!data || data.ready!==true || !Array.isArray(data.groups) ||
+          data.groups.length>150 || Object.keys(data).sort().join(',')!=='groups,ready' ||
+          !data.groups.every(group=>
+            group && typeof group.id==='string' && group.id.length>0 &&
+            group.id.length<=128 && typeof group.name==='string' &&
+            group.name.trim().length>0 && group.name.length<=200 &&
+            ((group.kind==='team' && group.organization_id==='lefteria_fc') ||
+              (group.kind==='academy_group' && group.organization_id==='lefteria_fc_academy')) &&
+            Object.keys(group).sort().join(',')==='id,kind,name,organization_id' &&
+            !ids.has(group.organization_id+':'+group.id) &&
+            !!ids.add(group.organization_id+':'+group.id)))
+        throw new Error('Invalid member chat group projection');
+      update({chatGroups:data,chatGroupsStatus:'ready',chatGroupsError:null});
+      return true;
+    }catch(error){
+      if(!isCurrent())return false;
+      if(error instanceof ApiFailure && error.status===401)endSession(error.message);
+      else if(error instanceof ApiFailure && error.status===403 &&
+        error.code==='account_unavailable')revokeCurrentRole(error.message);
+      else update({chatGroups:null,chatGroupsStatus:'error',chatGroupsError:message(error)});
       return false;
     }
   }
@@ -993,6 +1051,7 @@ export function createMobileAuthController(options: {
         clearPlayerOptions();
         clearCalendar();
         clearFamily();
+        clearChatGroups();
         clearRecipientInvitations();
         pendingCode = null;
         update({ status: 'initializing', user: null, availableRoles: [], organization: null,
@@ -1063,6 +1122,7 @@ export function createMobileAuthController(options: {
         clearPlayerOptions();
         clearCalendar();
         clearFamily();
+        clearChatGroups();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/auth/switch-role', { headers: authorization(), body: { role } }));
         if (revision !== operationRevision) return;
@@ -1081,6 +1141,7 @@ export function createMobileAuthController(options: {
     async selectOrganization(organizationId: string) {
       if (state.user?.role !== 'management' || !state.user.current_role_available) return false;
       return action(async (operationRevision) => {
+        clearChatGroups();
         clearCalendar();
         update({ organization: null, organizationError: null });
         const data = responseData(await api.POST('/api/mobile/management/organization', {
@@ -1093,11 +1154,13 @@ export function createMobileAuthController(options: {
     async refreshOrganization() {
       if (state.user?.role !== 'management' || !state.user.current_role_available) return false;
       return action(async (operationRevision) => {
+        clearChatGroups();
         clearCalendar();
         update({ organization: null, organizationError: null });
         await organizationContext(authorization(), operationRevision);
       }, true);
     },
+    loadChatGroups,
     loadFamily,
     loadActiveFamilyDelegations,
     loadOutgoingInvitations,
