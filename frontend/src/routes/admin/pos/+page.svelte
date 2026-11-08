@@ -99,7 +99,8 @@
         item.active !== productActive || item.image_url !== (productImage || null) ||
         !Number.isSafeInteger(item.version) || (item.version as number) < 0 ||
         !Array.isArray(item.variants) || item.variants.length !== expectedVariants.length) return false;
-    return expectedVariants.every(wanted => item.variants.some((value: unknown) => {
+    const confirmed = item.variants as unknown[];
+    return expectedVariants.every(wanted => confirmed.some((value: unknown) => {
       if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
       const actual = value as Record<string, unknown>;
       return actual.id === wanted.id && actual.name === wanted.name &&
@@ -465,18 +466,18 @@
                     {#each productVariants as variant, index (index)}
                       <div class="admin-pos-variant-row">
                         <label>Κωδικός
-                          <input type="text" required pattern="[A-Za-z0-9_-]{1,60}" maxlength="60"
+                          <input type="text" required pattern={'[A-Za-z0-9_-]{1,60}'} maxlength="60"
                             bind:value={variant.id} disabled={productWriting}/>
                         </label>
                         <label>Όνομα / μέγεθος
                           <input type="text" required maxlength="80" bind:value={variant.name} disabled={productWriting}/>
                         </label>
                         <label>Κόστος (€)
-                          <input type="text" required inputmode="decimal" pattern="[0-9]{1,6}([.,][0-9]{1,2})?"
+                          <input type="text" required inputmode="decimal" pattern={'[0-9]{1,6}([.,][0-9]{1,2})?'}
                             bind:value={variant.cost} disabled={productWriting}/>
                         </label>
                         <label>Τιμή πώλησης (€)
-                          <input type="text" required inputmode="decimal" pattern="[0-9]{1,6}([.,][0-9]{1,2})?"
+                          <input type="text" required inputmode="decimal" pattern={'[0-9]{1,6}([.,][0-9]{1,2})?'}
                             bind:value={variant.price} disabled={productWriting}/>
                         </label>
                         <button type="button" class="admin-secondary" disabled={productWriting || productVariants.length === 1}
