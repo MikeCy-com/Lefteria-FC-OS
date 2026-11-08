@@ -228,7 +228,7 @@ public static class PayablEndpoints
         HttpContext context, bool write, CancellationToken ct)
     {
         context.Response.Headers.CacheControl = "no-store";
-        if (!PublicContentService.IsOrganization(owner) ||
+        if (owner is null || !PublicContentService.IsOrganization(owner) ||
             context.Request.Query["organization_id"].Count != 1)
             throw new WebAdminException(400, "invalid_organization", "Choose one organization.");
         var cookie = context.Request.Cookies[WebAdminServices.CookieName];
