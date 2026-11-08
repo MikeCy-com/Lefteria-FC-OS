@@ -207,6 +207,7 @@ internal sealed partial class WebAdminHttpChecks
                 "/api/admin/communications/app-announcements/"+fcDraftId+
                     "?organization_id=lefteria_fc&version=2"))
             {
+                staleRequest.Content=new StringContent("{}",Encoding.UTF8,"application/json");
                 staleRequest.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
                 staleRequest.Headers.Add("X-Lefteria-Admin","1");
                 staleRequest.Headers.Add("Cookie",login.Cookie);
@@ -218,6 +219,7 @@ internal sealed partial class WebAdminHttpChecks
                 "admin.app.announcement.remove",async()=>
                 {
                     using var request=new HttpRequestMessage(HttpMethod.Delete,removeFc);
+                    request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
                     request.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
                     request.Headers.Add("X-Lefteria-Admin","1");
                     request.Headers.Add("Cookie",login.Cookie);
@@ -229,6 +231,7 @@ internal sealed partial class WebAdminHttpChecks
             Console.WriteLine("CHECK announcements stage: successful removal");
             using(var request=new HttpRequestMessage(HttpMethod.Delete,removeFc))
             {
+                request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
                 request.Headers.Add("Origin",WebAdminApplicationFactory.Origin);
                 request.Headers.Add("X-Lefteria-Admin","1");
                 request.Headers.Add("Cookie",login.Cookie);
