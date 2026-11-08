@@ -5,7 +5,7 @@ using LefteriaFc.Api.WebAdmin;
 namespace LefteriaFc.Api.Trials;
 
 /// <summary>
-/// READ-ONLY private admin preview of verified first-team registration settings.
+/// UNMAPPED read-only private admin preview of verified first-team settings.
 /// Never uses source mobile auth, anonymous query data or legacy admin JWTs.
 /// Changes still require a separate, audited consent/organization write contract.
 /// </summary>
