@@ -244,13 +244,13 @@ export function createMobileAuthController(options: {
     return { Authorization: `Bearer ${token}` };
   }
 
-  async function chatRequest(path:string,content?:string):Promise<unknown> {
+  async function chatRequest(path:string,method:'GET'|'POST'|'PUT'|'DELETE'='GET',content?:unknown):Promise<unknown> {
     const current=state.user;
     if(state.status!=='authenticated' || !current?.current_role_available || !token)
       throw new ApiFailure(401,'Απαιτείται ενεργή σύνδεση.');
     const sessionToken=token, opRevision=revision;
     const reply=await (options.fetch??globalThis.fetch)(options.baseUrl+path,{
-      method:content===undefined?'GET':'POST',cache:'no-store',
+      method,cache:'no-store',
       headers:{...authorization(),...(content===undefined?{}:{'Content-Type':'application/json'})},
       ...(content===undefined?{}:{body:JSON.stringify({content})})
     });
@@ -1265,8 +1265,27 @@ export function createMobileAuthController(options: {
     },
     async sendChatMessage(room:GroupChatRoom,content:string):Promise<GroupChatMessage> {
       if(!validTextMessage(content))throw new Error('Invalid chat message.');
-      const result=await chatRequest(chatRoomPath(room),content);
+      const result=await chatRequest(chatRoomPath(room),'POST',{content});
       if(!validMessage(result,room))throw new Error('Server did not confirm message.');
+      return result;
+    },
+    async editChatMessage(room:GroupChatRoom,messageId:string,version:number,content:string):Promise<GroupChatMessage> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId)||!Number.isSafeInteger(version)||version<1||
+         !validTextMessage(content))throw new Error('Invalid message edit.');
+      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId),'PUT',{content,version});
+      if(!validMessage(result,room)||result.id!==messageId||
+         result.version!==version+1||result.is_deleted||result.content!==content)
+        throw new Error('Server did not confirm message edit.');
+      return result;
+    },
+    async deleteChatMessage(room:GroupChatRoom,messageId:string,version:number):Promise<GroupChatMessage> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId)||!Number.isSafeInteger(version)||version<1)
+        throw new Error('Invalid message deletion.');
+      const result=await chatRequest(chatRoomPath(room)+'/'+encodeURIComponent(messageId)+
+        '?version='+version,'DELETE');
+      if(!validMessage(result,room)||result.id!==messageId||
+        result.version!==version+1||!result.is_deleted||result.content!=='')
+        throw new Error('Server did not confirm message deletion.');
       return result;
     },
     logout() { endSession(); },
