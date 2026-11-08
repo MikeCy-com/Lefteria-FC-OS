@@ -153,6 +153,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-roster-assignment-boundary.sql
 
 DO $boundary$
 DECLARE
