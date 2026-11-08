@@ -30,7 +30,7 @@ public sealed class AppAnnouncementPrivateMedia : Migration
             (kind='banner' AND content_type='image/jpeg'
              AND file_name='banner.jpg' AND octet_length(content) BETWEEN 4 AND 1048576)
             OR (kind='attachment' AND content_type='application/pdf'
-             AND file_name ~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\\.pdf$'
+             AND file_name ~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$'
              AND octet_length(content) BETWEEN 8 AND 2097152))
         );
         CREATE UNIQUE INDEX ux_app_announcement_single_banner
@@ -57,7 +57,7 @@ public sealed class AppAnnouncementPrivateMedia : Migration
               OR octet_length(_content) NOT BETWEEN 4 AND 1048576
               OR substring(_content from 1 for 2)<>decode('ffd8','hex')
               OR substring(_content from octet_length(_content)-1 for 2)<>decode('ffd9','hex')))
-            OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\\.pdf$'
+            OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$'
               OR _type<>'application/pdf' OR octet_length(_content) NOT BETWEEN 8 AND 2097152
               OR substring(_content from 1 for 5)<>decode('255044462d','hex')
               OR substring(_content from octet_length(_content)-4 for 5)<>decode('2525454f46','hex'))) THEN
