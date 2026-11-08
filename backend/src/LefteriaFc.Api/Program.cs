@@ -18,6 +18,9 @@ using LefteriaFc.Infrastructure.Audiences;
 using LefteriaFc.Application.Pos;
 using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
+using LefteriaFc.Api.MobileChat;
+using LefteriaFc.Application.MobileChat;
+using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -85,6 +88,8 @@ builder.Services.AddScoped<IAdminRosterAssignmentWriter, PostgresAdminRosterAssi
 builder.Services.AddScoped<IAdminCoachDirectory, PostgresAdminCoachDirectory>();
 builder.Services.AddScoped<IAdminCoachAssignmentWriter, PostgresAdminCoachAssignmentWriter>();
 builder.Services.AddScoped<IAdminAnnouncementDraftStore, PostgresAdminAnnouncementDraftStore>();
+builder.Services.AddScoped<IMobileChatGroupReader, PostgresMobileChatGroupReader>();
+builder.Services.AddScoped<MobileChatDirectoryService>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
@@ -135,6 +140,7 @@ app.MapAdminRosterAssignments();
 app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
+app.MapMobileChatGroupDirectory();
 
 if (app.Environment.IsDevelopment())
 {
