@@ -6,6 +6,7 @@
   import type {MobileRole} from '../navigation.ts';
   import MobileHoldAction from './MobileHoldAction.svelte';
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
+  import type {ChatReaction} from '../chat-actions.ts';
 
   let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
@@ -79,6 +80,26 @@
       return false;
     }finally{if(alive)mutationBusy=false;}
   }
+  async function toggleReaction(target:GroupChatMessage|null,emoji:ChatReaction):Promise<boolean> {
+    const room=selected;
+    if(!room||!target||target.is_deleted||mutationBusy||messageBusy||sending)return false;
+    mutationBusy=true;sendError=null;
+    try{
+      const mine=target.reactions.some(reaction=>reaction.emoji===emoji&&reaction.mine);
+      const result=await controller.setChatReaction(room,target.id,emoji,!mine);
+      if(!alive||selected!==room)return false;
+      // Modify only the confirmed reaction summary; do not overwrite
+      // another user's concurrently edited text or deletion marker.
+      messages=messages.map(message=>message.id===result.message_id
+        ?{...message,reactions:result.reactions}:message);
+      menuMessage=null;
+      return true;
+    }catch(caught){
+      if(alive&&selected===room)sendError=messageOf(caught);
+      return false;
+    }finally{if(alive)mutationBusy=false;}
+  }
+
   async function send(){
     const room=selected,body=draft.trim();
     if(!room||sending||messageBusy||!validTextMessage(body))return;
@@ -133,12 +154,25 @@
       <ol class="messages" aria-live="polite">
         {#each [...messages].reverse() as message (message.id)}
           <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}>
-            <MobileHoldAction enabled={message.sender_id===actorId&&!message.is_deleted&&!mutationBusy}
-              onOpen={()=>{menuMessage=message;}} label="Ενέργειες δικού μου μηνύματος">
+            <MobileHoldAction enabled={!message.is_deleted&&!mutationBusy&&!sending&&!messageBusy}
+              onOpen={()=>{menuMessage=message;}} label="Ενέργειες μηνύματος">
               <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
                 <time datetime={message.created_at}>{new Date(message.created_at).toLocaleString('el-CY',{dateStyle:'short',timeStyle:'short'})}</time></div>
               <p>{message.is_deleted?'Το μήνυμα διαγράφηκε':message.content}</p>
               {#if message.edited_at&&!message.is_deleted}<small class="edited">Επεξεργάστηκε</small>{/if}
+              {#if !message.is_deleted&&message.reactions.length}
+                <div class="reaction-summary" role="group" aria-label="Αντιδράσεις μηνύματος">
+                  {#each message.reactions as reaction (reaction.emoji)}
+                    <button type="button" class:mine={reaction.mine}
+                      aria-pressed={reaction.mine}
+                      aria-label={'Αντίδραση '+reaction.emoji+', '+reaction.count+' μέλη'}
+                      disabled={mutationBusy||sending||messageBusy}
+                      onclick={()=>void toggleReaction(message,reaction.emoji)}>
+                      {reaction.emoji} <span>{reaction.count}</span>
+                    </button>
+                  {/each}
+                </div>
+              {/if}
             </MobileHoldAction>
           </li>
         {/each}
@@ -160,11 +194,12 @@
   <MobileMessageActionMenu
     context={{kind:'message',role,actorId,senderId:menuMessage.sender_id,
       isDeleted:menuMessage.is_deleted,isParticipant:true,canReply:true,
-      canEdit:true,canDelete:true,canReact:false,canSeeReaders:false}}
+      canEdit:true,canDelete:true,canReact:true,canSeeReaders:false}}
     content={menuMessage.content}
     onClose={()=>{menuMessage=null;}}
     onEdit={(text)=>mutateMessage(menuMessage,'edit',text)}
     onDelete={()=>mutateMessage(menuMessage,'delete')}
+    onReact={(emoji)=>toggleReaction(menuMessage,emoji)}
   />
 {/if}
 
@@ -187,6 +222,14 @@
   .messages li.own{align-self:flex-end;border-color:#7d581f;background:#2a2319}
   .messages li.deleted{opacity:.74}.messages li.deleted p{font-style:italic;color:var(--lf-muted)}
   .edited{display:block;margin-top:6px;font-size:10px;color:var(--lf-muted)}
+  .reaction-summary{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+  .reaction-summary button{min-height:34px;min-width:52px;cursor:pointer;border-radius:18px;
+    border:1px solid var(--lf-line);background:#2d2f30;color:#fafafa;
+    font-size:14px;padding:3px 8px}
+  .reaction-summary button.mine{border-color:var(--lf-gold);background:#3e321d}
+  .reaction-summary button:focus-visible{outline:2px solid var(--lf-gold);outline-offset:2px}
+  .reaction-summary button:disabled{opacity:.5}
+  .reaction-summary span{font-size:11px;color:var(--lf-gold-light)}
   .message-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
   .message-head strong{font-size:11px;color:var(--lf-gold-light)}.message-head time{font-size:10px;color:var(--lf-muted)}
   .messages p{margin:7px 0 0;white-space:pre-wrap}
