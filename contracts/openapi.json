@@ -332,6 +332,17 @@
         ],
         "type": "object"
       },
+      "FirstTeamTrialAdminError": {
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
       "FirstTeamTrialsSettings": {
         "properties": {
           "button_text": {
@@ -5100,6 +5111,85 @@
         ]
       }
     },
+    "/api/admin/trials/settings": {
+      "get": {
+        "operationId": "GetAdminFirstTeamTrialSettings",
+        "parameters": [
+          {
+            "description": "Exact first-team owner only; no Academy or global selector.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialsSettings"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FirstTeamTrialAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "First-team trials administration"
+        ]
+      }
+    },
     "/api/health/live": {
       "get": {
         "operationId": "GetLiveness",
@@ -8436,6 +8526,9 @@
     },
     {
       "name": "First-team trials"
+    },
+    {
+      "name": "First-team trials administration"
     },
     {
       "name": "Public website"

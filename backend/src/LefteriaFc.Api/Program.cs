@@ -59,6 +59,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<WebAdminSecurityOperationTransformer>();
     options.AddSchemaTransformer<AdminClubSchemaTransformer>();
     options.AddOperationTransformer<AdminClubOperationTransformer>();
+    options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddMobileIdentity(builder.Configuration);
@@ -101,6 +102,7 @@ app.MapMobileCalendar();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
+app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapAdminClub();
 
