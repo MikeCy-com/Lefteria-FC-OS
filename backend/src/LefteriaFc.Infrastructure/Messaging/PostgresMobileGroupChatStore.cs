@@ -64,7 +64,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             SELECT club.mutate_mobile_chat_message(
               @identity,@phone,@role,@expires,@organization,@group,
               @message,@version,@operation,@content)::text
-            """,actor,organization,group,null,null,token,messageId,version,operation,content);
+            """,actor,organization,group,null,content,token,messageId,version,operation);
     }
 
     private static void ValidateRoom(string organization,string group)
