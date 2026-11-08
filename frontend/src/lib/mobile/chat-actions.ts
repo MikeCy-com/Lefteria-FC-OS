@@ -45,6 +45,8 @@ export function validReaders(
   return row.readers.every((value:unknown)=>{
     if(!value || typeof value!=='object' || Array.isArray(value))return false;
     const person=value as Record<string,unknown>;
+    // An unexpected raw contact or medical field is not part of this safe DTO.
+    if(Object.keys(person).sort().join(',')!=='id,name')return false;
     if(typeof person.id!=='string' || person.id.length===0 || person.id.length>128 ||
       typeof person.name!=='string' || person.name.trim().length===0 ||
       person.name.length>180 || keys.has(person.id))return false;
