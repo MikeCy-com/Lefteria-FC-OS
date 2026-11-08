@@ -13,7 +13,7 @@
 | People & CRM | Registrations, guardian/lead intake, `PlayersCRM`, player documents (`RegistrationsTab`, `PlayersCRM`, `PlayerDocumentsView`) | **Not ported** | Child privacy/guardian consent, closed roster import, access by role and retention |
 | Communications | Contact inbox, private participant chats, team chats (`MessagesTab`, `backend/routes/admin_messages.py`) | **Not ported** | Linked mobile identity, participant-only content, explicit team join + audit |
 | Communications | Announcements and wall, groups, polls, suggestions (`WallTab`, `PollsTab`, `SuggestionsTab`, `backend/announcements.py`) | **Not ported** | Audience targeting from current canonical roster, per-parent/player/coach read gate, delivery audit, scheduling/push |
-| Football & Academy | Team and Academy group directory (`TeamsTab`, `EnhancedAcademyTab`, legacy groups) | **Working read-only selector after this PR**, not a roster editor | Single real teams/Academy groups view with deduplicated active-player membership counts. No youth PII |
+| Football & Academy | Team and Academy group directory (`TeamsTab`, `EnhancedAcademyTab`, legacy groups) | **Live directory + guarded manager-only group creation**; not yet a player assignment/roster editor | Single real teams/Academy groups view with deduplicated active-player membership counts. No youth PII |
 | Football & Academy | Full player, team and Academy CRUD, season rollover and transfers (`PlayersTab`, `TeamsTab`, `SeasonRolloverWizard`) | **Not ported** | Lifecycle + owner grants, multi-group membership consistency, eligibility, atomic roster version/audit |
 | Football & Academy | Training calendar / attendance / assignments / drills (`CalendarTab`, `AttendanceTab`, `TrainingSessionsPanel`, `DrillsTab`) | **Mobile calendar exists; admin controls not ported** | Separate coach assignment proof, session attendance audit, rules by age, dynamic group membership |
 | Football & Academy | Fixtures, matches, officials, guest players, match analytics (`FixturesTab`, `MatchEventPlayers`, `VideoAnalyticsPanel`) | **Public fixtures imported; admin mutations not ported** | Match state machine, participants/roster, officials, permissions, history |
@@ -46,8 +46,8 @@
 
 ## Implementation sequence (verified slices only)
 
-1. **Now:** private admin roster directory + combined brand-matched team/Academy group UI, PostgreSQL membership and scope tests. Read-only: no announcements sent, no roster modified.
-2. **Next:** admin roster management (group/team create, assign/remove players, version/audit, actual coach role assignments), with strict youth access and ownership tests.
+1. **Completed:** private roster-derived audience directory with FC/Academy counts and a unified parent-scale admin screen. **This slice:** manager-only audited creation of real FC teams and Academy groups, no player membership mutation.
+2. **Next:** admin roster management (assign/remove players, version/audit, actual coach role assignments), with strict youth access and ownership tests.
 3. **Then:** announcement drafts and explicit publish to current, deduplicated groups; mobile parent/player/coach read gates and outbox delivery. No direct broadcast from unverified CMS input.
 4. **Then:** participant-only messages, deliberate team chat joins and safe attachments; permission revocation and youth retention tests.
 5. **Remaining workstreams:** calendar/attendance, evaluations, CRM/registration, website publisher/media, POS locations/inventory/checkout, finance, staff/security, marketing and operational tools, each separately migrated and acceptance-tested.
