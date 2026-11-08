@@ -13,12 +13,7 @@ public static class MobileGroupChatEndpoints
         var chat=app.MapGroup("/api/mobile/chat")
             .WithTags("Mobile app messaging")
             .RequireAuthorization(IdentityServices.Policy);
-        chat.MapGet("/rooms",(HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
-            MobileIdentityEndpoints.Execute(
-                ()=>store.RoomsAsync(MobilePrincipal.Read(context.User),token),context))
-            .WithName("GetMobileChatRooms").Produces<MobileChatRoomsDto>().WithMobileErrors();
-
-        chat.MapGet("/rooms/{organization}/{group}/messages",(
+        chat.MapGet("/groups/{organization}/{group}/messages",(
                 string organization,string group,string? offset,HttpContext context,
                 PostgresMobileGroupChatStore store,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(
@@ -26,7 +21,7 @@ public static class MobileGroupChatEndpoints
                     organization,group,ParseOffset(context,offset),token),context))
             .WithName("GetMobileChatMessages").Produces<MobileChatPageDto>().WithMobileErrors();
 
-        chat.MapPost("/rooms/{organization}/{group}/messages",(
+        chat.MapPost("/groups/{organization}/{group}/messages",(
                 string organization,string group,MobileChatSendBody body,HttpContext context,
                 PostgresMobileGroupChatStore store,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(
