@@ -58,7 +58,7 @@
     mode='seen-by';readers=null;error=null;busy=true;
     try{
       const response=await onSeenBy();
-      if(!validReaders(response))throw new Error('Invalid read-receipt data');
+      if(!validReaders(response,150))throw new Error('Invalid read-receipt data');
       readers=response.readers;
     }catch{error='Η λίστα ανάγνωσης δεν είναι διαθέσιμη.';}
     finally{busy=false;}
