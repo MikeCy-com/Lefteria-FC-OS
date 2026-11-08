@@ -29,7 +29,8 @@ test('product writer has nested strict JSON, one audited SQL path and no checkou
   assert.doesNotMatch(api,/MapDelete\(|MapGet\(|\"\/api\/pos\/(checkout|sales|payments)/i);
 });
 
-test('catalog stays distinct from POS operators and checkout; no products editor enabled in UI before verification',()=>{
-  assert.match(editor,/Οι αλλαγές προϊόντων, τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές/);
+test('catalog stays distinct from POS operators and checkout; product editing requires validated API',()=>{
+  assert.match(editor,/Τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές/);
+  assert.match(editor,/data-testid="admin-pos-product-editor"/);
   assert.doesNotMatch(editor,/fetch\('\/api\/pos\/checkout|\/api\/pos\/sales/);
 });
