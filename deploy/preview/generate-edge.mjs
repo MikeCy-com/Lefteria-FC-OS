@@ -15,6 +15,7 @@ const entryOperations = [
   ['post','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
   ['post','/api/admin/communications/announcement-drafts/{id}/publish',[{ WebAdmin: [] }]],
   ['get','/api/admin/communications/app-announcements',[{ WebAdmin: [] }]],
+  ['get','/api/admin/communications/app-announcements/{id}/readers',[{ WebAdmin: [] }]],
   ['delete','/api/admin/communications/app-announcements/{id}',[{ WebAdmin: [] }]],
   ['post', '/api/mobile/auth/request-otp', []], ['post', '/api/mobile/auth/verify-otp', []],
   ['post', '/api/mobile/auth/register-fan', []],
