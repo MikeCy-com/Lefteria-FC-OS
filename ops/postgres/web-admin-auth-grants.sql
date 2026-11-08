@@ -146,6 +146,15 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcements(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement(
   text,text,text,bigint) TO :"admin_auth_role";
+-- Web management never reads raw member notification events or
+-- bypasses the member-only notification inbox.
+REVOKE ALL ON TABLE club.app_announcement_notification_events
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_mobile_app_notification_inbox(
+  uuid,text,text,timestamptz,integer) FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.enqueue_app_announcement_notification()
+  FROM PUBLIC, :"admin_auth_role";
+
 -- Every raw banner or document is private. Only managers with the
 -- exact club grant can mutate unpublished draft media via audited routines.
 REVOKE ALL ON TABLE club.app_announcement_media
