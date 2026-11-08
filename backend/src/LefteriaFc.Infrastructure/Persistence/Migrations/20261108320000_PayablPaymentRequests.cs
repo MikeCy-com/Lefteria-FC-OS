@@ -215,7 +215,8 @@ public sealed class PayablPaymentRequests : Migration
           IF NOT FOUND THEN RETURN false; END IF;
           -- Capture is the ONLY positive receipt. All other messages require
           -- reconciliation rather than assuming payment. Never downgrade PAID.
-          IF v_status<>'paid' AND _kind='capture' AND _code=0\n              AND v_initial_transaction=_transaction THEN
+          IF v_status<>'paid' AND _kind='capture' AND _code=0
+              AND v_initial_transaction=_transaction THEN
             UPDATE finance.payment_requests SET status='paid',
               captured_transaction_id=_transaction,updated_at=clock_timestamp()
             WHERE id=_id; v_changed:=true;
