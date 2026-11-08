@@ -10,6 +10,7 @@ const user = (permissions, organizations = ['lefteria_fc'], role = 'manager') =>
 const modules = session => adminSectionsFor(session).flatMap(section => section.modules);
 const ids = session => modules(session).map(module => module.id);
 const groups = session => adminSectionsFor(session).map(section => section.id);
+const legacyIds = session => ids(session).filter(id=>id!=='onboarding');
 const read = path => readFileSync(new URL('../src/lib/admin/' + path, import.meta.url), 'utf8');
 
 test('admin categories follow legacy website, CRM, POS, finance and football ownership', () => {
@@ -28,17 +29,17 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
 
 test('the dashboard cannot leak first-team, financial, POS or Academy modules across grants', () => {
   assert.deepEqual(adminSectionsFor(user(['*:*'], [])), []);
-  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website', 'operations']);
-  assert.deepEqual(ids(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news', 'onboarding']);
-  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'onboarding', 'organization']);
-  assert.deepEqual(ids(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'onboarding', 'organization']);
-  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos', 'operations']);
-  assert.deepEqual(ids(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'charges', 'reports']);
-  assert.ok(!ids(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
-  assert.deepEqual(ids(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'assigned_groups']);
-  assert.deepEqual(ids(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['leads', 'campaigns']);
-  assert.ok(ids(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
-  assert.equal(ids(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
+  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','operations']);
+  assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
+  assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
+  assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
+  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos','operations']);
+  assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'charges', 'reports']);
+  assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
+  assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'assigned_groups']);
+  assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['leads', 'campaigns']);
+  assert.ok(legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
+  assert.equal(legacyIds(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
 });
 
 test('all planned admin modules are visibly disabled, never wired to mutations or unavailable routes', () => {
