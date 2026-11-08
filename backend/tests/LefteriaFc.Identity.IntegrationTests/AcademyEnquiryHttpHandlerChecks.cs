@@ -40,6 +40,27 @@ internal static class AcademyEnquiryHttpHandlerChecks
             """{"name":"Fixture Guardian","phone":"+35799000000","consent_gdpr":false}""");
         Require(missingConsent==400 && writer.Calls==0,"Missing GDPR consent was accepted.");
 
+        // Duplicate JSON keys must not override consent, contact identity or
+        // referral attribution after strict input validation.
+        var repeatedConsent=await Post(writer,
+            """{"name":"Fixture Guardian","phone":"+35799000000","consent_gdpr":false,"consent_gdpr":true}""");
+        Require(repeatedConsent==400 && writer.Calls==0,
+            "A duplicate GDPR consent value unexpectedly reached persistence.");
+
+        var repeatedName=await Post(writer,
+            """{"name":"Unknown Contact","name":"Fixture Guardian","phone":"+35799000000","consent_gdpr":true}""");
+        Require(repeatedName==400 && writer.Calls==0,
+            "Duplicate applicant contact fields unexpectedly reached persistence.");
+
+        var repeatedPartner=await Post(writer,
+            """{"name":"Fixture Guardian","phone":"+35799000000","consent_gdpr":true,"partner_slug":"partner-one","partner_slug":"partner-two"}""");
+        Require(repeatedPartner==400 && writer.Calls==0,
+            "Duplicate partner attribution unexpectedly reached persistence.");
+
+        var invalidRoot=await Post(writer,"""[{"name":"Fixture Guardian"}]""");
+        Require(invalidRoot==400 && writer.Calls==0,
+            "Non-object enquiry JSON unexpectedly reached persistence.");
+
         var huge=await Post(writer,new string('x',8193));
         Require(huge==413 && writer.Calls==0,"Oversized enquiry was accepted.");
 

@@ -63,6 +63,11 @@ public static class AcademyEnquiryHttpHandler
         AcademyLeadInput? input;
         try
         {
+            // System.Text.Json otherwise accepts repeated property names, so
+            // conflicting consent, contact or referral values could be
+            // silently overwritten. Reject the entire request instead.
+            if (!HasUniqueTopLevelProperties(buffer.AsMemory(0, used)))
+                return Error(400, "invalid_json");
             input = JsonSerializer.Deserialize<AcademyLeadInput>(
                 buffer.AsSpan(0, used), StrictJson);
         }
@@ -91,6 +96,16 @@ public static class AcademyEnquiryHttpHandler
             AcademyLeadSubmissionStatus.RateLimited => Error(429, "rate_limited"),
             _ => Unavailable()
         };
+    }
+
+    private static bool HasUniqueTopLevelProperties(ReadOnlyMemory<byte> payload)
+    {
+        using var json = JsonDocument.Parse(payload);
+        if (json.RootElement.ValueKind != JsonValueKind.Object) return false;
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var property in json.RootElement.EnumerateObject())
+            if (!names.Add(property.Name)) return false;
+        return true;
     }
 
     private static IResult Unavailable() => Error(503, "enquiry_unavailable");
