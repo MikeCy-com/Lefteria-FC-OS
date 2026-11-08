@@ -27,17 +27,34 @@ internal sealed partial class TestDatabase
             Check.True(!await rows.ReadAsync(),"Expected exactly one scoped settings row.");
         }
 
-        // Explicitly confirm runtime role cannot execute this SECURITY
-        // DEFINER function before its reviewed public-reader grant.
+        // Only the fixed, read-only, closed presentation function is callable
+        // by the runtime role. No table SELECT/UPDATE or athlete-data access.
         await using var app = new NpgsqlConnection(fixture.AppConnectionString);
         await app.OpenAsync();
-        await using var denied = new NpgsqlCommand("""
-            SELECT NOT has_function_privilege(current_user, fun.oid, 'EXECUTE')
-            FROM pg_catalog.pg_proc fun
-            JOIN pg_catalog.pg_namespace ns ON ns.oid=fun.pronamespace
-            WHERE ns.nspname='club' AND fun.proname='read_first_team_trial_display'
-            """, app);
-        Check.True(Convert.ToBoolean(await denied.ExecuteScalarAsync()),
-            "Unapproved runtime role can execute trial settings projection.");
+        await using (var privileges = new NpgsqlCommand("""
+            SELECT has_function_privilege(current_user,
+                    'club.read_first_team_trial_display()', 'EXECUTE'),
+                   NOT has_table_privilege(current_user,
+                    'club.first_team_trial_settings', 'SELECT'),
+                   NOT has_table_privilege(current_user,
+                    'club.first_team_trial_settings', 'UPDATE')
+            """, app))
+        {
+            await using var reader = await privileges.ExecuteReaderAsync();
+            Check.True(await reader.ReadAsync(),"Trials runtime privilege row missing.");
+            for (var column = 0; column < 3; column++)
+                Check.True(reader.GetBoolean(column),
+                    "Runtime trial display permission exceeded its narrow boundary.");
+        }
+
+        await using var publicView = new NpgsqlCommand(
+            "SELECT is_open,headline FROM club.read_first_team_trial_display()", app);
+        await using var publicRows = await publicView.ExecuteReaderAsync();
+        Check.True(await publicRows.ReadAsync(),"Runtime source display projection unavailable.");
+        Check.True(!publicRows.GetBoolean(0),"Unverified trials may not open via runtime read.");
+        Check.Equal("Ετοιμος να Ξεκινησεις το Ταξιδι σου;",
+            publicRows.GetString(1),"Runtime display source heading changed.");
+        Check.True(!await publicRows.ReadAsync(),"Unexpected extra organization in trial settings.");
+
     }
 }
