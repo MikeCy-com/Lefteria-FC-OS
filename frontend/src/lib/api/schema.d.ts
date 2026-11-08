@@ -736,7 +736,7 @@ export interface components {
             products: components["schemas"]["AdminPosProductDto"][];
         };
         AdminPosCategoryCreateCommand: {
-            active: boolean | null;
+            active: null | boolean;
             name: null | string;
         };
         AdminPosCategoryDto: {
@@ -747,7 +747,7 @@ export interface components {
             version: number | string;
         };
         AdminPosCategoryUpdateCommand: {
-            active: boolean | null;
+            active: null | boolean;
             /** Format: int64 */
             expected_version: null | number;
             name: null | string;
