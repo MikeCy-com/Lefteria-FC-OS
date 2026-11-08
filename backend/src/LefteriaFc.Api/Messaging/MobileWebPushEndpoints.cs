@@ -3,6 +3,7 @@ using LefteriaFc.Application.Messaging;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Infrastructure.Messaging;
 using LefteriaFc.Domain.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace LefteriaFc.Api.Messaging;
 
@@ -52,7 +53,7 @@ public static class MobileWebPushEndpoints
             .Produces<MobilePushSubscriptionStateDto>().WithMobileErrors();
 
         app.MapDelete("/api/mobile/app/push/subscriptions",(
-                MobilePushUnsubscribeBody body,HttpContext context,
+                [FromBody] MobilePushUnsubscribeBody body,HttpContext context,
                 PostgresMobilePushStore store,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(async ()=>{
                 var actor=Member(context);
