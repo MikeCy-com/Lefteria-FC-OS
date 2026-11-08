@@ -43,8 +43,9 @@ test('signed webhook is bound to an opaque callback nonce and capture transactio
   assert.match(gateway,/TimeSpan\.FromMinutes\(15\)/);
   assert.match(api,/PayablSignature\.Notification\(values, settings\.Value\.Secret, DateTimeOffset\.UtcNow\)/);
   assert.match(migration,/callback_digest varchar\(64\)/);
-  assert.match(migration,/v_initial_transaction=_transaction/);
+  assert.match(migration,/v_expected_order<>_order_id/);
   assert.match(migration,/_kind='capture' AND _code=0/);
+  assert.match(api,/orderId != "LFC" \+ id.ToString\("N"\)/);
   assert.match(migration,/ON CONFLICT DO NOTHING/);
   assert.match(migration,/status='review_required'/);
   assert.doesNotMatch(page,/status\s*=\s*'paid'/);
