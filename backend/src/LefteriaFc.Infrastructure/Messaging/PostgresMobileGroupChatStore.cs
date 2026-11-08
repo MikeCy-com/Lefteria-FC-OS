@@ -30,6 +30,24 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             """,actor,organization,group,offset,null,token);
     }
 
+    public Task<MobileAppAnnouncementReactionSnapshotDto> SetAppAnnouncementReactionAsync(
+        MobileSession actor,string organization,string group,string announcementId,
+        string? emoji,bool? active,CancellationToken token)
+    {
+        ValidateRoom(organization,group);
+        if(announcementId is not {Length:36} ||
+           !announcementId.StartsWith("ann_",StringComparison.Ordinal) ||
+           !announcementId.AsSpan(4).ToString().All(char.IsAsciiHexDigit) ||
+           emoji is null || !ReactionEmoji.Contains(emoji) || active is null)
+            throw Invalid();
+        return QueryAsync<MobileAppAnnouncementReactionSnapshotDto>("""
+            SELECT club.set_mobile_app_announcement_reaction(
+              @identity,@phone,@role,@expires,@organization,@group,
+              @announcement,@emoji,@active)::text
+            """,actor,organization,group,null,null,token,
+              emoji:emoji,active:active,announcementId:announcementId);
+    }
+
     public Task<MobileChatPageDto> MessagesAsync(MobileSession actor,string organization,
         string group,int offset,CancellationToken token)
     {
@@ -129,7 +147,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
     private async Task<T> QueryAsync<T>(string sql,MobileSession actor,string? organization,
         string? group,int? offset,string? content,CancellationToken token,
         Guid? messageId=null,long? version=null,string? operation=null,
-        string? emoji=null,bool? active=null)
+        string? emoji=null,bool? active=null,string? announcementId=null)
     {
         try
         {
@@ -147,7 +165,8 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 if(offset is not null)command.Parameters.AddWithValue("offset",offset.Value);
                 if(emoji is not null && active is not null)
                 {
-                    command.Parameters.AddWithValue("message",messageId!.Value);
+                    if(announcementId is null)command.Parameters.AddWithValue("message",messageId!.Value);
+                    else command.Parameters.AddWithValue("announcement",announcementId);
                     command.Parameters.AddWithValue("emoji",emoji);
                     command.Parameters.AddWithValue("active",active.Value);
                 }
