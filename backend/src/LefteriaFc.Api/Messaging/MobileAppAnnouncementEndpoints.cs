@@ -10,6 +10,20 @@ public static class MobileAppAnnouncementEndpoints
 {
     public static IEndpointRouteBuilder MapMobileAppAnnouncements(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/mobile/app/notifications",(
+                string? offset,HttpContext context,PostgresMobileGroupChatStore store,
+                CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.NotificationInboxAsync(MobilePrincipal.Read(context.User),
+                        ParseOffset(context,offset),token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile app notifications")
+            .WithName("GetMobileAppNotificationInbox")
+            .Produces<MobileAppNotificationInboxDto>().WithMobileErrors();
+
         app.MapGet("/api/mobile/app/announcements/{organization}/{group}",(
                 string organization,string group,string? offset,HttpContext context,
                 PostgresMobileGroupChatStore store,CancellationToken token)=>
