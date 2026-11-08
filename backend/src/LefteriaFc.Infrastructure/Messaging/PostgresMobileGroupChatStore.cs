@@ -63,6 +63,23 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             """,actor,organization,group,null,null,token,announcementId:announcementId);
     }
 
+    public Task<AppAnnouncementMediaDownloadDto> DownloadAppAnnouncementMediaAsync(
+        MobileSession actor,string organization,string group,string announcementId,
+        Guid mediaId,CancellationToken token)
+    {
+        ValidateRoom(organization,group);
+        if(announcementId is not {Length:36}||
+           !announcementId.StartsWith("ann_",StringComparison.Ordinal)||
+           !announcementId.AsSpan(4).ToString().All(char.IsAsciiHexDigit)||
+           mediaId==Guid.Empty)throw Invalid();
+        return QueryAsync<AppAnnouncementMediaDownloadDto>("""
+            SELECT club.read_mobile_app_announcement_media(
+              @identity,@phone,@role,@expires,
+              @organization,@group,@announcement,@media)::text
+            """,actor,organization,group,null,null,token,
+            announcementId:announcementId,fileId:mediaId);
+    }
+
     public Task<MobileChatPageDto> MessagesAsync(MobileSession actor,string organization,
         string group,int offset,CancellationToken token)
     {
@@ -162,7 +179,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
     private async Task<T> QueryAsync<T>(string sql,MobileSession actor,string? organization,
         string? group,int? offset,string? content,CancellationToken token,
         Guid? messageId=null,long? version=null,string? operation=null,
-        string? emoji=null,bool? active=null,string? announcementId=null)
+        string? emoji=null,bool? active=null,string? announcementId=null,Guid? fileId=null)
     {
         try
         {
@@ -194,7 +211,10 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                         (object?)content??DBNull.Value;
                 }
                 else if(announcementId is not null)
+                {
                     command.Parameters.AddWithValue("announcement",announcementId);
+                    if(fileId is not null)command.Parameters.AddWithValue("media",fileId.Value);
+                }
                 else if(messageId is not null)
                 {
                     command.Parameters.AddWithValue("message",messageId.Value);
