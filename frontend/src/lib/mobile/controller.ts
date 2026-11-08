@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
+import {validAppAnnouncementPage,type AppAnnouncementPage} from './app-announcements.ts';
 import {validPrivateContact,validPrivateContacts,validPrivateConversation,
   validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
   type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
@@ -1256,6 +1257,16 @@ export function createMobileAuthController(options: {
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);
+    },
+    async getAppAnnouncements(room:GroupChatRoom,offset=0):Promise<AppAnnouncementPage> {
+      if(!validRoom(room)||!Number.isInteger(offset)||offset<0||offset>100000)
+        throw new Error('Invalid announcement scope.');
+      const path='/api/mobile/app/announcements/'+encodeURIComponent(room.organization_id)+
+        '/'+encodeURIComponent(room.group_id)+'?offset='+offset;
+      const result=await chatRequest(path);
+      if(!validAppAnnouncementPage(result,room))
+        throw new Error('Unverified app announcement response.');
+      return result;
     },
     async getChatRooms():Promise<GroupChatRoom[]> {
       const result=await chatRequest('/api/mobile/chat/groups');
