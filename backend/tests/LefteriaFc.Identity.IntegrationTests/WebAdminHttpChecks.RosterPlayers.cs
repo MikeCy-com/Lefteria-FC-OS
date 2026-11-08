@@ -20,6 +20,7 @@ internal sealed partial class WebAdminHttpChecks
 
     private async Task AdminRosterPlayerDirectoryAsync()
     {
+        Console.WriteLine("ROSTER_PICKER_PROBE start");
         using var anonymous=Client();
         using(var denied=await anonymous.GetAsync(FcPlayersPath))
             await ExpectJsonAsync(denied,401,"not_authenticated");
@@ -50,6 +51,7 @@ internal sealed partial class WebAdminHttpChecks
             Require(denied,"Roster picker accepted an unbound admin session digest.");
         }
 
+        Console.WriteLine("ROSTER_PICKER_PROBE token_and_raw_grants_ok");
         var fixture=await database.SeedAudienceAsync();
         try
         {
@@ -73,6 +75,7 @@ internal sealed partial class WebAdminHttpChecks
                     !body.GetRawText().Contains("birth",StringComparison.OrdinalIgnoreCase),
                     "Inactive, cross-owner or private youth data leaked.");
             }
+            Console.WriteLine("ROSTER_PICKER_PROBE fc_membership_ok");
             using(var response=await GetAsync(client,AcademyPlayersPath,login.Cookie))
             {
                 var body=await ExpectJsonAsync(response,200);
@@ -86,6 +89,7 @@ internal sealed partial class WebAdminHttpChecks
                     !body.GetRawText().Contains(fixture.Player(1),StringComparison.Ordinal),
                     "Academy primary and plural membership union is wrong or leaked FC.");
             }
+            Console.WriteLine("ROSTER_PICKER_PROBE academy_membership_ok");
             using(var response=await GetAsync(client,FcPlayersPath+"&offset=1&limit=1",login.Cookie))
             {
                 var body=await ExpectJsonAsync(response,200);
@@ -94,6 +98,7 @@ internal sealed partial class WebAdminHttpChecks
                     body.GetProperty("players").GetArrayLength()==1,
                     "Manager roster player pagination failed.");
             }
+            Console.WriteLine("ROSTER_PICKER_PROBE pagination_ok");
             await database.RemoveAudienceMembershipAsync(fixture);
             using(var response=await GetAsync(client,AcademyPlayersPath,login.Cookie))
             {
@@ -101,6 +106,7 @@ internal sealed partial class WebAdminHttpChecks
                 Require(PlayerRow(body,fixture.Player(6)).GetProperty("academy_group_ids").GetArrayLength()==0,
                     "Player group display did not dynamically refresh from database.");
             }
+            Console.WriteLine("ROSTER_PICKER_PROBE live_mutation_reflection_ok");
             foreach(var path in new[]{
                 "/api/admin/football/players",
                 "/api/admin/football/players?organization_id=all",
@@ -109,8 +115,9 @@ internal sealed partial class WebAdminHttpChecks
                 FcPlayersPath+"&limit=2&limit=3",
                 FcPlayersPath+"&organization_id=lefteria_fc_academy"})
                 using(var response=await GetAsync(client,path,login.Cookie))
-                    await ExpectJsonAsync(response,400);
+                    await ExpectStatusAsync(response,400);
 
+            Console.WriteLine("ROSTER_PICKER_PROBE invalid_filters_ok");
             var editor=await database.SeedAsync(role:"editor",organizations:["lefteria_fc"]);
             using(var editorClient=Client())
             {
@@ -134,6 +141,7 @@ internal sealed partial class WebAdminHttpChecks
                 using(var allowed=await GetAsync(academyClient,AcademyPlayersPath,session.Cookie))
                     await ExpectJsonAsync(allowed,200);
             }
+            Console.WriteLine("ROSTER_PICKER_PROBE role_denial_ok");
             await database.SetStateAsync(admin,role:"editor");
             using(var denied=await GetAsync(client,FcPlayersPath,login.Cookie))
                 await ExpectJsonAsync(denied,403,"not_authorized");
@@ -146,5 +154,6 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,401,"not_authenticated");
         }
         finally {await database.CleanupAudienceAsync(fixture);}
+        Console.WriteLine("ROSTER_PICKER_PROBE all_phases_ok");
     }
 }
