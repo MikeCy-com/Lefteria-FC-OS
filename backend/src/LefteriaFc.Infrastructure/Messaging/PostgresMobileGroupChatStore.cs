@@ -67,6 +67,24 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             """,actor,organization,group,null,content,token,messageId,version,operation);
     }
 
+    private static readonly HashSet<string> ReactionEmoji=
+        new(["👍","❤️","😂","⚽","👏","🎉","🙏","🔥"],StringComparer.Ordinal);
+
+    public Task<MobileChatReactionSnapshotDto> SetReactionAsync(MobileSession actor,
+        string organization,string group,Guid messageId,string? emoji,bool? active,
+        CancellationToken token)
+    {
+        ValidateRoom(organization,group);
+        if(messageId==Guid.Empty || emoji is null || !ReactionEmoji.Contains(emoji) ||
+           active is null) throw Invalid();
+        return QueryAsync<MobileChatReactionSnapshotDto>("""
+            SELECT club.set_mobile_chat_reaction(
+              @identity,@phone,@role,@expires,@organization,@group,
+              @message,@emoji,@active)::text
+            """,actor,organization,group,null,null,token,messageId,
+            null,null,emoji,active);
+    }
+
     private static void ValidateRoom(string organization,string group)
     {
         if(organization is not ("lefteria_fc" or "lefteria_fc_academy") ||
@@ -77,7 +95,8 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
 
     private async Task<T> QueryAsync<T>(string sql,MobileSession actor,string? organization,
         string? group,int? offset,string? content,CancellationToken token,
-        Guid? messageId=null,long? version=null,string? operation=null)
+        Guid? messageId=null,long? version=null,string? operation=null,
+        string? emoji=null,bool? active=null)
     {
         try
         {
@@ -93,7 +112,13 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 if(organization is not null)command.Parameters.AddWithValue("organization",organization);
                 if(group is not null)command.Parameters.AddWithValue("group",group);
                 if(offset is not null)command.Parameters.AddWithValue("offset",offset.Value);
-                if(operation is not null)
+                if(emoji is not null && active is not null)
+                {
+                    command.Parameters.AddWithValue("message",messageId!.Value);
+                    command.Parameters.AddWithValue("emoji",emoji);
+                    command.Parameters.AddWithValue("active",active.Value);
+                }
+                else if(operation is not null)
                 {
                     command.Parameters.AddWithValue("message",messageId!.Value);
                     command.Parameters.AddWithValue("version",version!.Value);

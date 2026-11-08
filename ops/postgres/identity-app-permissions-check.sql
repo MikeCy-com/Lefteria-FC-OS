@@ -249,6 +249,23 @@ BEGIN
   IF NOT denied THEN
     RAISE EXCEPTION 'Guessed edit/delete was accepted without source identity';
   END IF;
+  IF has_table_privilege(current_user,'club.app_chat_reactions',
+       'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_any_column_privilege(current_user,'club.app_chat_reactions',
+        'SELECT,INSERT,UPDATE,REFERENCES')
+      OR NOT has_function_privilege(current_user,
+        'club.set_mobile_chat_reaction(uuid,text,text,timestamptz,text,text,uuid,text,boolean)','EXECUTE')
+    THEN
+    RAISE EXCEPTION 'Chat reactions exceed least-privilege storage boundary';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM club.set_mobile_chat_reaction(
+      gen_random_uuid(),'invalid','fan',now()+interval '1 day',
+      'lefteria_fc','invented_room',gen_random_uuid(),'⚽',true);
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Invalid fan reacted to a guessed room'; END IF;
   -- A fan cannot use a member chat directory, even with guessed group IDs.
   denied := false;
   BEGIN

@@ -47,6 +47,16 @@ public static class MobileGroupChatEndpoints
             .WithName("DeleteMobileChatMessage").Produces<MobileChatMessageDto>()
             .Produces<MobileAuthError>(StatusCodes.Status409Conflict).WithMobileErrors();
 
+        chat.MapPost("/groups/{organization}/{group}/messages/{messageId:guid}/reactions",(
+                string organization,string group,Guid messageId,
+                MobileChatReactionBody body,HttpContext context,
+                PostgresMobileGroupChatStore store,CancellationToken token)=>
+            MobileIdentityEndpoints.Execute(
+                ()=>store.SetReactionAsync(MobilePrincipal.Read(context.User),
+                    organization,group,messageId,body.Emoji,body.Active,token),context))
+            .WithName("SetMobileChatReaction")
+            .Produces<MobileChatReactionSnapshotDto>().WithMobileErrors();
+
         return app;
     }
 

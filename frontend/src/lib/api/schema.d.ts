@@ -516,6 +516,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/chat/groups/{organization}/{group}/messages/{messageId}/reactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SetMobileChatReaction"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/family": {
         parameters: {
             query?: never;
@@ -1253,6 +1269,7 @@ export interface components {
             /** @default false */
             is_deleted: boolean;
             organization_id: string;
+            reactions?: null | components["schemas"]["MobileChatReactionDto"][];
             /** Format: uuid */
             sender_id: string;
             sender_name: string;
@@ -1266,6 +1283,21 @@ export interface components {
             messages: components["schemas"]["MobileChatMessageDto"][];
             /** Format: int32 */
             next_offset: null | number | string;
+        };
+        MobileChatReactionBody: {
+            active: null | boolean;
+            emoji: null | string;
+        };
+        MobileChatReactionDto: {
+            /** Format: int32 */
+            count: number | string;
+            emoji: string;
+            mine: boolean;
+        };
+        MobileChatReactionSnapshotDto: {
+            /** Format: uuid */
+            message_id: string;
+            reactions: components["schemas"]["MobileChatReactionDto"][];
         };
         MobileChatSendBody: {
             content: null | string;
@@ -5118,6 +5150,97 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    SetMobileChatReaction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                group: string;
+                messageId: string;
+                organization: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChatReactionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileChatReactionSnapshotDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

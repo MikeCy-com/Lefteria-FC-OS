@@ -1,9 +1,14 @@
 // Validated server snapshots only; do not cache member messages in browser
 // storage or claim delivery/read status from successful HTTP responses.
+import {CHAT_REACTION_EMOJIS,type ChatReaction} from './chat-actions.ts';
+
+export type GroupChatReaction={emoji:ChatReaction;count:number;mine:boolean};
+export type GroupChatReactionSnapshot={message_id:string;reactions:GroupChatReaction[]};
 export type GroupChatRoom = {organization_id:string;group_id:string;kind:'team'|'academy_group';name:string};
 export type GroupChatMessage = {id:string;organization_id:string;group_id:string;
   sender_id:string;sender_name:string;content:string;created_at:string;
-  edited_at:string|null;is_deleted:boolean;version:number};
+  edited_at:string|null;is_deleted:boolean;version:number;
+  reactions:GroupChatReaction[]};
 export type GroupChatPage = {messages:GroupChatMessage[];next_offset:number|null};
 
 const value=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
@@ -22,6 +27,22 @@ export function validChatDirectory(v:unknown):v is {ready:true;groups:{id:string
     return validRoom({organization_id:group.organization_id,group_id:group.id,kind:group.kind,name:group.name});
   })&&new Set(groups.map((r:{id:string;organization_id:string})=>r.organization_id+'/'+r.id)).size===groups.length;
 }
+export function validReactions(v:unknown):v is GroupChatReaction[] {
+  if(!Array.isArray(v)||v.length>CHAT_REACTION_EMOJIS.length)return false;
+  const used=new Set<string>();
+  return v.every((r:unknown)=>{
+    if(!value(r)||typeof r.emoji!=='string'||
+       !CHAT_REACTION_EMOJIS.some(emoji=>emoji===r.emoji)||
+       !Number.isSafeInteger(r.count)||(r.count as number)<1||
+       typeof r.mine!=='boolean'||used.has(r.emoji))return false;
+    used.add(r.emoji);
+    return true;
+  });
+}
+export function validReactionSnapshot(v:unknown,messageId:string):v is GroupChatReactionSnapshot {
+  return value(v)&&v.message_id===messageId&&validReactions(v.reactions);
+}
+
 export function validMessage(v:unknown,room:GroupChatRoom):v is GroupChatMessage {
   return value(v)&&typeof v.id==='string'&&/^[a-f0-9-]{36}$/i.test(v.id)&&
     v.organization_id===room.organization_id&&v.group_id===room.group_id&&
@@ -29,6 +50,7 @@ export function validMessage(v:unknown,room:GroupChatRoom):v is GroupChatMessage
     typeof v.is_deleted==='boolean'&&Number.isSafeInteger(v.version)&&(v.version as number)>=1&&
     (v.edited_at===null||(text(v.edited_at,64)&&!Number.isNaN(Date.parse(v.edited_at))))&&
     (v.is_deleted?v.content==='':text(v.content,10000))&&
+    validReactions(v.reactions)&&(!v.is_deleted||(v.reactions as unknown[]).length===0)&&
     text(v.created_at,64)&&!Number.isNaN(Date.parse(v.created_at));
 }
 export function validPage(v:unknown,room:GroupChatRoom):v is GroupChatPage {

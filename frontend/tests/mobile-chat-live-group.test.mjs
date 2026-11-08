@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
-import {validChatDirectory,validPage,validMessage,validRoom,validTextMessage} from '../src/lib/mobile/group-chat.ts';
+import {validChatDirectory,validPage,validMessage,validRoom,validTextMessage,validReactions,validReactionSnapshot} from '../src/lib/mobile/group-chat.ts';
 
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const academy={organization_id:'lefteria_fc_academy',group_id:'acad_1',kind:'academy_group',name:'U-15'};
@@ -26,13 +26,14 @@ test('message snapshots never accept a cross-room payload',()=>{
   const message={id:'b8e46f68-5b63-4b93-99d1-926c216c33fe',sender_id:'4cb93bfb-4108-4ac9-a67b-c35346f7bc1d',
     sender_name:'Coach',organization_id:academy.organization_id,group_id:academy.group_id,
     content:'Training notice',created_at:'2026-11-08T14:20:00Z',
-    edited_at:null,is_deleted:false,version:1};
+    edited_at:null,is_deleted:false,version:1,reactions:[]};
   assert.ok(validMessage(message,academy));
   assert.ok(validPage({messages:[message],next_offset:null},academy));
   assert.equal(validPage({messages:[message],next_offset:100001},academy),true);
   assert.equal(validPage({messages:[message],next_offset:-1},academy),false);
   assert.equal(validMessage(message,team),false);
   assert.equal(validMessage({...message,is_deleted:true,content:''},academy),true);
+  assert.equal(validMessage({...message,is_deleted:true,content:'',reactions:[{emoji:'⚽',count:1,mine:true}]},academy),false);
   assert.equal(validMessage({...message,is_deleted:true},academy),false);
   assert.equal(validMessage({...message,version:0},academy),false);
   assert.equal(validMessage({...message,content:''},academy),false);
@@ -64,14 +65,15 @@ test('authenticated app tab holds mobile chat within bearer session, no public w
   assert.match(route,/<MobileGroupChat \{controller\} actorId=\{user.id\}/);
 });
 
-test('live group uses existing 550 ms long-press menu only for the sender, without unimplemented actions',()=>{
+test('live group uses existing 550 ms long-press menu for current members and owned edit/delete',()=>{
   const source=read('../src/lib/mobile/components/MobileGroupChat.svelte');
   assert.match(source,/import MobileHoldAction from/);
   assert.match(source,/import MobileMessageActionMenu from/);
-  assert.match(source,/message.sender_id===actorId&&!message.is_deleted&&!mutationBusy/);
+  assert.match(source,/enabled=\{!message.is_deleted&&!mutationBusy&&!sending&&!messageBusy\}/);
   assert.match(source,/onEdit=\{\(text\)=>mutateMessage\(menuMessage,'edit',text\)\}/);
   assert.match(source,/onDelete=\{\(\)=>mutateMessage\(menuMessage,'delete'\)\}/);
-  assert.match(source,/canReact:false,canSeeReaders:false/);
+  assert.match(source,/canReact:true,canSeeReaders:false/);
+  assert.match(source,/onReact=\{\(emoji\)=>toggleReaction\(menuMessage,emoji\)\}/);
   assert.match(source,/message.is_deleted\?'Το μήνυμα διαγράφηκε':message.content/);
 });
 
@@ -82,4 +84,27 @@ test('mutations require server-verified version increments and clear content for
   assert.match(source,/token!==sessionToken/);
   assert.match(source,/method,cache:'no-store'/);
   assert.doesNotMatch(source,/optimisticChatUpdate|localStorage\.setItem\('chat/);
+});
+
+test('reaction payloads permit only 8 reviewed emojis, bounded distinct totals and mine flags',()=>{
+  const live=[{emoji:'⚽',count:2,mine:true},{emoji:'❤️',count:1,mine:false}];
+  assert.equal(validReactions(live),true);
+  assert.equal(validReactions([...live,live[0]]),false);
+  assert.equal(validReactions([{emoji:'😈',count:1,mine:true}]),false);
+  assert.equal(validReactions([{emoji:'⚽',count:0,mine:true}]),false);
+  assert.equal(validReactions([{emoji:'⚽',count:1,mine:'yes'}]),false);
+  assert.equal(validReactionSnapshot({message_id:'message',reactions:live},'message'),true);
+  assert.equal(validReactionSnapshot({message_id:'other',reactions:live},'message'),false);
+});
+
+test('send/edit/reaction transport sends exact JSON body and validates server confirmation',()=>{
+  const source=read('../src/lib/mobile/controller.ts');
+  assert.match(source,/body:JSON.stringify\(content\)/);
+  assert.doesNotMatch(source,/body:JSON.stringify\(\{content\}\)/);
+  assert.match(source,/async setChatReaction\(/);
+  assert.match(source,/validReactionSnapshot\(response,messageId\)/);
+  const screen=read('../src/lib/mobile/components/MobileGroupChat.svelte');
+  assert.match(screen,/const result=await controller.setChatReaction\(room,target.id,emoji,!mine\)/);
+  assert.match(screen,/reactions:result.reactions/);
+  assert.doesNotMatch(screen,/setTimeout\([^)]*reaction|localStorage\.setItem/);
 });

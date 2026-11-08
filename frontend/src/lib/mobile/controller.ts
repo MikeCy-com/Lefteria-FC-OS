@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,type GroupChatRoom,type GroupChatMessage,type GroupChatPage} from './group-chat.ts';
+import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
@@ -252,7 +252,7 @@ export function createMobileAuthController(options: {
     const reply=await (options.fetch??globalThis.fetch)(options.baseUrl+path,{
       method,cache:'no-store',
       headers:{...authorization(),...(content===undefined?{}:{'Content-Type':'application/json'})},
-      ...(content===undefined?{}:{body:JSON.stringify({content})})
+      ...(content===undefined?{}:{body:JSON.stringify(content)})
     });
     if(revision!==opRevision || token!==sessionToken ||
        state.user?.id!==current.id || state.user?.role!==current.role ||
@@ -1287,6 +1287,20 @@ export function createMobileAuthController(options: {
         result.version!==version+1||!result.is_deleted||result.content!=='')
         throw new Error('Server did not confirm message deletion.');
       return result;
+    },
+    async setChatReaction(room:GroupChatRoom,messageId:string,emoji:string,active:boolean):
+      Promise<GroupChatReactionSnapshot> {
+      if(!/^[a-f0-9-]{36}$/i.test(messageId)||
+         !['👍','❤️','😂','⚽','👏','🎉','🙏','🔥'].includes(emoji)||
+         typeof active!=='boolean')throw new Error('Invalid reaction request.');
+      const response=await chatRequest(
+        chatRoomPath(room)+'/'+encodeURIComponent(messageId)+'/reactions',
+        'POST',{emoji,active});
+      if(!validReactionSnapshot(response,messageId) ||
+         response.reactions.some(r=>r.emoji===emoji && r.mine!==active) ||
+         (active&&!response.reactions.some(r=>r.emoji===emoji&&r.mine)))
+        throw new Error('Server did not confirm the reaction.');
+      return response;
     },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }
