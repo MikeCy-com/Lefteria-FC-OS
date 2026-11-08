@@ -77,6 +77,18 @@ builder.Services.AddOpenApi(options =>
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
+builder.Services.AddScoped<PostgresMobilePushStore>();
+builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
+builder.Services.AddHttpClient("web-push",client=>
+    client.Timeout=TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(()=>new SocketsHttpHandler{
+        AllowAutoRedirect=false,UseCookies=false,
+        AutomaticDecompression=System.Net.DecompressionMethods.None,
+        MaxConnectionsPerServer=4,
+        PooledConnectionLifetime=TimeSpan.FromMinutes(5)
+    });
+builder.Services.AddSingleton<WebPushDeliverySender>();
+builder.Services.AddHostedService<WebPushDispatchWorker>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
@@ -130,6 +142,7 @@ app.MapMobileCalendar();
 app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
+app.MapMobileWebPush();
 app.MapWebAdmin();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
