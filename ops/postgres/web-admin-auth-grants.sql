@@ -146,6 +146,14 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcements(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement(
   text,text,text,bigint) TO :"admin_auth_role";
+-- Readers of official app notices are visible ONLY via this exact,
+-- manager/organization/active-group verified helper, never direct mobile data.
+REVOKE ALL ON TABLE club.app_announcement_read_receipts
+  FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.read_admin_app_announcement_readers(text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_app_announcement_readers(text,text,text)
+  TO :"admin_auth_role";
 -- Live canonical team/Academy counts, without direct SELECT on player
 -- identities or memberships. No messages and no delivery authority.
 REVOKE ALL ON FUNCTION club.read_admin_audiences(text,text) FROM PUBLIC, :"app_role";
