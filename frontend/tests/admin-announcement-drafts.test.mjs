@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
 const root=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
 const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108190000_AdminAnnouncementDrafts.cs');
@@ -22,7 +23,7 @@ test('announcement draft save is group-bound and audit atomic without dispatch',
   assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.create_admin_announcement_draft/);
   assert.match(boundary,/has_any_column_privilege\(auth_role,'club\.admin_announcement_drafts'/);
 });
-test('draft admin page is owner scoped, group-backed and cannot publish',()=>{
+test('announcement admin page keeps draft saves and owner-scoped confirmed publication',()=>{
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
   assert.match(api,/AdminPermissions\.Has\(session\.User\.Role,capability\)/);
   assert.match(api,/JsonUnmappedMemberHandling\.Disallow/);
@@ -32,5 +33,44 @@ test('draft admin page is owner scoped, group-backed and cannot publish',()=>{
   assert.match(ui,/method:'POST',credentials:'same-origin',cache:'no-store'/);
   assert.match(ui,/saved\.status!=='draft'/);
   assert.match(nav,/id: 'announcements'/);
-  assert.doesNotMatch(ui,/\/api\/admin\/messages|sendPush|publishAnnouncement|@html/);
+  assert.match(ui,/announcement-publish/);
+  assert.match(ui,/announcement-remove/);
+  assert.match(ui,/app-announcements/);
+  assert.match(ui,/publishDraft\(draft\)/);
+  assert.match(ui,/removeAnnouncement\(item\)/);
+  assert.match(ui,/window\.confirm\(/);
+  assert.doesNotMatch(ui,/\/api\/admin\/messages|sendPush|@html/);
+});
+
+test('app notices use separate audited publish storage; mobile readers see no drafts or user contact rows',()=>{
+  const publish=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108270000_AppAnnouncementPublishing.cs');
+  const mobile=read('backend/src/LefteriaFc.Api/Messaging/MobileAppAnnouncementEndpoints.cs');
+  const boundary=read('ops/postgres/app-announcement-publishing-boundary.sql');
+  assert.match(publish,/CREATE TABLE club\.app_announcements/);
+  assert.match(publish,/CREATE FUNCTION club\.publish_admin_app_announcement/);
+  assert.match(publish,/CREATE FUNCTION club\.remove_admin_app_announcement/);
+  assert.match(publish,/CREATE FUNCTION club\.read_mobile_app_announcements/);
+  assert.match(publish,/UPDATE club\.admin_announcement_drafts/);
+  assert.match(publish,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+  assert.match(publish,/club\.read_mobile_chat_groups\(_actor,_phone,_role,_expires\)/);
+  assert.match(publish,/a\.removed_at IS NULL/);
+  assert.match(publish,/INSERT INTO audit\.security_events/);
+  assert.match(mobile,/RequireAuthorization\(IdentityServices\.Policy\)/);
+  assert.match(boundary,/has_any_column_privilege\(mobile_role,'club\.app_announcements'/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.publish_admin_app_announcement/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_admin_app_announcements/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.remove_admin_app_announcement/);
+  assert.doesNotMatch(publish,/sendPush|twilio|outbox|email/i);
+});
+
+test('mobile announcements compile and are restricted to current member tab and server confirmations',()=>{
+  const feed=read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
+  compile(feed,{filename:'MobileAppAnnouncements.svelte',generate:'server'});
+  const route=read('frontend/src/routes/app/[...path]/+page.svelte');
+  compile(route,{filename:'+page.svelte',generate:'server'});
+  assert.match(route,/activeTab === 'announcements' && role !== 'fan'/);
+  assert.match(route,/<MobileAppAnnouncements \{controller\}/);
+  assert.match(feed,/controller\.getChatRooms\(\)/);
+  assert.match(feed,/controller\.getAppAnnouncements\(room,0\)/);
+  assert.doesNotMatch(feed,/localStorage|sessionStorage|innerHTML|@html/);
 });
