@@ -26,7 +26,13 @@ public sealed class PostgresMobileChatGroupReader(LefteriaDbContext database)
             command.Parameters.AddWithValue("phone",session.NormalizedPhone);
             command.Parameters.AddWithValue("role",session.Role.ToWireValue());
             command.Parameters.AddWithValue("expires",session.ExpiresAt);
-            var raw=await command.ExecuteScalarAsync(token) as string;
+            string? raw;
+            try{raw=await command.ExecuteScalarAsync(token) as string;}
+            catch(PostgresException error) when(error.SqlState=="42501")
+            {return new(false,false,[]);}
+            catch(PostgresException error) when(error.SqlState=="55000")
+            {return new(true,false,[]);}
+
             var payload=raw is null?null:JsonSerializer.Deserialize<Payload>(raw,
                 new JsonSerializerOptions
                 {
