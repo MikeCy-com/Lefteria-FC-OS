@@ -234,6 +234,62 @@
         ],
         "type": "object"
       },
+      "AdminCoachAssignmentCommand": {
+        "properties": {
+          "expected_group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "staff_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "staff_id",
+          "expected_group_ids",
+          "group_ids"
+        ],
+        "type": "object"
+      },
+      "AdminCoachAssignmentDto": {
+        "properties": {
+          "group_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "staff_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "staff_id",
+          "group_ids"
+        ],
+        "type": "object"
+      },
       "AdminCoachDto": {
         "properties": {
           "group_ids": {
@@ -5913,6 +5969,136 @@
               }
             },
             "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Football administration"
+        ]
+      }
+    },
+    "/api/admin/football/coach-assignments": {
+      "put": {
+        "operationId": "PutAdminCoachAssignment",
+        "parameters": [
+          {
+            "description": "Exact current assigned football or Academy owner; never all or inferred.",
+            "in": "query",
+            "name": "organization_id",
+            "required": true,
+            "schema": {
+              "enum": [
+                "lefteria_fc",
+                "lefteria_fc_academy"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCoachAssignmentCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminCoachAssignmentDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
           },
           "503": {
             "content": {
