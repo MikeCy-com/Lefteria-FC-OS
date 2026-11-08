@@ -79,7 +79,17 @@ internal sealed partial class WebAdminDatabaseFixture
         }
         await Delete("DELETE FROM club.academy_group_coaches WHERE staff_id=@coach",1);
         await Delete("DELETE FROM club.staff_academy_groups WHERE staff_id=@coach",1);
-        await Delete("DELETE FROM club.staff_teams WHERE staff_id=@coach",1);
+        // A failed HTTP assertion may leave a successful extra team assignment.
+        // Cleanup still targets only this fictional coach and explicitly
+        // permits the one additional team created by these tests.
+        await using(var cmd=new NpgsqlCommand(
+            "DELETE FROM club.staff_teams WHERE staff_id=@coach",con,tx))
+        {
+            cmd.Parameters.AddWithValue("coach",fixture.Coach1);
+            var count=await cmd.ExecuteNonQueryAsync();
+            if(count is <1 or >2)
+                throw new InvalidOperationException("Unexpected synthetic coach team cleanup.");
+        }
         await Delete("DELETE FROM club.staff WHERE id IN (@coach,@inactive)",2);
         if(fixture.OwnsReadiness)
         {
