@@ -60,6 +60,9 @@ REVOKE ALL PRIVILEGES ON DATABASE :"identity_database" FROM :"app_role";
 GRANT CONNECT ON DATABASE :"identity_database" TO :"app_role";
 REVOKE ALL PRIVILEGES ON SCHEMA identity, club, audit FROM :"app_role";
 GRANT USAGE ON SCHEMA identity, club, audit, public_content TO :"app_role";
+-- Anonymous payment-link projections and authenticated payment notification
+-- recording are served by the limited app role, never raw table privileges.
+GRANT USAGE ON SCHEMA finance TO :"app_role";
 
 REVOKE ALL PRIVILEGES ON TABLE
   identity.mobile_identities, identity.mobile_avatars, identity.admin_accounts,
@@ -351,6 +354,20 @@ REVOKE ALL ON FUNCTION club.read_mobile_app_notification_inbox(
 GRANT EXECUTE ON FUNCTION club.read_mobile_app_notification_inbox(
   uuid,text,text,timestamptz,integer) TO :"app_role";
 
+REVOKE ALL ON TABLE finance.payabl_payment_requests,
+  finance.payabl_notification_receipts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION finance.admin_payabl_actor(text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION finance.create_admin_payabl_payment(
+  text,text,text,text,text,text,integer,text,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION finance.read_admin_payabl_payments(text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION finance.claim_admin_payabl_checkout(
+  text,text,text,uuid) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION finance.complete_admin_payabl_checkout(
+  text,text,text,uuid,text,text,boolean) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION finance.read_public_payabl_link(text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION finance.record_payabl_notification(
+  text,text,text,text,timestamptz,text) TO :"app_role";
 -- Only published and currently member-scoped app notices reach mobile.
 REVOKE ALL ON TABLE club.app_announcements FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION club.app_announcement_admin_actor(text,text)
