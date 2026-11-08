@@ -124,6 +124,7 @@ internal sealed partial class IdentityHttpChecks
         using var player=Client();using var parent=Client();using var coach=Client();using var management=Client();using var fan=Client();
         await LoginAsync(player,input.PlayerPhone,"player");await LoginAsync(parent,input.ParentPhone,"parent");
         await LoginAsync(coach,input.StaffPhone,"coach");await LoginAsync(management,input.StaffPhone,"management");await LoginAsync(fan,input.PlayerPhone,"fan");
+        await ChatGroupDirectoryHttpChecksAsync(input,parent,player,coach,management,fan);
         var playerMe=await GetAsync(player,"/api/mobile/auth/me",200);var parentMe=await GetAsync(parent,"/api/mobile/auth/me",200);
         var coachMe=await GetAsync(coach,"/api/mobile/auth/me",200);var managementMe=await GetAsync(management,"/api/mobile/auth/me",200);
         Check.Equal(input.PlayerId,playerMe.GetProperty("linked_player_id").GetString(),"Imported player self link was not freshly projected.");
@@ -136,11 +137,11 @@ internal sealed partial class IdentityHttpChecks
         await using var context=database.CreateContext();
         var parentId=input.Plan.Mobiles.Single(row=>row.Role=="parent").Id;var admin=input.Plan.Admins.Single();
         await context.RosterPlayers.Where(row=>row.Id==input.ChildId).ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,true));
-        try{await AssertUnavailableAsync(parent,"parent");Check.True((await context.MobileIdentities.AsNoTracking().SingleAsync(row=>row.Id==parentId)).IsActive,"Roster archival rewrote source mobile active flag.");}
+        try{await AssertUnavailableAsync(parent,"parent");await GetAsync(parent,ChatDirectoryPath,403);Check.True((await context.MobileIdentities.AsNoTracking().SingleAsync(row=>row.Id==parentId)).IsActive,"Roster archival rewrote source mobile active flag.");}
         finally{await context.RosterPlayers.Where(row=>row.Id==input.ChildId).ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsArchived,false));}
         Check.True((await GetAsync(parent,"/api/mobile/auth/me",200)).GetProperty("current_role_available").GetBoolean(),"Restored canonical child did not recover availability.");
         await context.Staff.Where(row=>row.Id==input.StaffId).ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsActive,false));
-        try{await AssertUnavailableAsync(coach,"coach");await AssertUnavailableAsync(management,"management");}
+        try{await AssertUnavailableAsync(coach,"coach");await AssertUnavailableAsync(management,"management");await GetAsync(coach,ChatDirectoryPath,403);await GetAsync(management,ChatDirectoryPath,403);}
         finally{await context.Staff.Where(row=>row.Id==input.StaffId).ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.IsActive,true));}
         await context.AdminAccounts.Where(row=>row.Id==admin.Id).ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.NormalizedPhone,input.ParentPhone.Digits));
         try{await AssertUnavailableAsync(management,"management");}
