@@ -21,7 +21,7 @@ test('assignment editor saves only canonical group IDs with expected membership 
 test('single FC team and bounded plural Academy group UI',()=>{
   assert.match(panel,/owner==='lefteria_fc'/);
   assert.match(panel,/selectedGroups.length>=20/);
-  assert.match(panel,/selectedGroups.length>1/);
+  assert.match(panel,/desired.length>1/);
   assert.match(sql,/IF v_current<>v_expected THEN/);
   assert.match(sql,/DELETE FROM club\.player_academy_groups/);
 });
