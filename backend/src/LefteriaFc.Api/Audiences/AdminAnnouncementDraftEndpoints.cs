@@ -19,49 +19,69 @@ public static class AdminAnnouncementDraftEndpoints
     };
     public static IEndpointRouteBuilder MapAdminAnnouncementDrafts(this IEndpointRouteBuilder endpoints)
     {
-        var route=endpoints.MapMethods("/api/admin/communications/announcement-drafts",
-            ["GET","POST"],async (string? organization_id,WebAdminService admin,
+        var get=endpoints.MapGet("/api/admin/communications/announcement-drafts",
+            async (string? organization_id,WebAdminService admin,
                 IAdminAnnouncementDraftStore store,HttpContext context,CancellationToken token)=>
             {
-                context.Response.Headers.CacheControl="private, no-store";
-                context.Response.Headers.Pragma="no-cache";
-                if(organization_id is null ||
-                    !PublicContentService.IsOrganization(organization_id) ||
-                    context.Request.Query["organization_id"].Count!=1)
-                    throw new WebAdminException(400,"invalid_organization","Select one organization.");
-                var cookie=context.Request.Cookies[WebAdminServices.CookieName];
-                var session=await admin.CurrentAsync(cookie,token);
-                if(session is null)
-                    throw new WebAdminException(401,"not_authenticated","Sign in again.");
-                // This is an editorial operation, not implicit chat or mobile access.
-                var capability=organization_id=="lefteria_fc"?"teams:write":"academy:write";
-                if(!AdminPermissions.Has(session.User.Role,capability) ||
-                    !session.User.Organizations.Any(o=>o.Id==organization_id))
-                    throw new WebAdminException(403,"not_authorized","Draft access denied.");
-                if(context.Request.Method=="GET")
-                    return Results.Ok(await store.ReadAsync(cookie!,organization_id,token));
-                AdminAnnouncementDraftCommand body;
-                try
-                {
-                    using var doc=await JsonDocument.ParseAsync(context.Request.Body,
-                        new JsonDocumentOptions{MaxDepth=6},token);
-                    if(doc.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();
-                    var keys=new HashSet<string>(StringComparer.Ordinal);
-                    foreach(var property in doc.RootElement.EnumerateObject())
-                        if(!keys.Add(property.Name))throw new JsonException();
-                    body=doc.Deserialize<AdminAnnouncementDraftCommand>(Json)??throw new JsonException();
-                }
-                catch(JsonException)
-                {throw new WebAdminException(400,"invalid_json","Provide a valid announcement draft.");}
-                return Results.Ok(await store.CreateAsync(cookie!,organization_id,body,token));
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                return Results.Ok(await store.ReadAsync(cookie,organization_id!,token));
             })
             .RequireAuthorization(WebAdminServices.Policy)
             .WithTags("Communications administration")
-            .WithName("AdminAnnouncementDrafts");
-        route.Produces<AdminAnnouncementDraftDto>(200)
+            .WithName("GetAdminAnnouncementDrafts")
             .Produces<AdminAnnouncementDraftsDto>(200);
+        var post=endpoints.MapPost("/api/admin/communications/announcement-drafts",
+            async (string? organization_id,WebAdminService admin,
+                IAdminAnnouncementDraftStore store,HttpContext context,CancellationToken token)=>
+            {
+                var cookie=await AuthorizedCookie(organization_id,admin,context,token);
+                return Results.Ok(await store.CreateAsync(cookie,organization_id!,
+                    await Parse(context,token),token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("Communications administration")
+            .WithName("CreateAdminAnnouncementDraft")
+            .Accepts<AdminAnnouncementDraftCommand>("application/json")
+            .Produces<AdminAnnouncementDraftDto>(200);
         foreach(var status in new[]{400,401,403,409,413,415,422,503})
-            route.Produces<WebAdminError>(status);
+        {
+            get.Produces<WebAdminError>(status);
+            post.Produces<WebAdminError>(status);
+        }
         return endpoints;
+    }
+    private static async Task<string> AuthorizedCookie(string? organization,
+        WebAdminService admin,HttpContext context,CancellationToken token)
+    {
+        context.Response.Headers.CacheControl="private, no-store";
+        context.Response.Headers.Pragma="no-cache";
+        if(organization is null || !PublicContentService.IsOrganization(organization) ||
+            context.Request.Query["organization_id"].Count!=1)
+            throw new WebAdminException(400,"invalid_organization","Select one organization.");
+        var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+        var session=await admin.CurrentAsync(cookie,token);
+        if(session is null)
+            throw new WebAdminException(401,"not_authenticated","Sign in again.");
+        var capability=organization=="lefteria_fc"?"teams:write":"academy:write";
+        if(!AdminPermissions.Has(session.User.Role,capability) ||
+            !session.User.Organizations.Any(o=>o.Id==organization))
+            throw new WebAdminException(403,"not_authorized","Draft access denied.");
+        return cookie!;
+    }
+    private static async Task<AdminAnnouncementDraftCommand> Parse(
+        HttpContext context,CancellationToken token)
+    {
+        try
+        {
+            using var doc=await JsonDocument.ParseAsync(context.Request.Body,
+                new JsonDocumentOptions{MaxDepth=6},token);
+            if(doc.RootElement.ValueKind!=JsonValueKind.Object)throw new JsonException();
+            var keys=new HashSet<string>(StringComparer.Ordinal);
+            foreach(var property in doc.RootElement.EnumerateObject())
+                if(!keys.Add(property.Name))throw new JsonException();
+            return doc.Deserialize<AdminAnnouncementDraftCommand>(Json)??throw new JsonException();
+        }
+        catch(JsonException)
+        {throw new WebAdminException(400,"invalid_json","Provide a valid announcement draft.");}
     }
 }
