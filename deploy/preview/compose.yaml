@@ -82,6 +82,12 @@ services:
       MobileAuth__SigningKey: ${PREVIEW_SIGNING_KEY:?Set a fresh preview signing key}
       MobileAuth__OtpKey: ${PREVIEW_OTP_KEY:?Set a separate preview OTP key}
       LegacyMobileBridge__Enabled: "false"
+      # Never contact a merchant or collect payment in isolated preview.
+      Payabl__Enabled: "false"
+      Payabl__Environment: sandbox
+      Payabl__MerchantId: ""
+      Payabl__MerchantSecret: ""
+      Payabl__PublicOrigin: ""
       Http__KnownProxies__0: 172.30.92.2
       Twilio__AccountSid: ""
       Twilio__AuthToken: ""
