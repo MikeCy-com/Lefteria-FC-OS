@@ -3,6 +3,7 @@
   import type {MobileAuthController} from '../controller.ts';
   import type {GroupChatRoom} from '../group-chat.ts';
   import type {AppAnnouncement} from '../app-announcements.ts';
+  import {CHAT_REACTION_EMOJIS,type ChatReaction} from '../chat-actions.ts';
 
   let {controller}:{controller:MobileAuthController}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
@@ -11,6 +12,8 @@
   let nextOffset=$state<number|null>(null);
   let loading=$state(true),busy=$state(false);
   let error=$state<string|null>(null);
+  let reactionFor=$state<string|null>(null);
+  let reacting=$state<string|null>(null);
   let requestNumber=0,alive=true;
   onMount(()=>{
     alive=true;void loadDirectory();
@@ -23,6 +26,7 @@
   async function loadDirectory(){
     const request=++requestNumber;
     loading=true;error=null;rooms=[];selected=null;announcements=[];nextOffset=null;
+    reactionFor=null;reacting=null;
     try{
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
@@ -33,7 +37,7 @@
   }
   async function chooseRoom(room:GroupChatRoom){
     const request=++requestNumber;
-    selected=room;announcements=[];nextOffset=null;error=null;
+    selected=room;announcements=[];nextOffset=null;error=null;reactionFor=null;
     busy=true;
     try{
       const result=await controller.getAppAnnouncements(room,0);
@@ -55,6 +59,21 @@
       nextOffset=page.next_offset;
     }catch(e){if(alive&&request===requestNumber)error=fault(e);}
     finally{if(alive&&request===requestNumber)busy=false;}
+  }
+  async function toggleReaction(notice:AppAnnouncement,emoji:ChatReaction){
+    const room=selected;
+    if(!room||reacting!==null||!announcements.some(a=>a.id===notice.id))return;
+    const request=requestNumber;
+    const next=!notice.reactions.some(r=>r.emoji===emoji&&r.mine);
+    reacting=notice.id;error=null;
+    try{
+      const confirmation=await controller.setAppAnnouncementReaction(room,notice.id,emoji,next);
+      if(!alive||request!==requestNumber||selected!==room)return;
+      announcements=announcements.map(a=>a.id===notice.id
+        ?{...a,reactions:confirmation.reactions}:a);
+      reactionFor=null;
+    }catch(e){if(alive&&request===requestNumber)error=fault(e);}
+    finally{if(alive&&request===requestNumber)reacting=null;}
   }
 </script>
 
@@ -96,6 +115,29 @@
             </div>
             <h3>{notice.title}</h3>
             <p>{notice.body}</p>
+            <div class="reaction-summary" role="group" aria-label="Αντιδράσεις ανακοίνωσης">
+              {#each notice.reactions as reaction (reaction.emoji)}
+                <button type="button" class:mine={reaction.mine} disabled={reacting!==null}
+                  aria-pressed={reaction.mine} aria-label={'Αντίδραση '+reaction.emoji+', '+reaction.count+' μέλη'}
+                  onclick={()=>void toggleReaction(notice,reaction.emoji)}>
+                  {reaction.emoji} <span>{reaction.count}</span>
+                </button>
+              {/each}
+              <button type="button" class="reaction-add"
+                disabled={reacting!==null} aria-expanded={reactionFor===notice.id}
+                onclick={()=>reactionFor=reactionFor===notice.id?null:notice.id}>
+                <span aria-hidden="true">☺</span> Αντίδραση
+              </button>
+            </div>
+            {#if reactionFor===notice.id}
+              <div class="reaction-palette" role="group" aria-label="Επιλογή αντίδρασης">
+                {#each CHAT_REACTION_EMOJIS as emoji}
+                  <button type="button" disabled={reacting!==null}
+                    aria-label={'Επιλογή '+emoji}
+                    onclick={()=>void toggleReaction(notice,emoji)}>{emoji}</button>
+                {/each}
+              </div>
+            {/if}
           </li>
         {/each}
       </ol>
@@ -128,6 +170,15 @@
   .official{font-size:10px;color:var(--lf-gold-light);font-weight:700;letter-spacing:.03em}
   time{font-size:10px;color:var(--lf-muted)}
   .feed li p{line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+  .reaction-summary,.reaction-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .reaction-summary button,.reaction-palette button{cursor:pointer;border-radius:20px;
+    min-height:40px;min-width:45px;padding:7px 10px;color:var(--lf-text);
+    background:var(--lf-elevated);border:1px solid var(--lf-line)}
+  .reaction-summary button.mine{background:#3e321d;border-color:var(--lf-gold)}
+  .reaction-summary .reaction-add{font-size:12px;min-width:90px}
+  .reaction-summary button:disabled,.reaction-palette button:disabled{opacity:.5;cursor:default}
+  .reaction-summary span{font-size:11px;color:var(--lf-gold-light)}
+  .reaction-palette{padding:8px;border:1px solid var(--lf-brand-edge);border-radius:12px}
   .more{width:100%;margin-top:15px}
   .error{background:#2a1b1a;border:1px solid #7b3e35;color:#ffcdbe;border-radius:8px;padding:11px;font-size:12px}
   button:focus-visible{outline:2px solid var(--lf-gold);outline-offset:2px}
