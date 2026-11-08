@@ -74,10 +74,10 @@ $guard$;
 -- mobile projections and audit permissions remain unchanged.
 REVOKE ALL PRIVILEGES ON DATABASE :"admin_auth_database" FROM :"admin_auth_role";
 GRANT CONNECT ON DATABASE :"admin_auth_database" TO :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
-GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos TO :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
-REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos,finance FROM :"admin_auth_role";
+GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos,finance TO :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos,finance FROM :"admin_auth_role";
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos,finance FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON identity.admin_sessions,identity.admin_auth_rate_buckets FROM PUBLIC, :"app_role";
 
 -- Table-level REVOKE does not remove previous column grants.
@@ -91,7 +91,7 @@ BEGIN
   FOR target IN
     SELECT n.nspname,c.relname,c.oid
     FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-    WHERE n.nspname IN ('public','identity','club','audit','migration','public_content','public_sections','pos') AND c.relkind IN ('r','p','v','m','f')
+    WHERE n.nspname IN ('public','identity','club','audit','migration','public_content','public_sections','pos','finance') AND c.relkind IN ('r','p','v','m','f')
   LOOP
     SELECT string_agg(format('%I',a.attname),', ' ORDER BY a.attnum) INTO columns
     FROM pg_attribute a WHERE a.attrelid=target.oid AND a.attnum>0 AND NOT a.attisdropped;
@@ -146,6 +146,23 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcements(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement(
   text,text,text,bigint) TO :"admin_auth_role";
+-- Direct finance table reads/writes are never allowed to the session role.
+-- Every admin operation calls the same locked active club authority helper.
+REVOKE ALL ON TABLE finance.payabl_payment_requests,
+  finance.payabl_notification_receipts FROM PUBLIC, :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.create_admin_payabl_payment(
+  text,text,text,text,text,text,integer,text,text,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_payabl_payments(text,text)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.claim_admin_payabl_checkout(
+  text,text,text,uuid) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.complete_admin_payabl_checkout(
+  text,text,text,uuid,text,text,boolean) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION finance.read_public_payabl_link(text)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION finance.record_payabl_notification(
+  text,text,text,text,timestamptz,text)
+  FROM PUBLIC, :"admin_auth_role";
 -- Web management never reads raw member notification events or
 -- bypasses the member-only notification inbox.
 REVOKE ALL ON TABLE club.app_announcement_notification_events
@@ -236,6 +253,10 @@ BEGIN
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
+                  'finance.create_admin_payabl_payment(text,text,text,text,text,text,integer,text,text,text)'::regprocedure,
+                  'finance.read_admin_payabl_payments(text,text)'::regprocedure,
+                  'finance.claim_admin_payabl_checkout(text,text,text,uuid)'::regprocedure,
+                  'finance.complete_admin_payabl_checkout(text,text,text,uuid,text,text,boolean)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
