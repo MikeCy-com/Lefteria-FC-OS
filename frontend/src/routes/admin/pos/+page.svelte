@@ -85,7 +85,7 @@
     showProductForm = true;
   }
   function centsFromEuros(value: string): number | null {
-    if (!/^\\d{1,6}([.,]\\d{1,2})?$/.test(value)) return null;
+    if (!/^\d{1,6}([.,]\d{1,2})?$/.test(value)) return null;
     const [whole, decimal = ''] = value.replace(',', '.').split('.');
     const cents = Number(whole) * 100 + Number(decimal.padEnd(2, '0'));
     return Number.isSafeInteger(cents) && cents <= 10000000 ? cents : null;
@@ -118,8 +118,8 @@
     if (!name || name.length > 100 || name !== name.trim() ||
         !catalog.categories.some(c => c.id === selectedCategory && c.active) ||
         !Array.isArray(productVariants) || productVariants.length < 1 ||
-        productVariants.length > 16 || (image && (!/^https:\/\/[^\\s]+$/.test(image) ||
-        image.length > 2048 || /[\\x00-\\x1f\\x7f]/.test(image))) ||
+        productVariants.length > 16 || (image && (!/^https:\/\/[^\s]+$/.test(image) ||
+        image.length > 2048 || /[\x00-\x1f\x7f]/.test(image))) ||
         (currentId !== null && (productVersion === null ||
         !Number.isSafeInteger(productVersion) || productVersion < 0))) {
       productError = 'Ελέγξτε την κατηγορία, το όνομα, τις παραλλαγές και την έκδοση του προϊόντος.';
@@ -485,7 +485,11 @@
                       </div>
                     {/each}
                     <button type="button" class="admin-secondary" disabled={productWriting || productVariants.length >= 16}
-                      onclick={() => {productVariants=[...productVariants,newVariant(productVariants.length+1)];}}>Προσθήκη παραλλαγής</button>
+                      onclick={() => {
+                        let next=1;
+                        while(productVariants.some(item => item.id === 'variant_' + next)) next++;
+                        productVariants=[...productVariants,newVariant(next)];
+                      }}>Προσθήκη παραλλαγής</button>
                   </div>
                   <div class="admin-pos-form-actions">
                     <button type="submit" class="admin-secondary" disabled={productWriting || writing}>{productWriting ? 'Αποθήκευση…' : 'Αποθήκευση προϊόντος'}</button>
