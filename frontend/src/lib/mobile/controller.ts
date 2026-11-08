@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store';
-import {validRooms,validMessage,validPage,validRoom,validTextMessage,type GroupChatRoom,type GroupChatMessage,type GroupChatPage} from './group-chat.ts';
+import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,type GroupChatRoom,type GroupChatMessage,type GroupChatPage} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
@@ -269,7 +269,7 @@ export function createMobileAuthController(options: {
   }
   function chatRoomPath(room:GroupChatRoom):string {
     if(!validRoom(room))throw new Error('Invalid chat room.');
-    return '/api/mobile/chat/rooms/'+encodeURIComponent(room.organization_id)+'/'+encodeURIComponent(room.group_id)+'/messages';
+    return '/api/mobile/chat/groups/'+encodeURIComponent(room.organization_id)+'/'+encodeURIComponent(room.group_id)+'/messages';
   }
 
   function rememberValid(value: RememberDays) {
@@ -1253,9 +1253,9 @@ export function createMobileAuthController(options: {
       }, true);
     },
     async getChatRooms():Promise<GroupChatRoom[]> {
-      const result=await chatRequest('/api/mobile/chat/rooms');
-      if(!validRooms(result))throw new Error('Invalid group directory response.');
-      return result.rooms;
+      const result=await chatRequest('/api/mobile/chat/groups');
+      if(!validChatDirectory(result))throw new Error('Invalid group directory response.');
+      return result.groups.map(g=>({organization_id:g.organization_id,group_id:g.id,kind:g.kind,name:g.name}));
     },
     async getChatMessages(room:GroupChatRoom,offset=0):Promise<GroupChatPage> {
       if(!Number.isInteger(offset)||offset<0||offset>100000)throw new Error('Invalid page.');
