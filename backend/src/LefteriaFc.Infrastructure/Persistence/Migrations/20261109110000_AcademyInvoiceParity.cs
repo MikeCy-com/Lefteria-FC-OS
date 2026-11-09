@@ -116,7 +116,7 @@ public sealed class AcademyInvoiceParity : Migration
           'player_id',f.player_id,'player_name',p.name,
           'group_name',coalesce(g.name,'Academy'),
           'payer_name',f.payer_first_name||' '||f.payer_last_name,
-          'payer_email',f.payer_email,'payer_phone','+'||i.normalized_phone,
+          'payer_email',f.payer_email,'payer_phone',f.payer_phone,
           'fee_month',f.fee_month,'due_date',f.invoice_due_date,
           'issued_at',f.issued_at,'paid_at',f.paid_at,'amount_cents',f.amount_cents,
           'description','Training '||to_char(f.fee_month,'YYYY-MM'),
@@ -131,7 +131,6 @@ public sealed class AcademyInvoiceParity : Migration
         INTO v_count,v_payers,v_result
         FROM finance.training_fee_issues f
           JOIN club.players p ON p.id=f.player_id AND p.organization_id=f.organization_id
-          JOIN identity.mobile_identities i ON i.id=f.payer_identity_id
           LEFT JOIN club.academy_groups g ON g.id=p.primary_academy_group_id
             AND g.organization_id=p.organization_id
           LEFT JOIN finance.training_fee_cash_receipts cr ON cr.fee_issue_id=f.id
@@ -166,7 +165,7 @@ public sealed class AcademyInvoiceParity : Migration
           'player_id',f.player_id,'player_name',p.name,
           'group_name',coalesce(g.name,'Academy'),
           'payer_name',f.payer_first_name||' '||f.payer_last_name,
-          'payer_email',f.payer_email,'payer_phone','+'||_phone,
+          'payer_email',f.payer_email,'payer_phone',f.payer_phone,
           'fee_month',f.fee_month,'due_date',f.invoice_due_date,
           'issued_at',f.issued_at,'paid_at',f.paid_at,'amount_cents',f.amount_cents,
           'description','Training '||to_char(f.fee_month,'YYYY-MM'),
