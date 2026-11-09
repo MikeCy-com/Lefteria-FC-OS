@@ -81,7 +81,17 @@ public sealed class TwilioPaymentSms(
         if(response.StatusCode!=HttpStatusCode.Created)
             throw new TwilioPaymentSmsUnavailableException();
         await using var stream=await response.Content.ReadAsStreamAsync(ct);
-        using var document=await JsonDocument.ParseAsync(stream,
+        await using var limited=new MemoryStream();
+        var buffer=new byte[1024];
+        int received;
+        while((received=await stream.ReadAsync(buffer.AsMemory(),ct))!=0)
+        {
+            if(limited.Length+received>4096)
+                throw new TwilioPaymentSmsUnavailableException();
+            await limited.WriteAsync(buffer.AsMemory(0,received),ct);
+        }
+        limited.Position=0;
+        using var document=await JsonDocument.ParseAsync(limited,
             new JsonDocumentOptions { MaxDepth=6 },ct);
         if(!document.RootElement.TryGetProperty("sid",out var value) ||
             value.ValueKind!=JsonValueKind.String ||
