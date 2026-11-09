@@ -82,10 +82,6 @@ public sealed class GeneralChargesPrivateLedger : Migration
       CREATE INDEX ix_general_charges_child_period
         ON finance.general_charge_issues
           (organization_id,player_id,period_key,issued_at DESC);
-      CREATE INDEX ix_general_charges_payer
-        ON finance.general_charge_issues
-          (organization_id,payer_identity_id,issued_at DESC)
-        WHERE payer_identity_id IS NOT NULL AND ready_for_parent;
       CREATE INDEX ix_general_charges_due
         ON finance.general_charge_issues(organization_id,due_date)
         WHERE cancelled_at IS NULL;
