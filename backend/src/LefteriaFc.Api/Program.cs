@@ -134,6 +134,7 @@ app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
 app.MapWebAdmin();
 app.MapPayabl();
+app.MapAcademyFees();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
