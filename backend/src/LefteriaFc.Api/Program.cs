@@ -21,6 +21,7 @@ using LefteriaFc.Application.Pos;
 using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
 using LefteriaFc.Api.MobileChat;
+using LefteriaFc.Api.Attendance;
 using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Infrastructure.MobileChat;
 
@@ -148,6 +149,7 @@ app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapMobileChatGroupDirectory();
+app.MapAdminAcademyAttendance();
 
 if (app.Environment.IsDevelopment())
 {
