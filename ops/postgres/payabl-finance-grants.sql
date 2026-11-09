@@ -30,7 +30,7 @@ BEGIN
     OR admin_role.rolbypassrls OR runtime_role.rolbypassrls
     OR current_database() IN ('postgres','template0','template1')
     OR to_regclass('finance.payment_requests') IS NULL
-    OR to_regprocedure('finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text)') IS NULL
+    OR to_regprocedure('finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)') IS NULL
   THEN
     RAISE EXCEPTION 'The finance role boundary is not safe or not migrated';
   END IF;
@@ -49,7 +49,7 @@ GRANT EXECUTE ON FUNCTION finance.ready_admin_payment_request(
 GRANT EXECUTE ON FUNCTION finance.read_admin_payment_requests(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.apply_payabl_notification(
-  uuid,text,text,text,integer,bigint,text) TO :"app_role";
+  uuid,text,text,text,integer,bigint,text,text,bigint,text) TO :"app_role";
 
 -- Neither login role may directly inspect private payer identities, mutate
 -- statuses, run a payout, or bypass the transactionally audited functions.
@@ -67,7 +67,7 @@ BEGIN
   IF has_function_privilege(current_setting('lefteria.finance_app_role'),
        'finance.create_admin_payment_request(text,text,uuid,uuid,text,text,bigint,text,text,text)','EXECUTE')
     OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
-       'finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text)','EXECUTE')
+       'finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)','EXECUTE')
   THEN
     RAISE EXCEPTION 'Finance cross-role function leakage';
   END IF;
