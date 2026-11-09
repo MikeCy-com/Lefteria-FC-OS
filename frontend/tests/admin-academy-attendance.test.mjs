@@ -31,13 +31,13 @@ test('Actual attendance is a new audited overlay, never a source import or RSVP 
 test('Only scoped, verified Academy managers can see or mark children',()=>{
   assert.match(migration,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
   assert.match(migration,/v_role NOT IN \('manager','super_admin'\)/);
-  assert.match(migration,/academy_training_player_eligible\(_owner,_event,_player\)/);
+  assert.match(migration,/academy_training_player_eligible\(\s*_owner,_event,_player\)/);
   assert.match(migration,/p\.is_active AND NOT p\.is_archived AND NOT p\.is_transferred/);
   assert.match(migration,/EXISTS\(SELECT 1 FROM club\.calendar_item_guests/);
   assert.match(migration,/club\.player_academy_groups/);
   assert.match(migration,/v_day>\(clock_timestamp\(\) AT TIME ZONE 'Asia\/Nicosia'\)::date/);
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
-  assert.match(api,/organization_id.*Academy/);
+  assert.match(api,/org!="lefteria_fc_academy"/);
   assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
   assert.match(api,/attendance:write/);
   assert.match(api,/Count!=1/);
