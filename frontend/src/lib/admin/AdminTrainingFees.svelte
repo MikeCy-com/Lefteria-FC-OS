@@ -11,6 +11,9 @@
   let { owner,configured,canWrite,sessionId }:{
     owner:string|null;configured:boolean;canWrite:boolean;sessionId:string
   }=$props();
+  type RosterPlayer={id:string;name:string};
+  let rosterPlayers=$state<RosterPlayer[]>([]);
+  let rosterError=$state(false);
   let fees=$state<Fee[]>([]);
   let status=$state<'idle'|'loading'|'ready'|'error'>('idle');
   let pending=$state(false);
@@ -49,6 +52,36 @@
       (f.checkout_url===null||secure(f.checkout_url))&&
       (f.sms_status===null||f.sms_status==='reserved'||f.sms_status==='accepted'||f.sms_status==='unknown');
   }
+  $effect(()=>{
+    const selected=owner;const user=sessionId;const allowed=canWrite;
+    void user;rosterPlayers=[];rosterError=false;
+    if(selected!=='lefteria_fc_academy'||!allowed)return;
+    let active=true;
+    untrack(()=>{void(async()=>{
+      try{
+        const response=await fetch('/api/admin/football/players?organization_id='+
+          encodeURIComponent(selected)+'&offset=0&limit=50',
+          {credentials:'same-origin',cache:'no-store'});
+        if(!response.ok)throw new Error('Roster unavailable');
+        const result:unknown=await response.json();
+        if(!result||typeof result!=='object'||Array.isArray(result))throw new Error('Bad roster');
+        const data=result as Record<string,unknown>;
+        if(data.organization_id!==selected||data.ready!==true||
+          !Array.isArray(data.players)||data.players.length>50)
+          throw new Error('Unverified roster');
+        const players=data.players.filter((item:unknown):item is RosterPlayer=>{
+          if(!item||typeof item!=='object'||Array.isArray(item))return false;
+          const player=item as Record<string,unknown>;
+          return typeof player.id==='string'&&player.id.length>=1&&player.id.length<=128&&
+            typeof player.name==='string'&&player.name.length>0&&player.name.length<=200;
+        });
+        if(players.length!==data.players.length)throw new Error('Roster validation failed');
+        if(active)rosterPlayers=players;
+      }catch{if(active)rosterError=true;}
+    })();});
+    return()=>{active=false;};
+  });
+
   $effect(()=>{
     const selected=owner;const user=sessionId;void user;void refresh;
     status='idle';fees=[];message='';
@@ -177,7 +210,19 @@
     {#if canWrite}
       <form class="fee-form" onsubmit={issue}>
         <label for="academy-fee-player">ID παιδιού από το Ρόστερ Ακαδημίας</label>
-        <input id="academy-fee-player" bind:value={playerId} maxlength="128" required placeholder="Επαληθευμένο ID παιδιού"/>
+        <input id="academy-fee-player" bind:value={playerId} maxlength="128" required
+          list="academy-fee-player-options" placeholder="Επιλογή παιδιού από το ρόστερ"/>
+        <datalist id="academy-fee-player-options">
+          {#each rosterPlayers as player (player.id)}
+            <option value={player.id}>{player.name}</option>
+          {/each}
+        </datalist>
+        {#if rosterError}
+          <small>Το ρόστερ δεν φορτώθηκε. Χρησιμοποιήστε το ID από το Ρόστερ Ακαδημίας.</small>
+        {:else if rosterPlayers.length===50}
+          <small>Εμφανίζονται οι πρώτοι 50 παίκτες. Για επιπλέον παιδιά,
+            χρησιμοποιήστε το ID από το Ρόστερ Ακαδημίας.</small>
+        {/if}
         <label for="academy-fee-month">Μήνας προπόνησης</label>
         <input id="academy-fee-month" type="month" bind:value={month} required min="2020-01" max="2100-12"/>
         <label for="academy-fee-amount">Ποσό σε EUR</label>
