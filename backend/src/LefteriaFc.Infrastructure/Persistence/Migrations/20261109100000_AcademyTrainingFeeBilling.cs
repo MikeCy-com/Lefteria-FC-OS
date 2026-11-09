@@ -21,6 +21,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
           player_id varchar(128) COLLATE "C" NOT NULL REFERENCES club.players(id),
           payer_identity_id uuid NOT NULL REFERENCES identity.mobile_identities(id),
           fee_month date NOT NULL CHECK (EXTRACT(day FROM fee_month)=1),
+          invoice_due_date date NOT NULL CHECK (invoice_due_date>=fee_month
+            AND invoice_due_date<(fee_month+interval '1 month')::date),
           amount_cents bigint NOT NULL CHECK (amount_cents BETWEEN 1 AND 100000000),
           currency char(3) NOT NULL DEFAULT 'EUR' CHECK (currency='EUR'),
           payer_email varchar(50) NOT NULL,
@@ -48,6 +50,27 @@ public sealed class AcademyTrainingFeeBilling : Migration
           consent_recorded_at timestamptz,
           updated_at timestamptz NOT NULL DEFAULT clock_timestamp()
         );
+
+        CREATE FUNCTION finance.set_training_invoice_due_date()
+        RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+        SET search_path=pg_catalog,pg_temp AS $fee_due$
+        DECLARE v_preferred int;
+        BEGIN
+          IF NEW.invoice_due_date IS NOT NULL THEN
+            RAISE EXCEPTION 'invoice_due_date_is_server_issued' USING ERRCODE='22023';
+          END IF;
+          SELECT preferred_day INTO v_preferred FROM finance.parent_fee_preferences
+            WHERE parent_identity_id=NEW.payer_identity_id;
+          NEW.invoice_due_date:=make_date(EXTRACT(year FROM NEW.fee_month)::int,
+            EXTRACT(month FROM NEW.fee_month)::int,
+            LEAST(COALESCE(v_preferred,5),
+              EXTRACT(day FROM (NEW.fee_month+interval '1 month'-interval '1 day'))::int));
+          RETURN NEW;
+        END $fee_due$;
+        CREATE TRIGGER trg_training_fee_invoice_due
+          BEFORE INSERT ON finance.training_fee_issues
+          FOR EACH ROW EXECUTE FUNCTION finance.set_training_invoice_due_date();
+
 
         CREATE TABLE finance.training_fee_sms_outbox (
           id uuid PRIMARY KEY,
@@ -295,10 +318,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
             'payment_status',coalesce(r.status,'not_created'),
             'checkout_url',CASE WHEN r.status='ready' AND f.status='issued'
               THEN r.checkout_url ELSE NULL END,
-            'due_date',make_date(EXTRACT(year FROM f.fee_month)::int,
-              EXTRACT(month FROM f.fee_month)::int,
-              LEAST(v_day,EXTRACT(day FROM
-                (f.fee_month+interval '1 month'-interval '1 day'))::int)))
+            'due_date',f.invoice_due_date
             ORDER BY f.fee_month DESC,f.id DESC),'[]'::jsonb)
           INTO v_fees
           FROM (SELECT * FROM finance.training_fee_issues
@@ -453,6 +473,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
           RETURN FOUND;
         END $sms_finish$;
 
+        REVOKE ALL ON FUNCTION finance.set_training_invoice_due_date() FROM PUBLIC;
         REVOKE ALL ON FUNCTION finance.issue_admin_training_fee(
           text,text,uuid,text,date,bigint,text,text,text) FROM PUBLIC;
         REVOKE ALL ON FUNCTION finance.attach_admin_training_fee_payment(
@@ -489,6 +510,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
         DROP FUNCTION finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text);
         DROP TABLE finance.training_fee_sms_outbox;
         DROP TABLE finance.parent_fee_preferences;
+        DROP TRIGGER trg_training_fee_invoice_due ON finance.training_fee_issues;
+        DROP FUNCTION finance.set_training_invoice_due_date();
         DROP TABLE finance.training_fee_issues;
         """);
 }
