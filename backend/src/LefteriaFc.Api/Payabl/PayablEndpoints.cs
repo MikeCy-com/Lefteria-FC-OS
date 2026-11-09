@@ -171,7 +171,7 @@ public static class PayablEndpoints
             try
             {
                 hosted = await gateway.InitializeAsync(new PayablCheckoutRequest(
-                    "LFC" + storedId.ToString("N"), input.AmountCents, "EUR",
+                    PayablNotification.OrderId(storedId), input.AmountCents, "EUR",
                     input.PayerEmail!, input.PayerFirstName!, input.PayerLastName!,
                     context.Connection.RemoteIpAddress?.MapToIPv4().ToString() ?? "127.0.0.1",
                     callbackUrl, returnUrl), ct);
