@@ -2961,11 +2961,10 @@
             ]
           },
           "keys": {
-            "type": [
-              "null",
-              "object"
-            ],
-            "allOf": [
+            "oneOf": [
+              {
+                "type": "null"
+              },
               {
                 "$ref": "#/components/schemas/MobilePushKeysBody"
               }
@@ -10219,7 +10218,6 @@
     "/api/mobile/app/push": {
       "get": {
         "operationId": "GetMobileWebPushConfig",
-        "parameters": [],
         "responses": {
           "200": {
             "content": {
@@ -10315,7 +10313,6 @@
     "/api/mobile/app/push/subscriptions": {
       "delete": {
         "operationId": "UnsubscribeMobileWebPushDevice",
-        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -10419,7 +10416,6 @@
       },
       "post": {
         "operationId": "SubscribeMobileWebPushDevice",
-        "parameters": [],
         "requestBody": {
           "content": {
             "application/json": {
@@ -15837,13 +15833,13 @@
       "name": "Mobile calendar"
     },
     {
-      "name": "Mobile app push"
-    },
-    {
       "name": "Mobile app notifications"
     },
     {
       "name": "Mobile app announcements"
+    },
+    {
+      "name": "Mobile app push"
     },
     {
       "name": "First-team trials"
