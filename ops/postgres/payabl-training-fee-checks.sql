@@ -96,6 +96,27 @@ BEGIN
           WHERE parent_identity_id=v_parent) THEN
     RAISE EXCEPTION 'Unapproved automatic recurring payment activated';
   END IF;
+  -- Issued due dates are immutable snapshots. A preferred day of 31
+  -- clamps to February's last day for a NEW invoice and never mutates
+  -- November's previously issued PDF.
+  IF (SELECT invoice_due_date FROM finance.training_fee_issues
+      WHERE id=v_fee)<>DATE '2026-11-05' THEN
+    RAISE EXCEPTION 'Changing preference rewrote issued invoice due date';
+  END IF;
+  DECLARE
+    v_feb uuid := gen_random_uuid();
+  BEGIN
+    INSERT INTO finance.training_fee_issues(
+      id,organization_id,player_id,payer_identity_id,fee_month,
+      amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
+    VALUES(v_feb,'lefteria_fc_academy',v_player,v_parent,DATE '2027-02-01',
+      4500,'sandbox@example.invalid','Test','Parent',v_actor);
+    IF (SELECT invoice_due_date FROM finance.training_fee_issues
+      WHERE id=v_feb)<>DATE '2027-02-28' THEN
+      RAISE EXCEPTION 'February due date did not clamp to month end';
+    END IF;
+    DELETE FROM finance.training_fee_issues WHERE id=v_feb;
+  END;
   -- Saving preferences or issuing a payment for November did not create
   -- unseen installments for January–October.
   SELECT count(*) INTO v_count FROM finance.training_fee_issues WHERE player_id=v_player;
