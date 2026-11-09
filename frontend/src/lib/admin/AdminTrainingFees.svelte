@@ -29,6 +29,10 @@
   let checkoutRequestIds=$state<Record<string,string>>({});
   let sendingId=$state<string|null>(null);
   let attemptIds=$state<Record<string,string>>({});
+  let cashIds=$state<Record<string,string>>({});
+  let cashBusy=$state<string|null>(null);
+  let downloading=$state(false);
+  let selectedInvoiceIds=$state<string[]>([]);
 
   const money=(cents:number)=>new Intl.NumberFormat('el-CY',{style:'currency',currency:'EUR'}).format(cents/100);
   const secure=(value:unknown):value is string=>{
@@ -175,13 +179,57 @@
         throw new Error('Δεν επαληθεύτηκε η έκδοση του μήνα.');
       issuingId=null;
       message=result.created===true?'Ο μήνας εκδόθηκε επιτυχώς.':'Αυτός ο μήνας υπάρχει ήδη και δεν εκδόθηκε ξανά.';
-      if(configured&&result.created===true){
-        pending=false;
-        await createCheckout(result);
-      }
       refresh+=1;
     }catch(error){message=error instanceof Error?error.message:'Η έκδοση δεν επιβεβαιώθηκε.';}
     finally{pending=false;}
+  }
+
+  async function recordCash(fee:Fee) {
+    if(!canWrite||pending||cashBusy||owner!=='lefteria_fc_academy'||
+      fee.status!=='issued'||fee.payment_request_id!==null)return;
+    if(!window.confirm('Επιβεβαιώστε ότι εισπράχθηκε ολόκληρο το ποσό '+
+      money(fee.amount_cents)+' σε μετρητά για '+fee.child_name+
+      ' ('+fee.fee_month.slice(0,7)+'). Η ενέργεια καταχωρεί απόδειξη είσπραξης.'))return;
+    cashBusy=fee.id;message='';
+    cashIds[fee.id]??=crypto.randomUUID();
+    try{
+      const result=await post('/api/admin/finance/payabl/training-fees/'+fee.id+
+        '/cash?organization_id='+owner,{client_request_id:cashIds[fee.id],notes:''});
+      if(result.status!=='paid'||result.payment_method!=='cash'||result.fee_issue_id!==fee.id)
+        throw new Error('Η πληρωμή με μετρητά δεν επιβεβαιώθηκε.');
+      delete cashIds[fee.id];
+      message='Η είσπραξη μετρητών καταχωρίστηκε. Η απόδειξη είναι διαθέσιμη ως PDF.';
+      refresh+=1;
+    }catch(error){
+      message=error instanceof Error?error.message:'Η είσπραξη απαιτεί έλεγχο.';
+    }finally{cashBusy=null;}
+  }
+
+  async function downloadInvoice(ids:string[]) {
+    if(downloading||owner!=='lefteria_fc_academy'||ids.length<1||ids.length>20||
+      ids.some(id=>!/^[0-9a-f-]{36}$/i.test(id)))return;
+    downloading=true;message='';
+    try {
+      const path=ids.length===1
+        ? '/api/admin/finance/payabl/invoices/'+ids[0]+'.pdf'
+        : '/api/admin/finance/payabl/invoices/multi.pdf?ids='+encodeURIComponent(ids.join(','));
+      const glue=path.includes('?')?'&':'?';
+      const response=await fetch(path+glue+'organization_id=lefteria_fc_academy',
+        {credentials:'same-origin',cache:'no-store',headers:{Accept:'application/pdf'}});
+      if(!response.ok||!response.headers.get('content-type')?.startsWith('application/pdf'))
+        throw new Error('Το επίσημο PDF δεν είναι διαθέσιμο.');
+      const file=await response.blob();
+      if(file.size<500||file.size>2_000_000)throw new Error('Μη έγκυρο μέγεθος PDF.');
+      const signature=await file.slice(0,5).text();
+      if(signature!=='%PDF-')throw new Error('Μη έγκυρο αρχείο PDF.');
+      const url=URL.createObjectURL(file);
+      const anchor=document.createElement('a');anchor.href=url;
+      anchor.download=ids.length===1?'invoice-'+ids[0].slice(0,8)+'.pdf':
+        'academy-invoices-'+ids.length+'.pdf';
+      document.body.appendChild(anchor);anchor.click();anchor.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }catch(error){message=error instanceof Error?error.message:'Αδύνατη η λήψη PDF.';}
+    finally{downloading=false;}
   }
 
   async function sendSms(fee:Fee){
@@ -235,8 +283,9 @@
         <input id="academy-fee-last" bind:value={last} required maxlength="50" placeholder="Parent"/>
         <button type="submit" disabled={pending}>{pending?'Καταχώριση…':'Έκδοση επιλεγμένου μήνα'}</button>
       </form>
-      <p class="admin-muted">Η έκδοση συνδέσμου θα εκτελεστεί αυτόματα μετά την έκδοση του μήνα
-        όταν το Payabl sandbox είναι ενεργό. SMS στέλνεται μόνο με ρητή ενέργεια.</p>
+      <p class="admin-muted">Μετά την έκδοση, επιλέγετε μετρητά ή σύνδεσμο πληρωμής με κάρτα.
+        Η δημιουργία κάρτας δεν γίνεται αυτόματα, ώστε να μη μπλοκάρεται η
+        παραλαβή μετρητών. SMS στέλνεται μόνο με ρητή ενέργεια.</p>
     {/if}
     {#if message}<p role="status">{message}</p>{/if}
     {#if status==='loading'}<p role="status">Ανάκτηση χρεώσεων Ακαδημίας…</p>
@@ -247,6 +296,14 @@
         <ul class="fee-list">
         {#each fees as fee (fee.id)}
           <li>
+            <label class="fee-choice"><input type="checkbox"
+              checked={selectedInvoiceIds.includes(fee.id)}
+              disabled={downloading||(!selectedInvoiceIds.includes(fee.id)&&selectedInvoiceIds.length>=20)}
+              onchange={event=>{
+                selectedInvoiceIds=event.currentTarget.checked
+                  ? [...selectedInvoiceIds,fee.id]
+                  : selectedInvoiceIds.filter(id=>id!==fee.id);
+              }} aria-label={'Επιλογή παραστατικού '+fee.child_name+' '+fee.fee_month.slice(0,7)}/></label>
             <div><strong>{fee.child_name} · {fee.fee_month.slice(0,7)}</strong>
               <small>ID: {fee.player_id}</small>
               <span>{money(fee.amount_cents)} · {fee.status==='paid'?'Εξοφλημένο':
@@ -256,6 +313,16 @@
               <small>Πληρωτής: {fee.payer_email}</small>
             </div>
             <div class="fee-actions">
+              <button type="button" class="fee-pdf" disabled={downloading}
+                onclick={()=>void downloadInvoice([fee.id])}
+                data-testid="admin-download-invoice">Λήψη PDF παραστατικού</button>
+              {#if fee.status==='issued'&&fee.payment_request_id===null&&canWrite}
+                <button type="button" disabled={cashBusy!==null||pending}
+                  data-testid="admin-record-cash"
+                  onclick={()=>void recordCash(fee)}>
+                  {cashBusy===fee.id?'Καταχώριση…':'Καταχώριση μετρητών'}
+                </button>
+              {/if}
               {#if fee.status==='issued'&&fee.payment_status==='ready'&&secure(fee.checkout_url)}
                 <a href={fee.checkout_url} target="_blank" rel="noopener noreferrer">Σύνδεσμος πληρωμής</a>
                 {#if canWrite&&fee.sms_status===null}
@@ -281,6 +348,13 @@
         {/each}
         </ul>
       {/if}
+      {#if selectedInvoiceIds.length>0}
+        <button type="button" class="admin-secondary" disabled={downloading}
+          onclick={()=>void downloadInvoice(selectedInvoiceIds)}
+          data-testid="admin-download-multi-invoice">
+          Λήψη ενιαίου PDF · {selectedInvoiceIds.length} παραστατικά
+        </button>
+      {/if}
       <button type="button" class="admin-secondary" onclick={()=>refresh+=1}>Ανανέωση χρεώσεων</button>
     {/if}
   </section>
@@ -302,4 +376,6 @@
   .fee-list span{font-weight:650}.fee-list small{opacity:.75}
   .fee-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
   .fee-actions a{font-weight:700}
+  .fee-choice input{width:17px;height:17px;cursor:pointer}
+  .fee-pdf{background:transparent;color:inherit}
 </style>
