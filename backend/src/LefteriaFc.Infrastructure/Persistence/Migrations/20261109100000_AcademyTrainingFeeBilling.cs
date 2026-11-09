@@ -25,7 +25,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
             AND invoice_due_date<(fee_month+interval '1 month')::date),
           amount_cents bigint NOT NULL CHECK (amount_cents BETWEEN 1 AND 100000000),
           currency char(3) NOT NULL DEFAULT 'EUR' CHECK (currency='EUR'),
-          payer_phone varchar(16) NOT NULL CHECK (payer_phone ~ '^\\+[1-9][0-9]{7,14}$'),
+          payer_phone varchar(16) NOT NULL
+            CHECK (payer_phone LIKE '+%' AND substring(payer_phone,2) ~ '^[1-9][0-9]{7,14}$'),
           payer_email varchar(50) NOT NULL,
           payer_first_name varchar(50) NOT NULL,
           payer_last_name varchar(50) NOT NULL,
