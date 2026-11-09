@@ -182,6 +182,14 @@ test('cash and card invoice states originate from server-side audited finance da
   assert.match(monthTests,/Second cash receipt accepted/);
   assert.match(invoiceMigration,/finance\.record_admin_training_fee_cash/);
   assert.match(invoiceMigration,/f\.invoice_due_date/);
+  assert.match(feeMigration,/payer_phone varchar\(16\) NOT NULL/);
+  assert.match(feeMigration,/SELECT i\.id,i\.normalized_phone INTO v_payer,v_payer_phone/);
+  assert.match(invoiceMigration,/'payer_phone',f\.payer_phone/);
+  assert.doesNotMatch(invoiceMigration,/'payer_phone','\+'\|\|_phone/);
+  assert.match(monthTests,/Invoice payer phone was not snapshot at issuance/);
+  assert.match(invoiceMigration,/'payer_identity_id',f\.payer_identity_id/);
+  assert.match(pdfRenderer,/row\.PayerIdentityId!=owner/);
+  assert.match(adminPdfTests,/Cross-guardian combined PDF allowed/);
   assert.match(invoiceMigration,/WHEN cr\.id IS NOT NULL THEN 'cash'/);
   assert.match(invoiceMigration,/WHEN r\.status='paid' THEN 'card'/);
   assert.match(invoiceMigration,/l\.identity_id=_identity/);
