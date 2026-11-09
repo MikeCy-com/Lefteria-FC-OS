@@ -22,6 +22,12 @@ public static partial class PayablNotification
     [GeneratedRegex(@"\A[a-z_]{1,32}\z", RegexOptions.CultureInvariant)]
     private static partial Regex StrictState();
 
+    // payabl. documents merchant orderid as alphanumeric, max 30 chars.
+    // Preserve 108 bits of the internal GUID; the opaque callback nonce
+    // independently binds the request to the exact persisted payment.
+    public static string OrderId(Guid id) =>
+        "LFC" + id.ToString("N")[..27];
+
     public static bool TryRead(
         IReadOnlyDictionary<string,string> values, Guid paymentId,
         string secret, DateTimeOffset now, out PayablNotice? notice)
@@ -30,7 +36,7 @@ public static partial class PayablNotification
         if (paymentId == Guid.Empty ||
             !PayablSignature.Notification(values, secret, now) ||
             !values.TryGetValue("orderid", out var orderId) ||
-            !string.Equals(orderId, "LFC" + paymentId.ToString("N"), StringComparison.Ordinal) ||
+            !string.Equals(orderId, OrderId(paymentId), StringComparison.Ordinal) ||
             !values.TryGetValue("transactionid", out var transaction) ||
             !values.TryGetValue("type", out var kind) ||
             !int.TryParse(values["errorcode"], NumberStyles.AllowLeadingSign,
