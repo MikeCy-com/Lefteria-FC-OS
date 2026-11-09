@@ -209,6 +209,10 @@ public sealed class GeneralChargesPrivateLedger : Migration
       RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $freeze_general_issue$
       BEGIN
+        IF TG_OP='DELETE' THEN
+          RAISE EXCEPTION 'issued_charge_cannot_be_deleted'
+            USING ERRCODE='42501';
+        END IF;
         IF (to_jsonb(OLD)-'cancelled_at') IS DISTINCT FROM
              (to_jsonb(NEW)-'cancelled_at')
            OR OLD.cancelled_at IS NOT NULL OR NEW.cancelled_at IS NULL
