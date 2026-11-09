@@ -1482,6 +1482,19 @@ export function createMobileAuthController(options: {
         throw new Error('Private chat hide not confirmed.');
       return true;
     },
+    async getTrainingFees():Promise<unknown> {
+      if(state.user?.role!=='parent')throw new ApiFailure(403,'Μόνο ο επαληθευμένος γονέας μπορεί να δει οφειλές.');
+      return chatRequest('/api/mobile/finance/training-fees');
+    },
+    async saveTrainingFeePreferences(day:number,saveCard:boolean,automatic:boolean):Promise<unknown> {
+      if(state.user?.role!=='parent'||!Number.isInteger(day)||day<1||day>31||
+         typeof saveCard!=='boolean'||typeof automatic!=='boolean'||(automatic&&!saveCard))
+        throw new ApiFailure(403,'Μη έγκυρες προτιμήσεις πληρωμής.');
+      return chatRequest('/api/mobile/finance/preferences','PUT',{
+        preferred_day:day,save_card_requested:saveCard,
+        automatic_collection_requested:automatic
+      });
+    },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }
   };
