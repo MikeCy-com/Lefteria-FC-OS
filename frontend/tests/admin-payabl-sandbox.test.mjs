@@ -204,8 +204,8 @@ test('parent and admin download individually or together without public PDF link
 });
 
 test('immutable due date follows issued month rather than later preference edits',()=>{
-  assert.match(invoiceMigration,/CREATE TRIGGER trg_training_fee_invoice_due/);
-  assert.match(invoiceMigration,/invoice_due_date_is_server_issued/);
+  assert.match(feeMigration,/CREATE TRIGGER trg_training_fee_invoice_due/);
+  assert.match(feeMigration,/invoice_due_date_is_server_issued/);
   assert.match(monthTests,/Changing preference rewrote issued invoice due date/);
   assert.match(monthTests,/February due date did not clamp to month end/);
 });
