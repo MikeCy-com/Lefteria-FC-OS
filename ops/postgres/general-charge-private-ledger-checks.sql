@@ -26,6 +26,7 @@ DECLARE
   v_reversal uuid:=gen_random_uuid();
   v_replay uuid:=gen_random_uuid();
   v_status text;
+  v_ready boolean;
   v_due bigint;
   v_total bigint;
   v_pay_cents bigint;
@@ -38,6 +39,7 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM (VALUES
       ('finance.general_charge_issues'),
+      ('finance.general_charge_parent_verifications'),
       ('finance.general_charge_events'),
       ('finance.general_charge_templates'),
       ('finance.general_charge_balances')) AS t(name)
@@ -84,6 +86,12 @@ BEGIN
   ) VALUES(v_charge,'lefteria_fc_academy',v_player,'equipment',
     'Synthetic one-off kit',8000,DATE '2099-11-30','2099-11',
     clock_timestamp(),v_actor);
+
+  SELECT ready_for_parent INTO v_ready
+  FROM finance.general_charge_balances WHERE id=v_charge;
+  IF v_ready THEN
+    RAISE EXCEPTION 'Unverified guardian invoice entered parent view';
+  END IF;
 
   INSERT INTO finance.general_charge_issues(
     id,organization_id,player_id,charge_type,description,
