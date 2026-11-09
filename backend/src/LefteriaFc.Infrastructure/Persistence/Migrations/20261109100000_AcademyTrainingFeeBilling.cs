@@ -250,6 +250,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
               'fee_month',f.fee_month,'amount_cents',f.amount_cents,
               'currency',f.currency,'status',f.status,
               'payer_email',f.payer_email,
+              'payer_first_name',f.payer_first_name,
+              'payer_last_name',f.payer_last_name,
               'payment_request_id',f.payment_request_id,
               'payment_status',COALESCE(r.status,'not_created'),
               'checkout_url',CASE WHEN r.status='ready' THEN r.checkout_url ELSE NULL END,
