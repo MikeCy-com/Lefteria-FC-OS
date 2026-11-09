@@ -183,7 +183,7 @@ test('cash and card invoice states originate from server-side audited finance da
   assert.match(invoiceMigration,/WHEN r\.status='paid' THEN 'card'/);
   assert.match(invoiceMigration,/l\.identity_id=_identity/);
   assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Parse\(raw\)/);
-  assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Render\(document,logo\)/);
+  assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Render\(document,logo,club\)/);
   assert.match(pdfRenderer,/PaymentMethod is not \("cash" or "card" or "unpaid"\)/);
   assert.match(pdfRenderer,/is "cash" or "card"/);
 });
