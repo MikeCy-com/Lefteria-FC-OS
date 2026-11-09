@@ -318,7 +318,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
             'payment_status',coalesce(r.status,'not_created'),
             'checkout_url',CASE WHEN r.status='ready' AND f.status='issued'
               THEN r.checkout_url ELSE NULL END,
-            'due_date',f.invoice_due_date
+            'due_date',f.invoice_due_date)
             ORDER BY f.fee_month DESC,f.id DESC),'[]'::jsonb)
           INTO v_fees
           FROM (SELECT * FROM finance.training_fee_issues
