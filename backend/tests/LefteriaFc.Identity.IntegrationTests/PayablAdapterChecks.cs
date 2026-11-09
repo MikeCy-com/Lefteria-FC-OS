@@ -101,7 +101,9 @@ internal static class PayablAdapterChecks
         try { await inactive.InitializeAsync(request,CancellationToken.None); throw new Exception("Disabled provider sent"); }
         catch(PayablUnavailableException) { }
         Check(sent==0,"disabled gateway makes no network calls");
-        var enabled = new PayablGateway(new HttpClient(handler),Options.Create(new PayablOptions {
+        var sandboxClient = new HttpClient(handler);
+        sandboxClient.DefaultRequestHeaders.Accept.ParseAdd("application/x-www-form-urlencoded");
+        var enabled = new PayablGateway(sandboxClient,Options.Create(new PayablOptions {
             Enabled=true,Sandbox=true,MerchantId="unit_test",
             Secret=secret,PublicOrigin="https://os.example.test"
         }));
