@@ -198,6 +198,7 @@ internal static class PayablAdapterChecks
             });
         foreach(var sample in new[]{
             invoiceJson("issued","unpaid",null,""),
+            invoiceJson("review_required","unpaid",null,""),
             invoiceJson("paid","cash","2026-11-05T12:00:00+00:00",Guid.NewGuid().ToString("D")),
             invoiceJson("paid","card","2026-11-06T12:00:00+00:00","104837274")
         }){
