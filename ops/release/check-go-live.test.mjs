@@ -28,6 +28,9 @@ test('verified status without evidence or exact candidate SHA remains blocked',(
   for(const gate of sample.gates)gate.evidence=['https://github.com/MikeCy-com/Lefteria-FC-OS/actions/runs/123'];
   result=checkReleaseReadiness(sample,'b'.repeat(40));
   assert.equal(result.ready,false);
+  result=checkReleaseReadiness(sample);
+  assert.equal(result.ready,false);
+  assert.ok(result.blocked.some(gate=>gate.id==='candidate-release-sha'));
   result=checkReleaseReadiness(sample,productionSha);
   assert.equal(result.ready,true);
 });
