@@ -94,3 +94,62 @@ test('finance reconciliation view displays only bounded provider metadata',()=>{
   assert.match(page,/Απαιτείται ανεξάρτητη επιβεβαίωση στο payabl/);
   assert.doesNotMatch(page,/\{@html\}|innerHTML/);
 });
+
+const feeMigration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261109100000_AcademyTrainingFeeBilling.cs');
+const feeEndpoints=read('backend/src/LefteriaFc.Api/Payabl/AcademyFeeEndpoints.cs');
+const smsAdapter=read('backend/src/LefteriaFc.Api/Payabl/TwilioPaymentSms.cs');
+const feeAdmin=read('frontend/src/lib/admin/AdminTrainingFees.svelte');
+const feeParent=read('frontend/src/lib/mobile/components/MobileTrainingFees.svelte');
+const feePublicPolicy=read('frontend/src/lib/mobile/finance.ts');
+const monthTests=read('ops/postgres/payabl-training-fee-checks.sql');
+
+test('only manually selected academy months are billed, never implicit twelve months',()=>{
+  assert.match(feeMigration,/UNIQUE \(organization_id,player_id,fee_month\)/);
+  assert.match(feeMigration,/fee_month date NOT NULL CHECK \(EXTRACT\(day FROM fee_month\)=1\)/);
+  assert.match(feeMigration,/finance\.issue_admin_training_fee/);
+  assert.match(feeMigration,/ON CONFLICT \(organization_id,player_id,fee_month\) DO NOTHING/);
+  assert.match(feeMigration,/identity\.canonical_contact_bindings b/);
+  assert.match(monthTests,/Training-fee issue generated unrequested months/);
+  assert.match(monthTests,/One capture incorrectly paid another issued month/);
+  assert.match(feeAdmin,/type="month"/);
+  assert.doesNotMatch(feeMigration,/generate_series|interval '12 months'|recurring_invoice_batch/i);
+});
+
+test('parent can see only linked child fees and cannot mark them paid from app',()=>{
+  assert.match(feeEndpoints,/session\.Role!=MobileRole\.Parent/);
+  assert.match(feeMigration,/l\.identity_id=_identity/);
+  assert.match(feeMigration,/b\.normalized_phone=_phone/);
+  assert.match(feeMigration,/f\.payer_identity_id=_identity/);
+  assert.match(feeMigration,/finance\.mark_training_fee_from_capture/);
+  assert.match(feeMigration,/IF NEW\.status='paid' AND OLD\.status IS DISTINCT FROM NEW\.status/);
+  assert.match(feeParent,/data-testid="parent-fee-click-to-pay"/);
+  assert.match(feePublicPolicy,/payablHostedLink/);
+  assert.match(feeParent,/Το άνοιγμα της σελίδας πληρωμής δεν θεωρείται εξόφληση/);
+  assert.doesNotMatch(feeParent,/\/api\/payabl\/webhooks|status\s*=\s*'paid'/);
+});
+
+test('monthly preferred day and saved-card consent never create automatic charges',()=>{
+  assert.match(feeMigration,/preferred_day BETWEEN 1 AND 31/);
+  assert.match(feeMigration,/automatic_collection_enabled=false/);
+  assert.match(feeMigration,/saved_card_available',false/);
+  assert.match(feeMigration,/LEAST\(v_day,EXTRACT\(day FROM/);
+  assert.match(feeParent,/bind:checked=\{saveCard\}/);
+  assert.match(feeParent,/bind:checked=\{automatic\}/);
+  assert.match(feeParent,/αυτόματες χρεώσεις/);
+  assert.match(monthTests,/Unapproved automatic recurring payment activated/);
+});
+
+test('Twilio SMS sends only ready linked fee to verified guardian; delivery never assumed',()=>{
+  assert.match(smsAdapter,/!options\.Enabled \|\|/);
+  assert.match(smsAdapter,/MessagingServiceSid/);
+  assert.match(smsAdapter,/sandbox\.payabl\.com/);
+  assert.match(smsAdapter,/api\.twilio\.com\/2010-04-01/);
+  assert.match(feeMigration,/finance\.reserve_admin_training_fee_sms/);
+  assert.match(feeMigration,/finance\.finish_admin_training_fee_sms/);
+  assert.match(feeMigration,/v_payment\.status<>'ready'/);
+  assert.match(feeMigration,/v_fee\.payer_identity_id/);
+  assert.match(feeEndpoints,/delivery_confirmed=false/);
+  assert.match(feeAdmin,/Αποστολή συνδέσμου με Twilio SMS/);
+  assert.match(feeAdmin,/SMS αποδεκτό από Twilio · όχι επιβεβαιωμένη παράδοση/);
+  assert.doesNotMatch(feeAdmin,/SendAsync\(|fetch\('https:\/\/api\.twilio\.com'/);
+});
