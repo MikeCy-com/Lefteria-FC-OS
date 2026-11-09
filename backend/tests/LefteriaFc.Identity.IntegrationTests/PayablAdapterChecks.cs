@@ -175,6 +175,53 @@ internal static class PayablAdapterChecks
         }
         Check(smsCount==1,"unsafe SMS link blocked before network");
 
+
+        // Source-matched A4 invoice PDF variants. The two render paths have
+        // identical geometry but different verified payment status data.
+        // No parent-supplied "paid" flag or card details enter the renderer.
+        var invoiceId=Guid.Parse("aed1af4a-2df6-4d75-8e3f-6452d4412a18");
+        string invoiceJson(string status,string method,string? paidAt,string reference) =>
+            System.Text.Json.JsonSerializer.Serialize(new
+            {
+                organization_id="lefteria_fc_academy",
+                items=new[]{new{
+                    id=invoiceId,organization_id="lefteria_fc_academy",
+                    player_id="academy-child-1",player_name="Child Test",
+                    group_name="U10",payer_name="Test Parent",
+                    payer_email="parent@example.invalid",payer_phone="+35799123456",
+                    fee_month="2026-11-01",due_date="2026-11-05",
+                    issued_at="2026-11-01T12:00:00+00:00",
+                    paid_at=paidAt,amount_cents=4500,currency="EUR",
+                    status,payment_method=method,transaction_reference=reference,
+                    payment_status=status=="paid"?"paid":"not_created"
+                }}
+            });
+        foreach(var sample in new[]{
+            invoiceJson("issued","unpaid",null,""),
+            invoiceJson("paid","cash","2026-11-05T12:00:00+00:00",Guid.NewGuid().ToString("D")),
+            invoiceJson("paid","card","2026-11-06T12:00:00+00:00","104837274")
+        }){
+            var invoice=AcademyInvoicePdf.Parse(sample);
+            var bytes=AcademyInvoicePdf.Render(invoice);
+            Check(bytes.Length>500 && bytes.Length<2_000_000 &&
+                Encoding.ASCII.GetString(bytes,0,5)=="%PDF-","branded invoice PDF");
+        }
+        try{
+            AcademyInvoicePdf.Parse(invoiceJson("paid","unpaid",null,""));
+            throw new Exception("Unverified paid invoice accepted");
+        }catch(InvalidOperationException){}
+        var twoRows=System.Text.Json.JsonSerializer.Serialize(new{
+            organization_id="lefteria_fc_academy",
+            items=new[]{System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                invoiceJson("issued","unpaid",null,"")).GetProperty("items")[0],
+                System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(
+                invoiceJson("issued","unpaid",null,"")).GetProperty("items")[0]}
+        });
+        try{
+            AcademyInvoicePdf.Parse(twoRows);
+            throw new Exception("Duplicate fee in PDF selection");
+        }catch(InvalidOperationException){}
+
         var rejected = new PayablGateway(
             new HttpClient(new FakeHandler(_ => Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.Redirect)
