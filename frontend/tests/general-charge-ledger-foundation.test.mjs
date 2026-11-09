@@ -38,8 +38,12 @@ test('amounts use integer cents and status follows settlement evidence, never pa
 
 test('charge issuance never automatically generates twelve monthly charges',()=>{
   assert.doesNotMatch(sql,/generate_series\s*\(|CREATE\s+(?:FUNCTION|TRIGGER)\s+finance\.schedule|CALL\s+finance\.repeat_monthly|pg_cron\./i);
-  assert.match(sql,/ready_for_parent boolean NOT NULL DEFAULT false/);
-  assert.match(sql,/CHECK \(NOT ready_for_parent OR payer_identity_id IS NOT NULL\)/);
+  assert.match(sql,/CREATE TABLE finance\.general_charge_parent_verifications/);
+  assert.match(sql,/\(link\.charge_id IS NOT NULL\) AS ready_for_parent/);
+  assert.match(sql,/verification_digest char\(64\)/);
+  assert.match(sql,/FOREIGN KEY \(organization_id,charge_id\)/);
+  assert.match(sql,/ALTER TABLE finance\.general_charge_parent_verifications ENABLE ROW LEVEL SECURITY/);
+  assert.doesNotMatch(sql,/ready_for_parent boolean NOT NULL DEFAULT true/);
   assert.match(sql,/FOREIGN KEY \(organization_id,player_id\)/);
   assert.match(fixture,/template_created_charges_or_future_months/);
   assert.match(fixture,/unexpected_extra_ledger_events_or_annual_charges/);
