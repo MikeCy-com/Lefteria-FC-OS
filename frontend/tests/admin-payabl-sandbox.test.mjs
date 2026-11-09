@@ -196,7 +196,7 @@ test('parent and admin download individually or together without public PDF link
   assert.match(invoiceEndpoints,/MapGet\("\/multi\.pdf"/);
   assert.match(invoiceEndpoints,/RequireAuthorization\(IdentityServices\.Policy\)/);
   assert.match(invoiceEndpoints,/RequireAuthorization\(WebAdminServices\.Policy\)/);
-  assert.match(invoiceEndpoints,/cardinality\(_ids\)/);
+  assert.match(invoiceMigration,/cardinality\(_ids\)/);
   assert.match(mobileController,/async downloadTrainingInvoice\(ids:string\[\]\):Promise<Blob>/);
   assert.match(feeParent,/data-testid="parent-download-invoice"/);
   assert.match(feeParent,/data-testid="parent-download-family-invoice"/);
