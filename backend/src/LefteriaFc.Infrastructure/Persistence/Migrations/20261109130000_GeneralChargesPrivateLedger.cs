@@ -250,6 +250,13 @@ public sealed class GeneralChargesPrivateLedger : Migration
           FROM finance.general_charge_events e WHERE e.charge_id=c.id
         ) a ON true;
 
+      -- Default-deny row security is defense in depth in addition to
+      -- absent table privileges. Future reader functions must independently
+      -- recheck fresh parent or manager authority before accessing rows.
+      ALTER TABLE finance.general_charge_templates ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE finance.general_charge_issues ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE finance.general_charge_events ENABLE ROW LEVEL SECURITY;
+
       -- Tables/views and ledger functions are private by default; not one
       -- new grant to web-admin auth, mobile runtime or marketing role.
       REVOKE ALL ON finance.general_charge_templates,
