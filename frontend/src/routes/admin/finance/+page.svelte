@@ -9,9 +9,12 @@
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Status = { configured: boolean; environment: 'sandbox'; payment_links: boolean;
     subscriptions: boolean; employee_card_payouts: boolean; refunds: boolean; live_transactions: boolean };
+  type ProviderEvent = { event_type: string; payment_state: string; error_code: number;
+    reported_amount_cents: number | null; reported_currency: string | null;
+    recorded_at: string };
   type Payment = { id: string; purpose: string; amount_cents: number;
     currency: 'EUR'; status: string; checkout_url: string | null;
-    payer_email: string; created_at: string };
+    payer_email: string; created_at: string; last_provider_event: ProviderEvent | null };
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const organizations = $derived(
     $auth.status === 'authenticated' && $auth.session &&
@@ -48,6 +51,20 @@
         (uri.hostname === 'sandbox.payabl.com' || uri.hostname === 'pay4.sandbox.payabl.com');
     } catch { return false; }
   }
+  function verifiedProviderEvent(value: unknown): value is ProviderEvent | null {
+    if (value === null) return true;
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const event = value as Record<string,unknown>;
+    return typeof event.event_type === 'string' &&
+      ['capture','order','refund','cft','reversal'].includes(event.event_type) &&
+      typeof event.payment_state === 'string' && /^(?:|[a-z_]{1,32})$/.test(event.payment_state) &&
+      Number.isSafeInteger(event.error_code) &&
+      (event.reported_amount_cents === null || (Number.isSafeInteger(event.reported_amount_cents) &&
+        (event.reported_amount_cents as number) >= 0 && (event.reported_amount_cents as number) <= 100000000)) &&
+      (event.reported_currency === null || (typeof event.reported_currency === 'string' &&
+        /^[A-Z]{3}$/.test(event.reported_currency))) &&
+      typeof event.recorded_at === 'string' && !Number.isNaN(Date.parse(event.recorded_at));
+  }
   function verifiedPayment(value: unknown): value is Payment {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const row = value as Record<string, unknown>;
@@ -56,8 +73,10 @@
       typeof row.amount_cents === 'number' && Number.isSafeInteger(row.amount_cents) &&
       row.amount_cents > 0 && row.amount_cents <= 100000000 &&
       row.currency === 'EUR' && typeof row.status === 'string' &&
+      ['initiating','ready','awaiting_settlement','paid','failed','review_required'].includes(row.status) &&
       typeof row.created_at === 'string' &&
-      (row.checkout_url === null || trustedLink(row.checkout_url));
+      (row.checkout_url === null || trustedLink(row.checkout_url)) &&
+      verifiedProviderEvent(row.last_provider_event);
   }
 
   $effect(() => {
@@ -233,6 +252,19 @@
                     payment.status === 'review_required' ? 'Απαιτείται συμφωνία συναλλαγής' :
                     payment.status === 'awaiting_settlement' ? 'Αναμονή εκκαθάρισης· όχι εξοφλημένο' :
                     'Σε εξέλιξη'}</span>
+                  {#if payment.last_provider_event}
+                    <small class="payabl-event" data-testid="payabl-latest-event">
+                      Τελευταία καταγεγραμμένη ειδοποίηση: {payment.last_provider_event.event_type}
+                      {#if payment.last_provider_event.payment_state}
+                        · Κατάσταση παρόχου: {payment.last_provider_event.payment_state}
+                      {/if}
+                      · {new Intl.DateTimeFormat('el-CY', { dateStyle:'medium', timeStyle:'short',
+                        timeZone:'Asia/Nicosia' }).format(new Date(payment.last_provider_event.recorded_at))}
+                      {#if payment.status === 'review_required'}
+                        · Απαιτείται ανεξάρτητη επιβεβαίωση στο payabl.
+                      {/if}
+                    </small>
+                  {/if}
                   {#if trustedLink(payment.checkout_url) && payment.status === 'ready'}
                     <a href={payment.checkout_url} target="_blank" rel="noreferrer noopener">Δοκιμαστικός σύνδεσμος</a>
                   {/if}
@@ -256,4 +288,5 @@
   .payabl-list{list-style:none;margin:1rem 0;padding:0;display:grid;gap:.7rem}
   .payabl-list li{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;padding:.9rem;border:1px solid currentColor;border-radius:.5rem}
   .payabl-list span{margin-left:auto}
+  .payabl-list .payabl-event{flex-basis:100%;opacity:.8;font-size:.85rem}
 </style>
