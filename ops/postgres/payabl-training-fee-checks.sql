@@ -72,6 +72,17 @@ BEGIN
     RAISE EXCEPTION 'Checkout issuance falsely marked child fee paid';
   END IF;
 
+  -- Merely being assigned as a payer does not authorize a PDF: the
+  -- current canonical parent/child link must also exist at read time.
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(v_parent,'35799123456','parent',
+      clock_timestamp()+interval '1 hour',ARRAY[v_fee]);
+    RAISE EXCEPTION 'Unlinked parent could read the private invoice PDF';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  -- The unprivileged role cannot see raw PDF data or directly mark cash paid
+  -- (verified by separate finance role grants and segregation probe).
   -- The only authorized paid transition is a provider capture applied to
   -- this one linked payment, never the opened return URL.
   v_changed:=finance.apply_payabl_notification(v_payment,repeat('e',64),
