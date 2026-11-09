@@ -26,7 +26,7 @@
   let first=$state('');
   let last=$state('');
   let issuingId=$state<string|null>(null);
-  let requestId=$state<string|null>(null);
+  let checkoutRequestIds=$state<Record<string,string>>({});
   let sendingId=$state<string|null>(null);
   let attemptIds=$state<Record<string,string>>({});
 
@@ -134,10 +134,10 @@
     if(fee.payment_request_id)throw new Error('Υπάρχει ήδη αίτημα πληρωμής. Πρέπει να ελεγχθεί.');
     const origin=owner;
     pending=true;message='';
-    requestId??=crypto.randomUUID();
+    checkoutRequestIds[fee.id]??=crypto.randomUUID();
     try{
       const output=await post('/api/admin/finance/payabl/payment-requests?organization_id='+origin,{
-        client_request_id:requestId,
+        client_request_id:checkoutRequestIds[fee.id],
         fee_issue_id:fee.id,
         amount_cents:fee.amount_cents,currency:'EUR',
         purpose:'Academy training '+fee.fee_month.slice(0,7),
@@ -147,7 +147,7 @@
       if(owner!==origin)return;
       if(output.status!=='ready'||!secure(output.checkout_url))
         throw new Error('Η κατάσταση δημιουργίας συνδέσμου απαιτεί έλεγχο.');
-      requestId=null;
+      delete checkoutRequestIds[fee.id];
       message='Ο σύνδεσμος δημιουργήθηκε, αλλά δεν σημαίνει εξόφληση. Μπορείτε να τον αποστείλετε με SMS.';
       refresh+=1;
     }finally{pending=false;}
