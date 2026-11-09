@@ -162,7 +162,9 @@ public static class AcademyInvoicePdf
         var width=font.MeasureText(safe);
         if(center)x-=width/2;else if(right)x-=width;
         using var paint=new SKPaint{Color=color,IsAntialias=true};
-        c.DrawText(safe,x,y,font,paint);
+        // SkiaSharp 4: the five-argument DrawText overload is obsolete.
+        // Use explicit alignment to keep .NET warnings-as-errors builds clean.
+        c.DrawText(safe,x,y,SKTextAlign.Left,font,paint);
     }
     private static void Section(SKCanvas c,string heading,float left,float baseline,
         SKTypeface bold)
