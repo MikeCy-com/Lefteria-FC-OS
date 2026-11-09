@@ -16,10 +16,23 @@ DECLARE
   v_paid timestamptz;
   v_json jsonb;
   v_changed boolean;
+  v_digest text:=repeat('d',64);
+  v_cash_receipt uuid:=gen_random_uuid();
+  v_cash_result jsonb;
 BEGIN
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active)
     VALUES(v_actor,'ci_fee_admin_'||left(replace(v_actor::text,'-',''),15),
       'Disposable fee test admin','manager',true);
+  -- Synthetic manager with an isolated active auth session and Academy grant.
+  UPDATE identity.admin_accounts
+    SET password_hash='disposable_ci_hash_not_a_real_password'
+    WHERE id=v_actor;
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id)
+    VALUES(v_actor,'lefteria_fc_academy');
+  INSERT INTO identity.admin_sessions(
+    id,token_digest,admin_account_id,credential_digest,created_at,expires_at,revoked_at)
+    VALUES(gen_random_uuid(),v_digest,v_actor,repeat('a',64),
+      clock_timestamp(),clock_timestamp()+interval '1 hour',NULL);
   INSERT INTO identity.mobile_identities(
     id,normalized_phone,role,display_name,is_active,platform,created_at)
     VALUES(v_parent,'35799123456','parent','Disposable parent',true,'mobile',
@@ -56,6 +69,31 @@ BEGIN
     RAISE EXCEPTION 'Training-fee issue generated unrequested months';
   END IF;
 
+  -- Record full cash for December only. Verify a repeated request is
+  -- idempotent and a different receipt cannot pay twice.
+  v_cash_result:=finance.record_admin_training_fee_cash(
+    v_digest,'lefteria_fc_academy',v_second,v_cash_receipt,'');
+  IF v_cash_result->>'payment_method'<>'cash'
+     OR v_cash_result->>'status'<>'paid'
+     OR (v_cash_result->>'replay')::boolean THEN
+    RAISE EXCEPTION 'Manager cash receipt was not recorded';
+  END IF;
+  v_cash_result:=finance.record_admin_training_fee_cash(
+    v_digest,'lefteria_fc_academy',v_second,v_cash_receipt,'');
+  IF NOT (v_cash_result->>'replay')::boolean THEN
+    RAISE EXCEPTION 'Duplicate cash receipt created';
+  END IF;
+  BEGIN
+    PERFORM finance.record_admin_training_fee_cash(
+      v_digest,'lefteria_fc_academy',v_second,gen_random_uuid(),'');
+    RAISE EXCEPTION 'Second cash receipt accepted';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  IF (SELECT count(*) FROM finance.training_fee_cash_receipts
+    WHERE fee_issue_id=v_second)<>1 OR
+     (SELECT status FROM finance.training_fee_issues WHERE id=v_second)<>'paid' THEN
+    RAISE EXCEPTION 'Cash did not settle December exactly once';
+  END IF;
   v_order:='LFC'||left(replace(v_payment::text,'-',''),27);
   INSERT INTO finance.payment_requests(
     id,organization_id,actor_id,client_request_id,order_id,purpose,
@@ -93,8 +131,9 @@ BEGIN
     RAISE EXCEPTION 'Gateway capture did not settle exact child/month';
   END IF;
   SELECT status INTO v_status FROM finance.training_fee_issues WHERE id=v_second;
-  IF v_status<>'issued' THEN
-    RAISE EXCEPTION 'One capture incorrectly paid another issued month';
+  IF v_status<>'paid'
+    OR (SELECT count(*) FROM finance.training_fee_cash_receipts WHERE fee_issue_id=v_second)<>1 THEN
+    RAISE EXCEPTION 'Card capture changed independently paid cash invoice';
   END IF;
 
   -- Parent may request a day (including 31) and express consent, but the
