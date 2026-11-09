@@ -56,7 +56,7 @@ BEGIN
     RAISE EXCEPTION 'Training-fee issue generated unrequested months';
   END IF;
 
-  v_order:='LFC'||replace(v_payment::text,'-','');
+  v_order:='LFC'||left(replace(v_payment::text,'-',''),27);
   INSERT INTO finance.payment_requests(
     id,organization_id,actor_id,client_request_id,order_id,purpose,
     amount_cents,payer_email,payer_first_name,payer_last_name,callback_digest,
