@@ -57,3 +57,57 @@ Disposable PostgreSQL transactions:
 Static tests in `frontend/tests/admin-payabl-sandbox.test.mjs` assert no implicit annual billing, guardian ownership, callback-only settlement, no user-held raw card details and Twilio outbox guards. Offline .NET tests use a synthetic Twilio HTTP handler. The release workflow must build API, SvelteKit, Docker and regenerate/compare OpenAPI and TypeScript contract.
 
 **Release blockers:** real Payabl merchant test credentials and approved card-on-file/CIT/MIT contract, HPP save-card and 3DS sandbox end-to-end verification, authenticated token/status enquiry, Twilio approved sender and account configuration, actual SMS delivery callback policy, dispute/refund handling, privacy notices and a full CI pass after code changes. Do not merge to main or enable production until those are verified.
+
+## Invoice PDF parity to original Lefteria-FC (source audited)
+
+**Read-only source:** `MikeCy-com/Lefteria-FC` `main` SHA
+`91eafcc9efd01ad177b4f13a869cd5af7041e5b2`,
+`backend/routes/charges.py::_build_receipt`, and
+`frontend/src/pages/admin/ChargesTab.jsx`,
+`frontend/src/mobile/pages/{ParentDashboard,FinancialPage}.jsx`.
+Original sources have not been modified.
+
+| Original behavior | Lefteria FC OS implementation |
+|---|---|
+| A4 PDF 210×297 mm | Existing SkiaSharp document backend, `AcademyInvoicePdf.cs`, A4 in physical mm |
+| 42 mm black header, two gold diagonal accents and thin left gold strip | Geometric match at original locations, color black (18/255) and gold (#F5A623) |
+| White circular Academy crest and Greek-capable text | Existing OS Academy crest, read-only `/app/club-logo.png` mount; DejaVu Greek font installed in API runtime |
+| Greek club name, Academy, motto, right-aligned contact block | CMS-backed Academy/public club name, address, city/country, phone, email and website; no invented contact data or remote image request |
+| Bold INVOICE title, gold rule and grey invoice-number/dates panel | Matching coordinates at x20/110 mm; immutable issue date, invoice number, **frozen** due date calculated once when month issued |
+| Guardian and player details | Server-side verified payer name/email/phone, canonical child name/group; DOB intentionally blank until OS preserves trusted birth-date data |
+| Black line-item table / alternating grey rows / gold total bar | Source matching section, correct billed amount in integer EUR cents, split into 3 rows/page when many lines instead of overflowing footer |
+| Unpaid invoice | `Awaiting Payment`, original due date, outstanding balance; cannot be marked paid by viewing/download |
+| Paid in cash | Manager-only explicit collection confirmation, idempotent receipt, `Cash`, receipt reference and `Paid on` from committed DB state |
+| Paid by card | Signed matched Payabl sandbox capture (not return redirect), `Paid by Card`, provider reference and paid date |
+| Same PDF available in parent app and admin CMS | JWT-authorized guardian + scoped admin finance endpoints, `Content-Disposition: attachment`, no-store and bounded `%PDF-` download verification |
+| Original combined line-item / family wallet PDF | Up to 20 selected invoice IDs, exact child/parent scope, multiple PDF pages rather than footer overlap |
+
+**Differences requiring review before claiming pixel perfection:** The renderer
+uses OS DejaVu glyph metrics versus the original ReportLab’s available Noto /
+DejaVu / Liberation fallback and the OS's actual crest asset; it does not have
+a captured live rendered reference PDF to compare against. The original
+ReportLab generator is copied at a layout/rule level, not byte-for-byte.
+The original's multi-line amount calculation uses `collected_amount`, which
+can display zero for unpaid invoices: OS displays the **correct issued charges**
+rather than copying that billing error. The OS currently has only the
+Academy month-specific invoice domain. The original also issued registration,
+equipment, event, bank/online and partially paid charge documents, and had
+guardian DOB/age fields. These are **not** automatically supported by the new
+training-fee invoice until their own DB-backed, authorized charge models are
+ported. Dynamic status is never derived from frontend fields.
+
+**Accounting and legal gate:** Invoice/receipt numbering, statutory tax/VAT
+fields, reversals, refunds, historical paid-document snapshots and permitted
+payment-method changes need approval against Cyprus business requirements
+before use as legal fiscal receipts. Unverified payments are never labelled
+as settled. An existing Payabl payment link must be voided/reconciled before
+a cash payment can be recorded; there is no dual-method double collection.
+
+**Visual verification gate:** Produce the same sanitized 3 sample invoices
+(unpaid, cash, card; plus 1 combined family PDF) from the original ReportLab
+generator and the new SkiaSharp backend, render both to PNG at fixed DPI and
+compare typography, crest scaling, baselines and spacing. No such dual-render
+comparison has been completed because the branch CI cannot currently start
+runners. Hence visual *intent* is source-matched but pixel-perfect status is
+not yet certified.
+
