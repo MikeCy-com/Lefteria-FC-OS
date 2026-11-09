@@ -135,6 +135,7 @@ app.MapMobileAppAnnouncements();
 app.MapWebAdmin();
 app.MapPayabl();
 app.MapAcademyFees();
+app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
