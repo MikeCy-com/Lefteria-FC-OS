@@ -187,7 +187,8 @@ public sealed class AcademyTrainingAttendance : Migration
         END IF;
 
         SELECT count(*) INTO v_count FROM club.players p
-          WHERE club.academy_training_player_eligible(_owner,_event,p.id);
+          WHERE p.organization_id=_owner AND
+            club.academy_training_player_eligible(_owner,_event,p.id);
         IF v_count>200 THEN
           RAISE EXCEPTION 'attendance_roster_too_large' USING ERRCODE='54000';
         END IF;
@@ -217,7 +218,8 @@ public sealed class AcademyTrainingAttendance : Migration
           ORDER BY CASE WHEN r.collection='availability' THEN 0 ELSE 1 END
           LIMIT 1
         ) rsvp ON true
-        WHERE club.academy_training_player_eligible(_owner,_event,p.id);
+        WHERE p.organization_id=_owner AND
+          club.academy_training_player_eligible(_owner,_event,p.id);
 
         RETURN jsonb_build_object('organization_id',_owner,
           'event_id',_event,'title',v_title,'day',v_date,
