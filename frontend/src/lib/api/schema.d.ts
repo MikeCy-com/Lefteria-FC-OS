@@ -1924,7 +1924,7 @@ export interface components {
         };
         MobilePushSubscriptionBody: {
             endpoint: null | string;
-            keys: (null | components["schemas"]["MobilePushKeysBody"]) & components["schemas"]["MobilePushKeysBody"];
+            keys: null | components["schemas"]["MobilePushKeysBody"];
         };
         MobilePushSubscriptionStateDto: {
             subscribed: boolean;
