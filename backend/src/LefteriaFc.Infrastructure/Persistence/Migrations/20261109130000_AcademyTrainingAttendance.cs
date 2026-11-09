@@ -98,7 +98,11 @@ public sealed class AcademyTrainingAttendance : Migration
            OR _from>_to OR _to>_from+93 THEN
           RAISE EXCEPTION 'academy_training_scope_invalid' USING ERRCODE='22023';
         END IF;
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'attendance_authority_revoked' USING ERRCODE='42501';
+        END;
         SELECT a.role INTO v_role FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
           JOIN identity.admin_organization_grants g
@@ -160,7 +164,11 @@ public sealed class AcademyTrainingAttendance : Migration
            OR _event ~ '[[:cntrl:]]' THEN
           RAISE EXCEPTION 'attendance_scope_invalid' USING ERRCODE='22023';
         END IF;
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'attendance_authority_revoked' USING ERRCODE='42501';
+        END;
         SELECT a.role INTO v_role FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
           JOIN identity.admin_organization_grants g
@@ -250,7 +258,11 @@ public sealed class AcademyTrainingAttendance : Migration
            OR _expected IS NULL OR _expected NOT BETWEEN 0 AND 9999
         THEN RAISE EXCEPTION 'attendance_write_invalid' USING ERRCODE='22023';
         END IF;
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'attendance_authority_revoked' USING ERRCODE='42501';
+        END;
         SELECT a.id,s.id,a.role INTO v_actor,v_session,v_role
           FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
