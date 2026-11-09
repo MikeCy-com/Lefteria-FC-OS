@@ -92,6 +92,7 @@ public sealed class AcademyLeadAdminInbox : Migration
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
           OR _owner<>'lefteria_fc_academy' OR _id IS NULL
+          OR _expected IS NULL OR _next IS NULL
           OR _expected NOT IN ('new','contacted')
           OR _next NOT IN ('contacted','lost')
           OR NOT ((_expected='new' AND _next IN ('contacted','lost'))
