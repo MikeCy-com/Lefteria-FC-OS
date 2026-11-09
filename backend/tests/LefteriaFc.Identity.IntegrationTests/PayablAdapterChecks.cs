@@ -134,7 +134,7 @@ internal static class PayablAdapterChecks
             Check(form.Contains("To=%2B35799123456"),"SMS recipient is E164");
             Check(form.Contains("sandbox.payabl.com"),"SMS contains restricted Payabl link");
             return new HttpResponseMessage(HttpStatusCode.Created){
-                Content=new StringContent("{\\\"sid\\\":\\\"SMcccccccccccccccccccccccccccccccc\\\",\\\"status\\\":\\\"queued\\\"}")
+                Content=new StringContent("""{"sid":"SMcccccccccccccccccccccccccccccccc","status":"queued"}""")
             };
         });
         var smsDisabled=new TwilioPaymentSms(new HttpClient(smsHandler),
