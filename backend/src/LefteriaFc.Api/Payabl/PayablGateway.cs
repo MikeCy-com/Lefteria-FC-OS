@@ -101,7 +101,8 @@ public sealed class PayablGateway(HttpClient client, IOptions<PayablOptions> opt
             !order.Email.Contains('@') ||
             order.FirstName.Length is < 1 or > 50 ||
             order.LastName.Length is < 1 or > 50 ||
-            !IPAddress.TryParse(order.CustomerIp, out _) ||
+            !IPAddress.TryParse(order.CustomerIp, out var clientAddress) ||
+            clientAddress.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork ||
             !Uri.TryCreate(order.NotificationUrl, UriKind.Absolute, out var notify) ||
             notify.Scheme != "https" ||
             !Uri.TryCreate(order.ReturnUrl, UriKind.Absolute, out var ret) ||
@@ -121,12 +122,15 @@ public sealed class PayablGateway(HttpClient client, IOptions<PayablOptions> opt
             ["customerip"] = order.CustomerIp,
             ["notification_url"] = order.NotificationUrl,
             ["url_return"] = order.ReturnUrl,
-            ["language"] = "en"
+            ["language"] = "en",
+            // Restrict this unverified integration to card HPP; APM capture
+            // callbacks can mean funds are accepted but not yet credited.
+            ["payment_method"] = "1"
         };
         fields["signature"] = PayablSignature.Request(fields, settings.Secret);
         using var body = new FormUrlEncodedContent(fields);
         using var response = await client.PostAsync("https://sandbox.payabl.com/pay/payment/init", body, ct);
-        if (!response.IsSuccessStatusCode)
+        if (response.StatusCode != HttpStatusCode.OK)
             throw new PayablUnavailableException();
         var text = await response.Content.ReadAsStringAsync(ct);
         if (text.Length > 8192) throw new PayablUnavailableException();
