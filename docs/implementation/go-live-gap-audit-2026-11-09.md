@@ -53,6 +53,50 @@ The register currently marks **all 20 gates BLOCKED**. Editing the register
 without genuine end-to-end evidence is not an approval. The script does not
 touch a VPS, change DNS, merge or initiate deployment.
 
+## Exact legacy charge data contract to port next
+
+The current original `backend/models.py` exposes **eight** `ChargeType` values:
+`training`, `event`, `grassroots`, `registration`, `equipment`,
+`tournament`, `transport`, `other`. Its charge statuses are
+`pending`, `paid`, `overdue`, and `cancelled`; due dates, description,
+season, period key/label, notes, `paid_amount`, payment method and reversal
+history are significant. The payment-method choices in
+`frontend/src/pages/admin/ChargesTab.jsx` are `cash`, `bank`, `card`,
+`online`, and `other`.
+
+The current OS fee table deliberately covers **only training by issued month**.
+The PDF renderer can show these method captions **only when the authorized
+finance SQL supplies a verified paid method**. This is not a bank, online,
+refund, partial, or general charge payment processor. The next financial
+migration must preserve every original charge type and arbitrary charge
+description and allow managers to create specifically selected months or
+one-off charges without generating a hidden annual subscription.
+
+### Rules for the future generic ledger
+
+- Monetary amounts must be integer EUR cents; retain legacy original amount,
+  paid-to-date, outstanding amount, deposit/partial collection, write-offs and
+  historical allocation evidence. Never silently increase an issued amount.
+- A financial event must have a unique idempotency key, actor, timestamp,
+  organization, child or customer, currency, amount and proof source. Store
+  separate immutable events for cash, independently verified card captures,
+  bank transfers, reversals, credits and disputed settlements. A payment
+  redirect or free-text note never counts as proof of bank/card settlement.
+- Original `bulk-monthly` supports a selected from/to month range. The OS
+  Academy fee rule requested by the owner is stricter: **issue only months
+  explicitly chosen in Finance**, with uniqueness per child/month, no 12-month
+  roll-forward and preferred due date fixed on issue.
+- Preserve legacy season and `period_key` for reporting and parent filters
+  but separate business period from the payment attempt date.
+- PDF generation must be authorized by current parent/payer identity and
+  organization; historical invoice details (name, verified phone, due date,
+  amount, number) must not be re-generated from mutable profile fields.
+  Stored, legally accepted issue/credit numbers and tax information require
+  review rather than copying the legacy shortened UUID as a statutory number.
+- Before any generic finance API is enabled: demonstrate exact source→target
+  balances on an isolated sanitized source data sample and test status
+  transitions including duplicate/webhook replay and same-family siblings.
+
 ## Non-negotiable release sequence
 
 1. **Inventory legacy business data**, not only code. Read-only snapshot of source MongoDB collections and media; source commit does not prove that production data and production code match.
