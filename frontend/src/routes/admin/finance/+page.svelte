@@ -5,6 +5,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Status = { configured: boolean; environment: 'sandbox'; payment_links: boolean;
@@ -86,6 +87,12 @@
     if (!organizations.some(org => org.id === owner)) owner = organizations[0]?.id ?? null;
   });
   $effect(() => {
+    void owner;
+    // A checkout URL from another organization must never be reused.
+    lastLink = null;
+    requestId = null;
+  });
+  $effect(() => {
     const selected = owner;
     const account = $auth.session?.user.id;
     const grants = organizations.map(org => org.id).join('|');
@@ -93,7 +100,9 @@
     const refresh = reload;
     void account; void grants; void permissions; void refresh;
     status = null; payments = []; failed = false; loading = false;
-    lastLink = null; writeError = ''; requestId = null;
+    // Keep the last checkout link visible across ledger refreshes.
+    // A newly selected organization must still clear it separately.
+    writeError = '';
     if (!browser || !selected || $auth.status !== 'authenticated') return;
     const controller = new AbortController();
     loading = true;
@@ -237,6 +246,10 @@
             {#if lastLink}<p>Ο σύνδεσμος δημιουργήθηκε αλλά δεν έχει εξοφληθεί.
               <a href={lastLink} rel="noreferrer noopener" target="_blank">Άνοιγμα δοκιμαστικού checkout</a></p>{/if}
           </section>
+        {/if}
+        {#if owner === 'lefteria_fc_academy'}
+          <AdminTrainingFees {owner} configured={status.configured}
+            {canWrite} sessionId={$auth.session.user.id} />
         {/if}
         <section class="admin-panel" data-testid="payabl-payment-ledger">
           <h2>Ιστορικό αιτημάτων · {owner}</h2>
