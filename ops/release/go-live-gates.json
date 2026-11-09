@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "source_snapshot": "MikeCy-com/Lefteria-FC@91eafcc9efd01ad177b4f13a869cd5af7041e5b2",
+  "target_repository": "MikeCy-com/Lefteria-FC-OS",
+  "default_release_status": "BLOCKED",
+  "audited_at": "2026-11-09",
+  "notes": "A source snapshot is not proof of the live VPS revision. No status is approved/verified. For release, every blocking gate needs exact release SHA and evidence.",
+  "gates": [
+    {
+      "id": "api-ci",
+      "description": "CI compile, Svelte, Postgres, API contracts, Docker",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "finance-reconciliation",
+      "description": "Charge types, cash/card/bank, partial/refunds, invoice legal numbering and historical totals",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "payabl-and-sms",
+      "description": "Approved merchant, signed settlement, saved card mandates, eligible issued months only, Twilio delivery",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "academy-operations",
+      "description": "Training, attendance, schedules, evaluations, team/guardian roster accuracy",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "crm-and-documents",
+      "description": "Registrations, CRM, transfer, protected documents, guardian consent",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "cms-publishing",
+      "description": "All public CMS writer operations, public URLs, accurate scoped published content",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "pos-and-shop",
+      "description": "Sales, orders, stock, cashier shifts, product/catalog, checkout/refund",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "role-mobile-parity",
+      "description": "Parent, player, coach, management and fan real scoped flows and visual regression",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "communications",
+      "description": "Private/group chat, app announcements, read receipts, attachments, moderation and push",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "data-import",
+      "description": "Legacy live snapshot, Mongo→Postgres reconciled counts/ids/guardians/finances, quarantine",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "privacy-security",
+      "description": "Youth privacy, RBAC, sessions/2FA, document delivery, disclosures and tests",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "media-and-assets",
+      "description": "Historical media objects, checksums, protected delivery, logo/branding parity",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "backups-restore",
+      "description": "Verified encrypted database+assets backup and isolated restore drill",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "cutover-rollback",
+      "description": "Approved cutover, URL and TWA continuity, reversible routing and monitored rollback",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "calendar-and-fixtures",
+      "description": "Calendar RSVP exception resolution, training/fixture writers and match events",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "staff-admin",
+      "description": "Invites, staff compliance, roles, grants, authorization and review",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "analytics-expenses",
+      "description": "Expenses, receipts, financial reports, traceable reconciled reports",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "marketing-community",
+      "description": "Social, reels, polls, loyalty, referrals and media consent workflows",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "pwa-and-delivery",
+      "description": "Android TWA/PWA, push VAPID, deep links and offline/update compatibility",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "operations-monitoring",
+      "description": "Alerts, scheduled job leases, background tasks, support incident response",
+      "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    }
+  ]
+}
