@@ -1,6 +1,62 @@
 {
   "components": {
     "schemas": {
+      "AcademyTrainingFeeIssueCommand": {
+        "properties": {
+          "amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fee_month": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_first_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_last_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "client_request_id",
+          "player_id",
+          "fee_month",
+          "amount_cents",
+          "payer_email",
+          "payer_first_name",
+          "payer_last_name"
+        ],
+        "type": "object"
+      },
       "AdminAnnouncementDraftCommand": {
         "properties": {
           "body": {
@@ -3345,6 +3401,30 @@
         ],
         "type": "object"
       },
+      "ParentTrainingFeePreferenceCommand": {
+        "properties": {
+          "automatic_collection_requested": {
+            "type": "boolean"
+          },
+          "preferred_day": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "save_card_requested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "preferred_day",
+          "save_card_requested",
+          "automatic_collection_requested"
+        ],
+        "type": "object"
+      },
       "PayablPaymentCreateCommand": {
         "properties": {
           "amount_cents": {
@@ -3360,6 +3440,13 @@
             "type": "string"
           },
           "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fee_issue_id": {
+            "format": "uuid",
             "type": [
               "null",
               "string"
@@ -6285,6 +6372,18 @@
         ],
         "type": "object"
       },
+      "TrainingFeeSmsCommand": {
+        "properties": {
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_request_id"
+        ],
+        "type": "object"
+      },
       "WebAdminError": {
         "properties": {
           "code": {
@@ -8357,6 +8456,114 @@
         ],
         "tags": [
           "Payabl finance (sandbox)"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/training-fees": {
+      "get": {
+        "operationId": "ReadAdminAcademyTrainingFees",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
+        ]
+      },
+      "post": {
+        "operationId": "IssueAdminAcademyTrainingFee",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyTrainingFeeIssueCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/training-fees/{feeId}/sms": {
+      "post": {
+        "operationId": "SendAdminAcademyTrainingFeeSms",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingFeeSmsCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
         ]
       }
     },
@@ -13833,6 +14040,52 @@
         ]
       }
     },
+    "/api/mobile/finance/preferences": {
+      "put": {
+        "operationId": "SaveParentTrainingFeePreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParentTrainingFeePreferenceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent training fees"
+        ]
+      }
+    },
+    "/api/mobile/finance/training-fees": {
+      "get": {
+        "operationId": "ReadParentTrainingFees",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent training fees"
+        ]
+      }
+    },
     "/api/mobile/management/organization": {
       "get": {
         "operationId": "GetMobileOrganization",
@@ -15905,6 +16158,12 @@
     },
     {
       "name": "Payabl finance (sandbox)"
+    },
+    {
+      "name": "Academy training fees (sandbox)"
+    },
+    {
+      "name": "Parent training fees"
     },
     {
       "name": "Club settings"
