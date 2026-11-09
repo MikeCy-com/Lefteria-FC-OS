@@ -34,6 +34,15 @@ test('amounts use integer cents and status follows settlement evidence, never pa
   assert.match(sql,/FOR UPDATE/);
   assert.match(sql,/v_total\+NEW\.amount_cents NOT BETWEEN 0 AND v_amount/);
   assert.match(sql,/financial_events_are_immutable/);
+  assert.match(sql,/evidence_type<>'provider_capture'/);
+  assert.match(sql,/payment_method IN \('card','online'\)/);
+  assert.match(sql,/evidence_type<>'bank_statement'/);
+  assert.match(sql,/payment_method='bank'/);
+  assert.match(sql,/nullif\(btrim\(evidence_reference\),'\) IS NOT NULL/);
+  assert.match(fixture,/provider_capture_as_cash_accepted/);
+  assert.match(fixture,/bank_statement_as_card_accepted/);
+  assert.match(fixture,/blank_bank_statement_reference_accepted/);
+  assert.match(fixture,/valid_bank_card_evidence_not_recorded/);
 });
 
 test('charge issuance never automatically generates twelve monthly charges',()=>{
