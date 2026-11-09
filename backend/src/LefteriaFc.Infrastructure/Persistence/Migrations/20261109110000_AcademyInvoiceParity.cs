@@ -91,7 +91,7 @@ public sealed class AcademyInvoiceParity : Migration
         _digest text,_owner text,_ids uuid[]
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $invoice_admin$
-      DECLARE v_role text; v_result jsonb; v_count integer;
+      DECLARE v_role text; v_result jsonb; v_count integer; v_payers integer;
       BEGIN
         IF _digest !~ '^[0-9a-f]{64}$' OR _owner<>'lefteria_fc_academy'
           OR _ids IS NULL OR cardinality(_ids) NOT BETWEEN 1 AND 20
@@ -109,7 +109,8 @@ public sealed class AcademyInvoiceParity : Migration
             AND a.password_hash IS NOT NULL;
         IF NOT FOUND OR v_role NOT IN ('manager','super_admin') THEN
           RAISE EXCEPTION 'invoice_access_denied' USING ERRCODE='42501'; END IF;
-        SELECT count(*),jsonb_agg(jsonb_build_object(
+        SELECT count(*),count(DISTINCT f.payer_identity_id),
+          jsonb_agg(jsonb_build_object(
           'id',f.id,'organization_id',f.organization_id,
           'player_id',f.player_id,'player_name',p.name,
           'group_name',coalesce(g.name,'Academy'),
@@ -126,7 +127,7 @@ public sealed class AcademyInvoiceParity : Migration
             ELSE '' END,
           'payment_status',coalesce(r.status,'not_created'))
           ORDER BY f.fee_month ASC,f.player_id COLLATE "C",f.id)
-        INTO v_count,v_result
+        INTO v_count,v_payers,v_result
         FROM finance.training_fee_issues f
           JOIN club.players p ON p.id=f.player_id AND p.organization_id=f.organization_id
           JOIN identity.mobile_identities i ON i.id=f.payer_identity_id
@@ -135,7 +136,9 @@ public sealed class AcademyInvoiceParity : Migration
           LEFT JOIN finance.training_fee_cash_receipts cr ON cr.fee_issue_id=f.id
           LEFT JOIN finance.payment_requests r ON r.id=f.payment_request_id
         WHERE f.id=ANY(_ids) AND f.organization_id=_owner;
-        IF v_count<>cardinality(_ids) THEN
+        IF v_count<>cardinality(_ids) OR v_payers<>1 THEN
+          -- Never put fees from different guardians on a document with
+          -- the first guardian's payer heading.
           RAISE EXCEPTION 'invoice_outside_scope' USING ERRCODE='42501';
         END IF;
         RETURN jsonb_build_object('items',v_result,'organization_id',_owner);
