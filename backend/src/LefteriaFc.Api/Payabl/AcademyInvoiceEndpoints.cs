@@ -2,6 +2,7 @@ using System.Text.Json;
 using LefteriaFc.Api.Identity;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
+using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Domain.AdminAuth;
 using LefteriaFc.Domain.Identity;
 using LefteriaFc.Infrastructure.Persistence;
@@ -72,46 +73,46 @@ public static class AcademyInvoiceEndpoints
         admin.MapGet("/invoices/{invoiceId:guid}.pdf", async(
             Guid invoiceId,string? organization_id,WebAdminService service,
             WebAdminConnections connections,IWebAdminSecrets secrets,
-            HttpContext context,CancellationToken ct) =>
+            PublicContentService publicContent,HttpContext context,CancellationToken ct) =>
         {
             var cookie=await AdminCookie(organization_id,service,context,false,ct);
-            return await AdminPdf([invoiceId],organization_id!,cookie,connections,secrets,context,ct);
+            return await AdminPdf([invoiceId],organization_id!,cookie,connections,secrets,publicContent,context,ct);
         }).WithName("DownloadAdminAcademyInvoicePdf");
 
         admin.MapGet("/invoices/multi.pdf",async(
             string? ids,string? organization_id,WebAdminService service,
             WebAdminConnections connections,IWebAdminSecrets secrets,
-            HttpContext context,CancellationToken ct) =>
+            PublicContentService publicContent,HttpContext context,CancellationToken ct) =>
         {
             var cookie=await AdminCookie(organization_id,service,context,false,ct);
             Guid[] selected;
             try{selected=ParseIds(ids).Select(Guid.Parse).ToArray();}
             catch(InvalidOperationException){return Results.BadRequest();}
-            return await AdminPdf(selected,organization_id!,cookie,connections,secrets,context,ct);
+            return await AdminPdf(selected,organization_id!,cookie,connections,secrets,publicContent,context,ct);
         }).WithName("DownloadAdminAcademyMultiInvoicePdf");
 
         var parent=endpoints.MapGroup("/api/mobile/finance/invoices")
             .WithTags("Parent invoice PDFs").RequireAuthorization(IdentityServices.Policy);
 
         parent.MapGet("/{invoiceId:guid}.pdf",async(Guid invoiceId,HttpContext context,
-            LefteriaDbContext db,CancellationToken ct) =>
-            await ParentPdf([invoiceId],context,db,ct))
+            LefteriaDbContext db,PublicContentService publicContent,CancellationToken ct) =>
+            await ParentPdf([invoiceId],context,db,publicContent,ct))
             .WithName("DownloadParentAcademyInvoicePdf");
 
         parent.MapGet("/multi.pdf",async(string? ids,HttpContext context,
-            LefteriaDbContext db,CancellationToken ct) =>
+            LefteriaDbContext db,PublicContentService publicContent,CancellationToken ct) =>
         {
             Guid[] selected;
             try{selected=ParseIds(ids).Select(Guid.Parse).ToArray();}
             catch(InvalidOperationException){return Results.BadRequest();}
-            return await ParentPdf(selected,context,db,ct);
+            return await ParentPdf(selected,context,db,publicContent,ct);
         }).WithName("DownloadParentAcademyMultiInvoicePdf");
         return endpoints;
     }
 
     private static async Task<IResult> AdminPdf(Guid[] ids,string organization,
         string cookie,WebAdminConnections connections,IWebAdminSecrets secrets,
-        HttpContext context,CancellationToken ct)
+        PublicContentService publicContent,HttpContext context,CancellationToken ct)
     {
         context.Response.Headers.CacheControl="private, no-store";
         await using var db=await connections.OpenAsync(ct);
@@ -124,7 +125,7 @@ public static class AcademyInvoiceEndpoints
         {
             var raw=await query.ExecuteScalarAsync(ct) as string;
             if(raw is null)return Results.Problem(statusCode:503);
-            return Document(raw);
+            return await Document(raw,publicContent,ct);
         }
         catch(PostgresException error) when(error.SqlState is "42501" or "22023")
         {return Results.NotFound();}
@@ -132,7 +133,7 @@ public static class AcademyInvoiceEndpoints
     }
 
     private static async Task<IResult> ParentPdf(Guid[] ids,HttpContext context,
-        LefteriaDbContext database,CancellationToken ct)
+        LefteriaDbContext database,PublicContentService publicContent,CancellationToken ct)
     {
         context.Response.Headers.CacheControl="private, no-store";
         var session=MobilePrincipal.Read(context.User);
@@ -152,7 +153,7 @@ public static class AcademyInvoiceEndpoints
             query.Parameters.AddWithValue("ids",ids);
             var raw=await query.ExecuteScalarAsync(ct) as string;
             if(raw is null)return Results.Problem(statusCode:503);
-            return Document(raw);
+            return await Document(raw,publicContent,ct);
         }
         catch(PostgresException error) when(error.SqlState is "42501" or "22023")
         {return Results.NotFound();}
@@ -160,17 +161,30 @@ public static class AcademyInvoiceEndpoints
         finally{await database.Database.CloseConnectionAsync();}
     }
 
-    private static IResult Document(string raw)
+    private static async Task<IResult> Document(string raw,PublicContentService publicContent,
+        CancellationToken ct)
     {
         AcademyInvoiceBatch document;
         try{document=AcademyInvoicePdf.Parse(raw);}
         catch(Exception e) when(e is JsonException or InvalidOperationException or NullReferenceException)
         {return Results.Problem(statusCode:503);}
+        PublicClub? club=null;
+        try
+        {
+            var site=await publicContent.GetSiteAsync("lefteria_fc_academy",ct);
+            club=site?.Club ?? (await publicContent.GetSiteAsync("lefteria_fc",ct))?.Club;
+        }
+        catch(Exception e) when(!ct.IsCancellationRequested &&
+            (e is System.Data.Common.DbException or TimeoutException))
+        {
+            // A temporarily missing public club profile is not permission
+            // to display a forged receipt; retain source design defaults.
+        }
         // Use packaged source crest when available; never fetch URL supplied by
         // a customer or from another organization (no PDF renderer SSRF).
         var logo=Path.Combine(AppContext.BaseDirectory,"club-logo.png");
         byte[] pdf;
-        try{pdf=AcademyInvoicePdf.Render(document,logo);}
+        try{pdf=AcademyInvoicePdf.Render(document,logo,club);}
         catch(Exception){return Results.Problem(statusCode:503);}
         var fileName=document.Items.Count==1
             ? "invoice-"+document.Items[0].Id.ToString("N")[..8]+".pdf"
