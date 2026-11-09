@@ -84,3 +84,13 @@ test('sandbox card-only settlement is fail-closed for unsigned APM states',()=>{
   assert.match(callback,/StrictAmount/);
   assert.match(callback,/StrictState/);
 });
+
+test('finance reconciliation view displays only bounded provider metadata',()=>{
+  assert.match(migration,/'last_provider_event'/);
+  assert.match(migration,/FROM finance\.payment_notifications n/);
+  assert.match(migration,/WHERE n\.request_id=p\.id/);
+  assert.match(page,/verifiedProviderEvent\(row\.last_provider_event\)/);
+  assert.match(page,/data-testid="payabl-latest-event"/);
+  assert.match(page,/Απαιτείται ανεξάρτητη επιβεβαίωση στο payabl/);
+  assert.doesNotMatch(page,/\{@html\}|innerHTML/);
+});
