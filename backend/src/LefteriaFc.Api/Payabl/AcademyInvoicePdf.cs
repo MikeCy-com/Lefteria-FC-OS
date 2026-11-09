@@ -177,6 +177,8 @@ public static class AcademyInvoicePdf
         var owing=total-settled;
         var paid=owing==0;
         var mixed=settled>0 && owing>0;
+        var pendingReview=full.Any(v=>v.Status=="review_required" ||
+            v.PaymentStatus is "awaiting_settlement" or "review_required");
         var onlyOneChild=full.All(x=>x.PlayerId==first.PlayerId);
         var firstNo=first.Id.ToString("N")[..6].ToUpperInvariant();
         var invoiceNo=full.Length==1
@@ -308,7 +310,8 @@ public static class AcademyInvoicePdf
             ? differentMethods.Length==1 && differentMethods[0]=="cash" ? "Cash"
                 : differentMethods.Length==1 && differentMethods[0]=="card" ? "Paid by Card"
                 : "Cash / Paid by Card"
-            : mixed ? "Partially Paid" : "Awaiting Payment";
+            : pendingReview ? "Payment Under Review"
+                : mixed ? "Partially Paid" : "Awaiting Payment";
         Txt(c,method,U(45),U(paymentTop+7),bold,11,Ink);
         if(paid)
         {
@@ -327,7 +330,8 @@ public static class AcademyInvoicePdf
                 regular,9,Muted);
             Txt(c,"Amount Due: € "+Amount(owing),U(45),U(paymentTop+16.5f),
                 regular,9,Muted);
-            Txt(c,mixed?"Remaining balance is due.":"Please settle by the due date.",
+            Txt(c,pendingReview?"Awaiting payment verification.":
+                mixed?"Remaining balance is due.":"Please settle by the due date.",
                 Width/2+U(8),U(paymentTop+11),bold,11,Color(219,89,28),U(75));
         }
 
