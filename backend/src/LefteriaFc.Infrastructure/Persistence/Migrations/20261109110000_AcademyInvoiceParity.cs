@@ -112,6 +112,7 @@ public sealed class AcademyInvoiceParity : Migration
         SELECT count(*),count(DISTINCT f.payer_identity_id),
           jsonb_agg(jsonb_build_object(
           'id',f.id,'organization_id',f.organization_id,
+          'payer_identity_id',f.payer_identity_id,
           'player_id',f.player_id,'player_name',p.name,
           'group_name',coalesce(g.name,'Academy'),
           'payer_name',f.payer_first_name||' '||f.payer_last_name,
@@ -161,6 +162,7 @@ public sealed class AcademyInvoiceParity : Migration
         THEN RAISE EXCEPTION 'parent_invoice_denied' USING ERRCODE='42501'; END IF;
         SELECT count(*),jsonb_agg(jsonb_build_object(
           'id',f.id,'organization_id',f.organization_id,
+          'payer_identity_id',f.payer_identity_id,
           'player_id',f.player_id,'player_name',p.name,
           'group_name',coalesce(g.name,'Academy'),
           'payer_name',f.payer_first_name||' '||f.payer_last_name,
