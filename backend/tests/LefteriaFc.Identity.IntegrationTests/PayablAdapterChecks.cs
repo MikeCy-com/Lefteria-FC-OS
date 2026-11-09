@@ -38,7 +38,7 @@ internal static class PayablAdapterChecks
         // notification signature; verify their format and exact callback
         // order binding, then let PostgreSQL decide settlement state.
         var paymentId=Guid.Parse("9d3e279e-f8b7-4f76-b26b-d017c3f0f501");
-        values["orderid"]="LFC"+paymentId.ToString("N");
+        values["orderid"]=PayablNotification.OrderId(paymentId);
         values["amount"]="15.00";
         values["currency"]="EUR";
         values["payment_state"]="not_credited_yet";
@@ -49,10 +49,10 @@ internal static class PayablAdapterChecks
         Check(PayablNotification.TryRead(values,paymentId,secret,baseTime,out var credited) &&
             credited is {PaymentState:"credited"}, "credited APM remains untrusted");
         values["payment_state"]="not_credited_yet";
-        values["orderid"]="LFC"+Guid.NewGuid().ToString("N");
+        values["orderid"]=PayablNotification.OrderId(Guid.NewGuid());
         Check(!PayablNotification.TryRead(values,paymentId,secret,baseTime,out _),
             "cross-order callback refused despite otherwise valid signature");
-        values["orderid"]="LFC"+paymentId.ToString("N");
+        values["orderid"]=PayablNotification.OrderId(paymentId);
         foreach(var bad in new[]{"1e2","1.001","NaN","-1.00","1,00","1000001.00"})
         {
             values["amount"]=bad;
