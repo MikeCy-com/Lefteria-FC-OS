@@ -12,7 +12,8 @@ public sealed record AcademyInvoiceItem(
     string GroupName, string PayerName, string PayerEmail, string PayerPhone,
     DateOnly FeeMonth, DateOnly DueDate, DateTimeOffset IssuedAt,
     DateTimeOffset? PaidAt, long AmountCents, string Currency, string Status,
-    string PaymentMethod, string TransactionReference, string PaymentStatus);
+    string PaymentMethod, string TransactionReference, string PaymentStatus,
+    string? Description = null);
 
 public sealed record AcademyInvoiceBatch(string OrganizationId,
     IReadOnlyList<AcademyInvoiceItem> Items);
@@ -276,9 +277,10 @@ public static class AcademyInvoicePdf
         {
             var item=pageItems[j];var rowTop=header+headerHeight+j*rowHeight;
             if(j%2==0)Rect(c,tableX,U(rowTop),tableW,U(rowHeight),Alternate);
+            var description=string.IsNullOrWhiteSpace(item.Description)
+                ? $"Training {item.FeeMonth:yyyy-MM}" : item.Description;
             var desc=full.Length>1
-                ? $"{item.PlayerName} · Training {item.FeeMonth:yyyy-MM}"
-                : $"Training {item.FeeMonth:yyyy-MM}";
+                ? $"{item.PlayerName} · {description}" : description;
             Txt(c,desc,tableX+U(6),U(rowTop+6.5f),regular,10,Ink,U(95));
             Txt(c,"1",tableX+U(110),U(rowTop+6.5f),regular,10,Ink,center:true);
             Txt(c,Amount(item.AmountCents),tableX+U(135),U(rowTop+6.5f),
