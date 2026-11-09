@@ -14,16 +14,6 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 public sealed class AcademyInvoiceParity : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      ALTER TABLE finance.training_fee_issues ADD COLUMN invoice_due_date date;
-      UPDATE finance.training_fee_issues f SET invoice_due_date=
-        make_date(EXTRACT(year FROM f.fee_month)::int,EXTRACT(month FROM f.fee_month)::int,
-          LEAST(COALESCE((SELECT preferred_day FROM finance.parent_fee_preferences p
-            WHERE p.parent_identity_id=f.payer_identity_id),5),
-            EXTRACT(day FROM (f.fee_month + interval '1 month' - interval '1 day'))::int));
-      ALTER TABLE finance.training_fee_issues ALTER COLUMN invoice_due_date SET NOT NULL;
-      ALTER TABLE finance.training_fee_issues ADD CONSTRAINT invoice_due_date_valid
-        CHECK (invoice_due_date>=fee_month AND invoice_due_date<(fee_month+interval '1 month')::date);
-
       CREATE FUNCTION finance.set_training_invoice_due_date()
       RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $fee_due$
@@ -243,9 +233,5 @@ public sealed class AcademyInvoiceParity : Migration
       DROP FUNCTION finance.read_admin_invoice_pdf(text,text,uuid[]);
       DROP FUNCTION finance.record_admin_training_fee_cash(text,text,uuid,uuid,text);
       DROP TABLE finance.training_fee_cash_receipts;
-      DROP TRIGGER trg_training_fee_invoice_due ON finance.training_fee_issues;
-      DROP FUNCTION finance.set_training_invoice_due_date();
-      ALTER TABLE finance.training_fee_issues DROP CONSTRAINT invoice_due_date_valid;
-      ALTER TABLE finance.training_fee_issues DROP COLUMN invoice_due_date;
     """);
 }
