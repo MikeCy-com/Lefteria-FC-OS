@@ -33,6 +33,9 @@ BEGIN
     OR to_regprocedure('finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)') IS NULL
     OR to_regprocedure('finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)') IS NULL
     OR to_regprocedure('finance.read_parent_training_fees(uuid,text,text,timestamptz)') IS NULL
+    OR to_regprocedure('finance.read_parent_invoice_pdf(uuid,text,text,timestamptz,uuid[])') IS NULL
+    OR to_regprocedure('finance.read_admin_invoice_pdf(text,text,uuid[])') IS NULL
+    OR to_regprocedure('finance.record_admin_training_fee_cash(text,text,uuid,uuid,text)') IS NULL
   THEN
     RAISE EXCEPTION 'The finance role boundary is not safe or not migrated';
   END IF;
@@ -68,6 +71,13 @@ GRANT EXECUTE ON FUNCTION finance.read_parent_training_fees(
 GRANT EXECUTE ON FUNCTION finance.set_parent_fee_preferences(
   uuid,text,text,timestamptz,integer,boolean,boolean) TO :"app_role";
 
+GRANT EXECUTE ON FUNCTION finance.record_admin_training_fee_cash(
+  text,text,uuid,uuid,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_invoice_pdf(
+  text,text,uuid[]) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_parent_invoice_pdf(
+  uuid,text,text,timestamptz,uuid[]) TO :"app_role";
+
 -- Neither login role may directly inspect private payer identities, mutate
 -- statuses, run a payout, or bypass the transactionally audited functions.
 DO $verify$
@@ -79,6 +89,7 @@ BEGIN
       OR has_table_privilege(r,'finance.training_fee_issues','SELECT,INSERT,UPDATE,DELETE')
       OR has_table_privilege(r,'finance.parent_fee_preferences','SELECT,INSERT,UPDATE,DELETE')
       OR has_table_privilege(r,'finance.training_fee_sms_outbox','SELECT,INSERT,UPDATE,DELETE')
+      OR has_table_privilege(r,'finance.training_fee_cash_receipts','SELECT,INSERT,UPDATE,DELETE')
       OR has_schema_privilege(r,'finance','CREATE')
       THEN
       RAISE EXCEPTION 'Finance privilege boundary exceeded for %',r;
@@ -92,6 +103,12 @@ BEGIN
        'finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)','EXECUTE')
     OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
        'finance.read_parent_training_fees(uuid,text,text,timestamptz)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
+       'finance.record_admin_training_fee_cash(text,text,uuid,uuid,text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
+       'finance.read_admin_invoice_pdf(text,text,uuid[])','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
+       'finance.read_parent_invoice_pdf(uuid,text,text,timestamptz,uuid[])','EXECUTE')
   THEN
     RAISE EXCEPTION 'Finance cross-role function leakage';
   END IF;
