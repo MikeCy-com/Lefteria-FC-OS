@@ -117,6 +117,7 @@ public sealed class AcademyInvoiceParity : Migration
           'payer_email',f.payer_email,'payer_phone','+'||i.normalized_phone,
           'fee_month',f.fee_month,'due_date',f.invoice_due_date,
           'issued_at',f.issued_at,'paid_at',f.paid_at,'amount_cents',f.amount_cents,
+          'description','Training '||to_char(f.fee_month,'YYYY-MM'),
           'currency',f.currency,'status',f.status,
           'payment_method',CASE WHEN cr.id IS NOT NULL THEN 'cash'
             WHEN r.status='paid' THEN 'card' ELSE 'unpaid' END,
@@ -163,6 +164,7 @@ public sealed class AcademyInvoiceParity : Migration
           'payer_email',f.payer_email,'payer_phone','+'||_phone,
           'fee_month',f.fee_month,'due_date',f.invoice_due_date,
           'issued_at',f.issued_at,'paid_at',f.paid_at,'amount_cents',f.amount_cents,
+          'description','Training '||to_char(f.fee_month,'YYYY-MM'),
           'currency',f.currency,'status',f.status,
           'payment_method',CASE WHEN cr.id IS NOT NULL THEN 'cash'
             WHEN r.status='paid' THEN 'card' ELSE 'unpaid' END,
