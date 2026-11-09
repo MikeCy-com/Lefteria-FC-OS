@@ -181,7 +181,16 @@ public sealed class PayablPaymentRequests : Migration
           SELECT coalesce(jsonb_agg(jsonb_build_object(
             'id',p.id,'purpose',p.purpose,'amount_cents',p.amount_cents,
             'currency',p.currency,'status',p.status,'checkout_url',p.checkout_url,
-            'payer_email',p.payer_email,'created_at',p.created_at)
+            'payer_email',p.payer_email,'created_at',p.created_at,
+            'last_provider_event',(
+              SELECT jsonb_build_object(
+                'event_type',n.event_type,'payment_state',n.payment_state,
+                'error_code',n.error_code,'reported_amount_cents',n.amount_cents,
+                'reported_currency',n.currency,'recorded_at',n.recorded_at)
+              FROM finance.payment_notifications n
+              WHERE n.request_id=p.id
+              ORDER BY n.recorded_at DESC,n.provider_timestamp DESC LIMIT 1
+            ))
             ORDER BY p.created_at DESC,p.id DESC),'[]'::jsonb)
           INTO v_items FROM (
             SELECT * FROM finance.payment_requests
