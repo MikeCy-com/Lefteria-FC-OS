@@ -14,26 +14,6 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 public sealed class AcademyInvoiceParity : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE FUNCTION finance.set_training_invoice_due_date()
-      RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
-      SET search_path=pg_catalog,pg_temp AS $fee_due$
-      DECLARE v_preferred int;
-      BEGIN
-        IF NEW.invoice_due_date IS NOT NULL THEN
-          RAISE EXCEPTION 'invoice_due_date_is_server_issued' USING ERRCODE='22023';
-        END IF;
-        SELECT preferred_day INTO v_preferred FROM finance.parent_fee_preferences
-          WHERE parent_identity_id=NEW.payer_identity_id;
-        NEW.invoice_due_date:=make_date(EXTRACT(year FROM NEW.fee_month)::int,
-          EXTRACT(month FROM NEW.fee_month)::int,
-          LEAST(COALESCE(v_preferred,5),
-            EXTRACT(day FROM (NEW.fee_month+interval '1 month'-interval '1 day'))::int));
-        RETURN NEW;
-      END $fee_due$;
-      CREATE TRIGGER trg_training_fee_invoice_due
-        BEFORE INSERT ON finance.training_fee_issues
-        FOR EACH ROW EXECUTE FUNCTION finance.set_training_invoice_due_date();
-
       CREATE TABLE finance.training_fee_cash_receipts(
         id uuid PRIMARY KEY,
         fee_issue_id uuid NOT NULL UNIQUE
