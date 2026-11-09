@@ -111,6 +111,52 @@ BEGIN
     RAISE EXCEPTION 'past_unpaid_charge_status_incorrect';
   END IF;
 
+  -- An evidence source cannot masquerade as an unrelated payment method.
+  -- Each candidate has a valid scope, amount and unique idempotency key.
+  -- Rejection must come from the ledger proof constraint, not overpayment.
+  BEGIN
+    INSERT INTO finance.general_charge_events(
+      id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
+      evidence_type,amount_cents,evidence_reference
+    ) VALUES(gen_random_uuid(),v_charge,'lefteria_fc_academy',
+      gen_random_uuid(),'payment','cash','provider_capture',100,'capture_demo');
+    RAISE EXCEPTION 'provider_capture_as_cash_accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO finance.general_charge_events(
+      id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
+      evidence_type,amount_cents,evidence_reference
+    ) VALUES(gen_random_uuid(),v_charge,'lefteria_fc_academy',
+      gen_random_uuid(),'payment','card','bank_statement',100,'statement_demo');
+    RAISE EXCEPTION 'bank_statement_as_card_accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  BEGIN
+    INSERT INTO finance.general_charge_events(
+      id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
+      evidence_type,amount_cents,evidence_reference
+    ) VALUES(gen_random_uuid(),v_charge,'lefteria_fc_academy',
+      gen_random_uuid(),'payment','bank','bank_statement',100,'  ');
+    RAISE EXCEPTION 'blank_bank_statement_reference_accepted';
+  EXCEPTION WHEN check_violation THEN NULL;
+  END;
+  -- Valid provider and bank method combinations must still work with an
+  -- independently evidenced event (this schema does not authorize a caller).
+  INSERT INTO finance.general_charge_events(
+    id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
+    evidence_type,amount_cents,evidence_reference
+  ) VALUES(gen_random_uuid(),v_unpaid,'lefteria_fc_academy',gen_random_uuid(),
+    'payment','card','provider_capture',100,'sandbox_capture_demo');
+  INSERT INTO finance.general_charge_events(
+    id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
+    evidence_type,amount_cents,evidence_reference
+  ) VALUES(gen_random_uuid(),v_unpaid,'lefteria_fc_academy',gen_random_uuid(),
+    'payment','bank','bank_statement',100,'bank_statement_demo');
+  IF (SELECT paid_cents FROM finance.general_charge_balances WHERE id=v_unpaid)<>200 THEN
+    RAISE EXCEPTION 'valid_bank_card_evidence_not_recorded';
+  END IF;
+
   INSERT INTO finance.general_charge_events(
     id,charge_id,organization_id,idempotency_id,event_kind,payment_method,
     evidence_type,amount_cents,legacy_event_id,occurred_at
