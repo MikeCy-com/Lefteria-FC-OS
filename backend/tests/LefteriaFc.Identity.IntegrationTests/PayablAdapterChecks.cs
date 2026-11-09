@@ -200,7 +200,10 @@ internal static class PayablAdapterChecks
             invoiceJson("issued","unpaid",null,""),
             invoiceJson("review_required","unpaid",null,""),
             invoiceJson("paid","cash","2026-11-05T12:00:00+00:00",Guid.NewGuid().ToString("D")),
-            invoiceJson("paid","card","2026-11-06T12:00:00+00:00","104837274")
+            invoiceJson("paid","card","2026-11-06T12:00:00+00:00","104837274"),
+            invoiceJson("paid","bank","2026-11-07T12:00:00+00:00","B-2026-1"),
+            invoiceJson("paid","online","2026-11-08T12:00:00+00:00","WEB-2026-1"),
+            invoiceJson("paid","other","2026-11-08T12:00:00+00:00","OTHER-2026-1")
         }){
             var invoice=AcademyInvoicePdf.Parse(sample);
             var bytes=AcademyInvoicePdf.Render(invoice);
