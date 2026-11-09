@@ -25,6 +25,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
             AND invoice_due_date<(fee_month+interval '1 month')::date),
           amount_cents bigint NOT NULL CHECK (amount_cents BETWEEN 1 AND 100000000),
           currency char(3) NOT NULL DEFAULT 'EUR' CHECK (currency='EUR'),
+          payer_phone varchar(16) NOT NULL CHECK (payer_phone ~ '^\\+[1-9][0-9]{7,14}$'),
           payer_email varchar(50) NOT NULL,
           payer_first_name varchar(50) NOT NULL,
           payer_last_name varchar(50) NOT NULL,
@@ -98,7 +99,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
         SET search_path=pg_catalog,pg_temp AS $fee_issue$
         DECLARE
           v_actor uuid; v_session uuid; v_role text;
-          v_payer uuid; v_row finance.training_fee_issues%ROWTYPE;
+          v_payer uuid; v_payer_phone varchar(15);
+          v_row finance.training_fee_issues%ROWTYPE;
           v_created boolean:=false;
         BEGIN
           IF _digest !~ '^[0-9a-f]{64}$'
@@ -127,7 +129,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
             RAISE EXCEPTION 'fee_access_denied' USING ERRCODE='42501';
           END IF;
 
-          SELECT i.id INTO v_payer
+          SELECT i.id,i.normalized_phone INTO v_payer,v_payer_phone
           FROM club.players p
           JOIN identity.mobile_record_links l
             ON l.collection='players' AND l.record_id=p.id
@@ -147,8 +149,8 @@ public sealed class AcademyTrainingFeeBilling : Migration
 
           INSERT INTO finance.training_fee_issues(
             id,organization_id,player_id,payer_identity_id,fee_month,
-            amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
-          VALUES(_id,_owner,_player,v_payer,_month,_cents,_email,_first,_last,v_actor)
+            amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
+          VALUES(_id,_owner,_player,v_payer,_month,_cents,'+'||v_payer_phone,_email,_first,_last,v_actor)
           ON CONFLICT (organization_id,player_id,fee_month) DO NOTHING
           RETURNING * INTO v_row;
           IF FOUND THEN v_created:=true; END IF;
