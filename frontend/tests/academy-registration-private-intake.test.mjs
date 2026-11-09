@@ -28,7 +28,7 @@ test('new database surfaces are default-deny, with no public intake claim',()=>{
   assert.match(publicRoute,/Δεν συλλέγουμε ιατρικά δεδομένα/);
 });
 test('review and source imports have structural replay barriers',()=>{
-  assert.match(migration,/UNIQUE \(organization_id,legacy_registration_id\)/);
+  assert.match(migration,/CREATE UNIQUE INDEX uq_academy_registration_legacy/);
   assert.match(migration,/UNIQUE \(registration_id,status_version\)/);
   assert.match(migration,/decided_by IS NOT NULL/);
   assert.match(migration,/DROP SCHEMA academy_intake/);
