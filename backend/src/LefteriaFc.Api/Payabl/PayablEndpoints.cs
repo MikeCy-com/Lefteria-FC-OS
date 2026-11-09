@@ -211,13 +211,16 @@ public static class PayablEndpoints
                         ("transaction",notice.TransactionId),("kind",notice.Kind),
                         ("code",notice.ErrorCode),("stamp",notice.Timestamp),
                         ("order",notice.OrderId),("state",notice.PaymentState),
-                        ("amount",notice.AmountCents is long amount ? amount : DBNull.Value),
-                        ("currency",notice.Currency is string currency ? currency : DBNull.Value)
+                        ("amount",notice.AmountCents is long amount ? (object)amount : DBNull.Value),
+                        ("currency",notice.Currency is string currency ? (object)currency : DBNull.Value)
                     };
                     foreach (var (key, value) in parameters)
                     {
                         var param = query.CreateParameter();
-                        param.ParameterName = key; param.Value = value;
+                        param.ParameterName = key;
+                        if (key == "amount") param.DbType = System.Data.DbType.Int64;
+                        if (key == "currency") param.DbType = System.Data.DbType.String;
+                        param.Value = value;
                         query.Parameters.Add(param);
                     }
                     await query.ExecuteScalarAsync(ct);
