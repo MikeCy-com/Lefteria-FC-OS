@@ -202,7 +202,8 @@ public static class AcademyInvoicePdf
         using(var white=new SKPaint{Color=White,IsAntialias=true})
             c.DrawCircle(U(27),U(21),U(15),white);
         if(logo is not null)
-            c.DrawBitmap(logo,new SKRect(U(13),U(7),U(41),U(35)));
+            c.DrawBitmap(logo,new SKRect(U(13),U(7),U(41),U(35)),
+                new SKSamplingOptions(SKFilterMode.Linear,SKMipmapMode.None));
 
         Txt(c,"ΛΕΥΤΕΡΙΑ FC",U(50),U(18),bold,24,White,U(82));
         Txt(c,"ACADEMY",U(50),U(26),bold,18,Gold);
@@ -329,6 +330,7 @@ public static class AcademyInvoicePdf
             bold,10,Gold,right:true);
         if(logo is not null)
             c.DrawBitmap(logo,new SKRect(Width/2-U(8),Height-U(19),
-                Width/2+U(8),Height-U(3)));
+                Width/2+U(8),Height-U(3)),
+                new SKSamplingOptions(SKFilterMode.Linear,SKMipmapMode.None));
     }
 }
