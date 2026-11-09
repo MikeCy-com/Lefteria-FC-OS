@@ -207,7 +207,7 @@ public static class AcademyInvoicePdf
                 new SKSamplingOptions(SKFilterMode.Linear,SKMipmapMode.None));
 
         var clubGreek=string.IsNullOrWhiteSpace(club?.GreekName)
-            ? "ΛΕΥΤΕΡΙΑ FC" : club.GreekName.ToUpperInvariant();
+            ? "ΛΕΥΤΕΡΙΑ FC" : club?.GreekName?.ToUpperInvariant() ?? "ΛΕΥΤΕΡΙΑ FC";
         Txt(c,clubGreek,U(50),U(18),bold,24,White,U(82));
         Txt(c,"ACADEMY",U(50),U(26),bold,18,Gold);
         Txt(c,"DISCIPLINE  •  DEVELOPMENT  •  DREAMS",U(50),U(32),
@@ -218,16 +218,16 @@ public static class AcademyInvoicePdf
         // Never manufacture club contact or accept a remote logo fetch.
         var contact=new List<(string Icon,string Label)>();
         if(!string.IsNullOrWhiteSpace(club?.Address))
-            contact.Add(("*",club.Address));
+            contact.Add(("*",club?.Address ?? ""));
         var city=string.Join(", ",new[]{club?.City,club?.Country}
             .Where(x=>!string.IsNullOrWhiteSpace(x)));
         if(city.Length>0)contact.Add(("",city));
         if(!string.IsNullOrWhiteSpace(club?.Phone))
-            contact.Add(("T",club.Phone+" (WhatsApp)"));
+            contact.Add(("T",(club?.Phone ?? "")+" (WhatsApp)"));
         if(!string.IsNullOrWhiteSpace(club?.Email))
-            contact.Add(("@",club.Email));
+            contact.Add(("@",club?.Email ?? ""));
         if(!string.IsNullOrWhiteSpace(club?.Website))
-            contact.Add(("w",club.Website.Replace("https://","")
+            contact.Add(("w",(club?.Website ?? "").Replace("https://","")
                 .Replace("http://","")));
         for(var i=0;i<Math.Min(4,contact.Count);i++)
         {
