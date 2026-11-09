@@ -47,7 +47,11 @@ public sealed class AcademyLeadAdminInbox : Migration
                ('new','contacted','trial_booked','registered','lost'))
         THEN RAISE EXCEPTION 'crm_scope_invalid' USING ERRCODE='22023'; END IF;
 
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'crm_authority_revoked' USING ERRCODE='42501';
+        END;
         SELECT a.role INTO v_role
           FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
@@ -100,7 +104,11 @@ public sealed class AcademyLeadAdminInbox : Migration
         THEN RAISE EXCEPTION 'crm_invalid_transition' USING ERRCODE='22023';
         END IF;
 
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'crm_authority_revoked' USING ERRCODE='42501';
+        END;
         SELECT a.id,s.id,a.role INTO v_actor,v_session,v_role
         FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
