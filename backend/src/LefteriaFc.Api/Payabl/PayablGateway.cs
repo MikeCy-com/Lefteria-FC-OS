@@ -95,7 +95,7 @@ public sealed class PayablGateway(HttpClient client, IOptions<PayablOptions> opt
         if (!Available)
             throw new PayablUnavailableException();
         if (order.AmountCents is < 1 or > 100000000 ||
-            order.Currency != "EUR" || order.OrderId.Length is < 1 or > 40 ||
+            order.Currency != "EUR" || order.OrderId.Length is < 1 or > 30 ||
             !order.OrderId.All(c => char.IsAsciiLetterOrDigit(c) || c == '-') ||
             order.Email.Length is < 3 or > 50 ||
             !order.Email.Contains('@') ||
