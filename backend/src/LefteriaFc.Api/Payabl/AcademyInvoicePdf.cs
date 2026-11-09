@@ -58,9 +58,9 @@ public static class AcademyInvoicePdf
                 row.PayerEmail.Length is < 3 or > 50 ||
                 row.PayerPhone.Length is < 9 or > 16 ||
                 row.Status is not ("issued" or "paid" or "review_required") ||
-                row.PaymentMethod is not ("cash" or "card" or "unpaid") ||
+                row.PaymentMethod is not ("cash" or "bank" or "card" or "online" or "other" or "unpaid") ||
                 (row.Status=="paid") != row.PaidAt.HasValue ||
-                (row.Status=="paid") != (row.PaymentMethod is "cash" or "card") ||
+                (row.Status=="paid") != (row.PaymentMethod is "cash" or "bank" or "card" or "online" or "other") ||
                 row.TransactionReference.Length>80)
                 throw new InvalidOperationException("Invoice fields are inconsistent.");
         }
@@ -306,10 +306,17 @@ public static class AcademyInvoicePdf
         Rect(c,U(26),U(paymentTop+8.5f),U(12),U(1.5f),Black);
         var differentMethods=full.Where(x=>x.Status=="paid")
             .Select(x=>x.PaymentMethod).Distinct().ToArray();
+        // The original ReportLab PDF supports cash, bank, card, online and
+        // other. Only the verified finance ledger can supply a settled method:
+        // parent/browser input can never turn an unpaid invoice into paid.
+        var sourcePaymentLabels=new Dictionary<string,string>(StringComparer.Ordinal)
+        {
+            ["cash"]="Cash",["bank"]="Bank Transfer",
+            ["card"]="Paid by Card",["online"]="Paid Online",["other"]="Other"
+        };
         var method=paid
-            ? differentMethods.Length==1 && differentMethods[0]=="cash" ? "Cash"
-                : differentMethods.Length==1 && differentMethods[0]=="card" ? "Paid by Card"
-                : "Cash / Paid by Card"
+            ? differentMethods.Length==1
+                ? sourcePaymentLabels[differentMethods[0]] : "Multiple Payment Methods"
             : pendingReview ? "Payment Under Review"
                 : mixed ? "Partially Paid" : "Awaiting Payment";
         Txt(c,method,U(45),U(paymentTop+7),bold,11,Ink);
