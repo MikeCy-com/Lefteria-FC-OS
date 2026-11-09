@@ -231,6 +231,7 @@
                   <span>{money(payment.amount_cents)} · {payment.status === 'paid' ? 'Επαληθευμένη πληρωμή' :
                     payment.status === 'ready' ? 'Έτοιμο προς πληρωμή' :
                     payment.status === 'review_required' ? 'Απαιτείται συμφωνία συναλλαγής' :
+                    payment.status === 'awaiting_settlement' ? 'Αναμονή εκκαθάρισης· όχι εξοφλημένο' :
                     'Σε εξέλιξη'}</span>
                   {#if trustedLink(payment.checkout_url) && payment.status === 'ready'}
                     <a href={payment.checkout_url} target="_blank" rel="noreferrer noopener">Δοκιμαστικός σύνδεσμος</a>
