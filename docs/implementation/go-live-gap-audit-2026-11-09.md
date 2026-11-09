@@ -40,6 +40,19 @@ States: **PARTIAL** = target has genuine source-backed work, but not the entire 
 | P1 | Observability and operations: original scheduled jobs/reminders/backup and target Docker/Caddy/Traefik decisions | **PARTIAL**: structured container baseline, health endpoints and audit subset; production alerting/queues/job leases not established | Per-domain health, backups, SMS/push failure queues, scheduled job uniqueness, redacted metrics, support runbooks, VPS sizing |
 | P2 | Extended original modules: reviews, suggestions, referrals, sponsor interactions, loyalty, videos, media, social publishing | **MISSING** or presentation-only in OS | Port when P0 workflows and target data are reliable; defer non-essential launch modules only with explicit user signoff |
 
+## Machine-checkable, non-deploying release gate
+
+The separate gate register is at `ops/release/go-live-gates.json`.
+Use `node ops/release/check-go-live.mjs` for a local, no-deploy report.
+Use `node ops/release/check-go-live.mjs --require-ready --sha=<exact-reviewed-release-commit>`
+to **fail closed** unless every P0 and P1 gate is explicitly verified,
+has evidence and is tied to that exact commit. The tests are
+`node --test ops/release/check-go-live.test.mjs`.
+
+The register currently marks **all 20 gates BLOCKED**. Editing the register
+without genuine end-to-end evidence is not an approval. The script does not
+touch a VPS, change DNS, merge or initiate deployment.
+
 ## Non-negotiable release sequence
 
 1. **Inventory legacy business data**, not only code. Read-only snapshot of source MongoDB collections and media; source commit does not prove that production data and production code match.
