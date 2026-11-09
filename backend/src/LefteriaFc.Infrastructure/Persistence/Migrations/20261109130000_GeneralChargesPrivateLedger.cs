@@ -153,8 +153,12 @@ public sealed class GeneralChargesPrivateLedger : Migration
         CONSTRAINT ck_general_charge_event_proof CHECK (
           (evidence_type<>'admin_cash'
             OR (actor_id IS NOT NULL AND payment_method='cash'))
-          AND (evidence_type NOT IN ('provider_capture','bank_statement')
-            OR evidence_reference IS NOT NULL)
+          AND (evidence_type<>'provider_capture'
+            OR (payment_method IN ('card','online')
+              AND nullif(btrim(evidence_reference),'') IS NOT NULL))
+          AND (evidence_type<>'bank_statement'
+            OR (payment_method='bank'
+              AND nullif(btrim(evidence_reference),'') IS NOT NULL))
           AND (evidence_type<>'verified_legacy' OR legacy_event_id IS NOT NULL)
         )
       );
