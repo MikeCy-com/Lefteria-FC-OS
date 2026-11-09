@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using SkiaSharp;
+using LefteriaFc.Application.PublicContent;
 
 namespace LefteriaFc.Api.Payabl;
 
@@ -65,7 +66,7 @@ public static class AcademyInvoicePdf
         return value;
     }
 
-    public static byte[] Render(AcademyInvoiceBatch invoice, string? logoPath=null)
+    public static byte[] Render(AcademyInvoiceBatch invoice, string? logoPath=null, PublicClub? club=null)
     {
         if(invoice.Items.Count is < 1 or > 20)
             throw new ArgumentOutOfRangeException(nameof(invoice));
@@ -87,7 +88,7 @@ public static class AcademyInvoicePdf
             for(var p=0;p<pages.Count;p++)
             {
                 var canvas=document.BeginPage(Width,Height);
-                DrawPage(canvas,pages[p],items,p,pages.Count,regular,bold,logo);
+                DrawPage(canvas,pages[p],items,p,pages.Count,regular,bold,logo,club);
                 document.EndPage();
             }
             document.Close();
@@ -167,7 +168,7 @@ public static class AcademyInvoicePdf
 
     private static void DrawPage(SKCanvas c,AcademyInvoiceItem[] pageItems,
         AcademyInvoiceItem[] full,int index,int pageCount,
-        SKTypeface regular,SKTypeface bold,SKBitmap? logo)
+        SKTypeface regular,SKTypeface bold,SKBitmap? logo,PublicClub? club)
     {
         var first=full[0];
         var total=full.Sum(v=>v.AmountCents);
@@ -205,13 +206,35 @@ public static class AcademyInvoicePdf
             c.DrawBitmap(logo,new SKRect(U(13),U(7),U(41),U(35)),
                 new SKSamplingOptions(SKFilterMode.Linear,SKMipmapMode.None));
 
-        Txt(c,"ΛΕΥΤΕΡΙΑ FC",U(50),U(18),bold,24,White,U(82));
+        var clubGreek=string.IsNullOrWhiteSpace(club?.GreekName)
+            ? "ΛΕΥΤΕΡΙΑ FC" : club.GreekName.ToUpperInvariant();
+        Txt(c,clubGreek,U(50),U(18),bold,24,White,U(82));
         Txt(c,"ACADEMY",U(50),U(26),bold,18,Gold);
         Txt(c,"DISCIPLINE  •  DEVELOPMENT  •  DREAMS",U(50),U(32),
             regular,8,Color(191,191,191),U(77));
-        // Source's upper-right contact positions; no fabricated club contact.
-        Txt(c,"LEFTERIA FC ACADEMY",U(130),U(16),regular,8.5,White,U(57));
-        Txt(c,"CYPRUS",U(130),U(21),regular,8.5,White,U(57));
+
+        // Original source _build_receipt: address, city/country, WhatsApp
+        // phone, email and website are selected from the current club CMS.
+        // Never manufacture club contact or accept a remote logo fetch.
+        var contact=new List<(string Icon,string Label)>();
+        if(!string.IsNullOrWhiteSpace(club?.Address))
+            contact.Add(("*",club.Address));
+        var city=string.Join(", ",new[]{club?.City,club?.Country}
+            .Where(x=>!string.IsNullOrWhiteSpace(x)));
+        if(city.Length>0)contact.Add(("",city));
+        if(!string.IsNullOrWhiteSpace(club?.Phone))
+            contact.Add(("T",club.Phone+" (WhatsApp)"));
+        if(!string.IsNullOrWhiteSpace(club?.Email))
+            contact.Add(("@",club.Email));
+        if(!string.IsNullOrWhiteSpace(club?.Website))
+            contact.Add(("w",club.Website.Replace("https://","")
+                .Replace("http://","")));
+        for(var i=0;i<Math.Min(4,contact.Count);i++)
+        {
+            var y=U(15+i*5);
+            Txt(c,contact[i].Icon,U(130),y,bold,8.5f,Gold);
+            Txt(c,contact[i].Label,U(136),y,regular,8.5f,White,U(60));
+        }
 
         Txt(c,"INVOICE",U(20),U(60),bold,32,Ink);
         Rule(c,U(20),U(63),U(65),U(63),Gold,3);
