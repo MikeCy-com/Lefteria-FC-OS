@@ -27,8 +27,14 @@ a private, ungranted balance view:
   validated `YYYY-MM` period key, optional due date and original source
   SHA-256 digest. Child+org are enforced by composite FK. Original amount,
   currency and description become immutable when issued; cancelled invoices
-  cannot be deleted. A legacy invoice without a proven payer has
-  `ready_for_parent=false` and **cannot appear in the parent app**.
+  cannot be deleted. A legacy invoice without verified guardian evidence
+  remains unlinked and **cannot appear in the parent app**.
+- `finance.general_charge_parent_verifications`: separate immutable,
+  organization-constrained guardian evidence links; a historical charge
+  can be verified later without modifying its original billing snapshot.
+  The balance projection exposes a guardian ID only after this evidence
+  exists. A future parent reader must **also** recheck the live canonical
+  guardian/child relationship when the PDF or charge is accessed.
 - `finance.general_charge_events`: evidence-bound, uniquely idempotent
   partial/full payments with one exact reversal per payment; serializes on
   charge row and ensures (0 \leq \sum events \leq original cents\).
@@ -63,7 +69,8 @@ source contract assertions. Both are attached to the standard rewrite CI.
    source currency, old status, refunds and receipt references. No silent
    conversions from rounded Python float and no invented phone/guardian.
 2. Resolve payer/child authorization against current canonical guardian links,
-   audit historical payer evidence before setting `ready_for_parent`, and
+   audit historical payer evidence before adding a one-time verified guardian
+   association, and
    preserve printed legacy invoice identity and fiscal numbering.
 3. Add manager-only, role-scoped **manual issue API** and UI for exact selected
    child, item and due date, with validation, idempotency and business audit.
