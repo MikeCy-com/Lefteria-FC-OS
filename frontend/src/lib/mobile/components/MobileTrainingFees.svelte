@@ -23,7 +23,7 @@
   $effect(()=>{
     void refresh;
     let valid=true;
-    status='loading';message='';
+    status='loading';
     untrack(()=>{
       void controller.getTrainingFees().then(result=>{
         if(!valid)return;
