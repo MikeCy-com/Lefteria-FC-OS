@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'fo
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/attendance';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -51,6 +51,7 @@ const catalog: readonly Section[] = [
   { id: 'football', name: 'Αγωνιστικό & Ακαδημία', description: 'Ομάδες, προπονήσεις, αγώνες και δοκιμαστικά.', modules: [
     { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read', 'marketing:read'] },
     { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Πραγματικές ομάδες, μέλη και ελεγχόμενη δημιουργία τμημάτων ανά οργανισμό.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
+    { id: 'attendance', name: 'Παρουσίες προπονήσεων Ακαδημίας', description: 'Ιδιωτικό παρουσιολόγιο πραγματικής παρουσίας σε επιβεβαιωμένες προπονήσεις, ανεξάρτητο από RSVP. Μόνο εξουσιοδοτημένη διαχείριση.', status: 'live', href: '/admin/attendance', scope: 'academy', anyPermission: ['attendance:read'] },
     { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
     { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Αγωνιστικό πρόγραμμα και ενημερώσεις.', status: 'planned', scope: 'first-team', anyPermission: ['fixtures:read', 'results:read'] }
@@ -77,6 +78,10 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
       if (item.id === 'onboarding') return true;
+      if (item.id === 'attendance') return (
+        ['manager','super_admin'].includes(user.role) &&
+        organizations.includes('lefteria_fc_academy') &&
+        hasAdminPermission(user.permissions,'attendance:read'));
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
