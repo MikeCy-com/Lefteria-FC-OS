@@ -7,6 +7,7 @@ const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migratio
 const api=read('backend/src/LefteriaFc.Api/Attendance/AdminAcademyAttendanceEndpoints.cs');
 const grants=read('ops/postgres/academy-attendance-admin-grants.sql');
 const sql=read('ops/postgres/academy-attendance-checks.sql');
+const lifecycle=read('ops/postgres/academy-attendance-lifecycle-checks.sql');
 const page=read('frontend/src/routes/admin/attendance/+page.svelte');
 const catalog=read('frontend/src/lib/admin/module-catalog.ts');
 const frame=read('frontend/src/lib/admin/AdminFrame.svelte');
@@ -82,4 +83,12 @@ test('CI runs isolated policy probes before the app is considered validated',()=
   assert.match(workflow,/academy-attendance-admin-grants\.sql/);
   assert.match(workflow,/academy-attendance-checks\.sql/);
   assert.match(sql,/ROLLBACK;/);
+  assert.match(workflow,/academy-attendance-lifecycle-checks\.sql/);
+  assert.match(lifecycle,/Parent RSVP and actual historical attendance were conflated/);
+  assert.match(lifecycle,/Repeated physical absence incorrectly created an event/);
+  assert.match(lifecycle,/Stale attendance version silently overwrote another manager/);
+  assert.match(lifecycle,/Corrected presence did not preserve source data and audit/);
+  assert.match(lifecycle,/Unassigned athlete was incorrectly marked present/);
+  assert.match(lifecycle,/Revoked manager could still view Academy attendance/);
+  assert.match(lifecycle,/ROLLBACK;/);
 });
