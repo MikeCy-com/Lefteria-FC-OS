@@ -20,9 +20,9 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM club.organizations WHERE id=v_owner) THEN
     RAISE EXCEPTION 'Disposable fixture must seed the club organization';
   END IF;
-  v_order_card := 'LFC'||replace(v_card::text,'-','');
-  v_order_bank := 'LFC'||replace(v_bank::text,'-','');
-  v_order_mismatch := 'LFC'||replace(v_mismatch::text,'-','');
+  v_order_card := 'LFC'||left(replace(v_card::text,'-',''),27);
+  v_order_bank := 'LFC'||left(replace(v_bank::text,'-',''),27);
+  v_order_mismatch := 'LFC'||left(replace(v_mismatch::text,'-',''),27);
   INSERT INTO finance.payment_requests (
     id,organization_id,actor_id,client_request_id,order_id,purpose,
     amount_cents,currency,payer_email,payer_first_name,payer_last_name,
