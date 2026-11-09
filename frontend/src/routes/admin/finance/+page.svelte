@@ -249,7 +249,7 @@
         {/if}
         {#if owner === 'lefteria_fc_academy'}
           <AdminTrainingFees {owner} configured={status.configured}
-            {canWrite} sessionId={$auth.session.user.id} />
+            canWrite={!!canWrite} sessionId={$auth.session.user.id} />
         {/if}
         <section class="admin-panel" data-testid="payabl-payment-ledger">
           <h2>Ιστορικό αιτημάτων · {owner}</h2>
