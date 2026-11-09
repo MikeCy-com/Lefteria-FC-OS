@@ -180,12 +180,14 @@ internal static class PayablAdapterChecks
         // identical geometry but different verified payment status data.
         // No parent-supplied "paid" flag or card details enter the renderer.
         var invoiceId=Guid.Parse("aed1af4a-2df6-4d75-8e3f-6452d4412a18");
+        var payerId=Guid.Parse("970769c9-1835-4e57-bfe7-e259338d8c2e");
         string invoiceJson(string status,string method,string? paidAt,string reference) =>
             System.Text.Json.JsonSerializer.Serialize(new
             {
                 organization_id="lefteria_fc_academy",
                 items=new[]{new{
                     id=invoiceId,organization_id="lefteria_fc_academy",
+                    payer_identity_id=payerId,
                     player_id="academy-child-1",player_name="Child Test",
                     group_name="U10",payer_name="Test Parent",
                     payer_email="parent@example.invalid",payer_phone="+35799123456",
@@ -224,6 +226,38 @@ internal static class PayablAdapterChecks
         try{
             AcademyInvoicePdf.Parse(twoRows);
             throw new Exception("Duplicate fee in PDF selection");
+        }catch(InvalidOperationException){}
+
+        // Multi-page invoices are grouped by one validated payer identity;
+        // a manager cannot accidentally print another family's invoices
+        // under the first parent's name.
+        System.Text.Json.JsonElement Item(string json)
+        {
+            using var parsed=System.Text.Json.JsonDocument.Parse(json);
+            return parsed.RootElement.GetProperty("items")[0].Clone();
+        }
+        string WithDifferentId(int number) =>
+            invoiceJson("issued","unpaid",null,"").Replace(
+                invoiceId.ToString("D"),
+                Guid.Parse($"aed1af4a-2df6-4d75-8e3f-6452d4412a{number:D2}").ToString("D"),
+                StringComparison.Ordinal);
+        var repeatedLines=Enumerable.Range(0,4).Select(x=>Item(WithDifferentId(x))).ToArray();
+        var mergedJson=System.Text.Json.JsonSerializer.Serialize(new {
+            organization_id="lefteria_fc_academy",items=repeatedLines
+        });
+        var merged=AcademyInvoicePdf.Parse(mergedJson);
+        Check(merged.Items.Count==4 &&
+            AcademyInvoicePdf.Render(merged).Length>500,"multipage family invoice");
+        var changedOwner=WithDifferentId(5).Replace(payerId.ToString("D"),
+            Guid.Parse("ac56005d-9fd8-47ce-8269-b97c2ee5c910").ToString("D"),
+            StringComparison.Ordinal);
+        var mixedFamilies=System.Text.Json.JsonSerializer.Serialize(new {
+            organization_id="lefteria_fc_academy",
+            items=new[]{repeatedLines[0],Item(changedOwner)}
+        });
+        try{
+            AcademyInvoicePdf.Parse(mixedFamilies);
+            throw new Exception("Cross-guardian combined PDF allowed");
         }catch(InvalidOperationException){}
 
         var rejected = new PayablGateway(
