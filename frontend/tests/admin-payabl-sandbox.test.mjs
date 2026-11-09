@@ -190,8 +190,11 @@ test('cash and card invoice states originate from server-side audited finance da
   assert.match(pdfRenderer,/Payment Under Review/);
   assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Parse\(raw\)/);
   assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Render\(document,logo,club\)/);
-  assert.match(pdfRenderer,/PaymentMethod is not \("cash" or "card" or "unpaid"\)/);
-  assert.match(pdfRenderer,/is "cash" or "card"/);
+  assert.match(pdfRenderer,/PaymentMethod is not \("cash" or "bank" or "card" or "online" or "other" or "unpaid"\)/);
+  assert.match(pdfRenderer,/\["bank"\]="Bank Transfer"/);
+  assert.match(pdfRenderer,/\["online"\]="Paid Online"/);
+  assert.match(pdfRenderer,/\["other"\]="Other"/);
+  assert.match(pdfRenderer,/sourcePaymentLabels\[differentMethods\[0\]\]/);
 });
 
 test('parent and admin download individually or together without public PDF links',()=>{
@@ -212,6 +215,7 @@ test('parent and admin download individually or together without public PDF link
 test('immutable due date follows issued month rather than later preference edits',()=>{
   assert.match(feeMigration,/CREATE TRIGGER trg_training_fee_invoice_due/);
   assert.match(feeMigration,/invoice_due_date_is_server_issued/);
+  assert.match(feeMigration,/'due_date',f\.invoice_due_date\)/);
   assert.match(monthTests,/Changing preference rewrote issued invoice due date/);
   assert.match(monthTests,/February due date did not clamp to month end/);
 });
