@@ -10,6 +10,7 @@
   let snapshot=$state<ParentTrainingFees|null>(null);
   let message=$state('');
   let saving=$state(false);
+  let downloading=$state<string|null>(null);
   let refresh=$state(0);
   let day=$state(5);
   let saveCard=$state(false);
@@ -42,6 +43,21 @@
     return()=>{valid=false;};
   });
 
+  async function downloadPdf(ids:string[]) {
+    if(downloading||ids.length<1||ids.length>20)return;
+    downloading=ids.join(',');message='';
+    try{
+      const file=await controller.downloadTrainingInvoice(ids);
+      const url=URL.createObjectURL(file);
+      const anchor=document.createElement('a');
+      anchor.href=url;
+      anchor.download=ids.length===1?'invoice-'+ids[0].slice(0,8)+'.pdf':
+        'family-invoice-'+ids.length+'.pdf';
+      document.body.appendChild(anchor);anchor.click();anchor.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }catch(error){message=error instanceof Error?error.message:'Το PDF δεν είναι διαθέσιμο.';}
+    finally{downloading=null;}
+  }
   async function savePreference(event:SubmitEvent){
     event.preventDefault();
     if(saving||!Number.isInteger(day)||day<1||day>31||
@@ -82,6 +98,13 @@
     <section class="fee-card" data-testid="issued-training-months">
       <div class="fee-card-title"><h2>Χρεώσεις ανά παιδί</h2>
         <button class="fee-secondary" type="button" onclick={()=>refresh+=1}>Ανανέωση</button></div>
+      {#if snapshot.fees.length>1}
+        <button class="fee-secondary" type="button" disabled={downloading!==null}
+          onclick={()=>void downloadPdf(snapshot.fees.slice(0,20).map(fee=>fee.id))}
+          data-testid="parent-download-family-invoice">
+          {downloading?'Προετοιμασία PDF…':'Λήψη οικογενειακού PDF'+(snapshot.fees.length>20?' · 20 πρώτα':'')}
+        </button>
+      {/if}
       {#if snapshot.fees.length===0}
         <p class="fee-notice">Δεν έχουν εκδοθεί μηνιαίες χρεώσεις για αυτόν τον λογαριασμό.</p>
       {:else}
@@ -102,6 +125,11 @@
               {:else}
                 <p class="fee-status due">Οφειλή σε εκκρεμότητα</p>
               {/if}
+              <button type="button" class="fee-secondary" disabled={downloading!==null}
+                onclick={()=>void downloadPdf([fee.id])}
+                data-testid="parent-download-invoice">
+                {downloading===fee.id?'Λήψη…':'Λήψη PDF τιμολογίου / απόδειξης'}
+              </button>
               {#if fee.status==='issued'&&fee.payment_status==='ready'&&payablHostedLink(fee.checkout_url)}
                 <a class="fee-pay" href={fee.checkout_url} target="_blank" rel="noopener noreferrer"
                   data-testid="parent-fee-click-to-pay">Πληρωμή με κάρτα · payabl.</a>
