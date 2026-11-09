@@ -154,3 +154,58 @@ test('Twilio SMS sends only ready linked fee to verified guardian; delivery neve
   assert.match(feeAdmin,/SMS αποδεκτό από Twilio · όχι επιβεβαιωμένη παράδοση/);
   assert.doesNotMatch(feeAdmin,/SendAsync\(|fetch\('https:\/\/api\.twilio\.com'/);
 });
+
+const invoiceMigration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261109110000_AcademyInvoiceParity.cs');
+const invoiceEndpoints=read('backend/src/LefteriaFc.Api/Payabl/AcademyInvoiceEndpoints.cs');
+const pdfRenderer=read('backend/src/LefteriaFc.Api/Payabl/AcademyInvoicePdf.cs');
+const mobileController=read('frontend/src/lib/mobile/controller.ts');
+const adminPdfTests=read('backend/tests/LefteriaFc.Identity.IntegrationTests/PayablAdapterChecks.cs');
+
+test('source-matched invoice PDF reuses original A4 black and gold geometry',()=>{
+  assert.match(pdfRenderer,/private const float Mm = 72f \/ 25\.4f/);
+  assert.match(pdfRenderer,/const float Width = 210f \* Mm, Height = 297f \* Mm/);
+  assert.match(pdfRenderer,/private static readonly SKColor Gold = Color\(245,166,35\)/);
+  assert.match(pdfRenderer,/Rect\(c,0,0,Width,U\(42\),Black\)/);
+  assert.match(pdfRenderer,/Section\(c,"PARENT \/ GUARDIAN DETAILS"/);
+  assert.match(pdfRenderer,/Section\(c,"PLAYER DETAILS"/);
+  assert.match(pdfRenderer,/Section\(c,"PAYMENT METHOD"/);
+  assert.match(pdfRenderer,/Footer\(c,regular,bold,logo\)/);
+  assert.match(pdfRenderer,/SKDocument\.CreatePdf\(stream\)/);
+  assert.match(adminPdfTests,/branded invoice PDF/);
+});
+
+test('cash and card invoice states originate from server-side audited finance data',()=>{
+  assert.match(invoiceMigration,/CREATE TABLE finance\.training_fee_cash_receipts/);
+  assert.match(invoiceMigration,/v_fee\.payment_request_id IS NOT NULL/);
+  assert.match(invoiceMigration,/finance\.record_admin_training_fee_cash/);
+  assert.match(invoiceMigration,/f\.invoice_due_date/);
+  assert.match(invoiceMigration,/WHEN cr\.id IS NOT NULL THEN 'cash'/);
+  assert.match(invoiceMigration,/WHEN r\.status='paid' THEN 'card'/);
+  assert.match(invoiceMigration,/l\.identity_id=_identity/);
+  assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Parse\(raw\)/);
+  assert.match(invoiceEndpoints,/AcademyInvoicePdf\.Render\(document,logo\)/);
+  assert.match(pdfRenderer,/PaymentMethod is not \("cash" or "card" or "unpaid"\)/);
+  assert.match(pdfRenderer,/is "cash" or "card"/);
+});
+
+test('parent and admin download individually or together without public PDF links',()=>{
+  assert.match(invoiceEndpoints,/MapGet\("\/invoices\/multi\.pdf"/);
+  assert.match(invoiceEndpoints,/MapGet\("\/multi\.pdf"/);
+  assert.match(invoiceEndpoints,/RequireAuthorization\(IdentityServices\.Policy\)/);
+  assert.match(invoiceEndpoints,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(invoiceEndpoints,/cardinality\(_ids\)/);
+  assert.match(mobileController,/async downloadTrainingInvoice\(ids:string\[\]\):Promise<Blob>/);
+  assert.match(feeParent,/data-testid="parent-download-invoice"/);
+  assert.match(feeParent,/data-testid="parent-download-family-invoice"/);
+  assert.match(feeAdmin,/data-testid="admin-download-invoice"/);
+  assert.match(feeAdmin,/data-testid="admin-download-multi-invoice"/);
+  assert.match(feeAdmin,/data-testid="admin-record-cash"/);
+  assert.doesNotMatch(feeParent,/innerHTML|\{@html\}/);
+});
+
+test('immutable due date follows issued month rather than later preference edits',()=>{
+  assert.match(invoiceMigration,/CREATE TRIGGER trg_training_fee_invoice_due/);
+  assert.match(invoiceMigration,/invoice_due_date_is_server_issued/);
+  assert.match(monthTests,/Changing preference rewrote issued invoice due date/);
+  assert.match(monthTests,/February due date did not clamp to month end/);
+});
