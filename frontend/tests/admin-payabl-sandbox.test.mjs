@@ -111,7 +111,9 @@ test('only manually selected academy months are billed, never implicit twelve mo
   assert.match(feeMigration,/ON CONFLICT \(organization_id,player_id,fee_month\) DO NOTHING/);
   assert.match(feeMigration,/identity\.canonical_contact_bindings b/);
   assert.match(monthTests,/Training-fee issue generated unrequested months/);
-  assert.match(monthTests,/One capture incorrectly paid another issued month/);
+  assert.match(monthTests,/Card capture changed independently paid cash invoice/);
+  assert.match(monthTests,/Manager cash receipt was not recorded/);
+  assert.match(monthTests,/Duplicate cash receipt created/);
   assert.match(feeAdmin,/type="month"/);
   assert.doesNotMatch(feeMigration,/generate_series|interval '12 months'|recurring_invoice_batch/i);
 });
@@ -177,6 +179,7 @@ test('source-matched invoice PDF reuses original A4 black and gold geometry',()=
 test('cash and card invoice states originate from server-side audited finance data',()=>{
   assert.match(invoiceMigration,/CREATE TABLE finance\.training_fee_cash_receipts/);
   assert.match(invoiceMigration,/v_fee\.payment_request_id IS NOT NULL/);
+  assert.match(monthTests,/Second cash receipt accepted/);
   assert.match(invoiceMigration,/finance\.record_admin_training_fee_cash/);
   assert.match(invoiceMigration,/f\.invoice_due_date/);
   assert.match(invoiceMigration,/WHEN cr\.id IS NOT NULL THEN 'cash'/);
