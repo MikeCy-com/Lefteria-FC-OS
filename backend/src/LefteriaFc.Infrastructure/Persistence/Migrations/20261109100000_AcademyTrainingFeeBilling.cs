@@ -192,7 +192,7 @@ public sealed class AcademyTrainingFeeBilling : Migration
             OR v_fee.payer_first_name<>v_payment.payer_first_name
             OR v_fee.payer_last_name<>v_payment.payer_last_name
             OR v_payment.currency<>'EUR'
-            OR v_payment.purpose<>'Academy training '||to_char(v_fee.fee_month,'YYYY-MM')
+            OR v_payment.purpose<>('Academy training '||to_char(v_fee.fee_month,'YYYY-MM'))
           THEN RAISE EXCEPTION 'fee_payment_mismatch' USING ERRCODE='23505'; END IF;
           UPDATE finance.training_fee_issues
             SET payment_request_id=_request WHERE id=_issue;
@@ -209,11 +209,15 @@ public sealed class AcademyTrainingFeeBilling : Migration
             UPDATE finance.training_fee_issues f
             SET status=CASE WHEN f.amount_cents=NEW.amount_cents
                       AND NEW.currency='EUR' AND f.organization_id=NEW.organization_id
-                      AND f.payer_email=NEW.payer_email THEN 'paid'
+                      AND f.payer_email=NEW.payer_email
+                      AND f.payer_first_name=NEW.payer_first_name
+                      AND f.payer_last_name=NEW.payer_last_name THEN 'paid'
                       ELSE 'review_required' END,
                 paid_at=CASE WHEN f.amount_cents=NEW.amount_cents
                       AND NEW.currency='EUR' AND f.organization_id=NEW.organization_id
-                      AND f.payer_email=NEW.payer_email THEN clock_timestamp()
+                      AND f.payer_email=NEW.payer_email
+                      AND f.payer_first_name=NEW.payer_first_name
+                      AND f.payer_last_name=NEW.payer_last_name THEN clock_timestamp()
                       ELSE NULL END
             WHERE f.payment_request_id=NEW.id AND f.status='issued';
           ELSIF NEW.status='review_required' AND OLD.status IS DISTINCT FROM NEW.status THEN
