@@ -38,7 +38,7 @@ test('amounts use integer cents and status follows settlement evidence, never pa
   assert.match(sql,/payment_method IN \('card','online'\)/);
   assert.match(sql,/evidence_type<>'bank_statement'/);
   assert.match(sql,/payment_method='bank'/);
-  assert.match(sql,/nullif\(btrim\(evidence_reference\),'\) IS NOT NULL/);
+  assert.match(sql,/nullif\\(btrim\\(evidence_reference\\),'') IS NOT NULL/);
   assert.match(fixture,/provider_capture_as_cash_accepted/);
   assert.match(fixture,/bank_statement_as_card_accepted/);
   assert.match(fixture,/blank_bank_statement_reference_accepted/);
