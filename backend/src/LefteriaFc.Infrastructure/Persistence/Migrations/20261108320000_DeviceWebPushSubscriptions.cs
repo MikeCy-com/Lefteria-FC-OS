@@ -299,7 +299,7 @@ public sealed class DeviceWebPushSubscriptions : Migration
             accepted_at=CASE WHEN v_status='accepted' THEN clock_timestamp()
               ELSE accepted_at END,
             next_attempt_at=CASE WHEN v_status='pending'
-              THEN clock_timestamp()+make_interval(secs=least(3600,
+              THEN clock_timestamp()+make_interval(secs=>least(3600,
                 30*power(2,v_attempts-1)::integer))
               ELSE next_attempt_at END
           WHERE id=_delivery;
