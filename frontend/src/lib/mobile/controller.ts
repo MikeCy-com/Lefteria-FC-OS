@@ -1482,6 +1482,42 @@ export function createMobileAuthController(options: {
         throw new Error('Private chat hide not confirmed.');
       return true;
     },
+    async downloadTrainingInvoice(ids:string[]):Promise<Blob> {
+      if(state.user?.role!=='parent'||state.status!=='authenticated'||
+         !state.user.current_role_available||!token||
+         ids.length<1||ids.length>20||ids.some(id=>!/^[0-9a-f-]{36}$/i.test(id))||
+         new Set(ids.map(id=>id.toLowerCase())).size!==ids.length)
+        throw new ApiFailure(403,'Μη έγκυρη επιλογή οικονομικού παραστατικού.');
+      const actor=state.user.id;
+      const tokenAtStart=token;
+      const operationRevision=revision;
+      const path=ids.length===1
+        ? '/api/mobile/finance/invoices/'+encodeURIComponent(ids[0])+'.pdf'
+        : '/api/mobile/finance/invoices/multi.pdf?ids='+encodeURIComponent(ids.join(','));
+      const response=await (options.fetch??globalThis.fetch)(options.baseUrl+path,{
+        method:'GET',cache:'no-store',
+        headers:{Authorization:'Bearer '+tokenAtStart,Accept:'application/pdf'}
+      });
+      if(token!==tokenAtStart||revision!==operationRevision||
+         state.user?.id!==actor||state.user?.role!=='parent'||
+         !state.user?.current_role_available)
+        throw new ApiFailure(401,'Η συνεδρία άλλαξε. Δοκιμάστε ξανά.');
+      if(!response.ok){
+        if(response.status===401)endSession('Η συνεδρία έληξε.');
+        throw new ApiFailure(response.status,'Δεν ήταν δυνατή η λήψη παραστατικού.');
+      }
+      const declared=Number(response.headers.get('content-length')||0);
+      if(!response.headers.get('content-type')?.startsWith('application/pdf')||
+         declared>2_000_000)
+        throw new ApiFailure(503,'Μη επαληθευμένο PDF.');
+      const pdf=await response.blob();
+      if(pdf.size<500||pdf.size>2_000_000||
+         await pdf.slice(0,5).text()!=='%PDF-')
+        throw new ApiFailure(503,'Μη έγκυρο PDF.');
+      if(token!==tokenAtStart||revision!==operationRevision||state.user?.id!==actor)
+        throw new ApiFailure(401,'Η συνεδρία άλλαξε.');
+      return pdf;
+    },
     async getTrainingFees():Promise<unknown> {
       if(state.user?.role!=='parent')throw new ApiFailure(403,'Μόνο ο επαληθευμένος γονέας μπορεί να δει οφειλές.');
       return chatRequest('/api/mobile/finance/training-fees');
