@@ -34,6 +34,41 @@ internal static class PayablAdapterChecks
         Check(!PayablSignature.Notification(values,secret,baseTime), "short signature");
         values["security"]=Convert.ToHexString(signature).ToLowerInvariant();
 
+        // The extra Payabl fields are NOT included in the simplified
+        // notification signature; verify their format and exact callback
+        // order binding, then let PostgreSQL decide settlement state.
+        var paymentId=Guid.Parse("9d3e279e-f8b7-4f76-b26b-d017c3f0f501");
+        values["orderid"]="LFC"+paymentId.ToString("N");
+        values["amount"]="15.00";
+        values["currency"]="EUR";
+        values["payment_state"]="not_credited_yet";
+        Check(PayablNotification.TryRead(values,paymentId,secret,baseTime,out var pending) &&
+            pending is {PaymentState:"not_credited_yet",AmountCents:1500,Currency:"EUR"},
+            "pending bank settlement has exact cents but does not mean paid");
+        values["payment_state"]="credited";
+        Check(PayablNotification.TryRead(values,paymentId,secret,baseTime,out var credited) &&
+            credited is {PaymentState:"credited"}, "credited APM remains untrusted");
+        values["payment_state"]="not_credited_yet";
+        values["orderid"]="LFC"+Guid.NewGuid().ToString("N");
+        Check(!PayablNotification.TryRead(values,paymentId,secret,baseTime,out _),
+            "cross-order callback refused despite otherwise valid signature");
+        values["orderid"]="LFC"+paymentId.ToString("N");
+        foreach(var bad in new[]{"1e2","1.001","NaN","-1.00","1,00","1000001.00"})
+        {
+            values["amount"]=bad;
+            Check(!PayablNotification.TryRead(values,paymentId,secret,baseTime,out _),
+                "malformed callback amount must not change ledger");
+        }
+        values["amount"]="15.00";
+        values["currency"]="USD";
+        Check(PayablNotification.TryRead(values,paymentId,secret,baseTime,out var foreign) &&
+            foreign is {Currency:"USD"}, "SQL must flag unexpected currency");
+        values["currency"]="EUR";
+        values["payment_state"]="pending;drop";
+        Check(!PayablNotification.TryRead(values,paymentId,secret,baseTime,out _),
+            "unrecognized settlement state format refused");
+        values["payment_state"]="not_credited_yet";
+
         var paramsA = new Dictionary<string,string> {
             ["merchantid"]="unit_test",["amount"]="15.00",["currency"]="EUR",
             ["orderid"]="LFC-test"
@@ -50,6 +85,8 @@ internal static class PayablAdapterChecks
             Check(request.RequestUri?.AbsoluteUri=="https://sandbox.payabl.com/pay/payment/init", "sandbox endpoint");
             var payload = await request.Content!.ReadAsStringAsync();
             Check(payload.Contains("signature="), "signed request");
+            Check(payload.Contains("payment_method=1"), "card-only hosted checkout");
+            Check(request.Headers.Accept.Any(value=>value.MediaType=="application/x-www-form-urlencoded"), "provider form accept");
             Check(!payload.Contains("ccn=") && !payload.Contains("cvv="), "no card data");
             return new HttpResponseMessage(HttpStatusCode.OK) {
                 Content = new StringContent("errorcode=0&start_url=https%3A%2F%2Fsandbox.payabl.com%2Fpay%2Fcheckout%2F123&transactionid=104837274")
@@ -77,6 +114,20 @@ internal static class PayablAdapterChecks
                   CancellationToken.None); throw new Exception("Unsafe origin accepted"); }
         catch (ArgumentException) { }
         Check(sent==1,"unsafe callback origin blocks network");
+        var rejected = new PayablGateway(
+            new HttpClient(new FakeHandler(_ => Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.Redirect)
+                {
+                    Headers = { Location = new Uri("https://untrusted.invalid/steal") }
+                }))),
+            Options.Create(new PayablOptions {
+                Enabled=true,Sandbox=true,MerchantId="unit_test",
+                Secret=secret,PublicOrigin="https://os.example.test"
+            }));
+        try { await rejected.InitializeAsync(request,CancellationToken.None);
+              throw new Exception("Redirected provider response accepted"); }
+        catch(PayablUnavailableException) { }
+
     }
     private static void Check(bool condition,string name)
     {
