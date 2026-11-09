@@ -116,6 +116,55 @@ internal static class PayablAdapterChecks
                   CancellationToken.None); throw new Exception("Unsafe origin accepted"); }
         catch (ArgumentException) { }
         Check(sent==1,"unsafe callback origin blocks network");
+        // The SMS adapter cannot send without opt-in and cannot use an
+        // arbitrary destination or an untrusted checkout URL.
+        var smsCount=0;
+        const string smsAccount="ACaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const string smsService="MGbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        const string smsSecret="fake-twilio-auth-token-for-tests";
+        var smsHandler=new FakeHandler(async outgoing=>{
+            smsCount++;
+            Check(outgoing.Method==HttpMethod.Post,"SMS method");
+            Check(outgoing.RequestUri?.AbsoluteUri==
+                "https://api.twilio.com/2010-04-01/Accounts/"+smsAccount+"/Messages.json",
+                "Twilio API host");
+            Check(outgoing.Headers.Authorization?.Scheme=="Basic","Twilio Basic authentication");
+            var form=await outgoing.Content!.ReadAsStringAsync();
+            Check(form.Contains("MessagingServiceSid="+smsService),"sender is the configured service");
+            Check(form.Contains("To=%2B35799123456"),"SMS recipient is E164");
+            Check(form.Contains("sandbox.payabl.com"),"SMS contains restricted Payabl link");
+            return new HttpResponseMessage(HttpStatusCode.Created){
+                Content=new StringContent("{\\\"sid\\\":\\\"SMcccccccccccccccccccccccccccccccc\\\",\\\"status\\\":\\\"queued\\\"}")
+            };
+        });
+        var smsDisabled=new TwilioPaymentSms(new HttpClient(smsHandler),
+            Options.Create(new TwilioPaymentSmsOptions()));
+        Check(!smsDisabled.Available,"Twilio disabled by default");
+        try{
+            await smsDisabled.SendAsync("+35799123456",
+                "https://sandbox.payabl.com/pay/example","2026-11-01",1500,CancellationToken.None);
+            throw new Exception("Disabled Twilio SMS sent");
+        }catch(TwilioPaymentSmsUnavailableException){}
+        Check(smsCount==0,"disabled SMS does not call network");
+        var twilio=new TwilioPaymentSms(new HttpClient(smsHandler),
+            Options.Create(new TwilioPaymentSmsOptions{
+                Enabled=true,AccountSid=smsAccount,MessagingServiceSid=smsService,AuthToken=smsSecret
+            }));
+        Check(twilio.Available,"Twilio test-only opt-in");
+        var smsSid=await twilio.SendAsync("+35799123456",
+            "https://sandbox.payabl.com/pay/example","2026-11-01",1500,CancellationToken.None);
+        Check(smsSid=="SMcccccccccccccccccccccccccccccccc"&&smsCount==1,"queued not delivered");
+        foreach(var unsafeUrl in new[]{
+            "https://untrusted.invalid/pay/example","http://sandbox.payabl.com/pay/example",
+            "https://sandbox.payabl.com.evil.invalid/pay"
+        }){
+            try{
+                await twilio.SendAsync("+35799123456",unsafeUrl,"2026-11-01",1500,CancellationToken.None);
+                throw new Exception("Unsafe SMS link accepted");
+            }catch(TwilioPaymentSmsUnavailableException){}
+        }
+        Check(smsCount==1,"unsafe SMS link blocked before network");
+
         var rejected = new PayablGateway(
             new HttpClient(new FakeHandler(_ => Task.FromResult(
                 new HttpResponseMessage(HttpStatusCode.Redirect)
