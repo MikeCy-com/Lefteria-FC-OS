@@ -36,7 +36,16 @@ public static class PayablEndpoints
         services.AddOptions<PayablOptions>().Bind(config.GetSection("Payabl"))
             .Validate(PayablOptions.Safe, "Payabl is sandbox-only and requires a secure origin and merchant credentials.")
             .ValidateOnStart();
-        services.AddHttpClient<PayablGateway>(client => client.Timeout = TimeSpan.FromSeconds(12));
+        services.AddHttpClient<PayablGateway>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(12);
+            client.MaxResponseContentBufferSize = 8192;
+            client.DefaultRequestHeaders.Accept.ParseAdd("application/x-www-form-urlencoded");
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false
+        });
         return services;
     }
 
@@ -184,12 +193,8 @@ public static class PayablEndpoints
                 Dictionary<string, string> values;
                 try { values = PayablGateway.ParseFields(Encoding.ASCII.GetString(buffer.ToArray())); }
                 catch (PayablUnavailableException) { return Results.BadRequest(); }
-                if (!PayablSignature.Notification(values, settings.Value.Secret, DateTimeOffset.UtcNow))
-                    return Results.BadRequest();
-                if (!int.TryParse(values["errorcode"], out var code) ||
-                    !long.TryParse(values["timestamp"], out var stamp) ||
-                    !values.TryGetValue("orderid", out var orderId) ||
-                    orderId != "LFC" + id.ToString("N"))
+                if (!PayablNotification.TryRead(values, id, settings.Value.Secret,
+                    DateTimeOffset.UtcNow, out var notice) || notice is null)
                     return Results.BadRequest();
                 var db = database.Database.GetDbConnection();
                 await database.Database.OpenConnectionAsync(ct);
@@ -198,13 +203,16 @@ public static class PayablEndpoints
                     await using var query = db.CreateCommand();
                     query.CommandText = """
                         SELECT finance.apply_payabl_notification(
-                          @id,@nonce,@transaction,@kind,@code,@stamp,@order)
+                          @id,@nonce,@transaction,@kind,@code,@stamp,@order,@state,@amount,@currency)
                         """;
                     var parameters = new (string, object)[]
                     {
                         ("id",id),("nonce",PayablSignature.CallbackDigest(nonce)),
-                        ("transaction",values["transactionid"]),("kind",values["type"]),
-                        ("code",code),("stamp",stamp),("order",orderId)
+                        ("transaction",notice.TransactionId),("kind",notice.Kind),
+                        ("code",notice.ErrorCode),("stamp",notice.Timestamp),
+                        ("order",notice.OrderId),("state",notice.PaymentState),
+                        ("amount",notice.AmountCents is long amount ? amount : DBNull.Value),
+                        ("currency",notice.Currency is string currency ? currency : DBNull.Value)
                     };
                     foreach (var (key, value) in parameters)
                     {
