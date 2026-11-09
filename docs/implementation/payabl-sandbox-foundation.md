@@ -15,11 +15,11 @@ The new **Admin → Οικονομικά → payabl.** view supports private, ad
 | Private admin sandbox payment link creation | Code implemented; requires migration, grants, approved test merchant and verification |
 | HTTPS hosted checkout; no PAN/CVV handled in OS | Implemented gateway adapter |
 | Payment request audit and unique client idempotency | Private DB migration and audited, locked functions |
-| Signed asynchronous webhook | SHA-256 signature, time window, opaque callback nonce and exact order-ID match |
+| Signed asynchronous webhook | SHA-256 signature, time window, opaque callback nonce and exact order-ID match; unsigned APM settlement states are never automatically treated as paid |
 | Merchant refund and partial refund | Not enabled; needs settlement ledger, reversal API and reconciliation |
 | Parent/player/academy recurring tuition | Not enabled; needs guardian consent, mandates/tokenization and retry/dunning contract |
 | Website shop/order/POS settlement | Not enabled; needs authoritative orders, inventory/amount snapshots and POS orchestration |
-| Card/wallet payment methods | Determined by merchant configuration at payabl. Hosted Payment Page |
+| Card payment method | Sandbox currently fixes Payabl HPP `payment_method=1` (cards). Wallet/APM options are deliberately excluded pending separate settlement verification |
 | Employee cards and salary payments | Not enabled; payout eligibility, beneficiary verification, approvals, HR/payroll checks and payout-specific contract required |
 | Bank transfers, bulk salary batches, treasury or settlement reports | Not enabled; requires banking product/account API approval |
 | Disputes, chargebacks, automated accounting and reconciliation | Not enabled; separate provider-state and settlement import needed |
@@ -60,7 +60,7 @@ npm test --prefix frontend
 cd frontend && npm run check && npm run build
 ```
 
-The contract generator requires a working pinned .NET 10 SDK and Node 24 environment (see root README). The new API contracts have been regenerated in this branch: `contracts/openapi.json` and `frontend/src/lib/api/schema.d.ts`. CI must verify they remain in sync. The offline adapter check uses an in-memory fake HTTP handler; **do not call payabl. from CI**.
+The contract generator requires a working pinned .NET 10 SDK and Node 24 environment (see root README). The new API contracts have been regenerated in this branch: `contracts/openapi.json` and `frontend/src/lib/api/schema.d.ts`. CI must verify they remain in sync. The offline adapter check uses an in-memory fake HTTP handler; **do not call payabl. from CI**. The identity PostgreSQL CI job also runs `ops/postgres/payabl-callback-state-checks.sql` inside a rollback-only transaction to verify distinct paid, awaiting-settlement and manual-review transitions.
 
 Before a live rollout: written merchant approval and contract matrix for payment types, sandbox webhook signature/amount/order verification tests, event replay and idempotency tests in a disposable PostgreSQL DB, concurrency/ownership authorization tests, permissions-boundary audit, TLS callback ingress validation, monitoring, reconciliation controls, approved privacy terms and accounting policy. Integration UI must stay sandbox-labeled until every gate passes.
 
@@ -68,8 +68,12 @@ Before a live rollout: written merchant approval and contract matrix for payment
 
 - Cents stored as integer; no client-reported amount becomes a verified order settlement.
 - A browser return, a created checkout URL, or a provider `init` response must never mark an invoice paid.
-- Only signed capture events delivered to a unique callback URL and matching the exact OS order ID may mark a test request paid. Payabl capture transaction IDs can differ from initialization transaction IDs. Order IDs are not included in Payabl's simplified signature, so the nonce binding and signed transaction fields must both be verified. Enablement remains sandbox-only pending merchant reconciliation validation. Other events require reconciliation and cannot silently downgrade a paid item.
-- Webhook events are idempotent by request, transaction, event type, error and timestamp. A duplicate callback has no second financial side effect.
+- Only signed, card-only capture events with no separate unsigned settlement state, delivered to a unique callback URL and matching the exact OS order ID, may mark a **sandbox** test request paid. `payment_state=not_credited_yet` becomes `awaiting_settlement`; `payment_state=credited` requires manual review because Payabl's simplified checksum does not authenticate `payment_state`. A mismatched optional amount/currency is a terminal `review_required` state, not an automatic payment. Payabl docs show accepted bank captures can be pending funds. <https://docs.payabl.com/docs/instant-bank-transfer> Payabl capture transaction IDs can differ from initialization transaction IDs. Order IDs are not included in Payabl's simplified signature, so the nonce binding and signed transaction fields must both be verified. Enablement remains sandbox-only pending merchant reconciliation validation. Other events require reconciliation and cannot silently downgrade a paid item.
+- Webhook events are idempotent by request, transaction, event type, error, timestamp and declared settlement state. A duplicate callback has no second financial side effect.
 - The sandbox screen requests only synthetic test payer details; no raw card number, expiry, CVV or employee payout card details.
 - Employee payouts should be a separately privileged service with two-person approval, dedicated business payout permissions, verified employee beneficiaries, per-recipient and batch limits, signed request storage, irreversible-transfer warnings and an immutable audit ledger. Never derive payout authority from `finance:write` alone.
 - Without payabl.'s merchant contract confirmation, do not assume CFT may be used for payroll salaries. Other regulated banking and payroll providers may be needed.
+
+## Current refinement / safety boundary
+
+The initial PR has now been tightened to force card HPP in sandbox, forbid unexpected HTTP redirects (which could otherwise resend a signed request), bound gateway responses, parse optional `amount` in integer EUR cents, and retain structured provider event histories. A callback's `amount`, `currency`, `orderid` and `payment_state` **are not part of Payabl's simplified SHA-256 signature**; matching unsigned values must not be considered independent cryptographic proof. Before adding any non-card method or enabling production, require an authenticated Payabl transaction-status/settlement enquiry tied to the actual amount and merchant ID, or perform an approved, auditable external reconciliation step. Do not add an automatic employee payout service to the existing `finance:write` scope.
