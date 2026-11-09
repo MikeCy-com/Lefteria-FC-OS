@@ -45,24 +45,28 @@ BEGIN
 
   INSERT INTO finance.training_fee_issues(
     id,organization_id,player_id,payer_identity_id,fee_month,
-    amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
+    amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
   VALUES(v_fee,'lefteria_fc_academy',v_player,v_parent,DATE '2026-11-01',
-    4500,'sandbox@example.invalid','Test','Parent',v_actor);
+    4500,'+35799123456','sandbox@example.invalid','Test','Parent',v_actor);
+  IF (SELECT payer_phone FROM finance.training_fee_issues WHERE id=v_fee)
+    <> '+35799123456' THEN
+    RAISE EXCEPTION 'Invoice payer phone was not snapshot at issuance';
+  END IF;
   -- A selected month is unique. Issuing October is NOT a twelve-month plan.
   BEGIN
     INSERT INTO finance.training_fee_issues(
       id,organization_id,player_id,payer_identity_id,fee_month,
-      amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
+      amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
     VALUES(gen_random_uuid(),'lefteria_fc_academy',v_player,v_parent,
-      DATE '2026-11-01',4500,'sandbox@example.invalid','Test','Parent',v_actor);
+      DATE '2026-11-01',4500,'+35799123456','sandbox@example.invalid','Test','Parent',v_actor);
     RAISE EXCEPTION 'Duplicate child/month accepted';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
   INSERT INTO finance.training_fee_issues(
     id,organization_id,player_id,payer_identity_id,fee_month,
-    amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
+    amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
   VALUES(v_second,'lefteria_fc_academy',v_player,v_parent,DATE '2026-12-01',
-    4500,'sandbox@example.invalid','Test','Parent',v_actor);
+    4500,'+35799123456','sandbox@example.invalid','Test','Parent',v_actor);
   SELECT count(*) INTO v_count FROM finance.training_fee_issues
     WHERE player_id=v_player;
   IF v_count<>2 THEN
@@ -158,9 +162,9 @@ BEGIN
   BEGIN
     INSERT INTO finance.training_fee_issues(
       id,organization_id,player_id,payer_identity_id,fee_month,
-      amount_cents,payer_email,payer_first_name,payer_last_name,issued_by)
+      amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
     VALUES(v_feb,'lefteria_fc_academy',v_player,v_parent,DATE '2027-02-01',
-      4500,'sandbox@example.invalid','Test','Parent',v_actor);
+      4500,'+35799123456','sandbox@example.invalid','Test','Parent',v_actor);
     IF (SELECT invoice_due_date FROM finance.training_fee_issues
       WHERE id=v_feb)<>DATE '2027-02-28' THEN
       RAISE EXCEPTION 'February due date did not clamp to month end';
