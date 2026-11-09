@@ -87,8 +87,15 @@
   });
 
   $effect(()=>{
+    // Change of finance organization or account invalidates any previous
+    // success message or invoice selection; a normal list refresh does not.
+    void owner;void sessionId;
+    message='';selectedInvoiceIds=[];
+  });
+
+  $effect(()=>{
     const selected=owner;const user=sessionId;void user;void refresh;
-    status='idle';fees=[];message='';
+    status='idle';fees=[];
     if(selected!=='lefteria_fc_academy')return;
     let active=true;
     status='loading';
