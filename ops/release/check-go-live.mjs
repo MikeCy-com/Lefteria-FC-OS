@@ -51,6 +51,10 @@ export function checkReleaseReadiness(input, targetSha=null) {
   if(!ids.has('api-ci') || !ids.has('data-import') ||
     !ids.has('privacy-security')|| !ids.has('finance-reconciliation')||
     !ids.has('cutover-rollback')) throw new Error('Core release gates missing; fail closed.');
+  // A report without an explicit reviewed release commit is a planning
+  // report, NEVER a go-live authorization, even if all gates were edited.
+  if(targetSha===null)
+    reasons.push({id:'candidate-release-sha',priority:'P0',reason:'exact_release_sha_required'});
   return {ready:reasons.length===0,gate_count:ids.size,
     blocked_count:reasons.length,blocked:reasons};
 }
