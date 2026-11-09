@@ -1,0 +1,120 @@
+# Lefteria FC → Lefteria FC OS — pre-live gap audit
+
+**Review date:** 2026-11-09. **Status:** DEVELOPMENT ONLY — **DO NOT DEPLOY / DO NOT SWITCH PRODUCTION**.
+
+**Sources reviewed read-only**
+- Legacy source: `MikeCy-com/Lefteria-FC` `main` at `91eafcc9efd01ad177b4f13a869cd5af7041e5b2`.
+- Target: `MikeCy-com/Lefteria-FC-OS`, branch `feature/payabl-payments-foundation` (draft PR #143), with existing OS `main` as its base.
+- Old source has 64 Python files directly in `backend/routes/` (excluding `__init__`), 61 admin JSX modules (excluding tests), 26 mobile JSX pages and 31 public pages. The target has 30 `*Endpoints.cs` files, 10 admin page routes, 19 mobile component Svelte files and 32 public Svelte page routes. **These counts are NOT function-count or completion metrics:** a single class may implement many routes and some files are only presentation.
+- Files checked: legacy `backend/models.py`, `backend/routes/{charges,financial,expenses,stripe_checkout,pos}.py`, `frontend/src/pages/admin/{ChargesTab,FinancialDashboard}.jsx`, `frontend/src/mobile/pages/{ParentDashboard,FinancialPage}.jsx`; target `frontend/src/lib/admin/module-catalog.ts`, `frontend/src/lib/mobile/navigation.ts`, `backend/src/LefteriaFc.Api/`, `docs/implementation/feature-queue.md` and the finance/Payabl development files.
+
+A feature labelled `live` inside the admin *catalog* means an active **development route**, not an audited feature in production. Static source evidence does not prove actual historical VPS data, user counts, runtime providers, installed Android app or payment reconciliation. No live data, hosted instance, production provider, secrets, or external customer was accessed or changed.
+
+## Blocking feature parity register
+
+States: **PARTIAL** = target has genuine source-backed work, but not the entire original workflow; **MISSING** = no complete OS counterpart found in reviewed module/API catalog; **UNVERIFIED** = implementation exists but CI/provider/end-to-end evidence is not current.
+
+| Priority | Original area & evidence | OS status and exact scope | Required acceptance evidence before cutover |
+|---|---|---|---|
+| P0 | Public website and club CMS: legacy `frontend/src/pages/`, `frontend/src/pages/admin/{SponsorsTab,PartnersTab,MediaLibraryView,MarketingTab,FixturesTab}.jsx` | **PARTIAL**: public SSR routes plus club-profile editor and published news view; sponsors, partners, gallery, publishing, event/fixture CMS and social control do not have full admin writers in `module-catalog.ts` | Compare every important public URL, language, SEO metadata, slugs, redirects, assets, forms and edit→publish→public website propagation per organization |
+| P0 | Academy roster, groups, staff: legacy `{EnhancedAcademyTab,TeamsTab,StaffTab,PlayersTab}.jsx` | **PARTIAL**: initial roster/staff import, group/coach assignment and scoped read/write subsets; NOT all original fields or authorized editors | Full field and FK mapping; current FC/Academy rosters and memberships verified both directions; edits persist, roles never cross org |
+| P0 | Guardian/child finance: legacy `backend/routes/charges.py` and `frontend/src/pages/admin/ChargesTab.jsx` | **PARTIAL (draft PR)**: explicit monthly Academy fees only, safe parent display, hosted card request and per-child PDF; original charge types (training/registration/equipment/events/other), invoice templates, multiple charges, generic CRUD, seasons, grace/reminders, corrections and reversals still need DB/APIs | Test issuance, edit/cancel restrictions, duplicate prevention, cash/card/bank allocations, partial/overpayments, historical balances and each child/month; reconcile exact legacy totals and paid history |
+| P0 | Original invoice: `charges.py::_build_receipt`; original `parent/guardian`, `player`, item table, paid/unpaid + cash/bank/card/online/other | **PARTIAL (draft PR)**: A4 black/gold Skia PDF, actual crest, contact CMS, settlement-aware caption, single and selected multi PDFs; DOB/age, generic types, partial receipts, verified fiscal numbering/VAT and byte-level snapshots still absent | Render sanitized original/OS PDF samples at same DPI for unpaid, cash, bank, card, partial, refunded and family cases; legal invoice/receipt validation and reproducible archived numbering |
+| P0 | Payabl recurring cards/SMS, legacy stripe flow: `backend/routes/stripe_checkout.py`, `ParentDashboard.jsx` | **PARTIAL (sandbox)**: Payabl checkout + signed callback simulation; Twilio message outbox behind explicit flag; parent preferred date and save-card *request only* | Merchant approval, HPP save-card token binding, verified card-on-file CIT/MIT consent and cancel, idempotent scheduler for ONLY explicitly issued months, real sandbox settlement/refunds and SMS delivery reporting. Never reuse legacy Stripe tokens as Payabl tokens |
+| P0 | Family access and role home: legacy `frontend/src/mobile/pages/{ParentDashboard,CoachDashboard,PlayerDashboard,FanDashboard,ManagementDashboard}.jsx` | **PARTIAL**: new phone OTP, role switch, parent/family home, app shell, calendar subset, messages subset; most activity cards, role actions and child development views remain non-operational | Pixel-level signed-in screenshots on real viewport sizes for all roles, actual scoped read/write workflows and correct disabled labels; unauthorized access tests |
+| P0 | Training, attendance, evaluations, development: legacy `{AttendanceTab,PlayerEvaluationPanel,TrainingSessionsPanel,PlayerDevelopmentPanel,DrillsTab}.jsx` and `backend/routes/{player_evaluations,member_development,drills}.py` | **MISSING/PARTIAL**: roster/group shell exists but no equivalent complete training session, attendance sign-in/out, evaluation, development and drill workflows in admin catalog | Coach and manager calendar/session CRUD, attendance, per-age permissions, guarded athlete records, progress PDF, cross-role restrictions |
+| P0 | Registrations, trials, CRM, documents: legacy `{RegistrationsTab,TrialsTab,PlayersCRM,PlayerDocumentsView}.jsx` and `backend/routes/{players_crm,player_documents,trials}.py` | **PARTIAL**: first-team trial read/guard and public registration shells; full approval, CRM tracking, transfer/reactivation, document upload and guardian consent unported | Full intake→review→team/academy assignment→guardian onboarding, scoped document privacy and retention, audit of movements |
+| P0 | Shop, POS, catalog, checkout, inventory: legacy `frontend/src/pos/`, `{PosTab,ShopTabs}.jsx`, `backend/routes/pos.py` | **PARTIAL**: restricted admin product/category catalog writers; terminal sale, inventory, tax, cash drawer, receipt, customer checkout/payment, returns and multi-location POS are NOT working end-to-end | Catalog→cart→checkout→stock→order→payment→receipt→refund E2E, conflict/replay, staff roles and isolated sale ledger |
+| P0 | Messaging, announcements and push: legacy `{MessagesTab,NotificationCenter,SocialCommunityAdmin}.jsx`, `backend/routes/{admin_messages,notification_center,push_targeting}.py` | **PARTIAL**: app private/group chat and announcements, reactions/read receipts slices; full production media/push delivery, moderation, sender/admin workflows and retention not verified | Sender delete/edit, holds, replies, seen-by permissions, attachments, banner, admin-only delete, push targeting and offline/retry delivery on real devices |
+| P0 | Database/data import: original MongoDB collections, legacy uploads, app/device links, finance ledger, roster source snapshots | **PARTIAL**: evidence-preserving initial public, roster and staff imports, limited identity linking; no complete reconciled MongoDB→Postgres migration in reviewed source | **Read-only source inventory**, encrypted export and deterministic mapping, private age/guardian data, paid balances, immutable invoices, historical records, media object hashes, counts and exception/quarantine ledger; zero unauthorized cross-org links |
+| P0 | Media, youth privacy, storage: legacy `backend/routes/{upload_delivery,media_library,player_documents,communication_media}.py` | **PARTIAL**: bounded avatar/media slices, CMS import; historical object storage, protected files and delivery parity not complete | Content-type/size/virus checks, privacy, consent, signed delivery, asset reachability, no sensitive file publicly mounted |
+| P0 | Runtime build/CI: `.github/workflows/rewrite-build.yml`, generated OpenAPI and TypeScript clients | **UNVERIFIED**: newer PR #143 workflow jobs fail with **runner_id=0, zero executed steps**; the cause is not established. New invoice endpoints need fresh OpenAPI/client generation | Five green jobs at exact release SHA: .NET API/unit, PostgreSQL permissions and migration tests, Svelte tests/build/typecheck, full API contract diff, Docker Compose and startup |
+| P0 | Disaster recovery and data integrity: original `backend/routes/backup.py`, target Docker/PostgreSQL setup | **MISSING VERIFIED DRILL** | Encrypted and restorable PG+media backup, independent restore rehearsal, RPO/RTO and rollback documented; no restore against live instance |
+| P0 | Security/legal/finance approvals: original `backend/routes/admin_users.py`, OS authorization layer, Cyprus business rules | **UNVERIFIED** | Least privilege, OTP/2FA, isolation, secure cookies, session revocation, youth consent, retention policies, invoicing/VAT/numbering and tax/legal review, penetration test and provider signoff |
+| P1 | Calendar, fixtures, roster match events: legacy `{CalendarTab,FixturesTab,MatchEventPlayers}.jsx`, `backend/routes/{admin_calendar,match_rosters,match_submissions}.py` | **PARTIAL**: mobile calendar, imported public fixtures, coach assignment subsets; complete calendar/RSVP provenance and admin match-day writer missing | Resolve quarantined/unknown RSVP; session and match event writes, timezones, training/fixture updates, calendar permissions |
+| P1 | User account permissions & staff compliance: legacy `{SecurityTab,StaffComplianceView,StaffTab}.jsx` | **PARTIAL**: web-admin session/auth and permissions foundation, no full role/user/staff compliance admin editors | Invitations, 2FA activation, per-organization grants, suspension/revocation, role history, consent expiration, audit exports |
+| P1 | Expenses, analytics, reports: legacy `{FinancialDashboard,ExpensesTab,FinancialReportsTab,AnalyticsDashboard}.jsx`; `backend/routes/{expenses,financial,analytics}.py` | **MISSING/PARTIAL**: payment queue summary only; detailed income/expense categories, attachments, ledger reports and analytics absent | Ledger ties to bookings and invoices, organization/period drilldowns, reproducible exports, reconciled income and expense totals |
+| P1 | Marketing/social/community/reels/games/loyalty/referrals: legacy `{SocialControlCenter,ReelsTab,PollsTab,LoyaltyView,ReferralsView}.jsx` and dedicated backend routers | **MISSING** as integrated OS workflows; public site stubs do not count as complete functionality | Consent/moderation, public-vs-app separation, content scheduling, campaign attribution, source feature parity and cross-role tests |
+| P1 | Public join, forms and paid acquisition: legacy registration/trial/shop/partner/sponsor forms | **PARTIAL**: public routes exist, not every form is backed by a live action | Real submission→CRM→confirmation/privacy→admin decision, deduplication, safe notifications, export |
+| P1 | TWA/PWA/push/versioning: original `frontend/public/sw.js`, `build_artifacts/android/twa-manifest.json` | **UNVERIFIED**: new SvelteKit app, service worker and deep-link/device contracts need production-equivalent test | Existing /app role deep links, manifest, Digital Asset Links, Android signing, Play update strategy, push VAPID continuity, offline cache security |
+| P1 | Observability and operations: original scheduled jobs/reminders/backup and target Docker/Caddy/Traefik decisions | **PARTIAL**: structured container baseline, health endpoints and audit subset; production alerting/queues/job leases not established | Per-domain health, backups, SMS/push failure queues, scheduled job uniqueness, redacted metrics, support runbooks, VPS sizing |
+| P2 | Extended original modules: reviews, suggestions, referrals, sponsor interactions, loyalty, videos, media, social publishing | **MISSING** or presentation-only in OS | Port when P0 workflows and target data are reliable; defer non-essential launch modules only with explicit user signoff |
+
+## Machine-checkable, non-deploying release gate
+
+The separate gate register is at `ops/release/go-live-gates.json`.
+Use `node ops/release/check-go-live.mjs` for a local, no-deploy report.
+Use `node ops/release/check-go-live.mjs --require-ready --sha=<exact-reviewed-release-commit>`
+to **fail closed** unless every P0 and P1 gate is explicitly verified,
+has evidence and is tied to that exact commit. The tests are
+`node --test ops/release/check-go-live.test.mjs`.
+
+The register currently marks **all 20 gates BLOCKED**. Editing the register
+without genuine end-to-end evidence is not an approval. The script does not
+touch a VPS, change DNS, merge or initiate deployment.
+
+## Exact legacy charge data contract to port next
+
+The current original `backend/models.py` exposes **eight** `ChargeType` values:
+`training`, `event`, `grassroots`, `registration`, `equipment`,
+`tournament`, `transport`, `other`. Its charge statuses are
+`pending`, `paid`, `overdue`, and `cancelled`; due dates, description,
+season, period key/label, notes, `paid_amount`, payment method and reversal
+history are significant. The payment-method choices in
+`frontend/src/pages/admin/ChargesTab.jsx` are `cash`, `bank`, `card`,
+`online`, and `other`.
+
+The current OS fee table deliberately covers **only training by issued month**.
+The PDF renderer can show these method captions **only when the authorized
+finance SQL supplies a verified paid method**. This is not a bank, online,
+refund, partial, or general charge payment processor. The next financial
+migration must preserve every original charge type and arbitrary charge
+description and allow managers to create specifically selected months or
+one-off charges without generating a hidden annual subscription.
+
+### Rules for the future generic ledger
+
+- Monetary amounts must be integer EUR cents; retain legacy original amount,
+  paid-to-date, outstanding amount, deposit/partial collection, write-offs and
+  historical allocation evidence. Never silently increase an issued amount.
+- A financial event must have a unique idempotency key, actor, timestamp,
+  organization, child or customer, currency, amount and proof source. Store
+  separate immutable events for cash, independently verified card captures,
+  bank transfers, reversals, credits and disputed settlements. A payment
+  redirect or free-text note never counts as proof of bank/card settlement.
+- Original `bulk-monthly` supports a selected from/to month range. The OS
+  Academy fee rule requested by the owner is stricter: **issue only months
+  explicitly chosen in Finance**, with uniqueness per child/month, no 12-month
+  roll-forward and preferred due date fixed on issue.
+- Preserve legacy season and `period_key` for reporting and parent filters
+  but separate business period from the payment attempt date.
+- PDF generation must be authorized by current parent/payer identity and
+  organization; historical invoice details (name, verified phone, due date,
+  amount, number) must not be re-generated from mutable profile fields.
+  Stored, legally accepted issue/credit numbers and tax information require
+  review rather than copying the legacy shortened UUID as a statutory number.
+- Before any generic finance API is enabled: demonstrate exact source→target
+  balances on an isolated sanitized source data sample and test status
+  transitions including duplicate/webhook replay and same-family siblings.
+
+## Non-negotiable release sequence
+
+1. **Inventory legacy business data**, not only code. Read-only snapshot of source MongoDB collections and media; source commit does not prove that production data and production code match.
+2. **Agree scope for initial cutover:** if every original function must survive, all P0/P1 capabilities above block it. A smaller supported launch would require an explicitly authorized, documented feature freeze/deferment, **not** a false claim of parity.
+3. **Complete source contracts first**: map each legacy API, field, role and accepted command to target storage/API/client; implement unique idempotent monetary and identity workflows.
+4. **Restore confidence in CI**, regenerate the OpenAPI and typed clients and achieve five green jobs at the exact candidate SHA. Review workflow runner/billing/permission configuration separately because jobs are failing before runner assignment; do not attribute the cause without evidence.
+5. **Conduct test imports in disposable infrastructure**: exact record totals, external IDs, guardians and children, financial balances, invoices, refunds, storage hashes, links, user roles, attendance/RSVP, historical payments and archiving. Quarantine mismatches; never silently create people or payments.
+6. **Cross-role workflow tests** in a fully isolated preview: parent, player, coach, management and fan; both organizations; unauthorized and revoked users; phone/browser, keyboard and accessible UI. Capture source and target invoices at equal DPI.
+7. **Provider sandbox approval**: Payabl signed status/settlement and saved-card/CIT/MIT, Twilio sender and delivery, privacy and data-processing agreements. Neither production card captures nor real SMS for a sandbox test.
+8. **Financial/legal/backup and incident signoff**, including invoice numbering, VAT, refunds, card chargebacks, cash controls, reporting and a verified restore from isolated encrypted backups.
+9. **Cutover playbook reviewed but NOT executed here:** owner decides freeze window, data delta sync, domain/TWA/push continuity, rollback, monitoring, support and communication. The user has explicitly prohibited a live deploy.
+
+## Next development slices (safe on OS branch)
+
+- **Slice A (now):** repair actual billing/invoice SQL and complete original PDF payment labels, strict single-guardian family selection and regression tests.
+- **Slice B:** generic original `ChargeType` domain and templates with isolated current/historical balances and types; only authenticated server-authorized cash and approved provider card receipts; model partial payments and cancel/reversal immutably.
+- **Slice C:** Academy training/attendance, player evaluations, protected documents and CRM intake with complete imported relationships.
+- **Slice D:** POS sales/inventory/orders and accounting reconciliation; then approved member billing provider integration.
+- **Slice E:** remaining CMS writers, communication moderation/media, marketing/analytics; final UI/PWA parity, scale/security verification and rehearsed migration.
+
+**Cutover status: BLOCKED.** No repo changes in the original source, no production credentials, no production database writes, no deployment.
