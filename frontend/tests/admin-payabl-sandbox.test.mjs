@@ -122,7 +122,7 @@ test('parent can see only linked child fees and cannot mark them paid from app',
   assert.match(feeEndpoints,/session\.Role!=MobileRole\.Parent/);
   assert.match(feeMigration,/l\.identity_id=_identity/);
   assert.match(feeMigration,/b\.normalized_phone=_phone/);
-  assert.match(feeMigration,/f\.payer_identity_id=_identity/);
+  assert.match(feeMigration,/WHERE payer_identity_id=_identity/);
   assert.match(feeMigration,/finance\.mark_training_fee_from_capture/);
   assert.match(feeMigration,/IF NEW\.status='paid' AND OLD\.status IS DISTINCT FROM NEW\.status/);
   assert.match(feeParent,/data-testid="parent-fee-click-to-pay"/);
@@ -135,7 +135,7 @@ test('monthly preferred day and saved-card consent never create automatic charge
   assert.match(feeMigration,/preferred_day BETWEEN 1 AND 31/);
   assert.match(feeMigration,/automatic_collection_enabled=false/);
   assert.match(feeMigration,/saved_card_available',false/);
-  assert.match(feeMigration,/LEAST\(v_day,EXTRACT\(day FROM/);
+  assert.match(feeMigration,/'due_date',f\.invoice_due_date/);
   assert.match(feeParent,/bind:checked=\{saveCard\}/);
   assert.match(feeParent,/bind:checked=\{automatic\}/);
   assert.match(feeParent,/αυτόματες χρεώσεις/);
