@@ -38,6 +38,9 @@ internal static class PayablAdapterChecks
         // notification signature; verify their format and exact callback
         // order binding, then let PostgreSQL decide settlement state.
         var paymentId=Guid.Parse("9d3e279e-f8b7-4f76-b26b-d017c3f0f501");
+        Check(PayablNotification.OrderId(paymentId).Length==30 &&
+            PayablNotification.OrderId(paymentId).All(char.IsAsciiLetterOrDigit),
+            "merchant order ID is provider-compliant");
         values["orderid"]=PayablNotification.OrderId(paymentId);
         values["amount"]="15.00";
         values["currency"]="EUR";
@@ -116,6 +119,13 @@ internal static class PayablAdapterChecks
                   CancellationToken.None); throw new Exception("Unsafe origin accepted"); }
         catch (ArgumentException) { }
         Check(sent==1,"unsafe callback origin blocks network");
+        try{
+            await enabled.InitializeAsync(request with{OrderId=new string('A',31)},
+                CancellationToken.None);
+            throw new Exception("Oversized merchant order accepted");
+        }catch(ArgumentException){}
+        Check(sent==1,"merchant order length guard");
+
         // The SMS adapter cannot send without opt-in and cannot use an
         // arbitrary destination or an untrusted checkout URL.
         var smsCount=0;
