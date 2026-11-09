@@ -46,10 +46,6 @@ public sealed class GeneralChargesPrivateLedger : Migration
         organization_id varchar(32) NOT NULL
           REFERENCES club.organizations(id) ON DELETE RESTRICT,
         player_id varchar(128) COLLATE "C" NOT NULL,
-        payer_identity_id uuid REFERENCES identity.mobile_identities(id)
-          ON DELETE RESTRICT,
-        ready_for_parent boolean NOT NULL DEFAULT false
-          CHECK (NOT ready_for_parent OR payer_identity_id IS NOT NULL),
         charge_type varchar(16) NOT NULL
           CHECK (charge_type IN ('training','event','grassroots',
             'registration','equipment','tournament','transport','other')),
@@ -93,6 +89,33 @@ public sealed class GeneralChargesPrivateLedger : Migration
       CREATE INDEX ix_general_charges_due
         ON finance.general_charge_issues(organization_id,due_date)
         WHERE cancelled_at IS NULL;
+
+      -- Guardian authorization must be verified separately from the
+      -- historical charge snapshot: an unresolved legacy invoice can later
+      -- be linked without altering any issued amount or source document.
+      -- Still require a live canonical guardian/child check when reading.
+      CREATE TABLE finance.general_charge_parent_verifications (
+        charge_id uuid PRIMARY KEY,
+        organization_id varchar(32) NOT NULL,
+        payer_identity_id uuid NOT NULL
+          REFERENCES identity.mobile_identities(id) ON DELETE RESTRICT,
+        verification_digest char(64) COLLATE "C" NOT NULL
+          CHECK (verification_digest ~ '^[0-9a-f]{64}$'),
+        verification_method varchar(20) NOT NULL
+          CHECK (verification_method IN ('approved_guardian','reconciled_legacy')),
+        verified_by uuid REFERENCES identity.admin_accounts(id)
+          ON DELETE RESTRICT,
+        verified_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+        CONSTRAINT ck_general_payer_verification_authority CHECK (
+          verification_method='reconciled_legacy' OR verified_by IS NOT NULL),
+        CONSTRAINT fk_general_payer_charge_scope
+          FOREIGN KEY (organization_id,charge_id)
+          REFERENCES finance.general_charge_issues(organization_id,id)
+          ON DELETE RESTRICT
+      );
+      CREATE INDEX ix_general_parent_verifications
+        ON finance.general_charge_parent_verifications(
+          organization_id,payer_identity_id,verified_at DESC);
 
       -- Positive payment and exact-full reversal events form an immutable
       -- accounting ledger; each request has an idempotency key. No refund
@@ -204,6 +227,9 @@ public sealed class GeneralChargesPrivateLedger : Migration
       CREATE TRIGGER trg_general_charge_event_immutable
         BEFORE UPDATE OR DELETE ON finance.general_charge_events
         FOR EACH ROW EXECUTE FUNCTION finance.freeze_general_charge_event();
+      CREATE TRIGGER trg_general_payer_verification_immutable
+        BEFORE UPDATE OR DELETE ON finance.general_charge_parent_verifications
+        FOR EACH ROW EXECUTE FUNCTION finance.freeze_general_charge_event();
 
       CREATE FUNCTION finance.freeze_general_charge_issue()
       RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
@@ -230,8 +256,9 @@ public sealed class GeneralChargesPrivateLedger : Migration
       -- Clock conversion uses Cyprus local date for due-date reporting.
       CREATE VIEW finance.general_charge_balances
       WITH (security_barrier=true) AS
-        SELECT c.id,c.organization_id,c.player_id,c.payer_identity_id,
-          c.ready_for_parent,c.charge_type,c.description,c.amount_cents,
+        SELECT c.id,c.organization_id,c.player_id,link.payer_identity_id,
+          (link.charge_id IS NOT NULL) AS ready_for_parent,
+          c.charge_type,c.description,c.amount_cents,
           c.currency,c.due_date,c.period_key,c.period_label,c.season,
           c.issued_at,c.cancelled_at,
           coalesce(a.paid_cents,0)::bigint AS paid_cents,
@@ -245,6 +272,8 @@ public sealed class GeneralChargesPrivateLedger : Migration
             ELSE 'pending'
           END::text AS status
         FROM finance.general_charge_issues c
+        LEFT JOIN finance.general_charge_parent_verifications link
+          ON link.charge_id=c.id AND link.organization_id=c.organization_id
         LEFT JOIN LATERAL (
           SELECT sum(e.amount_cents)::bigint AS paid_cents
           FROM finance.general_charge_events e WHERE e.charge_id=c.id
@@ -255,13 +284,14 @@ public sealed class GeneralChargesPrivateLedger : Migration
       -- recheck fresh parent or manager authority before accessing rows.
       ALTER TABLE finance.general_charge_templates ENABLE ROW LEVEL SECURITY;
       ALTER TABLE finance.general_charge_issues ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE finance.general_charge_parent_verifications ENABLE ROW LEVEL SECURITY;
       ALTER TABLE finance.general_charge_events ENABLE ROW LEVEL SECURITY;
 
       -- Tables/views and ledger functions are private by default; not one
       -- new grant to web-admin auth, mobile runtime or marketing role.
       REVOKE ALL ON finance.general_charge_templates,
-        finance.general_charge_issues,finance.general_charge_events,
-        finance.general_charge_balances FROM PUBLIC;
+        finance.general_charge_issues,finance.general_charge_parent_verifications,
+        finance.general_charge_events,finance.general_charge_balances FROM PUBLIC;
       REVOKE ALL ON FUNCTION finance.guard_general_charge_event(),
         finance.freeze_general_charge_event(),
         finance.freeze_general_charge_issue() FROM PUBLIC;
@@ -271,6 +301,7 @@ public sealed class GeneralChargesPrivateLedger : Migration
       DO $general_charge_rollback$
       BEGIN
         IF EXISTS(SELECT 1 FROM finance.general_charge_issues LIMIT 1)
+          OR EXISTS(SELECT 1 FROM finance.general_charge_parent_verifications LIMIT 1)
           OR EXISTS(SELECT 1 FROM finance.general_charge_events LIMIT 1)
           OR EXISTS(SELECT 1 FROM finance.general_charge_templates LIMIT 1)
         THEN RAISE EXCEPTION 'forward_recovery_required_for_finance';
@@ -278,6 +309,7 @@ public sealed class GeneralChargesPrivateLedger : Migration
       END $general_charge_rollback$;
       DROP VIEW finance.general_charge_balances;
       DROP TABLE finance.general_charge_events;
+      DROP TABLE finance.general_charge_parent_verifications;
       DROP TABLE finance.general_charge_issues;
       DROP TABLE finance.general_charge_templates;
       DROP FUNCTION finance.guard_general_charge_event();
