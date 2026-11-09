@@ -16,7 +16,8 @@ namespace LefteriaFc.Api.Payabl;
 
 public sealed record PayablPaymentCreateCommand(
     Guid ClientRequestId, long AmountCents, string? Currency, string? Purpose,
-    string? PayerEmail, string? PayerFirstName, string? PayerLastName);
+    string? PayerEmail, string? PayerFirstName, string? PayerLastName,
+    Guid? FeeIssueId = null);
 
 /// <summary>Payment requests are an opt-in SANDBOX admin integration, not an
 /// order-capture or subscription collection system. Never display a payment
@@ -36,6 +37,18 @@ public static class PayablEndpoints
         services.AddOptions<PayablOptions>().Bind(config.GetSection("Payabl"))
             .Validate(PayablOptions.Safe, "Payabl is sandbox-only and requires a secure origin and merchant credentials.")
             .ValidateOnStart();
+        services.AddOptions<TwilioPaymentSmsOptions>().Bind(config.GetSection("TwilioPaymentSms"))
+            .Validate(TwilioPaymentSmsOptions.Safe,
+                "Twilio payment SMS requires an approved Messaging Service and credentials.")
+            .ValidateOnStart();
+        services.AddHttpClient<TwilioPaymentSms>(client =>
+        {
+            client.Timeout=TimeSpan.FromSeconds(12);
+            client.MaxResponseContentBufferSize=4096;
+        }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+        {
+            AllowAutoRedirect=false,UseCookies=false
+        });
         services.AddHttpClient<PayablGateway>(client =>
         {
             client.Timeout = TimeSpan.FromSeconds(12);
@@ -120,6 +133,32 @@ public static class PayablEndpoints
                 existingStatus = row.RootElement.GetProperty("status").GetString();
                 checkoutUrl = row.RootElement.GetProperty("checkout_url").ValueKind == JsonValueKind.String
                     ? row.RootElement.GetProperty("checkout_url").GetString() : null;
+            }
+            // A training-fee payment must be joined to its exact child,
+            // issued month, guardian and amount BEFORE any outbound gateway
+            // call. A manually supplied total cannot override the invoice.
+            if (created && input.FeeIssueId is Guid feeIssue)
+            {
+                await using var attachDb=await connections.OpenAsync(ct);
+                await using var attach=new NpgsqlCommand("""
+                    SELECT finance.attach_admin_training_fee_payment(
+                      @digest,@owner,@fee,@request)
+                    """,attachDb);
+                attach.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+                attach.Parameters.AddWithValue("owner",organization_id!);
+                attach.Parameters.AddWithValue("fee",feeIssue);
+                attach.Parameters.AddWithValue("request",storedId);
+                try
+                {
+                    if(await attach.ExecuteScalarAsync(ct) is not true)
+                        throw new WebAdminException(503,"fee_attachment_unavailable",
+                            "Training-fee payment could not be bound to the invoice.");
+                }
+                catch(PostgresException error) when(error.SqlState is "42501" or "23505" or "22023")
+                {
+                    throw new WebAdminException(error.SqlState=="23505" ? 409 : 403,
+                        "fee_payment_mismatch","The payment must match an explicitly issued training fee.");
+                }
             }
             // The same client request ID must never re-initiate a gateway
             // transaction after an uncertain outbound response.
@@ -273,6 +312,8 @@ public static class PayablEndpoints
         static bool Ascii(string? value, int min, int max) =>
             value is not null && value.Length >= min && value.Length <= max &&
             value.All(c => c >= ' ' && c <= '~');
+        if (request.FeeIssueId==Guid.Empty)
+            throw new WebAdminException(422,"invalid_fee_issue","Select a valid issued training fee.");
         if (request.ClientRequestId == Guid.Empty || request.Currency != "EUR" ||
             request.AmountCents is < 1 or > 100000000 ||
             !Ascii(request.Purpose, 3, 140) || request.Purpose != request.Purpose!.Trim() ||
