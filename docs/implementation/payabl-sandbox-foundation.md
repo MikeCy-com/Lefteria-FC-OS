@@ -17,13 +17,27 @@ The new **Admin → Οικονομικά → payabl.** view supports private, ad
 | Payment request audit and unique client idempotency | Private DB migration and audited, locked functions |
 | Signed asynchronous webhook | SHA-256 signature, time window, opaque callback nonce and exact order-ID match; unsigned APM settlement states are never automatically treated as paid |
 | Merchant refund and partial refund | Not enabled; needs settlement ledger, reversal API and reconciliation |
-| Parent/player/academy recurring tuition | Not enabled; needs guardian consent, mandates/tokenization and retry/dunning contract |
+| Academy monthly fees | Explicit child/month invoices and parent/Payabl link, callback-only paid allocation; no automatic twelve-month issuance |
+| Parent preferred pay day and card-saving consent | Implemented as preferences only; actual card vault, provider token verification and automatic MIT not enabled |
+| Manual Twilio payment-link SMS to verified academy guardian | Sandbox-ready opt-in code and idempotent outbox; Twilio service credentials and delivery confirmation not connected |
 | Website shop/order/POS settlement | Not enabled; needs authoritative orders, inventory/amount snapshots and POS orchestration |
 | Card payment method | Sandbox currently fixes Payabl HPP `payment_method=1` (cards). Wallet/APM options are deliberately excluded pending separate settlement verification |
 | Employee cards and salary payments | Not enabled; payout eligibility, beneficiary verification, approvals, HR/payroll checks and payout-specific contract required |
 | Bank transfers, bulk salary batches, treasury or settlement reports | Not enabled; requires banking product/account API approval |
 | Disputes, chargebacks, automated accounting and reconciliation | Not enabled; separate provider-state and settlement import needed |
 | Go-live/production | Not approved or connected |
+
+
+## Academy child-month billing and SMS (second development slice)
+
+The separate guide [Academy training fee payments](academy-training-fee-payments.md)
+covers the child/month uniqueness constraint, verified guardian identity, restricted
+administrative issuance, parent invoice view, preferred payment day, signed capture
+allocation and idempotent Twilio SMS outbox. The backend issues ONLY months selected
+by an administrator. Merchant-specific save-card and recurring charging are not
+activated yet. The Payabl order ID is 30 ASCII-alphanumeric characters:
+`LFC` plus the first 27 hexadecimal characters of the internal payment UUID.
+The private UUID and opaque callback nonce retain exact server-side correlation.
 
 ## Configuration (secret store, never commit keys)
 
