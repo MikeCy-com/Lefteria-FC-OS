@@ -31,6 +31,8 @@ BEGIN
     OR current_database() IN ('postgres','template0','template1')
     OR to_regclass('finance.payment_requests') IS NULL
     OR to_regprocedure('finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)') IS NULL
+    OR to_regprocedure('finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)') IS NULL
+    OR to_regprocedure('finance.read_parent_training_fees(uuid,text,text,timestamptz)') IS NULL
   THEN
     RAISE EXCEPTION 'The finance role boundary is not safe or not migrated';
   END IF;
@@ -51,6 +53,21 @@ GRANT EXECUTE ON FUNCTION finance.read_admin_payment_requests(
 GRANT EXECUTE ON FUNCTION finance.apply_payabl_notification(
   uuid,text,text,text,integer,bigint,text,text,bigint,text) TO :"app_role";
 
+GRANT EXECUTE ON FUNCTION finance.issue_admin_training_fee(
+  text,text,uuid,text,date,bigint,text,text,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.attach_admin_training_fee_payment(
+  text,text,uuid,uuid) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_training_fees(
+  text,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.reserve_admin_training_fee_sms(
+  text,text,uuid,uuid) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.finish_admin_training_fee_sms(
+  text,text,uuid,boolean,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_parent_training_fees(
+  uuid,text,text,timestamptz) TO :"app_role";
+GRANT EXECUTE ON FUNCTION finance.set_parent_fee_preferences(
+  uuid,text,text,timestamptz,integer,boolean,boolean) TO :"app_role";
+
 -- Neither login role may directly inspect private payer identities, mutate
 -- statuses, run a payout, or bypass the transactionally audited functions.
 DO $verify$
@@ -59,6 +76,9 @@ BEGIN
   FOREACH r IN ARRAY ARRAY[current_setting('lefteria.finance_admin_role'),current_setting('lefteria.finance_app_role')] LOOP
     IF has_table_privilege(r,'finance.payment_requests','SELECT,INSERT,UPDATE,DELETE')
       OR has_table_privilege(r,'finance.payment_notifications','SELECT,INSERT,UPDATE,DELETE')
+      OR has_table_privilege(r,'finance.training_fee_issues','SELECT,INSERT,UPDATE,DELETE')
+      OR has_table_privilege(r,'finance.parent_fee_preferences','SELECT,INSERT,UPDATE,DELETE')
+      OR has_table_privilege(r,'finance.training_fee_sms_outbox','SELECT,INSERT,UPDATE,DELETE')
       OR has_schema_privilege(r,'finance','CREATE')
       THEN
       RAISE EXCEPTION 'Finance privilege boundary exceeded for %',r;
@@ -68,6 +88,10 @@ BEGIN
        'finance.create_admin_payment_request(text,text,uuid,uuid,text,text,bigint,text,text,text)','EXECUTE')
     OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
        'finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
+       'finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
+       'finance.read_parent_training_fees(uuid,text,text,timestamptz)','EXECUTE')
   THEN
     RAISE EXCEPTION 'Finance cross-role function leakage';
   END IF;
