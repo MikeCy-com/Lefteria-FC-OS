@@ -130,6 +130,10 @@ jobs:
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
             -v ON_ERROR_STOP=1 -f /opt/lefteria-postgres/payabl-callback-state-checks.sql
+      - name: Verify explicit academy training months, exact child capture allocation and no automatic annual billing
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -v ON_ERROR_STOP=1 -f /opt/lefteria-postgres/payabl-training-fee-checks.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
