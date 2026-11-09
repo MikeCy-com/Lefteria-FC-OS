@@ -8,7 +8,8 @@ using LefteriaFc.Application.PublicContent;
 namespace LefteriaFc.Api.Payabl;
 
 public sealed record AcademyInvoiceItem(
-    Guid Id, string OrganizationId, string PlayerId, string PlayerName,
+    Guid Id, string OrganizationId, Guid PayerIdentityId,
+    string PlayerId, string PlayerName,
     string GroupName, string PayerName, string PayerEmail, string PayerPhone,
     DateOnly FeeMonth, DateOnly DueDate, DateTimeOffset IssuedAt,
     DateTimeOffset? PaidAt, long AmountCents, string Currency, string Status,
@@ -46,9 +47,12 @@ public static class AcademyInvoicePdf
             value.Items is null || value.Items.Count is < 1 or > 20)
             throw new InvalidOperationException("Invoice data is not verified.");
         var ids=new HashSet<Guid>();
+        var owner=value.Items[0].PayerIdentityId;
+        if(owner==Guid.Empty)throw new InvalidOperationException("Invoice payer missing.");
         foreach(var row in value.Items)
         {
-            if(row.Id==Guid.Empty || !ids.Add(row.Id) || row.OrganizationId!=value.OrganizationId ||
+            if(row.Id==Guid.Empty || !ids.Add(row.Id) ||
+                row.PayerIdentityId!=owner || row.OrganizationId!=value.OrganizationId ||
                 row.AmountCents is < 1 or > 100000000 || row.Currency!="EUR" ||
                 row.FeeMonth.Day!=1 || row.DueDate.Year!=row.FeeMonth.Year ||
                 row.DueDate.Month!=row.FeeMonth.Month ||
