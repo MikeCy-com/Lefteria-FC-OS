@@ -11,6 +11,8 @@ test('receipt issuance consumes only currently reserved stock',()=>{
   assert.match(fulfillment,/AFTER INSERT ON pos.receipts/);
   assert.match(fulfillment,/v_sale.status<>'paid'/);
   assert.match(fulfillment,/v_line_count<>v_reserved_count/);
+  assert.match(fulfillment,/inventory_receipt_reservation_line_mismatch/);
+  assert.match(fulfillment,/rs.quantity<>sl.quantity/);
   assert.match(fulfillment,/ORDER BY rs.location_id,rs.product_id,rs.variant_id/);
   assert.match(fulfillment,/on_hand=on_hand-v_row.quantity/);
   assert.match(fulfillment,/reserved=reserved-v_row.quantity/);
