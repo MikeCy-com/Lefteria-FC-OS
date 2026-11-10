@@ -78,3 +78,26 @@ invitation, recipient acceptance, expiry or acceptance screen**.
 
 **Current status:** implementation staged in PR #154, *not yet production
 verified*. The completion claim must wait for those release gates.
+
+## 2026-11-10 — Delegated parent parity and safe retry checks
+
+- A new `MobileFamily` bulk-request draft preserves the same request UUIDs
+  for an unchanged recipient phone and child list. A lost HTTP response can
+  now be retried without minting fresh, duplicate guardian permissions.
+  Changing the phone, child or grant type clears the retry draft; successful
+  verification also clears it.
+- `PostgresRosterQueries` now recognizes a live, scoped verified-phone
+  guardian grant even when an existing Parent identity has a non-null
+  legacy identifier and no longer has a currently bound original child.
+  It still refuses to grant a Player or Fan the Parent role.
+- New `mobile-delegated-parent-scope-parity.test.mjs` checks source references
+  to live guardian scope across the identity profile, Family children, roster
+  picker, calendar and chat directory. This is structural proof only.
+- **Remaining**: real .NET/PostgreSQL/HTTP tests must confirm actual SQL
+  function grants and migrations, concurrent parent revoke versus child read,
+  failed second-child bulk grant rollback, replay with the same request IDs,
+  OTP recipient role switching, and all protected family finance/media/
+  messaging endpoints that may use independent child authorization.
+
+Grant existence must not be confused with a logged-in session. The recipient
+still completes OTP before any Parent app request can pass.
