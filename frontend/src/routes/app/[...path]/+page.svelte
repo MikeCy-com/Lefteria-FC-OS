@@ -175,6 +175,15 @@
             activeDelegations={$controller.activeFamilyDelegations}
             activeStatus={$controller.activeFamilyStatus}
             activeError={$controller.activeFamilyError}
+            guardianPermissions={$controller.guardianPermissions}
+            guardianStatus={$controller.guardianStatus}
+            guardianError={$controller.guardianError}
+            guardianPending={$controller.guardianPending}
+            guardianRevokingId={$controller.guardianRevokingId}
+            onLoadGuardianPermissions={() => controller.loadGuardianPermissions()}
+            onCreatePermission={(playerId,kind,phone,requestId) =>
+              controller.createFamilyPermission(playerId,kind,phone,requestId)}
+            onRevokeGuardianPermission={(id) => controller.revokeGuardianPermission(id)}
             onLoadActive={() => controller.loadActiveFamilyDelegations()}
             onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
             revokingPlayerId={$controller.familyRevokingPlayerId}
