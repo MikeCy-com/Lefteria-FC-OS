@@ -14,10 +14,20 @@
     overall:Record<string,unknown>;
   };
   type Timeline = {
-    organization_id:'lefteria_fc_academy';
+    organization_id:'lefteria_fc'|'lefteria_fc_academy';
     player_id:string; total:number; evaluations:Row[];
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  type Organization='lefteria_fc'|'lefteria_fc_academy';
+  const availableOrgs=$derived($auth.status==='authenticated' && $auth.session &&
+    ['manager','super_admin'].includes($auth.session.user.role)
+      ? $auth.session.user.organizations.filter(o=>
+        o.id==='lefteria_fc'
+          ? hasAdminPermission($auth.session!.user.permissions,'teams:read')
+          : o.id==='lefteria_fc_academy' &&
+            hasAdminPermission($auth.session!.user.permissions,'academy:read')
+        ).map(o=>o.id as Organization) : []);
+  let organization=$state<Organization>('lefteria_fc_academy');
   const allowed=$derived($auth.status==='authenticated' && !!$auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
     hasAdminPermission($auth.session.user.permissions,'academy:read') &&
@@ -44,10 +54,10 @@
       ['technical','tactical','physical','character','overall'].every(k=>
         row[k]!==null && typeof row[k]==='object' && !Array.isArray(row[k]));
   }
-  function validTimeline(value:unknown,expected:string):value is Timeline {
+  function validTimeline(value:unknown,expected:string,owner:Organization):value is Timeline {
     if(!value||typeof value!=='object'||Array.isArray(value))return false;
     const x=value as Record<string,unknown>;
-    return x.organization_id==='lefteria_fc_academy' &&
+    return x.organization_id===organization &&
       x.player_id===expected && Number.isInteger(x.total) &&
       (x.total as number)>=0 && (x.total as number)<=200 &&
       Array.isArray(x.evaluations) && x.evaluations.length<201 &&
@@ -61,7 +71,7 @@
   $effect(()=>{
     const user=$auth.session?.user.id;
     const activePermission=allowed;
-    const player=selected;
+    const player=selected;const owner=organization;
     void requestKey;void user;
     let active=true;
     timeline=null;
@@ -69,8 +79,8 @@
     loading=true;error='';
     untrack(()=>{void(async()=>{
       try{
-        const q=new URLSearchParams({organization_id:'lefteria_fc_academy'});
-        const response=await fetch('/api/admin/academy/players/'+encodeURIComponent(player)+
+        const q=new URLSearchParams({organization_id:owner});
+        const response=await fetch('/api/admin/club/players/'+encodeURIComponent(player)+
           '/evaluations?'+q.toString(),{
           credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
         });
@@ -80,7 +90,7 @@
         }
         if(!response.ok)throw new Error('Οι αξιολογήσεις δεν είναι διαθέσιμες.');
         const result:unknown=await response.json();
-        if(!validTimeline(result,player))throw new Error('Μη επαληθευμένη απόκριση.');
+        if(!validTimeline(result,player,owner))throw new Error('Μη επαληθευμένη απόκριση.');
         if(active)timeline=result;
       }catch(e){
         if(active){timeline=null;error=e instanceof Error?e.message:'Σφάλμα ανάγνωσης.';}
