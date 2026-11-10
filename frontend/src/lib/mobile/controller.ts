@@ -30,24 +30,6 @@ type GuardianPermission = {
   status:'pending'|'accepted_pending_access'|'active'|'expired';expires_at:string;recipient_hint:string;
 };
 type GuardianPermissionPage = {items:GuardianPermission[]};
-type GuardianRecipientInvite={id:string;organization_id:string;status:'pending';expires_at:string};
-type GuardianRecipientInbox={items:GuardianRecipientInvite[]};
-function validGuardianRecipientInbox(raw:unknown):raw is GuardianRecipientInbox {
-  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!('items' in raw)||
-    !Array.isArray(raw.items)||raw.items.length>100)return false;
-  const ids=new Set<string>();
-  return raw.items.every((v:unknown)=>{
-    if(!v||typeof v!=='object'||Array.isArray(v))return false;
-    const row=v as Record<string,unknown>;
-    if(typeof row.id!=='string'||!uuidPattern.test(row.id)||
-      ids.has(row.id))return false;
-    ids.add(row.id);
-    return row.status==='pending' &&
-      (row.organization_id==='lefteria_fc'||row.organization_id==='lefteria_fc_academy')&&
-      typeof row.expires_at==='string'&&!Number.isNaN(Date.parse(row.expires_at));
-  });
-}
-
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function validGuardianPage(raw:unknown,children:Family['children']):raw is GuardianPermissionPage {
   if(!raw||typeof raw!=='object'||Array.isArray(raw)||!('items' in raw)||
@@ -109,11 +91,6 @@ export interface MobileAuthState {
   familyRevokeError: string | null;
   familyRevokeSuccess: string | null;
   guardianPermissions: GuardianPermissionPage | null;
-  guardianRecipientInbox: GuardianRecipientInbox|null;
-  guardianRecipientStatus: 'idle'|'loading'|'ready'|'error';
-  guardianRecipientError: string|null;
-  guardianRecipientWorkingId: string|null;
-  guardianRecipientSuccess: string|null;
   guardianStatus: 'idle'|'loading'|'ready'|'error';
   guardianError: string | null;
   guardianPending: boolean;
@@ -189,9 +166,6 @@ export function createMobileAuthController(options: {
     family: null, familyStatus: 'idle', familyError: null,
     activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null,
     familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
-    guardianRecipientInbox:null,guardianRecipientStatus:'idle',
-    guardianRecipientError:null,guardianRecipientWorkingId:null,
-    guardianRecipientSuccess:null,
     guardianPermissions:null,guardianStatus:'idle',guardianError:null,
     guardianPending:false,guardianRevokingId:null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
@@ -216,7 +190,6 @@ export function createMobileAuthController(options: {
   let activeFamilyRevision = 0;
   let outgoingRevision = 0;
   let guardianRevision = 0;
-  let guardianRecipientRevision=0;
   let recipientRevision = 0;
   let delegationRevision = 0;
   let delegatedCalendarRevision = 0;
@@ -248,10 +221,7 @@ export function createMobileAuthController(options: {
 
   function clearRecipientInvitations() {
     clearDelegatedCalendar();
-    ++guardianRecipientRevision;
     update({guardianRecipientInbox:null,guardianRecipientStatus:'idle',
-      guardianRecipientError:null,guardianRecipientWorkingId:null,
-      guardianRecipientSuccess:null});
     ++recipientRevision;
     ++delegationRevision;
     update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
@@ -1032,63 +1002,6 @@ export function createMobileAuthController(options: {
     }
   }
 
-  async function loadGuardianRecipientInbox() {
-    const identity=state.user;
-    if(state.status!=='authenticated'||!identity?.current_role_available||
-      !['fan','parent'].includes(identity.role)||!token||
-      state.guardianRecipientStatus==='loading')return false;
-    const op=++guardianRecipientRevision,bearer=token;
-    const current=()=>op===guardianRecipientRevision&&bearer===token&&
-      state.user?.id===identity.id&&state.user?.role===identity.role&&
-      state.status==='authenticated';
-    update({guardianRecipientInbox:null,guardianRecipientStatus:'loading',
-      guardianRecipientError:null});
-    try{
-      const data=await chatRequest('/api/mobile/family/guardian-invitations');
-      if(!current())return false;
-      if(!validGuardianRecipientInbox(data))throw Error('Μη επαληθευμένη πρόσκληση κηδεμόνα.');
-      update({guardianRecipientInbox:data,guardianRecipientStatus:'ready'});
-      return true;
-    }catch(e){
-      if(current())update({guardianRecipientInbox:null,guardianRecipientStatus:'error',
-        guardianRecipientError:message(e)});
-      return false;
-    }
-  }
-
-  async function respondGuardianRecipient(id:string,accept:boolean) {
-    const identity=state.user,inbox=state.guardianRecipientInbox;
-    if(state.status!=='authenticated'||!identity?.current_role_available||
-      !['fan','parent'].includes(identity.role)||!token||
-      !uuidPattern.test(id)||!inbox?.items.some(x=>x.id===id)||
-      state.guardianRecipientWorkingId)return false;
-    const op=guardianRecipientRevision,bearer=token;
-    const current=()=>op===guardianRecipientRevision&&bearer===token&&
-      state.user?.id===identity.id&&state.user?.role===identity.role&&
-      state.status==='authenticated';
-    update({guardianRecipientWorkingId:id,guardianRecipientError:null,
-      guardianRecipientSuccess:null});
-    try{
-      const result=await chatRequest('/api/mobile/family/guardian-invitations/'+
-        encodeURIComponent(id)+(accept?'/accept':'/decline'),'POST');
-      if(!current())return false;
-      if(!result||typeof result!=='object'||Array.isArray(result)||
-        !('ok' in result)||result.ok!==true||
-        (accept&&(!('status' in result)||result.status!=='accepted_pending_access')))
-        throw Error('Η απάντηση δεν επαληθεύτηκε.');
-      update({guardianRecipientWorkingId:null,
-        guardianRecipientInbox:{items:inbox.items.filter(x=>x.id!==id)},
-        guardianRecipientSuccess:accept
-          ?'Η αποδοχή καταχωρίστηκε. Η πρόσβαση γονέα δεν έχει ενεργοποιηθεί ακόμη.'
-          :'Η πρόσκληση απορρίφθηκε.'});
-      return true;
-    }catch(e){
-      if(current())update({guardianRecipientWorkingId:null,
-        guardianRecipientError:message(e)});
-      return false;
-    }
-  }
-
   async function loadRecipientInvitations() {
     const identity = state.user;
     if (state.busy || state.recipientDecliningId || state.recipientStatus === 'loading' ||
@@ -1348,8 +1261,6 @@ export function createMobileAuthController(options: {
     revokeFamilyDelegation,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
-    loadGuardianRecipientInbox,
-    respondGuardianRecipient,
     loadDelegationAvailability,
     loadDelegatedCalendar,
     submitDelegatedAvailability,
