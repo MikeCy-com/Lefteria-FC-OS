@@ -28,10 +28,10 @@
             hasAdminPermission($auth.session!.user.permissions,'academy:read')
         ).map(o=>o.id as Organization) : []);
   let organization=$state<Organization>('lefteria_fc_academy');
+  $effect(()=>{if(availableOrgs.length && !availableOrgs.includes(organization))organization=availableOrgs[0];});
   const allowed=$derived($auth.status==='authenticated' && !!$auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
-    hasAdminPermission($auth.session.user.permissions,'academy:read') &&
-    $auth.session.user.organizations.some(o=>o.id==='lefteria_fc_academy'));
+    availableOrgs.includes(organization));
   let playerId=$state('');
   let selected=$state('');
   let timeline=$state<Timeline|null>(null);
@@ -57,7 +57,7 @@
   function validTimeline(value:unknown,expected:string,owner:Organization):value is Timeline {
     if(!value||typeof value!=='object'||Array.isArray(value))return false;
     const x=value as Record<string,unknown>;
-    return x.organization_id===organization &&
+    return x.organization_id===owner &&
       x.player_id===expected && Number.isInteger(x.total) &&
       (x.total as number)>=0 && (x.total as number)<=200 &&
       Array.isArray(x.evaluations) && x.evaluations.length<201 &&
@@ -100,17 +100,25 @@
   });
 </script>
 
-<svelte:head><title>Αξιολογήσεις Ακαδημίας | Λευτεριά FC OS</title></svelte:head>
+<svelte:head><title>Αξιολογήσεις αθλητών | Λευτεριά FC OS</title></svelte:head>
 {#if $auth.status==='authenticated' && $auth.session}
 <AdminFrame user={$auth.session.user} active="evaluations" busy={$auth.busy} onLogout={() => void auth.logout()}>
   <section class="mx-auto max-w-4xl space-y-5 px-4 py-6">
     <div>
-      <p class="text-xs uppercase tracking-widest text-amber-500">Ακαδημία · Ιδιωτική διαχείριση</p>
+      <p class="text-xs uppercase tracking-widest text-amber-500">Ομάδες · Ιδιωτική διαχείριση</p>
       <h1 class="text-2xl font-bold">Αξιολογήσεις αθλητών</h1>
       <p class="text-sm text-zinc-400">Μόνο ανάγνωση. Δεν διατίθενται ακόμη δημιουργία ή επεξεργασία αξιολογήσεων.</p>
     </div>
     <AdminSessionStatus />
     {#if allowed}
+      <label class="flex flex-col gap-1 text-sm">Οργανισμός
+        <select class="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white"
+          bind:value={organization} onchange={()=>{selected='';timeline=null;}}>
+          {#each availableOrgs as org}
+            <option value={org}>{org==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</option>
+          {/each}
+        </select>
+      </label>
       <form class="flex flex-wrap gap-3" onsubmit={(event)=>{event.preventDefault();selectPlayer();}}>
         <label class="flex flex-1 flex-col gap-1 text-sm">
           Αναγνωριστικό αθλητή
@@ -150,7 +158,7 @@
         {#if timeline.total===0}<p>Δεν υπάρχουν ακόμη αξιολογήσεις για αυτόν τον αθλητή.</p>{/if}
       {/if}
     {:else}
-      <p class="rounded-xl border border-zinc-700 p-5">Απαιτείται εξουσιοδοτημένη συνεδρία διαχείρισης Ακαδημίας.</p>
+      <p class="rounded-xl border border-zinc-700 p-5">Απαιτείται εξουσιοδοτημένη συνεδρία διαχείρισης ομάδας.</p>
     {/if}
   </section>
 </AdminFrame>
