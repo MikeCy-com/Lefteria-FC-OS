@@ -13,7 +13,8 @@ public sealed record GuardianPermissionDto(
     [property: JsonPropertyName("organization_id")] string OrganizationId,
     [property: JsonPropertyName("kind")] string Kind,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
+    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt,
+    [property: JsonPropertyName("recipient_hint")] string? RecipientHint);
 
 public sealed record GuardianPermissionsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<GuardianPermissionDto> Items);
@@ -67,7 +68,10 @@ public sealed class GuardianPermissionService(
                 result.Items.Select(x => x.Id).Distinct().Count() != result.Items.Count ||
                 result.Items.Any(x => x.Kind != "guardian" ||
                     x.Status is not ("pending" or "active" or "expired") ||
-                    x.PlayerId.Length is < 1 or > 128))
+                    x.PlayerId.Length is < 1 or > 128 ||
+                    x.RecipientHint is null || x.RecipientHint.Length != 8 ||
+                    !x.RecipientHint.StartsWith("••••", StringComparison.Ordinal) ||
+                    !x.RecipientHint[4..].All(char.IsAsciiDigit)))
                 throw Unavailable();
             return result;
         }
