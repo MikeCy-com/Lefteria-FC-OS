@@ -9,6 +9,7 @@
   import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
   import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
   import AdminAcademyGroupProfilePanel from '../../../lib/admin/AdminAcademyGroupProfilePanel.svelte';
+  import AdminFirstTeamProfilePanel from '../../../lib/admin/AdminFirstTeamProfilePanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -260,6 +261,12 @@
                 onExpired={() => auth.invalidateSession()}
                 onRevoked={() => void auth.bootstrap()}
                 onChanged={() => retry++}/>
+              {#if organization === 'lefteria_fc'}
+                <AdminFirstTeamProfilePanel actorId={$auth.session.user.id}
+                  groups={directory.groups}
+                  onExpired={() => auth.invalidateSession()}
+                  onRevoked={() => void auth.bootstrap()}/>
+              {/if}
               {#if organization === 'lefteria_fc_academy'}
                 <AdminAcademyGroupProfilePanel actorId={$auth.session.user.id}
                   groups={directory.groups}
