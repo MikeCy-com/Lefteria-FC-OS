@@ -25,16 +25,10 @@ public sealed class MultipleGuardianPermissions : Migration
           ON DELETE RESTRICT,
         target_phone varchar(15) NOT NULL
           CHECK(target_phone ~ '^[1-9][0-9]{7,14}$'),
-        target_identity_id uuid REFERENCES identity.mobile_identities(id)
-          ON DELETE RESTRICT,
         status varchar(16) NOT NULL DEFAULT 'granted'
           CHECK(status IN ('granted','revoked')),
         created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-        expires_at timestamptz,
-        accepted_at timestamptz,
         revoked_at timestamptz,
-        CHECK(expires_at IS NULL),
-        CHECK(accepted_at IS NULL),
         CONSTRAINT family_guardian_permission_player_fk
           FOREIGN KEY(organization_id,player_id)
           REFERENCES club.players(organization_id,id) ON DELETE RESTRICT
@@ -127,7 +121,7 @@ public sealed class MultipleGuardianPermissions : Migration
           RETURN jsonb_build_object('id',v_existing.id,
             'player_id',_player,'organization_id',v_owner,
             'kind','guardian','status',v_existing.status,
-            'expires_at',v_existing.expires_at,'replay',true);
+            'expires_at',NULL,'replay',true);
         END IF;
         IF (SELECT count(*) FROM identity.family_guardian_permissions
           WHERE organization_id=v_owner AND player_id=_player
@@ -141,9 +135,9 @@ public sealed class MultipleGuardianPermissions : Migration
 
         INSERT INTO identity.family_guardian_permissions(
           id,organization_id,player_id,issuer_identity_id,
-          source_permission_id,target_phone,status,created_at,expires_at)
+          source_permission_id,target_phone,status,created_at)
         VALUES(_request,v_owner,_player,_actor,
-          v_source,_target,'granted',v_now,NULL);
+          v_source,_target,'granted',v_now);
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
@@ -187,7 +181,7 @@ public sealed class MultipleGuardianPermissions : Migration
           'id',g.id,'player_id',g.player_id,
           'organization_id',g.organization_id,'kind','guardian',
           'status',g.status,
-          'expires_at',g.expires_at,
+          'expires_at',NULL,
           'recipient_hint','••••'||right(g.target_phone,4))
           ORDER BY g.created_at DESC,g.id),'[]'::jsonb)
         INTO v_items
