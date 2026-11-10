@@ -30,7 +30,7 @@ public interface IGuardianPermissionRepository
 // access to private child data or creates another parent's identity.
 public sealed class GuardianPermissionService(
     MobileAuthService identity, IGuardianPermissionRepository repository,
-    IAuthThrottle throttle)
+    IAuthThrottle throttle, TimeProvider time)
 {
     public async Task<GuardianPermissionDto> IssueAsync(MobileSession session,
         string? childId, string? targetPhone, Guid requestId, CancellationToken ct)
@@ -93,7 +93,7 @@ public sealed class GuardianPermissionService(
     {
         try
         {
-            var decision = await throttle.TryAcquireAsync(scope, key, DateTimeOffset.UtcNow, ct);
+            var decision = await throttle.TryAcquireAsync(scope, key, time.GetUtcNow(), ct);
             if (!decision.IsAllowed)
                 throw new MobileAuthException(MobileAuthFaultKind.TooManyRequests,
                     MobileAuthErrorCode.RateLimited, "Too many family permission requests.",
