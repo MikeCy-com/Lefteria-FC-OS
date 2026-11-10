@@ -106,3 +106,45 @@ jobs failed with zero executed steps, meaning those failures provide
 no feature-level test results. This run does NOT verify the unmerged
 PostgreSQL migrations or mobile UI. Later commits after this SHA need
 their own exact-SHA verification.
+
+## Recipient consent implementation — 2026-11-10
+
+Added migration `20261110174000_GuardianRecipientConsent.cs` with
+three strictly scoped, private functions:
+
+- `identity.read_recipient_guardian_permissions` returns only invitation
+  UUID, organization, pending status and expiry to the **currently verified
+  target phone** with a live Fan or Parent identity. It revalidates the
+  original source guardian and active child; it does not return child or
+  guardian private details.
+- `identity.accept_recipient_guardian_permission` rechecks the recipient
+  identity/phone, current source guardian and child, locks rows and records
+  the recipient's explicit consent in the
+  **`accepted_pending_access` state** with an audit event. It never mints
+  a parent identity, changes a role, creates a canonical guardian contact,
+  permits a player login or unlocks child data.
+- `identity.decline_recipient_guardian_permission` lets the currently
+  verified recipient decline their own pending invitation; private audit
+  and row-state transitions are retained.
+
+Added service/repository methods and authenticated mobile endpoints
+`GET /api/mobile/family/guardian-invitations`,
+`POST /api/mobile/family/guardian-invitations/{permissionId}/accept`,
+and `POST /api/mobile/family/guardian-invitations/{permissionId}/decline`.
+`MobileGuardianConsent.svelte` is shown under the authenticated Fan/Parent
+profile, with two-step confirmation. It accurately reports that the
+consent is recorded **but full parent access is not yet active**.
+
+The issuing parent can distinguish multiple permissions for one child by
+the recipient's masked final four phone digits and revoke each permission
+individually. The app also groups Player and Parent/Guardian permission
+entries in Family settings. The requested complete shared-parent experience
+is still **BLOCKED** on delegated-parent role recognition, cross-feature
+parent access authorization and actual end-to-end tests.
+
+The latest structural tests include
+`mobile-multiple-guardian-permissions.test.mjs` and
+`mobile-guardian-recipient-consent.test.mjs`. They test source contracts,
+not actual .NET/UI/SQL execution. All new function grants remain
+operator-reviewed and disabled by default. No real SMS or live account
+was used.
