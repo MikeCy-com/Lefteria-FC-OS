@@ -31,9 +31,23 @@ public sealed class PosLedgerFinancialGuards : Migration
       CREATE TRIGGER pos_return_lines_immutable
         BEFORE UPDATE OR DELETE ON pos.return_lines
         FOR EACH ROW EXECUTE FUNCTION pos.reject_transaction_history_edit();
+      CREATE FUNCTION pos.guard_refund_confirmation()
+      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $
+      BEGIN
+        IF TG_OP='DELETE' THEN
+          RAISE EXCEPTION 'refund_delete_denied' USING ERRCODE='42501';
+        END IF;
+        IF OLD.status<>'pending' OR NEW.status NOT IN ('verified','failed')
+          OR (to_jsonb(NEW)-'status'-'verified_at'-'provider_evidence_sha256'-'provider_refund_id')
+             IS DISTINCT FROM
+             (to_jsonb(OLD)-'status'-'verified_at'-'provider_evidence_sha256'-'provider_refund_id')
+        THEN RAISE EXCEPTION 'refund_confirmation_invalid' USING ERRCODE='42501';
+        END IF;
+        RETURN NEW;
+      END $;
       CREATE TRIGGER pos_refund_events_immutable
         BEFORE UPDATE OR DELETE ON pos.refund_events
-        FOR EACH ROW EXECUTE FUNCTION pos.reject_transaction_history_edit();
+        FOR EACH ROW EXECUTE FUNCTION pos.guard_refund_confirmation();
 
       CREATE FUNCTION pos.guard_payment_evidence()
       RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
@@ -187,6 +201,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       CREATE TRIGGER pos_refund_original_payment_guard
         BEFORE INSERT ON pos.refund_events FOR EACH ROW EXECUTE FUNCTION pos.guard_refund_amount();
 
+      REVOKE ALL ON FUNCTION pos.guard_refund_confirmation() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.reject_transaction_history_edit() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.guard_payment_evidence() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.guard_sale_paid() FROM PUBLIC;
@@ -212,6 +227,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       DROP FUNCTION pos.guard_receipt_issue();
       DROP FUNCTION pos.guard_sale_paid();
       DROP FUNCTION pos.guard_payment_evidence();
+      DROP FUNCTION pos.guard_refund_confirmation();
       DROP FUNCTION pos.reject_transaction_history_edit();
     """);
 }
