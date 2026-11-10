@@ -113,7 +113,7 @@ public sealed class PosCashierReconciliationRead : Migration
             WHEN v_shift.counted_cash_cents IS NULL THEN NULL
             ELSE v_shift.counted_cash_cents-v_expected_cash END,
           'requires_review',v_unpaid>0 OR v_card_pending>0
-            OR v_inconsistent>0 OR
+            OR v_inconsistent>0 OR v_expected_cash<0 OR
             (v_shift.closed_at IS NOT NULL
               AND v_shift.counted_cash_cents<>v_expected_cash)
         );
