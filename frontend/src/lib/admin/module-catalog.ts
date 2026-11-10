@@ -77,6 +77,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
+      if (item.id === 'evaluations') return ['manager','super_admin'].includes(user.role) &&
+        organizations.includes('lefteria_fc_academy') &&
+        hasAdminPermission(user.permissions,'academy:read');
       if (item.id === 'onboarding') return true;
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
