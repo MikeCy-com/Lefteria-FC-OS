@@ -7,6 +7,7 @@ DECLARE
   routine pg_proc%ROWTYPE;
   writer pg_proc%ROWTYPE;
   reviewer pg_proc%ROWTYPE;
+  detail_reader pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -53,6 +54,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,reviewer.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,reviewer.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub review submit function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT detail_reader FROM pg_proc
+    WHERE oid='hub.read_admin_editorial_detail(text,text,uuid)'::regprocedure;
+  IF NOT detail_reader.prosecdef OR detail_reader.provolatile<>'v'
+    OR detail_reader.prorettype<>'jsonb'::regtype OR detail_reader.prokind<>'f'
+    OR detail_reader.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS(
+      SELECT 1 FROM unnest(coalesce(detail_reader.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(detail_reader.proacl,acldefault('f',detail_reader.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,detail_reader.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,detail_reader.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'HUB draft detail reader permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
