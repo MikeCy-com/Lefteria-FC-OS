@@ -64,10 +64,10 @@
     const selected = organization;
     const actor = $auth.session?.user.id;
     const safeText = (value:string,max:number)=>
-      value.length<=max && !/[\\x00-\\x1f\\x7f]/.test(value);
+      value.length<=max && !/[\x00-\x1f\x7f]/.test(value);
     const bannerValid = (value:string)=>!value ||
-      /^https:\\/\\/[A-Za-z0-9.-]+(?:\\/[A-Za-z0-9_./%?&=-]*)?$/.test(value);
-    if (selected==='lefteria_fc' ?
+      /^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_.\/%?&=-]*)?$/.test(value);
+        if (selected==='lefteria_fc' ?
         (!safeText(teamLevel,100)||!teamLevel.trim()||teamLevel!==teamLevel.trim()||
           !safeText(teamDescription,2000)||!safeText(teamBanner,2048)||
           !bannerValid(teamBanner)) :
