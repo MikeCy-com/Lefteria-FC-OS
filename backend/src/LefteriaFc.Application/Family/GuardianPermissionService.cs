@@ -13,7 +13,7 @@ public sealed record GuardianPermissionDto(
     [property: JsonPropertyName("organization_id")] string OrganizationId,
     [property: JsonPropertyName("kind")] string Kind,
     [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt,
+    [property: JsonPropertyName("expires_at")] DateTimeOffset? ExpiresAt,
     [property: JsonPropertyName("recipient_hint")] string? RecipientHint);
 
 public sealed record GuardianPermissionsResult(
@@ -51,7 +51,7 @@ public sealed class GuardianPermissionService(
         {
             var result = await repository.IssueAsync(session, childId, phone.Digits, requestId, ct);
             if (result.Id != requestId || result.PlayerId != childId ||
-                result.Kind != "guardian" || result.Status is not ("pending" or "accepted_pending_access" or "active"))
+                result.Kind != "guardian" || result.Status != "granted")
                 throw Unavailable();
             return result;
         }
@@ -68,7 +68,7 @@ public sealed class GuardianPermissionService(
             if (result.Items.Count > 100 ||
                 result.Items.Select(x => x.Id).Distinct().Count() != result.Items.Count ||
                 result.Items.Any(x => x.Kind != "guardian" ||
-                    x.Status is not ("pending" or "accepted_pending_access" or "active" or "expired") ||
+                    x.Status != "granted" ||
                     x.PlayerId.Length is < 1 or > 128 ||
                     x.RecipientHint is null || x.RecipientHint.Length != 8 ||
                     !x.RecipientHint.StartsWith("••••", StringComparison.Ordinal) ||
