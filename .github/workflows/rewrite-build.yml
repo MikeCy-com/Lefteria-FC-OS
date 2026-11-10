@@ -123,10 +123,25 @@ jobs:
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/academy-crm-admin-grants.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-crm-inbox-checks.sql
+      - name: Verify Payabl finance schema, segregated grants and no raw ledger access
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" \
+            -f /opt/lefteria-postgres/payabl-finance-grants.sql
+      - name: Test Payabl signed callback ledger states in disposable PostgreSQL
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -v ON_ERROR_STOP=1 -f /opt/lefteria-postgres/payabl-callback-state-checks.sql
+      - name: Verify explicit academy training months, exact child capture allocation and no automatic annual billing
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -v ON_ERROR_STOP=1 -f /opt/lefteria-postgres/payabl-training-fee-checks.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-configuration-policy
+      - name: Payabl sandbox gateway and notification signatures (offline only)
+        run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --payabl-adapter-policy
       - name: Cyprus fixture time and daylight-saving boundaries
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --public-fixture-clock-policy
       - run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build
@@ -199,6 +214,8 @@ jobs:
         working-directory: frontend
       - run: npm test
         working-directory: frontend
+      - name: Verify that no unapproved OS release can pass the readiness gate
+        run: node --test ops/release/check-go-live.test.mjs
       - run: npm run build
         working-directory: frontend
       - run: npm run smoke:web
