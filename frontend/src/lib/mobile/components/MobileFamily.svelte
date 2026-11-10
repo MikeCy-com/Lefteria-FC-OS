@@ -67,7 +67,7 @@
   async function createPermission() {
     if (!onCreatePermission || guardianPending || busy || !family ||
       !family.children.some(child=>child.id===permissionChild) ||
-      !/^\\+?[0-9 ()-]{8,24}$/.test(permissionPhone))return;
+      !/^\+?[0-9 ()-]{8,24}$/.test(permissionPhone))return;
     const id=requestId||crypto.randomUUID();
     requestId=id;permissionNotice='';
     const ok=await onCreatePermission(
