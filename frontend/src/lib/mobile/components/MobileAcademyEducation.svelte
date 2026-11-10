@@ -7,7 +7,7 @@
 
   let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
   let stage = $state<EducationStage>('10-12');
-  let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : 'parent');
+  let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : viewerRole === 'fan' ? 'parent' : 'all');
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
   const cards = $derived(academyEducationFor(stage,audience,topic));
