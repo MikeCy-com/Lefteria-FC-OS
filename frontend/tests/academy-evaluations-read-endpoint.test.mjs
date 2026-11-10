@@ -11,9 +11,10 @@ const nav=load('frontend/src/lib/admin/module-catalog.ts');
 test('API requires verified web admin, manager, Academy and no-store response',()=>{
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
   assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
-  assert.match(api,/AdminPermissions\.Has\(session\.User\.Role, "academy:read"\)/);
+  assert.match(api,/teams:read/);
+  assert.match(api,/academy:read/);
   assert.match(api,/session\.User\.Organizations\.Any/);
-  assert.match(api,/organization_id != "lefteria_fc_academy"/);
+  assert.match(api,/organization_id is not/);
   assert.match(api,/TokenDigest\(cookie!\)/);
   assert.match(api,/CacheControl = "private, no-store"/);
   assert.match(program,/app\.MapAdminAcademyEvaluations\(\)/);
@@ -26,6 +27,9 @@ test('SQL double checks live session and exact player scope',()=>{
   assert.match(sql,/s\.expires_at>clock_timestamp\(\)/);
   assert.match(sql,/v_role NOT IN \('manager','super_admin'\)/);
   assert.match(sql,/p\.team_type='Academy'/);
+  assert.match(sql,/team_type='First Team'/);
+  assert.match(sql,/FROM club\.teams t/);
+  assert.match(sql,/FROM club\.player_academy_groups m/);
   assert.match(sql,/p\.is_active AND NOT p\.is_archived AND NOT p\.is_transferred/);
   assert.match(sql,/v_count>200/);
   assert.match(sql,/r\.revision=e\.current_revision/);
@@ -38,7 +42,7 @@ test('explicit grant cannot expose raw youth rows or mobile app',()=>{
   assert.doesNotMatch(grants,/GRANT SELECT ON|GRANT INSERT ON|GRANT UPDATE ON/);
 });
 test('UI validates response and strips stale private data',()=>{
-  assert.match(ui,/validTimeline\(result,player\)/);
+  assert.match(ui,/validTimeline\(result,player,owner\)/);
   assert.match(ui,/timeline=null/);
   assert.match(ui,/credentials:'same-origin',cache:'no-store'/);
   assert.match(ui,/activePermission=allowed/);
