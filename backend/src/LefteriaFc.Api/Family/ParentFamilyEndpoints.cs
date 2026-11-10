@@ -1,10 +1,13 @@
 using LefteriaFc.Api.Identity;
+using System.Text.Json.Serialization;
 using LefteriaFc.Application.Family;
 
 namespace LefteriaFc.Api.Family;
 
 public sealed record IssueFamilyInvitationBody(string? Phone);
-public sealed record IssueGuardianPermissionBody(string? Phone, Guid RequestId);
+public sealed record IssueGuardianPermissionBody(
+    [property:JsonPropertyName("phone")] string? Phone,
+    [property:JsonPropertyName("request_id")] Guid RequestId);
 
 public static class ParentFamilyEndpoints
 {
