@@ -21,6 +21,7 @@ public static class AdminPosCashierEndpoints
     public sealed record CloseShiftRequest(Guid RequestId, long CountedCashCents);
     public sealed record CheckoutItem(string ProductId, string VariantId, int Quantity);
     public sealed record PrepareSaleRequest(Guid RequestId, Guid ShiftId, List<CheckoutItem>? Items);
+    public sealed record CancelSaleRequest(Guid RequestId);
 
     public static IEndpointRouteBuilder MapAdminPosCashier(this IEndpointRouteBuilder endpoints)
     {
@@ -122,6 +123,26 @@ public static class AdminPosCashierEndpoints
             command.Parameters.AddWithValue("items", NpgsqlDbType.Jsonb, cart);
             return await Query(command, ct);
         }).WithName("PrepareAdminPosReservedSale");
+
+        group.MapPost("/sales/{saleId:guid}/cancel", async (
+            Guid saleId, string? organization_id, CancelSaleRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (saleId == Guid.Empty || body.RequestId == Guid.Empty)
+                throw new WebAdminException(400, "pos_sale_cancel_invalid",
+                    "Select a valid sale and cancellation request.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.cancel_unpaid_cashier_sale(@digest,@owner,@sale,@request)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("sale", saleId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            return await Query(command, ct);
+        }).WithName("CancelAdminPosUnpaidSale");
 
         return endpoints;
     }
