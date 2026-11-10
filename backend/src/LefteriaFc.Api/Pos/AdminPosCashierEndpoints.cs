@@ -170,6 +170,25 @@ public static class AdminPosCashierEndpoints
             return await Query(command, ct);
         }).WithName("TenderVerifiedAdminPosCashSale");
 
+        group.MapGet("/shifts/{shiftId:guid}/reconciliation", async (
+            Guid shiftId, string? organization_id,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (shiftId == Guid.Empty)
+                throw new WebAdminException(400, "pos_shift_report_invalid",
+                    "Select a valid cashier shift.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.read_cashier_shift_reconciliation(@digest,@owner,@shift)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("shift", shiftId);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosCashierReconciliation");
+
         return endpoints;
     }
 
