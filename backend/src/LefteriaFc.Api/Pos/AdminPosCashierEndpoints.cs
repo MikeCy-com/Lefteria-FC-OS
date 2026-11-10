@@ -292,6 +292,29 @@ public static class AdminPosCashierEndpoints
             return await Query(command, ct);
         }).WithName("RequestAdminPosApprovedReturnRefund");
 
+        // Manager finance checkpoint, not a general ledger posting.
+        // Explicit finance:read permission is required in addition to
+        // cashier/shop access already checked by Authority.
+        group.MapGet("/finance-handoff", async (
+            string? organization_id,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            var session = await auth.CurrentAsync(cookie, ct);
+            if (session is null ||
+                !AdminPermissions.Has(session.User.Role, "finance:read"))
+                throw new WebAdminException(403, "pos_finance_handoff_access_denied",
+                    "Financial reconciliation requires a manager finance grant.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.read_admin_finance_handoff(@digest,@owner)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosFinanceHandoff");
+
         return endpoints;
     }
 
