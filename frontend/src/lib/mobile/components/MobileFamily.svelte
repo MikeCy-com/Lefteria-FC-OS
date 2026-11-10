@@ -22,6 +22,8 @@
     onLoadGuardianPermissions?: ()=>boolean|Promise<boolean>;
     onCreatePermission?: (playerId:string,kind:'player'|'guardian',
       phone:string,requestId:string)=>boolean|Promise<boolean>;
+    onCreateManyGuardian?: (children:Array<{player_id:string;request_id:string}>,
+      phone:string)=>boolean|Promise<boolean>;
     onRevokeGuardianPermission?: (id:string)=>boolean|Promise<boolean>;
     status: 'idle' | 'loading' | 'ready' | 'error';
     error: string | null;
@@ -48,7 +50,7 @@
   let { family, status, error, busy = false, onLoad, onCalendar,
     guardianPermissions=null,guardianStatus='idle',guardianError=null,
     guardianPending=false,guardianRevokingId=null,onLoadGuardianPermissions,
-    onCreatePermission,onRevokeGuardianPermission,
+    onCreatePermission,onCreateManyGuardian,onRevokeGuardianPermission,
     outgoingInvitations = null, outgoingStatus = 'idle', outgoingError = null,
     onLoadOutgoing, onCancelOutgoing, outgoingCancellingId = null,
     outgoingCancelError = null, onRevokeDelegation,
@@ -78,26 +80,26 @@
       :family.children.filter(child=>child.id===resolvedChild);
     if(children.length===0)return;
     submitting=true;permissionNotice='';
-    let completed=0;
     try{
-      for(const child of children){
-        // A stable ID is retained for retries of the first child. Bulk
-        // grants stop on failure and never report partial success as complete.
-        const id=children.length===1?(requestId||crypto.randomUUID()):crypto.randomUUID();
-        if(children.length===1)requestId=id;
-        const ok=await onCreatePermission(
-          child.id,permissionType,permissionPhone,id);
-        if(!ok)break;
-        completed++;
-      }
-      if(completed===children.length){
-        permissionPhone='';requestId='';
-        permissionNotice=permissionType==='player'
-          ?'Η άδεια παίκτη καταχωρίστηκε για το επιλεγμένο παιδί.'
-          :'Οι άδειες κηδεμόνα αποθηκεύτηκαν. Η πρόσβαση ενεργοποιείται για τον κάτοχο του κινητού κατά την επαληθευμένη σύνδεση.';
-      }else if(completed>0){
-        permissionNotice=`Καταχωρίστηκαν ${completed} από ${children.length} άδειες. Ελέγξτε τη λίστα πριν επαναλάβετε.`;
-        requestId='';
+      if(children.length>1){
+        if(!onCreateManyGuardian||permissionType!=='guardian')return;
+        const ids=children.map(child=>({
+          player_id:child.id,request_id:crypto.randomUUID()}));
+        const ok=await onCreateManyGuardian(ids,permissionPhone);
+        if(ok){
+          permissionPhone='';requestId='';
+          permissionNotice='Η άδεια καταχωρίστηκε για όλα τα παιδιά. Ο παραλήπτης συνδέεται με επαληθευμένο κινητό.';
+        }
+      }else{
+        const id=requestId||crypto.randomUUID();
+        requestId=id;
+        const ok=await onCreatePermission(children[0].id,permissionType,permissionPhone,id);
+        if(ok){
+          permissionPhone='';requestId='';
+          permissionNotice=permissionType==='player'
+            ?'Η άδεια παίκτη καταχωρίστηκε για το επιλεγμένο παιδί.'
+            :'Η άδεια κηδεμόνα αποθηκεύτηκε. Ο παραλήπτης συνδέεται με επαληθευμένο κινητό.';
+        }
       }
     }finally{submitting=false;}
   }
