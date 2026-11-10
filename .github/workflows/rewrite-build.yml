@@ -136,6 +136,12 @@ jobs:
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
             -v ON_ERROR_STOP=1 -f /opt/lefteria-postgres/payabl-training-fee-checks.sql
+      - name: Test original eight charge types, immutable partial settlements and no annual billing
+        run: |
+          docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+            -v ON_ERROR_STOP=1 -v app_role="$DATABASE_APP_USER" \
+            -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" \
+            -f /opt/lefteria-postgres/general-charge-private-ledger-checks.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
