@@ -6,7 +6,6 @@
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
-  import MobileGuardianConsent from '../../../lib/mobile/components/MobileGuardianConsent.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
   import MobileGroupChat from '../../../lib/mobile/components/MobileGroupChat.svelte';
   import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
@@ -133,19 +132,6 @@
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
           onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
-        {#if role === 'fan' || role === 'parent'}
-          {#key user.id+':guardian-consent'}
-            <MobileGuardianConsent
-              inbox={$controller.guardianRecipientInbox}
-              status={$controller.guardianRecipientStatus}
-              error={$controller.guardianRecipientError}
-              workingId={$controller.guardianRecipientWorkingId}
-              success={$controller.guardianRecipientSuccess}
-              busy={$controller.busy}
-              onLoad={() => controller.loadGuardianRecipientInbox()}
-              onRespond={(id,accept) => controller.respondGuardianRecipient(id,accept)}/>
-          {/key}
-        {/if}
         {#if role === 'fan'}
         {#key `${user.id}:${user.phone}`}
           <MobileRecipientInvitations
