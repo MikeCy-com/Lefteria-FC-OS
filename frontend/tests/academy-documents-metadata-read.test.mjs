@@ -1,0 +1,47 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const load=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const sql=load('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110130000_AcademyDocumentMetadataRead.cs');
+const api=load('backend/src/LefteriaFc.Api/Evaluations/AdminAcademyDocumentEndpoints.cs');
+const program=load('backend/src/LefteriaFc.Api/Program.cs');
+const page=load('frontend/src/routes/admin/documents/+page.svelte');
+const grants=load('ops/postgres/academy-evaluation-admin-grants.sql');
+const navigation=load('frontend/src/lib/admin/module-catalog.ts');
+test('restricted read-only API validates live Academy manager session',()=>{
+  assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(api,/organization_id != "lefteria_fc_academy"/);
+  assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
+  assert.match(api,/AdminPermissions\.Has\(session\.User\.Role, "academy:read"\)/);
+  assert.match(api,/session\.User\.Organizations\.Any/);
+  assert.match(api,/CacheControl = "private, no-store"/);
+  assert.match(program,/app\.MapAdminAcademyDocuments\(\)/);
+  assert.doesNotMatch(api,/MapPost|MapPut|MapDelete/);
+});
+test('SQL locks authorization and records each disclosed document',()=>{
+  assert.match(sql,/SECURITY DEFINER/);
+  assert.match(sql,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+  assert.match(sql,/s\.revoked_at IS NULL/);
+  assert.match(sql,/p\.team_type='Academy'/);
+  assert.match(sql,/v_count>100/);
+  assert.match(sql,/INSERT INTO academy_private\.document_audit_events/);
+  assert.match(sql,/d\.withdrawn_at IS NULL/);
+  assert.match(sql,/INSERT INTO audit\.security_events/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION academy_private\.read_admin_player_document_metadata/);
+  assert.doesNotMatch(sql,/'storage_object_id'|'encryption_key_id'|'sha256'|'mime_type'|'size_bytes'/);
+});
+test('role grants only permit function execution, not private table or mobile data',()=>{
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION academy_private\.read_admin_player_document_metadata/);
+  assert.match(grants,/has_function_privilege\(m,doc,'EXECUTE'\)/);
+  assert.match(grants,/evaluation_private_table_exposed/);
+  assert.doesNotMatch(grants,/GRANT SELECT ON|GRANT INSERT ON|GRANT UPDATE ON/);
+});
+test('UI only shows validated expiry metadata and clears it on account change',()=>{
+  assert.match(page,/validListing\(result,player\)/);
+  assert.match(page,/listing=null/);
+  assert.match(page,/credentials:'same-origin',cache:'no-store'/);
+  assert.match(page,/permitted=\$derived/);
+  assert.match(page,/document\.expiry_date/);
+  assert.doesNotMatch(page,/download|object\.blob|window\.open|href=\{document/);
+  assert.match(navigation,/item\.id === 'documents'.*\['manager','super_admin'\]/);
+});
