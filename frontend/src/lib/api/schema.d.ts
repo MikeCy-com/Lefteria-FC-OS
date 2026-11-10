@@ -208,6 +208,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/finance/payabl/invoices/{invoiceId}.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadAdminAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadAdminAcademyMultiInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/finance/payabl/payment-requests": {
         parameters: {
             query?: never;
@@ -250,6 +282,22 @@ export interface paths {
         get: operations["ReadAdminAcademyTrainingFees"];
         put?: never;
         post: operations["IssueAdminAcademyTrainingFee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/training-fees/{feeId}/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RecordAdminAcademyTrainingFeeCash"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1054,6 +1102,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetParentOutgoingInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/invoices/{invoiceId}.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadParentAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadParentAcademyMultiInvoicePdf"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2777,6 +2857,11 @@ export interface components {
         RecipientPendingInvitationsResult: {
             items: components["schemas"]["RecipientPendingInvitationDto"][];
         };
+        RecordAcademyCashPaymentCommand: {
+            /** Format: uuid */
+            client_request_id: string;
+            notes: null | string;
+        };
         RoleSwitchBody: {
             role: null | string;
         };
@@ -4160,6 +4245,49 @@ export interface operations {
             };
         };
     };
+    DownloadAdminAcademyInvoicePdf: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadAdminAcademyMultiInvoicePdf: {
+        parameters: {
+            query?: {
+                ids?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListPayablAdminPaymentRequests: {
         parameters: {
             query?: {
@@ -4451,6 +4579,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AcademyTrainingFeeIssueCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RecordAdminAcademyTrainingFeeCash: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                feeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordAcademyCashPaymentCommand"];
             };
         };
         responses: {
@@ -8957,6 +9111,46 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MobileAuthError"];
                 };
+            };
+        };
+    };
+    DownloadParentAcademyInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadParentAcademyMultiInvoicePdf: {
+        parameters: {
+            query?: {
+                ids?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
