@@ -50,6 +50,14 @@ public sealed class GuardianVerifiedPhoneScope : Migration
             AND player.organization_id=grant_row.organization_id
           WHERE grant_row.source_permission_id IS NULL
             AND grant_row.status='granted'
+            AND NOT EXISTS(
+              SELECT 1 FROM identity.mobile_identities blocked
+              WHERE blocked.normalized_phone=grant_row.target_phone
+                AND blocked.role IN ('player','coach','management'))
+            AND NOT EXISTS(
+              SELECT 1 FROM identity.canonical_contact_bindings blocked
+              WHERE blocked.normalized_phone=grant_row.target_phone
+                AND blocked.kind='player_own')
             AND player.is_active AND NOT player.is_archived
             AND NOT player.is_transferred
             AND EXISTS(SELECT 1 FROM club.roster_import_state
@@ -65,6 +73,14 @@ public sealed class GuardianVerifiedPhoneScope : Migration
             AND grant_row.player_id=valid.player_id
             AND grant_row.organization_id=valid.organization_id
             AND grant_row.status='granted'
+            AND NOT EXISTS(
+              SELECT 1 FROM identity.mobile_identities blocked
+              WHERE blocked.normalized_phone=grant_row.target_phone
+                AND blocked.role IN ('player','coach','management'))
+            AND NOT EXISTS(
+              SELECT 1 FROM identity.canonical_contact_bindings blocked
+              WHERE blocked.normalized_phone=grant_row.target_phone
+                AND blocked.kind='player_own')
           JOIN identity.mobile_identities issuer
             ON issuer.id=grant_row.issuer_identity_id
             AND issuer.is_active AND issuer.role='parent'
