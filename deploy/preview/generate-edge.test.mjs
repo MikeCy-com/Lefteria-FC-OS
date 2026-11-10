@@ -9,15 +9,26 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the forty-nine explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the fifty-three explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 49);
+  assert.equal(operations.length, 53);
   for (const operation of operations) {
-    const path = operation.path.replace(/\{[^}]+\}/g, 'record');
+    const path = operation.path.replace(/\{invoiceId\}/g,
+      '11111111-2222-4333-8444-555555555555').replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
     assert.equal(permits(contract, 'OPTIONS', path), false);
     assert.equal(permits(contract, operation.method, path + '/extra'), false);
   }
+  // Private PDF routes must stay read-only, exact and ID-constrained.
+  const invoiceId='11111111-2222-4333-8444-555555555555';
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/multi.pdf'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/finance/invoices/multi.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/multi.pdf/extra'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.pdf'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/finance/invoices/'+invoiceId+'.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.pdf/extra'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/not-a-uuid.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.exe'),false);
   for (const path of [
     '/api/mobile/auth/request-otp', '/api/mobile/auth/verify-otp', '/api/mobile/auth/register',
     '/api/mobile/auth/exchange-legacy', '/api/health/live', '/api/uploads/avatars/photo.jpg',
@@ -165,7 +176,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 49);
+  assert.equal(protectedOperations(changed).length, 53);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });

@@ -37,6 +37,10 @@ ENTRYPOINT ["dotnet", "LefteriaFc.RosterImport.dll"]
 
 # Keep the API as the final/default target for existing Compose builds.
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+# DejaVu Sans regular/bold covers all Greek invoice glyphs; the original
+# ReportLab design uses Noto/DejaVu and strips combining Greek marks.
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish/ ./
 ENV ASPNETCORE_HTTP_PORTS=8080

@@ -22,6 +22,62 @@
         ],
         "type": "object"
       },
+      "AcademyTrainingFeeIssueCommand": {
+        "properties": {
+          "amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "fee_month": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_first_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_last_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "client_request_id",
+          "player_id",
+          "fee_month",
+          "amount_cents",
+          "payer_email",
+          "payer_first_name",
+          "payer_last_name"
+        ],
+        "type": "object"
+      },
       "AdminAnnouncementDraftCommand": {
         "properties": {
           "body": {
@@ -3464,6 +3520,93 @@
         ],
         "type": "object"
       },
+      "ParentTrainingFeePreferenceCommand": {
+        "properties": {
+          "automatic_collection_requested": {
+            "type": "boolean"
+          },
+          "preferred_day": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "save_card_requested": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "preferred_day",
+          "save_card_requested",
+          "automatic_collection_requested"
+        ],
+        "type": "object"
+      },
+      "PayablPaymentCreateCommand": {
+        "properties": {
+          "amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fee_issue_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_first_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payer_last_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "purpose": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "client_request_id",
+          "amount_cents",
+          "currency",
+          "purpose",
+          "payer_email",
+          "payer_first_name",
+          "payer_last_name"
+        ],
+        "type": "object"
+      },
       "PendingFamilyInvitationDto": {
         "properties": {
           "created_at": {
@@ -6334,6 +6477,25 @@
         ],
         "type": "object"
       },
+      "RecordAcademyCashPaymentCommand": {
+        "properties": {
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "client_request_id",
+          "notes"
+        ],
+        "type": "object"
+      },
       "RoleSwitchBody": {
         "properties": {
           "role": {
@@ -6345,6 +6507,18 @@
         },
         "required": [
           "role"
+        ],
+        "type": "object"
+      },
+      "TrainingFeeSmsCommand": {
+        "properties": {
+          "client_request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_request_id"
         ],
         "type": "object"
       },
@@ -8204,6 +8378,550 @@
         ],
         "tags": [
           "Academy CRM"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/invoices/multi.pdf": {
+      "get": {
+        "operationId": "DownloadAdminAcademyMultiInvoicePdf",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy invoice PDFs"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/invoices/{invoiceId}.pdf": {
+      "get": {
+        "operationId": "DownloadAdminAcademyInvoicePdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoiceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy invoice PDFs"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/payment-requests": {
+      "get": {
+        "operationId": "ListPayablAdminPaymentRequests",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Payabl finance (sandbox)"
+        ]
+      },
+      "post": {
+        "operationId": "CreatePayablAdminPaymentRequest",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayablPaymentCreateCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Payabl finance (sandbox)"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/status": {
+      "get": {
+        "operationId": "GetPayablAdminStatus",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Payload Too Large"
+          },
+          "415": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unsupported Media Type"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Payabl finance (sandbox)"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/training-fees": {
+      "get": {
+        "operationId": "ReadAdminAcademyTrainingFees",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
+        ]
+      },
+      "post": {
+        "operationId": "IssueAdminAcademyTrainingFee",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyTrainingFeeIssueCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/training-fees/{feeId}/cash": {
+      "post": {
+        "operationId": "RecordAdminAcademyTrainingFeeCash",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordAcademyCashPaymentCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy invoice PDFs"
+        ]
+      }
+    },
+    "/api/admin/finance/payabl/training-fees/{feeId}/sms": {
+      "post": {
+        "operationId": "SendAdminAcademyTrainingFeeSms",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "feeId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingFeeSmsCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training fees (sandbox)"
         ]
       }
     },
@@ -13983,6 +14701,108 @@
         ]
       }
     },
+    "/api/mobile/finance/invoices/multi.pdf": {
+      "get": {
+        "operationId": "DownloadParentAcademyMultiInvoicePdf",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "ids",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent invoice PDFs"
+        ]
+      }
+    },
+    "/api/mobile/finance/invoices/{invoiceId}.pdf": {
+      "get": {
+        "operationId": "DownloadParentAcademyInvoicePdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "invoiceId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent invoice PDFs"
+        ]
+      }
+    },
+    "/api/mobile/finance/preferences": {
+      "put": {
+        "operationId": "SaveParentTrainingFeePreferences",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ParentTrainingFeePreferenceCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent training fees"
+        ]
+      }
+    },
+    "/api/mobile/finance/training-fees": {
+      "get": {
+        "operationId": "ReadParentTrainingFees",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Parent training fees"
+        ]
+      }
+    },
     "/api/mobile/management/organization": {
       "get": {
         "operationId": "GetMobileOrganization",
@@ -15616,6 +16436,54 @@
         ]
       }
     },
+    "/api/payabl/webhooks/{id}/{nonce}": {
+      "post": {
+        "operationId": "ReceivePayablPaymentNotification",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "nonce",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        },
+        "tags": [
+          "Payabl signed notifications"
+        ]
+      }
+    },
     "/api/public/news": {
       "get": {
         "operationId": "GetPublicNews",
@@ -15967,6 +16835,9 @@
       "name": "Mobile app push"
     },
     {
+      "name": "Payabl signed notifications"
+    },
+    {
       "name": "First-team trials"
     },
     {
@@ -16004,6 +16875,21 @@
     },
     {
       "name": "Web administration"
+    },
+    {
+      "name": "Payabl finance (sandbox)"
+    },
+    {
+      "name": "Academy training fees (sandbox)"
+    },
+    {
+      "name": "Parent training fees"
+    },
+    {
+      "name": "Academy invoice PDFs"
+    },
+    {
+      "name": "Parent invoice PDFs"
     },
     {
       "name": "Club settings"
