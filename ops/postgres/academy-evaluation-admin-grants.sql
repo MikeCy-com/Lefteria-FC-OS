@@ -17,10 +17,14 @@ DECLARE
  m text:=current_setting('lefteria.evaluation_mobile_role');
  f oid:='academy_private.read_admin_player_evaluations(text,text,text)'::regprocedure::oid;
  doc oid:='academy_private.read_admin_player_document_metadata(text,text,text)'::regprocedure::oid;
+ create_fn oid:='academy_private.create_admin_player_evaluation(text,text,text,uuid,text,text,jsonb,jsonb,jsonb,jsonb,jsonb)'::regprocedure::oid;
 BEGIN
  IF a=m OR a=current_user OR
     NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname=a
       AND rolcanlogin AND NOT rolinherit AND NOT rolsuper AND NOT rolbypassrls)
+    OR NOT EXISTS(SELECT 1 FROM pg_proc WHERE oid=create_fn AND prosecdef
+      AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
+        WHERE grantee=0 AND privilege_type='EXECUTE'))
     OR NOT EXISTS(SELECT 1 FROM pg_proc WHERE oid=doc AND prosecdef
       AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
         WHERE grantee=0 AND privilege_type='EXECUTE'))
@@ -34,6 +38,9 @@ GRANT EXECUTE ON FUNCTION academy_private.read_admin_player_evaluations(text,tex
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION academy_private.read_admin_player_document_metadata(text,text,text)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION academy_private.create_admin_player_evaluation(
+  text,text,text,uuid,text,text,jsonb,jsonb,jsonb,jsonb,jsonb)
+  TO :"admin_auth_role";
 DO $verify$
 DECLARE
  a text:=current_setting('lefteria.evaluation_admin_role');
@@ -46,8 +53,10 @@ BEGIN
     OR has_function_privilege(m,f,'EXECUTE')
     OR NOT has_function_privilege(a,doc,'EXECUTE')
     OR has_function_privilege(m,doc,'EXECUTE')
+    OR NOT has_function_privilege(a,create_fn,'EXECUTE')
+    OR has_function_privilege(m,create_fn,'EXECUTE')
  THEN RAISE EXCEPTION 'evaluation_grant_boundary_failed'; END IF;
- FOREACH t IN ARRAY ARRAY['evaluations','evaluation_revisions',
+ FOREACH t IN ARRAY ARRAY['evaluations','evaluation_revisions','evaluation_create_requests',
                            'player_documents','document_audit_events'] LOOP
   IF has_table_privilege(a,format('academy_private.%I',t),'SELECT,INSERT,UPDATE,DELETE')
      OR has_table_privilege(m,format('academy_private.%I',t),'SELECT,INSERT,UPDATE,DELETE')
