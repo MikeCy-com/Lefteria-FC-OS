@@ -14,7 +14,7 @@
   const id = $props.id();
 </script>
 
-<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="education-hub">
+<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="parent-education-hub" data-hub-role={viewerRole}>
   <header class="education-hero">
     <p class="education-kicker">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
     <h1 id={id+'-title'}>HUB · Μαθαίνουμε μαζί</h1>
