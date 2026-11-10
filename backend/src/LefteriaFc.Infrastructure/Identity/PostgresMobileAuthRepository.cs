@@ -232,6 +232,9 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
                 Platform=platform,CreatedAt=now
             };
             context.MobileIdentities.Add(row);
+            context.SecurityAuditEvents.Add(MapAudit(new AuthAuditEntry(
+                "mobile.family.phone_parent.provision",
+                "success",now,row.Id)));
             await context.SaveChangesAsync(cancellationToken);
             lockedIdentities.Add(row.Id);
             return (await MapProfilesAsync(context,[row],cancellationToken)).Single();
