@@ -91,6 +91,17 @@ BEGIN
           WHERE a.grantee=0 AND a.privilege_type='EXECUTE')
     )
   ) THEN RAISE EXCEPTION 'pos_return_or_receipt_function_exposed'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_indexes
+    WHERE schemaname='pos' AND indexname='uq_pos_refund_request')
+  THEN RAISE EXCEPTION 'pos_refund_request_replay_index_missing'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos.request_approved_return_refund(text,text,uuid,uuid,uuid,bigint)'::regprocedure
+      AND (NOT p.prosecdef OR EXISTS (
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
+      ))
+  ) THEN RAISE EXCEPTION 'pos_refund_request_function_exposed'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
