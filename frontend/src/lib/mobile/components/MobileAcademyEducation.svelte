@@ -5,18 +5,19 @@
   } from '../academy-education.ts';
   import './mobile-theme.css';
 
+  let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
   let stage = $state<EducationStage>('10-12');
-  let audience = $state<EducationAudience | 'all'>('all');
+  let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : 'parent');
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
   const cards = $derived(academyEducationFor(stage,audience,topic));
   const id = $props.id();
 </script>
 
-<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="parent-education-hub">
+<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="education-hub">
   <header class="education-hero">
     <p class="education-kicker">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
-    <h1 id={id+'-title'}>Μαθαίνουμε μαζί</h1>
+    <h1 id={id+'-title'}>HUB · Μαθαίνουμε μαζί</h1>
     <p>Μικρές ιδέες για τη στήριξη των νεαρών αθλητών και την ψυχολογία κάθε ηλικίας.</p>
     <div class="education-hero-art" aria-hidden="true">
       <span class="education-art-ball">⚽</span><span class="education-art-heart">♥</span>
@@ -24,6 +25,15 @@
     </div>
   </header>
 
+  {#if viewerRole === 'fan'}
+    <div class="education-editorial" data-testid="hub-fan-preview">
+      <strong>Προεπισκόπηση HUB για φιλάθλους.</strong>
+      Επίλεξε αν σε ενδιαφέρει υλικό για γονείς ή αθλητές.
+      Η επιλογή ισχύει μόνο σε αυτή την οθόνη: δεν δημιουργεί συνδρομή,
+      δεν αλλάζει τον ρόλο και δεν δίνει πρόσβαση σε δεδομένα παιδιών.
+      Η εγγραφή θα απαιτεί ξεχωριστή επαληθευμένη υπηρεσία.
+    </div>
+  {/if}
   <div class="education-editorial" data-testid="education-editorial-status">
     Εκπαιδευτικό υλικό γνωριμίας του Lefteria FC OS. Δεν αποτελεί ακόμη επίσημη δημοσίευση
     ή έγκριση της Ακαδημίας. Δεν αντικαθιστά εξατομικευμένη υποστήριξη από επαγγελματία.
