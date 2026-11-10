@@ -18,6 +18,9 @@ test('Refund client has fixed sandbox URL, rejects redirects and limits reply si
  assert.match(source,/https:\/\/sandbox.payabl.com\/pay\/backoffice\/payment_refund/);
  assert.match(source,/HttpMethod.Post, SandboxEndpoint/);
  assert.match(source,/HttpStatusCode.PermanentRedirect/);
+ assert.match(source,/AllowAutoRedirect = false/);
+ assert.match(source,/UseCookies = false/);
+ assert.match(source,/SandboxHttp.SendAsync/);
  assert.match(source,/Gateway redirect prohibited/);
  assert.match(source,/raw.Length > 8192/);
  assert.match(source,/Duplicate or unbounded gateway field/);
