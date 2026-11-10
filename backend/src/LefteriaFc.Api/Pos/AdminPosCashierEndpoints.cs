@@ -27,6 +27,7 @@ public static class AdminPosCashierEndpoints
     public sealed record ReturnSaleRequest(Guid RequestId, string ReasonCode,
         List<ReturnLineRequest>? Lines);
     public sealed record ReviewReturnRequest(Guid RequestId, bool Approve);
+    public sealed record RequestRefundRequest(Guid RequestId, Guid PaymentEventId, long AmountCents);
 
     public static IEndpointRouteBuilder MapAdminPosCashier(this IEndpointRouteBuilder endpoints)
     {
@@ -265,6 +266,31 @@ public static class AdminPosCashierEndpoints
             command.Parameters.AddWithValue("approve", body.Approve);
             return await Query(command, ct);
         }).WithName("ReviewAdminPosSaleReturn");
+
+        // Pending instruction only: no cash disbursement or Payabl API call.
+        group.MapPost("/returns/{returnId:guid}/refund-requests", async (
+            Guid returnId, string? organization_id, RequestRefundRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (returnId == Guid.Empty || body.RequestId == Guid.Empty ||
+                body.PaymentEventId == Guid.Empty ||
+                body.AmountCents is < 1 or > 100000000)
+                throw new WebAdminException(400, "pos_refund_request_invalid",
+                    "Select an approved return and verified original payment.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.request_approved_return_refund(@digest,@owner,@return,@payment,@request,@amount)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("return", returnId);
+            command.Parameters.AddWithValue("payment", body.PaymentEventId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            command.Parameters.AddWithValue("amount", body.AmountCents);
+            return await Query(command, ct);
+        }).WithName("RequestAdminPosApprovedReturnRefund");
 
         return endpoints;
     }
