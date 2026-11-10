@@ -60,7 +60,7 @@ public sealed class PostgresParentFamilyQueries(LefteriaDbContext database) : IP
                 LEFT JOIN LATERAL (
                   SELECT * FROM (
                     SELECT DISTINCT ON (id) * FROM children
-                    ORDER BY id COLLATE "C", is_primary DESC
+                    ORDER BY id, is_primary DESC
                   ) unique_children
                   ORDER BY is_primary DESC, id COLLATE "C"
                   LIMIT 101
