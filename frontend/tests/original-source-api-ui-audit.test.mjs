@@ -57,3 +57,25 @@ test('the audit script exists and explicitly separates inventory from runtime pr
   assert.match(script,/operationally_verified:false/);
   assert.match(script,/These counts do not prove runtime/);
 });
+
+test('pinned source inventory enumerates all 39 public routes and 72 admin render labels',()=>{
+  const inventory=readFileSync(new URL('../../docs/implementation/route-parity-inventory.md',
+    import.meta.url),'utf8');
+  function section(name){
+    const start=inventory.indexOf(name);
+    assert.ok(start>=0,name);
+    const end=inventory.indexOf('\\n## ',start+name.length);
+    return inventory.slice(start,end<0?undefined:end);
+  }
+  const tick=String.fromCharCode(96);
+  const pages=section('## Every original public route')
+    .split('\\n').filter(row=>row.startsWith('| ['+tick));
+  const admin=section('## Every original AdminPanel render target')
+    .split('\\n').filter(row=>row.startsWith('| '+tick));
+  assert.equal(pages.length,39);
+  assert.equal(admin.length,72);
+  const script=source('scripts/audit-original-parity.mjs');
+  assert.match(script,/original_route_coverage:originalRouteCoverage/);
+  assert.match(script,/sourcePublicRows/);
+  assert.match(script,/runtime_verified:false/);
+});
