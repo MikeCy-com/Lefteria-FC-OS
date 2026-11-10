@@ -65,7 +65,7 @@ public sealed class GuardianPermissionService(
         {
             var result = await repository.IssueAsync(session, childId, phone.Digits, requestId, ct);
             if (result.Id != requestId || result.PlayerId != childId ||
-                result.Kind != "guardian" || result.Status is not ("pending" or "active"))
+                result.Kind != "guardian" || result.Status is not ("pending" or "accepted_pending_access" or "active"))
                 throw Unavailable();
             return result;
         }
