@@ -82,7 +82,7 @@ public sealed class GuardianPermissionService(
             if (result.Items.Count > 100 ||
                 result.Items.Select(x => x.Id).Distinct().Count() != result.Items.Count ||
                 result.Items.Any(x => x.Kind != "guardian" ||
-                    x.Status is not ("pending" or "active" or "expired") ||
+                    x.Status is not ("pending" or "accepted_pending_access" or "active" or "expired") ||
                     x.PlayerId.Length is < 1 or > 128 ||
                     x.RecipientHint is null || x.RecipientHint.Length != 8 ||
                     !x.RecipientHint.StartsWith("••••", StringComparison.Ordinal) ||
