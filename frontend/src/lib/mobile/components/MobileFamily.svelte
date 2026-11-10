@@ -8,7 +8,7 @@
   type ActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
   type GuardianPermission = {
     id:string;player_id:string;organization_id:string;kind:'guardian';
-    status:'pending'|'active'|'expired';expires_at:string
+    status:'pending'|'active'|'expired';expires_at:string;recipient_hint:string
   };
   type GuardianPermissions = {items:GuardianPermission[]};
 
@@ -256,7 +256,7 @@
             {#each guardianPermissions.items as permission (permission.id)}
               {@const child=family.children.find(item=>item.id===permission.player_id)}
               <article class="family-outgoing-row" data-testid="family-guardian-permission">
-                <strong>{child?.name??'Παιδί'} · Γονέας / Κηδεμόνας</strong>
+                <strong>{child?.name??'Παιδί'} · Γονέας / Κηδεμόνας · {permission.recipient_hint}</strong>
                 <p>{permission.status==='active'?'Ενεργή άδεια':
                   permission.status==='expired'?'Έληξε':'Αναμονή επιβεβαίωσης'}</p>
                 {#if permission.status!=='expired'&&onRevokeGuardianPermission}
