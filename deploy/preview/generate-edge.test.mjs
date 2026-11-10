@@ -4,7 +4,7 @@ import test from 'node:test';
 import { bearerRouteGroups, entryRouteGroups, generateEdge, protectedOperations, publicWebExpression, publicApiExpression, reviewedPublicReads } from './generate-edge.mjs';
 
 const contract = JSON.parse(await readFile(new URL('../../contracts/openapi.json', import.meta.url), 'utf8'));
-const hostname = 'srv1651602.hstgr.cloud';
+const hostname = 'srv1649602.hstgr.cloud';
 const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
@@ -186,7 +186,7 @@ test('ambiguous security, global defaults and unsafe templates fail closed', () 
 
 test('generated edge removes the browser Basic gate and preserves application authentication', () => {
   const output = generateEdge(contract, hostname, digest);
-  assert.match(output, /https:\/\/srv1651602\.hstgr\.cloud:8443/);
+  assert.match(output, /https:\/\/srv1649602\.hstgr\.cloud:8443/);
   assert.match(output, /auto_https off/);
   assert.match(output, /tls \/certificates\/current\/fullchain\.pem \/certificates\/current\/privkey\.pem/);
   assert.doesNotMatch(output, /basic_auth|PREVIEW_GATE_HASH|WWW-Authenticate|header_regexp bearer_/);
