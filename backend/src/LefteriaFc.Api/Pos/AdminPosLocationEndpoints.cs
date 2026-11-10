@@ -15,6 +15,9 @@ public static class AdminPosLocationEndpoints
 {
     public sealed record CreateCityCommand(string? Name);
     public sealed record CreateLocationCommand(string? CityId,string? Name,string? Code);
+    public sealed record AssignProductCommand(bool Enabled,long ExpectedVersion);
+    public sealed record ReceiveStockCommand(
+        string? ProductId,string? VariantId,int Quantity,Guid RequestId);
 
     public static IEndpointRouteBuilder MapAdminPosLocations(this IEndpointRouteBuilder endpoints)
     {
@@ -78,9 +81,72 @@ public static class AdminPosLocationEndpoints
             return await Run(command,ct);
         }).WithName("CreateAdminPosLocation")
           .Accepts<CreateLocationCommand>("application/json");
+        group.MapPut("/locations/{locationId}/products/{productId}",async(
+            string locationId,string productId,string? organization_id,
+            AssignProductCommand body,WebAdminService auth,
+            WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>
+        {
+            var cookie=await Authorize(auth,organization_id,context,true,ct);
+            ValidateIdentity(locationId,80);
+            ValidateIdentity(productId,80);
+            if(body.ExpectedVersion is < -1 or >9007199254740991L)
+                throw new WebAdminException(422,"pos_product_assignment_invalid",
+                    "Provide a valid product assignment version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT pos.write_admin_location_product(
+                  @digest,@owner,@location,@product,@enabled,@expected)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("location",locationId);
+            command.Parameters.AddWithValue("product",productId);
+            command.Parameters.AddWithValue("enabled",body.Enabled);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            return await Run(command,ct);
+        }).WithName("AssignAdminPosLocationProduct")
+          .Accepts<AssignProductCommand>("application/json");
+
+        group.MapPost("/locations/{locationId}/stock",async(
+            string locationId,string? organization_id,ReceiveStockCommand body,
+            WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>
+        {
+            var cookie=await Authorize(auth,organization_id,context,true,ct);
+            ValidateIdentity(locationId,80);
+            ValidateIdentity(body.ProductId,80);
+            ValidateIdentity(body.VariantId,60);
+            if(body.Quantity is <1 or >100000 || body.RequestId==Guid.Empty)
+                throw new WebAdminException(422,"pos_stock_receipt_invalid",
+                    "Use valid quantity and unique receiving request.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT pos.receive_admin_stock(
+                  @digest,@owner,@location,@product,@variant,@quantity,@request)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("location",locationId);
+            command.Parameters.AddWithValue("product",body.ProductId!);
+            command.Parameters.AddWithValue("variant",body.VariantId!);
+            command.Parameters.AddWithValue("quantity",body.Quantity);
+            command.Parameters.AddWithValue("request",body.RequestId);
+            return await Run(command,ct);
+        }).WithName("ReceiveAdminPosStock")
+          .Accepts<ReceiveStockCommand>("application/json");
+
         return endpoints;
     }
 
+    private static void ValidateIdentity(string? id,int maxLength)
+    {
+        if(id is null || id.Length is <1 or >80 || id.Length>maxLength ||
+           !System.Text.RegularExpressions.Regex.IsMatch(
+             id,@"\\A[A-Za-z0-9_-]+\\z"))
+            throw new WebAdminException(422,"pos_identity_invalid",
+                "Select a valid location, product or variant.");
+    }
     private static void ValidateName(string? name)
     {
         if(string.IsNullOrWhiteSpace(name) || name.Length>100 ||
