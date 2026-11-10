@@ -22,6 +22,10 @@ test('sale pricing is snapshotted in integer cents with idempotent checkout',()=
  assert.match(guards,/v_lines<>NEW.subtotal_cents/);
  assert.match(guards,/v_total<>NEW.total_cents/);
  assert.match(guards,/pos_sale_lines_immutable/);
+ assert.match(guards,/pos_sale_line_server_price/);
+ assert.match(guards,/client_price_or_snapshot_not_authoritative/);
+ assert.match(guards,/v_variant.price_cents/);
+ assert.match(guards,/v_variant.cost_cents/);
  assert.match(guards,/sale_financial_snapshot_immutable/);
 });
 test('card verification requires evidence, receipt demands reconciled paid sale',()=>{
