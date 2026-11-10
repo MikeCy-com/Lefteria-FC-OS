@@ -72,7 +72,7 @@ try {
     assert.match(recovery, /Φόρτωση ξανά/);
     assert.doesNotMatch(recovery, /Internal Error|password_hash|twilio_auth_token/);
   }
-  for (const [pathname,target] of [['/fixtures','/team?tab=results'],['/calendar','/team?tab=schedule'],['/venues','/team?tab=venues'],['/staff','/team?tab=staff']]) {
+  for (const [pathname,target] of [['/fixtures','/team?tab=results'],['/calendar','/team?tab=schedule'],['/venues','/team?tab=venues'],['/staff','/team?tab=overview']]) {
     const legacy = await fetch(origin + pathname, {redirect:'manual'});
     assert.equal(legacy.status,308); assert.equal(legacy.headers.get('location'),target);
   }
