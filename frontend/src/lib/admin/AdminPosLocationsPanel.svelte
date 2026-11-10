@@ -6,8 +6,9 @@
     active:boolean;version:number;
     products:{product_id:string;enabled:boolean;version:number;available_units:number}[]};
   type Directory={organization_id:Owner;cities:City[];locations:Location[]};
-  let {owner,actorId,canWrite,onExpired,onRevoked}:{
-    owner:Owner;actorId:string;canWrite:boolean;
+  type CatalogProduct={id:string;name:string;active:boolean;variants:{id:string;name:string}[]};
+  let {owner,actorId,canWrite,products,onExpired,onRevoked}:{
+    owner:Owner;actorId:string;canWrite:boolean;products:CatalogProduct[];
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
   let directory=$state<Directory|null>(null);
@@ -22,6 +23,17 @@
   let locationCode=$state('');
   let showCity=$state(false);
   let showLocation=$state(false);
+  let selectedLocation=$state('');
+  let selectedProduct=$state('');
+  let selectedVariant=$state('');
+  let stockQuantity=$state('1');
+  let stockRequestId=$state('');
+  let stockBusy=$state(false);
+  let assignmentBusy=$state(false);
+  const activeProducts=$derived(products.filter(p=>p.active));
+  const chosenLocation=$derived(directory?.locations.find(x=>x.id===selectedLocation));
+  const chosenProduct=$derived(activeProducts.find(x=>x.id===selectedProduct));
+  const currentAssignment=$derived(chosenLocation?.products.find(x=>x.product_id===selectedProduct));
   const validId=(x:unknown)=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(x);
   function verified(value:unknown,expected:Owner):value is Directory{
     if(!value||typeof value!=='object'||Array.isArray(value))return false;
@@ -76,6 +88,10 @@
           directory=raw;
           if(!raw.cities.some(c=>c.id===locationCity && c.active))
             locationCity=raw.cities.find(c=>c.active)?.id??'';
+          if(!raw.locations.some(l=>l.id===selectedLocation&&l.active))
+            selectedLocation=raw.locations.find(l=>l.active)?.id??'';
+          if(!activeProducts.some(p=>p.id===selectedProduct))
+            selectedProduct=activeProducts[0]?.id??'';
         }
       }catch(e){
         if(!controller.signal.aborted)error=e instanceof Error?e.message:'Σφάλμα τοποθεσιών.';
@@ -124,6 +140,82 @@
       if(owner===selectedOwner&&actorId===selectedActor)
         error=e instanceof Error?e.message:'Αποτυχία αποθήκευσης.';
     }finally{saving=false;}
+  }
+
+  async function assignProduct(){
+    if(!browser||!canWrite||!directory||assignmentBusy||!chosenLocation||
+      !chosenProduct)return;
+    const expectedOwner=owner,expectedActor=actorId;
+    const expectedLocation=selectedLocation,expectedProduct=selectedProduct;
+    const expectedVersion=currentAssignment?.version??-1;
+    const enabled=!(currentAssignment?.enabled??false);
+    assignmentBusy=true;error='';
+    try{
+      const response=await fetch('/api/admin/pos/locations/'+encodeURIComponent(expectedLocation)+
+        '/products/'+encodeURIComponent(expectedProduct)+'?'+
+        new URLSearchParams({organization_id:expectedOwner}),{
+        method:'PUT',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({enabled,expected_version:expectedVersion})
+      });
+      if(owner!==expectedOwner||actorId!==expectedActor)return;
+      if(response.status===401){onExpired();return;}
+      if(response.status===403){onRevoked();return;}
+      if(!response.ok)throw new Error(response.status===409?
+        'Το προϊόν άλλαξε. Ανανεώστε τη λίστα.':'Δεν ενημερώθηκε η διαθεσιμότητα.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        (raw as Record<string,unknown>).organization_id!==expectedOwner||
+        (raw as Record<string,unknown>).location_id!==expectedLocation||
+        (raw as Record<string,unknown>).product_id!==expectedProduct||
+        (raw as Record<string,unknown>).enabled!==enabled)
+        throw new Error('Μη επαληθευμένη αποθήκευση.');
+      refresh++;
+    }catch(e){error=e instanceof Error?e.message:'Σφάλμα ανάθεσης προϊόντος.';}
+    finally{assignmentBusy=false;}
+  }
+  async function receiveStock(){
+    if(!browser||!canWrite||!directory||stockBusy||!chosenLocation||
+      !chosenProduct||!currentAssignment?.enabled||
+      !chosenProduct.variants.some(v=>v.id===selectedVariant))return;
+    const quantity=Number(stockQuantity);
+    if(!/^\d{1,6}$/.test(stockQuantity)||!Number.isSafeInteger(quantity)||
+      quantity<1||quantity>100000){
+      error='Η παραλαβή πρέπει να είναι από 1 έως 100000 τεμάχια.';return;
+    }
+    if(!stockRequestId)stockRequestId=crypto.randomUUID();
+    const expectedOwner=owner,expectedActor=actorId;
+    const expectedLocation=selectedLocation,expectedProduct=selectedProduct;
+    const expectedVariant=selectedVariant;
+    stockBusy=true;error='';
+    try{
+      const response=await fetch('/api/admin/pos/locations/'+encodeURIComponent(expectedLocation)+
+        '/stock?'+new URLSearchParams({organization_id:expectedOwner}),{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({
+          product_id:expectedProduct,variant_id:expectedVariant,
+          quantity,request_id:stockRequestId
+        })
+      });
+      if(owner!==expectedOwner||actorId!==expectedActor)return;
+      if(response.status===401){onExpired();return;}
+      if(response.status===403){onRevoked();return;}
+      if(!response.ok)throw new Error(response.status===409?
+        'Η παραλαβή έχει σύγκρουση με άλλη καταχώριση.':
+        'Η παραλαβή δεν καταχωρίστηκε.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        (raw as Record<string,unknown>).organization_id!==expectedOwner||
+        (raw as Record<string,unknown>).location_id!==expectedLocation||
+        (raw as Record<string,unknown>).product_id!==expectedProduct||
+        (raw as Record<string,unknown>).variant_id!==expectedVariant||
+        (raw as Record<string,unknown>).quantity!==quantity||
+        !Number.isSafeInteger((raw as Record<string,unknown>).after_quantity))
+        throw new Error('Μη επαληθευμένη παραλαβή.');
+      stockRequestId='';stockQuantity='1';refresh++;
+    }catch(e){error=e instanceof Error?e.message:'Σφάλμα παραλαβής.';}
+    finally{stockBusy=false;}
   }
 </script>
 
@@ -186,6 +278,53 @@
           <button class="admin-secondary" type="submit" disabled={saving}>Δημιουργία σημείου</button>
         </form>
       {/if}
+
+    {#if canWrite&&directory.locations.some(l=>l.active)&&activeProducts.length}
+      <div class="pos-stock-tools" data-testid="admin-pos-stock-tools">
+        <h3>Προϊόντα ανά σημείο & παραλαβή αποθέματος</h3>
+        <p class="admin-muted">Η παραλαβή καταγράφει αύξηση αποθέματος. Δεν δημιουργεί πώληση ή είσπραξη.</p>
+        <label>Σημείο
+          <select bind:value={selectedLocation} onchange={()=>{stockRequestId='';}}>
+            {#each directory.locations.filter(l=>l.active) as location (location.id)}
+              <option value={location.id}>{location.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label>Προϊόν
+          <select bind:value={selectedProduct}
+            onchange={()=>{selectedVariant='';stockRequestId='';}}>
+            {#each activeProducts as product (product.id)}
+              <option value={product.id}>{product.name}</option>
+            {/each}
+          </select>
+        </label>
+        <p class="admin-muted">Στο σημείο: {currentAssignment?.enabled?'Ενεργό':'Μη ενεργό'}</p>
+        <button type="button" class="admin-secondary"
+          disabled={assignmentBusy||!chosenProduct||!chosenLocation}
+          onclick={()=>void assignProduct()}>
+          {currentAssignment?.enabled?'Απενεργοποίηση προϊόντος':'Ενεργοποίηση προϊόντος στο σημείο'}
+        </button>
+        {#if currentAssignment?.enabled&&chosenProduct}
+          <form class="pos-location-form" onsubmit={e=>{e.preventDefault();void receiveStock();}}>
+            <label>Παραλλαγή
+              <select bind:value={selectedVariant} onchange={()=>{stockRequestId='';}} required>
+                <option value="">Επιλέξτε</option>
+                {#each chosenProduct.variants as variant (variant.id)}
+                  <option value={variant.id}>{variant.name}</option>
+                {/each}
+              </select>
+            </label>
+            <label>Τεμάχια
+              <input type="number" min="1" max="100000" step="1"
+                bind:value={stockQuantity} oninput={()=>stockRequestId=''} required/>
+            </label>
+            <button type="submit" class="admin-secondary" disabled={stockBusy}>
+              {stockBusy?'Καταχώριση…':'Καταχώριση παραλαβής'}
+            </button>
+          </form>
+        {/if}
+      </div>
+    {/if}
     {/if}
   {/if}
 </section>
@@ -199,4 +338,7 @@
   .pos-location-form label{display:grid;gap:6px;font-size:13px}
   .pos-location-form input,.pos-location-form select{padding:9px;background:#171717;color:#fff;border:1px solid #545454;border-radius:8px}
   .pos-error{color:#e5a77b}
+  .pos-stock-tools{margin-top:15px;padding:15px;border:1px solid #444;border-radius:10px;display:grid;gap:10px}
+  .pos-stock-tools label{display:grid;gap:6px}
+  .pos-stock-tools select,.pos-stock-tools input{background:#171717;border:1px solid #555;border-radius:8px;color:#fff;padding:9px}
 </style>
