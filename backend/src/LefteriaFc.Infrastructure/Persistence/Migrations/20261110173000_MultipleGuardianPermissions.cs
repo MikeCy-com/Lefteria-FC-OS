@@ -50,7 +50,7 @@ public sealed class MultipleGuardianPermissions : Migration
       RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $issue$
       DECLARE
-        v_owner text; v_source uuid;
+        v_owner text; v_source uuid; v_depth integer;
         v_existing identity.family_guardian_permissions%ROWTYPE;
         v_now timestamptz:=statement_timestamp();
       BEGIN
@@ -91,6 +91,25 @@ public sealed class MultipleGuardianPermissions : Migration
           ORDER BY granted.permission_id LIMIT 1;
           IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
             USING ERRCODE='42501'; END IF;
+        END IF;
+
+        -- The read scope has a 20-hop limit. Do not create a deeper
+        -- recorded permission that could never become authorized.
+        IF v_source IS NOT NULL THEN
+          WITH RECURSIVE ancestry(id,parent_id,path,depth) AS (
+            SELECT id,source_permission_id,ARRAY[id],1
+            FROM identity.family_guardian_permissions WHERE id=v_source
+            UNION ALL
+            SELECT parent.id,parent.source_permission_id,
+              ancestry.path||parent.id,ancestry.depth+1
+            FROM ancestry JOIN identity.family_guardian_permissions parent
+              ON parent.id=ancestry.parent_id
+            WHERE ancestry.depth<20 AND NOT parent.id=ANY(ancestry.path)
+          )
+          SELECT max(depth) INTO v_depth FROM ancestry;
+          IF coalesce(v_depth,20)>=20 THEN
+            RAISE EXCEPTION 'guardian_permission_lineage_limit'
+              USING ERRCODE='54000'; END IF;
         END IF;
 
         -- Multiple recipients for one player are allowed, but never
