@@ -20,7 +20,7 @@ test('sale is prepared only for an authorized cashier and open shift',()=>{
   assert.match(checkout,/register_id=_register AND cashier_id=v_actor FOR UPDATE/);
   assert.match(checkout,/v_shift.closed_at IS NOT NULL/);
   assert.match(checkout,/r.is_active FOR SHARE/);
-  assert.match(checkout,/UNIQUE/); // unique replay belongs to the index/constraint migration
+  assert.match(checkout,/checkout_replay_mismatch/);
 });
 test('cart validation disallows price injection, unknown shapes, duplicate variants',()=>{
   assert.match(checkout,/jsonb_array_length\(_items\) NOT BETWEEN 1 AND 30/);
