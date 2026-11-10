@@ -40,7 +40,9 @@ and 72 render labels are not necessarily 72 distinct screens. The audit runner
 now enumerates the OS page and API declarations at its current checkout,
 while the full source-to-OS operation-level mapping remains open.
 
-The static inventory script now parses and preserves **every one of the 39 pinned original public paths** and **all 72 original AdminPanel labels**, and checks route-shape presence separately from runtime equivalence. It also reads the pinned Python API source-file family table; **full operation-level method/DTO/permission parity is still pending**.\n\nThis prevents claiming “every endpoint verified” from a rough count or from
+The static inventory script now parses and preserves **every one of the 39 pinned original public paths** and **all 72 original AdminPanel labels**, and checks route-shape presence separately from runtime equivalence. It also reads the pinned Python API source-file family table; **full operation-level method/DTO/permission parity is still pending**.
+
+This prevents claiming “every endpoint verified” from a rough count or from
 viewing an admin menu. The acceptance unit is an actual original workflow:
 HTTP verb, mounted path, request schema, role/org/relationship eligibility,
 response states, mutation effect and user-visible confirmation.
