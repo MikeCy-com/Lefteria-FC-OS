@@ -8,7 +8,8 @@ BEGIN
   FOREACH name IN ARRAY ARRAY[
     'locations','registers','cashier_assignments','shifts','stock','sales',
     'sale_lines','payment_events','receipt_sequences','receipts','returns',
-    'return_lines','refund_events','transaction_audit','checkout_policies','sale_reservations'
+    'return_lines','refund_events','transaction_audit','checkout_policies','sale_reservations',
+    'vat_treatments','variant_vat_assignments','payabl_notification_inbox'
   ] LOOP
     IF NOT EXISTS(
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -69,6 +70,27 @@ BEGIN
           WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
     )
   ) THEN RAISE EXCEPTION 'pos_cash_tender_or_report_unrestricted'; END IF;
+  IF EXISTS(SELECT 1 FROM pos.vat_treatments WHERE enabled)
+  THEN RAISE EXCEPTION 'pos_vat_treatments_unreviewed'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_indexes
+    WHERE schemaname='pos' AND indexname='uq_pos_return_review_request')
+  THEN RAISE EXCEPTION 'pos_return_review_replay_index_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_trigger
+    WHERE tgrelid='pos.payabl_notification_inbox'::regclass
+      AND tgname='pos_payabl_inbox_immutable' AND NOT tgisinternal)
+  THEN RAISE EXCEPTION 'pos_payabl_inbox_mutation_guard_missing'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos.request_assigned_cashier_return(text,text,uuid,uuid,text,jsonb)'::regprocedure,
+      'pos.review_cashier_return(text,text,uuid,uuid,boolean)'::regprocedure,
+      'pos.read_assigned_cashier_receipt(text,text,uuid)'::regprocedure
+    ) AND (
+      NOT p.prosecdef OR EXISTS (
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+          WHERE a.grantee=0 AND a.privilege_type='EXECUTE')
+    )
+  ) THEN RAISE EXCEPTION 'pos_return_or_receipt_function_exposed'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
