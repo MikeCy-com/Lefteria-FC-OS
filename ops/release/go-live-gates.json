@@ -3,8 +3,8 @@
   "source_snapshot": "MikeCy-com/Lefteria-FC@91eafcc9efd01ad177b4f13a869cd5af7041e5b2",
   "target_repository": "MikeCy-com/Lefteria-FC-OS",
   "default_release_status": "BLOCKED",
-  "audited_at": "2026-11-09",
-  "notes": "A source snapshot is not proof of the live VPS revision. No status is approved/verified. For release, every blocking gate needs exact release SHA and evidence.",
+  "audited_at": "2026-11-10",
+  "notes": "A source snapshot is not proof of the live VPS revision. No status is approved/verified. All four POS+payments phases form one conjunctive release gate; upstream constituent gates remain blocked until evidence at an exact SHA. No production deployment.",
   "gates": [
     {
       "id": "api-ci",
@@ -59,6 +59,21 @@
       "evidence": [],
       "release_sha": null,
       "verified_at": null
+    },
+    {
+      "id": "pos-payments-unified",
+      "description": "Single conjunctive POS+payments milestone: sandbox Payabl capture/refund, operational cashier/stock, approved Cyprus VAT/fiscal receipts, parent/app/website charge allocation and finance posting, exact-SHA end-to-end tests",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null,
+      "requires": [
+        "payabl-and-sms",
+        "finance-reconciliation",
+        "pos-and-shop",
+        "api-ci"
+      ]
     },
     {
       "id": "pos-and-shop",
