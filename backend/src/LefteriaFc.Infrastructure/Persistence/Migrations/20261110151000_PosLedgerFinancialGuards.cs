@@ -178,7 +178,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
       DECLARE
         v_return pos.returns%ROWTYPE; v_payment pos.payment_events%ROWTYPE;
-        v_refunded bigint;
+        v_refunded bigint; v_returned_cents bigint; v_return_refunds bigint;
       BEGIN
         SELECT * INTO v_return FROM pos.returns
           WHERE organization_id=NEW.organization_id AND id=NEW.return_id FOR UPDATE;
@@ -193,8 +193,22 @@ public sealed class PosLedgerFinancialGuards : Migration
         END IF;
         SELECT coalesce(sum(amount_cents),0) INTO v_refunded FROM pos.refund_events
           WHERE payment_event_id=NEW.payment_event_id AND status IN ('pending','verified');
-        IF v_refunded+NEW.amount_cents>v_payment.amount_cents THEN
-          RAISE EXCEPTION 'refund_exceeds_verified_payment' USING ERRCODE='23514';
+        SELECT coalesce(sum(l.quantity::bigint*s.unit_price_cents),0)
+          INTO v_returned_cents
+          FROM pos.return_lines l
+          JOIN pos.sale_lines s ON s.sale_id=l.sale_id
+            AND s.line_number=l.sale_line_number
+          WHERE l.organization_id=NEW.organization_id
+            AND l.return_id=NEW.return_id AND l.sale_id=v_return.sale_id;
+        SELECT coalesce(sum(amount_cents),0) INTO v_return_refunds
+          FROM pos.refund_events
+          WHERE organization_id=NEW.organization_id
+            AND return_id=NEW.return_id
+            AND status IN ('pending','verified');
+        IF v_refunded+NEW.amount_cents>v_payment.amount_cents
+           OR v_return_refunds+NEW.amount_cents>v_returned_cents THEN
+          RAISE EXCEPTION 'refund_exceeds_verified_payment_or_return_value'
+            USING ERRCODE='23514';
         END IF;
         RETURN NEW;
       END $$;
