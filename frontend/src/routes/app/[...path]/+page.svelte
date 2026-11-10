@@ -122,7 +122,7 @@
             onLoadFamily={() => controller.loadFamily()}
             onLoadCalendar={(month, childId) => controller.loadCalendar(month, childId)}
             onChildren={() => openTab('children')}
-            onEducation={() => openTab('education')}
+            onEducation={() => openTab('hub')
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'profile' && !composing}
@@ -161,8 +161,10 @@
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
         {/if}
-      {:else if activeTab === 'education' && role === 'parent' && !composing}
-        <MobileAcademyEducation />
+      {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
+        {#key user.id+':'+role}
+          <MobileAcademyEducation viewerRole={role} />
+        {/key}
       {:else if activeTab === 'children' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}
           <MobileFamily family={$controller.family} status={$controller.familyStatus}
