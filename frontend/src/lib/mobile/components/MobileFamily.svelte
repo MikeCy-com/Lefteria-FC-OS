@@ -64,18 +64,42 @@
   let confirmingId = $state<string | null>(null);
   let confirmingRevokeId = $state<string | null>(null);
 
+  // One child is automatically selected. Each additional child can
+  // be granted separately, or all children can be selected together for
+  // the same second parent. Individual records remain revocable.
+  const resolvedChild=$derived(family?.children.length===1
+    ? family.children[0].id : permissionChild);
+  let submitting=$state(false);
   async function createPermission() {
-    if (!onCreatePermission || guardianPending || busy || !family ||
-      !family.children.some(child=>child.id===permissionChild) ||
-      !/^\+?[0-9 ()-]{8,24}$/.test(permissionPhone))return;
-    const id=requestId||crypto.randomUUID();
-    requestId=id;permissionNotice='';
-    const ok=await onCreatePermission(
-      permissionChild,permissionType,permissionPhone,id);
-    if(ok){
-      permissionPhone='';requestId='';
-      permissionNotice='Το αίτημα καταχωρίστηκε. Δεν παρέχεται πρόσβαση χωρίς επαλήθευση και αποδοχή.';
-    }
+    if (!onCreatePermission || guardianPending || submitting || busy || !family ||
+      !/^\+?[0-9 ()-]{8,24}$/.test(permissionPhone)) return;
+    const children=permissionType==='guardian'&&resolvedChild==='all'
+      ?family.children
+      :family.children.filter(child=>child.id===resolvedChild);
+    if(children.length===0)return;
+    submitting=true;permissionNotice='';
+    let completed=0;
+    try{
+      for(const child of children){
+        // A stable ID is retained for retries of the first child. Bulk
+        // grants stop on failure and never report partial success as complete.
+        const id=children.length===1?(requestId||crypto.randomUUID()):crypto.randomUUID();
+        if(children.length===1)requestId=id;
+        const ok=await onCreatePermission(
+          child.id,permissionType,permissionPhone,id);
+        if(!ok)break;
+        completed++;
+      }
+      if(completed===children.length){
+        permissionPhone='';requestId='';
+        permissionNotice=permissionType==='player'
+          ?'Η άδεια παίκτη καταχωρίστηκε για το επιλεγμένο παιδί.'
+          :'Οι άδειες κηδεμόνα καταχωρίστηκαν για τα επιλεγμένα παιδιά. Ο παραλήπτης πρέπει να συνδεθεί με επαληθευμένο κινητό.';
+      }else if(completed>0){
+        permissionNotice=`Καταχωρίστηκαν ${completed} από ${children.length} άδειες. Ελέγξτε τη λίστα πριν επαναλάβετε.`;
+        requestId='';
+      }
+    }finally{submitting=false;}
   }
   async function confirmGuardianRevoke(id:string){
     if(!onRevokeGuardianPermission||guardianRevokingId)return;
@@ -151,36 +175,43 @@
         <p>Πρόσθεσε ξεχωριστή πρόσβαση για παιδί ή δεύτερο γονέα / κηδεμόνα.</p>
         <form class="family-permission-fields"
           onsubmit={(e)=>{e.preventDefault();void createPermission();}}>
-          <label>Παιδί
-            <select bind:value={permissionChild} disabled={busy||guardianPending} required
-              onchange={()=>{requestId='';permissionNotice='';}}>
-              <option value="">Επίλεξε παιδί</option>
-              {#each family.children as child (child.id)}
-                <option value={child.id}>{child.name}</option>
-              {/each}
-            </select>
-          </label>
           <label>Δώσε άδεια σε
-            <select bind:value={permissionType} disabled={busy||guardianPending}
-              onchange={()=>{requestId='';permissionNotice='';}}>
-              <option value="player">Παίκτη — μόνο το προφίλ του</option>
+            <select bind:value={permissionType} disabled={busy||guardianPending||submitting}
+              onchange={()=>{permissionChild='';requestId='';permissionNotice='';}}>
+              <option value="player">Παίκτη — μόνο το δικό του προφίλ</option>
               <option value="guardian">Γονέα / Κηδεμόνα</option>
             </select>
           </label>
+          {#if family.children.length===1}
+            <p class="family-single-child">Παιδί: <strong>{family.children[0].name}</strong></p>
+          {:else}
+            <label>Επίλεξε παιδί
+              <select bind:value={permissionChild} disabled={busy||guardianPending||submitting}
+                required onchange={()=>{requestId='';permissionNotice='';}}>
+                <option value="">Επίλεξε παιδί</option>
+                {#if permissionType==='guardian'}
+                  <option value="all">Όλα τα παιδιά μου</option>
+                {/if}
+                {#each family.children as child (child.id)}
+                  <option value={child.id}>{child.name}</option>
+                {/each}
+              </select>
+            </label>
+          {/if}
           <label>Αριθμός κινητού με κωδικό χώρας
             <input type="tel" autocomplete="tel" inputmode="tel"
               bind:value={permissionPhone} maxlength="24" required
-              placeholder="+357 99 123456" disabled={busy||guardianPending}
+              placeholder="+357 99 123456" disabled={busy||guardianPending||submitting}
               oninput={()=>{requestId='';permissionNotice='';}}/>
           </label>
-          <button type="submit" disabled={busy||guardianPending||
-            !permissionChild||!permissionPhone.trim()}>
-            {guardianPending?'Καταχώριση…':'Δώσε άδεια'}
+          <button type="submit" disabled={busy||guardianPending||submitting||
+            !resolvedChild||!permissionPhone.trim()}>
+            {guardianPending||submitting?'Καταχώριση…':'Δώσε άδεια'}
           </button>
         </form>
-        <p>Η πρόσκληση παίκτη αφορά μόνο τον συγκεκριμένο αθλητή.
-          Ο δεύτερος γονέας θα έχει πρόσβαση στα ίδια στοιχεία παιδιού
-          μόνο μετά από επαλήθευση και ενεργοποίηση του ρόλου κηδεμόνα.</p>
+        <p>Ο παίκτης βλέπει μόνο το δικό του προφίλ. Η άδεια γονέα
+          αφορά μόνο τα παιδιά που επιλέχθηκαν. Το κινητό του παραλήπτη
+          επαληθεύεται κατά τη σύνδεσή του στην εφαρμογή.</p>
         {#if permissionNotice}<p role="status">{permissionNotice}</p>{/if}
         {#if guardianError}<p role="alert">{guardianError}</p>{/if}
       </section>
