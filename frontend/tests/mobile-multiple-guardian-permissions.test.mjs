@@ -28,6 +28,10 @@ test('issuing guardian request rechecks live canonical guardian and active child
   assert.match(db,/FOR SHARE OF i,l,b,p/);
   assert.match(db,/pg_advisory_xact_lock/);
   assert.match(db,/guardian_permission_replay_mismatch/);
+  assert.match(db,/guardian_recipient_role_conflict/);
+  assert.match(db,/c.kind='player_own' AND c.normalized_phone=_target/);
+  assert.match(db,/i.role IN \('player','coach','management'\)/);
+  assert.match(db,/status='pending' AND expires_at<=v_now/);
   assert.match(service,/AuthorizeCurrentIdentityAsync/);
   assert.match(service,/MobileAuthThrottleScope.FamilyInvitationTarget/);
   assert.match(service,/phone.Digits == session.NormalizedPhone/);
