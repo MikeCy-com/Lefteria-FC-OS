@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AcademyLeadFollowUpCommand": {
+        "properties": {
+          "expected_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "next_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_status",
+          "next_status"
+        ],
+        "type": "object"
+      },
       "AdminAnnouncementDraftCommand": {
         "properties": {
           "body": {
@@ -8082,6 +8103,110 @@
         ]
       }
     },
+    "/api/admin/crm/academy/leads": {
+      "get": {
+        "operationId": "ReadAdminAcademyLeads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy CRM"
+        ]
+      }
+    },
+    "/api/admin/crm/academy/leads/{leadId}/status": {
+      "post": {
+        "operationId": "UpdateAdminAcademyLeadStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "leadId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyLeadFollowUpCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy CRM"
+        ]
+      }
+    },
     "/api/admin/football/assignments": {
       "put": {
         "operationId": "PutAdminRosterAssignment",
@@ -15882,6 +16007,9 @@
     },
     {
       "name": "Club settings"
+    },
+    {
+      "name": "Academy CRM"
     }
   ]
 }
