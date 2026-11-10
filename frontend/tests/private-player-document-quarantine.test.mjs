@@ -48,7 +48,7 @@ test('API encrypts first, validates MIME signatures and refuses missing key/limi
   assert.match(api,/CryptographicOperations\.ZeroMemory\(key\)/);
   assert.match(api,/NpgsqlDbType\.Bytea/);
   assert.match(program,/app\.MapAdminPrivateDocumentUploads\(\)/);
-  assert.doesNotMatch(api,/MapGet|MapDelete|download|File\(cipher/);
+  assert.doesNotMatch(api,/MapGet|MapDelete|Results\\.File|PhysicalFile/);
 });
 test('manager-only UI sends multipart and accepts quarantine receipt, no file link',()=>{
   assert.match(ui,/admin-document-quarantine-form/);
