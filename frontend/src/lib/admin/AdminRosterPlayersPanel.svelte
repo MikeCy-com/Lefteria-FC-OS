@@ -7,8 +7,8 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,allowPrivate,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;
+  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
@@ -249,7 +249,7 @@
             </div>
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
               <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                playerName={player.name} {actorId} {onExpired} {onRevoked}/>
+                playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {onExpired} {onRevoked}/>
             {/if}
           </li>
         {/each}
