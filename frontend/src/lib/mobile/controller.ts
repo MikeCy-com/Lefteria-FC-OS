@@ -25,6 +25,30 @@ type LoginResult = components['schemas']['MobileVerificationResultMobileLoginRes
 type Family = components['schemas']['ParentFamilyResult'];
 type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
+type GuardianPermission = {
+  id:string;player_id:string;organization_id:string;kind:'guardian';
+  status:'pending'|'active'|'expired';expires_at:string;
+};
+type GuardianPermissionPage = {items:GuardianPermission[]};
+const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function validGuardianPage(raw:unknown,children:Family['children']):raw is GuardianPermissionPage {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!('items' in raw)||
+    !Array.isArray(raw.items)||raw.items.length>100)return false;
+  const ids=new Set<string>();
+  return raw.items.every((v:unknown)=>{
+    if(!v||typeof v!=='object'||Array.isArray(v))return false;
+    const p=v as Record<string,unknown>;
+    if(typeof p.id!=='string'||!uuidPattern.test(p.id)||ids.has(p.id))return false;
+    ids.add(p.id);
+    return p.kind==='guardian'&&
+      (p.status==='pending'||p.status==='active'||p.status==='expired')&&
+      typeof p.player_id==='string'&&
+      typeof p.organization_id==='string'&&
+      children.some(ch=>ch.id===p.player_id&&ch.organization_id===p.organization_id)&&
+      typeof p.expires_at==='string'&&!Number.isNaN(Date.parse(p.expires_at));
+  });
+}
+
 type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
 type DelegationAvailability = components['schemas']['FamilyDelegationAvailabilityDto'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
@@ -65,6 +89,11 @@ export interface MobileAuthState {
   familyRevokingPlayerId: string | null;
   familyRevokeError: string | null;
   familyRevokeSuccess: string | null;
+  guardianPermissions: GuardianPermissionPage | null;
+  guardianStatus: 'idle'|'loading'|'ready'|'error';
+  guardianError: string | null;
+  guardianPending: boolean;
+  guardianRevokingId: string | null;
   outgoingInvitations: OutgoingInvitations | null;
   outgoingStatus: 'idle' | 'loading' | 'ready' | 'error';
   outgoingError: string | null;
@@ -136,6 +165,8 @@ export function createMobileAuthController(options: {
     family: null, familyStatus: 'idle', familyError: null,
     activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null,
     familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
+    guardianPermissions:null,guardianStatus:'idle',guardianError:null,
+    guardianPending:false,guardianRevokingId:null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
@@ -157,6 +188,7 @@ export function createMobileAuthController(options: {
   let familyRevision = 0;
   let activeFamilyRevision = 0;
   let outgoingRevision = 0;
+  let guardianRevision = 0;
   let recipientRevision = 0;
   let delegationRevision = 0;
   let delegatedCalendarRevision = 0;
@@ -200,6 +232,9 @@ export function createMobileAuthController(options: {
     ++familyRevision;
     ++activeFamilyRevision;
     clearOutgoingInvitations();
+    ++guardianRevision;
+    update({guardianPermissions:null,guardianStatus:'idle',guardianError:null,
+      guardianPending:false,guardianRevokingId:null});
     update({ family: null, familyStatus: 'idle', familyError: null,
       familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
       activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null });
@@ -636,6 +671,84 @@ export function createMobileAuthController(options: {
       } else update({familyRevokingPlayerId: null,
         familyRevokeError: error instanceof ApiFailure && error.status === 404
           ? 'Δεν υπάρχει ενεργή οικογενειακή πρόσβαση για ανάκληση.' : message(error)});
+      return false;
+    }
+  }
+
+  async function loadGuardianPermissions() {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||!identity?.current_role_available||
+      identity.role!=='parent'||!token||state.familyStatus!=='ready'||!family||
+      state.guardianStatus==='loading')return false;
+    const op=++guardianRevision;
+    const current=()=>op===guardianRevision&&state.user?.id===identity.id&&
+      state.user?.role==='parent'&&state.family===family&&state.status==='authenticated';
+    update({guardianPermissions:null,guardianStatus:'loading',guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions');
+      if(!current())return false;
+      if(!validGuardianPage(raw,family.children))throw Error('Μη έγκυρα δικαιώματα οικογένειας.');
+      update({guardianPermissions:raw,guardianStatus:'ready',guardianError:null});
+      return true;
+    }catch(e){
+      if(current())update({guardianPermissions:null,guardianStatus:'error',guardianError:message(e)});
+      return false;
+    }
+  }
+
+  async function createFamilyPermission(playerId:string,kind:'player'|'guardian',
+    phone:string,requestId:string) {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||state.familyStatus!=='ready'||
+      !family.children.some(ch=>ch.id===playerId)||!uuidPattern.test(requestId)||
+      !/^\+?[0-9 ()-]{8,24}$/.test(phone)||state.guardianPending)return false;
+    const op=guardianRevision,linked=familyRevision;
+    const current=()=>op===guardianRevision&&linked===familyRevision&&
+      state.user?.id===identity.id&&state.family===family&&state.status==='authenticated';
+    update({guardianPending:true,guardianError:null});
+    try{
+      const path='/api/mobile/family/children/'+encodeURIComponent(playerId)+
+        (kind==='guardian'?'/guardian-permissions':'/invitations');
+      const raw=await chatRequest(path,'POST',kind==='guardian'?
+        {phone,requestId}:{phone});
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('id' in raw)||
+        typeof raw.id!=='string'||!uuidPattern.test(raw.id)||
+        !('status' in raw)||raw.status!=='pending'||
+        (kind==='guardian'&&raw.id!==requestId))
+        throw Error('Η καταχώριση της πρόσκλησης δεν επαληθεύτηκε.');
+      update({guardianPending:false});
+      if(kind==='guardian')await loadGuardianPermissions();
+      else await loadOutgoingInvitations();
+      return true;
+    }catch(e){
+      if(current())update({guardianPending:false,guardianError:message(e)});
+      return false;
+    }
+  }
+
+  async function revokeGuardianPermission(id:string) {
+    const identity=state.user,family=state.family,listed=state.guardianPermissions;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||!listed||
+      !uuidPattern.test(id)||!listed.items.some(p=>p.id===id)||
+      state.guardianPending||state.guardianRevokingId)return false;
+    const op=guardianRevision;
+    const current=()=>op===guardianRevision&&state.user?.id===identity.id&&
+      state.family===family&&state.status==='authenticated';
+    update({guardianRevokingId:id,guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions/'+
+        encodeURIComponent(id)+'/revoke','POST');
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('ok' in raw)||raw.ok!==true)
+        throw Error('Η ανάκληση δεν επαληθεύτηκε.');
+      update({guardianRevokingId:null,guardianPermissions:{
+        items:listed.items.filter(p=>p.id!==id)}});
+      return true;
+    }catch(e){
+      if(current())update({guardianRevokingId:null,guardianError:message(e)});
       return false;
     }
   }
@@ -1140,6 +1253,9 @@ export function createMobileAuthController(options: {
     loadFamily,
     loadActiveFamilyDelegations,
     loadOutgoingInvitations,
+    loadGuardianPermissions,
+    createFamilyPermission,
+    revokeGuardianPermission,
     revokeFamilyDelegation,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
