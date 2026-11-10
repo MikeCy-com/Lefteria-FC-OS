@@ -8,6 +8,7 @@ DECLARE
   writer pg_proc%ROWTYPE;
   reviewer pg_proc%ROWTYPE;
   detail_reader pg_proc%ROWTYPE;
+  text_reviewer pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -69,6 +70,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,detail_reader.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,detail_reader.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'HUB draft detail reader permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT text_reviewer FROM pg_proc
+    WHERE oid='hub.review_admin_text(text,text,uuid,bigint,text)'::regprocedure;
+  IF NOT text_reviewer.prosecdef OR text_reviewer.provolatile<>'v'
+    OR text_reviewer.prorettype<>'jsonb'::regtype OR text_reviewer.prokind<>'f'
+    OR text_reviewer.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(text_reviewer.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(text_reviewer.proacl,acldefault('f',text_reviewer.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,text_reviewer.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,text_reviewer.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub text review function permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
