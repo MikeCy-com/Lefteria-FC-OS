@@ -17,7 +17,10 @@ BEGIN
   FOR fn IN SELECT unnest(ARRAY[
     'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)'::regprocedure,
     'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
-    'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure
+    'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
+    'identity.read_recipient_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
+    'identity.accept_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
+    'identity.decline_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure
   ]) LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc WHERE oid=fn AND prosecdef)
       OR EXISTS (
@@ -37,6 +40,15 @@ BEGIN
       'unknown','35799123457',
       '00000000-0000-0000-0000-000000000003'::uuid);
     RAISE EXCEPTION 'guardian_unauthorized_issue_allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM identity.accept_recipient_guardian_permission(
+      '00000000-0000-0000-0000-000000000001'::uuid,'35799123457',
+      'fan',clock_timestamp()+interval '1 day',
+      '00000000-0000-0000-0000-000000000002'::uuid,
+      '00000000-0000-0000-0000-000000000003'::uuid);
+    RAISE EXCEPTION 'guardian_unauthorized_accept_allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $negative$;
