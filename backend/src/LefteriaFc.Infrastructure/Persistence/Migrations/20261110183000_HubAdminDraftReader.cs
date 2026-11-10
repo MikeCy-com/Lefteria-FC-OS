@@ -15,7 +15,7 @@ public sealed class HubAdminDraftReader : Migration
     {
         migrationBuilder.Sql("""
             CREATE FUNCTION hub.read_admin_editorial(_digest text, _owner text)
-            RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
+            RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
             SET search_path=pg_catalog,pg_temp AS $hub_read$
             DECLARE v_actor uuid; v_role text; v_result jsonb;
             BEGIN
