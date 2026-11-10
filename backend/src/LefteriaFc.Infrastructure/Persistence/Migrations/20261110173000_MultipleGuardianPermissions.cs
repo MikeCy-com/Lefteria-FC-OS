@@ -6,8 +6,9 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 
 /// <summary>
-/// Multiple distinct guardian invitations per child. A pending invitation
-/// grants no access whatsoever. The existing player delegation is untouched.
+/// Direct phone-scoped guardian permissions: no recipient invitation or
+/// acceptance workflow. A phone grant never authenticates its holder.
+/// Existing one-child player delegation remains independent.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
 [Migration("20261110173000_MultipleGuardianPermissions")]
@@ -24,17 +25,14 @@ public sealed class MultipleGuardianPermissions : Migration
           CHECK(target_phone ~ '^[1-9][0-9]{7,14}$'),
         target_identity_id uuid REFERENCES identity.mobile_identities(id)
           ON DELETE RESTRICT,
-        status varchar(32) NOT NULL DEFAULT 'pending'
-          CHECK(status IN ('pending','active','accepted_pending_access',
-            'declined','revoked','expired')),
+        status varchar(16) NOT NULL DEFAULT 'granted'
+          CHECK(status IN ('granted','revoked')),
         created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-        expires_at timestamptz NOT NULL,
+        expires_at timestamptz,
         accepted_at timestamptz,
         revoked_at timestamptz,
-        CHECK(expires_at>created_at AND expires_at<=created_at+interval '7 days'),
-        CHECK((status IN ('active','accepted_pending_access')
-          AND target_identity_id IS NOT NULL AND accepted_at IS NOT NULL)
-          OR status NOT IN ('active','accepted_pending_access')),
+        CHECK(expires_at IS NULL),
+        CHECK(accepted_at IS NULL),
         CONSTRAINT family_guardian_permission_player_fk
           FOREIGN KEY(organization_id,player_id)
           REFERENCES club.players(organization_id,id) ON DELETE RESTRICT
@@ -42,7 +40,7 @@ public sealed class MultipleGuardianPermissions : Migration
       CREATE UNIQUE INDEX uq_family_guardian_live_recipient
         ON identity.family_guardian_permissions(
           organization_id,player_id,target_phone)
-        WHERE status IN ('pending','accepted_pending_access','active');
+        WHERE status='granted';
       CREATE INDEX ix_family_guardian_issuer
         ON identity.family_guardian_permissions(issuer_identity_id,created_at DESC);
       CREATE INDEX ix_family_guardian_recipient
@@ -89,7 +87,7 @@ public sealed class MultipleGuardianPermissions : Migration
           USING ERRCODE='42501'; END IF;
 
         -- Multiple recipients for one player are allowed, but never
-        -- duplicate live grants to the same recipient for the same child.
+        -- duplicate direct grants to one phone for the same child.
         PERFORM pg_advisory_xact_lock(
           hashtextextended('lefteria:family:guardian:'||v_owner||':'||_player,0));
         -- A child/player phone must never be recruited into the guardian
@@ -103,12 +101,6 @@ public sealed class MultipleGuardianPermissions : Migration
             AND i.role IN ('player','coach','management')
         ) THEN RAISE EXCEPTION 'guardian_recipient_role_conflict'
           USING ERRCODE='23505'; END IF;
-
-        -- Expiry is not acceptance. Pending rows older than their seven-day
-        -- deadline are only marked expired; no recipient access is minted.
-        UPDATE identity.family_guardian_permissions SET status='expired'
-          WHERE organization_id=v_owner AND player_id=_player
-            AND status='pending' AND expires_at<=v_now;
 
         SELECT * INTO v_existing FROM identity.family_guardian_permissions
           WHERE id=_request FOR UPDATE;
@@ -126,19 +118,19 @@ public sealed class MultipleGuardianPermissions : Migration
         END IF;
         IF (SELECT count(*) FROM identity.family_guardian_permissions
           WHERE organization_id=v_owner AND player_id=_player
-            AND status IN ('pending','accepted_pending_access','active'))>=20 THEN
+            AND status='granted')>=20 THEN
           RAISE EXCEPTION 'guardian_permission_limit' USING ERRCODE='54000'; END IF;
         IF EXISTS(SELECT 1 FROM identity.family_guardian_permissions
           WHERE organization_id=v_owner AND player_id=_player
-            AND target_phone=_target AND status IN ('pending','accepted_pending_access','active'))
+            AND target_phone=_target AND status='granted')
         THEN RAISE EXCEPTION 'guardian_permission_already_exists'
           USING ERRCODE='23505'; END IF;
 
         INSERT INTO identity.family_guardian_permissions(
           id,organization_id,player_id,issuer_identity_id,target_phone,
           status,created_at,expires_at)
-        VALUES(_request,v_owner,_player,_actor,_target,'pending',
-          v_now,v_now+interval '7 days');
+        VALUES(_request,v_owner,_player,_actor,_target,'granted',
+          v_now,NULL);
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
@@ -146,7 +138,7 @@ public sealed class MultipleGuardianPermissions : Migration
           'mobile.family.guardian.permission.request','success',v_owner);
         RETURN jsonb_build_object('id',_request,'player_id',_player,
           'organization_id',v_owner,'kind','guardian',
-          'status','pending','expires_at',v_now+interval '7 days',
+          'status','granted','expires_at',NULL,
           'replay',false);
       END $issue$;
 
@@ -175,16 +167,14 @@ public sealed class MultipleGuardianPermissions : Migration
         SELECT coalesce(jsonb_agg(jsonb_build_object(
           'id',g.id,'player_id',g.player_id,
           'organization_id',g.organization_id,'kind','guardian',
-          'status',CASE WHEN g.status='pending' AND
-            g.expires_at<=statement_timestamp() THEN 'expired'
-            ELSE g.status END,
+          'status',g.status,
           'expires_at',g.expires_at,
           'recipient_hint','••••'||right(g.target_phone,4))
           ORDER BY g.created_at DESC,g.id),'[]'::jsonb)
         INTO v_items
         FROM identity.family_guardian_permissions g
         WHERE g.issuer_identity_id=_actor
-          AND g.status IN ('pending','active')
+          AND g.status='granted'
           AND EXISTS(
             SELECT 1 FROM identity.mobile_identities i
             JOIN identity.mobile_record_links l ON l.identity_id=i.id
@@ -222,7 +212,7 @@ public sealed class MultipleGuardianPermissions : Migration
         -- in issue, accept and revoke, avoiding inverted lock ordering.
         SELECT * INTO v_item FROM identity.family_guardian_permissions
           WHERE id=_permission AND issuer_identity_id=_actor
-            AND status IN ('pending','accepted_pending_access','active');
+            AND status='granted';
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
 
@@ -247,7 +237,7 @@ public sealed class MultipleGuardianPermissions : Migration
           WHERE id=_permission AND issuer_identity_id=_actor
             AND player_id=v_item.player_id
             AND organization_id=v_item.organization_id
-            AND status IN ('pending','accepted_pending_access','active')
+            AND status='granted'
           FOR UPDATE;
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
@@ -255,7 +245,7 @@ public sealed class MultipleGuardianPermissions : Migration
         UPDATE identity.family_guardian_permissions SET
           status='revoked',revoked_at=v_now
           WHERE id=_permission AND issuer_identity_id=_actor
-            AND status IN ('pending','accepted_pending_access','active');
+            AND status='granted';
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
