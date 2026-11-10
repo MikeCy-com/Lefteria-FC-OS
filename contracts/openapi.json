@@ -1260,6 +1260,36 @@
         ],
         "type": "object"
       },
+      "AttendanceMarkCommand": {
+        "properties": {
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "player_id",
+          "status",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "CalendarOwnResponse": {
         "properties": {
           "player_id": {
@@ -6370,6 +6400,134 @@
   },
   "openapi": "3.1.1",
   "paths": {
+    "/api/admin/academy/training": {
+      "get": {
+        "operationId": "ReadAdminAcademyTrainingSessions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training attendance"
+        ]
+      }
+    },
+    "/api/admin/academy/training/{eventId}/attendance": {
+      "get": {
+        "operationId": "ReadAdminAcademyTrainingAttendance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training attendance"
+        ]
+      },
+      "post": {
+        "operationId": "RecordAdminAcademyTrainingAttendance",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "eventId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AttendanceMarkCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy training attendance"
+        ]
+      }
+    },
     "/api/admin/auth/login": {
       "post": {
         "operationId": "LoginWebAdmin",
@@ -15478,6 +15636,9 @@
     },
     {
       "name": "Club settings"
+    },
+    {
+      "name": "Academy training attendance"
     }
   ]
 }
