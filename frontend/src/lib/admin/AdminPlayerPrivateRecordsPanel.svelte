@@ -116,7 +116,7 @@
     }
     for(const field of sections){
       const v=scoreInputs[field];
-      if(v!==''&&(!/^\\d{1,3}$/.test(v)||Number(v)>100)){
+      if(v!==''&&(!/^\d{1,3}$/.test(v)||Number(v)>100)){
         createError='Οι βαθμολογίες πρέπει να είναι ακέραιοι 0–100.';return;
       }
     }
