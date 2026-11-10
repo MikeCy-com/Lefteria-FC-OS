@@ -33,7 +33,7 @@ test('Hub is only a preview for fan and never claims subscription or authorizati
 
 test('Hub continues to use only the first-party reviewed draft education collection', () => {
   const component = read('lib/mobile/components/MobileAcademyEducation.svelte');
-  assert.match(component, /academyEducationFor\(stage,audience,topic\)/);
+  assert.match(component, /searchAcademyEducation\(stage,audience,topic,search\)/);
   assert.match(component, /Δεν αποτελεί ακόμη επίσημη δημοσίευση/);
   assert.doesNotMatch(component, /<iframe|{@html|innerHTML|createObjectURL/);
 });
