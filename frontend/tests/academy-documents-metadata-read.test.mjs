@@ -10,9 +10,10 @@ const grants=load('ops/postgres/academy-evaluation-admin-grants.sql');
 const navigation=load('frontend/src/lib/admin/module-catalog.ts');
 test('restricted read-only API validates live Academy manager session',()=>{
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
-  assert.match(api,/organization_id != "lefteria_fc_academy"/);
+  assert.match(api,/organization_id is not/);
   assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
-  assert.match(api,/AdminPermissions\.Has\(session\.User\.Role, "academy:read"\)/);
+  assert.match(api,/teams:read/);
+  assert.match(api,/academy:read/);
   assert.match(api,/session\.User\.Organizations\.Any/);
   assert.match(api,/CacheControl = "private, no-store"/);
   assert.match(program,/app\.MapAdminAcademyDocuments\(\)/);
@@ -23,6 +24,9 @@ test('SQL locks authorization and records each disclosed document',()=>{
   assert.match(sql,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
   assert.match(sql,/s\.revoked_at IS NULL/);
   assert.match(sql,/p\.team_type='Academy'/);
+  assert.match(sql,/team_type='First Team'/);
+  assert.match(sql,/FROM club\.teams t/);
+  assert.match(sql,/FROM club\.player_academy_groups m/);
   assert.match(sql,/v_count>100/);
   assert.match(sql,/INSERT INTO academy_private\.document_audit_events/);
   assert.match(sql,/d\.withdrawn_at IS NULL/);
@@ -37,7 +41,7 @@ test('role grants only permit function execution, not private table or mobile da
   assert.doesNotMatch(grants,/GRANT SELECT ON|GRANT INSERT ON|GRANT UPDATE ON/);
 });
 test('UI only shows validated expiry metadata and clears it on account change',()=>{
-  assert.match(page,/validListing\(result,player\)/);
+  assert.match(page,/validListing\(result,player,owner\)/);
   assert.match(page,/listing=null/);
   assert.match(page,/credentials:'same-origin',cache:'no-store'/);
   assert.match(page,/permitted=\$derived/);
