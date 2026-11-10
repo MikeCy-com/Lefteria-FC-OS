@@ -10,7 +10,7 @@ test('mobile and authenticated admin API prefixes receive private no-store befor
   assert.match(program, /context\.Response\.OnStarting\(\(\) =>/);
   assert.match(program, /context\.Response\.Headers\.CacheControl = "private, no-store"/);
   assert.match(program, /context\.Response\.Headers\.Pragma = "no-cache"/);
-  assert.match(program, /context\.Response\.Headers\.Expires = "0"/);
+  assert.match(program, /context\.Response\.Headers\["Expires"\] = "0"/);
 });
 
 test('sensitive API cache policy is installed before web-admin guards and authorization', () => {
