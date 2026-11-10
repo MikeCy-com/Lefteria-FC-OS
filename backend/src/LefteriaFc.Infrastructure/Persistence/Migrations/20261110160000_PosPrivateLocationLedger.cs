@@ -127,6 +127,8 @@ public sealed class PosPrivateLocationLedger : Migration
           REFERENCES pos.locations(organization_id,id) ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,operator_id)
           REFERENCES pos.operators(organization_id,id) ON DELETE RESTRICT,
+        UNIQUE(id,organization_id,location_id),
+        UNIQUE(id,organization_id),
         UNIQUE(organization_id,location_id,client_sale_id),
         UNIQUE(organization_id,location_id,business_date,receipt_number)
       );
@@ -148,6 +150,8 @@ public sealed class PosPrivateLocationLedger : Migration
         line_total_cents bigint GENERATED ALWAYS AS (
           quantity::bigint * unit_price_cents::bigint) STORED,
         PRIMARY KEY(sale_id,line_number),
+        FOREIGN KEY(sale_id,organization_id)
+          REFERENCES pos.sales(id,organization_id) ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,product_id,variant_id)
           REFERENCES pos.product_variants(organization_id,product_id,id)
           ON DELETE RESTRICT,
@@ -170,17 +174,20 @@ public sealed class PosPrivateLocationLedger : Migration
           ON DELETE RESTRICT,
         occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         CHECK (
-          (event_type='cash_received' AND cash_tendered_cents>=amount_cents
+          (event_type='cash_received' AND cash_tendered_cents IS NOT NULL
+            AND cash_tendered_cents>=amount_cents
             AND evidence_reference IS NULL AND reversed_event_id IS NULL)
           OR
           (event_type='card_capture' AND cash_tendered_cents IS NULL
+            AND evidence_reference IS NOT NULL
             AND length(btrim(evidence_reference)) BETWEEN 1 AND 200
             AND reversed_event_id IS NULL)
           OR
           (event_type IN ('cash_refund','card_refund')
             AND cash_tendered_cents IS NULL AND reversed_event_id IS NOT NULL
             AND (event_type='cash_refund' OR
-              length(btrim(evidence_reference)) BETWEEN 1 AND 200))
+              (evidence_reference IS NOT NULL AND
+              length(btrim(evidence_reference)) BETWEEN 1 AND 200)))
         )
       );
 
@@ -203,6 +210,9 @@ public sealed class PosPrivateLocationLedger : Migration
           AND after_quantity=before_quantity+delta),
         actor_operator_id uuid,
         occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
+        FOREIGN KEY(sale_id,organization_id,location_id)
+          REFERENCES pos.sales(id,organization_id,location_id) ON DELETE RESTRICT,
+        CHECK (reason NOT IN ('sale','return') OR sale_id IS NOT NULL),
         FOREIGN KEY(organization_id,location_id,product_id,variant_id)
           REFERENCES pos.location_stock(organization_id,location_id,product_id,variant_id)
           ON DELETE RESTRICT,
