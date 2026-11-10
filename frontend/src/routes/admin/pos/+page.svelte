@@ -397,7 +397,7 @@
             <div><span>Παραλλαγές</span><strong>{catalog.products.reduce((count, p) => count + p.variants.length, 0)}</strong></div>
           </div>
           {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
-            <AdminPosCashierShiftsPanel {owner} actorId={$auth.session.user.id}
+            <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
               onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
           {/if}
           {#if canEdit}
