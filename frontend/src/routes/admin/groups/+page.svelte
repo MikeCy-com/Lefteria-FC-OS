@@ -31,6 +31,18 @@
   let retry = $state(0);
   let showCreate = $state(false);
   let groupName = $state('');
+  let createRequestId = $state('');
+  let teamLevel = $state("Α' Ομάδα");
+  let teamDescription = $state('');
+  let teamBanner = $state('');
+  let academyAge = $state('');
+  let academyCoach = $state('');
+  let academySchedule = $state('');
+  let academyDescription = $state('');
+  let academyCapacity = $state(25);
+  let academySeason = $state('');
+  let academyBanner = $state('');
+  let academyOrder = $state(0);
   let saving = $state(false);
   let createError = $state<string | null>(null);
   const canCreate = $derived(
@@ -51,14 +63,39 @@
     }
     const selected = organization;
     const actor = $auth.session?.user.id;
+    const safeText = (value:string,max:number)=>
+      value.length<=max && !/[\\x00-\\x1f\\x7f]/.test(value);
+    const bannerValid = (value:string)=>!value ||
+      /^https:\\/\\/[A-Za-z0-9.-]+(?:\\/[A-Za-z0-9_./%?&=-]*)?$/.test(value);
+    if (selected==='lefteria_fc' ?
+        (!safeText(teamLevel,100)||!teamLevel.trim()||teamLevel!==teamLevel.trim()||
+          !safeText(teamDescription,2000)||!safeText(teamBanner,2048)||
+          !bannerValid(teamBanner)) :
+        (![academyAge,academyCoach,academySchedule,academyDescription,
+          academySeason,academyBanner].every((v,i)=>safeText(v,
+            [80,120,500,2000,40,2048][i])) ||
+          !Number.isSafeInteger(academyCapacity)||academyCapacity<1||academyCapacity>200||
+          !Number.isSafeInteger(academyOrder)||academyOrder<0||academyOrder>10000||
+          !bannerValid(academyBanner))) {
+      createError='Ελέγξτε τα στοιχεία, τα μήκη και τη διεύθυνση HTTPS του τμήματος.';
+      return;
+    }
+    const requestId=createRequestId||crypto.randomUUID();
+    createRequestId=requestId;
+    const profile=selected==='lefteria_fc'
+      ?{team_profile:{level:teamLevel,description:teamDescription,banner_url:teamBanner}}
+      :{academy_profile:{age_range:academyAge,coach_name:academyCoach,
+        training_schedule:academySchedule,description:academyDescription,
+        max_players:academyCapacity,season:academySeason,
+        banner_url:academyBanner,display_order:academyOrder}};
     saving = true;
     createError = null;
     try {
       const query = new URLSearchParams({organization_id:selected});
-      const response = await fetch('/api/admin/football/groups?' + query.toString(), {
+      const response = await fetch('/api/admin/football/groups/with-profile?' + query.toString(), {
         method:'POST', credentials:'same-origin', cache:'no-store',
         headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({name})
+        body:JSON.stringify({name,request_id:requestId,...profile})
       });
       if (organization !== selected || $auth.session?.user.id !== actor || !canCreate) return;
       if (response.status === 401 || response.status === 403) {
@@ -79,10 +116,17 @@
       if (typeof value.id !== 'string' || !/^grp_[0-9a-f]{32}$/.test(value.id) ||
           value.name !== name || value.kind !==
             (selected === 'lefteria_fc' ? 'team' : 'academy_group') ||
-          value.active_players !== 0)
-        throw new Error('Μη επαληθευμένη καταχώριση τμήματος.');
+          value.active_players !== 0 ||
+          !value.profile || typeof value.profile !== 'object' ||
+          Array.isArray(value.profile) ||
+          (value.profile as Record<string,unknown>).revision !== 1 ||
+          (selected === 'lefteria_fc'
+            ? (value.profile as Record<string,unknown>).team_id !== value.id
+            : (value.profile as Record<string,unknown>).group_id !== value.id))
+        throw new Error('Μη επαληθευμένη πλήρης καταχώριση τμήματος.');
       showCreate = false;
       groupName = '';
+      createRequestId='';
       retry++;
     } catch(error) {
       if (organization === selected && $auth.session?.user.id === actor)
@@ -120,6 +164,11 @@
     void selected; void allowed;
     showCreate = false;
     groupName = '';
+    createRequestId='';
+    teamLevel="Α' Ομάδα";teamDescription='';teamBanner='';
+    academyAge='';academyCoach='';academySchedule='';
+    academyDescription='';academyCapacity=25;academySeason='';
+    academyBanner='';academyOrder=0;
     createError = null;
   });
   $effect(() => {
@@ -223,7 +272,59 @@
                   onsubmit={event => {event.preventDefault(); void createGroup();}}>
                   <label for="admin-group-name">Όνομα τμήματος</label>
                   <input id="admin-group-name" type="text" required maxlength="120"
-                    bind:value={groupName} disabled={saving}/>
+                    bind:value={groupName} disabled={saving}
+                    oninput={() => createRequestId=''}/>
+                  {#if organization === 'lefteria_fc'}
+                    <label>Επίπεδο ομάδας
+                      <input type="text" maxlength="100" required bind:value={teamLevel}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Περιγραφή ομάδας
+                      <textarea rows="3" maxlength="2000" bind:value={teamDescription}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Banner (HTTPS)
+                      <input type="url" maxlength="2048" bind:value={teamBanner}
+                        disabled={saving} placeholder="https://..."
+                        oninput={() => createRequestId=''}/>
+                    </label>
+                  {:else}
+                    <label>Ηλικιακή ομάδα
+                      <input type="text" maxlength="80" bind:value={academyAge}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Προπονητής (όνομα εμφάνισης)
+                      <input type="text" maxlength="120" bind:value={academyCoach}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Πρόγραμμα προπονήσεων
+                      <textarea rows="3" maxlength="500" bind:value={academySchedule}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Περιγραφή τμήματος
+                      <textarea rows="3" maxlength="2000" bind:value={academyDescription}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Χωρητικότητα
+                      <input type="number" min="1" max="200" step="1" required
+                        bind:value={academyCapacity} disabled={saving}
+                        oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Αγωνιστική περίοδος
+                      <input type="text" maxlength="40" bind:value={academySeason}
+                        disabled={saving} oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Banner (HTTPS)
+                      <input type="url" maxlength="2048" bind:value={academyBanner}
+                        disabled={saving} placeholder="https://..."
+                        oninput={() => createRequestId=''}/>
+                    </label>
+                    <label>Σειρά εμφάνισης
+                      <input type="number" min="0" max="10000" step="1" required
+                        bind:value={academyOrder} disabled={saving}
+                        oninput={() => createRequestId=''}/>
+                    </label>
+                  {/if}
                   <div class="admin-group-create-actions">
                     <button type="submit" class="admin-secondary" disabled={saving}>{saving ? 'Δημιουργία…' : 'Δημιουργία'}</button>
                     <button type="button" class="admin-secondary" disabled={saving}
@@ -306,7 +407,8 @@
   .admin-group-create-heading h2{margin:0}
   .admin-group-create-form{display:grid;gap:10px;max-width:500px;margin-top:16px}
   .admin-group-create-form>label{font-size:12px;color:#b9bcbe}
-  .admin-group-create-form input{width:100%}
+  .admin-group-create-form input,.admin-group-create-form textarea{width:100%}
+  .admin-group-create-form label{display:grid;gap:5px}
   .admin-group-create-actions{display:flex;flex-wrap:wrap;gap:9px}
   .admin-group-error{color:#ffd29b;margin-top:12px}
   .admin-audiences-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:0 0 16px}
