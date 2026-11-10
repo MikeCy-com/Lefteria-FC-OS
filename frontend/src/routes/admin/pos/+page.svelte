@@ -6,6 +6,7 @@
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminPosCashierShiftsPanel from '../../../lib/admin/AdminPosCashierShiftsPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -395,6 +396,10 @@
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
             <div><span>Παραλλαγές</span><strong>{catalog.products.reduce((count, p) => count + p.variants.length, 0)}</strong></div>
           </div>
+          {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
+            <AdminPosCashierShiftsPanel {owner} actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
           {#if canEdit}
             <section class="admin-panel admin-pos-editor" aria-labelledby="pos-editor-heading" data-testid="admin-pos-category-editor">
               <div class="admin-pos-editor-heading">
