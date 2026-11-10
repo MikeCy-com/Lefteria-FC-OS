@@ -46,3 +46,23 @@ Added migration `20261110153000_PosCashierShiftOperations`:
 - Added source-level security regression tests and extended the isolated PostgreSQL RLS/trigger probe to verify the new private functions and idempotency indexes.
 
 **Caveats:** The first operational slice still requires approved register/location provisioning and cashier assignments, cash/stock control testing, an independent operator identity workflow, signed provider settlement, production receipt tax/legal compliance, and fully audited sale/refund transactions. `shop:write` is necessary but never sufficient without an active register-specific assignment. All operations remain disabled until explicit SQL permissions are applied and CI/integration tests pass. Do not merge to OS main or deploy while unverified.
+
+## Staged server-priced checkout, cancellation and fulfillment — 2026-11-10
+
+- Repaired malformed PL/pgSQL dollar-quote delimiters in the earlier POS financial guard migration, which otherwise would have prevented migration execution. The source assertions check balanced delimiters; **real PostgreSQL migration execution still has to be run**.
+- Added `20261110154000_PosInventoryReservedCheckout`: a strictly validated basket of 1–30 unique product/variant pairs and quantities 1–99. A dedicated management cashier must have an active organization grant, assigned register and open shift. SQL takes deterministic row locks on location/variant stock, reads current active catalog cost/price from PostgreSQL, rejects client price authority, caps totals, atomically reserves quantities and creates an immutable-intended pending sale with request ID and cart digest. The schema explicitly separates `on_hand` from `reserved` stock.
+- **Tax restriction:** The new `pos.checkout_policies` is empty and disabled by default; currently supports only an explicitly reviewed `verified_exempt` treatment. This is **not** a valid general taxable Cyprus checkout. No runtime EXECUTE grant, tax-policy enablement, or location stock configuration is performed.
+- Added `20261110155000_PosUnpaidSaleCancellation`: authenticated same-cashier, idempotent cancellation requires an unpaid sale with no pending/captured payments or issued receipt, releases reserved units under row lock, marks sale voided and appends audit. A pending card capture must first receive independent failure resolution, not a cashier cancellation.
+- Added `20261110156000_PosReceiptInventoryFulfillment`: the database consumes reserved inventory only after insertion of a verified, reconciled, unique receipt, within the same transaction, ensuring neither overconsumption nor stock loss when issuance rolls back. If reservations are missing or inconsistent, the receipt transaction is rejected. No manual/direct stock decrement endpoint was added.
+- Added authenticated `POST /api/admin/pos/cashier/registers/{registerId}/sales/prepare` and `POST /api/admin/pos/cashier/sales/{saleId}/cancel` routes. The JSON contract includes only request/shift IDs, product/variant IDs and quantities; PostgreSQL owns the actual price. **These routes fail closed without a reviewed, separately supplied function grant and tax policy.** They do not charge cards, accept cash, issue receipts, settle payments or create refunds.
+- Added source-level regression tests for checkout, cancellation and receipt-bound stock fulfillment. Extended the existing rollback-only isolated PostgreSQL probe for private schema access, reservation tables and new receipt triggers.
+
+### Remaining blockers and non-goals
+
+1. Add reconciled, authorized, evidence-backed **cash tender** operations and Payabl **server-to-server verified capture** only after contract/security review; a checkout reservation is not money received.
+2. Implement configurable legally approved VAT/tax treatment and genuine Cyprus receipt/credit-note generation, printable invoice/receipt rendering, reference numbering and accounting export.
+3. Add bounded inventory reservations with expiry/recovery for abandoned pending sales and reconciliation of gateway callbacks against previously issued request IDs.
+4. Provide operator/location/stock administration and independent permissioning; the new cashier shift screen is not evidence of an available live POS.
+5. Run full .NET compilation, PostgreSQL migrations with negative/concurrent transactions, frontend tests, CI and security audit at the exact commit before merging.
+
+This branch remains **draft, unmerged and undeployed**. Do not enable payment capture or apply grants in production.
