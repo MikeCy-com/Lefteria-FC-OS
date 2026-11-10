@@ -17,7 +17,7 @@ const originalPublicRoutes={
     '/trials','/partners?scope=first_team'],
   academy:['/academy','/academy/philosophy','/academy/groups',
     '/academy/registration','/partners?scope=academy'],
-  matches:['/team?tab=schedule','/team?tab=results','/team?tab=overview',
+  matches:['/team?tab=schedule','/team?tab=results','/team?tab=overview#standings',
     '/vote','/shop'],
   news:['/news'],events:['/events'],shop:['/shop'],contact:['/contact']
 };
