@@ -183,6 +183,8 @@
             onLoadGuardianPermissions={() => controller.loadGuardianPermissions()}
             onCreatePermission={(playerId,kind,phone,requestId) =>
               controller.createFamilyPermission(playerId,kind,phone,requestId)}
+            onCreateManyGuardian={(children,phone) =>
+              controller.createManyGuardianPermissions(children,phone)}
             onRevokeGuardianPermission={(id) => controller.revokeGuardianPermission(id)}
             onLoadActive={() => controller.loadActiveFamilyDelegations()}
             onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
