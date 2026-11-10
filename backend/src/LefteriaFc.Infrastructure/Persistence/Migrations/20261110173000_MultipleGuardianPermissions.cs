@@ -24,15 +24,17 @@ public sealed class MultipleGuardianPermissions : Migration
           CHECK(target_phone ~ '^[1-9][0-9]{7,14}$'),
         target_identity_id uuid REFERENCES identity.mobile_identities(id)
           ON DELETE RESTRICT,
-        status varchar(16) NOT NULL DEFAULT 'pending'
-          CHECK(status IN ('pending','active','declined','revoked','expired')),
+        status varchar(32) NOT NULL DEFAULT 'pending'
+          CHECK(status IN ('pending','active','accepted_pending_access',
+            'declined','revoked','expired')),
         created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         expires_at timestamptz NOT NULL,
         accepted_at timestamptz,
         revoked_at timestamptz,
         CHECK(expires_at>created_at AND expires_at<=created_at+interval '7 days'),
-        CHECK((status='active' AND target_identity_id IS NOT NULL AND accepted_at IS NOT NULL)
-          OR status<>'active'),
+        CHECK((status IN ('active','accepted_pending_access')
+          AND target_identity_id IS NOT NULL AND accepted_at IS NOT NULL)
+          OR status NOT IN ('active','accepted_pending_access')),
         CONSTRAINT family_guardian_permission_player_fk
           FOREIGN KEY(organization_id,player_id)
           REFERENCES club.players(organization_id,id) ON DELETE RESTRICT
@@ -40,7 +42,7 @@ public sealed class MultipleGuardianPermissions : Migration
       CREATE UNIQUE INDEX uq_family_guardian_live_recipient
         ON identity.family_guardian_permissions(
           organization_id,player_id,target_phone)
-        WHERE status IN ('pending','active');
+        WHERE status IN ('pending','accepted_pending_access','active');
       CREATE INDEX ix_family_guardian_issuer
         ON identity.family_guardian_permissions(issuer_identity_id,created_at DESC);
       CREATE INDEX ix_family_guardian_recipient
@@ -124,11 +126,11 @@ public sealed class MultipleGuardianPermissions : Migration
         END IF;
         IF (SELECT count(*) FROM identity.family_guardian_permissions
           WHERE organization_id=v_owner AND player_id=_player
-            AND status IN ('pending','active'))>=20 THEN
+            AND status IN ('pending','accepted_pending_access','active'))>=20 THEN
           RAISE EXCEPTION 'guardian_permission_limit' USING ERRCODE='54000'; END IF;
         IF EXISTS(SELECT 1 FROM identity.family_guardian_permissions
           WHERE organization_id=v_owner AND player_id=_player
-            AND target_phone=_target AND status IN ('pending','active'))
+            AND target_phone=_target AND status IN ('pending','accepted_pending_access','active'))
         THEN RAISE EXCEPTION 'guardian_permission_already_exists'
           USING ERRCODE='23505'; END IF;
 
@@ -217,7 +219,7 @@ public sealed class MultipleGuardianPermissions : Migration
         THEN RAISE EXCEPTION 'guardian_permission_denied' USING ERRCODE='42501'; END IF;
         SELECT * INTO v_item FROM identity.family_guardian_permissions
           WHERE id=_permission AND issuer_identity_id=_actor
-            AND status IN ('pending','active') FOR UPDATE;
+            AND status IN ('pending','accepted_pending_access','active') FOR UPDATE;
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
 
@@ -241,7 +243,7 @@ public sealed class MultipleGuardianPermissions : Migration
         UPDATE identity.family_guardian_permissions SET
           status='revoked',revoked_at=v_now
           WHERE id=_permission AND issuer_identity_id=_actor
-            AND status IN ('pending','active');
+            AND status IN ('pending','accepted_pending_access','active');
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
