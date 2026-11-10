@@ -16,10 +16,6 @@ BEGIN
     OR NOT EXISTS(SELECT 1 FROM pg_roles
       WHERE rolname=role_name AND rolcanlogin
         AND NOT rolsuper AND NOT rolbypassrls)
-    OR NOT has_function_privilege(role_name,
-      'identity.has_current_guardian_phone_grant(text)','EXECUTE')
-    OR NOT has_function_privilege(role_name,
-      'identity.current_phone_granted_children(uuid,text,text,timestamptz)','EXECUTE')
     OR has_table_privilege(role_name,'identity.family_guardian_permissions',
         'SELECT,INSERT,UPDATE,DELETE')
   THEN RAISE EXCEPTION 'guardian_permission_runtime_role_invalid'; END IF;
@@ -55,6 +51,10 @@ BEGIN
       'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(role_name,
       'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
+    OR NOT has_function_privilege(role_name,
+      'identity.has_current_guardian_phone_grant(text)','EXECUTE')
+    OR NOT has_function_privilege(role_name,
+      'identity.current_phone_granted_children(uuid,text,text,timestamptz)','EXECUTE')
     OR has_table_privilege(role_name,'identity.family_guardian_permissions',
       'SELECT,INSERT,UPDATE,DELETE')
   THEN RAISE EXCEPTION 'guardian_permission_scope_invalid'; END IF;
