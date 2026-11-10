@@ -23,7 +23,7 @@ using LefteriaFc.Infrastructure.PublicContent;
 using LefteriaFc.Api.MobileChat;
 using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Api.Crm;
-using LefteriaFc.Application.MobileChat;
+using LefteriaFc.Api.Payabl;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
