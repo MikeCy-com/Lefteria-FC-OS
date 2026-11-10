@@ -9,7 +9,8 @@ BEGIN
     'locations','registers','cashier_assignments','shifts','stock','sales',
     'sale_lines','payment_events','receipt_sequences','receipts','returns',
     'return_lines','refund_events','transaction_audit','checkout_policies','sale_reservations',
-    'vat_treatments','variant_vat_assignments','payabl_notification_inbox'
+    'vat_treatments','variant_vat_assignments','payabl_notification_inbox',
+    'finance_posting_outbox'
   ] LOOP
     IF NOT EXISTS(
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -102,6 +103,24 @@ BEGIN
         WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'
       ))
   ) THEN RAISE EXCEPTION 'pos_refund_request_function_exposed'; END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_trigger
+      WHERE tgrelid='pos.receipts'::regclass
+        AND tgname='pos_finance_sale_receipted' AND NOT tgisinternal
+  ) OR NOT EXISTS(
+    SELECT 1 FROM pg_trigger
+      WHERE tgrelid='pos.refund_events'::regclass
+        AND tgname='pos_finance_refund_verified' AND NOT tgisinternal
+  ) OR NOT EXISTS(
+    SELECT 1 FROM pg_trigger
+      WHERE tgrelid='pos.finance_posting_outbox'::regclass
+        AND tgname='pos_finance_outbox_immutable' AND NOT tgisinternal
+  ) THEN RAISE EXCEPTION 'pos_finance_outbox_guards_missing'; END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
+      WHERE conrelid='pos.finance_posting_outbox'::regclass
+        AND contype='u'
+  ) THEN RAISE EXCEPTION 'pos_finance_outbox_idempotency_missing'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
