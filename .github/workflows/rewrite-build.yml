@@ -195,6 +195,8 @@ jobs:
       - run: git diff --exit-code -- frontend/src/lib/api/schema.d.ts
       - run: npm run check
         working-directory: frontend
+      - name: Audit source-led route and mobile role coverage
+        run: node frontend/scripts/audit-original-parity.mjs
       - run: npm test
         working-directory: frontend
       - run: npm run build
