@@ -194,17 +194,19 @@ public static class AcademyInvoicePdf
                 string.Join("|",full.Select(v=>v.Id.ToString("N"))))))[..6];
         // Black full-width 42mm header, two gold diagonal accents.
         Rect(c,0,0,Width,U(42),Black);
-        using(var triangle=new SKPath())
+        using(var triangleBuilder=new SKPathBuilder())
         {
-            triangle.MoveTo(Width-U(40),0);triangle.LineTo(Width,0);
-            triangle.LineTo(Width,U(20));triangle.Close();
+            triangleBuilder.MoveTo(Width-U(40),0);triangleBuilder.LineTo(Width,0);
+            triangleBuilder.LineTo(Width,U(20));triangleBuilder.Close();
+            using var triangle=triangleBuilder.Detach();
             using var paint=new SKPaint{Color=Gold,IsAntialias=true};
             c.DrawPath(triangle,paint);
         }
-        using(var triangle=new SKPath())
+        using(var triangleBuilder=new SKPathBuilder())
         {
-            triangle.MoveTo(Width-U(15),U(42));triangle.LineTo(Width,U(42));
-            triangle.LineTo(Width,U(32));triangle.Close();
+            triangleBuilder.MoveTo(Width-U(15),U(42));triangleBuilder.LineTo(Width,U(42));
+            triangleBuilder.LineTo(Width,U(32));triangleBuilder.Close();
+            using var triangle=triangleBuilder.Detach();
             using var paint=new SKPaint{Color=Gold,IsAntialias=true};
             c.DrawPath(triangle,paint);
         }
