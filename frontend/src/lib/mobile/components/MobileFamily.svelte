@@ -6,9 +6,23 @@
   type Family = components['schemas']['ParentFamilyResult'];
   type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
   type ActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
+  type GuardianPermission = {
+    id:string;player_id:string;organization_id:string;kind:'guardian';
+    status:'pending'|'active'|'expired';expires_at:string
+  };
+  type GuardianPermissions = {items:GuardianPermission[]};
 
   interface Props {
     family: Family | null;
+    guardianPermissions?: GuardianPermissions|null;
+    guardianStatus?: 'idle'|'loading'|'ready'|'error';
+    guardianError?: string|null;
+    guardianPending?: boolean;
+    guardianRevokingId?: string|null;
+    onLoadGuardianPermissions?: ()=>boolean|Promise<boolean>;
+    onCreatePermission?: (playerId:string,kind:'player'|'guardian',
+      phone:string,requestId:string)=>boolean|Promise<boolean>;
+    onRevokeGuardianPermission?: (id:string)=>boolean|Promise<boolean>;
     status: 'idle' | 'loading' | 'ready' | 'error';
     error: string | null;
     busy?: boolean;
@@ -32,15 +46,44 @@
   }
 
   let { family, status, error, busy = false, onLoad, onCalendar,
+    guardianPermissions=null,guardianStatus='idle',guardianError=null,
+    guardianPending=false,guardianRevokingId=null,onLoadGuardianPermissions,
+    onCreatePermission,onRevokeGuardianPermission,
     outgoingInvitations = null, outgoingStatus = 'idle', outgoingError = null,
     onLoadOutgoing, onCancelOutgoing, outgoingCancellingId = null,
     outgoingCancelError = null, onRevokeDelegation,
     revokingPlayerId = null, revokeError = null, revokeSuccess = null,
     activeDelegations = null, activeStatus = 'idle', activeError = null,
     onLoadActive }: Props = $props();
+  let permissionType=$state<'player'|'guardian'>('player');
+  let permissionChild=$state('');
+  let permissionPhone=$state('');
+  let requestId=$state('');
+  let permissionNotice=$state('');
+  let confirmingGuardianId=$state<string|null>(null);
   let confirmingId = $state<string | null>(null);
   let confirmingRevokeId = $state<string | null>(null);
 
+  async function createPermission() {
+    if (!onCreatePermission || guardianPending || busy || !family ||
+      !family.children.some(child=>child.id===permissionChild) ||
+      !/^\\+?[0-9 ()-]{8,24}$/.test(permissionPhone))return;
+    const id=requestId||crypto.randomUUID();
+    requestId=id;permissionNotice='';
+    const ok=await onCreatePermission(
+      permissionChild,permissionType,permissionPhone,id);
+    if(ok){
+      permissionPhone='';requestId='';
+      permissionNotice='Το αίτημα καταχωρίστηκε. Δεν παρέχεται πρόσβαση χωρίς επαλήθευση και αποδοχή.';
+    }
+  }
+  async function confirmGuardianRevoke(id:string){
+    if(!onRevokeGuardianPermission||guardianRevokingId)return;
+    if(await onRevokeGuardianPermission(id)){
+      confirmingGuardianId=null;
+      permissionNotice='Η άδεια ανακλήθηκε.';
+    }
+  }
   async function confirmCancel(id: string) {
     if (!onCancelOutgoing || outgoingCancellingId) return;
     if (await onCancelOutgoing(id)) confirmingId = null;
@@ -60,6 +103,13 @@
   $effect(() => {
     if (status === 'ready' && family && activeStatus === 'idle' && onLoadActive && !busy) {
       untrack(() => { void onLoadActive(); });
+    }
+  });
+
+  $effect(()=>{
+    if(status==='ready'&&family&&guardianStatus==='idle'&&
+      onLoadGuardianPermissions&&!busy){
+      untrack(()=>{void onLoadGuardianPermissions();});
     }
   });
 
@@ -94,6 +144,92 @@
       <button type="button" disabled={busy} onclick={() => void onLoad()}>Δοκιμή ξανά</button>
     </div>
   {:else if family}
+    {#if family.children.length>0}
+      <section class="family-invitations family-permission-editor"
+        aria-labelledby={id+'-permissions'} data-testid="family-permission-editor">
+        <h2 id={id+'-permissions'}>Δώσε άδεια πρόσβασης</h2>
+        <p>Πρόσθεσε ξεχωριστή πρόσβαση για παιδί ή δεύτερο γονέα / κηδεμόνα.</p>
+        <form class="family-permission-fields"
+          onsubmit={(e)=>{e.preventDefault();void createPermission();}}>
+          <label>Παιδί
+            <select bind:value={permissionChild} disabled={busy||guardianPending} required
+              onchange={()=>{requestId='';permissionNotice='';}}>
+              <option value="">Επίλεξε παιδί</option>
+              {#each family.children as child (child.id)}
+                <option value={child.id}>{child.name}</option>
+              {/each}
+            </select>
+          </label>
+          <label>Δώσε άδεια σε
+            <select bind:value={permissionType} disabled={busy||guardianPending}
+              onchange={()=>{requestId='';permissionNotice='';}}>
+              <option value="player">Παίκτη — μόνο το προφίλ του</option>
+              <option value="guardian">Γονέα / Κηδεμόνα</option>
+            </select>
+          </label>
+          <label>Αριθμός κινητού με κωδικό χώρας
+            <input type="tel" autocomplete="tel" inputmode="tel"
+              bind:value={permissionPhone} maxlength="24" required
+              placeholder="+357 99 123456" disabled={busy||guardianPending}
+              oninput={()=>{requestId='';permissionNotice='';}}/>
+          </label>
+          <button type="submit" disabled={busy||guardianPending||
+            !permissionChild||!permissionPhone.trim()}>
+            {guardianPending?'Καταχώριση…':'Δώσε άδεια'}
+          </button>
+        </form>
+        <p>Η πρόσκληση παίκτη αφορά μόνο τον συγκεκριμένο αθλητή.
+          Ο δεύτερος γονέας θα έχει πρόσβαση στα ίδια στοιχεία παιδιού
+          μόνο μετά από επαλήθευση και ενεργοποίηση του ρόλου κηδεμόνα.</p>
+        {#if permissionNotice}<p role="status">{permissionNotice}</p>{/if}
+        {#if guardianError}<p role="alert">{guardianError}</p>{/if}
+      </section>
+      <section class="family-invitations" data-testid="family-guardian-permissions">
+        <h2>Άδειες Γονέα / Κηδεμόνα</h2>
+        {#if guardianStatus==='idle'||guardianStatus==='loading'}
+          <p role="status">Έλεγχος αδειών…</p>
+        {:else if guardianStatus==='error'}
+          <p role="alert">{guardianError||'Η λίστα αδειών δεν είναι διαθέσιμη.'}</p>
+          {#if onLoadGuardianPermissions}
+            <button type="button" onclick={()=>void onLoadGuardianPermissions()}>
+              Επανάληψη
+            </button>
+          {/if}
+        {:else if guardianPermissions?.items.length===0}
+          <p>Δεν υπάρχουν ενεργές ή εκκρεμείς άδειες άλλου κηδεμόνα.</p>
+        {:else if guardianPermissions}
+          <div class="family-outgoing-list">
+            {#each guardianPermissions.items as permission (permission.id)}
+              {@const child=family.children.find(item=>item.id===permission.player_id)}
+              <article class="family-outgoing-row" data-testid="family-guardian-permission">
+                <strong>{child?.name??'Παιδί'} · Γονέας / Κηδεμόνας</strong>
+                <p>{permission.status==='active'?'Ενεργή άδεια':
+                  permission.status==='expired'?'Έληξε':'Αναμονή επιβεβαίωσης'}</p>
+                {#if permission.status!=='expired'&&onRevokeGuardianPermission}
+                  {#if confirmingGuardianId===permission.id}
+                    <p>Να ανακληθεί η πρόσβαση για αυτό το παιδί;</p>
+                    <div class="family-cancel-actions">
+                      <button type="button" onclick={()=>confirmingGuardianId=null}>
+                        Όχι
+                      </button>
+                      <button type="button" disabled={!!guardianRevokingId}
+                        onclick={()=>void confirmGuardianRevoke(permission.id)}>
+                        Ναι, ανάκληση
+                      </button>
+                    </div>
+                  {:else}
+                    <button type="button" class="family-cancel-start"
+                      onclick={()=>confirmingGuardianId=permission.id}>
+                      Διαγραφή άδειας
+                    </button>
+                  {/if}
+                {/if}
+              </article>
+            {/each}
+          </div>
+        {/if}
+      </section>
+    {/if}
     {#if family.children.length === 0}
       <p class="family-notice" data-testid="family-empty">Δεν υπάρχουν επαληθευμένες συνδέσεις παιδιών για αυτόν τον λογαριασμό.</p>
     {:else}
@@ -199,8 +335,7 @@
           <div class="family-outgoing-error" role="alert" data-testid="family-cancel-error">{outgoingCancelError}</div>
         {/if}
         <div class="family-invitations-pending">
-          <p>Under Developments</p>
-          <span>Η αποστολή προσκλήσεων, η επιβεβαίωση τηλεφώνου και η ενεργοποίηση πρόσβασης θα γίνουν διαθέσιμες μετά από τους απαιτούμενους ελέγχους.</span>
+          <span>Οι εκκρεμείς προσκλήσεις δεν παρέχουν πρόσβαση έως ότου ο παραλήπτης ολοκληρώσει την προβλεπόμενη επαλήθευση.</span>
         </div>
       </section>
     {:else}
@@ -214,6 +349,13 @@
 </section>
 
 <style>
+  .family-permission-fields{display:grid;gap:12px;margin:14px 0}
+  .family-permission-fields label{display:grid;gap:6px;color:#eee}
+  .family-permission-fields input,.family-permission-fields select{
+    min-height:44px;max-width:100%;padding:10px;border-radius:6px;
+    border:1px solid #55462a;background:#151717;color:#fff}
+  .family-permission-fields button{min-height:44px;padding:10px;border-radius:6px;
+    background:#372911;color:#ffca46;border:1px solid #a77520}
   .family-page { max-width: 850px; margin: 0 auto; color: #f4f4f4; }
   .family-heading { margin: 0 0 26px; }
   .family-heading > p { color: #ffca46; font-size: 11px; font-weight: 700; letter-spacing: .10em; margin: 0 0 8px; }
