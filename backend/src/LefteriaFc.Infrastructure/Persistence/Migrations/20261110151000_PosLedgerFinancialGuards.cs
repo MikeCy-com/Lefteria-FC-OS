@@ -32,7 +32,7 @@ public sealed class PosLedgerFinancialGuards : Migration
         BEFORE UPDATE OR DELETE ON pos.return_lines
         FOR EACH ROW EXECUTE FUNCTION pos.reject_transaction_history_edit();
       CREATE FUNCTION pos.guard_refund_confirmation()
-      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $
+      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
       BEGIN
         IF TG_OP='DELETE' THEN
           RAISE EXCEPTION 'refund_delete_denied' USING ERRCODE='42501';
@@ -44,13 +44,13 @@ public sealed class PosLedgerFinancialGuards : Migration
         THEN RAISE EXCEPTION 'refund_confirmation_invalid' USING ERRCODE='42501';
         END IF;
         RETURN NEW;
-      END $;
+      END $$;
       CREATE TRIGGER pos_refund_events_immutable
         BEFORE UPDATE OR DELETE ON pos.refund_events
         FOR EACH ROW EXECUTE FUNCTION pos.guard_refund_confirmation();
 
       CREATE FUNCTION pos.guard_sale_line_catalog_price()
-      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $
+      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
       DECLARE v_sale pos.sales%ROWTYPE; v_product pos.products%ROWTYPE;
         v_variant pos.product_variants%ROWTYPE;
       BEGIN
@@ -80,7 +80,7 @@ public sealed class PosLedgerFinancialGuards : Migration
         THEN RAISE EXCEPTION 'client_price_or_snapshot_not_authoritative'
           USING ERRCODE='22023'; END IF;
         RETURN NEW;
-      END $;
+      END $$;
       CREATE TRIGGER pos_sale_line_server_price
         BEFORE INSERT ON pos.sale_lines FOR EACH ROW
         EXECUTE FUNCTION pos.guard_sale_line_catalog_price();
@@ -193,7 +193,7 @@ public sealed class PosLedgerFinancialGuards : Migration
         END IF;
         NEW.issued_at:=clock_timestamp();
         RETURN NEW;
-      END $;
+      END $$;
       CREATE TRIGGER pos_receipt_paid_guard
         BEFORE INSERT ON pos.receipts FOR EACH ROW EXECUTE FUNCTION pos.guard_receipt_issue();
 
