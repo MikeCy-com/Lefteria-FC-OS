@@ -29,6 +29,22 @@ production API, Docker runtime, Svelte build or PostgreSQL tests were performed
 in this audit. The original site has private and age-restricted workflows;
 use synthetic seeded fixtures and authorized dedicated test roles only.
 
+## Original source inventory baseline
+
+The existing pinned, read-only legacy route inventory identifies **39 public
+route patterns** (including redirects) and **72 AdminPanel switch labels**,
+including aliases, from the earlier source snapshot. It also records **208**
+static HTTP decorators in the main Python `server.py` alone, plus further
+handlers in `backend/routes/`. These are **not unique API operation counts**,
+and 72 render labels are not necessarily 72 distinct screens. The audit runner
+now enumerates the OS page and API declarations at its current checkout,
+while the full source-to-OS operation-level mapping remains open.
+
+This prevents claiming “every endpoint verified” from a rough count or from
+viewing an admin menu. The acceptance unit is an actual original workflow:
+HTTP verb, mounted path, request schema, role/org/relationship eligibility,
+response states, mutation effect and user-visible confirmation.
+
 ## Findings actually supported by source
 
 | Priority | Surface | Original behavior | OS observation | Required completion |
