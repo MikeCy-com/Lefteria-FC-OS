@@ -21,6 +21,8 @@ public sealed class MultipleGuardianPermissions : Migration
         player_id varchar(128) COLLATE "C" NOT NULL,
         issuer_identity_id uuid NOT NULL REFERENCES identity.mobile_identities(id)
           ON DELETE RESTRICT,
+        source_permission_id uuid REFERENCES identity.family_guardian_permissions(id)
+          ON DELETE RESTRICT,
         target_phone varchar(15) NOT NULL
           CHECK(target_phone ~ '^[1-9][0-9]{7,14}$'),
         target_identity_id uuid REFERENCES identity.mobile_identities(id)
@@ -54,7 +56,8 @@ public sealed class MultipleGuardianPermissions : Migration
       RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $issue$
       DECLARE
-        v_owner text; v_existing identity.family_guardian_permissions%ROWTYPE;
+        v_owner text; v_source uuid;
+        v_existing identity.family_guardian_permissions%ROWTYPE;
         v_now timestamptz:=statement_timestamp();
       BEGIN
         IF _actor IS NULL OR _device IS NULL OR _request IS NULL
@@ -83,8 +86,18 @@ public sealed class MultipleGuardianPermissions : Migration
           AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
           AND EXISTS(SELECT 1 FROM club.roster_import_state WHERE id='initial')
         FOR SHARE OF i,l,b,p;
-        IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
-          USING ERRCODE='42501'; END IF;
+        IF NOT FOUND THEN
+          -- A previously phone-granted Parent can also share this same
+          -- child. Store the ancestor permission for revocation cascades.
+          SELECT granted.organization_id,granted.permission_id
+            INTO v_owner,v_source
+          FROM identity.current_phone_granted_children(
+            _actor,_phone,_role,_expires) granted
+          WHERE granted.player_id=_player
+          ORDER BY granted.permission_id LIMIT 1;
+          IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
+            USING ERRCODE='42501'; END IF;
+        END IF;
 
         -- Multiple recipients for one player are allowed, but never
         -- duplicate direct grants to one phone for the same child.
@@ -127,10 +140,10 @@ public sealed class MultipleGuardianPermissions : Migration
           USING ERRCODE='23505'; END IF;
 
         INSERT INTO identity.family_guardian_permissions(
-          id,organization_id,player_id,issuer_identity_id,target_phone,
-          status,created_at,expires_at)
-        VALUES(_request,v_owner,_player,_actor,_target,'granted',
-          v_now,NULL);
+          id,organization_id,player_id,issuer_identity_id,
+          source_permission_id,target_phone,status,created_at,expires_at)
+        VALUES(_request,v_owner,_player,_actor,
+          v_source,_target,'granted',v_now,NULL);
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
@@ -161,6 +174,12 @@ public sealed class MultipleGuardianPermissions : Migration
             AND _expires>statement_timestamp()
             AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred)
         INTO v_ok;
+        IF NOT v_ok THEN
+          SELECT EXISTS(
+            SELECT 1 FROM identity.current_phone_granted_children(
+              _actor,_phone,_role,_expires)
+          ) INTO v_ok;
+        END IF;
         IF NOT v_ok THEN RAISE EXCEPTION 'guardian_permission_denied'
           USING ERRCODE='42501'; END IF;
 
@@ -176,20 +195,8 @@ public sealed class MultipleGuardianPermissions : Migration
         WHERE g.issuer_identity_id=_actor
           AND g.status='granted'
           AND EXISTS(
-            SELECT 1 FROM identity.mobile_identities i
-            JOIN identity.mobile_record_links l ON l.identity_id=i.id
-              AND l.role='parent' AND l.collection='players'
-              AND l.kind='guardian' AND l.normalized_phone=i.normalized_phone
-              AND l.record_id=g.player_id
-            JOIN identity.canonical_contact_bindings b
-              ON b.collection=l.collection AND b.kind='guardian'
-              AND b.source_id=l.record_id
-              AND b.normalized_phone=i.normalized_phone
-            JOIN club.players p ON p.id=g.player_id
-              AND p.organization_id=g.organization_id
-            WHERE i.id=_actor AND i.normalized_phone=_phone
-              AND i.role='parent' AND i.is_active
-              AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred);
+            SELECT 1 FROM identity.valid_guardian_phone_grants() valid
+            WHERE valid.permission_id=g.id);
         IF jsonb_array_length(v_items)>100
         THEN RAISE EXCEPTION 'guardian_permission_limit' USING ERRCODE='54000'; END IF;
         RETURN jsonb_build_object('items',v_items);
