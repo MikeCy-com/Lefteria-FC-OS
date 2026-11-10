@@ -729,6 +729,44 @@ export function createMobileAuthController(options: {
     }
   }
 
+  async function createManyGuardianPermissions(
+    children:Array<{player_id:string;request_id:string}>,phone:string) {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||state.familyStatus!=='ready'||
+      children.length<2||children.length>100||
+      new Set(children.map(x=>x.player_id)).size!==children.length||
+      new Set(children.map(x=>x.request_id)).size!==children.length||
+      children.some(child=>!uuidPattern.test(child.request_id)||
+        !family.children.some(linked=>linked.id===child.player_id))||
+      !/^\\+?[0-9 ()-]{8,24}$/.test(phone)||state.guardianPending)return false;
+    const op=guardianRevision,linked=familyRevision,bearer=token;
+    const current=()=>op===guardianRevision&&linked===familyRevision&&
+      token===bearer&&state.user?.id===identity.id&&
+      state.family===family&&state.status==='authenticated';
+    update({guardianPending:true,guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions/bulk',
+        'POST',{phone,children});
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('items' in raw)||
+        !Array.isArray(raw.items)||raw.items.length!==children.length||
+        raw.items.some((v:unknown,i:number)=>{
+          if(!v||typeof v!=='object')return true;
+          const item=v as Record<string,unknown>;
+          return item.status!=='granted'||item.kind!=='guardian'||
+            item.player_id!==children[i].player_id||
+            item.id!==children[i].request_id;
+        }))throw Error('Δεν επαληθεύτηκε η καταχώριση για όλα τα παιδιά.');
+      update({guardianPending:false});
+      await loadGuardianPermissions();
+      return true;
+    }catch(e){
+      if(current())update({guardianPending:false,guardianError:message(e)});
+      return false;
+    }
+  }
+
   async function revokeGuardianPermission(id:string) {
     const identity=state.user,family=state.family,listed=state.guardianPermissions;
     if(state.status!=='authenticated'||identity?.role!=='parent'||
@@ -1256,6 +1294,7 @@ export function createMobileAuthController(options: {
     loadOutgoingInvitations,
     loadGuardianPermissions,
     createFamilyPermission,
+    createManyGuardianPermissions,
     revokeGuardianPermission,
     revokeFamilyDelegation,
     cancelOutgoingInvitation,
