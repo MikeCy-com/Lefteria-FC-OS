@@ -88,3 +88,9 @@ source contract assertions. Both are attached to the standard rewrite CI.
 
 This foundation alone **does not pass the finance go-live gate**, does not
 modify the original repository, and does not deploy to Hostinger or live.
+
+## Integration with merged Payabl foundation (2026-11-10)
+
+PR #143 has now been merged into OS `main`. This ledger PR targets `main` directly and is **schema-only**: it adds no card-capture, cash-collection, refund, subscription or public/mobile read endpoints. The separate general-charge SQL fixture is wired into the existing disposable PostgreSQL CI job, after the Payabl test setup, and must pass with both restricted runtime roles. A successful build is evidence of migration/constraint behavior in disposable CI only; settlement mapping, invoice parity and accounting reconciliation remain separately blocked for release.
+
+The event guard serializes per charge, enforces signed amounts and prevents partial payments from exceeding the issued amount. SQL checks must exercise duplicate idempotency, original-event reversals, immutable issued amounts and evidence-method combinations. **Do not apply the migration to production until the exact-head PR checks and reviewed finance rollout are complete.**
