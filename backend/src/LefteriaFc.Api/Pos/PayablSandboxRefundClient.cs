@@ -18,6 +18,20 @@ internal static class PayablSandboxRefundClient
     private static readonly Uri SandboxEndpoint =
         new("https://sandbox.payabl.com/pay/backoffice/payment_refund");
 
+    // This adapter creates its own restricted HTTP transport to guarantee
+    // no redirect can forward a signed form to another URL or host.
+    private static readonly HttpClient SandboxHttp = new(
+        new SocketsHttpHandler
+        {
+            AllowAutoRedirect = false,
+            UseCookies = false,
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+            PooledConnectionLifetime = TimeSpan.FromMinutes(5)
+        })
+    {
+        Timeout = TimeSpan.FromSeconds(30)
+    };
+
     internal sealed record RefundCommand(
         string MerchantId,
         string CapturedTransactionId,
@@ -50,11 +64,9 @@ internal static class PayablSandboxRefundClient
     }
 
     internal static async Task<RefundGatewayResponse> RequestAsync(
-        HttpClient sandboxOnlyClient, RefundCommand refund,
-        CancellationToken ct)
+        RefundCommand refund, CancellationToken ct)
     {
-        if (sandboxOnlyClient is null ||
-            string.IsNullOrWhiteSpace(refund.MerchantId) ||
+        if (string.IsNullOrWhiteSpace(refund.MerchantId) ||
             refund.MerchantId.Length > 40 ||
             !refund.MerchantId.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-') ||
             string.IsNullOrWhiteSpace(refund.CapturedTransactionId) ||
@@ -80,8 +92,8 @@ internal static class PayablSandboxRefundClient
             Content = new FormUrlEncodedContent(fields)
         };
         // Strictly sandbox, no redirects (including downgrade or live host).
-        // The injected client must also be configured with redirects disabled.
-        using var response = await sandboxOnlyClient.SendAsync(
+        // Redirect following is disabled in the dedicated HTTP transport.
+        using var response = await SandboxHttp.SendAsync(
             message, HttpCompletionOption.ResponseHeadersRead, ct);
         if (response.StatusCode is HttpStatusCode.MovedPermanently or
             HttpStatusCode.Redirect or HttpStatusCode.RedirectMethod or
