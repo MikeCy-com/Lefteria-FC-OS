@@ -20,6 +20,13 @@ public sealed class PostgresRosterQueries(LefteriaDbContext database) : IRosterQ
                     AND @expires > statement_timestamp()
                     AND (
                       i.role='fan'
+                      -- A verified existing Parent with no remaining
+                      -- canonical link can still be granted a different
+                      -- child explicitly; re-evaluate their live phone
+                      -- permission instead of trusting a legacy ID.
+                      OR (i.role='parent' AND EXISTS(
+                        SELECT 1 FROM identity.current_phone_granted_children(
+                          i.id,i.normalized_phone,i.role,@expires)))
                       OR (i.role IN ('parent','player','coach') AND (i.legacy_id IS NULL OR EXISTS (
                         SELECT 1 FROM identity.mobile_record_links l
                         JOIN identity.canonical_contact_bindings b ON b.collection=l.collection
