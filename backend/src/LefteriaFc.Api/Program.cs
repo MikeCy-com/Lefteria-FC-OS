@@ -150,6 +150,7 @@ app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
+app.MapAdminAcademyDocuments();
 
 if (app.Environment.IsDevelopment())
 {
