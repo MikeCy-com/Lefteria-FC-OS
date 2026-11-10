@@ -75,65 +75,6 @@ public sealed class PostgresGuardianPermissionRepository(LefteriaDbContext datab
         finally { await database.Database.CloseConnectionAsync(); }
     }
 
-    public async Task<GuardianRecipientInbox> RecipientInboxAsync(
-        MobileSession session, CancellationToken ct)
-    {
-        await database.Database.OpenConnectionAsync(ct);
-        try
-        {
-            await using var command=new NpgsqlCommand("""
-              SELECT identity.read_recipient_guardian_permissions(
-                @identity,@phone,@role,@expires)::text
-              """,(NpgsqlConnection)database.Database.GetDbConnection());
-            Bind(command,session);
-            var json=await Execute(command,ct);
-            return JsonSerializer.Deserialize<GuardianRecipientInbox>(json) ??
-                throw new InvalidOperationException("Invalid guardian inbox.");
-        }
-        finally {await database.Database.CloseConnectionAsync();}
-    }
-
-    public async Task<GuardianRecipientConsentResult> AcceptConsentAsync(
-        MobileSession session, Guid id, CancellationToken ct)
-    {
-        await database.Database.OpenConnectionAsync(ct);
-        try
-        {
-            await using var command=new NpgsqlCommand("""
-              SELECT identity.accept_recipient_guardian_permission(
-                @identity,@phone,@role,@expires,@device,@permission)::text
-              """,(NpgsqlConnection)database.Database.GetDbConnection());
-            Bind(command,session);
-            command.Parameters.AddWithValue("permission",id);
-            var json=await Execute(command,ct);
-            return JsonSerializer.Deserialize<GuardianRecipientConsentResult>(json) ??
-                throw new InvalidOperationException("Invalid consent result.");
-        }
-        finally {await database.Database.CloseConnectionAsync();}
-    }
-
-    public async Task DeclineAsync(MobileSession session, Guid id, CancellationToken ct)
-    {
-        await database.Database.OpenConnectionAsync(ct);
-        try
-        {
-            await using var command=new NpgsqlCommand("""
-              SELECT identity.decline_recipient_guardian_permission(
-                @identity,@phone,@role,@expires,@device,@permission)
-              """,(NpgsqlConnection)database.Database.GetDbConnection());
-            Bind(command,session);
-            command.Parameters.AddWithValue("permission",id);
-            try
-            {
-                var result=await command.ExecuteScalarAsync(ct);
-                if(result is not bool ok||!ok)
-                    throw new InvalidOperationException("Decline not verified.");
-            }
-            catch(PostgresException issue){throw Translate(issue);}
-        }
-        finally{await database.Database.CloseConnectionAsync();}
-    }
-
     private static async Task<string> Execute(NpgsqlCommand command,CancellationToken ct)
     {
         try
