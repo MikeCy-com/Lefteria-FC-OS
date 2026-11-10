@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 
 /// <summary>
-/// Manager-only, player-scoped Academy evaluation timeline. Returns bounded
+/// Manager-only, player-scoped Club evaluation timeline. Returns bounded
 /// snapshots without granting direct access to sensitive base tables.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
@@ -21,7 +21,7 @@ public sealed class AcademyEvaluationManagerRead : Migration
       DECLARE v_role text; v_count integer; v_rows jsonb;
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
-           OR _owner<>'lefteria_fc_academy'
+           OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
            OR _player IS NULL OR length(_player) NOT BETWEEN 1 AND 128
            OR _player ~ '[[:cntrl:]]' THEN
           RAISE EXCEPTION 'evaluation_scope_invalid' USING ERRCODE='22023';
@@ -45,8 +45,25 @@ public sealed class AcademyEvaluationManagerRead : Migration
         END IF;
         IF NOT EXISTS(
           SELECT 1 FROM club.players p WHERE p.organization_id=_owner
-            AND p.id=_player AND p.team_type='Academy'
+            AND p.id=_player
             AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
+            AND (
+              (_owner='lefteria_fc' AND p.team_type='First Team'
+                AND p.team_id IS NOT NULL
+                AND EXISTS (SELECT 1 FROM club.teams t
+                  WHERE t.organization_id=_owner AND t.id=p.team_id))
+              OR
+              (_owner='lefteria_fc_academy' AND p.team_type='Academy'
+                AND (
+                  EXISTS (SELECT 1 FROM club.academy_groups g
+                    WHERE g.organization_id=_owner AND g.id=p.primary_academy_group_id)
+                  OR EXISTS (SELECT 1 FROM club.player_academy_groups m
+                    JOIN club.academy_groups g
+                      ON g.organization_id=m.organization_id
+                        AND g.id=m.academy_group_id
+                    WHERE m.organization_id=_owner AND m.player_id=p.id)
+                ))
+            )
         ) THEN
           RAISE EXCEPTION 'evaluation_player_not_available' USING ERRCODE='42501';
         END IF;
