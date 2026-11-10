@@ -14,8 +14,8 @@ test('multiple guardians are independent per child, player invitation is not cha
   assert.match(db,/CREATE TABLE identity.family_guardian_permissions/);
   assert.match(db,/UNIQUE INDEX uq_family_guardian_live_recipient/);
   assert.match(db,/organization_id,player_id,target_phone/);
-  assert.match(db,/status IN \('pending','active','declined','revoked','expired'\)/);
-  assert.match(db,/status IN \('pending','active'\)\)>=20/);
+  assert.match(db,/status IN \('pending','active','accepted_pending_access'/);
+  assert.match(db,/status IN \('pending','accepted_pending_access','active'\)\)>=20/);
   assert.match(db,/PRIMARY KEY/);
   assert.doesNotMatch(db,/ALTER TABLE identity.family_invitations|DROP TABLE identity.family_delegated_player_grants/);
   assert.match(ui,/<option value="player">/);
@@ -44,6 +44,7 @@ test('per-child grant listing and UUID-specific revocation are restricted to ori
   assert.match(db,/WHERE id=_permission AND issuer_identity_id=_actor/);
   assert.match(db,/UPDATE identity.family_guardian_permissions SET/);
   assert.match(db,/status='revoked',revoked_at=v_now/);
+  assert.match(db,/accepted_pending_access/);
   assert.match(db,/audit.security_events/);
   assert.match(db,/ENABLE ROW LEVEL SECURITY/);
   assert.match(db,/REVOKE ALL ON identity.family_guardian_permissions FROM PUBLIC/);
