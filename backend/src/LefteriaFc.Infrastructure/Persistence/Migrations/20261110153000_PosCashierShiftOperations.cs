@@ -170,11 +170,15 @@ public sealed class PosCashierShiftOperations : Migration
           OR _request IS NULL OR _request='00000000-0000-0000-0000-000000000000'::uuid
         THEN RAISE EXCEPTION 'cashier_close_invalid' USING ERRCODE='22023';
         END IF;
+        -- Obtain current authorization before the shift row lock, matching
+        -- the checkout lock order and avoiding an auth/shift deadlock.
         SELECT * INTO v_shift FROM pos.shifts
-          WHERE id=_shift AND organization_id=_owner FOR UPDATE;
+          WHERE id=_shift AND organization_id=_owner;
         IF NOT FOUND THEN RAISE EXCEPTION 'cashier_shift_missing' USING ERRCODE='42501'; END IF;
         v_actor:=pos.current_cashier_authority(_digest,_owner,v_shift.register_id);
-        IF v_actor<>v_shift.cashier_id THEN
+        SELECT * INTO v_shift FROM pos.shifts
+          WHERE id=_shift AND organization_id=_owner FOR UPDATE;
+        IF NOT FOUND OR v_actor<>v_shift.cashier_id THEN
           RAISE EXCEPTION 'cashier_shift_other_actor' USING ERRCODE='42501';
         END IF;
         IF v_shift.closed_at IS NOT NULL THEN
