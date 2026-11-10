@@ -151,6 +151,7 @@ app.MapAdminAnnouncementDrafts();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
 app.MapAdminAcademyDocuments();
+app.MapAdminPrivateDocumentUploads();
 
 if (app.Environment.IsDevelopment())
 {
