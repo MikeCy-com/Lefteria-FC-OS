@@ -24,6 +24,7 @@ BEGIN
       LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) x
       WHERE p.oid IN(
         'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)'::regprocedure,
+        'identity.issue_many_guardian_permissions(uuid,text,text,timestamptz,uuid,text,jsonb)'::regprocedure,
         'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
         'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
         'identity.has_current_guardian_phone_grant(text)'::regprocedure,
@@ -34,6 +35,8 @@ END $guard$;
 GRANT USAGE ON SCHEMA identity TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.issue_guardian_permission(
     uuid,text,text,timestamptz,uuid,text,text,uuid) TO :"app_role";
+GRANT EXECUTE ON FUNCTION identity.issue_many_guardian_permissions(
+    uuid,text,text,timestamptz,uuid,text,jsonb) TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.read_issued_guardian_permissions(
     uuid,text,text,timestamptz) TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.revoke_issued_guardian_permission(
@@ -47,6 +50,8 @@ DECLARE role_name text:=current_setting('lefteria.guardian_permission_role');
 BEGIN
   IF NOT has_function_privilege(role_name,
       'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)','EXECUTE')
+    OR NOT has_function_privilege(role_name,
+      'identity.issue_many_guardian_permissions(uuid,text,text,timestamptz,uuid,text,jsonb)','EXECUTE')
     OR NOT has_function_privilege(role_name,
       'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(role_name,
