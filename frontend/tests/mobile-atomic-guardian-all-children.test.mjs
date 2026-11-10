@@ -1,0 +1,56 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const get=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+const db=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110177000_AtomicGuardianMultiChildGrant.cs');
+const service=get('backend/src/LefteriaFc.Application/Family/GuardianPermissionService.cs');
+const repo=get('backend/src/LefteriaFc.Infrastructure/Family/PostgresGuardianPermissionRepository.cs');
+const api=get('backend/src/LefteriaFc.Api/Family/ParentFamilyEndpoints.cs');
+const controller=get('frontend/src/lib/mobile/controller.ts');
+const ui=get('frontend/src/lib/mobile/components/MobileFamily.svelte');
+const page=get('frontend/src/routes/app/[...path]/+page.svelte');
+const grants=get('ops/postgres/guardian-permission-grants.sql');
+const probes=get('ops/postgres/guardian-permission-boundary.sql');
+
+test('all-children grant runs as one SQL statement using the guarded single-child writer',()=>{
+  assert.match(db,/CREATE FUNCTION identity.issue_many_guardian_permissions/);
+  assert.match(db,/v_result:=identity.issue_guardian_permission/);
+  assert.match(db,/jsonb_array_length\(_items\) NOT BETWEEN 1 AND 100/);
+  assert.match(db,/v_player=ANY\(v_seen\)/);
+  assert.match(db,/v_result->>'status'<>'granted'/);
+  assert.match(db,/v_result->>'player_id'<>v_player/);
+  assert.match(db,/v_result->>'id'<>v_request::text/);
+  assert.match(db,/REVOKE ALL ON FUNCTION identity.issue_many_guardian_permissions/);
+  assert.doesNotMatch(db,/INSERT INTO identity.family_guardian_permissions|GRANT EXECUTE/);
+});
+test('bulk API requires verified parent identity and deduplicated child and request IDs',()=>{
+  assert.match(service,/RequireParent\(session\)/);
+  assert.match(service,/children.Count is < 2 or > 100/);
+  assert.match(service,/Distinct\(StringComparer.Ordinal\)/);
+  assert.match(service,/children.Select\(c=>c.RequestId\).Distinct\(\)/);
+  assert.match(service,/identity.AuthorizeCurrentIdentityAsync/);
+  assert.match(service,/MobileAuthThrottleScope.FamilyInvitationTarget/);
+  assert.match(service,/saved.Items.Count!=children.Count/);
+  assert.match(repo,/SELECT identity.issue_many_guardian_permissions/);
+  assert.match(repo,/NpgsqlDbType.Jsonb/);
+  assert.match(api,/IssueManyGuardianPermissions/);
+  assert.match(api,/RequireAuthorization\(IdentityServices.Policy\)/);
+});
+test('all children UI uses only atomic bulk request, single-child grants remain separate',()=>{
+  assert.match(ui,/family.children.length===1/);
+  assert.match(ui,/<option value="all">Όλα τα παιδιά μου<\/option>/);
+  assert.match(ui,/children.length>1/);
+  assert.match(ui,/onCreateManyGuardian\(ids,permissionPhone\)/);
+  assert.doesNotMatch(ui,/for\(const child of children\)/);
+  assert.match(controller,/async function createManyGuardianPermissions/);
+  assert.match(controller,/guardian-permissions\/bulk/);
+  assert.match(controller,/raw.items.length!==children.length/);
+  assert.match(controller,/item.player_id!==children\[i\].player_id/);
+  assert.match(page,/onCreateManyGuardian=/);
+});
+test('no direct child table rights are added for the bulk operation',()=>{
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION identity.issue_many_guardian_permissions/);
+  assert.match(grants,/guardian_permission_scope_invalid/);
+  assert.match(probes,/guardian_unauthorized_bulk_allowed/);
+  assert.doesNotMatch(grants,/GRANT (?:SELECT|INSERT|UPDATE|DELETE) ON/);
+});
