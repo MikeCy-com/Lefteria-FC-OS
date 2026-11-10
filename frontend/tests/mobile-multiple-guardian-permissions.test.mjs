@@ -27,9 +27,9 @@ test('one child is automatic, multiple children can be selected, guardian can se
   assert.match(ui,/permissionType==='guardian'/);
   assert.match(ui,/<option value="all">Όλα τα παιδιά μου<\/option>/);
   assert.match(ui,/permissionType==='guardian'&&resolvedChild==='all'/);
-  assert.match(ui,/for\(const child of children\)/);
+  assert.match(ui,/onCreateManyGuardian/);
   assert.match(ui,/if\(completed===children\.length\)/);
-  assert.match(ui,/completed>0/);
+  assert.match(ui,/submitting=false/);
 });
 test('direct parent grant uses phone only, without invitation acceptance or expiry',()=>{
   assert.match(db,/status varchar\(16\) NOT NULL DEFAULT 'granted'/);
