@@ -8,7 +8,7 @@ BEGIN
   FOREACH name IN ARRAY ARRAY[
     'locations','registers','cashier_assignments','shifts','stock','sales',
     'sale_lines','payment_events','receipt_sequences','receipts','returns',
-    'return_lines','refund_events','transaction_audit'
+    'return_lines','refund_events','transaction_audit','checkout_policies','sale_reservations'
   ] LOOP
     IF NOT EXISTS(
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -31,6 +31,23 @@ BEGIN
     WHERE tgrelid='pos.refund_events'::regclass
       AND tgname='pos_refund_original_payment_guard' AND NOT tgisinternal)
   THEN RAISE EXCEPTION 'pos_operational_financial_guard_missing'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger
+    WHERE tgrelid='pos.receipts'::regclass
+      AND tgname='pos_receipt_fulfill_inventory' AND NOT tgisinternal)
+  THEN RAISE EXCEPTION 'pos_receipt_inventory_fulfillment_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_indexes
+    WHERE schemaname='pos' AND indexname='uq_pos_void_request')
+  THEN RAISE EXCEPTION 'pos_sale_cancel_replay_index_missing'; END IF;
+  IF EXISTS(
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos.prepare_cashier_checkout(text,text,text,uuid,uuid,jsonb)'::regprocedure,
+      'pos.cancel_unpaid_cashier_sale(text,text,uuid,uuid)'::regprocedure
+    ) AND EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+      WHERE a.grantee=0 AND a.privilege_type='EXECUTE'
+    )
+  ) THEN RAISE EXCEPTION 'pos_checkout_exposed_to_public'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
