@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 
 /// <summary>
-/// Academy-only private evaluation and document vault staging. Deliberately
+/// Club-wide private evaluation and document vault staging. Deliberately
 /// no runtime grants, anonymous links, upload endpoints or player-app access.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
@@ -23,7 +23,7 @@ public sealed class AcademyPrivateEvaluationsDocuments : Migration
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL
           REFERENCES club.organizations(id) ON DELETE RESTRICT
-          CHECK (organization_id='lefteria_fc_academy'),
+          CHECK (organization_id IN ('lefteria_fc','lefteria_fc_academy')),
         player_id varchar(128) COLLATE "C" NOT NULL,
         legacy_evaluation_id varchar(128) COLLATE "C",
         author_id uuid NOT NULL REFERENCES identity.admin_accounts(id)
@@ -79,7 +79,7 @@ public sealed class AcademyPrivateEvaluationsDocuments : Migration
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL
           REFERENCES club.organizations(id) ON DELETE RESTRICT
-          CHECK (organization_id='lefteria_fc_academy'),
+          CHECK (organization_id IN ('lefteria_fc','lefteria_fc_academy')),
         player_id varchar(128) COLLATE "C" NOT NULL,
         legacy_document_id varchar(128) COLLATE "C",
         document_type varchar(32) NOT NULL CHECK (document_type IN (
