@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the fifty-one explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the fifty-three explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 51);
+  assert.equal(operations.length, 53);
   for (const operation of operations) {
     const path = operation.path.replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
@@ -175,7 +175,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 51);
+  assert.equal(protectedOperations(changed).length, 53);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
