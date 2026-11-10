@@ -221,7 +221,6 @@ export function createMobileAuthController(options: {
 
   function clearRecipientInvitations() {
     clearDelegatedCalendar();
-    update({guardianRecipientInbox:null,guardianRecipientStatus:'idle',
     ++recipientRevision;
     ++delegationRevision;
     update({ recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
