@@ -11,7 +11,7 @@ test('Payabl request signature uses ordinal-sorted raw parameter values plus sec
  assert.equal(expected.length,40);
  assert.match(source,/OrderBy\(pair => pair.Key, StringComparer.Ordinal\)/);
  assert.match(source,/Select\(pair => pair.Value\)/);
- assert.match(source,/SHA1.HashData\(Encoding.UTF8.GetBytes\(ordered\)\)/);
+ assert.match(source,/SHA1.HashData\(Encoding.Latin1.GetBytes\(ordered\)\)/);
  assert.match(source,/ToLowerInvariant\(\)/);
 });
 test('Refund client has fixed sandbox URL, rejects redirects and limits reply size',()=>{
