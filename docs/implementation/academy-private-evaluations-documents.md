@@ -24,3 +24,13 @@
 6. Run actual .NET migrations, rollback-only PostgreSQL access and lifecycle tests, Node/SvelteKit validation, full CI, security review and visual comparison. No builds or DB integration checks are claimed passing here.
 
 **Explicitly not complete:** no real file bytes stored, no active runtime endpoint, no verified score workflows or uploaded documents. Keep PR draft; do not merge into OS main or deploy until validated.
+
+## Follow-up: evaluation revision enforcement (2026-11-10)
+
+The next migration `20261110110000_AcademyPrivateRevisionGuards` now enforces the source's **author-owned 24-hour revision window at the database boundary**, locks the parent evaluation row, rejects stale or out-of-order version numbers, replaces client-supplied edit timestamps with database time, and appends separate revisions rather than overwriting original assessments. Technical/tactical/physical/character score keys are allowlisted and required to have integral values from 0 to 100. First Team extras remain excluded.
+
+Revision and document-audit events are protected by update/delete rejection triggers. A disposable rollback-only PostgreSQL probe and source assertions were added; the isolated CI PostgreSQL job is configured to run that probe after migrations. These controls do **not** supply a complete write authorization service, administrator override workflow, signed upload or audit-on-download endpoint.
+
+**Verification blocker:** GitHub Actions run `42755249081` reported all five jobs failed with **zero steps executed**, so neither the official migration execution nor runtime tests are proven. Do not mark this PR ready, merge it or deploy.
+
+**Next operational slice:** add an authorization service with actor/session + exact organization and player assignment validation, plus a private admin evaluation timeline and controlled submit path. Protect document object bytes and audited download authorization separately before exposing any files.
