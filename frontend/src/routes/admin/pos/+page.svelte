@@ -6,6 +6,7 @@
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminPosBasketPreview from '../../../lib/admin/AdminPosBasketPreview.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -504,6 +505,7 @@
               {/if}
             </section>
           {/if}
+          <AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
