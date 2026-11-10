@@ -315,7 +315,7 @@
               </select>
             </label>
             <label>Τεμάχια
-              <input type="number" min="1" max="100000" step="1"
+              <input type="text" inputmode="numeric" pattern="[0-9]{1,6}"
                 bind:value={stockQuantity} oninput={()=>stockRequestId=''} required/>
             </label>
             <button type="submit" class="admin-secondary" disabled={stockBusy}>
