@@ -149,6 +149,9 @@ public sealed class PosCashierTransactionLedger : Migration
         CHECK ((status='verified')=(verified_at IS NOT NULL)),
         CHECK (payment_kind='card' OR
           (provider IS NULL AND provider_payment_id IS NULL)),
+        CHECK (payment_kind<>'cash' OR status<>'verified'
+          OR (verification_reference IS NOT NULL
+              AND length(btrim(verification_reference)) BETWEEN 1 AND 200)),
         CHECK (payment_kind='cash' OR
           (status<>'verified' OR
            (provider IS NOT NULL AND provider_payment_id IS NOT NULL AND
