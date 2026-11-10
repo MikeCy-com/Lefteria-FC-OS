@@ -42,7 +42,7 @@ use synthetic seeded fixtures and authorized dedicated test roles only.
 | P0 | Admin finance | Original ChargesTab contains 8 original charge categories, partial amounts, multiple methods and invoice states | OS finance parity under other draft branches; feature catalog does not establish complete or merged functionality | Compare every charge/event, partial payment, reversal and issued month; reconcile posted balances and invoice snapshots |
 | P1 | Public styling | Original public black #080808, gold #f5a623, Fira Sans / Extra Condensed, 116px rail and 76px header | Existing OS CSS asserts those tokens; no equal-viewport screenshot or rendered font check here | Real same-data browser captures at 390, 768, 1440, 1920 and 3840 pixel widths |
 | P1 | Public navigation | Both menus have nine groups and corresponding principal destination paths | Source comparison found OS already preserves the main structure and improves a standings anchor | Preserve semantic link scope, dynamic Academy groups and focus/navigation behavior |
-| P1 | Legacy staff link | Original first-team navigation has a dedicated staff view | OS `/staff` redirected to `/team?tab=overview` despite a real `staff` tab | **Fixed on this audit branch:** now redirects to `/team?tab=staff`, with navigation alias and smoke check updated |
+| P1 | Legacy staff link | Original React router deliberately redirects `/staff` to `/team?tab=overview`; the First Team hub separately has a staff tab | OS matches that legacy redirect, and `/team?tab=staff` remains the dedicated staff screen | **Confirmed exact source match:** keep the original redirect; regression checks guard both destinations |
 
 ## Systematic audit inventory now committed
 
