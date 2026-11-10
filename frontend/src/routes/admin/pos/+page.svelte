@@ -6,6 +6,7 @@
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminPosLocationsPanel from '../../../lib/admin/AdminPosLocationsPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -555,6 +556,13 @@
               {/if}
             </section>
           </div>
+          {#if owner && $auth.session}
+            <AdminPosLocationsPanel owner={owner as Organization}
+              actorId={$auth.session.user.id}
+              canWrite={!!canEdit&&['manager','super_admin'].includes($auth.session.user.role)}
+              onExpired={()=>auth.invalidateSession()}
+              onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
         {/if}
       </div>
     {:else}
