@@ -93,14 +93,17 @@
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
     const response = value as Record<string, unknown>;
     const groupKind = expected === 'lefteria_fc' ? 'team' : 'academy_group';
+    const uniqueIds = new Set<string>();
     return response.organization_id === expected && response.ready === true &&
       Number.isSafeInteger(response.unassigned_players) && (response.unassigned_players as number) >= 0 &&
       Array.isArray(response.groups) && response.groups.length <= 150 &&
       response.groups.every((group: unknown) => {
         if (!group || typeof group !== 'object' || Array.isArray(group)) return false;
         const row = group as Record<string, unknown>;
-        return typeof row.id === 'string' && row.id.length > 0 && row.id.length <= 128 &&
-          typeof row.name === 'string' && row.name.length <= 200 &&
+        if (typeof row.id !== 'string' || row.id.length < 1 ||
+            row.id.length > 128 || uniqueIds.has(row.id)) return false;
+        uniqueIds.add(row.id);
+        return typeof row.name === 'string' && row.name.length > 0 && row.name.length <= 200 &&
           row.kind === groupKind && Number.isSafeInteger(row.active_players) &&
           (row.active_players as number) >= 0;
       });
