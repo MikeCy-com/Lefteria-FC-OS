@@ -115,6 +115,9 @@ jobs:
           dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
           dotnet ef migrations has-pending-model-changes --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+      - name: POS private location and sale-ledger guards (disposable PostgreSQL)
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/pos-location-ledger-checks.sql
       - name: Provision and check restricted runtime role
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
