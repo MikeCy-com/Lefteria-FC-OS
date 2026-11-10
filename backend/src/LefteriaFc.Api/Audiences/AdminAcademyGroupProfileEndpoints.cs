@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
 using LefteriaFc.Domain.AdminAuth;
@@ -16,9 +17,15 @@ namespace LefteriaFc.Api.Audiences;
 public static class AdminAcademyGroupProfileEndpoints
 {
     public sealed record ProfileWrite(
-        long ExpectedRevision, string AgeRange, string CoachName,
-        string TrainingSchedule, string Description, int MaxPlayers,
-        string Season, string BannerUrl, int DisplayOrder);
+        [property: JsonPropertyName("expected_revision")] long ExpectedRevision,
+        [property: JsonPropertyName("age_range")] string AgeRange,
+        [property: JsonPropertyName("coach_name")] string CoachName,
+        [property: JsonPropertyName("training_schedule")] string TrainingSchedule,
+        [property: JsonPropertyName("description")] string Description,
+        [property: JsonPropertyName("max_players")] int MaxPlayers,
+        [property: JsonPropertyName("season")] string Season,
+        [property: JsonPropertyName("banner_url")] string BannerUrl,
+        [property: JsonPropertyName("display_order")] int DisplayOrder);
 
     public static IEndpointRouteBuilder MapAdminAcademyGroupProfiles(this IEndpointRouteBuilder app)
     {
