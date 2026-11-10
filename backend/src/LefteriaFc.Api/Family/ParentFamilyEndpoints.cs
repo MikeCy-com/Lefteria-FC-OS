@@ -160,6 +160,35 @@ public static class ParentFamilyEndpoints
             .WithName("RevokeIssuedGuardianPermission")
             .Produces<FamilyOperationResult>().WithMobileErrors();
 
+        // OTP-recipient consent is intentionally NOT parent-role activation.
+        endpoints.MapGet("/api/mobile/family/guardian-invitations",
+            (HttpContext context, GuardianPermissionService service, CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.RecipientInboxAsync(MobilePrincipal.Read(context.User),token),context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetRecipientGuardianInvitations")
+            .Produces<GuardianRecipientInbox>().WithMobileErrors();
+
+        endpoints.MapPost("/api/mobile/family/guardian-invitations/{permissionId:guid}/accept",
+            (Guid permissionId,HttpContext context,GuardianPermissionService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.AcceptConsentAsync(MobilePrincipal.Read(context.User),
+                        permissionId,token),context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("AcceptRecipientGuardianConsent")
+            .Produces<GuardianRecipientConsentResult>().WithMobileErrors();
+
+        endpoints.MapPost("/api/mobile/family/guardian-invitations/{permissionId:guid}/decline",
+            (Guid permissionId,HttpContext context,GuardianPermissionService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.DeclineAsync(MobilePrincipal.Read(context.User),
+                        permissionId,token),context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("DeclineRecipientGuardianConsent")
+            .Produces<FamilyOperationResult>().WithMobileErrors();
+
         return endpoints;
     }
 }
