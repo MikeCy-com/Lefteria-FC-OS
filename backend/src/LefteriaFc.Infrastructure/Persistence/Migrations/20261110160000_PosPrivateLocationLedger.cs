@@ -89,6 +89,7 @@ public sealed class PosPrivateLocationLedger : Migration
         ends_at timestamptz,
         session_version bigint NOT NULL DEFAULT 1 CHECK (session_version>0),
         PRIMARY KEY(organization_id,id),
+        UNIQUE(organization_id,id,location_id),
         FOREIGN KEY(organization_id,location_id)
           REFERENCES pos.locations(organization_id,id) ON DELETE RESTRICT,
         CHECK (ends_at IS NULL OR starts_at IS NULL OR ends_at>starts_at),
@@ -104,10 +105,8 @@ public sealed class PosPrivateLocationLedger : Migration
         version bigint NOT NULL CHECK (version>0),
         expires_at timestamptz NOT NULL,
         revoked_at timestamptz,
-        FOREIGN KEY(organization_id,operator_id)
-          REFERENCES pos.operators(organization_id,id) ON DELETE RESTRICT,
-        FOREIGN KEY(organization_id,location_id)
-          REFERENCES pos.locations(organization_id,id) ON DELETE RESTRICT
+        FOREIGN KEY(organization_id,operator_id,location_id)
+          REFERENCES pos.operators(organization_id,id,location_id) ON DELETE RESTRICT
       );
 
       -- Totals are immutable EUR cents. Client-side prices must NEVER be used
@@ -125,8 +124,8 @@ public sealed class PosPrivateLocationLedger : Migration
         recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         FOREIGN KEY(organization_id,location_id)
           REFERENCES pos.locations(organization_id,id) ON DELETE RESTRICT,
-        FOREIGN KEY(organization_id,operator_id)
-          REFERENCES pos.operators(organization_id,id) ON DELETE RESTRICT,
+        FOREIGN KEY(organization_id,operator_id,location_id)
+          REFERENCES pos.operators(organization_id,id,location_id) ON DELETE RESTRICT,
         UNIQUE(id,organization_id,location_id),
         UNIQUE(id,organization_id),
         UNIQUE(organization_id,location_id,client_sale_id),
@@ -138,6 +137,7 @@ public sealed class PosPrivateLocationLedger : Migration
         sale_id uuid NOT NULL REFERENCES pos.sales(id) ON DELETE RESTRICT,
         line_number integer NOT NULL CHECK(line_number BETWEEN 1 AND 100),
         organization_id varchar(32) NOT NULL,
+        location_id varchar(80) COLLATE "C" NOT NULL,
         product_id varchar(80) NOT NULL,
         variant_id varchar(60) NOT NULL,
         product_name varchar(100) NOT NULL,
@@ -150,8 +150,11 @@ public sealed class PosPrivateLocationLedger : Migration
         line_total_cents bigint GENERATED ALWAYS AS (
           quantity::bigint * unit_price_cents::bigint) STORED,
         PRIMARY KEY(sale_id,line_number),
-        FOREIGN KEY(sale_id,organization_id)
-          REFERENCES pos.sales(id,organization_id) ON DELETE RESTRICT,
+        FOREIGN KEY(sale_id,organization_id,location_id)
+          REFERENCES pos.sales(id,organization_id,location_id) ON DELETE RESTRICT,
+        FOREIGN KEY(organization_id,location_id,product_id)
+          REFERENCES pos.location_products(organization_id,location_id,product_id)
+          ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,product_id,variant_id)
           REFERENCES pos.product_variants(organization_id,product_id,id)
           ON DELETE RESTRICT,
@@ -212,7 +215,7 @@ public sealed class PosPrivateLocationLedger : Migration
         occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         FOREIGN KEY(sale_id,organization_id,location_id)
           REFERENCES pos.sales(id,organization_id,location_id) ON DELETE RESTRICT,
-        CHECK (reason NOT IN ('sale','return') OR sale_id IS NOT NULL),
+        CHECK ((reason IN ('sale','return'))=(sale_id IS NOT NULL)),
         FOREIGN KEY(organization_id,location_id,product_id,variant_id)
           REFERENCES pos.location_stock(organization_id,location_id,product_id,variant_id)
           ON DELETE RESTRICT,
