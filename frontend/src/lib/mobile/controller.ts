@@ -27,7 +27,7 @@ type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsRes
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 type GuardianPermission = {
   id:string;player_id:string;organization_id:string;kind:'guardian';
-  status:'pending'|'active'|'expired';expires_at:string;
+  status:'pending'|'active'|'expired';expires_at:string;recipient_hint:string;
 };
 type GuardianPermissionPage = {items:GuardianPermission[]};
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -45,7 +45,8 @@ function validGuardianPage(raw:unknown,children:Family['children']):raw is Guard
       typeof p.player_id==='string'&&
       typeof p.organization_id==='string'&&
       children.some(ch=>ch.id===p.player_id&&ch.organization_id===p.organization_id)&&
-      typeof p.expires_at==='string'&&!Number.isNaN(Date.parse(p.expires_at));
+      typeof p.expires_at==='string'&&!Number.isNaN(Date.parse(p.expires_at))&&
+      typeof p.recipient_hint==='string'&&/^••••[0-9]{4}$/.test(p.recipient_hint);
   });
 }
 
