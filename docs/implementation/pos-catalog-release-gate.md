@@ -35,3 +35,9 @@ product-management form with refreshed catalog versions and explicit FC/
 Academy ownership. Public merchandising, stock by location, pricing used for
 actual checkout, receipts and payment collection remain separate disabled
 workstreams and require transaction and security reviews.
+
+## Unsubmitted basket preview (2026-11-10)
+
+The POS admin catalog now includes `AdminPosBasketPreview.svelte`: an entirely client-side, nonpersistent basket preview fed **only by the authenticated verified catalog**. It selects active products in active categories, exact variant IDs, bounded quantities (1–99 per line) and up to 30 lines, computes EUR-cent preview totals from catalog prices, and resets on organization/catalog changes. It has **no POST, sale, payment, receipt, tax authority, inventory mutation or persistence**. The displayed total is indicative, not an invoice or checkout quote; the eventual server checkout must independently revalidate authorization, location, stock, tax rules and current product price in a single durable idempotent transaction. Structural regression checks are in `frontend/tests/pos-basket-preview.test.mjs`.
+
+This is an incremental POS operator workflow, **not a completed POS**. Register/session/operator/location setup, inventory movements, immutable sale ledger, receipt issuance, refund and reconciliation remain disabled. No production deployment or live payment collection is authorized.
