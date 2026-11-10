@@ -24,6 +24,59 @@
   let lastScope='';
   let pendingOpenId=$state('');
   let pendingCloseId=$state('');
+  type Reconciliation={
+    organization_id:Owner;shift_id:string;register_id:string;
+    sales_total:number;sales_paid:number;sales_pending:number;
+    receipts_issued:number;cash_verified_cents:number;card_verified_cents:number;
+    pending_card_events:number;cash_refunded_cents:number;card_refunded_cents:number;
+    active_reservations:number;inconsistent_sales:number;opening_cash_cents:number;
+    expected_cash_cents:number;counted_cash_cents:number|null;
+    cash_variance_cents:number|null;requires_review:boolean;is_closed:boolean;
+  };
+  let report=$state<Reconciliation|null>(null);
+  let reportLoading=$state(false);
+  let reportError=$state('');
+  const validReport=(raw:unknown,ownerExpected:Owner,shiftExpected:string,registerExpected:string):raw is Reconciliation=>{
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
+    const v=raw as Record<string,unknown>;
+    return v.organization_id===ownerExpected&&v.shift_id===shiftExpected&&
+      v.register_id===registerExpected&&typeof v.requires_review==='boolean'&&
+      typeof v.is_closed==='boolean'&&
+      ['sales_total','sales_paid','sales_pending','receipts_issued',
+        'cash_verified_cents','card_verified_cents','pending_card_events',
+        'cash_refunded_cents','card_refunded_cents','active_reservations',
+        'inconsistent_sales','opening_cash_cents','expected_cash_cents'].every(k=>
+          Number.isSafeInteger(v[k])&&(v[k] as number)>=0)&&
+      (v.counted_cash_cents===null||
+        Number.isSafeInteger(v.counted_cash_cents)&&(v.counted_cash_cents as number)>=0)&&
+      (v.cash_variance_cents===null||Number.isSafeInteger(v.cash_variance_cents));
+  };
+  async function loadReconciliation(){
+    const shift=selectedRegister?.shift_id;
+    const register=selectedRegister?.id;
+    if(!browser||!shift||!register||reportLoading||writing)return;
+    const expectedOwner=owner,expectedActor=actorId;
+    report=null;reportError='';reportLoading=true;
+    try{
+      const response=await fetch('/api/admin/pos/cashier/shifts/'+encodeURIComponent(shift)+
+        '/reconciliation?'+new URLSearchParams({organization_id:expectedOwner}),{
+          credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
+        });
+      if(owner!==expectedOwner||actorId!==expectedActor||
+        selectedRegister?.shift_id!==shift||selectedRegister?.id!==register)return;
+      if(response.status===401){onExpired();return;}
+      if(response.status===403){onRevoked();return;}
+      if(!response.ok)throw Error('Η συμφωνία ταμείου δεν είναι διαθέσιμη.');
+      const raw:unknown=await response.json();
+      if(!validReport(raw,expectedOwner,shift,register))
+        throw Error('Μη επαληθευμένη αναφορά ταμείου.');
+      report=raw;
+    }catch(e){
+      if(owner===expectedOwner&&actorId===expectedActor){
+        report=null;reportError=e instanceof Error?e.message:'Σφάλμα συμφωνίας.';
+      }
+    }finally{reportLoading=false;}
+  }
   const euros=(cents:number)=>new Intl.NumberFormat('el-CY',
     {style:'currency',currency:'EUR'}).format(cents/100);
   const money=(value:string):number|null=>{
@@ -60,6 +113,7 @@
     const currentOwner=owner,currentActor=actorId;
     void revision;
     catalog=null;loading=false;selected='';confirmedClose=false;
+    report=null;reportError='';
     error='';pendingOpenId='';pendingCloseId='';
     const contextKey=currentOwner+':'+currentActor;
     if(contextKey!==lastScope){notice='';lastScope=contextKey;}
@@ -144,6 +198,7 @@
       <label>Ταμείο
         <select bind:value={selected} onchange={()=>{
           pendingOpenId='';pendingCloseId='';confirmedClose=false;counted='';
+          report=null;reportError='';
         }}>
           <option value="">Επιλέξτε ταμείο</option>
           {#each catalog.registers as register (register.id)}
@@ -156,6 +211,30 @@
           <p>Ανοικτή βάρδια · {selectedRegister.opened_at
             ?new Date(selectedRegister.opened_at).toLocaleString('el-CY'):'—'}</p>
           <p>Αρχικό ποσό: {euros(selectedRegister.opening_cash_cents??0)}</p>
+          <button type="button" class="admin-secondary"
+            disabled={reportLoading||writing}
+            onclick={()=>void loadReconciliation()}>
+            {reportLoading?'Έλεγχος…':'Προβολή συμφωνίας βάρδιας'}
+          </button>
+          {#if reportError}<p role="alert">{reportError}</p>{/if}
+          {#if report}
+            <div class="pos-reconciliation" data-testid="pos-cashier-reconciliation">
+              <p><strong>Πωλήσεις:</strong> {report.sales_total} ·
+                Ολοκληρωμένες {report.sales_paid} · Ανεξόφλητες {report.sales_pending}</p>
+              <p><strong>Εκδοθείσες αποδείξεις:</strong> {report.receipts_issued}</p>
+              <p>Επαληθευμένα μετρητά: {euros(report.cash_verified_cents)} ·
+                Κάρτες: {euros(report.card_verified_cents)}</p>
+              <p>Επιστροφές μετρητών: {euros(report.cash_refunded_cents)} ·
+                Κάρτες: {euros(report.card_refunded_cents)}</p>
+              <p>Αναμενόμενο ταμείο: <strong>{euros(report.expected_cash_cents)}</strong></p>
+              <p>Εκκρεμείς κάρτες: {report.pending_card_events} ·
+                Εκκρεμείς δεσμεύσεις: {report.active_reservations}</p>
+              {#if report.requires_review}
+                <p role="alert">Υπάρχουν εκκρεμότητες ή διαφορές προς έλεγχο.
+                  Ασφαλής ολοκλήρωση απαιτεί συμφωνία των συναλλαγών.</p>
+              {/if}
+            </div>
+          {/if}
           <label>Μετρημένα μετρητά κατά το κλείσιμο (€)
             <input type="text" inputmode="decimal" bind:value={counted}
               placeholder="0.00" maxlength="10" oninput={()=>pendingCloseId=''} />
@@ -187,4 +266,5 @@
 .pos-cashier-shifts label:not(.pos-cashier-confirm){display:grid;gap:6px;max-width:450px}
 .pos-cashier-shifts select,.pos-cashier-shifts input[type=text]{width:100%}
 .pos-cashier-confirm{display:flex;gap:8px;align-items:center}
+.pos-reconciliation{border:1px solid #50452c;border-radius:10px;padding:12px}
 </style>
