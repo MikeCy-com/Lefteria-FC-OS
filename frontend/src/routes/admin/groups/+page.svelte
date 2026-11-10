@@ -43,7 +43,7 @@
         saving || !showCreate) return;
     const name = groupName;
     if (!name || name.length > 120 || name !== name.trim() ||
-        /[\\x00-\\x1f\\x7f]/.test(name)) {
+        /[\x00-\x1f\x7f]/.test(name)) {
       createError = 'Εισάγετε όνομα τμήματος χωρίς περιττά κενά (έως 120 χαρακτήρες).';
       return;
     }
