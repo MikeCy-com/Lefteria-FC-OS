@@ -50,3 +50,19 @@ Revision and document-audit events are protected by update/delete rejection trig
 - Added the authenticated `GET /api/admin/academy/players/{playerId}/documents?organization_id=lefteria_fc_academy` and `/admin/documents` manager page. The document link, as well as evaluation navigation, is shown only to Academy managers. UI revalidates returned metadata, checks active sessions, clears stale data and offers **no** upload/download operation.
 - Expanded the operator-only SQL grants script for the document metadata function. These grants are **not automatically applied**; they require explicitly reviewed operator setup in the separate database role. Existing private underlying tables remain denied.
 - Added `frontend/tests/academy-documents-metadata-read.test.mjs` containing structural privacy, authorization and audit checks. Runtime integration verification, official contract regeneration, migration and API builds are pending the blocked CI environment. This remains a **draft**, not ready for production or merge.
+
+## Organization and dynamic team coverage — 2026-11-10
+
+The same private player record schema now covers **both** `lefteria_fc` (First Team) and `lefteria_fc_academy` (Academy). Player ownership remains the canonical `(organization_id,player_id)` composite foreign key; teams do not own or duplicate private evaluations or document files.
+
+Both read functions derive eligibility at request time from the **current canonical roster**, not an imported/static list of team IDs:
+
+- First Team: active, non-archived, non-transferred player with exact `team_type='First Team'`, `team_id` referring to a real `club.teams` row in the same organization.
+- Academy: active, non-archived, non-transferred player with exact `team_type='Academy'`, assigned to an existing Academy group either through `primary_academy_group_id` or `club.player_academy_groups`.
+- A new team or Academy group created in the admin backend needs **no private-document table creation**. A player correctly assigned to it automatically satisfies the manager-only reader's current-membership predicate; records are created only by a future authorized evaluation/upload workflow, not by assignment itself.
+- A removed, unassigned, archived or transferred player is not accessible through these active-roster read endpoints. Their historical private records are **preserved**, not silently deleted. Historical/transfer access requires a separately reviewed manager archive workflow.
+- Managers with actual grants to the selected organization and the matching `teams:read` or `academy:read` permission may see the relevant read-only UI. Permissions are verified at the HTTP layer and again in the database function. Coaches and parents are not automatically given access to evaluations or private documents.
+- The admin UI now has an organization selector and uses `/api/admin/club/players/{playerId}/evaluations` and `/documents`. There is no automatic cross-organization transfer of private content, no physical file access and no ability to edit records.
+- `frontend/tests/private-records-dynamic-team-eligibility.test.mjs` checks both organizations, canonical team/group joins, unauthorized organization boundaries, dynamic UI scope and absence of hard-coded team IDs. Runtime tests and full deployment proof are still required.
+
+The next implementation should place these **same player-specific panels inside the existing roster/player profile workflow**, so operators select a team/group and player without typing an opaque ID. Creating an empty team must not fabricate a child, consent record or evaluation. Any later new player, team assignment, move, coach reassignment or removal must be tested using actual PostgreSQL transactions and revoked-session/negative-authorization cases before merge.
