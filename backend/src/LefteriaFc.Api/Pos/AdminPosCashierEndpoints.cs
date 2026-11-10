@@ -1,4 +1,6 @@
 using System.Text;
+using System.Text.Json;
+using NpgsqlTypes;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
 using LefteriaFc.Domain.AdminAuth;
@@ -17,6 +19,8 @@ public static class AdminPosCashierEndpoints
 {
     public sealed record OpenShiftRequest(Guid RequestId, long OpeningCashCents);
     public sealed record CloseShiftRequest(Guid RequestId, long CountedCashCents);
+    public sealed record CheckoutItem(string ProductId, string VariantId, int Quantity);
+    public sealed record PrepareSaleRequest(Guid RequestId, Guid ShiftId, List<CheckoutItem>? Items);
 
     public static IEndpointRouteBuilder MapAdminPosCashier(this IEndpointRouteBuilder endpoints)
     {
@@ -80,6 +84,45 @@ public static class AdminPosCashierEndpoints
             command.Parameters.AddWithValue("request", body.RequestId);
             return await Query(command, ct);
         }).WithName("CloseAdminPosCashierShift");
+        // Reservation-only. Runtime function grant and approved tax policy
+        // are deliberately absent, so this route fails closed by default.
+        group.MapPost("/registers/{registerId}/sales/prepare", async (string registerId,
+            string? organization_id, PrepareSaleRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (!ValidRegister(registerId) || body.ShiftId == Guid.Empty ||
+                body.RequestId == Guid.Empty ||
+                body.Items is null || body.Items.Count is < 1 or > 30 ||
+                body.Items.Any(item =>
+                    !ValidRegister(item.ProductId) ||
+                    item.VariantId.Length is < 1 or > 60 ||
+                    !item.VariantId.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-') ||
+                    item.Quantity is < 1 or > 99) ||
+                body.Items.Select(item => (item.ProductId, item.VariantId))
+                    .Distinct().Count() != body.Items.Count)
+                throw new WebAdminException(400, "pos_sale_items_invalid",
+                    "Select 1 to 30 unique products and quantities between 1 and 99.");
+            var cart = JsonSerializer.Serialize(body.Items.Select(item => new
+            {
+                product_id = item.ProductId,
+                variant_id = item.VariantId,
+                quantity = item.Quantity
+            }));
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.prepare_cashier_checkout(@digest,@owner,@register,@shift,@request,@items)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("register", registerId);
+            command.Parameters.AddWithValue("shift", body.ShiftId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            command.Parameters.AddWithValue("items", NpgsqlDbType.Jsonb, cart);
+            return await Query(command, ct);
+        }).WithName("PrepareAdminPosReservedSale");
+
         return endpoints;
     }
 
@@ -117,7 +160,7 @@ public static class AdminPosCashierEndpoints
                 : Results.Content(result, "application/json", Encoding.UTF8, 200);
         }
         catch (PostgresException ex) when (ex.SqlState is
-            "42501" or "22023" or "23505" or "23514" or "55000" or "54000")
+            "42501" or "22023" or "23505" or "23514" or "55000" or "54000" or "40001")
         {
             var status = ex.SqlState switch
             {
@@ -126,6 +169,7 @@ public static class AdminPosCashierEndpoints
                 "23505" => 409,
                 "23514" => 409,
                 "54000" => 413,
+                "40001" => 409,
                 _ => 409
             };
             throw new WebAdminException(status, "pos_cashier_operation_unavailable",
