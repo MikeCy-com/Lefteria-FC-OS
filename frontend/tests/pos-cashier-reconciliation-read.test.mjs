@@ -24,6 +24,8 @@ test('report separately reconciles verified cash, card, refunds, receipts and st
   assert.match(sql,/v_shift.opening_cash_cents\+v_cash-v_refunds_cash/);
   assert.match(sql,/pending_card_events/);
   assert.match(sql,/requires_review/);
+  assert.match(sql,/v_expected_cash<0/);
+  assert.match(view,/Number.isSafeInteger\(v.expected_cash_cents\)/);
   assert.match(sql,/v_sales>10000/);
 });
 test('reconciliation API and front end expose no payment execution',()=>{
