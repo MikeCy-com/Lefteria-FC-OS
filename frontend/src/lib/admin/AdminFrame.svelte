@@ -7,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
