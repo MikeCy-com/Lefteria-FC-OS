@@ -29,9 +29,9 @@ test('all nine original public menu destinations are still in the OS navigation'
       name+': original destination absent '+path);
   }
 });
-test('legacy staff destination reaches the real First Team staff tab',()=>{
-  assert.match(source('src/routes/staff/+page.server.ts'),/redirect\(308, '\/team\?tab=staff'\)/);
-  assert.match(source('src/lib/public/navigation.ts'),/['"]\/staff['"]: ['"]staff['"]/);
+test('legacy staff destination preserves original First Team overview redirect',()=>{
+  assert.match(source('src/routes/staff/+page.server.ts'),/redirect\(308, '\/team\?tab=overview'\)/);
+  assert.match(source('src/lib/public/navigation.ts'),/['"]\/staff['"]: ['"]overview['"]/);
   assert.match(source('src/routes/team/+page.svelte'),/data.tab === 'staff'/);
 });
 test('unported sensitive source flows remain honest instead of fake success',()=>{
