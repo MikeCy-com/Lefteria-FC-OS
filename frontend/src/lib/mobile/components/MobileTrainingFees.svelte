@@ -100,7 +100,7 @@
         <button class="fee-secondary" type="button" onclick={()=>refresh+=1}>Ανανέωση</button></div>
       {#if snapshot.fees.length>1}
         <button class="fee-secondary" type="button" disabled={downloading!==null}
-          onclick={()=>void downloadPdf(snapshot.fees.slice(0,20).map(fee=>fee.id))}
+          onclick={()=>void downloadPdf(snapshot?.fees.slice(0,20).map(fee=>fee.id) ?? [])}
           data-testid="parent-download-family-invoice">
           {downloading?'Προετοιμασία PDF…':'Λήψη οικογενειακού PDF'+(snapshot.fees.length>20?' · 20 πρώτα':'')}
         </button>
