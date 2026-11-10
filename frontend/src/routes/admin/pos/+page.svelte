@@ -7,6 +7,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminPosCashierShiftsPanel from '../../../lib/admin/AdminPosCashierShiftsPanel.svelte';
+  import AdminPosFinanceHandoffPanel from '../../../lib/admin/AdminPosFinanceHandoffPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -398,6 +399,12 @@
           </div>
           {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
             <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
+          {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
+            hasAdminPermission($auth.session.user.permissions,'finance:read') && owner}
+            <AdminPosFinanceHandoffPanel owner={owner as Organization}
+              actorId={$auth.session.user.id}
               onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
           {/if}
           {#if canEdit}
