@@ -38,6 +38,9 @@ test('issuing guardian request rechecks live canonical guardian and active child
 });
 test('per-child grant listing and UUID-specific revocation are restricted to original parent',()=>{
   assert.match(db,/g.issuer_identity_id=_actor/);
+  assert.match(db,/right\(g.target_phone,4\)/);
+  assert.match(controller,/recipient_hint/);
+  assert.match(ui,/permission.recipient_hint/);
   assert.match(db,/WHERE id=_permission AND issuer_identity_id=_actor/);
   assert.match(db,/UPDATE identity.family_guardian_permissions SET/);
   assert.match(db,/status='revoked',revoked_at=v_now/);
