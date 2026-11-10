@@ -38,6 +38,19 @@ public sealed class PostgresParentFamilyQueries(LefteriaDbContext database) : IP
                     AND b.kind='guardian' AND b.normalized_phone=i.normalized_phone
                   JOIN club.players p ON p.id=l.record_id
                   WHERE p.is_active AND NOT p.is_archived AND NOT p.is_transferred
+                  UNION ALL
+                  SELECT p.id,p.name,p.organization_id,p.team_type,p.team_id,false,
+                    ARRAY(
+                      SELECT g.academy_group_id::text FROM club.player_academy_groups g
+                      WHERE g.player_id=p.id AND g.organization_id=p.organization_id
+                      ORDER BY g.academy_group_id::text COLLATE "C"
+                    )
+                  FROM requested i
+                  JOIN LATERAL identity.current_phone_granted_children(
+                    i.id,i.normalized_phone,i.role,@expires) permission ON true
+                  JOIN club.players p ON p.id=permission.player_id
+                    AND p.organization_id=permission.organization_id
+                  WHERE p.is_active AND NOT p.is_archived AND NOT p.is_transferred
                 )
                 SELECT EXISTS(SELECT 1 FROM requested),
                   EXISTS(SELECT 1 FROM club.roster_import_state WHERE id='initial'),
@@ -45,7 +58,11 @@ public sealed class PostgresParentFamilyQueries(LefteriaDbContext database) : IP
                   child.team_id, child.group_ids
                 FROM (SELECT 1) marker
                 LEFT JOIN LATERAL (
-                  SELECT * FROM children ORDER BY is_primary DESC, id COLLATE "C"
+                  SELECT * FROM (
+                    SELECT DISTINCT ON (id) * FROM children
+                    ORDER BY id COLLATE "C", is_primary DESC
+                  ) unique_children
+                  ORDER BY is_primary DESC, id COLLATE "C"
                   LIMIT 101
                 ) child ON true
                 """, (NpgsqlConnection)database.Database.GetDbConnection());
