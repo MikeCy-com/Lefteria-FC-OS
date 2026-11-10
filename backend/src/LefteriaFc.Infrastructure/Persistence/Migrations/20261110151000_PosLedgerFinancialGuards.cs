@@ -174,8 +174,9 @@ public sealed class PosLedgerFinancialGuards : Migration
         SELECT coalesce(sum(line_total_cents),0) INTO v_lines
           FROM pos.sale_lines WHERE sale_id=NEW.sale_id;
         IF v_verified<>v_sale.total_cents OR v_lines<>v_sale.subtotal_cents
-          OR NEW.immutable_payload->>'currency'<>'EUR'
-          OR (NEW.immutable_payload->>'total_cents')::bigint<>v_sale.total_cents
+          OR NEW.immutable_payload->>'currency' IS DISTINCT FROM 'EUR'
+          OR (NEW.immutable_payload->>'total_cents') IS DISTINCT FROM
+            v_sale.total_cents::text
         THEN RAISE EXCEPTION 'receipt_snapshot_not_reconciled' USING ERRCODE='23514';
         END IF;
         RETURN NEW;
