@@ -176,7 +176,8 @@ public sealed class MultipleGuardianPermissions : Migration
           'status',CASE WHEN g.status='pending' AND
             g.expires_at<=statement_timestamp() THEN 'expired'
             ELSE g.status END,
-          'expires_at',g.expires_at)
+          'expires_at',g.expires_at,
+          'recipient_hint','••••'||right(g.target_phone,4))
           ORDER BY g.created_at DESC,g.id),'[]'::jsonb)
         INTO v_items
         FROM identity.family_guardian_permissions g
