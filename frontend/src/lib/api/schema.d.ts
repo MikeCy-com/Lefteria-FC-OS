@@ -1403,6 +1403,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcademyLeadFollowUpCommand: {
+            expected_status: null | string;
+            next_status: null | string;
+        };
         AcademyTrainingFeeIssueCommand: {
             /** Format: int64 */
             amount_cents: number | string;
@@ -1413,10 +1417,6 @@ export interface components {
             payer_first_name: null | string;
             payer_last_name: null | string;
             player_id: null | string;
-        };
-        AcademyLeadFollowUpCommand: {
-            expected_status: null | string;
-            next_status: null | string;
         };
         AdminAnnouncementDraftCommand: {
             body: null | string;
