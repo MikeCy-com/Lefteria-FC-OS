@@ -12,14 +12,23 @@
     status:'no_expiry'|'expired'|'critical'|'warning'|'notice'|'watch'|'valid';
   };
   type Listing={
-    organization_id:'lefteria_fc_academy';
+    organization_id:'lefteria_fc'|'lefteria_fc_academy';
     player_id:string;total:number;documents:Doc[];
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  type Organization='lefteria_fc'|'lefteria_fc_academy';
+  const availableOrgs=$derived($auth.status==='authenticated' && $auth.session &&
+    ['manager','super_admin'].includes($auth.session.user.role)
+      ? $auth.session.user.organizations.filter(o=>
+        o.id==='lefteria_fc'
+          ? hasAdminPermission($auth.session!.user.permissions,'teams:read')
+          : o.id==='lefteria_fc_academy' &&
+            hasAdminPermission($auth.session!.user.permissions,'academy:read')
+        ).map(o=>o.id as Organization) : []);
+  let organization=$state<Organization>('lefteria_fc_academy');
   const permitted=$derived($auth.status==='authenticated'&&!!$auth.session&&
     ['manager','super_admin'].includes($auth.session.user.role)&&
-    hasAdminPermission($auth.session.user.permissions,'academy:read')&&
-    $auth.session.user.organizations.some(o=>o.id==='lefteria_fc_academy'));
+    availableOrgs.includes(organization));
   let playerId=$state('');
   let selected=$state('');
   let reload=$state(0);
@@ -50,10 +59,10 @@
       (x.expires_in_days===null||Number.isSafeInteger(x.expires_in_days))&&
       typeof x.status==='string'&&Object.hasOwn(labels,x.status);
   }
-  function validListing(input:unknown,player:string):input is Listing{
+  function validListing(input:unknown,player:string,owner:Organization):input is Listing{
     if(!input||typeof input!=='object'||Array.isArray(input))return false;
     const x=input as Record<string,unknown>;
-    return x.organization_id==='lefteria_fc_academy'&&
+    return x.organization_id===owner&&
       x.player_id===player&&Number.isSafeInteger(x.total)&&
       (x.total as number)>=0&&(x.total as number)<=100&&
       Array.isArray(x.documents)&&x.documents.length===(x.total as number)&&
@@ -66,7 +75,7 @@
   $effect(()=>{
     const actor=$auth.session?.user.id;
     const allowed=permitted;
-    const player=selected;
+    const player=selected;const owner=organization;
     void actor;void reload;
     let active=true;
     listing=null;loading=false;error='';
@@ -74,8 +83,8 @@
     loading=true;
     untrack(()=>{void(async()=>{
       try{
-        const query=new URLSearchParams({organization_id:'lefteria_fc_academy'});
-        const response=await fetch('/api/admin/academy/players/'+encodeURIComponent(player)+
+        const query=new URLSearchParams({organization_id:owner});
+        const response=await fetch('/api/admin/club/players/'+encodeURIComponent(player)+
           '/documents?'+query.toString(),{
           credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}
         });
@@ -85,7 +94,7 @@
         }
         if(!response.ok)throw new Error('Τα έγγραφα δεν είναι διαθέσιμα.');
         const result:unknown=await response.json();
-        if(!validListing(result,player))throw new Error('Μη επαληθευμένα έγγραφα.');
+        if(!validListing(result,player,owner))throw new Error('Μη επαληθευμένα έγγραφα.');
         if(active)listing=result;
       }catch(e){
         if(active){listing=null;error=e instanceof Error?e.message:'Σφάλμα ανάγνωσης.';}
@@ -106,6 +115,14 @@
       </p>
       <AdminSessionStatus />
       {#if permitted}
+        <label class="flex flex-col gap-1 text-sm">Οργανισμός
+          <select class="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white"
+            bind:value={organization} onchange={()=>{selected='';listing=null;}}>
+            {#each availableOrgs as org}
+              <option value={org}>{org==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</option>
+            {/each}
+          </select>
+        </label>
         <form class="flex flex-wrap gap-3" onsubmit={e=>{e.preventDefault();choosePlayer();}}>
           <label class="flex flex-1 flex-col gap-1 text-sm">
             Αναγνωριστικό αθλητή
