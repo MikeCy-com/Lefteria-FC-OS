@@ -111,3 +111,28 @@ Other draft PRs may add functionality that is **not in main**. Review
 duplicating implementation or declaring a current main feature live.
 
 **No production changes or original Lefteria FC writes permitted.**
+
+## First Team and Academy creation bug fixed on the audit branch
+
+The existing `/admin/groups` name validator used a **double-escaped** JavaScript
+character class (`[\\\\x00-\\\\x1f\\\\x7f]`) which interpreted its
+backslashes as literal characters, so legitimate names such as `First Team`,
+`U17` and `Ακαδημία 2017` could be rejected. Replaced it with the true
+control-character class (`[\\x00-\\x1f\\x7f]`) and added tests for
+ordinary Latin/Greek group names, unwanted control characters, whitespace and
+length bounds.
+
+The existing authenticated group-create API and database writer already
+validate current admin organization grants and write permissions, generate
+server IDs, and verify the saved result. This fix is scoped to the client
+validation; it **does not claim** the original group/team form fields, player
+profiles, Academy scheduling or mobile propagation have been fully ported.
+
+The original Academy group editor contains **name, age range, coach,
+training schedule, description, max players, season, banner URL and display
+order**, whereas the current OS group-create command accepts **name only**.
+Those fields need an audited typed backend contract, protected writes and
+read projections before a source-matching creation form can be operational.
+Likewise, the private roster/coach directory APIs currently require
+write-level management permission; do not broaden access to child/player
+details to solve a UI visibility issue.
