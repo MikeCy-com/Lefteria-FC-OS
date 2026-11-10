@@ -52,6 +52,12 @@
         Number.isSafeInteger(p[k])&&(p[k] as number)>=0&&
         (p[k] as number)<=100000000)&&
       Array.isArray(p.lines)&&p.lines.length>=1&&p.lines.length<=30&&
+      p.lines.reduce((sum:number,v:unknown)=>
+        sum+(typeof v==='object'&&v!==null&&
+          Number.isSafeInteger((v as Record<string,unknown>).line_total_cents)
+            ?(v as Line).line_total_cents:0),0)===p.subtotal_cents&&
+      (p.subtotal_cents as number)-(p.discount_cents as number)+
+        (p.tax_cents as number)===p.total_cents&&
       p.lines.every((v:unknown)=>{
         if(!v||typeof v!=='object'||Array.isArray(v))return false;
         const l=v as Record<string,unknown>;
