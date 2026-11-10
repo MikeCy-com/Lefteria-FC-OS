@@ -22,6 +22,7 @@ internal sealed partial class IdentityHttpChecks
         var teamId="ann_"+Guid.NewGuid().ToString("N");
         var draftId="ann_"+Guid.NewGuid().ToString("N");
         var pdfMediaId=Guid.NewGuid();
+        var pushSubscriptionId=Guid.NewGuid();
         var pdfContent=Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
         var academyPath=AppAnnouncementPath(OrganizationIds.Academy,fixture.GroupId);
         var teamPath=AppAnnouncementPath(OrganizationIds.Club,fixture.TeamId);
@@ -82,6 +83,91 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,academy.GetProperty("announcements")[0]
                 .GetProperty("reactions").GetArrayLength(),
                 "Fresh announcement unexpectedly has reaction participants.");
+            // Production/preview config is disabled in the disposable test
+            // host; no subscription is persisted or sent without VAPID keys.
+            var pushConfig=await GetAsync(parent,"/api/mobile/app/push",200);
+            Check.True(!pushConfig.GetProperty("enabled").GetBoolean() &&
+                pushConfig.GetProperty("public_key").ValueKind==JsonValueKind.Null &&
+                pushConfig.GetProperty("active_devices").GetInt32()==0,
+                "Unconfigured push incorrectly activated or exposed a secret.");
+            await GetAsync(fan,"/api/mobile/app/push",403);
+            await PostAsync(parent,"/api/mobile/app/push/subscriptions",
+                new {endpoint="https://fcm.googleapis.com/fcm/send/test",
+                    keys=new {p256dh="example",auth="example"}},503);
+            // Exercise the real leased PostgreSQL dispatch logic using only
+            // fake provider endpoints. The HTTP worker remains disabled:
+            // no external device or gateway is contacted in this test.
+            var guardian=(await GetAsync(parent,"/api/mobile/auth/me",200))
+                .GetProperty("id").GetGuid();
+            var pushHash=new string('a',64);
+            await using(var db=database.CreateContext())
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    INSERT INTO club.mobile_push_subscriptions(
+                      id,identity_id,endpoint_hash,endpoint,p256dh,auth_secret,
+                      created_at,last_seen_at)
+                    SELECT {pushSubscriptionId},{guardian},{pushHash},
+                      {"https://fcm.googleapis.com/fcm/send/fake-disposable"},
+                      {new string('A',87)},{new string('B',22)},
+                      queued_at-interval '1 second',clock_timestamp()
+                    FROM club.app_announcement_notification_events
+                    WHERE announcement_id={academyId}
+                    """);
+                var raw=await db.Database.SqlQuery<string>($"""
+                    SELECT club.claim_app_announcement_push_attempts({10})::text AS "Value"
+                    """).SingleAsync();
+                using var claims=JsonDocument.Parse(raw);
+                var batches=claims.RootElement.GetProperty("deliveries");
+                Check.True(batches.GetArrayLength()==1 &&
+                    batches[0].GetProperty("endpoint").GetString()==
+                       "https://fcm.googleapis.com/fcm/send/fake-disposable" &&
+                    batches[0].GetProperty("attempts").GetInt32()==1,
+                    "Live canonical roster did not produce exactly one leased push attempt.");
+                var delivery=batches[0].GetProperty("id").GetGuid();
+                var lease=batches[0].GetProperty("lease_token").GetGuid();
+                var wrong=await db.Database.SqlQuery<bool>($"""
+                    SELECT club.check_app_announcement_push_lease(
+                      {delivery},{Guid.NewGuid()}) AS "Value"
+                    """).SingleAsync();
+                Check.True(!wrong,"A forged lease token gained push authority.");
+                var authorized=await db.Database.SqlQuery<bool>($"""
+                    SELECT club.check_app_announcement_push_lease(
+                      {delivery},{lease}) AS "Value"
+                    """).SingleAsync();
+                Check.True(authorized,"Live roster membership was not rechecked at send.");
+                var retry=await db.Database.SqlQuery<bool>($"""
+                    SELECT club.finish_app_announcement_push_attempt(
+                      {delivery},{lease},{"retry"},{429}) AS "Value"
+                    """).SingleAsync();
+                Check.True(retry,"Provider throttle was not recorded.");
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE club.app_announcement_push_attempts
+                    SET next_attempt_at=clock_timestamp()-interval '1 second'
+                    WHERE id={delivery}
+                    """);
+                var retryJson=await db.Database.SqlQuery<string>($"""
+                    SELECT club.claim_app_announcement_push_attempts({10})::text AS "Value"
+                    """).SingleAsync();
+                using var retryBatch=JsonDocument.Parse(retryJson);
+                var attempts=retryBatch.RootElement.GetProperty("deliveries");
+                Check.True(attempts.GetArrayLength()==1 &&
+                    attempts[0].GetProperty("id").GetGuid()==delivery &&
+                    attempts[0].GetProperty("attempts").GetInt32()==2 &&
+                    attempts[0].GetProperty("lease_token").GetGuid()!=lease,
+                    "Retry created a duplicate delivery or reused an expired lease.");
+                var secondLease=attempts[0].GetProperty("lease_token").GetGuid();
+                var accepted=await db.Database.SqlQuery<bool>($"""
+                    SELECT club.finish_app_announcement_push_attempt(
+                      {delivery},{secondLease},{"accepted"},{201}) AS "Value"
+                    """).SingleAsync();
+                Check.True(accepted,"Provider acceptance was not persisted.");
+                var extraClaim=await db.Database.SqlQuery<string>($"""
+                    SELECT club.claim_app_announcement_push_attempts({10})::text AS "Value"
+                    """).SingleAsync();
+                using var noDuplicates=JsonDocument.Parse(extraClaim);
+                Check.Equal(0,noDuplicates.RootElement.GetProperty("deliveries").GetArrayLength(),
+                    "Accepted provider delivery was requeued.");
+            }
             const string inboxPath="/api/mobile/app/notifications";
             var memberInbox=await GetAsync(parent,inboxPath,200);
             Check.True(memberInbox.GetProperty("enabled").GetBoolean() &&
@@ -246,12 +332,16 @@ internal sealed partial class IdentityHttpChecks
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_reactions WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_announcement_push_attempts WHERE announcement_id={id}");
+                await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_notification_events WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcement_media WHERE announcement_id={id}");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_announcements WHERE id={id}");
             }
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"DELETE FROM club.mobile_push_subscriptions WHERE id={pushSubscriptionId}");
             foreach(var id in new[]{academyId,teamId,draftId})
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.admin_announcement_drafts WHERE id={id}");
