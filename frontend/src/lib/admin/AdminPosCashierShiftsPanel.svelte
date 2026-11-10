@@ -45,8 +45,9 @@
       ['sales_total','sales_paid','sales_pending','receipts_issued',
         'cash_verified_cents','card_verified_cents','pending_card_events',
         'cash_refunded_cents','card_refunded_cents','active_reservations',
-        'inconsistent_sales','opening_cash_cents','expected_cash_cents'].every(k=>
+        'inconsistent_sales','opening_cash_cents'].every(k=>
           Number.isSafeInteger(v[k])&&(v[k] as number)>=0)&&
+      Number.isSafeInteger(v.expected_cash_cents)&&
       (v.counted_cash_cents===null||
         Number.isSafeInteger(v.counted_cash_cents)&&(v.counted_cash_cents as number)>=0)&&
       (v.cash_variance_cents===null||Number.isSafeInteger(v.cash_variance_cents));
