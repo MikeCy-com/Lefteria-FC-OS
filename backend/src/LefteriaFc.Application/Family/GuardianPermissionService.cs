@@ -19,27 +19,13 @@ public sealed record GuardianPermissionDto(
 public sealed record GuardianPermissionsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<GuardianPermissionDto> Items);
 
-public sealed record GuardianRecipientPermissionDto(
-    [property: JsonPropertyName("id")] Guid Id,
-    [property: JsonPropertyName("organization_id")] string OrganizationId,
-    [property: JsonPropertyName("status")] string Status,
-    [property: JsonPropertyName("expires_at")] DateTimeOffset ExpiresAt);
-public sealed record GuardianRecipientInbox(
-    [property: JsonPropertyName("items")] IReadOnlyList<GuardianRecipientPermissionDto> Items);
-public sealed record GuardianRecipientConsentResult(
-    [property: JsonPropertyName("ok")] bool Ok,
-    [property: JsonPropertyName("status")] string Status);
-
 public interface IGuardianPermissionRepository
 {
     Task<GuardianPermissionDto> IssueAsync(MobileSession session, string childId,
         string phone, Guid requestId, CancellationToken ct);
     Task<GuardianPermissionsResult> ListAsync(MobileSession session, CancellationToken ct);
     Task RevokeAsync(MobileSession session, Guid permissionId, CancellationToken ct);
-    Task<GuardianRecipientInbox> RecipientInboxAsync(MobileSession session, CancellationToken ct);
-    Task<GuardianRecipientConsentResult> AcceptConsentAsync(MobileSession session,
-        Guid permissionId, CancellationToken ct);
-    Task DeclineAsync(MobileSession session, Guid permissionId, CancellationToken ct);
+
 }
 
 // This service only manages requests; it never turns a pending phone into
@@ -106,63 +92,6 @@ public sealed class GuardianPermissionService(
             return new(true);
         }
         catch (DbException) { throw Unavailable(); }
-    }
-
-    public async Task<GuardianRecipientInbox> RecipientInboxAsync(
-        MobileSession session, CancellationToken ct)
-    {
-        RequireRecipient(session);
-        await identity.AuthorizeCurrentIdentityAsync(session, ct);
-        try
-        {
-            var result = await repository.RecipientInboxAsync(session, ct);
-            if (result.Items.Count>100 ||
-                result.Items.Select(x=>x.Id).Distinct().Count()!=result.Items.Count ||
-                result.Items.Any(x=>x.Id==Guid.Empty || x.Status!="pending" ||
-                  x.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy")))
-                throw Unavailable();
-            return result;
-        }
-        catch(DbException) { throw Unavailable(); }
-    }
-
-    public async Task<GuardianRecipientConsentResult> AcceptConsentAsync(
-        MobileSession session, Guid id, CancellationToken ct)
-    {
-        RequireRecipient(session);
-        if(id==Guid.Empty)throw Invalid();
-        await identity.AuthorizeCurrentIdentityAsync(session, ct);
-        await Limit(session.IdentityId.ToString("N"), MobileAuthThrottleScope.FamilyInvitation, ct);
-        try
-        {
-            var result=await repository.AcceptConsentAsync(session,id,ct);
-            if(!result.Ok||result.Status!="accepted_pending_access")throw Unavailable();
-            return result;
-        }
-        catch(DbException) { throw Unavailable(); }
-    }
-
-    public async Task<FamilyOperationResult> DeclineAsync(
-        MobileSession session, Guid id, CancellationToken ct)
-    {
-        RequireRecipient(session);
-        if(id==Guid.Empty)throw Invalid();
-        await identity.AuthorizeCurrentIdentityAsync(session, ct);
-        await Limit(session.IdentityId.ToString("N"), MobileAuthThrottleScope.FamilyInvitation, ct);
-        try
-        {
-            await repository.DeclineAsync(session,id,ct);
-            return new(true);
-        }
-        catch(DbException) { throw Unavailable(); }
-    }
-
-    private static void RequireRecipient(MobileSession session)
-    {
-        if(session.Role is not (MobileRole.Fan or MobileRole.Parent))
-            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
-                MobileAuthErrorCode.RoleUnavailable,
-                "Guardian consent requires the current verified recipient role.");
     }
 
     private async Task Limit(string key, MobileAuthThrottleScope scope, CancellationToken ct)
