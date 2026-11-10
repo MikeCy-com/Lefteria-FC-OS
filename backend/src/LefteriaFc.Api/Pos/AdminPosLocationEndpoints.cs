@@ -143,7 +143,7 @@ public static class AdminPosLocationEndpoints
     {
         if(id is null || id.Length is <1 or >80 || id.Length>maxLength ||
            !System.Text.RegularExpressions.Regex.IsMatch(
-             id,@"\\A[A-Za-z0-9_-]+\\z"))
+             id,@"\A[A-Za-z0-9_-]+\z"))
             throw new WebAdminException(422,"pos_identity_invalid",
                 "Select a valid location, product or variant.");
     }
