@@ -22,6 +22,7 @@ public static class AdminPosCashierEndpoints
     public sealed record CheckoutItem(string ProductId, string VariantId, int Quantity);
     public sealed record PrepareSaleRequest(Guid RequestId, Guid ShiftId, List<CheckoutItem>? Items);
     public sealed record CancelSaleRequest(Guid RequestId);
+    public sealed record CashTenderRequest(Guid RequestId, long TenderedCashCents);
 
     public static IEndpointRouteBuilder MapAdminPosCashier(this IEndpointRouteBuilder endpoints)
     {
@@ -143,6 +144,31 @@ public static class AdminPosCashierEndpoints
             command.Parameters.AddWithValue("request", body.RequestId);
             return await Query(command, ct);
         }).WithName("CancelAdminPosUnpaidSale");
+
+        // Verified physical cash only. Not a Payabl/card verification
+        // endpoint; the underlying fiscal policies and SQL permission are
+        // disabled by default in every new OS environment.
+        group.MapPost("/sales/{saleId:guid}/tender-cash", async (
+            Guid saleId, string? organization_id, CashTenderRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (saleId == Guid.Empty || body.RequestId == Guid.Empty ||
+                body.TenderedCashCents is < 1 or > 100000000)
+                throw new WebAdminException(400, "pos_cash_tender_invalid",
+                    "Select a valid sale, request and counted cash amount.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.settle_exact_cash_sale(@digest,@owner,@sale,@request,@cash)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("sale", saleId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            command.Parameters.AddWithValue("cash", body.TenderedCashCents);
+            return await Query(command, ct);
+        }).WithName("TenderVerifiedAdminPosCashSale");
 
         return endpoints;
     }
