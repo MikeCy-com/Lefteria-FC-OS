@@ -13,7 +13,7 @@ public static class AdminAcademyEvaluationEndpoints
     public static IEndpointRouteBuilder MapAdminAcademyEvaluations(
         this IEndpointRouteBuilder endpoints)
     {
-        var admin = endpoints.MapGroup("/api/admin/academy/players")
+        var admin = endpoints.MapGroup("/api/admin/club/players")
             .WithTags("Academy evaluations")
             .RequireAuthorization(WebAdminServices.Policy);
         admin.MapGet("/{playerId}/evaluations", async (
@@ -23,21 +23,21 @@ public static class AdminAcademyEvaluationEndpoints
         {
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers.Pragma = "no-cache";
-            if (organization_id != "lefteria_fc_academy" ||
+            if (organization_id is not ("lefteria_fc" or "lefteria_fc_academy") ||
                 context.Request.Query["organization_id"].Count != 1 ||
                 playerId.Length is < 1 or > 128 ||
                 playerId.Any(char.IsControl))
                 throw new WebAdminException(400, "academy_evaluation_scope_invalid",
-                    "Choose a valid Academy player.");
+                    "Choose a valid assigned player.");
             var cookie = context.Request.Cookies[WebAdminServices.CookieName];
             var session = await auth.CurrentAsync(cookie, ct);
             if (session is null)
                 throw new WebAdminException(401, "not_authenticated", "Sign in again.");
             if (session.User.Role is not ("manager" or "super_admin") ||
-                !AdminPermissions.Has(session.User.Role, "academy:read") ||
+                !AdminPermissions.Has(session.User.Role, organization_id == "lefteria_fc" ? "teams:read" : "academy:read") ||
                 !session.User.Organizations.Any(o => o.Id == organization_id))
                 throw new WebAdminException(403, "academy_evaluation_access_denied",
-                    "Only authorized Academy management may see evaluations.");
+                    "Only authorized club management may see evaluations.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
                 "SELECT academy_private.read_admin_player_evaluations(@digest,@owner,@player)::text",
