@@ -59,10 +59,10 @@ public static class PayablNotificationVerifier
         // signature (SHA-1), which has a DIFFERENT protocol.
         var input = id + kind + errorCode + textTimestamp + merchantSecret;
         var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
-        Span<byte> supplied = stackalloc byte[32];
-        if (!Convert.TryFromHexString(signature, supplied, out var length) ||
-            length != 32 ||
-            !CryptographicOperations.FixedTimeEquals(hash, supplied))
+        // The 64-character lowercase hex check above guarantees that
+        // FromHexString decodes exactly 32 bytes without malformed input.
+        var supplied = Convert.FromHexString(signature);
+        if (!CryptographicOperations.FixedTimeEquals(hash, supplied))
             return null;
 
         // Evidence digest is for deduplicated audit, never the raw signature
