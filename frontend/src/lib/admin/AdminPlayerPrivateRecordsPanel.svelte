@@ -25,6 +25,82 @@
     technical:'',tactical:'',physical:'',character:''
   });
   let creating=$state(false);
+  let showUpload=$state(false);
+  let documentFile=$state<File|null>(null);
+  let documentType=$state('registration_form');
+  let documentTitle=$state('');
+  let issuedAt=$state('');
+  let expiresAt=$state('');
+  let uploadRequestId=$state('');
+  let uploading=$state(false);
+  let uploadError=$state('');
+  let uploadNotice=$state('');
+  const protectedTypes=[
+    {id:'id_passport',label:'Ταυτότητα / Διαβατήριο'},
+    {id:'birth_certificate',label:'Πιστοποιητικό γέννησης'},
+    {id:'photo',label:'Φωτογραφία'},
+    {id:'registration_form',label:'Αίτηση εγγραφής'},
+    {id:'kop_registration',label:'Εγγραφή ΚΟΠ'},
+    {id:'transfer_certificate',label:'Πιστοποιητικό μεταγραφής'},
+    {id:'medical_cert',label:'Ιατρικό πιστοποιητικό'},
+    {id:'vaccination_record',label:'Καρτέλα εμβολίων'},
+    {id:'consent_form',label:'Γονική συγκατάθεση'},
+    {id:'gdpr_consent',label:'Συγκατάθεση GDPR'},
+    {id:'insurance',label:'Ασφάλιση'},
+    {id:'school_confirmation',label:'Σχολική βεβαίωση'},
+    {id:'image_rights',label:'Δικαιώματα εικόνας'},
+    {id:'other',label:'Άλλο έγγραφο'}
+  ] as const;
+  const requiresExpiry=(type:string)=>
+    ['id_passport','kop_registration','medical_cert','insurance',
+      'school_confirmation'].includes(type);
+  function resetUploadRequest(){uploadRequestId='';uploadError='';uploadNotice='';}
+  async function uploadDocument(){
+    if(!browser||!allowCreate||!documentFile||uploading||loading)return;
+    const chosenFile=documentFile;
+    if(chosenFile.size<1||chosenFile.size>10485760||
+       !documentTitle.trim()||documentTitle!==documentTitle.trim()||
+       documentTitle.length>200||
+       (requiresExpiry(documentType)&&!expiresAt)||
+       (issuedAt&&expiresAt&&expiresAt<issuedAt)){
+      uploadError='Ελέγξτε μέγεθος αρχείου (έως 10 MB), τίτλο και ημερομηνίες.';
+      return;
+    }
+    if(!uploadRequestId)uploadRequestId=crypto.randomUUID();
+    const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
+    const data=new FormData();
+    data.set('request_id',uploadRequestId);
+    data.set('document_type',documentType);
+    data.set('title',documentTitle);
+    if(issuedAt)data.set('issue_date',issuedAt);
+    if(expiresAt)data.set('expiry_date',expiresAt);
+    data.set('file',chosenFile);
+    uploading=true;uploadError='';uploadNotice='';
+    try{
+      const response=await fetch('/api/admin/club/players/'+encodeURIComponent(expectedPlayer)+
+        '/documents?'+new URLSearchParams({organization_id:expectedOwner}),{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'X-Lefteria-Admin':'1'},body:data
+      });
+      if(owner!==expectedOwner||playerId!==expectedPlayer||actorId!==expectedActor)return;
+      if(response.status===401){onExpired();return;}
+      if(response.status===403){onRevoked();return;}
+      if(!response.ok)throw new Error(response.status===503?
+        'Η προστατευμένη αποθήκευση δεν έχει ενεργοποιηθεί.':
+        'Το έγγραφο δεν καταχωρίστηκε.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        (raw as Record<string,unknown>).organization_id!==expectedOwner||
+        (raw as Record<string,unknown>).player_id!==expectedPlayer||
+        (raw as Record<string,unknown>).scan_status!=='quarantined'||
+        typeof (raw as Record<string,unknown>).id!=='string')
+        throw new Error('Μη επαληθευμένη αποθήκευση εγγράφου.');
+      documentFile=null;documentTitle='';issuedAt='';expiresAt='';
+      uploadRequestId='';showUpload=false;generation++;
+      uploadNotice='Το κρυπτογραφημένο αρχείο μπήκε σε καραντίνα και δεν είναι διαθέσιμο για λήψη.';
+    }catch(e){uploadError=e instanceof Error?e.message:'Αποτυχία αποθήκευσης.';}
+    finally{uploading=false;}
+  }
   let createError=$state('');
   let createNotice=$state('');
   let requestId=$state('');
@@ -182,6 +258,43 @@
     {/if}
   {/if}
   {#if createNotice}<p role="status">{createNotice}</p>{/if}
+  {#if allowCreate}
+    <button type="button" class="admin-secondary" disabled={uploading}
+      onclick={()=>showUpload=!showUpload}>
+      {showUpload?'Κλείσιμο μεταφόρτωσης':'Μεταφόρτωση προστατευμένου εγγράφου'}
+    </button>
+    {#if showUpload}
+      <form class="private-evaluation-form" data-testid="admin-document-quarantine-form"
+        onsubmit={e=>{e.preventDefault();void uploadDocument();}}>
+        <p class="admin-muted">Τα αρχεία κρυπτογραφούνται και τίθενται σε καραντίνα. Δεν διατίθενται λήψεις χωρίς έλεγχο ασφαλείας.</p>
+        <label>Τύπος
+          <select bind:value={documentType} onchange={resetUploadRequest}>
+            {#each protectedTypes as type}
+              <option value={type.id}>{type.label}</option>
+            {/each}
+          </select>
+        </label>
+        <label>Τίτλος <input bind:value={documentTitle} oninput={resetUploadRequest}
+          maxlength="200" required/></label>
+        <label>Ημερομηνία έκδοσης
+          <input type="date" bind:value={issuedAt} onchange={resetUploadRequest}/>
+        </label>
+        <label>Λήξη
+          <input type="date" bind:value={expiresAt}
+            required={requiresExpiry(documentType)} onchange={resetUploadRequest}/>
+        </label>
+        <label>Αρχείο (PDF, JPEG, PNG ή WebP, έως 10 MB)
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp"
+            required onchange={e=>{documentFile=e.currentTarget.files?.item(0)??null;resetUploadRequest();}}/>
+        </label>
+        {#if uploadError}<p role="alert">{uploadError}</p>{/if}
+        <button type="submit" class="admin-secondary" disabled={uploading}>
+          {uploading?'Κρυπτογράφηση και αποθήκευση…':'Αποθήκευση σε καραντίνα'}
+        </button>
+      </form>
+    {/if}
+  {/if}
+  {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}
   {#if loading}<p role="status">Ανάκτηση προστατευμένων στοιχείων…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if !loading&&!error}
@@ -222,5 +335,5 @@
   .private-evaluation-form{display:grid;gap:10px;padding:15px;border:1px solid #454545;border-radius:9px}
   .private-evaluation-form label{display:grid;gap:5px;font-size:13px}
   .private-evaluation-form fieldset{display:flex;gap:12px;flex-wrap:wrap;border:0;padding:0}
-  .private-evaluation-form input,.private-evaluation-form textarea{padding:8px;color:white;background:#171717;border:1px solid #555;border-radius:7px}
+  .private-evaluation-form input,.private-evaluation-form textarea,.private-evaluation-form select{padding:8px;color:white;background:#171717;border:1px solid #555;border-radius:7px}
 </style>
