@@ -23,7 +23,7 @@ BEGIN
       SELECT 1 FROM pg_class c
       JOIN pg_namespace n ON n.oid=c.relnamespace
       CROSS JOIN LATERAL aclexplode(
-        coalesce(c.relacl,acl_default('r',c.relowner))) a
+        coalesce(c.relacl,acldefault('r',c.relowner))) a
       WHERE n.nspname='academy_private' AND c.relname=v_table
         AND a.grantee=0
         AND a.privilege_type IN ('SELECT','INSERT','UPDATE','DELETE')
