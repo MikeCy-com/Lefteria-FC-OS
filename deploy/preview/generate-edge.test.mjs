@@ -18,6 +18,16 @@ test('only the fifty-one explicitly declared Mobile operations receive Bearer ro
     assert.equal(permits(contract, 'OPTIONS', path), false);
     assert.equal(permits(contract, operation.method, path + '/extra'), false);
   }
+  // Private PDF routes must stay read-only, exact and ID-constrained.
+  const invoiceId='11111111-2222-4333-8444-555555555555';
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/multi.pdf'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/finance/invoices/multi.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/multi.pdf/extra'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.pdf'),true);
+  assert.equal(permits(contract,'POST','/api/mobile/finance/invoices/'+invoiceId+'.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.pdf/extra'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/not-a-uuid.pdf'),false);
+  assert.equal(permits(contract,'GET','/api/mobile/finance/invoices/'+invoiceId+'.exe'),false);
   for (const path of [
     '/api/mobile/auth/request-otp', '/api/mobile/auth/verify-otp', '/api/mobile/auth/register',
     '/api/mobile/auth/exchange-legacy', '/api/health/live', '/api/uploads/avatars/photo.jpg',
