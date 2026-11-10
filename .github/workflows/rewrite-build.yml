@@ -125,6 +125,8 @@ jobs:
         run: |
           docker cp ops/postgres/admin-academy-profile-boundary.sql identity-postgres:/tmp/admin-academy-profile-boundary.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/admin-academy-profile-boundary.sql
+          docker cp ops/postgres/admin-first-team-profile-boundary.sql identity-postgres:/tmp/admin-first-team-profile-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/admin-first-team-profile-boundary.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
