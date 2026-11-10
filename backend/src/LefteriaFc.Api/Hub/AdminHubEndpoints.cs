@@ -19,6 +19,7 @@ public sealed record HubDraftCommand(
     bool AudienceParent, bool AudiencePlayer, short? AgeMin, short? AgeMax);
 
 public sealed record HubReviewSubmitCommand(long Version);
+public sealed record HubTextReviewCommand(long Version, string Decision);
 
 public static class AdminHubEndpoints
 {
@@ -280,6 +281,80 @@ public static class AdminHubEndpoints
             .Produces<WebAdminError>(401)
             .Produces<WebAdminError>(403)
             .Produces<WebAdminError>(404)
+            .Produces<WebAdminError>(422)
+            .Produces<WebAdminError>(503);
+
+        endpoints.MapPost("/api/admin/hub/editorial/{id:guid}/text-review",
+            async (Guid id, string? organization_id, HubTextReviewCommand body,
+                   WebAdminService admin, WebAdminConnections connections,
+                   IWebAdminSecrets secrets, HttpContext context, CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                context.Response.Headers.Pragma = "no-cache";
+                if (organization_id is null ||
+                    context.Request.Query["organization_id"].Count != 1 ||
+                    !PublicContentService.IsOrganization(organization_id))
+                    return Failure(400, "invalid_organization");
+                if (id == Guid.Empty || body.Version < 1 ||
+                    body.Version == long.MaxValue ||
+                    body.Decision is not ("passed" or "rejected"))
+                    return Failure(422, "invalid_hub_text_review");
+
+                var cookie = context.Request.Cookies[WebAdminServices.CookieName];
+                var session = await admin.CurrentAsync(cookie, token);
+                if (session is null || !secrets.IsToken(cookie))
+                    return Failure(401, "not_authenticated");
+                // Review is intentionally limited to management, not content
+                // editors or marketing role, even when they can create drafts.
+                if (!session.User.Organizations.Any(org => org.Id == organization_id) ||
+                    session.User.Role is not ("manager" or "super_admin"))
+                    return Failure(403, "not_authorized");
+                try
+                {
+                    await using var connection = await connections.OpenAsync(token);
+                    await using var command = new NpgsqlCommand(
+                        "SELECT hub.review_admin_text(@digest,@owner,@id,@version,@decision)::text", connection);
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("owner", organization_id);
+                    command.Parameters.AddWithValue("id", id);
+                    command.Parameters.AddWithValue("version", body.Version);
+                    command.Parameters.AddWithValue("decision", body.Decision);
+                    var raw = await command.ExecuteScalarAsync(token) as string;
+                    if (raw is null) return Failure(503, "hub_unavailable");
+                    using var parsed = JsonDocument.Parse(raw);
+                    var result = parsed.RootElement;
+                    if (result.ValueKind != JsonValueKind.Object ||
+                        !result.TryGetProperty("id", out var resultId) ||
+                        resultId.GetGuid() != id ||
+                        !result.TryGetProperty("organization_id", out var resultOwner) ||
+                        resultOwner.GetString() != organization_id ||
+                        !result.TryGetProperty("status", out var resultStatus) ||
+                        resultStatus.GetString() != "review_required" ||
+                        !result.TryGetProperty("version", out var version) ||
+                        version.GetInt64() != body.Version + 1 ||
+                        !result.TryGetProperty("text_review", out var textDecision) ||
+                        textDecision.GetString() != body.Decision)
+                        return Failure(503, "hub_unavailable");
+                    return Results.Content(raw, "application/json");
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (PostgresException ex) when (ex.SqlState == "40001")
+                { return Failure(409, "hub_review_conflict"); }
+                catch (PostgresException ex) when (ex.SqlState == "P0002")
+                { return Failure(404, "hub_draft_not_found"); }
+                catch (PostgresException ex) when (ex.SqlState == "42501")
+                { return Failure(403, "not_authorized"); }
+                catch (Exception) { return Failure(503, "hub_unavailable"); }
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("ReviewAdminHubText")
+            .Produces(200, contentType: "application/json")
+            .Produces<WebAdminError>(400)
+            .Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403)
+            .Produces<WebAdminError>(404)
+            .Produces<WebAdminError>(409)
             .Produces<WebAdminError>(422)
             .Produces<WebAdminError>(503);
 
