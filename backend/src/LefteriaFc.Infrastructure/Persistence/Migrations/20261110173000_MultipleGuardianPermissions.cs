@@ -223,20 +223,13 @@ public sealed class MultipleGuardianPermissions : Migration
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
 
-        PERFORM 1 FROM identity.mobile_identities i
-        JOIN identity.mobile_record_links l ON l.identity_id=i.id
-          AND l.role='parent' AND l.normalized_phone=i.normalized_phone
-          AND l.collection='players' AND l.kind='guardian'
-          AND l.record_id=v_item.player_id
-        JOIN identity.canonical_contact_bindings b
-          ON b.collection=l.collection AND b.source_id=l.record_id
-          AND b.kind='guardian' AND b.normalized_phone=i.normalized_phone
-        JOIN club.players p ON p.id=l.record_id
-          AND p.organization_id=v_item.organization_id
-        WHERE i.id=_actor AND i.normalized_phone=_phone
-          AND i.role='parent' AND i.is_active
-          AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
-        FOR SHARE OF i,l,b,p;
+        -- Verify this permission is still in a live current-parent
+        -- lineage. A revoked ancestor immediately blocks delegated grants.
+        PERFORM 1 FROM identity.valid_guardian_phone_grants() valid
+          WHERE valid.permission_id=_permission
+            AND valid.issuer_identity_id=_actor
+            AND valid.player_id=v_item.player_id
+            AND valid.organization_id=v_item.organization_id;
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
           USING ERRCODE='42501'; END IF;
 
@@ -248,11 +241,26 @@ public sealed class MultipleGuardianPermissions : Migration
           FOR UPDATE;
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
+        PERFORM 1 FROM identity.valid_guardian_phone_grants() valid
+          WHERE valid.permission_id=_permission
+            AND valid.issuer_identity_id=_actor;
+        IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
+          USING ERRCODE='42501'; END IF;
 
-        UPDATE identity.family_guardian_permissions SET
+        -- A guardian may have shared with additional guardians. Revoking
+        -- a permission revokes its dependent permissions for this one
+        -- child, but never touches siblings or unrelated source grants.
+        WITH RECURSIVE affected(id,path,depth) AS (
+          SELECT _permission,ARRAY[_permission],1
+          UNION ALL
+          SELECT g.id,affected.path||g.id,affected.depth+1
+          FROM affected JOIN identity.family_guardian_permissions g
+            ON g.source_permission_id=affected.id
+          WHERE affected.depth<20 AND NOT g.id=ANY(affected.path)
+        )
+        UPDATE identity.family_guardian_permissions g SET
           status='revoked',revoked_at=v_now
-          WHERE id=_permission AND issuer_identity_id=_actor
-            AND status='granted';
+        WHERE g.id IN (SELECT id FROM affected) AND g.status='granted';
         INSERT INTO audit.security_events(
           id,occurred_at,actor_identity_id,device_session_id,action,
           outcome,organization_id)
