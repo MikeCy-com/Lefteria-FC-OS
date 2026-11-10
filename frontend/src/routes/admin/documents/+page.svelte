@@ -26,6 +26,7 @@
             hasAdminPermission($auth.session!.user.permissions,'academy:read')
         ).map(o=>o.id as Organization) : []);
   let organization=$state<Organization>('lefteria_fc_academy');
+  $effect(()=>{if(availableOrgs.length && !availableOrgs.includes(organization))organization=availableOrgs[0];});
   const permitted=$derived($auth.status==='authenticated'&&!!$auth.session&&
     ['manager','super_admin'].includes($auth.session.user.role)&&
     availableOrgs.includes(organization));
@@ -103,11 +104,11 @@
     return()=>{active=false;};
   });
 </script>
-<svelte:head><title>Ιδιωτικά έγγραφα Ακαδημίας | Λευτεριά FC OS</title></svelte:head>
+<svelte:head><title>Ιδιωτικά έγγραφα αθλητών | Λευτεριά FC OS</title></svelte:head>
 {#if $auth.status==='authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="documents" busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <section class="mx-auto max-w-4xl space-y-5 px-4 py-6">
-      <p class="text-xs uppercase tracking-widest text-amber-500">Ακαδημία · Προστατευμένα αρχεία</p>
+      <p class="text-xs uppercase tracking-widest text-amber-500">Ομάδες · Προστατευμένα αρχεία</p>
       <h1 class="text-2xl font-bold">Έγγραφα αθλητών</h1>
       <p class="text-sm text-zinc-400">
         Προβάλλονται μόνο κατηγορίες, ημερομηνίες και κατάσταση λήξης. Τα ίδια τα αρχεία,
@@ -152,7 +153,7 @@
           {#if listing.total===0}<p>Δεν έχουν καταχωριστεί έγγραφα για αυτόν τον αθλητή.</p>{/if}
         {/if}
       {:else}
-        <p>Η προβολή εγγράφων απαιτεί εξουσιοδοτημένο διαχειριστή της Ακαδημίας.</p>
+        <p>Η προβολή εγγράφων απαιτεί εξουσιοδοτημένο διαχειριστή της ομάδας.</p>
       {/if}
     </section>
   </AdminFrame>
