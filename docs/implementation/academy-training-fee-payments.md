@@ -111,3 +111,8 @@ comparison has been completed because the branch CI cannot currently start
 runners. Hence visual *intent* is source-matched but pixel-perfect status is
 not yet certified.
 
+
+
+### CI findings on 2026-11-10 (pre-merge, not production)
+
+The first runnable GitHub Actions retry after runner recovery exposed actual failures: Svelte detected a possibly-null family invoice snapshot inside a delayed click callback; the preview-edge test expected 46 Mobile bearer operations although the generated OpenAPI lists 48; and SkiaSharp's mutable SKPath drawing methods are deprecated under the pinned dependency and warnings-as-errors .NET build. These defects were patched on the PR branch by preserving the nullable state guard, updating the explicit protected-route count and switching invoice triangles to SKPathBuilder. **These are code corrections, not evidence of successful CI, payment reconciliation or legal/fiscal invoice approval.** No live payment provider, SMS or deployment has been enabled.
