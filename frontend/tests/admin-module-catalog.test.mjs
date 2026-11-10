@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['onboarding', '/admin/onboarding']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['products', '/admin/pos'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['attendance', '/admin/attendance'], ['onboarding', '/admin/onboarding']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/attendance', '/admin/onboarding'].includes(item.href));
   }
 });
 
