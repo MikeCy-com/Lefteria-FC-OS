@@ -140,6 +140,7 @@ app.MapAdminNews();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
+app.MapAdminPosCashier();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
 app.MapAdminRosterPlayers();
