@@ -32,6 +32,7 @@ test('card verification requires evidence, receipt demands reconciled paid sale'
  assert.match(schema,/payment_kind IN \('cash','card'\)/);
  assert.match(schema,/provider_evidence_sha256 ~ '\^\[0-9a-f\]\{64\}\$'/);
  assert.match(schema,/uq_pos_card_provider_capture/);
+ assert.match(schema,/verification_reference IS NOT NULL/);
  assert.match(guards,/payment_event_mutation_denied/);
  assert.match(guards,/verified_payments_exceed_sale_total/);
  assert.match(guards,/receipt_requires_paid_sale/);
@@ -39,6 +40,8 @@ test('card verification requires evidence, receipt demands reconciled paid sale'
  assert.match(schema,/UNIQUE\(organization_id,register_id,receipt_number\)/);
  assert.match(schema,/UNIQUE\(organization_id,sale_id\)/);
  assert.match(guards,/pos_receipts_immutable/);
+ assert.match(guards,/NEW.payload_sha256 IS DISTINCT FROM/);
+ assert.match(guards,/NEW.issued_at:=clock_timestamp/);
 });
 test('returns and refunds never exceed historical items or verified payment',()=>{
  assert.match(guards,/return_sale_mismatch/);
