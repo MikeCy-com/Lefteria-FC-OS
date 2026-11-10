@@ -61,6 +61,12 @@
   let permissionChild=$state('');
   let permissionPhone=$state('');
   let requestId=$state('');
+  let bulkRequest=$state<{
+    key:string;items:Array<{player_id:string;request_id:string}>
+  }|null>(null);
+  function clearPermissionDraft(){
+    requestId='';bulkRequest=null;permissionNotice='';
+  }
   let permissionNotice=$state('');
   let confirmingGuardianId=$state<string|null>(null);
   let confirmingId = $state<string | null>(null);
@@ -83,11 +89,15 @@
     try{
       if(children.length>1){
         if(!onCreateManyGuardian||permissionType!=='guardian')return;
-        const ids=children.map(child=>({
-          player_id:child.id,request_id:crypto.randomUUID()}));
-        const ok=await onCreateManyGuardian(ids,permissionPhone);
+        const key=permissionPhone.trim()+':'+children.map(ch=>ch.id).join(',');
+        if(bulkRequest?.key!==key)bulkRequest={
+          key,items:children.map(child=>({
+            player_id:child.id,request_id:crypto.randomUUID()
+          }))
+        };
+        const ok=await onCreateManyGuardian(bulkRequest.items,permissionPhone);
         if(ok){
-          permissionPhone='';requestId='';
+          permissionPhone='';clearPermissionDraft();
           permissionNotice='Η άδεια καταχωρίστηκε για όλα τα παιδιά. Ο παραλήπτης συνδέεται με επαληθευμένο κινητό.';
         }
       }else{
@@ -179,7 +189,7 @@
           onsubmit={(e)=>{e.preventDefault();void createPermission();}}>
           <label>Δώσε άδεια σε
             <select bind:value={permissionType} disabled={busy||guardianPending||submitting}
-              onchange={()=>{permissionChild='';requestId='';permissionNotice='';}}>
+              onchange={()=>{permissionChild='';clearPermissionDraft();}}>
               <option value="player">Παίκτη — μόνο το δικό του προφίλ</option>
               <option value="guardian">Γονέα / Κηδεμόνα</option>
             </select>
@@ -189,7 +199,7 @@
           {:else}
             <label>Επίλεξε παιδί
               <select bind:value={permissionChild} disabled={busy||guardianPending||submitting}
-                required onchange={()=>{requestId='';permissionNotice='';}}>
+                required onchange={()=>{clearPermissionDraft();}}>
                 <option value="">Επίλεξε παιδί</option>
                 {#if permissionType==='guardian'}
                   <option value="all">Όλα τα παιδιά μου</option>
@@ -204,7 +214,7 @@
             <input type="tel" autocomplete="tel" inputmode="tel"
               bind:value={permissionPhone} maxlength="24" required
               placeholder="+357 99 123456" disabled={busy||guardianPending||submitting}
-              oninput={()=>{requestId='';permissionNotice='';}}/>
+              oninput={()=>{clearPermissionDraft();}}/>
           </label>
           <button type="submit" disabled={busy||guardianPending||submitting||
             !resolvedChild||!permissionPhone.trim()}>
