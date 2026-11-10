@@ -35,15 +35,17 @@ internal static class PayablSandboxRefundClient
         IReadOnlyDictionary<string, string> parameters,
         string merchantSecret)
     {
-        if (string.IsNullOrWhiteSpace(merchantSecret))
-            throw new ArgumentException("Merchant credential missing.", nameof(merchantSecret));
+        if (string.IsNullOrWhiteSpace(merchantSecret) ||
+            merchantSecret.Any(c => c > 255))
+            throw new ArgumentException("Latin-1 merchant credential required.",
+                nameof(merchantSecret));
         // payabl. request signatures concatenate values in ordinal
         // alphabetical parameter-name order, then the merchant secret.
         var ordered = string.Concat(parameters
             .Where(pair => !string.Equals(pair.Key, "signature", StringComparison.Ordinal))
             .OrderBy(pair => pair.Key, StringComparer.Ordinal)
             .Select(pair => pair.Value)) + merchantSecret;
-        return Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(ordered)))
+        return Convert.ToHexString(SHA1.HashData(Encoding.Latin1.GetBytes(ordered)))
             .ToLowerInvariant();
     }
 
