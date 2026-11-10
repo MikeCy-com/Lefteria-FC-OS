@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using LefteriaFc.Application.Family;
 using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Domain.Identity;
@@ -34,6 +35,28 @@ public sealed class PostgresGuardianPermissionRepository(LefteriaDbContext datab
             return record ?? throw new InvalidOperationException("Invalid guardian permission result.");
         }
         finally { await database.Database.CloseConnectionAsync(); }
+    }
+
+    public async Task<GuardianBulkResult> IssueManyAsync(MobileSession session,
+        string phone, IReadOnlyList<GuardianBulkChild> children, CancellationToken ct)
+    {
+        await database.Database.OpenConnectionAsync(ct);
+        try
+        {
+            await using var command=new NpgsqlCommand("""
+              SELECT identity.issue_many_guardian_permissions(
+                @identity,@phone,@role,@expires,@device,@target,@items)::text
+              """,(NpgsqlConnection)database.Database.GetDbConnection());
+            Bind(command,session);
+            command.Parameters.AddWithValue("target",phone);
+            command.Parameters.Add("items",NpgsqlTypes.NpgsqlDbType.Jsonb).Value=
+                JsonSerializer.Serialize(children,new JsonSerializerOptions
+                { PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower });
+            var json=await Execute(command,ct);
+            return JsonSerializer.Deserialize<GuardianBulkResult>(json) ??
+                throw new InvalidOperationException("Invalid bulk permission response.");
+        }
+        finally {await database.Database.CloseConnectionAsync();}
     }
 
     public async Task<GuardianPermissionsResult> ListAsync(MobileSession session,CancellationToken ct)
