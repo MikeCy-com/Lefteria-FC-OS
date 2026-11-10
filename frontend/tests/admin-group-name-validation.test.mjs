@@ -25,7 +25,7 @@ test('UI and server group creation both protect name length and actual control c
     'Expected a single-escaped control-character class in the Svelte component');
   assert.equal(page.includes(String.raw`/[\\x00-\\x1f\\x7f]/.test(name)`),false,
     'The double-escaped pattern rejects valid Latin letters such as f and x');
-  assert.match(page,/\/api\/admin\/football\/groups\?/);
+  assert.match(page,/\/api\/admin\/football\/groups\/with-profile\?/);
   assert.match(page,/organization_id:selected/);
   assert.match(page,/value.kind !==/);
 });
