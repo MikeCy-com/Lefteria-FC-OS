@@ -113,7 +113,7 @@ app.Use(async (context, next) =>
         {
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers.Pragma = "no-cache";
-            context.Response.Headers.Expires = "0";
+            context.Response.Headers["Expires"] = "0";
             return Task.CompletedTask;
         });
     }
