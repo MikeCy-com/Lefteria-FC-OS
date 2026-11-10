@@ -185,7 +185,61 @@
         {#if guardianError}<p role="alert">{guardianError}</p>{/if}
       </section>
       <section class="family-invitations" data-testid="family-guardian-permissions">
-        <h2>Άδειες Γονέα / Κηδεμόνα</h2>
+        <h2>Όλες οι άδειες πρόσβασης</h2>
+        <p>Άδειες παίκτη και γονέα / κηδεμόνα για κάθε παιδί, με ξεχωριστή ανάκληση.</p>
+        {#if outgoingStatus==='ready' && outgoingInvitations}
+          {#each outgoingInvitations.items.filter(item=>
+            family.children.some(child=>child.id===item.player_id&&
+              child.organization_id===item.organization_id)) as invitation (invitation.id)}
+            {@const child=family.children.find(ch=>ch.id===invitation.player_id)}
+            <article class="family-outgoing-row" data-testid="family-player-permission">
+              <strong>{child?.name??'Παιδί'} · Παίκτης</strong>
+              <p>Εκκρεμεί η αποδοχή της πρόσκλησης.</p>
+              {#if onCancelOutgoing}
+                {#if confirmingId===invitation.id}
+                  <div class="family-cancel-actions">
+                    <button type="button" onclick={()=>confirmingId=null}>Όχι</button>
+                    <button type="button" disabled={!!outgoingCancellingId}
+                      onclick={()=>void confirmCancel(invitation.id)}>
+                      Διαγραφή άδειας
+                    </button>
+                  </div>
+                {:else}
+                  <button class="family-cancel-start" type="button"
+                    onclick={()=>confirmingId=invitation.id}>Διαγραφή άδειας</button>
+                {/if}
+              {/if}
+            </article>
+          {/each}
+        {/if}
+        {#if activeStatus==='ready' && activeDelegations}
+          {#each activeDelegations.items.filter(item=>
+            family.children.some(child=>child.id===item.player_id&&
+              child.organization_id===item.organization_id)) as permission (permission.player_id)}
+            {@const child=family.children.find(ch=>ch.id===permission.player_id)}
+            <article class="family-outgoing-row" data-testid="family-active-player-permission">
+              <strong>{child?.name??'Παιδί'} · Παίκτης</strong>
+              <p>Ενεργή σύνδεση παίκτη</p>
+              {#if onRevokeDelegation}
+                {#if confirmingRevokeId===permission.player_id}
+                  <div class="family-cancel-actions">
+                    <button type="button" onclick={()=>confirmingRevokeId=null}>Όχι</button>
+                    <button type="button" disabled={!!revokingPlayerId}
+                      onclick={()=>void confirmRevoke(permission.player_id)}>
+                      Διαγραφή άδειας
+                    </button>
+                  </div>
+                {:else}
+                  <button class="family-cancel-start" type="button"
+                    onclick={()=>confirmingRevokeId=permission.player_id}>
+                    Διαγραφή άδειας
+                  </button>
+                {/if}
+              {/if}
+            </article>
+          {/each}
+        {/if}
+        <h3>Γονείς / Κηδεμόνες</h3>
         {#if guardianStatus==='idle'||guardianStatus==='loading'}
           <p role="status">Έλεγχος αδειών…</p>
         {:else if guardianStatus==='error'}
