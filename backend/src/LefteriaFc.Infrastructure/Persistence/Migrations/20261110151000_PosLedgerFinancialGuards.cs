@@ -187,10 +187,13 @@ public sealed class PosLedgerFinancialGuards : Migration
           OR NEW.immutable_payload->>'currency' IS DISTINCT FROM 'EUR'
           OR (NEW.immutable_payload->>'total_cents') IS DISTINCT FROM
             v_sale.total_cents::text
+          OR NEW.payload_sha256 IS DISTINCT FROM
+            encode(sha256(convert_to(NEW.immutable_payload::text,'UTF8')),'hex')
         THEN RAISE EXCEPTION 'receipt_snapshot_not_reconciled' USING ERRCODE='23514';
         END IF;
+        NEW.issued_at:=clock_timestamp();
         RETURN NEW;
-      END $$;
+      END $;
       CREATE TRIGGER pos_receipt_paid_guard
         BEFORE INSERT ON pos.receipts FOR EACH ROW EXECUTE FUNCTION pos.guard_receipt_issue();
 
