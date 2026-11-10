@@ -212,6 +212,8 @@ public sealed class PosPrivateLocationLedger : Migration
         after_quantity bigint NOT NULL CHECK(after_quantity>=0
           AND after_quantity=before_quantity+delta),
         actor_operator_id uuid,
+        actor_admin_id uuid REFERENCES identity.admin_accounts(id) ON DELETE RESTRICT,
+        CHECK ((actor_operator_id IS NULL) <> (actor_admin_id IS NULL)),
         occurred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         FOREIGN KEY(sale_id,organization_id,location_id)
           REFERENCES pos.sales(id,organization_id,location_id) ON DELETE RESTRICT,
