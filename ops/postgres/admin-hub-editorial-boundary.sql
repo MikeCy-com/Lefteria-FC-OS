@@ -5,6 +5,7 @@ DECLARE
   auth_role text := current_setting('lefteria.admin_auth_role');
   mobile_role text := current_setting('lefteria.mobile_runtime_role');
   routine pg_proc%ROWTYPE;
+  writer pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -21,6 +22,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,routine.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,routine.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub editorial function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT writer FROM pg_proc
+    WHERE oid='hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)'::regprocedure;
+  IF NOT writer.prosecdef OR writer.provolatile<>'v'
+    OR writer.prorettype<>'jsonb'::regtype OR writer.prokind<>'f'
+    OR writer.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(writer.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(writer.proacl,acldefault('f',writer.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,writer.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,writer.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub draft writer function permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
