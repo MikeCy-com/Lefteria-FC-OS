@@ -28,3 +28,9 @@ The next implementation gates before enabling checkout:
 7. Independent security audit; real .NET build, PostgreSQL lifecycle/rollback/negative tests, receipt fiscal/legal review for Cyprus, OpenAPI/client generation, SvelteKit tests, full CI at exact SHA and explicit release sign-off.
 
 **Safety:** Never deploy to live, turn on payment buttons or grant runtime POS writes from this PR until these gates pass. Node source assertions are not runtime/database proof.
+
+## Verified receipt finalization gate (additional implementation)
+
+Migration `20261110152000_PosVerifiedReceiptIssuer` adds a private, revocation-aware SQL function for **already verified**, fully reconciled sales. It locks the exact sale, rejects incomplete/unverified payment, checks current management organization grants, allocates a register-scoped sequence under row lock, snapshots itemized line/amounts and fiscal-policy version, hashes the immutable receipt payload, appends security audit and returns the existing receipt upon replay. A disabled-by-default, owner-only `pos.receipt_policies` row is required; migration creates no enabled policy and provides **no runtime execute grant**.
+
+This is a receipt-issuance building block, **not live legal/fiscal authorization**: tax/VAT treatment, policy approval, receipt PDF/printing, provider settlement and cashier checkout remain unimplemented and must be separately verified. No receipt is issued merely because a browser requested a payment link.
