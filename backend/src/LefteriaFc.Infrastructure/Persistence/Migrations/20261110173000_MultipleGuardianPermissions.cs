@@ -217,9 +217,12 @@ public sealed class MultipleGuardianPermissions : Migration
           OR _role<>'parent' OR _expires IS NULL OR _expires<=v_now
           OR _phone IS NULL OR _phone !~ '^[1-9][0-9]{7,14}$'
         THEN RAISE EXCEPTION 'guardian_permission_denied' USING ERRCODE='42501'; END IF;
+        -- Read target identity first without holding its row lock;
+        -- canonical parent/child rows are locked before the permission row
+        -- in issue, accept and revoke, avoiding inverted lock ordering.
         SELECT * INTO v_item FROM identity.family_guardian_permissions
           WHERE id=_permission AND issuer_identity_id=_actor
-            AND status IN ('pending','accepted_pending_access','active') FOR UPDATE;
+            AND status IN ('pending','accepted_pending_access','active');
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
 
@@ -238,6 +241,15 @@ public sealed class MultipleGuardianPermissions : Migration
           AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
         FOR SHARE OF i,l,b,p;
         IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_denied'
+          USING ERRCODE='42501'; END IF;
+
+        PERFORM 1 FROM identity.family_guardian_permissions
+          WHERE id=_permission AND issuer_identity_id=_actor
+            AND player_id=v_item.player_id
+            AND organization_id=v_item.organization_id
+            AND status IN ('pending','accepted_pending_access','active')
+          FOR UPDATE;
+        IF NOT FOUND THEN RAISE EXCEPTION 'guardian_permission_missing'
           USING ERRCODE='42501'; END IF;
 
         UPDATE identity.family_guardian_permissions SET
