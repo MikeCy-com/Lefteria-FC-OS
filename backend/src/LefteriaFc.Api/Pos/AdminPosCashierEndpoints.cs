@@ -97,7 +97,7 @@ public static class AdminPosCashierEndpoints
                 body.Items is null || body.Items.Count is < 1 or > 30 ||
                 body.Items.Any(item =>
                     !ValidRegister(item.ProductId) ||
-                    item.VariantId.Length is < 1 or > 60 ||
+                    item.VariantId is null || item.VariantId.Length is < 1 or > 60 ||
                     !item.VariantId.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-') ||
                     item.Quantity is < 1 or > 99) ||
                 body.Items.Select(item => (item.ProductId, item.VariantId))
@@ -126,8 +126,8 @@ public static class AdminPosCashierEndpoints
         return endpoints;
     }
 
-    private static bool ValidRegister(string value) =>
-        value.Length is >= 1 and <= 80 &&
+    private static bool ValidRegister(string? value) =>
+        value is not null && value.Length is >= 1 and <= 80 &&
         value.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-');
 
     private static async Task<(string Cookie, string Owner)> Authority(
