@@ -711,7 +711,7 @@ export function createMobileAuthController(options: {
       const path='/api/mobile/family/children/'+encodeURIComponent(playerId)+
         (kind==='guardian'?'/guardian-permissions':'/invitations');
       const raw=await chatRequest(path,'POST',kind==='guardian'?
-        {phone,requestId}:{phone});
+        {phone,request_id:requestId}:{phone});
       if(!current())return false;
       if(!raw||typeof raw!=='object'||!('id' in raw)||
         typeof raw.id!=='string'||!uuidPattern.test(raw.id)||
