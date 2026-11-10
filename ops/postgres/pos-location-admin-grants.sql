@@ -25,7 +25,9 @@ BEGIN
   FOREACH v_proc IN ARRAY ARRAY[
     'pos.read_admin_locations(text,text)'::regprocedure::oid,
     'pos.create_admin_city(text,text,text)'::regprocedure::oid,
-    'pos.create_admin_location(text,text,text,text,text)'::regprocedure::oid
+    'pos.create_admin_location(text,text,text,text,text)'::regprocedure::oid,
+    'pos.write_admin_location_product(text,text,text,text,boolean,bigint)'::regprocedure::oid,
+    'pos.receive_admin_stock(text,text,text,text,text,integer,uuid)'::regprocedure::oid
   ] LOOP
     IF NOT (SELECT prosecdef AND NOT EXISTS(
       SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
@@ -39,6 +41,10 @@ GRANT EXECUTE ON FUNCTION pos.read_admin_locations(text,text) TO :"admin_auth_ro
 GRANT EXECUTE ON FUNCTION pos.create_admin_city(text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos.create_admin_location(text,text,text,text,text)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos.write_admin_location_product(
+  text,text,text,text,boolean,bigint) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos.receive_admin_stock(
+  text,text,text,text,text,integer,uuid) TO :"admin_auth_role";
 
 DO $verify$
 DECLARE
@@ -50,7 +56,9 @@ BEGIN
   FOREACH v_proc IN ARRAY ARRAY[
     'pos.read_admin_locations(text,text)'::regprocedure::oid,
     'pos.create_admin_city(text,text,text)'::regprocedure::oid,
-    'pos.create_admin_location(text,text,text,text,text)'::regprocedure::oid
+    'pos.create_admin_location(text,text,text,text,text)'::regprocedure::oid,
+    'pos.write_admin_location_product(text,text,text,text,boolean,bigint)'::regprocedure::oid,
+    'pos.receive_admin_stock(text,text,text,text,text,integer,uuid)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(v_admin,v_proc,'EXECUTE')
       OR has_function_privilege(v_mobile,v_proc,'EXECUTE')
