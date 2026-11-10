@@ -16,6 +16,7 @@ BEGIN
   ) THEN RAISE EXCEPTION 'guardian_live_recipient_index_missing'; END IF;
   FOR fn IN SELECT unnest(ARRAY[
     'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)'::regprocedure,
+    'identity.issue_many_guardian_permissions(uuid,text,text,timestamptz,uuid,text,jsonb)'::regprocedure,
     'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
     'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
     'identity.valid_guardian_phone_grants()'::regprocedure,
@@ -40,6 +41,16 @@ BEGIN
       'unknown','35799123457',
       '00000000-0000-0000-0000-000000000003'::uuid);
     RAISE EXCEPTION 'guardian_unauthorized_issue_allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM identity.issue_many_guardian_permissions(
+      '00000000-0000-0000-0000-000000000001'::uuid,'35799123456',
+      'parent',clock_timestamp()+interval '1 day',
+      '00000000-0000-0000-0000-000000000002'::uuid,'35799123457',
+      '[{"player_id":"unknown","request_id":"00000000-0000-0000-0000-000000000003"},
+        {"player_id":"other","request_id":"00000000-0000-0000-0000-000000000004"}]'::jsonb);
+    RAISE EXCEPTION 'guardian_unauthorized_bulk_allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $negative$;
