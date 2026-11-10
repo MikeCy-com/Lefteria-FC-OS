@@ -29,3 +29,12 @@ test('UI and server group creation both protect name length and actual control c
   assert.match(page,/organization_id:selected/);
   assert.match(page,/value.kind !==/);
 });
+
+test('group directory rejects duplicate IDs and blank group names before keyed rendering',()=>{
+  assert.match(page,/const uniqueIds = new Set<string>\(\)/);
+  assert.match(page,/uniqueIds\.has\(row\.id\)/);
+  assert.match(page,/uniqueIds\.add\(row\.id\)/);
+  assert.match(page,/row\.name\.length > 0/);
+  assert.match(page,/verifiedDirectory\(raw,owner\)/);
+  assert.match(page,/unavailable = true/);
+});
