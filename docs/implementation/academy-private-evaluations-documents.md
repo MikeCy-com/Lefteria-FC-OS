@@ -66,3 +66,52 @@ Both read functions derive eligibility at request time from the **current canoni
 - `frontend/tests/private-records-dynamic-team-eligibility.test.mjs` checks both organizations, canonical team/group joins, unauthorized organization boundaries, dynamic UI scope and absence of hard-coded team IDs. Runtime tests and full deployment proof are still required.
 
 The next implementation should place these **same player-specific panels inside the existing roster/player profile workflow**, so operators select a team/group and player without typing an opaque ID. Creating an empty team must not fabricate a child, consent record or evaluation. Any later new player, team assignment, move, coach reassignment or removal must be tested using actual PostgreSQL transactions and revoked-session/negative-authorization cases before merge.
+
+## Actual manager creation and quarantine uploads (2026-11-10)
+
+The selected roster player now renders a private manager panel for both FC and
+Academy, with a bounded evaluation form and a protected document upload form.
+Creating a team never fabricates a player, medical record or evaluation.
+Only currently assigned, active players can be written.
+
+### Evaluation creation
+- `20261110140000_PrivateEvaluationCreation` creates a dated evaluation
+  and initial score revision in one transaction, linked to the exact owner
+  and active player. It checks the fresh administrator session, 24-hour
+  revision rules, score keys/ranges and account/grant authorization.
+- A manager supplies a `request_id` UUID; repeated identical requests are
+  idempotent, while conflicting/reused IDs cannot overwrite a record.
+- The form is part of the roster rather than requiring manually typed IDs.
+  Edit/delete revisions beyond the first entry and coach delegation are not
+  enabled without additional authorization/review.
+
+### Protected document upload
+- `20261110200000_PrivatePlayerDocumentQuarantine` stores only AES-256-GCM
+  ciphertext, a unique 96-bit nonce, 128-bit auth tag, private key ID,
+  content hash and minimal metadata. The DB binds object, owner and player
+  together and starts every object at `quarantined`.
+- `POST /api/admin/club/players/{playerId}/documents` is manager-only with
+  current org/player checks at API and SQL boundaries. The API enforces a
+  request-size ceiling, strict 10 MiB file bound, a single multipart file,
+  permitted document categories, required expiry dates and PDF/JPEG/PNG/WebP
+  file signature checks before encrypting. User-supplied filenames and MIME
+  labels are not used as storage paths or trusted content types.
+- The server needs separate secret configuration:
+  `DocumentVault__KeyBase64` (32 random bytes, Base64) and
+  `DocumentVault__KeyId` (operator-managed identifier). **Never** commit
+  a real key, place it in frontend code or reuse an authentication key.
+  Without configuration the upload endpoint fails closed with 503.
+- The API discards plaintext buffers and commits document metadata,
+  ciphertext and audit within one database transaction. No public/media URL,
+  unscoped GET, original file download, preview or scanner override is
+  implemented. Encrypted objects remain quarantined pending a dedicated
+  malware scanning/review service, key recovery and retention policy.
+- Explicit operator-only grant setup in
+  `ops/postgres/academy-evaluation-admin-grants.sql` is required; the web
+  admin runtime receives EXECUTE on the reviewed function, not raw table
+  permissions. An isolated PostgreSQL denial probe and Node source checks
+  were added. This is **NOT READY FOR PRODUCTION** until exact-SHA build,
+  migration, scanner workflow, key-rotation and browser integration tests.
+
+The original legacy source may expose unsafe upload paths. These are not
+copied into OS.
