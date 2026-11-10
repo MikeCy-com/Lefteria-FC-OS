@@ -121,6 +121,16 @@ BEGIN
       WHERE conrelid='pos.finance_posting_outbox'::regclass
         AND contype='u'
   ) THEN RAISE EXCEPTION 'pos_finance_outbox_idempotency_missing'; END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_proc
+      WHERE oid='pos.read_admin_finance_handoff(text,text)'::regprocedure
+        AND prosecdef
+  ) OR EXISTS(
+    SELECT 1 FROM pg_proc p,
+      LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+      WHERE p.oid='pos.read_admin_finance_handoff(text,text)'::regprocedure
+        AND a.grantee=0 AND a.privilege_type='EXECUTE'
+  ) THEN RAISE EXCEPTION 'pos_finance_handoff_private_reader_missing'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
