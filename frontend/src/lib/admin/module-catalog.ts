@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'fo
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/finance';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -35,7 +35,7 @@ const catalog: readonly Section[] = [
     { id: 'app_media', name: 'Συνημμένα εφαρμογής', description: 'Προστατευμένα αρχεία και banner ανακοινώσεων. Καμία δημόσια ανάρτηση.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] }
   ] },
   { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
-    { id: 'leads', name: 'Ενδιαφερόμενοι & επαφές', description: 'Απαιτεί ιδιωτικό API και πολιτική δεδομένων.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] },
+    { id: 'leads', name: 'Ενδιαφερόμενοι Ακαδημίας', description: 'Ιδιωτικός κατάλογος αιτημάτων και ελεγχόμενη καταχώριση επικοινωνίας (χωρίς αυτόματη εγγραφή ή αποστολή).', status: 'live', href: '/admin/leads', scope: 'academy', anyPermission: ['marketing:read'] },
     { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Αιτήματα γονέων και κηδεμόνων.', status: 'planned', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
@@ -78,6 +78,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
       if (item.id === 'onboarding') return true;
+      if (item.id === 'leads') return (['manager','super_admin'].includes(user.role) &&
+        organizations.includes('lefteria_fc_academy') &&
+        hasAdminPermission(user.permissions,'marketing:read'));
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));

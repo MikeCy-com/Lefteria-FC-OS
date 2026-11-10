@@ -91,6 +91,17 @@ internal static class TestRunner
             return 2;
         }
 
+        try
+        {
+            await WebPushDeliveryChecks.RunAsync();
+            Console.WriteLine("PASS isolated Web Push signer/provider policy (no external network).");
+        }
+        catch(Exception error)
+        {
+            Console.Error.WriteLine("FAIL Web Push provider policy: "+error.GetType().Name);
+            return 1;
+        }
+
         var factory = new IdentityApplicationFactory(fixture);
         var database = new TestDatabase(fixture, factory.OtpKey);
         var failures = 0;

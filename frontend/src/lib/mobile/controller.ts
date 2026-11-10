@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
+import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
   validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
   type AppAnnouncementPage,type AppAnnouncementReactionSnapshot,
@@ -1261,6 +1262,33 @@ export function createMobileAuthController(options: {
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);
+    },
+    async getDevicePushConfig():Promise<DevicePushConfig> {
+      const raw=await chatRequest('/api/mobile/app/push');
+      if(!validDevicePushConfig(raw))
+        throw new Error('Unverified device push configuration.');
+      return raw;
+    },
+    async subscribeDevicePush(endpoint:string,p256dh:string,auth:string):Promise<boolean> {
+      if(typeof endpoint!=='string'||endpoint.length>2048||
+         typeof p256dh!=='string'||typeof auth!=='string')
+        throw new Error('Invalid browser push subscription.');
+      const raw=await chatRequest('/api/mobile/app/push/subscriptions','POST',{
+        endpoint,keys:{p256dh,auth}
+      });
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        !('subscribed' in raw)||raw.subscribed!==true)
+        throw new Error('Unverified device subscription.');
+      return true;
+    },
+    async unsubscribeDevicePush(endpoint:string):Promise<boolean> {
+      if(typeof endpoint!=='string'||endpoint.length>2048)
+        throw new Error('Invalid device endpoint.');
+      const raw=await chatRequest('/api/mobile/app/push/subscriptions','DELETE',{endpoint});
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        !('subscribed' in raw)||raw.subscribed!==false)
+        throw new Error('Unverified device unsubscribe.');
+      return true;
     },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)

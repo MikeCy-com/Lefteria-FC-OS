@@ -109,6 +109,10 @@ services:
       Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
       Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
       Twilio__FromNumber: ${TWILIO_FROM_NUMBER:-}
+      WebPush__Enabled: "${WEB_PUSH_ENABLED:-false}"
+      WebPush__VapidPublicKey: ${WEB_PUSH_VAPID_PUBLIC_KEY:-}
+      WebPush__VapidPrivateKey: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
+      WebPush__Subject: ${WEB_PUSH_SUBJECT:-}
     depends_on:
       postgres:
         condition: service_healthy

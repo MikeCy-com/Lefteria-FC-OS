@@ -1,6 +1,27 @@
 {
   "components": {
     "schemas": {
+      "AcademyLeadFollowUpCommand": {
+        "properties": {
+          "expected_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "next_status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_status",
+          "next_status"
+        ],
+        "type": "object"
+      },
       "AcademyTrainingFeeIssueCommand": {
         "properties": {
           "amount_cents": {
@@ -2960,6 +2981,104 @@
         },
         "type": "object"
       },
+      "MobilePushConfigDto": {
+        "properties": {
+          "active_devices": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "public_key": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "public_key",
+          "active_devices"
+        ],
+        "type": "object"
+      },
+      "MobilePushKeysBody": {
+        "properties": {
+          "auth": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "p256dh": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "type": "object"
+      },
+      "MobilePushSubscriptionBody": {
+        "properties": {
+          "endpoint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "keys": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MobilePushKeysBody"
+              }
+            ]
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "type": "object"
+      },
+      "MobilePushSubscriptionStateDto": {
+        "properties": {
+          "subscribed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "subscribed"
+        ],
+        "type": "object"
+      },
+      "MobilePushUnsubscribeBody": {
+        "properties": {
+          "endpoint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "type": "object"
+      },
       "MobileRoleSwitchResult": {
         "properties": {
           "available_roles": {
@@ -5530,6 +5649,180 @@
         ],
         "type": "object"
       },
+      "PublicSectionsResult": {
+        "properties": {
+          "academy_groups": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionGroup"
+            },
+            "type": "array"
+          },
+          "academy_stats": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionAcademyStats"
+              }
+            ]
+          },
+          "archived_seasons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionArchive"
+            },
+            "type": "array"
+          },
+          "branding": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionBranding"
+              }
+            ]
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionEvent"
+            },
+            "type": "array"
+          },
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionFixtureView"
+            },
+            "type": "array"
+          },
+          "gallery": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionGallery"
+            },
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modules": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionModule"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "partners": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPartner"
+            },
+            "type": "array"
+          },
+          "players": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionPlayer"
+            },
+            "type": "array"
+          },
+          "potm": {
+            "$ref": "#/components/schemas/PublicSectionPotm"
+          },
+          "products": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionProduct"
+            },
+            "type": "array"
+          },
+          "reviews": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionReview"
+            },
+            "type": "array"
+          },
+          "seasons": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSeason"
+            },
+            "type": "array"
+          },
+          "snapshot_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "sponsors": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionSponsor"
+            },
+            "type": "array"
+          },
+          "staff": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionStaff"
+            },
+            "type": "array"
+          },
+          "standings": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionStanding"
+            },
+            "type": "array"
+          },
+          "tickets": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionTicket"
+            },
+            "type": "array"
+          },
+          "time_zone": {
+            "type": "string"
+          },
+          "trial_settings": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicSectionTrials"
+              }
+            ]
+          },
+          "venues": {
+            "items": {
+              "$ref": "#/components/schemas/PublicSectionVenue"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "organization_id",
+          "players",
+          "staff",
+          "academy_groups",
+          "standings",
+          "venues",
+          "seasons",
+          "gallery",
+          "sponsors",
+          "partners",
+          "events",
+          "products",
+          "trial_settings",
+          "fixtures",
+          "tickets",
+          "archived_seasons",
+          "reviews",
+          "academy_stats",
+          "potm",
+          "branding",
+          "modules",
+          "snapshot_at",
+          "generated_at",
+          "time_zone"
+        ],
+        "type": "object"
+      },
       "PublicSectionStaff": {
         "properties": {
           "academy_group_ids": {
@@ -6025,180 +6318,6 @@
           "latitude",
           "longitude",
           "is_home_ground"
-        ],
-        "type": "object"
-      },
-      "PublicSectionsResult": {
-        "properties": {
-          "academy_groups": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionGroup"
-            },
-            "type": "array"
-          },
-          "academy_stats": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicSectionAcademyStats"
-              }
-            ]
-          },
-          "archived_seasons": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionArchive"
-            },
-            "type": "array"
-          },
-          "branding": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicSectionBranding"
-              }
-            ]
-          },
-          "events": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionEvent"
-            },
-            "type": "array"
-          },
-          "fixtures": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionFixtureView"
-            },
-            "type": "array"
-          },
-          "gallery": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionGallery"
-            },
-            "type": "array"
-          },
-          "generated_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "modules": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionModule"
-            },
-            "type": "array"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "partners": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionPartner"
-            },
-            "type": "array"
-          },
-          "players": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionPlayer"
-            },
-            "type": "array"
-          },
-          "potm": {
-            "$ref": "#/components/schemas/PublicSectionPotm"
-          },
-          "products": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionProduct"
-            },
-            "type": "array"
-          },
-          "reviews": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionReview"
-            },
-            "type": "array"
-          },
-          "seasons": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionSeason"
-            },
-            "type": "array"
-          },
-          "snapshot_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "sponsors": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionSponsor"
-            },
-            "type": "array"
-          },
-          "staff": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionStaff"
-            },
-            "type": "array"
-          },
-          "standings": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionStanding"
-            },
-            "type": "array"
-          },
-          "tickets": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionTicket"
-            },
-            "type": "array"
-          },
-          "time_zone": {
-            "type": "string"
-          },
-          "trial_settings": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/PublicSectionTrials"
-              }
-            ]
-          },
-          "venues": {
-            "items": {
-              "$ref": "#/components/schemas/PublicSectionVenue"
-            },
-            "type": "array"
-          }
-        },
-        "required": [
-          "organization_id",
-          "players",
-          "staff",
-          "academy_groups",
-          "standings",
-          "venues",
-          "seasons",
-          "gallery",
-          "sponsors",
-          "partners",
-          "events",
-          "products",
-          "trial_settings",
-          "fixtures",
-          "tickets",
-          "archived_seasons",
-          "reviews",
-          "academy_stats",
-          "potm",
-          "branding",
-          "modules",
-          "snapshot_at",
-          "generated_at",
-          "time_zone"
         ],
         "type": "object"
       },
@@ -8136,6 +8255,110 @@
         ],
         "tags": [
           "App announcements administration"
+        ]
+      }
+    },
+    "/api/admin/crm/academy/leads": {
+      "get": {
+        "operationId": "ReadAdminAcademyLeads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy CRM"
+        ]
+      }
+    },
+    "/api/admin/crm/academy/leads/{leadId}/status": {
+      "post": {
+        "operationId": "UpdateAdminAcademyLeadStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "leadId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyLeadFollowUpCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy CRM"
         ]
       }
     },
@@ -10697,6 +10920,309 @@
         ],
         "tags": [
           "Mobile app notifications"
+        ]
+      }
+    },
+    "/api/mobile/app/push": {
+      "get": {
+        "operationId": "GetMobileWebPushConfig",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePushConfigDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app push"
+        ]
+      }
+    },
+    "/api/mobile/app/push/subscriptions": {
+      "delete": {
+        "operationId": "UnsubscribeMobileWebPushDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobilePushUnsubscribeBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePushSubscriptionStateDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app push"
+        ]
+      },
+      "post": {
+        "operationId": "SubscribeMobileWebPushDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobilePushSubscriptionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePushSubscriptionStateDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app push"
         ]
       }
     },
@@ -16115,7 +16641,7 @@
       "name": "Mobile app announcements"
     },
     {
-      "name": "Payabl signed notifications"
+      "name": "Mobile app push"
     },
     {
       "name": "First-team trials"
@@ -16157,6 +16683,15 @@
       "name": "Web administration"
     },
     {
+      "name": "Club settings"
+    },
+    {
+      "name": "Academy CRM"
+    },
+    {
+      "name": "Payabl signed notifications"
+    },
+    {
       "name": "Payabl finance (sandbox)"
     },
     {
@@ -16164,9 +16699,6 @@
     },
     {
       "name": "Parent training fees"
-    },
-    {
-      "name": "Club settings"
     }
   ]
 }
