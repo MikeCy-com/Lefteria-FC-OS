@@ -18,7 +18,8 @@ test('API requires verified web admin, manager, Academy and no-store response',(
   assert.match(api,/TokenDigest\(cookie!\)/);
   assert.match(api,/CacheControl = "private, no-store"/);
   assert.match(program,/app\.MapAdminAcademyEvaluations\(\)/);
-  assert.doesNotMatch(api,/MapPost|MapPut|MapDelete/);
+  assert.match(api,/MapPost/);
+  assert.doesNotMatch(api,/MapPut|MapDelete/);
 });
 test('SQL double checks live session and exact player scope',()=>{
   assert.match(sql,/SECURITY DEFINER/);
