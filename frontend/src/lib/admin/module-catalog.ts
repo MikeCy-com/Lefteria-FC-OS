@@ -4,7 +4,7 @@ import { canReadClub } from './club-controller.ts';
 import { canViewFirstTeamTrials } from './trials-access.ts';
 
 type AdminUser = WebAdminSession['user'];
-export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
+export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
@@ -27,6 +27,10 @@ const catalog: readonly Section[] = [
     { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
     { id: 'media', name: 'Βιβλιοθήκη πολυμέσων', description: 'Φωτογραφίες και άλμπουμ.', status: 'planned', scope: 'any', anyPermission: ['gallery:read'] },
     { id: 'social', name: 'Social Control Centre', description: 'Επίσημοι κοινωνικοί λογαριασμοί.', status: 'planned', scope: 'any', anyPermission: ['social:write'] }
+  ] },
+  { id: 'hub', name: 'HUB · Περιεχόμενο & συνδρομές', description: 'Ασφαλές εκπαιδευτικό περιεχόμενο για γονείς και αθλητές, με προαιρετική συνδρομή φιλάθλων και υποχρεωτική ανθρώπινη έγκριση.', modules: [
+    { id: 'hub_editorial', name: 'AI πρόχειρα & έγκριση περιεχομένου', description: 'Κείμενα και εικαστικά από AI: επεξεργασία, έλεγχος προστασίας ανηλίκων, έγκριση διαχειριστή και μετά δημοσίευση. Η υπηρεσία παραγωγής και το API εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['news:read','settings:read'] },
+    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['finance:read','marketing:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
     { id: 'announcements', name: 'Ανακοινώσεις εφαρμογής · πρόχειρα', description: 'Πρόχειρα για ομάδες και Ακαδημία. Η δημοσίευση και η προβολή στην εφαρμογή δεν έχουν ενεργοποιηθεί ακόμη.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
