@@ -47,6 +47,7 @@ DECLARE
  m text:=current_setting('lefteria.evaluation_mobile_role');
  f oid:='academy_private.read_admin_player_evaluations(text,text,text)'::regprocedure::oid;
  doc oid:='academy_private.read_admin_player_document_metadata(text,text,text)'::regprocedure::oid;
+ create_fn oid:='academy_private.create_admin_player_evaluation(text,text,text,uuid,text,text,jsonb,jsonb,jsonb,jsonb,jsonb)'::regprocedure::oid;
  t text;
 BEGIN
  IF NOT has_function_privilege(a,f,'EXECUTE')
