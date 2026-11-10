@@ -21,6 +21,7 @@
   let opening=$state('0.00');
   let counted=$state('');
   let confirmedClose=$state(false);
+  let lastScope='';
   let pendingOpenId=$state('');
   let pendingCloseId=$state('');
   const euros=(cents:number)=>new Intl.NumberFormat('el-CY',
@@ -59,7 +60,9 @@
     const currentOwner=owner,currentActor=actorId;
     void revision;
     catalog=null;loading=false;selected='';confirmedClose=false;
-    error='';notice='';pendingOpenId='';pendingCloseId='';
+    error='';pendingOpenId='';pendingCloseId='';
+    const contextKey=currentOwner+':'+currentActor;
+    if(contextKey!==lastScope){notice='';lastScope=contextKey;}
     if(!browser||!currentActor)return;
     const controller=new AbortController();
     loading=true;
