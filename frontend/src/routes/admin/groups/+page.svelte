@@ -119,7 +119,8 @@
           value.active_players !== 0 ||
           !value.profile || typeof value.profile !== 'object' ||
           Array.isArray(value.profile) ||
-          (value.profile as Record<string,unknown>).revision !== 1 ||
+          (!Number.isSafeInteger((value.profile as Record<string,unknown>).revision) ||
+           ((value.profile as Record<string,unknown>).revision as number) < 1) ||
           (selected === 'lefteria_fc'
             ? (value.profile as Record<string,unknown>).team_id !== value.id
             : (value.profile as Record<string,unknown>).group_id !== value.id))
