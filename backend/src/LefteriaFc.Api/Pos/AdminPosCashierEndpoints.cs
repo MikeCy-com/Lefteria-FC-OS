@@ -23,6 +23,10 @@ public static class AdminPosCashierEndpoints
     public sealed record PrepareSaleRequest(Guid RequestId, Guid ShiftId, List<CheckoutItem>? Items);
     public sealed record CancelSaleRequest(Guid RequestId);
     public sealed record CashTenderRequest(Guid RequestId, long TenderedCashCents);
+    public sealed record ReturnLineRequest(int LineNumber, int Quantity);
+    public sealed record ReturnSaleRequest(Guid RequestId, string ReasonCode,
+        List<ReturnLineRequest>? Lines);
+    public sealed record ReviewReturnRequest(Guid RequestId, bool Approve);
 
     public static IEndpointRouteBuilder MapAdminPosCashier(this IEndpointRouteBuilder endpoints)
     {
@@ -207,6 +211,60 @@ public static class AdminPosCashierEndpoints
             command.Parameters.AddWithValue("receipt", receiptId);
             return await Query(command, ct);
         }).WithName("ReadAdminPosAssignedCashierReceipt");
+
+        group.MapPost("/sales/{saleId:guid}/returns", async (
+            Guid saleId, string? organization_id, ReturnSaleRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (saleId == Guid.Empty || body.RequestId == Guid.Empty ||
+                body.ReasonCode is not ("defective" or "wrong_item" or
+                    "customer_return" or "other") ||
+                body.Lines is null || body.Lines.Count is < 1 or > 30 ||
+                body.Lines.Any(x => x.LineNumber is < 1 or > 30 ||
+                    x.Quantity is < 1 or > 99) ||
+                body.Lines.Select(x => x.LineNumber).Distinct().Count() != body.Lines.Count)
+                throw new WebAdminException(400, "pos_return_request_invalid",
+                    "Select an original sale, reason and valid return quantities.");
+            var lines = JsonSerializer.Serialize(body.Lines.Select(x => new
+            {
+                line_number = x.LineNumber,
+                quantity = x.Quantity
+            }));
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.request_assigned_cashier_return(@digest,@owner,@sale,@request,@reason,@lines)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("sale", saleId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            command.Parameters.AddWithValue("reason", body.ReasonCode);
+            command.Parameters.AddWithValue("lines", NpgsqlDbType.Jsonb, lines);
+            return await Query(command, ct);
+        }).WithName("RequestAdminPosSaleReturn");
+
+        group.MapPost("/returns/{returnId:guid}/review", async (
+            Guid returnId, string? organization_id, ReviewReturnRequest body,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (returnId == Guid.Empty || body.RequestId == Guid.Empty)
+                throw new WebAdminException(400, "pos_return_review_invalid",
+                    "Select one valid return and review request.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.review_cashier_return(@digest,@owner,@return,@request,@approve)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("return", returnId);
+            command.Parameters.AddWithValue("request", body.RequestId);
+            command.Parameters.AddWithValue("approve", body.Approve);
+            return await Query(command, ct);
+        }).WithName("ReviewAdminPosSaleReturn");
 
         return endpoints;
     }
