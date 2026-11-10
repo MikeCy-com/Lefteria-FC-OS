@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110180000_PosAdminLocationOperations.cs');
+const stockSql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110190000_PosAdminStockOperations.cs');
 const api=read('backend/src/LefteriaFc.Api/Pos/AdminPosLocationEndpoints.cs');
 const program=read('backend/src/LefteriaFc.Api/Program.cs');
 const ui=read('frontend/src/lib/admin/AdminPosLocationsPanel.svelte');
@@ -46,4 +47,24 @@ test('POS administration uses real scoped directory and forms, no fake checkout'
   assert.match(ui,/X-Lefteria-Admin/);
   assert.match(ui,/canWrite/);
   assert.doesNotMatch(ui,/payment_method|cash_received|charge_card|checkout/);
+});
+
+test('location product assignment and stock receiving require live manager authority',()=>{
+  assert.match(api,/MapPut\("\/locations\/\{locationId\}\/products\/\{productId\}"/);
+  assert.match(api,/MapPost\("\/locations\/\{locationId\}\/stock"/);
+  assert.match(api,/ReceiveStockCommand/);
+  assert.match(stockSql,/pos\.require_admin_location_owner\(_digest,_owner\)/g);
+  assert.match(stockSql,/version=_expected/);
+  assert.match(stockSql,/pos_location_product_conflict/);
+  assert.match(stockSql,/pg_advisory_xact_lock\(hashtext\(_request::text\)\)/);
+  assert.match(stockSql,/v_previous\.actor_admin_id<>v_actor/);
+  assert.match(stockSql,/FROM pos\.location_stock[\s\S]*FOR UPDATE/);
+  assert.match(stockSql,/INSERT INTO pos\.stock_movements/);
+  assert.match(stockSql,/INSERT INTO audit\.security_events/);
+  assert.match(stockSql,/REVOKE ALL ON FUNCTION pos\.receive_admin_stock/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION pos\.receive_admin_stock/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION pos\.write_admin_location_product/);
+  assert.match(ui,/data-testid="admin-pos-stock-tools"/);
+  assert.match(ui,/request_id:stockRequestId/);
+  assert.match(ui,/currentAssignment\?\.enabled/);
 });
