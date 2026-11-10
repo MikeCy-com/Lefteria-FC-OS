@@ -142,6 +142,7 @@ app.MapAdminPosCategories();
 app.MapAdminPosProducts();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
+app.MapAdminProfiledGroupCreates();
 app.MapAdminAcademyGroupProfiles();
 app.MapAdminFirstTeamProfiles();
 app.MapAdminRosterPlayers();
