@@ -138,15 +138,25 @@ public sealed class PosLedgerFinancialGuards : Migration
             RAISE EXCEPTION 'sale_financial_snapshot_immutable' USING ERRCODE='42501';
           END IF;
         END IF;
-        IF NEW.status='paid' THEN
-          SELECT coalesce(sum(amount_cents),0) INTO v_total
+        SELECT coalesce(sum(amount_cents),0) INTO v_total
           FROM pos.payment_events WHERE organization_id=NEW.organization_id
             AND sale_id=NEW.id AND status='verified';
+        IF NEW.status='paid' THEN
           SELECT coalesce(sum(line_total_cents),0) INTO v_lines
           FROM pos.sale_lines WHERE sale_id=NEW.id;
           IF v_total<>NEW.total_cents OR v_lines<>NEW.subtotal_cents OR
             NEW.paid_at IS NULL THEN
             RAISE EXCEPTION 'sale_not_reconciled' USING ERRCODE='23514';
+          END IF;
+        ELSIF NEW.status='partially_paid' THEN
+          IF v_total<=0 OR v_total>=NEW.total_cents THEN
+            RAISE EXCEPTION 'partial_payment_status_not_reconciled'
+              USING ERRCODE='23514';
+          END IF;
+        ELSIF NEW.status IN ('awaiting_payment','voided') THEN
+          IF v_total<>0 THEN
+            RAISE EXCEPTION 'paid_sale_cannot_be_unpaid_or_voided'
+              USING ERRCODE='23514';
           END IF;
         END IF;
         RETURN NEW;
