@@ -18,6 +18,7 @@ BEGIN
     'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)'::regprocedure,
     'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
     'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
+    'identity.valid_guardian_phone_grants()'::regprocedure,
     'identity.has_current_guardian_phone_grant(text)'::regprocedure,
     'identity.current_phone_granted_children(uuid,text,text,timestamptz)'::regprocedure
   ]) LOOP
