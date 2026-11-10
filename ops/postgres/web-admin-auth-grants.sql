@@ -213,6 +213,10 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 -- Never grant direct hub table access or callable access to the mobile role.
 REVOKE ALL ON FUNCTION hub.read_admin_editorial(text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_admin_editorial(text,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)
+  TO :"admin_auth_role";
 \ir admin-hub-editorial-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
 \ir app-announcement-publishing-boundary.sql
@@ -248,6 +252,7 @@ BEGIN
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
+                  'hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
