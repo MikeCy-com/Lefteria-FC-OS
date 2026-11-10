@@ -49,6 +49,42 @@ public sealed class PosLedgerFinancialGuards : Migration
         BEFORE UPDATE OR DELETE ON pos.refund_events
         FOR EACH ROW EXECUTE FUNCTION pos.guard_refund_confirmation();
 
+      CREATE FUNCTION pos.guard_sale_line_catalog_price()
+      RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $
+      DECLARE v_sale pos.sales%ROWTYPE; v_product pos.products%ROWTYPE;
+        v_variant pos.product_variants%ROWTYPE;
+      BEGIN
+        SELECT * INTO v_sale FROM pos.sales
+          WHERE organization_id=NEW.organization_id AND id=NEW.sale_id FOR UPDATE;
+        IF NOT FOUND OR v_sale.status<>'awaiting_payment'
+          OR NOT EXISTS (SELECT 1 FROM pos.shifts sh
+            WHERE sh.id=v_sale.shift_id AND sh.organization_id=NEW.organization_id
+              AND sh.register_id=v_sale.register_id AND sh.closed_at IS NULL)
+        THEN RAISE EXCEPTION 'cashier_sale_not_open' USING ERRCODE='42501';
+        END IF;
+        SELECT * INTO v_product FROM pos.products
+          WHERE organization_id=NEW.organization_id
+            AND id=NEW.product_id AND active FOR SHARE;
+        IF NOT FOUND OR NOT EXISTS (
+          SELECT 1 FROM pos.categories c
+          WHERE c.organization_id=NEW.organization_id
+            AND c.id=v_product.category_id AND c.active
+        ) THEN RAISE EXCEPTION 'catalog_product_unavailable' USING ERRCODE='22023';
+        END IF;
+        SELECT * INTO v_variant FROM pos.product_variants
+          WHERE organization_id=NEW.organization_id AND
+            product_id=NEW.product_id AND id=NEW.variant_id FOR SHARE;
+        IF NOT FOUND OR NEW.unit_price_cents<>v_variant.price_cents
+           OR NEW.unit_cost_cents<>v_variant.cost_cents
+           OR NEW.product_name<>v_product.name OR NEW.variant_name<>v_variant.name
+        THEN RAISE EXCEPTION 'client_price_or_snapshot_not_authoritative'
+          USING ERRCODE='22023'; END IF;
+        RETURN NEW;
+      END $;
+      CREATE TRIGGER pos_sale_line_server_price
+        BEFORE INSERT ON pos.sale_lines FOR EACH ROW
+        EXECUTE FUNCTION pos.guard_sale_line_catalog_price();
+
       CREATE FUNCTION pos.guard_payment_evidence()
       RETURNS trigger LANGUAGE plpgsql SET search_path=pg_catalog,pg_temp AS $$
       DECLARE v_sale pos.sales%ROWTYPE; v_total bigint;
@@ -215,6 +251,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       CREATE TRIGGER pos_refund_original_payment_guard
         BEFORE INSERT ON pos.refund_events FOR EACH ROW EXECUTE FUNCTION pos.guard_refund_amount();
 
+      REVOKE ALL ON FUNCTION pos.guard_sale_line_catalog_price() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.guard_refund_confirmation() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.reject_transaction_history_edit() FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos.guard_payment_evidence() FROM PUBLIC;
@@ -224,6 +261,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       REVOKE ALL ON FUNCTION pos.guard_refund_amount() FROM PUBLIC;
     """);
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+      DROP TRIGGER pos_sale_line_server_price ON pos.sale_lines;
       DROP TRIGGER pos_refund_original_payment_guard ON pos.refund_events;
       DROP TRIGGER pos_return_quantity_guard ON pos.return_lines;
       DROP TRIGGER pos_receipt_paid_guard ON pos.receipts;
@@ -241,6 +279,7 @@ public sealed class PosLedgerFinancialGuards : Migration
       DROP FUNCTION pos.guard_receipt_issue();
       DROP FUNCTION pos.guard_sale_paid();
       DROP FUNCTION pos.guard_payment_evidence();
+      DROP FUNCTION pos.guard_sale_line_catalog_price();
       DROP FUNCTION pos.guard_refund_confirmation();
       DROP FUNCTION pos.reject_transaction_history_edit();
     """);
