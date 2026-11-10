@@ -13,7 +13,8 @@ test('only the fifty-three explicitly declared Mobile operations receive Bearer 
   const operations = protectedOperations(contract);
   assert.equal(operations.length, 53);
   for (const operation of operations) {
-    const path = operation.path.replace(/\{[^}]+\}/g, 'record');
+    const path = operation.path.replace(/\{invoiceId\}/g,
+      '11111111-2222-4333-8444-555555555555').replace(/\{[^}]+\}/g, 'record');
     assert.ok(permits(contract, operation.method, path), `${operation.method} ${path}`);
     assert.equal(permits(contract, 'OPTIONS', path), false);
     assert.equal(permits(contract, operation.method, path + '/extra'), false);
