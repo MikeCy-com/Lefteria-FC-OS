@@ -19,8 +19,15 @@ BEGIN
     ) THEN
       RAISE EXCEPTION 'missing_private_evaluation_rls: %',v_table;
     END IF;
-    IF has_table_privilege('public',format('academy_private.%I',v_table),
-      'SELECT,INSERT,UPDATE,DELETE') THEN
+    IF EXISTS (
+      SELECT 1 FROM pg_class c
+      JOIN pg_namespace n ON n.oid=c.relnamespace
+      CROSS JOIN LATERAL aclexplode(
+        coalesce(c.relacl,acl_default('r',c.relowner))) a
+      WHERE n.nspname='academy_private' AND c.relname=v_table
+        AND a.grantee=0
+        AND a.privilege_type IN ('SELECT','INSERT','UPDATE','DELETE')
+    ) THEN
       RAISE EXCEPTION 'private_evaluations_publicly_granted: %',v_table;
     END IF;
   END LOOP;
