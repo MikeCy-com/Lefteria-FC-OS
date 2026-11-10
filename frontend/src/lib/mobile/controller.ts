@@ -27,7 +27,7 @@ type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsRes
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
 type GuardianPermission = {
   id:string;player_id:string;organization_id:string;kind:'guardian';
-  status:'pending'|'accepted_pending_access'|'active'|'expired';expires_at:string;recipient_hint:string;
+  status:'granted';expires_at:null;recipient_hint:string;
 };
 type GuardianPermissionPage = {items:GuardianPermission[]};
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -41,11 +41,11 @@ function validGuardianPage(raw:unknown,children:Family['children']):raw is Guard
     if(typeof p.id!=='string'||!uuidPattern.test(p.id)||ids.has(p.id))return false;
     ids.add(p.id);
     return p.kind==='guardian'&&
-      (p.status==='pending'||p.status==='accepted_pending_access'||p.status==='active'||p.status==='expired')&&
+      p.status==='granted'&&
       typeof p.player_id==='string'&&
       typeof p.organization_id==='string'&&
       children.some(ch=>ch.id===p.player_id&&ch.organization_id===p.organization_id)&&
-      typeof p.expires_at==='string'&&!Number.isNaN(Date.parse(p.expires_at))&&
+      p.expires_at===null&&
       typeof p.recipient_hint==='string'&&/^••••[0-9]{4}$/.test(p.recipient_hint);
   });
 }
@@ -716,9 +716,9 @@ export function createMobileAuthController(options: {
       if(!current())return false;
       if(!raw||typeof raw!=='object'||!('id' in raw)||
         typeof raw.id!=='string'||!uuidPattern.test(raw.id)||
-        !('status' in raw)||raw.status!=='pending'||
+        !('status' in raw)||raw.status!==(kind==='guardian'?'granted':'pending')||
         (kind==='guardian'&&raw.id!==requestId))
-        throw Error('Η καταχώριση της πρόσκλησης δεν επαληθεύτηκε.');
+        throw Error('Η καταχώριση της άδειας δεν επαληθεύτηκε.');
       update({guardianPending:false});
       if(kind==='guardian')await loadGuardianPermissions();
       else await loadOutgoingInvitations();
