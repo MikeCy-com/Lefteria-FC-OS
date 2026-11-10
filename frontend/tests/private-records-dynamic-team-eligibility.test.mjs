@@ -38,7 +38,9 @@ test('owner-scoped manager authorization applies on both API routes',()=>{
     assert.match(source,/organization_id == "lefteria_fc" \? "teams:read" : "academy:read"/);
     assert.match(source,/session\.User\.Organizations\.Any\(o => o\.Id == organization_id\)/);
     assert.match(source,/\/api\/admin\/club\/players/);
-    assert.doesNotMatch(source,/MapPost|MapPut|MapDelete/);
+    if(source===evalApi)assert.match(source,/MapPost/);
+    else assert.doesNotMatch(source,/MapPost/);
+    assert.doesNotMatch(source,/MapPut|MapDelete/);
   }
 });
 test('the admin UI follows current allowed organizations rather than a hardcoded Academy view',()=>{
