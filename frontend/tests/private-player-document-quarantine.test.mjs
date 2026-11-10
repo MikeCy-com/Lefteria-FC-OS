@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+const model=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110200000_PrivatePlayerDocumentQuarantine.cs');
+const api=read('backend/src/LefteriaFc.Api/Evaluations/AdminPrivateDocumentUploadEndpoints.cs');
+const program=read('backend/src/LefteriaFc.Api/Program.cs');
+const grants=read('ops/postgres/academy-evaluation-admin-grants.sql');
+const ui=read('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
+
+test('encrypted objects and metadata share exact owner/player and remain private',()=>{
+  assert.match(model,/CREATE TABLE academy_private\.encrypted_document_objects/);
+  assert.match(model,/CHECK\(octet_length\(ciphertext\) BETWEEN 1 AND 10485760\)/);
+  assert.match(model,/octet_length\(nonce\)=12/);
+  assert.match(model,/octet_length\(auth_tag\)=16/);
+  assert.match(model,/FOREIGN KEY\(storage_object_id,organization_id,player_id\)/);
+  assert.match(model,/scan_status varchar\(16\) NOT NULL DEFAULT 'quarantined'/);
+  assert.match(model,/encrypted_document_objects\s+ENABLE ROW LEVEL SECURITY/);
+  assert.match(model,/REVOKE ALL ON FUNCTION academy_private\.quarantine_admin_player_document/);
+  assert.doesNotMatch(model,/public_url|\/api\/uploads|GRANT SELECT/);
+});
+test('upload verifies current owner, scoped player and appends audit atomically',()=>{
+  assert.match(model,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+  assert.match(model,/s\.revoked_at IS NULL/);
+  assert.match(model,/v_role NOT IN \('manager','super_admin'\)/);
+  assert.match(model,/FROM club\.teams t/);
+  assert.match(model,/FROM club\.player_academy_groups m/);
+  assert.match(model,/INSERT INTO academy_private\.encrypted_document_objects/);
+  assert.match(model,/INSERT INTO academy_private\.player_documents/);
+  assert.match(model,/INSERT INTO academy_private\.document_audit_events/);
+  assert.match(model,/INSERT INTO audit\.security_events/);
+  assert.match(model,/private_document_request_conflict/);
+});
+test('API encrypts first, validates MIME signatures and refuses missing key/limits',()=>{
+  assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
+  assert.match(api,/teams:write/);
+  assert.match(api,/academy:write/);
+  assert.match(api,/DocumentVault:KeyBase64/);
+  assert.match(api,/DocumentVault:KeyId/);
+  assert.match(api,/key\.Length!=32/);
+  assert.match(api,/IHttpMaxRequestBodySizeFeature/);
+  assert.match(api,/file\.Length is <1 or >MaxDocumentBytes/);
+  assert.match(api,/RecognizeSafeMime\(plain\)/);
+  assert.match(api,/new AesGcm\(key,16\)/);
+  assert.match(api,/aes\.Encrypt\(nonce,plain,cipher,tag,associated\)/);
+  assert.match(api,/CryptographicOperations\.ZeroMemory\(plain\)/);
+  assert.match(api,/CryptographicOperations\.ZeroMemory\(key\)/);
+  assert.match(api,/NpgsqlDbType\.Bytea/);
+  assert.match(program,/app\.MapAdminPrivateDocumentUploads\(\)/);
+  assert.doesNotMatch(api,/MapGet|MapDelete|download|File\(cipher/);
+});
+test('manager-only UI sends multipart and accepts quarantine receipt, no file link',()=>{
+  assert.match(ui,/admin-document-quarantine-form/);
+  assert.match(ui,/new FormData\(\)/);
+  assert.match(ui,/request_id',uploadRequestId/);
+  assert.match(ui,/X-Lefteria-Admin/);
+  assert.match(ui,/scan_status!=='quarantined'/);
+  assert.match(ui,/allowCreate/);
+  assert.doesNotMatch(ui,/href=\{.*documentFile|URL\.createObjectURL|download=\{/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION academy_private\.quarantine_admin_player_document/);
+  assert.match(grants,/has_function_privilege\(m,upload_fn,'EXECUTE'\)/);
+  assert.match(grants,/encrypted_document_objects/);
+});
