@@ -90,6 +90,24 @@ public sealed class MultipleGuardianPermissions : Migration
         -- duplicate live grants to the same recipient for the same child.
         PERFORM pg_advisory_xact_lock(
           hashtextextended('lefteria:family:guardian:'||v_owner||':'||_player,0));
+        -- A child/player phone must never be recruited into the guardian
+        -- recipient path. Existing parent recipients remain eligible.
+        IF EXISTS(
+          SELECT 1 FROM identity.canonical_contact_bindings c
+          WHERE c.kind='player_own' AND c.normalized_phone=_target
+        ) OR EXISTS(
+          SELECT 1 FROM identity.mobile_identities i
+          WHERE i.normalized_phone=_target
+            AND i.role IN ('player','coach','management')
+        ) THEN RAISE EXCEPTION 'guardian_recipient_role_conflict'
+          USING ERRCODE='23505'; END IF;
+
+        -- Expiry is not acceptance. Pending rows older than their seven-day
+        -- deadline are only marked expired; no recipient access is minted.
+        UPDATE identity.family_guardian_permissions SET status='expired'
+          WHERE organization_id=v_owner AND player_id=_player
+            AND status='pending' AND expires_at<=v_now;
+
         SELECT * INTO v_existing FROM identity.family_guardian_permissions
           WHERE id=_request FOR UPDATE;
         IF FOUND THEN
