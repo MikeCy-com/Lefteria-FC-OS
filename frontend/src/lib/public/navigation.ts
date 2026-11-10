@@ -45,7 +45,7 @@ type NavigationLocation = string | Pick<URL, 'href'>;
 function navigationLocation(location: NavigationLocation): URL {
   const url = new URL(typeof location === 'string' ? location : location.href, 'https://navigation.invalid');
   if (url.pathname.length > 1) url.pathname = url.pathname.replace(/\/+$/, '');
-  const aliases: Record<string, string> = { '/fixtures': 'results', '/calendar': 'schedule', '/venues': 'venues', '/staff': 'overview' };
+  const aliases: Record<string, string> = { '/fixtures': 'results', '/calendar': 'schedule', '/venues': 'venues', '/staff': 'staff' };
   if (aliases[url.pathname]) { url.searchParams.set('tab', aliases[url.pathname]); url.pathname = '/team'; }
   return url;
 }
