@@ -8,7 +8,7 @@
   type ActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
   type GuardianPermission = {
     id:string;player_id:string;organization_id:string;kind:'guardian';
-    status:'pending'|'accepted_pending_access'|'active'|'expired';expires_at:string;recipient_hint:string
+    status:'granted';expires_at:null;recipient_hint:string
   };
   type GuardianPermissions = {items:GuardianPermission[]};
 
@@ -94,7 +94,7 @@
         permissionPhone='';requestId='';
         permissionNotice=permissionType==='player'
           ?'Η άδεια παίκτη καταχωρίστηκε για το επιλεγμένο παιδί.'
-          :'Οι άδειες κηδεμόνα καταχωρίστηκαν για τα επιλεγμένα παιδιά. Ο παραλήπτης πρέπει να συνδεθεί με επαληθευμένο κινητό.';
+          :'Οι άδειες κηδεμόνα αποθηκεύτηκαν. Η πρόσβαση ενεργοποιείται για τον κάτοχο του κινητού κατά την επαληθευμένη σύνδεση.';
       }else if(completed>0){
         permissionNotice=`Καταχωρίστηκαν ${completed} από ${children.length} άδειες. Ελέγξτε τη λίστα πριν επαναλάβετε.`;
         requestId='';
@@ -288,12 +288,8 @@
               {@const child=family.children.find(item=>item.id===permission.player_id)}
               <article class="family-outgoing-row" data-testid="family-guardian-permission">
                 <strong>{child?.name??'Παιδί'} · Γονέας / Κηδεμόνας · {permission.recipient_hint}</strong>
-                <p>{permission.status==='active'?'Ενεργή άδεια':
-                  permission.status==='expired'?'Έληξε':
-                  permission.status==='accepted_pending_access'?
-                    'Αποδεκτή · αναμονή ενεργοποίησης πρόσβασης':
-                    'Αναμονή επιβεβαίωσης'}</p>
-                {#if permission.status!=='expired'&&onRevokeGuardianPermission}
+                <p>{'Άδεια στο κινητό · απαιτείται επαληθευμένη σύνδεση'}</p>
+                {#if onRevokeGuardianPermission}
                   {#if confirmingGuardianId===permission.id}
                     <p>Να ανακληθεί η πρόσβαση για αυτό το παιδί;</p>
                     <div class="family-cancel-actions">
