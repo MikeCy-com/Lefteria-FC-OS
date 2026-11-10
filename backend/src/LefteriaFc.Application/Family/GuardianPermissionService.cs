@@ -5,8 +5,8 @@ using LefteriaFc.Domain.Identity;
 
 namespace LefteriaFc.Application.Family;
 
-// A phone-based pending request is NOT an authorized parent session. Each
-// child remains independently scoped; several guardian permissions may coexist.
+// A stored phone grant is not a login credential. Each child is scoped
+// independently, and the recipient must still complete verified OTP login.
 public sealed record GuardianPermissionDto(
     [property: JsonPropertyName("id")] Guid Id,
     [property: JsonPropertyName("player_id")] string PlayerId,
@@ -19,10 +19,18 @@ public sealed record GuardianPermissionDto(
 public sealed record GuardianPermissionsResult(
     [property: JsonPropertyName("items")] IReadOnlyList<GuardianPermissionDto> Items);
 
+public sealed record GuardianBulkChild(
+    [property:JsonPropertyName("player_id")] string PlayerId,
+    [property:JsonPropertyName("request_id")] Guid RequestId);
+public sealed record GuardianBulkResult(
+    [property:JsonPropertyName("items")] IReadOnlyList<GuardianPermissionDto> Items);
+
 public interface IGuardianPermissionRepository
 {
     Task<GuardianPermissionDto> IssueAsync(MobileSession session, string childId,
         string phone, Guid requestId, CancellationToken ct);
+    Task<GuardianBulkResult> IssueManyAsync(MobileSession session,
+        string phone, IReadOnlyList<GuardianBulkChild> children, CancellationToken ct);
     Task<GuardianPermissionsResult> ListAsync(MobileSession session, CancellationToken ct);
     Task RevokeAsync(MobileSession session, Guid permissionId, CancellationToken ct);
 
@@ -56,6 +64,38 @@ public sealed class GuardianPermissionService(
             return result;
         }
         catch (DbException) { throw Unavailable(); }
+    }
+
+    public async Task<GuardianBulkResult> IssueManyAsync(MobileSession session,
+        string? targetPhone, IReadOnlyList<GuardianBulkChild>? children,
+        CancellationToken ct)
+    {
+        RequireParent(session);
+        if(children is null || children.Count is < 2 or > 100 ||
+            children.Any(c=>c.RequestId==Guid.Empty ||
+                c.PlayerId is not {Length:>=1 and <=128} ||
+                !c.PlayerId.All(ch=>char.IsAsciiLetterOrDigit(ch)||ch is '_' or '-')) ||
+            children.Select(c=>c.PlayerId).Distinct(StringComparer.Ordinal).Count()!=children.Count ||
+            children.Select(c=>c.RequestId).Distinct().Count()!=children.Count ||
+            targetPhone is null || targetPhone.Length>30 ||
+            !PhoneNumber.TryParse(targetPhone,out var phone) ||
+            phone.Digits==session.NormalizedPhone)
+            throw Invalid();
+        await identity.AuthorizeCurrentIdentityAsync(session,ct);
+        await Limit(session.IdentityId.ToString("N"),MobileAuthThrottleScope.FamilyInvitation,ct);
+        await Limit(phone.Digits,MobileAuthThrottleScope.FamilyInvitationTarget,ct);
+        try
+        {
+            var saved=await repository.IssueManyAsync(session,phone.Digits,children,ct);
+            if(saved.Items.Count!=children.Count ||
+                saved.Items.Select(x=>x.Id).Distinct().Count()!=children.Count ||
+                saved.Items.Where((x,i)=>x.Id!=children[i].RequestId ||
+                  x.PlayerId!=children[i].PlayerId || x.Status!="granted" ||
+                  x.Kind!="guardian").Any())
+                throw Unavailable();
+            return saved;
+        }
+        catch(DbException){throw Unavailable();}
     }
 
     public async Task<GuardianPermissionsResult> ListAsync(MobileSession session, CancellationToken ct)
