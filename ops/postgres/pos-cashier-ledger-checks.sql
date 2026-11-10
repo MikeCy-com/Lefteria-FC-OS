@@ -48,6 +48,27 @@ BEGIN
       WHERE a.grantee=0 AND a.privilege_type='EXECUTE'
     )
   ) THEN RAISE EXCEPTION 'pos_checkout_exposed_to_public'; END IF;
+  -- New cash tender and reconciliation functions must remain private
+  -- and fiscal policy must be disabled in an unprovisioned disposable DB.
+  IF EXISTS(SELECT 1 FROM pos.checkout_policies WHERE enabled)
+    OR EXISTS(SELECT 1 FROM pos.receipt_policies WHERE enabled)
+  THEN RAISE EXCEPTION 'pos_cash_tender_fiscal_policy_auto_enabled'; END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
+      WHERE conrelid='pos.payment_events'::regclass
+        AND conname='ck_pos_cash_tender_totals'
+  ) THEN RAISE EXCEPTION 'pos_cash_tender_constraint_missing'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos.settle_exact_cash_sale(text,text,uuid,uuid,bigint)'::regprocedure,
+      'pos.read_cashier_shift_reconciliation(text,text,uuid)'::regprocedure
+    ) AND (
+      NOT p.prosecdef OR EXISTS (
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+          WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
+    )
+  ) THEN RAISE EXCEPTION 'pos_cash_tender_or_report_unrestricted'; END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_proc p
       WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
         AND p.prosecdef)
