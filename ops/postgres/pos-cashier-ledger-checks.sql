@@ -31,5 +31,32 @@ BEGIN
     WHERE tgrelid='pos.refund_events'::regclass
       AND tgname='pos_refund_original_payment_guard' AND NOT tgisinternal)
   THEN RAISE EXCEPTION 'pos_operational_financial_guard_missing'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_proc p
+      WHERE p.oid='pos.read_admin_cashier_registers(text,text)'::regprocedure
+        AND p.prosecdef)
+    OR NOT EXISTS (SELECT 1 FROM pg_proc p
+      WHERE p.oid='pos.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure
+        AND p.prosecdef)
+    OR NOT EXISTS (SELECT 1 FROM pg_proc p
+      WHERE p.oid='pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure
+        AND p.prosecdef)
+  THEN RAISE EXCEPTION 'pos_cashier_shift_definers_missing'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos.read_admin_cashier_registers(text,text)'::regprocedure,
+      'pos.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure,
+      'pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure,
+      'pos.current_cashier_authority(text,text,text)'::regprocedure
+    )
+    AND EXISTS (SELECT 1 FROM aclexplode(
+      coalesce(p.proacl,acldefault('f',p.proowner))) acl
+      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')
+  ) THEN RAISE EXCEPTION 'pos_cashier_public_execution_granted'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes
+    WHERE schemaname='pos' AND indexname='uq_pos_shift_open_request')
+    OR NOT EXISTS (SELECT 1 FROM pg_indexes
+    WHERE schemaname='pos' AND indexname='uq_pos_shift_close_request')
+  THEN RAISE EXCEPTION 'pos_cashier_idempotency_index_missing'; END IF;
 END $checks$;
 ROLLBACK;
