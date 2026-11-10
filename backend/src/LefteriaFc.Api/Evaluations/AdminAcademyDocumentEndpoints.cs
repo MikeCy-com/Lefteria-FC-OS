@@ -16,7 +16,7 @@ public static class AdminAcademyDocumentEndpoints
     public static IEndpointRouteBuilder MapAdminAcademyDocuments(
         this IEndpointRouteBuilder endpoints)
     {
-        var admin = endpoints.MapGroup("/api/admin/academy/players")
+        var admin = endpoints.MapGroup("/api/admin/club/players")
             .WithTags("Academy protected documents")
             .RequireAuthorization(WebAdminServices.Policy);
         admin.MapGet("/{playerId}/documents", async (
@@ -26,21 +26,21 @@ public static class AdminAcademyDocumentEndpoints
         {
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers.Pragma = "no-cache";
-            if (organization_id != "lefteria_fc_academy" ||
+            if (organization_id is not ("lefteria_fc" or "lefteria_fc_academy") ||
                 context.Request.Query["organization_id"].Count != 1 ||
                 playerId.Length is < 1 or > 128 ||
                 playerId.Any(char.IsControl))
                 throw new WebAdminException(400, "academy_document_scope_invalid",
-                    "Choose one valid Academy player.");
+                    "Choose one valid assigned player.");
             var cookie = context.Request.Cookies[WebAdminServices.CookieName];
             var session = await auth.CurrentAsync(cookie, ct);
             if (session is null)
                 throw new WebAdminException(401, "not_authenticated", "Sign in again.");
             if (session.User.Role is not ("manager" or "super_admin") ||
-                !AdminPermissions.Has(session.User.Role, "academy:read") ||
+                !AdminPermissions.Has(session.User.Role, organization_id == "lefteria_fc" ? "teams:read" : "academy:read") ||
                 !session.User.Organizations.Any(o => o.Id == organization_id))
                 throw new WebAdminException(403, "academy_document_access_denied",
-                    "Only Academy management may view document metadata.");
+                    "Only authorized club management may view document metadata.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
                 "SELECT academy_private.read_admin_player_document_metadata(@digest,@owner,@player)::text",
