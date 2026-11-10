@@ -40,7 +40,11 @@ test('all children UI uses only atomic bulk request, single-child grants remain 
   assert.match(ui,/family.children.length===1/);
   assert.match(ui,/<option value="all">Όλα τα παιδιά μου<\/option>/);
   assert.match(ui,/children.length>1/);
-  assert.match(ui,/onCreateManyGuardian\(ids,permissionPhone\)/);
+  assert.match(ui,/onCreateManyGuardian\(bulkRequest.items,permissionPhone\)/);
+  assert.match(ui,/bulkRequest\?\.key!==key/);
+  assert.match(ui,/request_id:crypto.randomUUID\(\)/);
+  assert.match(ui,/function clearPermissionDraft/);
+  assert.match(ui,/permissionPhone='';clearPermissionDraft\(\)/);
   assert.doesNotMatch(ui,/for\(const child of children\)/);
   assert.match(controller,/async function createManyGuardianPermissions/);
   assert.match(controller,/guardian-permissions\/bulk/);
