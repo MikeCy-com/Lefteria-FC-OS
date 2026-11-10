@@ -34,6 +34,21 @@ public sealed class PosReceiptInventoryFulfillment : Migration
         SELECT count(*) INTO v_reserved_count FROM pos.sale_reservations
           WHERE organization_id=NEW.organization_id AND sale_id=NEW.sale_id
             AND released_at IS NULL AND consumed_at IS NULL;
+        -- Count equality alone is insufficient: every reserved line must
+        -- refer to the exact priced product, variant and quantity sold.
+        IF EXISTS(
+          SELECT 1 FROM pos.sale_reservations rs
+          JOIN pos.sale_lines sl ON sl.sale_id=rs.sale_id
+            AND sl.line_number=rs.line_number
+          WHERE rs.organization_id=NEW.organization_id
+            AND rs.sale_id=NEW.sale_id
+            AND (rs.product_id<>sl.product_id
+              OR rs.variant_id<>sl.variant_id
+              OR rs.quantity<>sl.quantity)
+        ) THEN
+          RAISE EXCEPTION 'inventory_receipt_reservation_line_mismatch'
+            USING ERRCODE='23514';
+        END IF;
         IF v_line_count=0 OR v_line_count<>v_reserved_count THEN
           RAISE EXCEPTION 'inventory_receipt_reservations_incomplete'
             USING ERRCODE='23514';
