@@ -16,6 +16,10 @@ BEGIN
     OR NOT EXISTS(SELECT 1 FROM pg_roles
       WHERE rolname=role_name AND rolcanlogin
         AND NOT rolsuper AND NOT rolbypassrls)
+    OR NOT has_function_privilege(role_name,
+      'identity.has_current_guardian_phone_grant(text)','EXECUTE')
+    OR NOT has_function_privilege(role_name,
+      'identity.current_phone_granted_children(uuid,text,text,timestamptz)','EXECUTE')
     OR has_table_privilege(role_name,'identity.family_guardian_permissions',
         'SELECT,INSERT,UPDATE,DELETE')
   THEN RAISE EXCEPTION 'guardian_permission_runtime_role_invalid'; END IF;
@@ -26,9 +30,8 @@ BEGIN
         'identity.issue_guardian_permission(uuid,text,text,timestamptz,uuid,text,text,uuid)'::regprocedure,
         'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
         'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
-        'identity.read_recipient_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
-        'identity.accept_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
-        'identity.decline_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure)
+        'identity.has_current_guardian_phone_grant(text)'::regprocedure,
+        'identity.current_phone_granted_children(uuid,text,text,timestamptz)'::regprocedure)
         AND x.grantee=0 AND x.privilege_type='EXECUTE'
   ) THEN RAISE EXCEPTION 'guardian_permission_public_execute_detected'; END IF;
 END $guard$;
@@ -39,12 +42,10 @@ GRANT EXECUTE ON FUNCTION identity.read_issued_guardian_permissions(
     uuid,text,text,timestamptz) TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.revoke_issued_guardian_permission(
     uuid,text,text,timestamptz,uuid,uuid) TO :"app_role";
-GRANT EXECUTE ON FUNCTION identity.read_recipient_guardian_permissions(
-    uuid,text,text,timestamptz) TO :"app_role";
-GRANT EXECUTE ON FUNCTION identity.accept_recipient_guardian_permission(
-    uuid,text,text,timestamptz,uuid,uuid) TO :"app_role";
-GRANT EXECUTE ON FUNCTION identity.decline_recipient_guardian_permission(
-    uuid,text,text,timestamptz,uuid,uuid) TO :"app_role";
+GRANT EXECUTE ON FUNCTION identity.has_current_guardian_phone_grant(text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION identity.current_phone_granted_children(
+  uuid,text,text,timestamptz) TO :"app_role";
 DO $verify$
 DECLARE role_name text:=current_setting('lefteria.guardian_permission_role');
 BEGIN
@@ -54,12 +55,6 @@ BEGIN
       'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(role_name,
       'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
-    OR NOT has_function_privilege(role_name,
-      'identity.read_recipient_guardian_permissions(uuid,text,text,timestamptz)','EXECUTE')
-    OR NOT has_function_privilege(role_name,
-      'identity.accept_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
-    OR NOT has_function_privilege(role_name,
-      'identity.decline_recipient_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)','EXECUTE')
     OR has_table_privilege(role_name,'identity.family_guardian_permissions',
       'SELECT,INSERT,UPDATE,DELETE')
   THEN RAISE EXCEPTION 'guardian_permission_scope_invalid'; END IF;
