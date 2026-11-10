@@ -136,3 +136,56 @@ read projections before a source-matching creation form can be operational.
 Likewise, the private roster/coach directory APIs currently require
 write-level management permission; do not broaden access to child/player
 details to solve a UI visibility issue.
+
+## Original First Team and Academy profile editor slice — 2026-11-10
+
+Compared directly with the legacy `TeamsTab.jsx` and
+`EnhancedAcademyTab.jsx` (read-only). Legacy **First Team** edits contain
+`name`, `level`, `description`, `banner_url`. Legacy **Academy group**
+edits contain `name`, `age_range`, `coach_name`,
+`training_schedule`, `description`, `max_players`, `season`,
+`banner_url`, `display_order`.
+
+The OS already has a name-only, audited canonical team/group creation API.
+This slice adds **revision-guarded profile editing for existing records**:
+- `20261110170000_AcademyGroupProfileEditor` — private RLS metadata table
+  referencing exact canonical Academy `organization_id + group_id`; signed-in
+  manager authorization with grant locking; length/range/HTTPS validation;
+  capacity may not be below existing membership count; security audit event.
+- `20261110171000_FirstTeamProfileEditor` — private RLS metadata table
+  referencing exact canonical FC team; level, description, HTTPS banner,
+  revision checks, same-role authorization and audit.
+- API endpoints:
+  `GET/PUT /api/admin/football/academy-group-profiles/{groupId}` and
+  `GET/PUT /api/admin/football/first-team-profiles/{teamId}`.
+  Both require the correct organization, active manager session and matching
+  `academy:write` or `teams:write` permission, and additionally check current
+  SQL authority. Only explicitly approved EXECUTE grants may activate them.
+- Two new Svelte components on `/admin/groups` expose the original fields
+  for the correct organization, verify responses and use optimistic revision
+  conflict handling. They never edit a parent-child relationship, player
+  membership, coach assignment or public CMS publication simply because a
+  display label was changed.
+- Additional JS source-level regression coverage, SQL default-deny tests and
+  disposable Postgres CI steps. **CI execution and real migrations have not
+  passed. No runtime grant was applied**. Existing name-only create works as
+  before but full multi-field *atomic creation* is still pending.
+
+### Important parity limitations
+
+This metadata lives in private management tables. It is **not yet** part
+of the public website group projection or mobile Academy API. Making a field
+editable does not mean the website or app displays it. A separate authorized,
+publication-aware read projection and route/API browser integration are
+necessary before complete cross-channel parity.
+
+The legacy `coach_name` is deliberately a **display field**, not an authority
+to reassign a real staff member. Real staff/team relationships remain managed
+through the authorized coach assignment endpoints. Similarly, a metadata
+capacity number does not retroactively transfer or remove existing players.
+New group profile records must be tested with legacy-imported IDs and
+concurrent managers on a disposable database before activating the functions.
+
+**Next dependency:** atomic profile-aware group creation, protected public
+projection, and synthetic role/browser tests that verify edits reach First
+Team and Academy app screens without exposing private child/player data.
