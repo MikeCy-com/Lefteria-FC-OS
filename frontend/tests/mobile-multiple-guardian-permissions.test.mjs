@@ -21,7 +21,7 @@ test('one child is automatic, multiple children can be selected, guardian can se
   assert.match(ui,/family\.children\.length===1/);
   assert.match(ui,/family\.children\[0\]\.name/);
   assert.match(ui,/resolvedChild/);
-  assert.match(ui,/family\.children\.length===1\s*\?/);
+  assert.match(ui,/family\?\.children\.length===1/);
   assert.match(ui,/\{#if family\.children\.length===1\}/);
   assert.match(ui,/\{:else\}\s*<label>Επίλεξε παιδί/);
   assert.match(ui,/permissionType==='guardian'/);
