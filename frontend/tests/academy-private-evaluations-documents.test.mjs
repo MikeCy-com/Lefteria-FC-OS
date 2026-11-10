@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const source=readFileSync(new URL('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110100000_AcademyPrivateEvaluationsDocuments.cs',import.meta.url),'utf8');
-test('Academy-only, real player foreign keys and 24-hour snapshot rule',()=>{
-  assert.match(source,/organization_id='lefteria_fc_academy'/);
+test('Both club organizations, real player foreign keys and 24-hour snapshot rule',()=>{
+  assert.match(source,/organization_id IN \('lefteria_fc','lefteria_fc_academy'\)/);
   assert.match(source,/FOREIGN KEY \(organization_id,player_id\)/g);
   assert.match(source,/edit_until=created_at\+interval '24 hours'/);
   assert.match(source,/CREATE TABLE academy_private\.evaluation_revisions/);
