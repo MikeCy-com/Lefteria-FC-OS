@@ -91,7 +91,8 @@
 </script>
 
 <svelte:head><title>Αξιολογήσεις Ακαδημίας | Λευτεριά FC OS</title></svelte:head>
-<AdminFrame>
+{#if $auth.status==='authenticated' && $auth.session}
+<AdminFrame user={$auth.session.user} active="evaluations" busy={$auth.busy} onLogout={() => void auth.logout()}>
   <section class="mx-auto max-w-4xl space-y-5 px-4 py-6">
     <div>
       <p class="text-xs uppercase tracking-widest text-amber-500">Ακαδημία · Ιδιωτική διαχείριση</p>
@@ -143,3 +144,6 @@
     {/if}
   </section>
 </AdminFrame>
+{:else}
+  <AdminSessionStatus />
+{/if}
