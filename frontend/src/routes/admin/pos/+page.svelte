@@ -559,6 +559,7 @@
           {#if owner && $auth.session}
             <AdminPosLocationsPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
+              products={catalog.products}
               canWrite={!!canEdit&&['manager','super_admin'].includes($auth.session.user.role)}
               onExpired={()=>auth.invalidateSession()}
               onRevoked={()=>void auth.bootstrap()}/>
