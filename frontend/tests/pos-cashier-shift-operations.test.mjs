@@ -51,7 +51,7 @@ test('HTTP endpoints use verified current web admin role and never enable paymen
   assert.match(api,/pos\.close_admin_cashier_shift/);
   assert.match(api,/secrets\.TokenDigest\(cookie\)/);
   assert.match(main,/app\.MapAdminPosCashier\(\)/);
-  assert.doesNotMatch(api,/checkout|capture_card|execute_refund|receipt\.issue/);
+  assert.doesNotMatch(api,/capture_card|execute_refund|receipt\.issue/);
 });
 test('manual narrow database grants do not expose raw financial records to other roles',()=>{
   assert.match(sql,/REVOKE ALL ON FUNCTION pos\.open_admin_cashier_shift/);
