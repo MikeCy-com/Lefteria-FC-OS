@@ -78,3 +78,12 @@ reprocessing and parity tests.
 - Verify printable invoice/receipt parity against the original approved
   Lefteria FC templates, including cash/card, refund and partial payment
   document states.
+
+## 2026-11-10 implementation slice — finance handoff, VAT arithmetic and sandbox refund transport
+
+1. POS-to-finance integration now has an immutable transaction-scoped `pos.finance_posting_outbox`, a manager-only `pos.read_admin_finance_handoff` function and `GET /api/admin/pos/cashier/finance-handoff` requiring both POS and finance permission. The POS administration page displays the queued receipt/refund totals with an explicit **not yet posted to general ledger** warning. No Academy parent balance is altered.
+2. `PosVatArithmetic.FromGross` calculates VAT-inclusive net/tax/gross using **integer EUR cents** and an explicitly effective, enabled and approved rate code/revision. It refuses absent, expired, disabled, mismatched or unknown VAT treatments. Zero-rated and exempt remain distinct classifications. **It is not yet wired to every checkout line or approved for production fiscal calculations.**
+3. `PayablSandboxRefundClient` creates a form-encoded **sandbox-only** refund request with payabl.'s documented ordinal key-sorted SHA-1 request signature (Latin-1), EUR currency, captured transaction ID and exact 2-decimal amount. It has a fixed HTTPS sandbox URL, redirects/cookies disabled, strict bounds, and validates the response's original transaction/amount/currency. It always returns a response marked as **requiring independent confirmation**. It does not automatically call from any public/admin route or update refund status. A dedicated audited worker, merchant credential storage, sandbox tests and provider callback reconciliation remain required.
+4. Structural checks added for refund signature/identity/redirect handling, inclusive VAT arithmetic, finance posting idempotency, private PostgreSQL functions, and the manager-only finance panel. No .NET/PostgreSQL/SvelteKit CI verification is claimed.
+
+These increments do **not** close phases 1–4. The unified P0 release gate remains blocked; do not grant POS/payment runtime permissions, merge or deploy.
