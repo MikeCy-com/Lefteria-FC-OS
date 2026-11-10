@@ -9,6 +9,10 @@ public sealed record IssueGuardianPermissionBody(
     [property:JsonPropertyName("phone")] string? Phone,
     [property:JsonPropertyName("request_id")] Guid RequestId);
 
+public sealed record IssueManyGuardianPermissionsBody(
+    [property:JsonPropertyName("phone")] string? Phone,
+    [property:JsonPropertyName("children")] IReadOnlyList<GuardianBulkChild>? Children);
+
 public static class ParentFamilyEndpoints
 {
     public static IEndpointRouteBuilder MapParentFamily(this IEndpointRouteBuilder endpoints)
@@ -149,6 +153,19 @@ public static class ParentFamilyEndpoints
             .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
             .WithName("IssueGuardianPermission")
             .Produces<GuardianPermissionDto>().Produces<MobileAuthError>(409).WithMobileErrors();
+
+        // One transaction for all selected children. The database repeats
+        // independent issuer authority checks on each child.
+        endpoints.MapPost("/api/mobile/family/guardian-permissions/bulk",
+            (IssueManyGuardianPermissionsBody body,HttpContext context,
+                GuardianPermissionService service,CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.IssueManyAsync(MobilePrincipal.Read(context.User),
+                        body.Phone,body.Children,token),context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("IssueManyGuardianPermissions")
+            .Produces<GuardianBulkResult>()
+            .Produces<MobileAuthError>(409).WithMobileErrors();
 
         endpoints.MapPost("/api/mobile/family/guardian-permissions/{permissionId:guid}/revoke",
             (Guid permissionId, HttpContext context, GuardianPermissionService service,
