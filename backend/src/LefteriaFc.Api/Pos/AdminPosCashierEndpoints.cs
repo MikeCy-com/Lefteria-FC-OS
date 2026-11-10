@@ -189,6 +189,25 @@ public static class AdminPosCashierEndpoints
             return await Query(command, ct);
         }).WithName("ReadAdminPosCashierReconciliation");
 
+        group.MapGet("/receipts/{receiptId:guid}", async (
+            Guid receiptId, string? organization_id,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (receiptId == Guid.Empty)
+                throw new WebAdminException(400, "pos_receipt_invalid",
+                    "Choose one valid receipt.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos.read_assigned_cashier_receipt(@digest,@owner,@receipt)::text",
+                connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("receipt", receiptId);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosAssignedCashierReceipt");
+
         return endpoints;
     }
 
