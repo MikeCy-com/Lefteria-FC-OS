@@ -94,3 +94,15 @@ To complete the feature safely:
 **NEVER call this feature operational or merge/deploy while those steps
 are incomplete.** Original Lefteria FC repository and live environment
 must not be modified.
+
+## Actual verification checkpoint
+
+GitHub Actions workflow `42806695867` at SHA
+`81b3cf1dd84afd13e2e40772e22e9d7dbaf51d88` completed the
+**ASP.NET Core API** job successfully: locked restore, Release API build,
+and policy checks all ran and passed. The **SvelteKit web**, **mobile identity
+with PostgreSQL**, **Docker Compose**, and **API contract/startup**
+jobs failed with zero executed steps, meaning those failures provide
+no feature-level test results. This run does NOT verify the unmerged
+PostgreSQL migrations or mobile UI. Later commits after this SHA need
+their own exact-SHA verification.
