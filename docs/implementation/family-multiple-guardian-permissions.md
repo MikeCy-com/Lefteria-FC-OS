@@ -1,150 +1,29 @@
-# Family Settings — multiple Player and Parent/Guardian permissions
+# Family Settings — direct phone access for players and parents
 
-**2026-11-10 · Draft PR #154 · NOT COMPLETE · no production enablement**
+**2026-11-10 · Draft PR #154 · unmerged, untested end-to-end, no production activation**
 
-## Requested behavior
+## Required parent experience
 
-Within the parent-role Family settings, show a **Give Permission** form
-with a child selector and two distinct permission types:
+The parent opens **Family → Give Permission**, selects **Player** or **Parent/Guardian**, and enters the recipient's telephone number. There is **no recipient invitation or acceptance step for Parent/Guardian**. The person must still verify ownership of the number using the existing OTP login.
 
-- **Player:** keep existing phone-targeted player invitation; the player
-  should see only their own player profile and explicitly allowed player
-  features. Never obtain parent data via a player identity.
-- **Parent/Guardian:** allow multiple separately identifiable recipients for
-  each child. A verified, accepted guardian should see the **same
-  child-scoped parent information and actions** as the existing parent;
-  for parents with multiple children, each child must be granted explicitly.
-- **Permissions list:** show pending, accepted and expired/revoked statuses
-  per child and permission type. A parent can revoke an individual grant.
-  Deleting one grant must not remove siblings or unrelated child permissions.
-  An accepted recipient may also need to be able to decline/leave.
-- Keep the original black/gold Fira Sans parent mobile design, session guards,
-  Greek wording and accessible confirmation dialogs.
+When the parent has one child, the child's name is displayed and selected automatically. When the parent has multiple children, the child selector appears. **Parent/Guardian** offers **All my children**, creating independent permissions so each child's access can be revoked separately. **Player** remains restricted to the selected player's own profile; a single phone does not turn into multiple player identities. Multiple guardians and grants are supported. A permission list shows granted guardians (with only the recipient's last four phone digits) and player grants with per-record revoke confirmation.
 
-## Implemented on this draft branch
+## Current implementation in OS draft PR #154
 
-- Database: `20261110173000_MultipleGuardianPermissions.cs` adds a separate
-  invitation table keyed by permission UUID; there can be multiple live
-  guardian recipients per child. Current canonical guardian link is
-  revalidated at request time. A single recipient/child duplicate is denied,
-  a replayed UUID with changed recipient fails, and a 20-live-per-child
-  bound exists. Recipient phone is stored privately, not sent to parent
-  list responses or logs. No PUBLIC raw-table grants.
-- Backend: `GuardianPermissionService`, `PostgresGuardianPermissionRepository`,
-  and mobile endpoints to **issue**, **list** and **revoke** guardian
-  permissions. The service checks the active parent role/identity,
-  throttles requests and maps faults without exposing child PII.
-- UI: `MobileFamily.svelte` now exposes **Player / Parent–Guardian** and
-  the selected child's phone-targeted invitation request. The guardian
-  permissions list is keyed by independent permission UUID with an explicit
-  revoke confirmation. Existing player invitation/outgoing/revocation UI
-  remains intact. The session-aware controller validates responses and
-  invalidates state after logout or role change.
-- Security: staged manual, review-only `guardian-permission-grants.sql`,
-  disposable-database `guardian-permission-boundary.sql`, source-level tests
-  `mobile-multiple-guardian-permissions.test.mjs`, and a CI probe.
-  No grants have been executed. No real phone was contacted.
+- `20261110173000_MultipleGuardianPermissions`: direct `granted` phone-scoped rows, independent by organization/child/recipient, with audit, idempotent request IDs, duplicate protection, restricted table, issuer identity and recursive revocation lineage. No invitation acceptance, recipient status transition, or expiry.
+- `20261110175000_GuardianVerifiedPhoneScope`: stable SQL functions for current grants. The root must remain an active **canonical guardian** of that child, and each onward delegated parent must be an active parent identity using the preceding granted phone. Only active, non-transferred children qualify; the lineage is bounded and cycle-safe. Revocation breaks descendant access.
+- Existing OTP verified login gets a **Parent role option** when the number has a current valid parent grant; the verified recipient's parent identity is created or reused *after* OTP proof. An existing inactive parent profile is not silently reactivated. Player, Coach and Management identities are not promoted to Parent through a phone grant.
+- `CanonicalMobileProfiles` and `PostgresParentFamilyQueries` incorporate currently granted children; `OperationalScopeSql` extends parent calendar/attendance scope and `20261110176000_DelegatedGuardianChatDirectory` updates the chat group directory. Source authorization is checked again in SQL, not trusted from stale client state.
+- `MobileFamily.svelte` now contains the requested two-type selector, automatic one-child name, multiple-children dropdown, All my children option for parent sharing, telephone input and consolidated revocable permission list. App controller keeps parent identity/session, child and request controls.
+- SQL function grants are restricted, operator-reviewed, never applied automatically. No legacy repo or production database changes.
 
-## CRITICAL: This is NOT full shared-parent access yet
+## Remaining release requirements (not optional)
 
-**A pending guardian permission grants zero data access.**
-The new permission table deliberately has no public recipient acceptance,
-SMS delivery, guardian role promotion or authorization expansion.
+- Confirm **all** child-related parent-only APIs use current delegated child scope, not solely canonical contact bindings: Academy fees and invoices, protected media/files, announcements, messaging read/write, attendance, evaluation summaries, notifications, parent educational content and any other role endpoint. Where the original parent has privileged private information, verify policy and least-privilege. A parent grant must never expose siblings or unrelated children.
+- Run real PostgreSQL migrations and positive/negative tests with at least: two children, two recipient parents, multiple grants, original guardian revoke, delegated parent onward grant, OTP replay, invalid/inactive phone identity, transferred/archived child, expired session, concurrent add/revoke, partial bulk write and parent-to-player role isolation.
+- Confirm exact frontend/backend DTO shape and compile SvelteKit, .NET, API contract tests, mobile UI interactions and authorization tests at the **same Git commit SHA**.
+- Check recipient identity UX: if a phone already has a Fan role, the verified account should be able to select Parent; it must not take over or overwrite a role.
+- Review the no-recipient-consent requirement against the club's privacy/legal policy, but **do not add a recipient acceptance screen**. Identity proof occurs through login OTP only.
+- Do not merge or deploy before all checks pass. The original Lefteria FC is read-only.
 
-The existing codebase uses canonical guardian contact bindings to establish
-the parent role in `MobileAuthService`, `ParentFamilyService`,
-`PostgresParentFamilyQueries`, `OperationalScopeSql` (calendar),
-messaging, payments, announcements, and other child-scoped endpoints.
-Adding a row or setting `status='active'` without verified acceptance and
-current authorization across *every* parent data endpoint would give a false
-sense of access or cause unintended disclosure. The legacy
-`family_delegated_player_grants` explicitly represents a different, limited
-player-delegation model and cannot simply be used for co-guardian access.
-
-To complete the feature safely:
-
-1. Implement an OTP-verified recipient **inbox + explicit accept/decline**,
-   with current identity/phone verification, conflicts for existing roles,
-   row locking and recipient audit. Never auto-activate after parent entry.
-2. Establish a distinct **delegated guardian parent role** (not a player's
-   login), with authorization for exactly the accepted children. Support
-   existing parent accounts and new eligible recipients, without overwriting
-   canonical/primary guardian contacts or taking over an identity.
-3. Update **all** protected parent reads/writes, not just the Family page:
-   children listing, calendar/attendance/RSVP, billing/issued months,
-   announcements/messages, documents, evaluations and any other parent
-   capability; classify features requiring additional consent, including
-   medical or high-risk data. Revalidate source guardian authority,
-   active roster, recipient account and grant on every operation.
-4. Allow accepted guardians to grant further guardians **only with current
-   child authority and a verified source grant**. Record the grant lineage,
-   revoke descendants safely if the source guardian loses access, avoid
-   cycles and prevent a recipient escalating access to siblings.
-5. Provide a **unified permissions list** with individual cancel/revoke,
-   accepted recipient display name only when legitimately available, no raw
-   phone leakage, and correct status from a fresh authorized API.
-6. Test with seeded disposable parents, recipients, siblings, revoked
-   guardian, transferred player, duplicate phone, expired invitation,
-   concurrent accept vs revoke and long-lived sessions. Verify no player
-   identity ever gains parent-only access.
-7. Run actual SvelteKit, .NET, PostgreSQL migrations, auth integration
-   and browser role tests at the exact SHA; maintain PR as draft until
-   runner and security gates pass.
-
-**NEVER call this feature operational or merge/deploy while those steps
-are incomplete.** Original Lefteria FC repository and live environment
-must not be modified.
-
-## Actual verification checkpoint
-
-GitHub Actions workflow `42806695867` at SHA
-`81b3cf1dd84afd13e2e40772e22e9d7dbaf51d88` completed the
-**ASP.NET Core API** job successfully: locked restore, Release API build,
-and policy checks all ran and passed. The **SvelteKit web**, **mobile identity
-with PostgreSQL**, **Docker Compose**, and **API contract/startup**
-jobs failed with zero executed steps, meaning those failures provide
-no feature-level test results. This run does NOT verify the unmerged
-PostgreSQL migrations or mobile UI. Later commits after this SHA need
-their own exact-SHA verification.
-
-## Recipient consent implementation — 2026-11-10
-
-Added migration `20261110174000_GuardianRecipientConsent.cs` with
-three strictly scoped, private functions:
-
-- `identity.read_recipient_guardian_permissions` returns only invitation
-  UUID, organization, pending status and expiry to the **currently verified
-  target phone** with a live Fan or Parent identity. It revalidates the
-  original source guardian and active child; it does not return child or
-  guardian private details.
-- `identity.accept_recipient_guardian_permission` rechecks the recipient
-  identity/phone, current source guardian and child, locks rows and records
-  the recipient's explicit consent in the
-  **`accepted_pending_access` state** with an audit event. It never mints
-  a parent identity, changes a role, creates a canonical guardian contact,
-  permits a player login or unlocks child data.
-- `identity.decline_recipient_guardian_permission` lets the currently
-  verified recipient decline their own pending invitation; private audit
-  and row-state transitions are retained.
-
-Added service/repository methods and authenticated mobile endpoints
-`GET /api/mobile/family/guardian-invitations`,
-`POST /api/mobile/family/guardian-invitations/{permissionId}/accept`,
-and `POST /api/mobile/family/guardian-invitations/{permissionId}/decline`.
-`MobileGuardianConsent.svelte` is shown under the authenticated Fan/Parent
-profile, with two-step confirmation. It accurately reports that the
-consent is recorded **but full parent access is not yet active**.
-
-The issuing parent can distinguish multiple permissions for one child by
-the recipient's masked final four phone digits and revoke each permission
-individually. The app also groups Player and Parent/Guardian permission
-entries in Family settings. The requested complete shared-parent experience
-is still **BLOCKED** on delegated-parent role recognition, cross-feature
-parent access authorization and actual end-to-end tests.
-
-The latest structural tests include
-`mobile-multiple-guardian-permissions.test.mjs` and
-`mobile-guardian-recipient-consent.test.mjs`. They test source contracts,
-not actual .NET/UI/SQL execution. All new function grants remain
-operator-reviewed and disabled by default. No real SMS or live account
-was used.
+**Working distinction:** A successful parent permission write is a stored **direct grant**. The second adult can use it only after logging in with the matching verified phone and selecting Parent. It does not create a usable session on someone else's behalf.
