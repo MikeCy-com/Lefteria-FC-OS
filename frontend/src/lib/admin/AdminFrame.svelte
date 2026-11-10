@@ -53,7 +53,7 @@
             <a class="admin-nav-tool" href="/admin/groups" aria-current={active === 'groups' ? 'page' : undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'evaluations' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/evaluations" aria-current={active === 'evaluations' ? 'page' : undefined}>Αξιολογήσεις Ακαδημίας</a>
+            <a class="admin-nav-tool" href="/admin/evaluations" aria-current={active === 'evaluations' ? 'page' : undefined}>Αξιολογήσεις αθλητών</a>
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'documents' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/documents" aria-current={active === 'documents' ? 'page' : undefined}>Προστατευμένα έγγραφα</a>
