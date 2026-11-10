@@ -2,10 +2,10 @@
   import {browser} from '$app/environment';
   import {page} from '$app/state';
   import {getContext} from 'svelte';
-  import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../../lib/admin/controller.ts';
-  import {hasAdminPermission} from '../../../../lib/admin/permissions.ts';
-  import AdminFrame from '../../../../lib/admin/AdminFrame.svelte';
-  import AdminSessionStatus from '../../../../lib/admin/AdminSessionStatus.svelte';
+  import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../../../lib/admin/controller.ts';
+  import {hasAdminPermission} from '../../../../../lib/admin/permissions.ts';
+  import AdminFrame from '../../../../../lib/admin/AdminFrame.svelte';
+  import AdminSessionStatus from '../../../../../lib/admin/AdminSessionStatus.svelte';
 
   type Org='lefteria_fc'|'lefteria_fc_academy';
   type Line={line_number:number;product_name:string;variant_name:string;
