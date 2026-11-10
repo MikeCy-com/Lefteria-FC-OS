@@ -34,3 +34,12 @@ Revision and document-audit events are protected by update/delete rejection trig
 **Verification blocker:** GitHub Actions run `42755249081` reported all five jobs failed with **zero steps executed**, so neither the official migration execution nor runtime tests are proven. Do not mark this PR ready, merge it or deploy.
 
 **Next operational slice:** add an authorization service with actor/session + exact organization and player assignment validation, plus a private admin evaluation timeline and controlled submit path. Protect document object bytes and audited download authorization separately before exposing any files.
+
+## Follow-up: manager-only evaluation timeline (2026-11-10)
+
+- Added `20261110120000_AcademyEvaluationManagerRead`, a SECURITY DEFINER, bounded, read-only player timeline function. It rechecks the active management session, exact Academy organization grant and currently active/non-transferred Academy player. No raw source or document access is granted.
+- Added `GET /api/admin/academy/players/{playerId}/evaluations?organization_id=lefteria_fc_academy` with web-admin cookie auth, manager/super-admin role and Academy read permission, no-store responses, parameter binding and controlled access errors.
+- Added a read-only `/admin/evaluations` view, manager-only navigation, defensive response validation and stale-session clearing. This first UI uses a player ID selected from the existing roster; it does not enumerate all children or add public/mobile access.
+- Added operator-only `ops/postgres/academy-evaluation-admin-grants.sql`: only the private read function can be explicitly enabled for the dedicated web-admin database role. Do not apply to a production database without approval. No upload, write, edit override or document-view endpoint has been activated.
+- Added `frontend/tests/academy-evaluations-read-endpoint.test.mjs` for source-level auth, SQL, UI and permission invariants.
+- GitHub Actions run `42755822571` on this PR failed all five jobs with **zero execution steps**. No official .NET, SvelteKit, PostgreSQL or OpenAPI success is claimed. Contracts will need regeneration and exact-SHA tests when runners work. Keep this PR draft and unmerged.
