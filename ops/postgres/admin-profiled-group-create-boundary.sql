@@ -34,7 +34,8 @@ BEGIN
       'First Team','11111111-1111-1111-1111-111111111111'::uuid,
       '{"level":"Α Ομάδα","description":"","banner_url":""}'::jsonb);
     RAISE EXCEPTION 'profiled_group_unauthenticated_write_accepted';
-  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM <> 'admin_club_session_lock_missing' THEN RAISE; END IF;
   END;
   IF EXISTS(SELECT 1 FROM club.admin_group_create_requests)
   THEN RAISE EXCEPTION 'profiled_group_negative_test_created_request'; END IF;
