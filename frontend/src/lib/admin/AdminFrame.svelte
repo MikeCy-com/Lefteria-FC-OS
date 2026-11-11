@@ -22,7 +22,8 @@
       <span>ΛΕΥΤΕΡΙΑ FC <small>ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</small></span>
     </a>
     <div class="admin-actions">
-      <a class="admin-public-link" href="/">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
+      <a class="admin-public-link" href="/" aria-label="Προβολή δημόσιας ιστοσελίδας">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
+      <a class="admin-public-link" href="/app" aria-label="Άνοιγμα εφαρμογής μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
       <button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
     </div>
   </header>
