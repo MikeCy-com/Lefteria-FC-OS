@@ -1,22 +1,24 @@
 <script lang="ts">
   import {
     ACADEMY_EDUCATION_ARTICLES, EDUCATION_STAGES, EDUCATION_TOPICS,
-    academyEducationFor, type EducationAudience, type EducationStage, type EducationTopic
+    searchAcademyEducation, type EducationAudience, type EducationStage, type EducationTopic
   } from '../academy-education.ts';
   import './mobile-theme.css';
 
+  let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
   let stage = $state<EducationStage>('10-12');
-  let audience = $state<EducationAudience | 'all'>('all');
+  let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : viewerRole === 'fan' ? 'parent' : 'all');
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
-  const cards = $derived(academyEducationFor(stage,audience,topic));
+  let search = $state('');
+  const cards = $derived(searchAcademyEducation(stage,audience,topic,search));
   const id = $props.id();
 </script>
 
-<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="parent-education-hub">
+<section class="academy-learning" aria-labelledby={id+'-title'} data-testid="parent-education-hub" data-hub-role={viewerRole}>
   <header class="education-hero">
     <p class="education-kicker">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
-    <h1 id={id+'-title'}>Μαθαίνουμε μαζί</h1>
+    <h1 id={id+'-title'}>HUB · Μαθαίνουμε μαζί</h1>
     <p>Μικρές ιδέες για τη στήριξη των νεαρών αθλητών και την ψυχολογία κάθε ηλικίας.</p>
     <div class="education-hero-art" aria-hidden="true">
       <span class="education-art-ball">⚽</span><span class="education-art-heart">♥</span>
@@ -24,6 +26,15 @@
     </div>
   </header>
 
+  {#if viewerRole === 'fan'}
+    <div class="education-editorial" data-testid="hub-fan-preview">
+      <strong>Προεπισκόπηση HUB για φιλάθλους.</strong>
+      Επίλεξε αν σε ενδιαφέρει υλικό για γονείς ή αθλητές.
+      Η επιλογή ισχύει μόνο σε αυτή την οθόνη: δεν δημιουργεί συνδρομή,
+      δεν αλλάζει τον ρόλο και δεν δίνει πρόσβαση σε δεδομένα παιδιών.
+      Η εγγραφή θα απαιτεί ξεχωριστή επαληθευμένη υπηρεσία.
+    </div>
+  {/if}
   <div class="education-editorial" data-testid="education-editorial-status">
     Εκπαιδευτικό υλικό γνωριμίας του Lefteria FC OS. Δεν αποτελεί ακόμη επίσημη δημοσίευση
     ή έγκριση της Ακαδημίας. Δεν αντικαθιστά εξατομικευμένη υποστήριξη από επαγγελματία.
@@ -64,6 +75,24 @@
     </div>
   </section>
 
+  <div class="education-search">
+    <label for={id+'-search'}>Αναζήτηση στο HUB</label>
+    <input id={id+'-search'} type="search" maxlength="120" autocomplete="off"
+      placeholder="Αναζήτησε άρθρα και συμβουλές" bind:value={search}
+      oninput={() => {expanded = null;}} data-testid="hub-content-search" />
+    {#if search}
+      <button type="button" onclick={() => {search = ''; expanded = null;}}
+        aria-label="Καθαρισμός αναζήτησης">Καθαρισμός</button>
+    {/if}
+  </div>
+  {#if viewerRole === 'fan'}
+    <section class="education-subscription-gate" aria-labelledby={id+'-subscription'} data-testid="hub-subscription-required">
+      <h2 id={id+'-subscription'}>Συνδρομή HUB</h2>
+      <p>Το εκπαιδευτικό περιεχόμενο για φιλάθλους παρέχεται με ξεχωριστή συνδρομή HUB. Μπορείς να επιλέξεις ενδιαφέρον για γονείς, αθλητές ή και τα δύο, χωρίς να αποκτάς αντίστοιχο ρόλο.</p>
+      <p>Η εγγραφή, η τιμολόγηση και η επαλήθευση ενεργής συνδρομής δεν είναι ακόμη διαθέσιμες. Δεν πραγματοποιείται χρέωση.</p>
+      <p class="education-result-count" role="status">Το περιεχόμενο παραμένει κλειδωμένο έως την επιβεβαίωση ενεργής συνδρομής.</p>
+    </section>
+  {:else}
   <section class="education-articles" aria-labelledby={id+'-materials'} data-testid="education-materials">
     <h2 id={id+'-materials'}>Ιδέες για συζήτηση</h2>
     {#if cards.length === 0}
@@ -103,6 +132,7 @@
       {/each}
     </div>
   </section>
+  {/if}
   <aside class="education-boundary">
     <h2>Έχεις κάποια ανησυχία;</h2>
     <p>Για δυσκολίες που επιμένουν, μίλησε με έναν έμπιστο ενήλικα,
@@ -127,7 +157,7 @@
   .education-age-tabs button,.education-audiences button,.education-topics button{min-height:44px;padding:10px 15px;border:1px solid #383d3d;border-radius:8px;background:#202323;color:#d2d6d5;cursor:pointer;font-size:13px}
   .education-age-tabs button.chosen,.education-audiences button.chosen,.education-topics button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
   .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
-  .education-articles{margin:28px 0}
+  .education-search{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:20px 0}\n  .education-search label{flex:0 0 100%;font-size:13px;font-weight:700;color:#e8e8e8}\n  .education-search input{flex:1;min-width:180px;min-height:44px;background:#181a1b;color:#fff;border:1px solid #5b5e60;border-radius:8px;padding:10px 12px;font:inherit}\n  .education-search button{min-height:44px;padding:10px 14px;border:1px solid #695329;border-radius:8px;background:#2c2519;color:#ffd47a;cursor:pointer}\n  .education-subscription-gate{margin:24px 0;padding:22px;border:1px solid #7b6237;border-radius:12px;background:linear-gradient(145deg,#302413,#171a1b);color:#eee}\n  .education-subscription-gate h2{font-size:23px;margin:0 0 10px}\n  .education-subscription-gate p{font-size:13px;line-height:1.7}\n  .education-articles{margin:28px 0}
   .education-result-count{color:#c8ceca;font-size:13px;line-height:1.5;margin:0 0 10px}
   .education-empty{padding:12px 15px;border:1px solid #48433b;border-radius:8px;color:#e1d5ba;font-size:13px}
   .education-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:15px}
