@@ -1429,6 +1429,84 @@
         ],
         "type": "object"
       },
+      "CancelSaleRequest": {
+        "properties": {
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "CashTenderRequest": {
+        "properties": {
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "tendered_cash_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "tendered_cash_cents"
+        ],
+        "type": "object"
+      },
+      "CheckoutItem": {
+        "properties": {
+          "product_id": {
+            "type": "string"
+          },
+          "quantity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "variant_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "product_id",
+          "variant_id",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "CloseShiftRequest": {
+        "properties": {
+          "counted_cash_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "counted_cash_cents"
+        ],
+        "type": "object"
+      },
       "CreateCityCommand": {
         "properties": {
           "name": {
@@ -3499,6 +3577,27 @@
           "phone"
         ]
       },
+      "OpenShiftRequest": {
+        "properties": {
+          "opening_cash_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "opening_cash_cents"
+        ],
+        "type": "object"
+      },
       "OrganizationOptionDto": {
         "properties": {
           "id": {
@@ -3818,6 +3917,33 @@
           "status",
           "created_at",
           "expires_at"
+        ],
+        "type": "object"
+      },
+      "PrepareSaleRequest": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CheckoutItem"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "shift_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "shift_id",
+          "items"
         ],
         "type": "object"
       },
@@ -6716,6 +6842,99 @@
         "required": [
           "client_request_id",
           "notes"
+        ],
+        "type": "object"
+      },
+      "RequestRefundRequest": {
+        "properties": {
+          "amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "payment_event_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "payment_event_id",
+          "amount_cents"
+        ],
+        "type": "object"
+      },
+      "ReturnLineRequest": {
+        "properties": {
+          "line_number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "quantity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "line_number",
+          "quantity"
+        ],
+        "type": "object"
+      },
+      "ReturnSaleRequest": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/ReturnLineRequest"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "reason_code",
+          "lines"
+        ],
+        "type": "object"
+      },
+      "ReviewReturnRequest": {
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "approve"
         ],
         "type": "object"
       },
@@ -10097,6 +10316,498 @@
         ],
         "tags": [
           "Football administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/finance-handoff": {
+      "get": {
+        "operationId": "ReadAdminPosFinanceHandoff",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/receipts/{receiptId}": {
+      "get": {
+        "operationId": "ReadAdminPosAssignedCashierReceipt",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "receiptId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/registers": {
+      "get": {
+        "operationId": "ReadAdminPosCashierRegisters",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/registers/{registerId}/sales/prepare": {
+      "post": {
+        "operationId": "PrepareAdminPosReservedSale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "registerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrepareSaleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/registers/{registerId}/shifts": {
+      "post": {
+        "operationId": "OpenAdminPosCashierShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "registerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpenShiftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/returns/{returnId}/refund-requests": {
+      "post": {
+        "operationId": "RequestAdminPosApprovedReturnRefund",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "returnId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestRefundRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/returns/{returnId}/review": {
+      "post": {
+        "operationId": "ReviewAdminPosSaleReturn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "returnId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReturnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/sales/{saleId}/cancel": {
+      "post": {
+        "operationId": "CancelAdminPosUnpaidSale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSaleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/sales/{saleId}/returns": {
+      "post": {
+        "operationId": "RequestAdminPosSaleReturn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReturnSaleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/sales/{saleId}/tender-cash": {
+      "post": {
+        "operationId": "TenderVerifiedAdminPosCashSale",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "saleId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CashTenderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/shifts/{shiftId}/close": {
+      "post": {
+        "operationId": "CloseAdminPosCashierShift",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CloseShiftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cashier/shifts/{shiftId}/reconciliation": {
+      "get": {
+        "operationId": "ReadAdminPosCashierReconciliation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "shiftId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
         ]
       }
     },
@@ -17590,6 +18301,9 @@
     },
     {
       "name": "POS locations"
+    },
+    {
+      "name": "POS cashier administration"
     },
     {
       "name": "Academy evaluations"
