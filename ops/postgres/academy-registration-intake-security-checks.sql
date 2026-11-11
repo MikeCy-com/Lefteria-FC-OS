@@ -37,7 +37,8 @@ BEGIN
   END LOOP;
   FOREACH tg IN ARRAY ARRAY['consent_history_append_only',
                              'review_events_append_only',
-                             'registration_status_audit']
+                             'registration_status_audit',
+                             'consent_revision_sequence']
   LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid
@@ -49,6 +50,10 @@ BEGIN
     SELECT 1 FROM pg_trigger
     WHERE tgname='registration_status_audit' AND tgdeferrable AND tginitdeferred
   ) THEN RAISE EXCEPTION 'Registration status audit must defer to commit'; END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname='consent_revision_sequence' AND tgdeferrable AND tginitdeferred
+  ) THEN RAISE EXCEPTION 'Consent revisions must be checked at commit'; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_constraint
     WHERE conrelid='academy_intake.registration_consents'::regclass
