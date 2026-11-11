@@ -11,20 +11,13 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// No runtime grants or automatic activation of live payments.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110150000_PosCashierTransactionLedger")]
+[Migration("20261110210000_PosCashierTransactionLedger")]
 public sealed class PosCashierTransactionLedger : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE TABLE pos.locations (
-        organization_id varchar(32) NOT NULL
-          REFERENCES club.organizations(id) ON DELETE RESTRICT
-          CHECK (organization_id IN ('lefteria_fc','lefteria_fc_academy')),
-        id varchar(80) NOT NULL CHECK (id ~ '^[A-Za-z0-9_-]{1,80}$'),
-        name varchar(140) NOT NULL CHECK (length(btrim(name)) BETWEEN 1 AND 140),
-        is_active boolean NOT NULL DEFAULT false,
-        PRIMARY KEY(organization_id,id)
-      );
-      CREATE TABLE pos.registers (
+      CREATE SCHEMA IF NOT EXISTS pos_cashier;
+      REVOKE ALL ON SCHEMA pos_cashier FROM PUBLIC;
+      CREATE TABLE pos_cashier.registers (
         organization_id varchar(32) NOT NULL,
         location_id varchar(80) NOT NULL,
         id varchar(80) NOT NULL CHECK (id ~ '^[A-Za-z0-9_-]{1,80}$'),
@@ -35,7 +28,7 @@ public sealed class PosCashierTransactionLedger : Migration
         FOREIGN KEY(organization_id,location_id)
           REFERENCES pos.locations(organization_id,id) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.cashier_assignments (
+      CREATE TABLE pos_cashier.cashier_assignments (
         organization_id varchar(32) NOT NULL,
         register_id varchar(80) NOT NULL,
         admin_account_id uuid NOT NULL
@@ -44,9 +37,9 @@ public sealed class PosCashierTransactionLedger : Migration
         assigned_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         PRIMARY KEY(organization_id,register_id,admin_account_id),
         FOREIGN KEY(organization_id,register_id)
-          REFERENCES pos.registers(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.registers(organization_id,id) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.shifts (
+      CREATE TABLE pos_cashier.shifts (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         register_id varchar(80) NOT NULL,
@@ -58,15 +51,15 @@ public sealed class PosCashierTransactionLedger : Migration
         CHECK ((closed_at IS NULL)=(counted_cash_cents IS NULL)),
         CHECK (closed_at IS NULL OR closed_at>=opened_at),
         FOREIGN KEY(organization_id,register_id,cashier_id)
-          REFERENCES pos.cashier_assignments(organization_id,register_id,admin_account_id),
+          REFERENCES pos_cashier.cashier_assignments(organization_id,register_id,admin_account_id),
         UNIQUE(id,organization_id,register_id)
       );
-      CREATE UNIQUE INDEX uq_pos_one_open_shift ON pos.shifts(organization_id,register_id)
+      CREATE UNIQUE INDEX uq_pos_one_open_shift ON pos_cashier.shifts(organization_id,register_id)
         WHERE closed_at IS NULL;
 
       -- Owner+location+variant is the inventory identity. A sale must reserve
       -- stock in the same transaction and keep nonnegative on-hand/reserved.
-      CREATE TABLE pos.stock (
+      CREATE TABLE pos_cashier.stock (
         organization_id varchar(32) NOT NULL,
         location_id varchar(80) NOT NULL,
         product_id varchar(80) NOT NULL,
@@ -80,7 +73,7 @@ public sealed class PosCashierTransactionLedger : Migration
         FOREIGN KEY(organization_id,product_id,variant_id)
           REFERENCES pos.product_variants(organization_id,product_id,id) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.sales (
+      CREATE TABLE pos_cashier.sales (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         register_id varchar(80) NOT NULL,
@@ -102,12 +95,12 @@ public sealed class PosCashierTransactionLedger : Migration
         CHECK ((status='paid')=(paid_at IS NOT NULL)),
         CHECK ((status='voided')=(voided_at IS NOT NULL)),
         FOREIGN KEY(shift_id,organization_id,register_id)
-          REFERENCES pos.shifts(id,organization_id,register_id) ON DELETE RESTRICT,
+          REFERENCES pos_cashier.shifts(id,organization_id,register_id) ON DELETE RESTRICT,
         UNIQUE(organization_id,request_id),
         UNIQUE(organization_id,id)
       );
-      CREATE INDEX ix_pos_sales_shift ON pos.sales(organization_id,shift_id,created_at);
-      CREATE TABLE pos.sale_lines (
+      CREATE INDEX ix_pos_sales_shift ON pos_cashier.sales(organization_id,shift_id,created_at);
+      CREATE TABLE pos_cashier.sale_lines (
         sale_id uuid NOT NULL,
         organization_id varchar(32) NOT NULL,
         line_number integer NOT NULL CHECK(line_number BETWEEN 1 AND 30),
@@ -122,7 +115,7 @@ public sealed class PosCashierTransactionLedger : Migration
           (quantity::bigint*unit_price_cents) STORED,
         PRIMARY KEY(sale_id,line_number),
         FOREIGN KEY(organization_id,sale_id)
-          REFERENCES pos.sales(organization_id,id) ON DELETE RESTRICT,
+          REFERENCES pos_cashier.sales(organization_id,id) ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,product_id,variant_id)
           REFERENCES pos.product_variants(organization_id,product_id,id) ON DELETE RESTRICT,
         UNIQUE(sale_id,product_id,variant_id)
@@ -130,7 +123,7 @@ public sealed class PosCashierTransactionLedger : Migration
 
       -- Only externally VERIFIED card capture, or explicitly audited counted
       -- cashier cash, may be marked captured. A redirect/intent is not capture.
-      CREATE TABLE pos.payment_events (
+      CREATE TABLE pos_cashier.payment_events (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         sale_id uuid NOT NULL,
@@ -157,28 +150,28 @@ public sealed class PosCashierTransactionLedger : Migration
            (provider IS NOT NULL AND provider_payment_id IS NOT NULL AND
             provider_evidence_sha256 ~ '^[0-9a-f]{64}$'))),
         FOREIGN KEY(organization_id,sale_id)
-          REFERENCES pos.sales(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.sales(organization_id,id) ON DELETE RESTRICT
       );
       CREATE UNIQUE INDEX uq_pos_card_provider_capture
-        ON pos.payment_events(provider,provider_payment_id)
+        ON pos_cashier.payment_events(provider,provider_payment_id)
         WHERE payment_kind='card' AND provider_payment_id IS NOT NULL;
       CREATE UNIQUE INDEX uq_pos_cash_verification_reference
-        ON pos.payment_events(organization_id,verification_reference)
+        ON pos_cashier.payment_events(organization_id,verification_reference)
         WHERE payment_kind='cash' AND verification_reference IS NOT NULL;
       CREATE INDEX ix_pos_payment_sale
-        ON pos.payment_events(organization_id,sale_id,status);
+        ON pos_cashier.payment_events(organization_id,sale_id,status);
 
       -- The official receipt is only issued for a fully reconciled paid sale
       -- by a separately audited commit operation; never from the UI.
-      CREATE TABLE pos.receipt_sequences (
+      CREATE TABLE pos_cashier.receipt_sequences (
         organization_id varchar(32) NOT NULL,
         register_id varchar(80) NOT NULL,
         next_number bigint NOT NULL DEFAULT 1 CHECK(next_number BETWEEN 1 AND 999999999),
         PRIMARY KEY(organization_id,register_id),
         FOREIGN KEY(organization_id,register_id)
-          REFERENCES pos.registers(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.registers(organization_id,id) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.receipts (
+      CREATE TABLE pos_cashier.receipts (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         sale_id uuid NOT NULL,
@@ -191,12 +184,12 @@ public sealed class PosCashierTransactionLedger : Migration
         UNIQUE(organization_id,register_id,receipt_number),
         UNIQUE(organization_id,sale_id),
         FOREIGN KEY(organization_id,sale_id)
-          REFERENCES pos.sales(organization_id,id) ON DELETE RESTRICT,
+          REFERENCES pos_cashier.sales(organization_id,id) ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,register_id)
-          REFERENCES pos.registers(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.registers(organization_id,id) ON DELETE RESTRICT
       );
 
-      CREATE TABLE pos.returns (
+      CREATE TABLE pos_cashier.returns (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         sale_id uuid NOT NULL,
@@ -213,9 +206,9 @@ public sealed class PosCashierTransactionLedger : Migration
         UNIQUE(organization_id,request_id),
         UNIQUE(organization_id,id),
         FOREIGN KEY(organization_id,sale_id)
-          REFERENCES pos.sales(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.sales(organization_id,id) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.return_lines (
+      CREATE TABLE pos_cashier.return_lines (
         organization_id varchar(32) NOT NULL,
         return_id uuid NOT NULL,
         sale_id uuid NOT NULL,
@@ -223,15 +216,15 @@ public sealed class PosCashierTransactionLedger : Migration
         quantity integer NOT NULL CHECK(quantity BETWEEN 1 AND 99),
         PRIMARY KEY(return_id,sale_line_number),
         FOREIGN KEY(organization_id,return_id)
-          REFERENCES pos.returns(organization_id,id) ON DELETE RESTRICT,
+          REFERENCES pos_cashier.returns(organization_id,id) ON DELETE RESTRICT,
         FOREIGN KEY(sale_id,sale_line_number)
-          REFERENCES pos.sale_lines(sale_id,line_number) ON DELETE RESTRICT
+          REFERENCES pos_cashier.sale_lines(sale_id,line_number) ON DELETE RESTRICT
       );
-      CREATE TABLE pos.refund_events (
+      CREATE TABLE pos_cashier.refund_events (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         return_id uuid NOT NULL,
-        payment_event_id uuid NOT NULL REFERENCES pos.payment_events(id),
+        payment_event_id uuid NOT NULL REFERENCES pos_cashier.payment_events(id),
         refund_kind varchar(12) NOT NULL CHECK(refund_kind IN ('cash','card')),
         amount_cents bigint NOT NULL CHECK(amount_cents BETWEEN 1 AND 100000000),
         status varchar(16) NOT NULL CHECK(status IN ('pending','verified','failed')),
@@ -244,13 +237,13 @@ public sealed class PosCashierTransactionLedger : Migration
           (provider_refund_id IS NOT NULL AND
            provider_evidence_sha256 ~ '^[0-9a-f]{64}$')),
         FOREIGN KEY(organization_id,return_id)
-          REFERENCES pos.returns(organization_id,id) ON DELETE RESTRICT
+          REFERENCES pos_cashier.returns(organization_id,id) ON DELETE RESTRICT
       );
       CREATE UNIQUE INDEX uq_pos_provider_refund
-        ON pos.refund_events(provider_refund_id)
+        ON pos_cashier.refund_events(provider_refund_id)
         WHERE provider_refund_id IS NOT NULL;
 
-      CREATE TABLE pos.transaction_audit (
+      CREATE TABLE pos_cashier.transaction_audit (
         id uuid PRIMARY KEY,
         organization_id varchar(32) NOT NULL,
         actor_id uuid NOT NULL REFERENCES identity.admin_accounts(id),
@@ -266,47 +259,46 @@ public sealed class PosCashierTransactionLedger : Migration
 
       -- The private schema is deliberately NOT an enabled operational POS yet.
       -- No app/admin grants, provider callbacks or cashier endpoints here.
-      REVOKE ALL ON ALL TABLES IN SCHEMA pos FROM PUBLIC;
-      ALTER TABLE pos.locations ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.registers ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.cashier_assignments ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.shifts ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.stock ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.sales ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.sale_lines ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.payment_events ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.receipt_sequences ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.receipts ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.returns ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.return_lines ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.refund_events ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.transaction_audit ENABLE ROW LEVEL SECURITY;
+      REVOKE ALL ON ALL TABLES IN SCHEMA pos_cashier FROM PUBLIC;
+      ALTER TABLE pos_cashier.registers ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.cashier_assignments ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.shifts ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.stock ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.sales ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.sale_lines ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.payment_events ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.receipt_sequences ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.receipts ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.returns ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.return_lines ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.refund_events ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.transaction_audit ENABLE ROW LEVEL SECURITY;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       DO $pos_recovery$
       BEGIN
-        IF EXISTS(SELECT 1 FROM pos.shifts)
-          OR EXISTS(SELECT 1 FROM pos.sales)
-          OR EXISTS(SELECT 1 FROM pos.receipts)
-          OR EXISTS(SELECT 1 FROM pos.returns)
-          OR EXISTS(SELECT 1 FROM pos.refund_events) THEN
+        IF EXISTS(SELECT 1 FROM pos_cashier.shifts)
+          OR EXISTS(SELECT 1 FROM pos_cashier.sales)
+          OR EXISTS(SELECT 1 FROM pos_cashier.receipts)
+          OR EXISTS(SELECT 1 FROM pos_cashier.returns)
+          OR EXISTS(SELECT 1 FROM pos_cashier.refund_events) THEN
           RAISE EXCEPTION 'pos_financial_history_requires_forward_recovery';
         END IF;
       END $pos_recovery$;
-      DROP TABLE pos.transaction_audit;
-      DROP TABLE pos.refund_events;
-      DROP TABLE pos.return_lines;
-      DROP TABLE pos.returns;
-      DROP TABLE pos.receipts;
-      DROP TABLE pos.receipt_sequences;
-      DROP TABLE pos.payment_events;
-      DROP TABLE pos.sale_lines;
-      DROP TABLE pos.sales;
-      DROP TABLE pos.stock;
-      DROP TABLE pos.shifts;
-      DROP TABLE pos.cashier_assignments;
-      DROP TABLE pos.registers;
-      DROP TABLE pos.locations;
+      DROP TABLE pos_cashier.transaction_audit;
+      DROP TABLE pos_cashier.refund_events;
+      DROP TABLE pos_cashier.return_lines;
+      DROP TABLE pos_cashier.returns;
+      DROP TABLE pos_cashier.receipts;
+      DROP TABLE pos_cashier.receipt_sequences;
+      DROP TABLE pos_cashier.payment_events;
+      DROP TABLE pos_cashier.sale_lines;
+      DROP TABLE pos_cashier.sales;
+      DROP TABLE pos_cashier.stock;
+      DROP TABLE pos_cashier.shifts;
+      DROP TABLE pos_cashier.cashier_assignments;
+      DROP TABLE pos_cashier.registers;
+      DROP SCHEMA pos_cashier;
     """);
 }
