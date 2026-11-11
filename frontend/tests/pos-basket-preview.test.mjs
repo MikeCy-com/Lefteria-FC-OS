@@ -11,7 +11,7 @@ test('POS preview is explicitly not a checkout or payment route',()=>{
   assert.match(pos,/AdminPosBasketPreview products=\{catalog\.products\} categories=\{catalog\.categories\}/);
 });
 test('draft uses catalog pricing, bounds and owner reset',()=>{
-  assert.match(basket,/product\.active&&categories\.some\(c=>c\.id===p\.category_id&&c\.active\)/);
+  assert.match(basket,/p\.active&&categories\.some\(c=>c\.id===p\.category_id&&c\.active\)/);
   assert.match(basket,/variant\.price_cents\*line\.quantity/);
   assert.match(basket,/line\.quantity>=1&&line\.quantity<=99/);
   assert.match(basket,/lines\.length>=30/);
