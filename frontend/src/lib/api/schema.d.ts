@@ -528,6 +528,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/pos/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAdminPosCity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosLocations"];
+        put?: never;
+        post: operations["CreateAdminPosLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations/{locationId}/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["AssignAdminPosLocationProduct"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations/{locationId}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReceiveAdminPosStock"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/pos/products": {
         parameters: {
             query?: never;
@@ -1828,6 +1892,11 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        AssignProductCommand: {
+            enabled: boolean;
+            /** Format: int64 */
+            expected_version: number | string;
+        };
         AttendanceMarkCommand: {
             /** Format: int32 */
             expected_version: number | string;
@@ -1844,6 +1913,9 @@ export interface components {
             id: string;
             name: string;
             organization_id: string;
+        };
+        CreateCityCommand: {
+            name: null | string;
         };
         CreateEvaluationCommand: {
             character: null | {
@@ -1865,6 +1937,11 @@ export interface components {
             technical: null | {
                 [key: string]: number | string;
             };
+        };
+        CreateLocationCommand: {
+            city_id: null | string;
+            code: null | string;
+            name: null | string;
         };
         FamilyChildDto: {
             academy_group_ids: string[];
@@ -2934,6 +3011,14 @@ export interface components {
             level: null | string;
             name: string;
             organization_id: string;
+        };
+        ReceiveStockCommand: {
+            product_id: null | string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: uuid */
+            request_id: string;
+            variant_id: null | string;
         };
         RecipientPendingInvitationDto: {
             /** Format: date-time */
@@ -5631,6 +5716,127 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    CreateAdminPosCity: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCityCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosLocations: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminPosLocation: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLocationCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignAdminPosLocationProduct: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProductCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReceiveAdminPosStock: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiveStockCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
