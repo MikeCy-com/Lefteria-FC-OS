@@ -98,9 +98,9 @@ internal static class CanonicalMobileProfiles
                 {
                     "management"=>manager,
                     "fan"=>true,
-                    "parent"=>players.Length>0, // Current canonical or direct phone grant is mandatory.
-                    "player"=>players.Length==1, // A player never inherits parent permissions.
-                    _ when native=>true, // Remaining owner-provisioned roles preserve their grant checks.
+                    _ when native=>true, // Explicit owner-provisioned identities may sign in; private records still require scoped links.
+                    "parent"=>players.Length>0, // Non-native delegated guardian requires a current child grant.
+                    "player"=>players.Length==1, // Non-native player never inherits guardian access.
                     "coach"=>coach,
                     _=>false
                 });
