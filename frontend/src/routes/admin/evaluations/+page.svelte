@@ -18,6 +18,7 @@
     player_id:string; total:number; evaluations:Row[];
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  const isUnavailable=$derived($auth.status === 'unavailable');
   type Organization='lefteria_fc'|'lefteria_fc_academy';
   const availableOrgs=$derived($auth.status==='authenticated' && $auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role)
@@ -109,7 +110,7 @@
       <h1 class="text-2xl font-bold">Αξιολογήσεις αθλητών</h1>
       <p class="text-sm text-zinc-400">Μόνο ανάγνωση. Δεν διατίθενται ακόμη δημιουργία ή επεξεργασία αξιολογήσεων.</p>
     </div>
-    <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+    <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
     {#if allowed}
       <label class="flex flex-col gap-1 text-sm">Οργανισμός
@@ -164,6 +165,6 @@
   </section>
 </AdminFrame>
 {:else}
-  <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+  <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
 {/if}
