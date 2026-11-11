@@ -38,5 +38,5 @@ test('zero-rated and exempt are never inferred or merged',()=>{
  assert.match(source,/"exempt" => \(int\?\)null/);
  assert.match(source,/treatment.Code/);
  assert.match(source,/treatment.Revision/);
- assert.doesNotMatch(source,/UPDATE pos\.sales|INSERT INTO pos\.payment_events|MapPost\(/);
+ assert.doesNotMatch(source,/UPDATE pos_cashier\.sales|INSERT INTO pos_cashier\.payment_events|MapPost\(/);
 });
