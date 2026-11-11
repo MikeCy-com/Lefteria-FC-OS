@@ -1337,6 +1337,26 @@
         ],
         "type": "object"
       },
+      "AssignProductCommand": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "enabled",
+          "expected_version"
+        ],
+        "type": "object"
+      },
       "AttendanceMarkCommand": {
         "properties": {
           "expected_version": {
@@ -1406,6 +1426,20 @@
           "id",
           "name",
           "organization_id"
+        ],
+        "type": "object"
+      },
+      "CreateCityCommand": {
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -1502,6 +1536,34 @@
           "physical",
           "character",
           "overall"
+        ],
+        "type": "object"
+      },
+      "CreateLocationCommand": {
+        "properties": {
+          "city_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "city_id",
+          "name",
+          "code"
         ],
         "type": "object"
       },
@@ -6559,6 +6621,41 @@
         ],
         "type": "object"
       },
+      "ReceiveStockCommand": {
+        "properties": {
+          "product_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "variant_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "product_id",
+          "variant_id",
+          "quantity",
+          "request_id"
+        ],
+        "type": "object"
+      },
       "RecipientPendingInvitationDto": {
         "properties": {
           "created_at": {
@@ -10348,6 +10445,203 @@
         ],
         "tags": [
           "POS administration"
+        ]
+      }
+    },
+    "/api/admin/pos/cities": {
+      "post": {
+        "operationId": "CreateAdminPosCity",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCityCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS locations"
+        ]
+      }
+    },
+    "/api/admin/pos/locations": {
+      "get": {
+        "operationId": "ReadAdminPosLocations",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS locations"
+        ]
+      },
+      "post": {
+        "operationId": "CreateAdminPosLocation",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLocationCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS locations"
+        ]
+      }
+    },
+    "/api/admin/pos/locations/{locationId}/products/{productId}": {
+      "put": {
+        "operationId": "AssignAdminPosLocationProduct",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "locationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "productId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignProductCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS locations"
+        ]
+      }
+    },
+    "/api/admin/pos/locations/{locationId}/stock": {
+      "post": {
+        "operationId": "ReceiveAdminPosStock",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "locationId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiveStockCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS locations"
         ]
       }
     },
@@ -17293,6 +17587,9 @@
     },
     {
       "name": "Club settings"
+    },
+    {
+      "name": "POS locations"
     },
     {
       "name": "Academy evaluations"
