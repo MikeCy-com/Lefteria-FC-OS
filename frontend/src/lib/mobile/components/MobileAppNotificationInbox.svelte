@@ -1,5 +1,6 @@
 <script lang="ts">
   import {onMount} from 'svelte';
+  import MobileWebPushControls from './MobileWebPushControls.svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {AppNotification} from '../notification-inbox.ts';
 
@@ -63,6 +64,7 @@
     <button type="button" class="outline" disabled={busy}
       onclick={()=>void refresh()}>Ανανέωση</button>
   </header>
+  <MobileWebPushControls {controller}/>
   <p class="hint">Ανακοινώσεις για τα τμήματα στα οποία έχεις ενεργή πρόσβαση.
     Η προβολή αυτής της λίστας δεν σημειώνει τις ανακοινώσεις ως διαβασμένες.</p>
   {#if busy&&items.length===0}<p role="status">Φόρτωση ειδοποιήσεων…</p>{/if}

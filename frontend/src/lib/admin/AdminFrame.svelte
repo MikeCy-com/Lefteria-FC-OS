@@ -7,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -43,14 +43,33 @@
           {#if section.id === 'app' && section.modules.some(item => item.id === 'announcements' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/announcements" aria-current={active === 'announcements' ? 'page' : undefined} data-testid="admin-announcements-link">Πρόχειρες ανακοινώσεις</a>
           {/if}
+          {#if section.id === 'crm' && section.modules.some(item => item.id === 'leads' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/leads"
+              aria-current={active === 'leads' ? 'page' : undefined}
+              data-testid="admin-crm-leads-link">Ενδιαφερόμενοι Ακαδημίας</a>
+          {/if}
           {#if section.id === 'pos' && section.modules.some(item => item.id === 'products' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/pos" aria-current={active === 'pos' ? 'page' : undefined} data-testid="admin-pos-link">Κατάλογος προϊόντων</a>
+          {/if}
+          {#if section.id === 'finance' && section.modules.some(item => item.id === 'payabl' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/finance" aria-current={active === 'finance' ? 'page' : undefined} data-testid="admin-payabl-link">payabl. · Sandbox</a>
           {/if}
           {#if section.id === 'operations' && section.modules.some(item => item.id === 'onboarding' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/onboarding" aria-current={active === 'onboarding' ? 'page' : undefined} data-testid="admin-onboarding-link">Οδηγός πρώτης χρήσης</a>
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'groups' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/groups" aria-current={active === 'groups' ? 'page' : undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>
+          {/if}
+          {#if section.id === 'football' && section.modules.some(item => item.id === 'attendance' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/attendance"
+              aria-current={active === 'attendance' ? 'page' : undefined}
+              data-testid="admin-attendance-link">Παρουσίες προπονήσεων</a>
+          {/if}
+          {#if section.id === 'football' && section.modules.some(item => item.id === 'evaluations' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/evaluations" aria-current={active === 'evaluations' ? 'page' : undefined}>Αξιολογήσεις αθλητών</a>
+          {/if}
+          {#if section.id === 'football' && section.modules.some(item => item.id === 'documents' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/documents" aria-current={active === 'documents' ? 'page' : undefined}>Προστατευμένα έγγραφα</a>
           {/if}
           {#if section.id === 'football' && canViewFirstTeamTrials(user)}
             <a class="admin-nav-tool" href="/admin/trials" aria-current={active === 'trials' ? 'page' : undefined} data-testid="admin-trials-link">Δοκιμαστικά πρώτης ομάδας</a>

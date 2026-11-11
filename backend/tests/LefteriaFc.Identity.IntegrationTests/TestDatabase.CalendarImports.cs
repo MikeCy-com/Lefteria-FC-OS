@@ -26,17 +26,32 @@ internal sealed partial class TestDatabase
         var history=(await context.Database.GetAppliedMigrationsAsync()).ToArray();
         Check.True(history.Any(row=>row.EndsWith("_ScopedCalendar",StringComparison.Ordinal)),"Calendar recovery requires the recorded ScopedCalendar migration.");
         var privileges=await CalendarSchemaMetadataAsync();
+        // A later attendance migration references calendar_items. Its presence must
+        // prevent an attempted base-calendar rollback instead of cascading into
+        // dependent attendance objects; the isolated rollback probe is still
+        // executed when no dependent attendance migration is installed.
+        var attendanceInstalled=history.Any(row=>row.EndsWith("_AcademyTrainingAttendance",StringComparison.Ordinal));
         await using(var transaction=await context.Database.BeginTransactionAsync())
         {
             try
             {
-                await ExecuteMigrationOperationsAsync(context,"ScopedCalendar",true);
-                Check.Equal(0,await CalendarTableCountAsync(),"Empty calendar Down did not remove all seven calendar tables.");
-                await ExecuteMigrationOperationsAsync(context,"ScopedCalendar",false);
-                Check.Equal(7,await CalendarTableCountAsync(),"Empty calendar Up did not recreate all seven calendar tables.");
-                Check.True(!await context.CalendarImportStates.AnyAsync()&&!await context.CalendarItems.AnyAsync()&&!await context.CalendarItemScopes.AnyAsync()&&
-                    !await context.CalendarItemGuests.AnyAsync()&&!await context.CalendarResponses.AnyAsync()&&!await context.CalendarSourceDocuments.AnyAsync()&&!await context.CalendarImportIssues.AnyAsync(),
-                    "Empty calendar Down/Up fabricated imported records.");
+                if(attendanceInstalled)
+                {
+                    var dependencyBlocked=false;
+                    try { await ExecuteMigrationOperationsAsync(context,"ScopedCalendar",true); }
+                    catch(PostgresException error) when(error.SqlState=="2BP01") { dependencyBlocked=true; }
+                    Check.True(dependencyBlocked,"Calendar rollback bypassed the installed attendance dependency.");
+                }
+                else
+                {
+                    await ExecuteMigrationOperationsAsync(context,"ScopedCalendar",true);
+                    Check.Equal(0,await CalendarTableCountAsync(),"Empty calendar Down did not remove all seven calendar tables.");
+                    await ExecuteMigrationOperationsAsync(context,"ScopedCalendar",false);
+                    Check.Equal(7,await CalendarTableCountAsync(),"Empty calendar Up did not recreate all seven calendar tables.");
+                    Check.True(!await context.CalendarImportStates.AnyAsync()&&!await context.CalendarItems.AnyAsync()&&!await context.CalendarItemScopes.AnyAsync()&&
+                        !await context.CalendarItemGuests.AnyAsync()&&!await context.CalendarResponses.AnyAsync()&&!await context.CalendarSourceDocuments.AnyAsync()&&!await context.CalendarImportIssues.AnyAsync(),
+                        "Empty calendar Down/Up fabricated imported records.");
+                }
             }
             finally{await transaction.RollbackAsync();}
         }

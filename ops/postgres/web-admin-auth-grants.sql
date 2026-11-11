@@ -146,6 +146,23 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcements(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.remove_admin_app_announcement(
   text,text,text,bigint) TO :"admin_auth_role";
+-- Management sessions cannot enumerate device endpoints, private keys or
+-- delivery attempts; push authorization belongs exclusively to mobile.
+REVOKE ALL ON TABLE club.mobile_push_subscriptions,
+  club.app_announcement_push_attempts FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.save_mobile_push_subscription(
+  uuid,text,text,timestamptz,text,text,text,text) FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.remove_mobile_push_subscription(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.mobile_push_subscription_status(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.claim_app_announcement_push_attempts(integer)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.check_app_announcement_push_lease(uuid,uuid)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.finish_app_announcement_push_attempt(
+  uuid,uuid,text,integer) FROM PUBLIC, :"admin_auth_role";
+
 -- Web management never reads raw member notification events or
 -- bypasses the member-only notification inbox.
 REVOKE ALL ON TABLE club.app_announcement_notification_events
