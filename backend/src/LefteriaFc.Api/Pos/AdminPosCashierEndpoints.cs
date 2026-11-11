@@ -42,7 +42,7 @@ public static class AdminPosCashierEndpoints
             var (cookie, owner) = await Authority(auth, organization_id, context, ct);
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.read_admin_cashier_registers(@digest,@owner)::text", connection);
+                "SELECT pos_cashier.read_admin_cashier_registers(@digest,@owner)::text", connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
             return await Query(command, ct);
@@ -60,7 +60,7 @@ public static class AdminPosCashierEndpoints
                     "Invalid register or opening cash.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.open_admin_cashier_shift(@digest,@owner,@register,@opening,@request)::text",
+                "SELECT pos_cashier.open_admin_cashier_shift(@digest,@owner,@register,@opening,@request)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -82,7 +82,7 @@ public static class AdminPosCashierEndpoints
                     "Invalid shift or counted cash.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.close_admin_cashier_shift(@digest,@owner,@shift,@counted,@request)::text",
+                "SELECT pos_cashier.close_admin_cashier_shift(@digest,@owner,@shift,@counted,@request)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -119,7 +119,7 @@ public static class AdminPosCashierEndpoints
             }));
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.prepare_cashier_checkout(@digest,@owner,@register,@shift,@request,@items)::text",
+                "SELECT pos_cashier.prepare_cashier_checkout(@digest,@owner,@register,@shift,@request,@items)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -141,7 +141,7 @@ public static class AdminPosCashierEndpoints
                     "Select a valid sale and cancellation request.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.cancel_unpaid_cashier_sale(@digest,@owner,@sale,@request)::text",
+                "SELECT pos_cashier.cancel_unpaid_cashier_sale(@digest,@owner,@sale,@request)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -165,7 +165,7 @@ public static class AdminPosCashierEndpoints
                     "Select a valid sale, request and counted cash amount.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.settle_exact_cash_sale(@digest,@owner,@sale,@request,@cash)::text",
+                "SELECT pos_cashier.settle_exact_cash_sale(@digest,@owner,@sale,@request,@cash)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -186,7 +186,7 @@ public static class AdminPosCashierEndpoints
                     "Select a valid cashier shift.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.read_cashier_shift_reconciliation(@digest,@owner,@shift)::text",
+                "SELECT pos_cashier.read_cashier_shift_reconciliation(@digest,@owner,@shift)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -205,7 +205,7 @@ public static class AdminPosCashierEndpoints
                     "Choose one valid receipt.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.read_assigned_cashier_receipt(@digest,@owner,@receipt)::text",
+                "SELECT pos_cashier.read_assigned_cashier_receipt(@digest,@owner,@receipt)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -235,7 +235,7 @@ public static class AdminPosCashierEndpoints
             }));
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.request_assigned_cashier_return(@digest,@owner,@sale,@request,@reason,@lines)::text",
+                "SELECT pos_cashier.request_assigned_cashier_return(@digest,@owner,@sale,@request,@reason,@lines)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -257,7 +257,7 @@ public static class AdminPosCashierEndpoints
                     "Select one valid return and review request.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.review_cashier_return(@digest,@owner,@return,@request,@approve)::text",
+                "SELECT pos_cashier.review_cashier_return(@digest,@owner,@return,@request,@approve)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -281,7 +281,7 @@ public static class AdminPosCashierEndpoints
                     "Select an approved return and verified original payment.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.request_approved_return_refund(@digest,@owner,@return,@payment,@request,@amount)::text",
+                "SELECT pos_cashier.request_approved_return_refund(@digest,@owner,@return,@payment,@request,@amount)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
@@ -308,7 +308,7 @@ public static class AdminPosCashierEndpoints
                     "Financial reconciliation requires a manager finance grant.");
             await using var connection = await connections.OpenAsync(ct);
             await using var command = new NpgsqlCommand(
-                "SELECT pos.read_admin_finance_handoff(@digest,@owner)::text",
+                "SELECT pos_cashier.read_admin_finance_handoff(@digest,@owner)::text",
                 connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
