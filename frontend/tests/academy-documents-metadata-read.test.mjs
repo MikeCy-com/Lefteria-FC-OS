@@ -17,8 +17,7 @@ test('restricted read-only API validates live Academy manager session',()=>{
   assert.match(api,/session\.User\.Organizations\.Any/);
   assert.match(api,/CacheControl = "private, no-store"/);
   assert.match(program,/app\.MapAdminAcademyDocuments\(\)/);
-  assert.match(api,/MapPost/);
-  assert.doesNotMatch(api,/MapPut|MapDelete/);
+  assert.doesNotMatch(api,/MapPost|MapPut|MapDelete/);
 });
 test('SQL locks authorization and records each disclosed document',()=>{
   assert.match(sql,/SECURITY DEFINER/);
