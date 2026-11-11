@@ -26,7 +26,7 @@ internal static class CanonicalMobileProfiles
         {
             await using var command=new NpgsqlCommand("""
                 WITH requested AS (
-                  SELECT id,normalized_phone,role,is_active,legacy_id,management_admin_id
+                  SELECT id,normalized_phone,role,is_active,legacy_id,management_admin_id,guardian_derived_parent
                   FROM identity.mobile_identities WHERE id=ANY(@ids)
                 ), player_links AS (
                   SELECT l.identity_id,p.id,p.team_id,p.organization_id,l.is_primary
@@ -65,7 +65,7 @@ internal static class CanonicalMobileProfiles
                     SELECT 1 FROM club.academy_group_coaches actual
                     WHERE actual.academy_group_id=g.academy_group_id AND actual.staff_id=c.id))
                 )
-                SELECT i.id,i.normalized_phone,i.role,i.is_active,i.legacy_id IS NULL,a.id,
+                SELECT i.id,i.normalized_phone,i.role,i.is_active,(i.legacy_id IS NULL AND NOT i.guardian_derived_parent),a.id,
                   coalesce(a.is_active AND NOT a.invite_pending AND
                     ((a.normalized_phone IS NULL AND i.legacy_id IS NULL) OR a.normalized_phone=i.normalized_phone)
                     AND (admin_staff.admin_account_id IS NULL OR (staff.is_active AND NOT staff.is_archived)),false),

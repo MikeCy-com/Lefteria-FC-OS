@@ -45,6 +45,12 @@ GRANT EXECUTE ON FUNCTION identity.has_current_guardian_phone_grant(text)
   TO :"app_role";
 GRANT EXECUTE ON FUNCTION identity.current_phone_granted_children(
   uuid,text,text,timestamptz) TO :"app_role";
+-- Preserve the fan-only boundary for all other identities. A derived parent
+-- also needs a live grant and remains distinguishable from a native parent.
+ALTER POLICY mobile_runtime_insert_fan_only ON identity.mobile_identities
+  WITH CHECK (
+    role = 'fan' OR (role = 'parent' AND guardian_derived_parent AND
+      identity.has_current_guardian_phone_grant(normalized_phone)));
 DO $verify$
 DECLARE role_name text:=current_setting('lefteria.guardian_permission_role');
 BEGIN

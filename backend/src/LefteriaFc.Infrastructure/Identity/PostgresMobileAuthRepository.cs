@@ -231,7 +231,12 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
                 DisplayName="Γονέας / Κηδεμόνας",IsActive=true,
                 Platform=platform,CreatedAt=now
             };
-            context.MobileIdentities.Add(row);
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO identity.mobile_identities
+                  (id, normalized_phone, role, display_name, is_active, platform, created_at, guardian_derived_parent)
+                VALUES ({row.Id}, {row.NormalizedPhone}, {row.Role}, {row.DisplayName}, true,
+                  {row.Platform}, {row.CreatedAt}, true)
+                """, cancellationToken);
             context.SecurityAuditEvents.Add(MapAudit(new AuthAuditEntry(
                 "mobile.family.phone_parent.provision",
                 "success",now,row.Id)));
