@@ -10,14 +10,14 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// from mobile/public/admin runtime until independent cashier/fiscal review.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110152000_PosVerifiedReceiptIssuer")]
+[Migration("20261110212000_PosVerifiedReceiptIssuer")]
 public sealed class PosVerifiedReceiptIssuer : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       -- Fiscal issuance must be separately authorized and configured.
       -- There is no enabled row after migration, so receipt issuance fails
       -- closed until a reviewed organization policy is installed.
-      CREATE TABLE pos.receipt_policies (
+      CREATE TABLE pos_cashier.receipt_policies (
         organization_id varchar(32) PRIMARY KEY
           REFERENCES club.organizations(id) ON DELETE RESTRICT
           CHECK(organization_id IN ('lefteria_fc','lefteria_fc_academy')),
@@ -29,16 +29,16 @@ public sealed class PosVerifiedReceiptIssuer : Migration
         reviewed_at timestamptz NOT NULL,
         CHECK(reviewed_at<=clock_timestamp())
       );
-      REVOKE ALL ON pos.receipt_policies FROM PUBLIC;
-      ALTER TABLE pos.receipt_policies ENABLE ROW LEVEL SECURITY;
+      REVOKE ALL ON pos_cashier.receipt_policies FROM PUBLIC;
+      ALTER TABLE pos_cashier.receipt_policies ENABLE ROW LEVEL SECURITY;
 
-      CREATE FUNCTION pos.issue_verified_internal_receipt(
+      CREATE FUNCTION pos_cashier.issue_verified_internal_receipt(
         _digest text,_owner text,_sale uuid,_request uuid
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $pos_issue_receipt$
       DECLARE
         v_actor uuid; v_session uuid; v_role text;
-        v_sale pos.sales%ROWTYPE;
+        v_sale pos_cashier.sales%ROWTYPE;
         v_policy text;
         v_number bigint;
         v_receipt uuid;
@@ -46,7 +46,7 @@ public sealed class PosVerifiedReceiptIssuer : Migration
         v_lines jsonb;
         v_verified bigint;
         v_line_sum bigint;
-        v_exists pos.receipts%ROWTYPE;
+        v_exists pos_cashier.receipts%ROWTYPE;
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
           OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
@@ -66,18 +66,18 @@ public sealed class PosVerifiedReceiptIssuer : Migration
         IF NOT FOUND OR v_role NOT IN ('manager','super_admin') THEN
           RAISE EXCEPTION 'receipt_actor_not_authorized' USING ERRCODE='42501';
         END IF;
-        SELECT policy_version INTO v_policy FROM pos.receipt_policies
+        SELECT policy_version INTO v_policy FROM pos_cashier.receipt_policies
           WHERE organization_id=_owner AND enabled
             AND reviewed_at<=clock_timestamp() FOR SHARE;
         IF NOT FOUND THEN
           RAISE EXCEPTION 'fiscal_receipt_policy_disabled' USING ERRCODE='55000';
         END IF;
-        SELECT * INTO v_sale FROM pos.sales
+        SELECT * INTO v_sale FROM pos_cashier.sales
           WHERE organization_id=_owner AND id=_sale FOR UPDATE;
         IF NOT FOUND OR v_sale.status='voided' THEN
           RAISE EXCEPTION 'sale_unavailable_for_receipt' USING ERRCODE='42501';
         END IF;
-        SELECT * INTO v_exists FROM pos.receipts
+        SELECT * INTO v_exists FROM pos_cashier.receipts
           WHERE organization_id=_owner AND sale_id=_sale;
         IF FOUND THEN
           RETURN jsonb_build_object('id',v_exists.id,
@@ -85,10 +85,10 @@ public sealed class PosVerifiedReceiptIssuer : Migration
             'sale_id',_sale,'replay',true);
         END IF;
         SELECT coalesce(sum(amount_cents),0) INTO v_verified
-          FROM pos.payment_events
+          FROM pos_cashier.payment_events
           WHERE organization_id=_owner AND sale_id=_sale AND status='verified';
         SELECT coalesce(sum(line_total_cents),0) INTO v_line_sum
-          FROM pos.sale_lines WHERE organization_id=_owner AND sale_id=_sale;
+          FROM pos_cashier.sale_lines WHERE organization_id=_owner AND sale_id=_sale;
         IF v_verified<>v_sale.total_cents OR v_line_sum<>v_sale.subtotal_cents
           OR v_sale.currency<>'EUR' OR v_sale.status NOT IN
             ('awaiting_payment','partially_paid','paid') THEN
@@ -97,16 +97,16 @@ public sealed class PosVerifiedReceiptIssuer : Migration
         END IF;
 
         IF v_sale.status<>'paid' THEN
-          UPDATE pos.sales SET status='paid',paid_at=clock_timestamp()
+          UPDATE pos_cashier.sales SET status='paid',paid_at=clock_timestamp()
             WHERE organization_id=_owner AND id=_sale;
         END IF;
 
         -- Atomic register-level number assignment, serialized by the
         -- receipt_sequences row lock. Never allocate a number in the UI.
-        INSERT INTO pos.receipt_sequences(organization_id,register_id,next_number)
+        INSERT INTO pos_cashier.receipt_sequences(organization_id,register_id,next_number)
         VALUES(_owner,v_sale.register_id,1)
         ON CONFLICT(organization_id,register_id) DO NOTHING;
-        UPDATE pos.receipt_sequences SET next_number=next_number+1
+        UPDATE pos_cashier.receipt_sequences SET next_number=next_number+1
           WHERE organization_id=_owner AND register_id=v_sale.register_id
             AND next_number<999999999
           RETURNING next_number-1 INTO v_number;
@@ -120,7 +120,7 @@ public sealed class PosVerifiedReceiptIssuer : Migration
           'unit_price_cents',unit_price_cents,
           'line_total_cents',line_total_cents)
           ORDER BY line_number),'[]'::jsonb) INTO v_lines
-          FROM pos.sale_lines
+          FROM pos_cashier.sale_lines
           WHERE organization_id=_owner AND sale_id=_sale;
         v_data:=jsonb_build_object(
           'schema_version',1,'receipt_kind','pos_sale',
@@ -132,28 +132,28 @@ public sealed class PosVerifiedReceiptIssuer : Migration
           'fiscal_policy_version',v_policy
         );
         v_receipt:=gen_random_uuid();
-        INSERT INTO pos.receipts(
+        INSERT INTO pos_cashier.receipts(
           id,organization_id,sale_id,register_id,
           receipt_number,immutable_payload,payload_sha256
         ) VALUES(v_receipt,_owner,_sale,v_sale.register_id,v_number,
           v_data,encode(sha256(convert_to(v_data::text,'UTF8')),'hex'));
-        INSERT INTO pos.transaction_audit(
+        INSERT INTO pos_cashier.transaction_audit(
           id,organization_id,actor_id,sale_id,action,request_id)
         VALUES(gen_random_uuid(),_owner,v_actor,_sale,'receipt_issue',_request);
         INSERT INTO audit.security_events(
           id,actor_realm,occurred_at,actor_identity_id,device_session_id,
           action,outcome,organization_id,reason_code
         ) VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,v_session,
-          'admin.pos.receipt.issue','succeeded',_owner,'verified_capture');
+          'admin.pos_cashier.receipt.issue','succeeded',_owner,'verified_capture');
         RETURN jsonb_build_object('id',v_receipt,'sale_id',_sale,
           'receipt_number',v_number,'replay',false);
       END $pos_issue_receipt$;
-      REVOKE ALL ON FUNCTION pos.issue_verified_internal_receipt(
+      REVOKE ALL ON FUNCTION pos_cashier.issue_verified_internal_receipt(
         text,text,uuid,uuid) FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DROP FUNCTION pos.issue_verified_internal_receipt(text,text,uuid,uuid);
-      DROP TABLE pos.receipt_policies;
+      DROP FUNCTION pos_cashier.issue_verified_internal_receipt(text,text,uuid,uuid);
+      DROP TABLE pos_cashier.receipt_policies;
     """);
 }
