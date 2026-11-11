@@ -163,8 +163,8 @@ test('real Svelte parent Children screen labels pending as NOT sent and never pr
   assert.match(html, /data-testid="family-outgoing-list"/);
   assert.match(html, /Παιδί Άλφα/);
   assert.match(html, /Δεν έχει αποσταλεί πρόσκληση ή SMS/);
-  assert.match(html, /Under Developments/);
-  assert.doesNotMatch(html,/target_phone|recipient_phone|\\+35799123456|Παιδί Γάμμα/);
+  assert.match(html, /data-testid="family-permission-editor"/);
+  assert.doesNotMatch(html,/target_phone|recipient_phone|\+35799123456|Παιδί Γάμμα/);
 
   const empty = render(MobileFamily,{props:{...props,
     outgoingInvitations:{items:[]}}}).body;
