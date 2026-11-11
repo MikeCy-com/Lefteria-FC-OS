@@ -109,7 +109,8 @@
       <h1 class="text-2xl font-bold">Αξιολογήσεις αθλητών</h1>
       <p class="text-sm text-zinc-400">Μόνο ανάγνωση. Δεν διατίθενται ακόμη δημιουργία ή επεξεργασία αξιολογήσεων.</p>
     </div>
-    <AdminSessionStatus />
+    <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+    onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
     {#if allowed}
       <label class="flex flex-col gap-1 text-sm">Οργανισμός
         <select class="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white"
@@ -163,5 +164,6 @@
   </section>
 </AdminFrame>
 {:else}
-  <AdminSessionStatus />
+  <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+    onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
 {/if}
