@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
+  import {browser} from '$app/env';
   import {page} from '$app/state';
   import {getContext} from 'svelte';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../../../lib/admin/controller.ts';
@@ -22,6 +22,7 @@
     receipt:ReceiptPayload;
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  const isUnavailable=$derived($auth.status === 'unavailable');
   const assigned=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy').map(o=>o.id as Org)??[]);
   const allowed=$derived($auth.status==='authenticated'&&!!$auth.session&&
@@ -110,7 +111,8 @@
     <div class="no-print">
       <h1 class="text-2xl font-bold">Προβολή εκδοθείσας απόδειξης</h1>
       <p>Η εκτύπωση εμφανίζει μόνο την αποθηκευμένη απόδειξη. Δεν δημιουργεί νέα συναλλαγή.</p>
-      <AdminSessionStatus />
+      <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
+    onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
       {#if allowed}
       <label>Οργανισμός
         <select bind:value={owner}>
@@ -156,7 +158,8 @@
   </section>
 </AdminFrame>
 {:else}
-<AdminSessionStatus />
+<AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
+    onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
 {/if}
 
 <style>
