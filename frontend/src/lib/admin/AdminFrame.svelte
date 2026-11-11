@@ -7,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -59,6 +59,11 @@
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'groups' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/groups" aria-current={active === 'groups' ? 'page' : undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>
+          {/if}
+          {#if section.id === 'football' && section.modules.some(item => item.id === 'attendance' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/attendance"
+              aria-current={active === 'attendance' ? 'page' : undefined}
+              data-testid="admin-attendance-link">Παρουσίες προπονήσεων</a>
           {/if}
           {#if section.id === 'football' && canViewFirstTeamTrials(user)}
             <a class="admin-nav-tool" href="/admin/trials" aria-current={active === 'trials' ? 'page' : undefined} data-testid="admin-trials-link">Δοκιμαστικά πρώτης ομάδας</a>

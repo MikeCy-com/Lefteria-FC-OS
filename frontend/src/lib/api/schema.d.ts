@@ -1,5 +1,37 @@
 // Generated from contracts/openapi.json. Run npm run api:generate; do not edit.
 export interface paths {
+    "/api/admin/academy/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/{eventId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingAttendance"];
+        put?: never;
+        post: operations["RecordAdminAcademyTrainingAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/login": {
         parameters: {
             query?: never;
@@ -1764,6 +1796,12 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        AttendanceMarkCommand: {
+            /** Format: int32 */
+            expected_version: number | string;
+            player_id: null | string;
+            status: null | string;
+        };
         CalendarOwnResponse: {
             player_id: string;
             status: string;
@@ -2906,6 +2944,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ReadAdminAcademyTrainingSessions: {
+        parameters: {
+            query?: {
+                end?: string;
+                group_id?: string;
+                organization_id?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyTrainingAttendance: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RecordAdminAcademyTrainingAttendance: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceMarkCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     LoginWebAdmin: {
         parameters: {
             query?: never;
