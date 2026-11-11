@@ -20,8 +20,12 @@ using LefteriaFc.Infrastructure.Audiences;
 using LefteriaFc.Application.Pos;
 using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
+using LefteriaFc.Api.Evaluations;
 using LefteriaFc.Api.MobileChat;
+using LefteriaFc.Api.Attendance;
 using LefteriaFc.Application.MobileChat;
+using LefteriaFc.Api.Crm;
+using LefteriaFc.Api.Payabl;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -77,9 +81,22 @@ builder.Services.AddOpenApi(options =>
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
+builder.Services.AddScoped<PostgresMobilePushStore>();
+builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
+builder.Services.AddHttpClient("web-push",client=>
+    client.Timeout=TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(()=>new SocketsHttpHandler{
+        AllowAutoRedirect=false,UseCookies=false,
+        AutomaticDecompression=System.Net.DecompressionMethods.None,
+        MaxConnectionsPerServer=4,
+        PooledConnectionLifetime=TimeSpan.FromMinutes(5)
+    });
+builder.Services.AddSingleton<WebPushDeliverySender>();
+builder.Services.AddHostedService<WebPushDispatchWorker>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
+builder.Services.AddPayabl(builder.Configuration);
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
@@ -132,7 +149,11 @@ app.MapMobileCalendar();
 app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
+app.MapMobileWebPush();
 app.MapWebAdmin();
+app.MapPayabl();
+app.MapAcademyFees();
+app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
@@ -142,14 +163,24 @@ app.MapAdminNews();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
+app.MapAdminPosLocations();
+app.MapAdminPosCashier();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
+app.MapAdminProfiledGroupCreates();
+app.MapAdminAcademyGroupProfiles();
+app.MapAdminFirstTeamProfiles();
 app.MapAdminRosterPlayers();
 app.MapAdminRosterAssignments();
 app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapMobileChatGroupDirectory();
+app.MapAdminAcademyEvaluations();
+app.MapAdminAcademyDocuments();
+app.MapAdminPrivateDocumentUploads();
+app.MapAdminAcademyAttendance();
+app.MapAcademyLeadAdmin();
 
 if (app.Environment.IsDevelopment())
 {
