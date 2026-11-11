@@ -20,8 +20,12 @@ using LefteriaFc.Infrastructure.Audiences;
 using LefteriaFc.Application.Pos;
 using LefteriaFc.Infrastructure.Pos;
 using LefteriaFc.Infrastructure.PublicContent;
+using LefteriaFc.Api.Evaluations;
 using LefteriaFc.Api.MobileChat;
+using LefteriaFc.Api.Attendance;
 using LefteriaFc.Application.MobileChat;
+using LefteriaFc.Api.Crm;
+using LefteriaFc.Api.Payabl;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -77,9 +81,22 @@ builder.Services.AddOpenApi(options =>
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
+builder.Services.AddScoped<PostgresMobilePushStore>();
+builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
+builder.Services.AddHttpClient("web-push",client=>
+    client.Timeout=TimeSpan.FromSeconds(15))
+    .ConfigurePrimaryHttpMessageHandler(()=>new SocketsHttpHandler{
+        AllowAutoRedirect=false,UseCookies=false,
+        AutomaticDecompression=System.Net.DecompressionMethods.None,
+        MaxConnectionsPerServer=4,
+        PooledConnectionLifetime=TimeSpan.FromMinutes(5)
+    });
+builder.Services.AddSingleton<WebPushDeliverySender>();
+builder.Services.AddHostedService<WebPushDispatchWorker>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
+builder.Services.AddPayabl(builder.Configuration);
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
@@ -100,18 +117,20 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.P
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
-// All mobile account, OTP, family, roster, and calendar responses are
-// session-specific, including authentication failures and service errors.
-// Register OnStarting so endpoint/error handlers cannot accidentally emit
-// cacheable private data. Public content and avatars are unaffected.
+// Authenticated mobile and web-admin API responses may contain account,
+// roster, child, financial or session data. Never let shared intermediaries or
+// the browser store them, including auth failures and error responses.
+// Public content routes remain cacheable under their own explicit policies.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/api/mobile", StringComparison.OrdinalIgnoreCase))
+    if (context.Request.Path.StartsWithSegments("/api/mobile", StringComparison.OrdinalIgnoreCase) ||
+        context.Request.Path.StartsWithSegments("/api/admin", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.OnStarting(() =>
         {
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers["Expires"] = "0";
             return Task.CompletedTask;
         });
     }
@@ -130,7 +149,11 @@ app.MapMobileCalendar();
 app.MapMobileGroupChat();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
+app.MapMobileWebPush();
 app.MapWebAdmin();
+app.MapPayabl();
+app.MapAcademyFees();
+app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
@@ -140,14 +163,24 @@ app.MapAdminNews();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
+app.MapAdminPosLocations();
+app.MapAdminPosCashier();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
+app.MapAdminProfiledGroupCreates();
+app.MapAdminAcademyGroupProfiles();
+app.MapAdminFirstTeamProfiles();
 app.MapAdminRosterPlayers();
 app.MapAdminRosterAssignments();
 app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapMobileChatGroupDirectory();
+app.MapAdminAcademyEvaluations();
+app.MapAdminAcademyDocuments();
+app.MapAdminPrivateDocumentUploads();
+app.MapAdminAcademyAttendance();
+app.MapAcademyLeadAdmin();
 
 if (app.Environment.IsDevelopment())
 {

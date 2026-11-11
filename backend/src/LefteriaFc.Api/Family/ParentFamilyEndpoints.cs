@@ -1,9 +1,17 @@
 using LefteriaFc.Api.Identity;
+using System.Text.Json.Serialization;
 using LefteriaFc.Application.Family;
 
 namespace LefteriaFc.Api.Family;
 
 public sealed record IssueFamilyInvitationBody(string? Phone);
+public sealed record IssueGuardianPermissionBody(
+    [property:JsonPropertyName("phone")] string? Phone,
+    [property:JsonPropertyName("request_id")] Guid RequestId);
+
+public sealed record IssueManyGuardianPermissionsBody(
+    [property:JsonPropertyName("phone")] string? Phone,
+    [property:JsonPropertyName("children")] IReadOnlyList<GuardianBulkChild>? Children);
 
 public static class ParentFamilyEndpoints
 {
@@ -125,6 +133,49 @@ public static class ParentFamilyEndpoints
             .WithName("CancelPendingFamilyInvitation")
             .Produces<FamilyOperationResult>()
             .Produces<MobileAuthError>(409).WithMobileErrors();
+
+        // Separate from the one-child player invitation. The caller must
+        // have a current verified parent relationship for each child.
+        endpoints.MapGet("/api/mobile/family/guardian-permissions",
+            (HttpContext context, GuardianPermissionService service, CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.ListAsync(MobilePrincipal.Read(context.User), token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("GetIssuedGuardianPermissions")
+            .Produces<GuardianPermissionsResult>().WithMobileErrors();
+
+        endpoints.MapPost("/api/mobile/family/children/{playerId}/guardian-permissions",
+            (string playerId, IssueGuardianPermissionBody body,
+                HttpContext context, GuardianPermissionService service, CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.IssueAsync(MobilePrincipal.Read(context.User),
+                        playerId, body.Phone, body.RequestId, token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("IssueGuardianPermission")
+            .Produces<GuardianPermissionDto>().Produces<MobileAuthError>(409).WithMobileErrors();
+
+        // One transaction for all selected children. The database repeats
+        // independent issuer authority checks on each child.
+        endpoints.MapPost("/api/mobile/family/guardian-permissions/bulk",
+            (IssueManyGuardianPermissionsBody body,HttpContext context,
+                GuardianPermissionService service,CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.IssueManyAsync(MobilePrincipal.Read(context.User),
+                        body.Phone,body.Children,token),context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("IssueManyGuardianPermissions")
+            .Produces<GuardianBulkResult>()
+            .Produces<MobileAuthError>(409).WithMobileErrors();
+
+        endpoints.MapPost("/api/mobile/family/guardian-permissions/{permissionId:guid}/revoke",
+            (Guid permissionId, HttpContext context, GuardianPermissionService service,
+                CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => service.RevokeAsync(MobilePrincipal.Read(context.User),
+                        permissionId, token), context))
+            .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile family")
+            .WithName("RevokeIssuedGuardianPermission")
+            .Produces<FamilyOperationResult>().WithMobileErrors();
 
         return endpoints;
     }
