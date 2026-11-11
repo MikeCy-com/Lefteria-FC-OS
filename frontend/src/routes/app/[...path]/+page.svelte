@@ -123,7 +123,7 @@
             onLoadFamily={() => controller.loadFamily()}
             onLoadCalendar={(month, childId) => controller.loadCalendar(month, childId)}
             onChildren={() => openTab('children')}
-            onEducation={() => openTab('hub')
+            onEducation={() => openTab('hub')}
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'profile' && !composing}
