@@ -6,6 +6,10 @@
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminPosBasketPreview from '../../../lib/admin/AdminPosBasketPreview.svelte';
+  import AdminPosLocationsPanel from '../../../lib/admin/AdminPosLocationsPanel.svelte';
+  import AdminPosCashierShiftsPanel from '../../../lib/admin/AdminPosCashierShiftsPanel.svelte';
+  import AdminPosFinanceHandoffPanel from '../../../lib/admin/AdminPosFinanceHandoffPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -395,6 +399,16 @@
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
             <div><span>Παραλλαγές</span><strong>{catalog.products.reduce((count, p) => count + p.variants.length, 0)}</strong></div>
           </div>
+          {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
+            <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
+          {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
+            hasAdminPermission($auth.session.user.permissions,'finance:read') && owner}
+            <AdminPosFinanceHandoffPanel owner={owner as Organization}
+              actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
           {#if canEdit}
             <section class="admin-panel admin-pos-editor" aria-labelledby="pos-editor-heading" data-testid="admin-pos-category-editor">
               <div class="admin-pos-editor-heading">
@@ -504,6 +518,7 @@
               {/if}
             </section>
           {/if}
+          <AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -555,6 +570,14 @@
               {/if}
             </section>
           </div>
+          {#if owner && $auth.session}
+            <AdminPosLocationsPanel owner={owner as Organization}
+              actorId={$auth.session.user.id}
+              products={catalog.products}
+              canWrite={!!canEdit&&['manager','super_admin'].includes($auth.session.user.role)}
+              onExpired={()=>auth.invalidateSession()}
+              onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
         {/if}
       </div>
     {:else}

@@ -41,6 +41,20 @@ internal static class TestRunner
         }
         if(args.SequenceEqual(["--legacy-token-policy"],StringComparer.Ordinal))
             return await IdentityHttpChecks.RunLegacyPolicyChecksAsync();
+        if(args.SequenceEqual(["--payabl-adapter-policy"],StringComparer.Ordinal))
+        {
+            try
+            {
+                await PayablAdapterChecks.RunAsync();
+                Console.WriteLine("PASS isolated Payabl sandbox signature and gateway checks; no provider network used.");
+                return 0;
+            }
+            catch(Exception error)
+            {
+                Console.Error.WriteLine("FAIL isolated Payabl adapter checks: " + error.Message);
+                return 1;
+            }
+        }
         if(args.SequenceEqual(["--sms-adapter-policy"],StringComparer.Ordinal))
         {
             try
@@ -75,6 +89,17 @@ internal static class TestRunner
         {
             Console.Error.WriteLine($"Fixture guard refused execution: {exception.GetType().Name}: {exception.Message}");
             return 2;
+        }
+
+        try
+        {
+            await WebPushDeliveryChecks.RunAsync();
+            Console.WriteLine("PASS isolated Web Push signer/provider policy (no external network).");
+        }
+        catch(Exception error)
+        {
+            Console.Error.WriteLine("FAIL Web Push provider policy: "+error.GetType().Name);
+            return 1;
         }
 
         var factory = new IdentityApplicationFactory(fixture);

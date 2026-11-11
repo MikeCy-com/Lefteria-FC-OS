@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
+import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
   validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
   type AppAnnouncementPage,type AppAnnouncementReactionSnapshot,
@@ -25,6 +26,31 @@ type LoginResult = components['schemas']['MobileVerificationResultMobileLoginRes
 type Family = components['schemas']['ParentFamilyResult'];
 type ParentActiveDelegations = components['schemas']['ParentActiveDelegationsResult'];
 type OutgoingInvitations = components['schemas']['ParentOutgoingInvitationsResult'];
+type GuardianPermission = {
+  id:string;player_id:string;organization_id:string;kind:'guardian';
+  status:'granted';expires_at:null;recipient_hint:string;
+};
+type GuardianPermissionPage = {items:GuardianPermission[]};
+const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+function validGuardianPage(raw:unknown,children:Family['children']):raw is GuardianPermissionPage {
+  if(!raw||typeof raw!=='object'||Array.isArray(raw)||!('items' in raw)||
+    !Array.isArray(raw.items)||raw.items.length>100)return false;
+  const ids=new Set<string>();
+  return raw.items.every((v:unknown)=>{
+    if(!v||typeof v!=='object'||Array.isArray(v))return false;
+    const p=v as Record<string,unknown>;
+    if(typeof p.id!=='string'||!uuidPattern.test(p.id)||ids.has(p.id))return false;
+    ids.add(p.id);
+    return p.kind==='guardian'&&
+      p.status==='granted'&&
+      typeof p.player_id==='string'&&
+      typeof p.organization_id==='string'&&
+      children.some(ch=>ch.id===p.player_id&&ch.organization_id===p.organization_id)&&
+      p.expires_at===null&&
+      typeof p.recipient_hint==='string'&&/^••••[0-9]{4}$/.test(p.recipient_hint);
+  });
+}
+
 type RecipientInvitations = components['schemas']['RecipientPendingInvitationsResult'];
 type DelegationAvailability = components['schemas']['FamilyDelegationAvailabilityDto'];
 export type FavoriteTeam = Exclude<components['schemas']['MobileProfilePreferenceBody']['favorite_team'], undefined>;
@@ -65,6 +91,11 @@ export interface MobileAuthState {
   familyRevokingPlayerId: string | null;
   familyRevokeError: string | null;
   familyRevokeSuccess: string | null;
+  guardianPermissions: GuardianPermissionPage | null;
+  guardianStatus: 'idle'|'loading'|'ready'|'error';
+  guardianError: string | null;
+  guardianPending: boolean;
+  guardianRevokingId: string | null;
   outgoingInvitations: OutgoingInvitations | null;
   outgoingStatus: 'idle' | 'loading' | 'ready' | 'error';
   outgoingError: string | null;
@@ -136,6 +167,8 @@ export function createMobileAuthController(options: {
     family: null, familyStatus: 'idle', familyError: null,
     activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null,
     familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
+    guardianPermissions:null,guardianStatus:'idle',guardianError:null,
+    guardianPending:false,guardianRevokingId:null,
     outgoingInvitations: null, outgoingStatus: 'idle', outgoingError: null,
     outgoingCancellingId: null, outgoingCancelError: null,
     recipientInvitations: null, recipientStatus: 'idle', recipientError: null,
@@ -157,6 +190,7 @@ export function createMobileAuthController(options: {
   let familyRevision = 0;
   let activeFamilyRevision = 0;
   let outgoingRevision = 0;
+  let guardianRevision = 0;
   let recipientRevision = 0;
   let delegationRevision = 0;
   let delegatedCalendarRevision = 0;
@@ -200,6 +234,9 @@ export function createMobileAuthController(options: {
     ++familyRevision;
     ++activeFamilyRevision;
     clearOutgoingInvitations();
+    ++guardianRevision;
+    update({guardianPermissions:null,guardianStatus:'idle',guardianError:null,
+      guardianPending:false,guardianRevokingId:null});
     update({ family: null, familyStatus: 'idle', familyError: null,
       familyRevokingPlayerId: null, familyRevokeError: null, familyRevokeSuccess: null,
       activeFamilyDelegations: null, activeFamilyStatus: 'idle', activeFamilyError: null });
@@ -636,6 +673,122 @@ export function createMobileAuthController(options: {
       } else update({familyRevokingPlayerId: null,
         familyRevokeError: error instanceof ApiFailure && error.status === 404
           ? 'Δεν υπάρχει ενεργή οικογενειακή πρόσβαση για ανάκληση.' : message(error)});
+      return false;
+    }
+  }
+
+  async function loadGuardianPermissions() {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||!identity?.current_role_available||
+      identity.role!=='parent'||!token||state.familyStatus!=='ready'||!family||
+      state.guardianStatus==='loading')return false;
+    const op=++guardianRevision;
+    const current=()=>op===guardianRevision&&state.user?.id===identity.id&&
+      state.user?.role==='parent'&&state.family===family&&state.status==='authenticated';
+    update({guardianPermissions:null,guardianStatus:'loading',guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions');
+      if(!current())return false;
+      if(!validGuardianPage(raw,family.children))throw Error('Μη έγκυρα δικαιώματα οικογένειας.');
+      update({guardianPermissions:raw,guardianStatus:'ready',guardianError:null});
+      return true;
+    }catch(e){
+      if(current())update({guardianPermissions:null,guardianStatus:'error',guardianError:message(e)});
+      return false;
+    }
+  }
+
+  async function createFamilyPermission(playerId:string,kind:'player'|'guardian',
+    phone:string,requestId:string) {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||state.familyStatus!=='ready'||
+      !family.children.some(ch=>ch.id===playerId)||!uuidPattern.test(requestId)||
+      !/^\+?[0-9 ()-]{8,24}$/.test(phone)||state.guardianPending)return false;
+    const op=guardianRevision,linked=familyRevision;
+    const current=()=>op===guardianRevision&&linked===familyRevision&&
+      state.user?.id===identity.id&&state.family===family&&state.status==='authenticated';
+    update({guardianPending:true,guardianError:null});
+    try{
+      const path='/api/mobile/family/children/'+encodeURIComponent(playerId)+
+        (kind==='guardian'?'/guardian-permissions':'/invitations');
+      const raw=await chatRequest(path,'POST',kind==='guardian'?
+        {phone,request_id:requestId}:{phone});
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('id' in raw)||
+        typeof raw.id!=='string'||!uuidPattern.test(raw.id)||
+        !('status' in raw)||raw.status!==(kind==='guardian'?'granted':'pending')||
+        (kind==='guardian'&&raw.id!==requestId))
+        throw Error('Η καταχώριση της άδειας δεν επαληθεύτηκε.');
+      update({guardianPending:false});
+      if(kind==='guardian')await loadGuardianPermissions();
+      else await loadOutgoingInvitations();
+      return true;
+    }catch(e){
+      if(current())update({guardianPending:false,guardianError:message(e)});
+      return false;
+    }
+  }
+
+  async function createManyGuardianPermissions(
+    children:Array<{player_id:string;request_id:string}>,phone:string) {
+    const identity=state.user,family=state.family;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||state.familyStatus!=='ready'||
+      children.length<2||children.length>100||
+      new Set(children.map(x=>x.player_id)).size!==children.length||
+      new Set(children.map(x=>x.request_id)).size!==children.length||
+      children.some(child=>!uuidPattern.test(child.request_id)||
+        !family.children.some(linked=>linked.id===child.player_id))||
+      !/^\\+?[0-9 ()-]{8,24}$/.test(phone)||state.guardianPending)return false;
+    const op=guardianRevision,linked=familyRevision,bearer=token;
+    const current=()=>op===guardianRevision&&linked===familyRevision&&
+      token===bearer&&state.user?.id===identity.id&&
+      state.family===family&&state.status==='authenticated';
+    update({guardianPending:true,guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions/bulk',
+        'POST',{phone,children});
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('items' in raw)||
+        !Array.isArray(raw.items)||raw.items.length!==children.length||
+        raw.items.some((v:unknown,i:number)=>{
+          if(!v||typeof v!=='object')return true;
+          const item=v as Record<string,unknown>;
+          return item.status!=='granted'||item.kind!=='guardian'||
+            item.player_id!==children[i].player_id||
+            item.id!==children[i].request_id;
+        }))throw Error('Δεν επαληθεύτηκε η καταχώριση για όλα τα παιδιά.');
+      update({guardianPending:false});
+      await loadGuardianPermissions();
+      return true;
+    }catch(e){
+      if(current())update({guardianPending:false,guardianError:message(e)});
+      return false;
+    }
+  }
+
+  async function revokeGuardianPermission(id:string) {
+    const identity=state.user,family=state.family,listed=state.guardianPermissions;
+    if(state.status!=='authenticated'||identity?.role!=='parent'||
+      !identity.current_role_available||!family||!listed||
+      !uuidPattern.test(id)||!listed.items.some(p=>p.id===id)||
+      state.guardianPending||state.guardianRevokingId)return false;
+    const op=guardianRevision;
+    const current=()=>op===guardianRevision&&state.user?.id===identity.id&&
+      state.family===family&&state.status==='authenticated';
+    update({guardianRevokingId:id,guardianError:null});
+    try{
+      const raw=await chatRequest('/api/mobile/family/guardian-permissions/'+
+        encodeURIComponent(id)+'/revoke','POST');
+      if(!current())return false;
+      if(!raw||typeof raw!=='object'||!('ok' in raw)||raw.ok!==true)
+        throw Error('Η ανάκληση δεν επαληθεύτηκε.');
+      update({guardianRevokingId:null,guardianPermissions:{
+        items:listed.items.filter(p=>p.id!==id)}});
+      return true;
+    }catch(e){
+      if(current())update({guardianRevokingId:null,guardianError:message(e)});
       return false;
     }
   }
@@ -1140,6 +1293,10 @@ export function createMobileAuthController(options: {
     loadFamily,
     loadActiveFamilyDelegations,
     loadOutgoingInvitations,
+    loadGuardianPermissions,
+    createFamilyPermission,
+    createManyGuardianPermissions,
+    revokeGuardianPermission,
     revokeFamilyDelegation,
     cancelOutgoingInvitation,
     loadRecipientInvitations,
@@ -1261,6 +1418,33 @@ export function createMobileAuthController(options: {
         if (revision !== operationRevision) return;
         applyOwnProfile(user, identity);
       }, true);
+    },
+    async getDevicePushConfig():Promise<DevicePushConfig> {
+      const raw=await chatRequest('/api/mobile/app/push');
+      if(!validDevicePushConfig(raw))
+        throw new Error('Unverified device push configuration.');
+      return raw;
+    },
+    async subscribeDevicePush(endpoint:string,p256dh:string,auth:string):Promise<boolean> {
+      if(typeof endpoint!=='string'||endpoint.length>2048||
+         typeof p256dh!=='string'||typeof auth!=='string')
+        throw new Error('Invalid browser push subscription.');
+      const raw=await chatRequest('/api/mobile/app/push/subscriptions','POST',{
+        endpoint,keys:{p256dh,auth}
+      });
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        !('subscribed' in raw)||raw.subscribed!==true)
+        throw new Error('Unverified device subscription.');
+      return true;
+    },
+    async unsubscribeDevicePush(endpoint:string):Promise<boolean> {
+      if(typeof endpoint!=='string'||endpoint.length>2048)
+        throw new Error('Invalid device endpoint.');
+      const raw=await chatRequest('/api/mobile/app/push/subscriptions','DELETE',{endpoint});
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        !('subscribed' in raw)||raw.subscribed!==false)
+        throw new Error('Unverified device unsubscribe.');
+      return true;
     },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
@@ -1481,6 +1665,55 @@ export function createMobileAuthController(options: {
         !('hidden' in result)||result.hidden!==true)
         throw new Error('Private chat hide not confirmed.');
       return true;
+    },
+    async downloadTrainingInvoice(ids:string[]):Promise<Blob> {
+      if(state.user?.role!=='parent'||state.status!=='authenticated'||
+         !state.user.current_role_available||!token||
+         ids.length<1||ids.length>20||ids.some(id=>!/^[0-9a-f-]{36}$/i.test(id))||
+         new Set(ids.map(id=>id.toLowerCase())).size!==ids.length)
+        throw new ApiFailure(403,'Μη έγκυρη επιλογή οικονομικού παραστατικού.');
+      const actor=state.user.id;
+      const tokenAtStart=token;
+      const operationRevision=revision;
+      const path=ids.length===1
+        ? '/api/mobile/finance/invoices/'+encodeURIComponent(ids[0])+'.pdf'
+        : '/api/mobile/finance/invoices/multi.pdf?ids='+encodeURIComponent(ids.join(','));
+      const response=await (options.fetch??globalThis.fetch)(options.baseUrl+path,{
+        method:'GET',cache:'no-store',
+        headers:{Authorization:'Bearer '+tokenAtStart,Accept:'application/pdf'}
+      });
+      if(token!==tokenAtStart||revision!==operationRevision||
+         state.user?.id!==actor||state.user?.role!=='parent'||
+         !state.user?.current_role_available)
+        throw new ApiFailure(401,'Η συνεδρία άλλαξε. Δοκιμάστε ξανά.');
+      if(!response.ok){
+        if(response.status===401)endSession('Η συνεδρία έληξε.');
+        throw new ApiFailure(response.status,'Δεν ήταν δυνατή η λήψη παραστατικού.');
+      }
+      const declared=Number(response.headers.get('content-length')||0);
+      if(!response.headers.get('content-type')?.startsWith('application/pdf')||
+         declared>2_000_000)
+        throw new ApiFailure(503,'Μη επαληθευμένο PDF.');
+      const pdf=await response.blob();
+      if(pdf.size<500||pdf.size>2_000_000||
+         await pdf.slice(0,5).text()!=='%PDF-')
+        throw new ApiFailure(503,'Μη έγκυρο PDF.');
+      if(token!==tokenAtStart||revision!==operationRevision||state.user?.id!==actor)
+        throw new ApiFailure(401,'Η συνεδρία άλλαξε.');
+      return pdf;
+    },
+    async getTrainingFees():Promise<unknown> {
+      if(state.user?.role!=='parent')throw new ApiFailure(403,'Μόνο ο επαληθευμένος γονέας μπορεί να δει οφειλές.');
+      return chatRequest('/api/mobile/finance/training-fees');
+    },
+    async saveTrainingFeePreferences(day:number,saveCard:boolean,automatic:boolean):Promise<unknown> {
+      if(state.user?.role!=='parent'||!Number.isInteger(day)||day<1||day>31||
+         typeof saveCard!=='boolean'||typeof automatic!=='boolean'||(automatic&&!saveCard))
+        throw new ApiFailure(403,'Μη έγκυρες προτιμήσεις πληρωμής.');
+      return chatRequest('/api/mobile/finance/preferences','PUT',{
+        preferred_day:day,save_card_requested:saveCard,
+        automatic_collection_requested:automatic
+      });
     },
     logout() { endSession(); },
     dispose() { ++revision; pendingCode = null; clearPlayerOptions(); clearCalendar(); clearFamily(); clearRecipientInvitations(); }

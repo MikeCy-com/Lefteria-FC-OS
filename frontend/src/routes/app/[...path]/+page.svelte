@@ -14,6 +14,7 @@
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
+  import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
@@ -161,6 +162,10 @@
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
         {/if}
+      {:else if activeTab === 'financials' && role === 'parent' && !composing}
+        {#key user.id+':'+role}
+          <MobileTrainingFees {controller}/>
+        {/key}
       {:else if activeTab === 'education' && role === 'parent' && !composing}
         <MobileAcademyEducation />
       {:else if activeTab === 'children' && role === 'parent' && !composing}
@@ -175,6 +180,17 @@
             activeDelegations={$controller.activeFamilyDelegations}
             activeStatus={$controller.activeFamilyStatus}
             activeError={$controller.activeFamilyError}
+            guardianPermissions={$controller.guardianPermissions}
+            guardianStatus={$controller.guardianStatus}
+            guardianError={$controller.guardianError}
+            guardianPending={$controller.guardianPending}
+            guardianRevokingId={$controller.guardianRevokingId}
+            onLoadGuardianPermissions={() => controller.loadGuardianPermissions()}
+            onCreatePermission={(playerId,kind,phone,requestId) =>
+              controller.createFamilyPermission(playerId,kind,phone,requestId)}
+            onCreateManyGuardian={(children,phone) =>
+              controller.createManyGuardianPermissions(children,phone)}
+            onRevokeGuardianPermission={(id) => controller.revokeGuardianPermission(id)}
             onLoadActive={() => controller.loadActiveFamilyDelegations()}
             onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
             revokingPlayerId={$controller.familyRevokingPlayerId}

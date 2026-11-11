@@ -32,6 +32,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ParentFamilyService>();
         services.AddScoped<IFamilyInvitationRepository, PostgresFamilyInvitationRepository>();
         services.AddScoped<FamilyInvitationService>();
+        services.AddScoped<IGuardianPermissionRepository, PostgresGuardianPermissionRepository>();
+        services.AddScoped<GuardianPermissionService>();
         services.AddScoped<IAcademyLeadWriter, PostgresAcademyLeadWriter>();
         services.AddScoped<AcademyLeadSubmissionService>();
         services.AddScoped<IFirstTeamTrialDisplayReader, PostgresFirstTeamTrialDisplayReader>();
