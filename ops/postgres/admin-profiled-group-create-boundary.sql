@@ -30,7 +30,7 @@ DO $negative$
 BEGIN
   BEGIN
     PERFORM club.create_admin_group_with_profile(
-      'invalid','lefteria_fc','grp_00000000000000000000000000000001',
+      repeat('0',64),'lefteria_fc','grp_00000000000000000000000000000001',
       'First Team','11111111-1111-1111-1111-111111111111'::uuid,
       '{"level":"Α Ομάδα","description":"","banner_url":""}'::jsonb);
     RAISE EXCEPTION 'profiled_group_unauthenticated_write_accepted';
