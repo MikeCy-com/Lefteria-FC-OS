@@ -27,9 +27,9 @@ BEGIN
   THEN RAISE EXCEPTION 'pos_cashier_role_boundary_invalid'; END IF;
 
   FOREACH f IN ARRAY ARRAY[
-    'pos.read_admin_cashier_registers(text,text)'::regprocedure::oid,
-    'pos.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
-    'pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
+    'pos_cashier.read_admin_cashier_registers(text,text)'::regprocedure::oid,
+    'pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
+    'pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS (SELECT 1 FROM pg_proc p
       JOIN pg_language l ON l.oid=p.prolang
@@ -40,18 +40,18 @@ BEGIN
     THEN RAISE EXCEPTION 'pos_cashier_definer_unhardened'; END IF;
   END LOOP;
   IF has_function_privilege(a,
-    'pos.current_cashier_authority(text,text,text)','EXECUTE')
+    'pos_cashier.current_cashier_authority(text,text,text)','EXECUTE')
     OR has_function_privilege(m,
-    'pos.current_cashier_authority(text,text,text)','EXECUTE')
+    'pos_cashier.current_cashier_authority(text,text,text)','EXECUTE')
   THEN RAISE EXCEPTION 'pos_cashier_helper_exposed'; END IF;
 END $check$;
 
-GRANT USAGE ON SCHEMA pos TO :"admin_auth_role";
-GRANT EXECUTE ON FUNCTION pos.read_admin_cashier_registers(text,text)
+GRANT USAGE ON SCHEMA pos_cashier TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_cashier_registers(text,text)
   TO :"admin_auth_role";
-GRANT EXECUTE ON FUNCTION pos.open_admin_cashier_shift(text,text,text,bigint,uuid)
+GRANT EXECUTE ON FUNCTION pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)
   TO :"admin_auth_role";
-GRANT EXECUTE ON FUNCTION pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid)
+GRANT EXECUTE ON FUNCTION pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)
   TO :"admin_auth_role";
 
 DO $verify$
@@ -61,9 +61,9 @@ DECLARE
   f oid; t text;
 BEGIN
   FOREACH f IN ARRAY ARRAY[
-    'pos.read_admin_cashier_registers(text,text)'::regprocedure::oid,
-    'pos.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
-    'pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
+    'pos_cashier.read_admin_cashier_registers(text,text)'::regprocedure::oid,
+    'pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
+    'pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(a,f,'EXECUTE')
       OR has_function_privilege(m,f,'EXECUTE')
@@ -74,8 +74,8 @@ BEGIN
     'sale_lines','payment_events','receipts','returns','return_lines',
     'refund_events','transaction_audit'
   ] LOOP
-    IF has_table_privilege(a,format('pos.%I',t),'SELECT,INSERT,UPDATE,DELETE')
-       OR has_table_privilege(m,format('pos.%I',t),'SELECT,INSERT,UPDATE,DELETE')
+    IF has_table_privilege(a,format('pos_cashier.%I',t),'SELECT,INSERT,UPDATE,DELETE')
+       OR has_table_privilege(m,format('pos_cashier.%I',t),'SELECT,INSERT,UPDATE,DELETE')
     THEN RAISE EXCEPTION 'pos_cashier_raw_table_exposed'; END IF;
   END LOOP;
 END $verify$;
