@@ -70,7 +70,7 @@ BEGIN
     THEN RAISE EXCEPTION 'pos_cashier_execute_scope_invalid'; END IF;
   END LOOP;
   FOREACH t IN ARRAY ARRAY[
-    'locations','registers','cashier_assignments','shifts','stock','sales',
+    'registers','cashier_assignments','shifts','stock','sales',
     'sale_lines','payment_events','receipts','returns','return_lines',
     'refund_events','transaction_audit'
   ] LOOP
