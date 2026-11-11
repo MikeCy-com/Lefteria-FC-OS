@@ -61,7 +61,7 @@ public sealed class PosCashierShiftOperations : Migration
           JOIN pos_cashier.registers r
             ON r.organization_id=_owner AND r.id=_register AND r.is_active
           JOIN pos.locations l
-            ON l.organization_id=_owner AND l.id=r.location_id AND l.is_active
+            ON l.organization_id=_owner AND l.id=r.location_id AND l.active
           WHERE s.token_digest=_digest AND s.revoked_at IS NULL
             AND s.expires_at>clock_timestamp() AND a.is_active
             AND NOT a.invite_pending AND NOT a.otp2fa_enabled
@@ -102,7 +102,7 @@ public sealed class PosCashierShiftOperations : Migration
           JOIN pos_cashier.cashier_assignments ca
             ON ca.organization_id=r.organization_id AND ca.register_id=r.id
               AND ca.admin_account_id=v_actor AND ca.is_active
-          WHERE r.organization_id=_owner AND r.is_active AND l.is_active;
+          WHERE r.organization_id=_owner AND r.is_active AND l.active;
         IF v_total>100 THEN
           RAISE EXCEPTION 'cashier_registers_too_many' USING ERRCODE='54000';
         END IF;
@@ -120,7 +120,7 @@ public sealed class PosCashierShiftOperations : Migration
           LEFT JOIN pos_cashier.shifts sh
             ON sh.organization_id=r.organization_id
               AND sh.register_id=r.id AND sh.closed_at IS NULL
-          WHERE r.organization_id=_owner AND r.is_active AND l.is_active;
+          WHERE r.organization_id=_owner AND r.is_active AND l.active;
         RETURN jsonb_build_object('organization_id',_owner,
           'registers',v_rows,'total',v_total);
       END $read$;
