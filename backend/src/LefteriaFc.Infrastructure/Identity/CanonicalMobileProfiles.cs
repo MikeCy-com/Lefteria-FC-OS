@@ -37,6 +37,14 @@ internal static class CanonicalMobileProfiles
                   JOIN club.players p ON p.id=l.record_id
                   WHERE l.collection='players' AND l.kind IN ('player_own','guardian')
                     AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
+                  UNION
+                  SELECT i.id,grant_row.player_id,grant_row.team_id,
+                    grant_row.organization_id,grant_row.is_primary
+                  FROM requested i
+                  JOIN LATERAL identity.current_phone_granted_children(
+                    i.id,i.normalized_phone,i.role,
+                    statement_timestamp()+interval '1 minute') grant_row ON true
+                  WHERE i.role='parent'
                 ), player_groups AS (
                   SELECT DISTINCT p.identity_id,g.academy_group_id
                   FROM player_links p JOIN club.player_academy_groups g
@@ -90,9 +98,9 @@ internal static class CanonicalMobileProfiles
                 {
                     "management"=>manager,
                     "fan"=>true,
-                    _ when native=>true, // Explicit owner-provisioned grant; private operations still require canonical links.
-                    "parent"=>players.Length>0,
-                    "player"=>players.Length==1,
+                    "parent"=>players.Length>0, // Current canonical or direct phone grant is mandatory.
+                    "player"=>players.Length==1, // A player never inherits parent permissions.
+                    _ when native=>true, // Remaining owner-provisioned roles preserve their grant checks.
                     "coach"=>coach,
                     _=>false
                 });

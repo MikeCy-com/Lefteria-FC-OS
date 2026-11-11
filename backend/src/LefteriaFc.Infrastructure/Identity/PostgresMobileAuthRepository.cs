@@ -193,6 +193,53 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             return await MapProfilesAsync(context, rows, cancellationToken);
         }
 
+        public async Task<bool> HasCurrentGuardianPhoneGrantAsync(
+            PhoneNumber phone, CancellationToken cancellationToken)
+        {
+            var eligibility=await context.Database.SqlQuery<bool>($"""
+                SELECT identity.has_current_guardian_phone_grant({phone.Digits}) AS "Value"
+                """).SingleAsync(cancellationToken);
+            return eligibility;
+        }
+
+        public async Task<MobileIdentityProfile> EnsureGrantedParentIdentityAsync(
+            PhoneNumber phone, string platform, DateTimeOffset now,
+            CancellationToken cancellationToken)
+        {
+            // This method is called only *after* OTP proof succeeds within
+            // the locked challenge transaction. A parent's entered number
+            // is not an authentication credential.
+            if (!await HasCurrentGuardianPhoneGrantAsync(phone,cancellationToken))
+                throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.RoleUnavailable,
+                    "Guardian phone grant is no longer available.");
+            var existing=await context.MobileIdentities.SingleOrDefaultAsync(
+                row=>row.NormalizedPhone==phone.Digits && row.Role=="parent",
+                cancellationToken);
+            if(existing is not null)
+            {
+                if(!existing.IsActive)
+                    throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                        MobileAuthErrorCode.AccountUnavailable,
+                        "Disabled parent identity cannot be restored by a phone grant.");
+                lockedIdentities.Add(existing.Id);
+                return (await MapProfilesAsync(context,[existing],cancellationToken)).Single();
+            }
+            var row=new MobileIdentityRecord
+            {
+                Id=Guid.NewGuid(),NormalizedPhone=phone.Digits,Role="parent",
+                DisplayName="Γονέας / Κηδεμόνας",IsActive=true,
+                Platform=platform,CreatedAt=now
+            };
+            context.MobileIdentities.Add(row);
+            context.SecurityAuditEvents.Add(MapAudit(new AuthAuditEntry(
+                "mobile.family.phone_parent.provision",
+                "success",now,row.Id)));
+            await context.SaveChangesAsync(cancellationToken);
+            lockedIdentities.Add(row.Id);
+            return (await MapProfilesAsync(context,[row],cancellationToken)).Single();
+        }
+
         public async Task<MobileIdentityProfile> UpsertVerifiedFanAsync(PhoneNumber phone,
             PendingFanRegistration registration, string platform, DateTimeOffset now, CancellationToken cancellationToken)
         {

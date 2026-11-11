@@ -33,6 +33,15 @@ internal static class OperationalScopeSql
           WHERE (i.role='parent' AND l.collection='players' AND l.kind='guardian'
               OR i.role='player' AND l.collection='players' AND l.kind='player_own')
             AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
+          UNION
+          SELECT p.id,p.organization_id,p.team_id,false
+          FROM requested i
+          JOIN LATERAL identity.current_phone_granted_children(
+            i.id,i.normalized_phone,i.role,@expires) permission ON true
+          JOIN club.players p ON p.id=permission.player_id
+            AND p.organization_id=permission.organization_id
+          WHERE i.role='parent' AND p.is_active
+            AND NOT p.is_archived AND NOT p.is_transferred
         ), coach_staff AS (
           SELECT s.id FROM requested i JOIN identity.mobile_record_links l
             ON l.identity_id=i.id AND l.role='coach' AND i.role='coach' AND l.normalized_phone=i.normalized_phone
