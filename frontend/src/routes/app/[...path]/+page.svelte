@@ -14,6 +14,7 @@
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
+  import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
@@ -122,7 +123,7 @@
             onLoadFamily={() => controller.loadFamily()}
             onLoadCalendar={(month, childId) => controller.loadCalendar(month, childId)}
             onChildren={() => openTab('children')}
-            onEducation={() => openTab('hub')
+            onEducation={() => openTab('hub')}
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'profile' && !composing}
@@ -161,6 +162,10 @@
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
         {/if}
+      {:else if activeTab === 'financials' && role === 'parent' && !composing}
+        {#key user.id+':'+role}
+          <MobileTrainingFees {controller}/>
+        {/key}
       {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
         {#key user.id+':'+role}
           <MobileAcademyEducation viewerRole={role} />
@@ -177,6 +182,17 @@
             activeDelegations={$controller.activeFamilyDelegations}
             activeStatus={$controller.activeFamilyStatus}
             activeError={$controller.activeFamilyError}
+            guardianPermissions={$controller.guardianPermissions}
+            guardianStatus={$controller.guardianStatus}
+            guardianError={$controller.guardianError}
+            guardianPending={$controller.guardianPending}
+            guardianRevokingId={$controller.guardianRevokingId}
+            onLoadGuardianPermissions={() => controller.loadGuardianPermissions()}
+            onCreatePermission={(playerId,kind,phone,requestId) =>
+              controller.createFamilyPermission(playerId,kind,phone,requestId)}
+            onCreateManyGuardian={(children,phone) =>
+              controller.createManyGuardianPermissions(children,phone)}
+            onRevokeGuardianPermission={(id) => controller.revokeGuardianPermission(id)}
             onLoadActive={() => controller.loadActiveFamilyDelegations()}
             onRevokeDelegation={(id) => controller.revokeFamilyDelegation(id)}
             revokingPlayerId={$controller.familyRevokingPlayerId}

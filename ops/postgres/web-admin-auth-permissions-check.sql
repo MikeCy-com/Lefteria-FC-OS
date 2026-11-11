@@ -97,7 +97,12 @@ BEGIN
                   'club.read_admin_app_announcement_readers(text,text,text)'::regprocedure,
                   'club.write_admin_app_announcement_media(text,text,text,bigint,uuid,text,text,text,bytea)'::regprocedure,
                   'club.remove_admin_app_announcement_media(text,text,text,bigint,uuid)'::regprocedure,
-                  'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure)) THEN
+                  'club.remove_admin_app_announcement(text,text,text,bigint)'::regprocedure,
+                  'club.read_admin_academy_training_sessions(text,text,text,date,date)'::regprocedure,
+                  'club.read_admin_academy_training_attendance(text,text,text)'::regprocedure,
+                  'club.record_admin_academy_training_attendance(text,text,text,text,text,integer)'::regprocedure,
+                  'marketing.read_admin_academy_leads(text,text,integer,integer,text)'::regprocedure,
+                  'marketing.update_admin_academy_lead_status(text,text,uuid,text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
   END IF;
 

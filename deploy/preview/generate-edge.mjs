@@ -73,6 +73,17 @@ export function protectedOperations(document) {
           }
           return '[^/]+';
         }
+        // Only two reviewed private invoice downloads use a literal .pdf
+        // suffix. Never allow arbitrary dotted paths in the Mobile router.
+        if (method === 'get' && path === '/api/mobile/finance/invoices/multi.pdf' &&
+            segment === 'multi.pdf') return 'multi[.]pdf';
+        if (method === 'get' && path === '/api/mobile/finance/invoices/{invoiceId}.pdf' &&
+            segment === '{invoiceId}.pdf') {
+          if (!declaredParameters.some(value => value?.in === 'path' &&
+              value.name === 'invoiceId' && value.required === true))
+            throw new Error('A path parameter must be explicitly required.');
+          return '[0-9a-fA-F-]{36}[.]pdf';
+        }
         if (!/^[a-zA-Z0-9_-]+$/.test(segment)) throw new Error('Unsafe Mobile operation path.');
         return segment;
       });
