@@ -12,7 +12,7 @@ test('finance handoff is read-only and current-manager scoped',()=>{
   assert.match(db,/admin_organization_grants g/);
   assert.match(db,/s.revoked_at IS NULL/);
   assert.match(db,/v_role NOT IN \('manager','super_admin'\)/);
-  assert.match(db,/REVOKE ALL ON FUNCTION pos.read_admin_finance_handoff/);
+  assert.match(db,/REVOKE ALL ON FUNCTION pos_cashier.read_admin_finance_handoff/);
   assert.doesNotMatch(db,/INSERT INTO|UPDATE (?:finance|club|academy)\.|GRANT EXECUTE/);
 });
 test('finance handoff correctly separates receipts from verified refunds',()=>{
@@ -28,7 +28,7 @@ test('HTTP route enforces both finance read and POS management',()=>{
   assert.match(api,/ReadAdminPosFinanceHandoff/);
   assert.match(api,/Authority\(auth, organization_id, context, ct\)/);
   assert.match(api,/AdminPermissions.Has\(session.User.Role, "finance:read"\)/);
-  assert.match(api,/pos.read_admin_finance_handoff/);
+  assert.match(api,/pos_cashier.read_admin_finance_handoff/);
   assert.doesNotMatch(api,/MapPost\("\/finance-handoff"/);
 });
 test('milestone requires all four phases and no unverified rollout',()=>{
