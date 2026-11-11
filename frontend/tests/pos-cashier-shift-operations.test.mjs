@@ -24,12 +24,12 @@ test('cashier shift opens are idempotent and only one shift may be open',()=>{
   assert.match(sql,/CREATE UNIQUE INDEX uq_pos_shift_open_request/);
   assert.match(sql,/open_request_id=_request FOR UPDATE/);
   assert.match(sql,/cashier_open_replay_mismatch/);
-  assert.match(sql,/INSERT INTO pos\.shifts/);
+  assert.match(sql,/INSERT INTO pos_cashier\.shifts/);
   assert.match(sql,/shift_open/);
 });
 test('shift close is cashier-owned, cash reconciled and cannot silently discard pending transactions',()=>{
   assert.match(sql,/v_actor<>v_shift\.cashier_id/);
-  assert.match(sql,/pos\.sales WHERE organization_id=_owner/);
+  assert.match(sql,/pos_cashier\.sales WHERE organization_id=_owner/);
   assert.match(sql,/status NOT IN \('paid','voided'\)/);
   assert.match(sql,/f\.status='pending'/);
   assert.match(sql,/p\.status='verified' AND p\.payment_kind='cash'/);
@@ -38,7 +38,7 @@ test('shift close is cashier-owned, cash reconciled and cannot silently discard 
   assert.match(sql,/variance_cents=_counted-v_expected/);
   assert.match(sql,/cashier_shift_already_closed/);
   assert.match(sql,/close_request_id=_request/);
-  assert.match(sql,/INSERT INTO pos\.transaction_audit/);
+  assert.match(sql,/INSERT INTO pos_cashier\.transaction_audit/);
 });
 test('HTTP endpoints use verified current web admin role and never enable payment checkout',()=>{
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
@@ -46,20 +46,20 @@ test('HTTP endpoints use verified current web admin role and never enable paymen
   assert.match(api,/AdminPermissions\.Has\(session\.User\.Role, "shop:write"\)/);
   assert.match(api,/session\.User\.Organizations\.Any/);
   assert.match(api,/CacheControl = "private, no-store"/);
-  assert.match(api,/pos\.read_admin_cashier_registers/);
-  assert.match(api,/pos\.open_admin_cashier_shift/);
-  assert.match(api,/pos\.close_admin_cashier_shift/);
+  assert.match(api,/pos_cashier\.read_admin_cashier_registers/);
+  assert.match(api,/pos_cashier\.open_admin_cashier_shift/);
+  assert.match(api,/pos_cashier\.close_admin_cashier_shift/);
   assert.match(api,/secrets\.TokenDigest\(cookie\)/);
   assert.match(main,/app\.MapAdminPosCashier\(\)/);
   assert.doesNotMatch(api,/capture_card|execute_refund|receipt\.issue/);
 });
 test('manual narrow database grants do not expose raw financial records to other roles',()=>{
-  assert.match(sql,/REVOKE ALL ON FUNCTION pos\.open_admin_cashier_shift/);
-  assert.match(sql,/REVOKE ALL ON FUNCTION pos\.close_admin_cashier_shift/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION pos_cashier\.open_admin_cashier_shift/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION pos_cashier\.close_admin_cashier_shift/);
   assert.match(grants,/pos_cashier_definer_unhardened/);
   assert.match(grants,/has_function_privilege\(m,f,'EXECUTE'\)/);
   assert.match(grants,/pos_cashier_raw_table_exposed/);
-  assert.match(grants,/pos\.current_cashier_authority\(text,text,text\)/);
+  assert.match(grants,/pos_cashier\.current_cashier_authority\(text,text,text\)/);
   assert.doesNotMatch(grants,/GRANT (SELECT|INSERT|UPDATE|DELETE) ON/);
 });
 test('admin panel only exposes selected register and cash shift actions',()=>{
