@@ -127,6 +127,18 @@ public interface IMobileAuthTransaction : IAsyncDisposable
     Task<IReadOnlyList<MobileIdentityProfile>> LoadIdentityProfilesForUpdateAsync(PhoneNumber phone,
         CancellationToken cancellationToken);
 
+    // Read-only eligibility based on currently valid issued guardian phone
+    // permission. It never verifies a phone or grants a session by itself.
+    Task<bool> HasCurrentGuardianPhoneGrantAsync(PhoneNumber phone,
+        CancellationToken cancellationToken) => Task.FromResult(false);
+
+    // Must be called ONLY after a successful OTP comparison and inside its
+    // locked transaction. Does not reactivate disabled Parent identities.
+    Task<MobileIdentityProfile> EnsureGrantedParentIdentityAsync(PhoneNumber phone,
+        string platform, DateTimeOffset now, CancellationToken cancellationToken) =>
+        throw new InvalidOperationException("Direct guardian phone login not configured.");
+
+
     // Called only after a successful OTP comparison. Neither operation may reactivate
     // a disabled existing fan. Ensure preserves an existing fan's name/preferences.
     // Writes must be visible to subsequent transaction reads (flush without commit,

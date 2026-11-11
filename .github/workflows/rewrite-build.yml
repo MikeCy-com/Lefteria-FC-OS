@@ -131,6 +131,8 @@ jobs:
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_APP_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_APP_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/identity-app-permissions-check.sql'
+          # New guardian permission functions are explicit runtime grants; verify only on disposable CI PostgreSQL.
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/guardian-permission-grants.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/create-web-admin-auth-role.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-attendance-admin-grants.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-checks.sql
@@ -158,6 +160,16 @@ jobs:
             -v ON_ERROR_STOP=1 -v app_role="$DATABASE_APP_USER" \
             -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" \
             -f /opt/lefteria-postgres/general-charge-private-ledger-checks.sql
+      - name: Check Academy profile migration boundaries in disposable PostgreSQL
+        run: |
+          docker cp ops/postgres/admin-academy-profile-boundary.sql identity-postgres:/tmp/admin-academy-profile-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/admin-academy-profile-boundary.sql
+          docker cp ops/postgres/admin-first-team-profile-boundary.sql identity-postgres:/tmp/admin-first-team-profile-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/admin-first-team-profile-boundary.sql
+          docker cp ops/postgres/admin-profiled-group-create-boundary.sql identity-postgres:/tmp/admin-profiled-group-create-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/admin-profiled-group-create-boundary.sql
+          docker cp ops/postgres/guardian-permission-boundary.sql identity-postgres:/tmp/guardian-permission-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /tmp/guardian-permission-boundary.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
@@ -234,6 +246,8 @@ jobs:
       - run: git diff --exit-code -- frontend/src/lib/api/schema.d.ts
       - run: npm run check
         working-directory: frontend
+      - name: Audit source-led route and mobile role coverage
+        run: node frontend/scripts/audit-original-parity.mjs
       - run: npm test
         working-directory: frontend
       - name: Verify that no unapproved OS release can pass the readiness gate

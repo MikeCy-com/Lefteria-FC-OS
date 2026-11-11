@@ -37,6 +37,6 @@ test('group create form requires live manager capability and verifies server res
   assert.match(page,/response\.status === 409/);
   assert.match(page,/^\s*if \(!response\.ok\)/m);
   assert.match(page,/\^grp_\[0-9a-f\]\{32\}\$/);
-  assert.match(page,/showCreate = false;\s*groupName = '';\s*retry\+\+;/);
+  assert.match(page,/showCreate = false;\s*groupName = '';\s*createRequestId='';\s*retry\+\+;/);
   assert.doesNotMatch(page,/\{@html|innerHTML|\/api\/admin\/messages|\/api\/mobile\/notify/i);
 });

@@ -1798,6 +1798,93 @@
         ],
         "type": "object"
       },
+      "GuardianBulkChild": {
+        "properties": {
+          "player_id": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "GuardianBulkResult": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianPermissionDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "GuardianPermissionDto": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "recipient_hint": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "player_id",
+          "organization_id",
+          "kind",
+          "status",
+          "expires_at",
+          "recipient_hint"
+        ],
+        "type": "object"
+      },
+      "GuardianPermissionsResult": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianPermissionDto"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "HealthResponse": {
         "properties": {
           "status": {
@@ -1820,6 +1907,49 @@
         },
         "required": [
           "phone"
+        ],
+        "type": "object"
+      },
+      "IssueGuardianPermissionBody": {
+        "properties": {
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "IssueManyGuardianPermissionsBody": {
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/GuardianBulkChild"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "phone",
+          "children"
         ],
         "type": "object"
       },
@@ -3944,6 +4074,64 @@
           "request_id",
           "shift_id",
           "items"
+        ],
+        "type": "object"
+      },
+      "ProfileWrite": {
+        "properties": {
+          "age_range": {
+            "type": "string"
+          },
+          "banner_url": {
+            "type": "string"
+          },
+          "coach_name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "display_order": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "expected_revision": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "max_players": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "season": {
+            "type": "string"
+          },
+          "training_schedule": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "age_range",
+          "coach_name",
+          "training_schedule",
+          "description",
+          "max_players",
+          "season",
+          "banner_url",
+          "display_order"
         ],
         "type": "object"
       },
@@ -9641,6 +9829,84 @@
         ]
       }
     },
+    "/api/admin/football/academy-group-profiles/{groupId}": {
+      "get": {
+        "operationId": "ReadAdminAcademyGroupProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy administration"
+        ]
+      },
+      "put": {
+        "operationId": "WriteAdminAcademyGroupProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy administration"
+        ]
+      }
+    },
     "/api/admin/football/assignments": {
       "put": {
         "operationId": "PutAdminRosterAssignment",
@@ -10085,6 +10351,84 @@
         ]
       }
     },
+    "/api/admin/football/first-team-profiles/{teamId}": {
+      "get": {
+        "operationId": "ReadAdminFirstTeamProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Football administration"
+        ]
+      },
+      "put": {
+        "operationId": "WriteAdminFirstTeamProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "teamId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Football administration"
+        ]
+      }
+    },
     "/api/admin/football/groups": {
       "post": {
         "operationId": "CreateAdminRosterGroup",
@@ -10203,6 +10547,33 @@
               }
             },
             "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Football administration"
+        ]
+      }
+    },
+    "/api/admin/football/groups/with-profile": {
+      "post": {
+        "operationId": "CreateAdminProfiledGroup",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         },
         "security": [
@@ -15338,6 +15709,131 @@
         ]
       }
     },
+    "/api/mobile/family/children/{playerId}/guardian-permissions": {
+      "post": {
+        "operationId": "IssueGuardianPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueGuardianPermissionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianPermissionDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile family"
+        ]
+      }
+    },
     "/api/mobile/family/children/{playerId}/invitations": {
       "post": {
         "operationId": "IssuePendingFamilyInvitation",
@@ -15536,6 +16032,322 @@
               }
             },
             "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile family"
+        ]
+      }
+    },
+    "/api/mobile/family/guardian-permissions": {
+      "get": {
+        "operationId": "GetIssuedGuardianPermissions",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianPermissionsResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile family"
+        ]
+      }
+    },
+    "/api/mobile/family/guardian-permissions/bulk": {
+      "post": {
+        "operationId": "IssueManyGuardianPermissions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueManyGuardianPermissionsBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GuardianBulkResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile family"
+        ]
+      }
+    },
+    "/api/mobile/family/guardian-permissions/{permissionId}/revoke": {
+      "post": {
+        "operationId": "RevokeIssuedGuardianPermission",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "permissionId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyOperationResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
           },
           "422": {
             "content": {
@@ -18304,6 +19116,9 @@
     },
     {
       "name": "POS cashier administration"
+    },
+    {
+      "name": "Academy administration"
     },
     {
       "name": "Academy evaluations"
