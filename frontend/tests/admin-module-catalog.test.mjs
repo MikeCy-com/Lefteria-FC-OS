@@ -10,12 +10,12 @@ const user = (permissions, organizations = ['lefteria_fc'], role = 'manager') =>
 const modules = session => adminSectionsFor(session).flatMap(section => section.modules);
 const ids = session => modules(session).map(module => module.id);
 const groups = session => adminSectionsFor(session).map(section => section.id);
-const legacyIds = session => ids(session).filter(id=>id!=='onboarding');
+const legacyIds = session => ids(session).filter(id=>id!=='onboarding' && !id.startsWith('hub_'));
 const read = path => readFileSync(new URL('../src/lib/admin/' + path, import.meta.url), 'utf8');
 
 test('admin categories follow legacy website, CRM, POS, finance and football ownership', () => {
   const all = user(['*:*'], ['lefteria_fc', 'lefteria_fc_academy'], 'super_admin');
-  assert.deepEqual(groups(all), ['website', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
+  assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
     ['club', '/admin/club'], ['news', '/admin/news'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
@@ -29,7 +29,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
 
 test('the dashboard cannot leak first-team, financial, POS or Academy modules across grants', () => {
   assert.deepEqual(adminSectionsFor(user(['*:*'], [])), []);
-  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','operations']);
+  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub','operations']);
   assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
