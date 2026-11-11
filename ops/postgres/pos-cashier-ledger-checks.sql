@@ -6,7 +6,7 @@ DO $checks$
 DECLARE name text;
 BEGIN
   FOREACH name IN ARRAY ARRAY[
-    'locations','registers','cashier_assignments','shifts','stock','sales',
+    'registers','cashier_assignments','shifts','stock','sales',
     'sale_lines','payment_events','receipt_sequences','receipts','returns',
     'return_lines','refund_events','transaction_audit','checkout_policies','sale_reservations',
     'vat_treatments','variant_vat_assignments','payabl_notification_inbox',
