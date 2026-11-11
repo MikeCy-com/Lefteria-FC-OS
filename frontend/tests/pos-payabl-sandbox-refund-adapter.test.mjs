@@ -38,5 +38,5 @@ test('Refund is bound to original captured transaction, currency and exact cents
 test('Sandbox request response never directly issues a refund or financial posting',()=>{
  assert.match(source,/RequiresConfirmation/);
  assert.match(source,/RefundGatewayResponse\(id, status, error, messageText, true\)/);
- assert.doesNotMatch(source,/UPDATE pos\.|INSERT INTO pos\.|ExecuteNonQueryAsync|MapPost\(|settle_exact_cash_sale/);
+ assert.doesNotMatch(source,/UPDATE pos_cashier\.|INSERT INTO pos_cashier\.|ExecuteNonQueryAsync|MapPost\(|settle_exact_cash_sale/);
 });
