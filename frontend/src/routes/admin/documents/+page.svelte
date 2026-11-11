@@ -16,6 +16,7 @@
     player_id:string;total:number;documents:Doc[];
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  const isUnavailable=$derived($auth.status === 'unavailable');
   type Organization='lefteria_fc'|'lefteria_fc_academy';
   const availableOrgs=$derived($auth.status==='authenticated' && $auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role)
@@ -114,7 +115,7 @@
         Προβάλλονται μόνο κατηγορίες, ημερομηνίες και κατάσταση λήξης. Τα ίδια τα αρχεία,
         οι μεταφορτώσεις και οι λήψεις δεν έχουν ακόμη ενεργοποιηθεί.
       </p>
-      <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+      <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
       {#if permitted}
         <label class="flex flex-col gap-1 text-sm">Οργανισμός
@@ -159,6 +160,6 @@
     </section>
   </AdminFrame>
 {:else}
-  <AdminSessionStatus unavailable={$auth.status === 'unavailable'} busy={$auth.busy} error={$auth.error}
+  <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
 {/if}
