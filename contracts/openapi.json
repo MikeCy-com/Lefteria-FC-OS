@@ -1409,6 +1409,102 @@
         ],
         "type": "object"
       },
+      "CreateEvaluationCommand": {
+        "properties": {
+          "character": {
+            "additionalProperties": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "notes": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "overall": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "physical": {
+            "additionalProperties": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tactical": {
+            "additionalProperties": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          },
+          "technical": {
+            "additionalProperties": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            },
+            "type": [
+              "null",
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "summary",
+          "notes",
+          "technical",
+          "tactical",
+          "physical",
+          "character",
+          "overall"
+        ],
+        "type": "object"
+      },
       "FamilyChildDto": {
         "properties": {
           "academy_group_ids": {
@@ -7394,6 +7490,152 @@
         ],
         "tags": [
           "Club settings"
+        ]
+      }
+    },
+    "/api/admin/club/players/{playerId}/documents": {
+      "get": {
+        "operationId": "ReadAdminAcademyPlayerDocuments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy protected documents"
+        ]
+      },
+      "post": {
+        "operationId": "QuarantineAdminPlayerDocument",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Protected player document quarantine"
+        ]
+      }
+    },
+    "/api/admin/club/players/{playerId}/evaluations": {
+      "get": {
+        "operationId": "ReadAdminAcademyPlayerEvaluations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy evaluations"
+        ]
+      },
+      "post": {
+        "operationId": "CreateAdminPlayerEvaluation",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEvaluationCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy evaluations"
         ]
       }
     },
@@ -17051,6 +17293,15 @@
     },
     {
       "name": "Club settings"
+    },
+    {
+      "name": "Academy evaluations"
+    },
+    {
+      "name": "Academy protected documents"
+    },
+    {
+      "name": "Protected player document quarantine"
     },
     {
       "name": "Academy training attendance"
