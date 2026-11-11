@@ -123,12 +123,14 @@ app.UseForwardedHeaders();
 // cacheable private data. Public content and avatars are unaffected.
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/api/mobile", StringComparison.OrdinalIgnoreCase))
+    if (context.Request.Path.StartsWithSegments("/api/mobile", StringComparison.OrdinalIgnoreCase) ||
+        context.Request.Path.StartsWithSegments("/api/admin", StringComparison.OrdinalIgnoreCase))
     {
         context.Response.OnStarting(() =>
         {
             context.Response.Headers.CacheControl = "private, no-store";
             context.Response.Headers.Pragma = "no-cache";
+            context.Response.Headers["Expires"] = "0";
             return Task.CompletedTask;
         });
     }
