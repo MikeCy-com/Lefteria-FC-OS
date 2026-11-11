@@ -25,9 +25,9 @@ test('signed Payabl notifications alone cannot change paid status or issue recei
   assert.match(inbox,/provider_rechecked_at/);
   assert.match(inbox,/UNIQUE\(merchant_id,provider_transaction_id,notification_type,gateway_error_code\)/);
   assert.match(inbox,/UNIQUE\(organization_id,evidence_sha256\)/);
-  assert.match(inbox,/REVOKE ALL ON pos.payabl_notification_inbox FROM PUBLIC/);
-  assert.match(inbox,/ALTER TABLE pos.payabl_notification_inbox ENABLE ROW LEVEL SECURITY/);
-  assert.doesNotMatch(inbox,/INSERT INTO pos.payment_events|UPDATE pos.sales|INSERT INTO pos.receipts/);
+  assert.match(inbox,/REVOKE ALL ON pos_cashier.payabl_notification_inbox FROM PUBLIC/);
+  assert.match(inbox,/ALTER TABLE pos_cashier.payabl_notification_inbox ENABLE ROW LEVEL SECURITY/);
+  assert.doesNotMatch(inbox,/INSERT INTO pos_cashier.payment_events|UPDATE pos_cashier.sales|INSERT INTO pos_cashier.receipts/);
   assert.doesNotMatch(verifier,/MapPost\(|Results.Ok\(|ExecuteNonQueryAsync/);
 });
 test('VAT classifications are per product variant and require explicit approval',()=>{
@@ -39,17 +39,17 @@ test('VAT classifications are per product variant and require explicit approval'
   assert.match(vat,/authority_reference/);
   assert.match(vat,/effective_from date NOT NULL/);
   assert.match(vat,/FOREIGN KEY\(organization_id,product_id,variant_id\)/);
-  assert.match(vat,/ALTER TABLE pos.vat_treatments ENABLE ROW LEVEL SECURITY/);
-  assert.match(vat,/ALTER TABLE pos.variant_vat_assignments ENABLE ROW LEVEL SECURITY/);
+  assert.match(vat,/ALTER TABLE pos_cashier.vat_treatments ENABLE ROW LEVEL SECURITY/);
+  assert.match(vat,/ALTER TABLE pos_cashier.variant_vat_assignments ENABLE ROW LEVEL SECURITY/);
   assert.doesNotMatch(vat,/GRANT EXECUTE|GRANT SELECT|GRANT INSERT/);
 });
 test('return request requires receipted paid sale and bounded original lines',()=>{
   assert.match(returns,/v_sale.status<>'paid'/);
-  assert.match(returns,/pos.receipts/);
-  assert.match(returns,/pos.current_cashier_authority/);
+  assert.match(returns,/pos_cashier.receipts/);
+  assert.match(returns,/pos_cashier.current_cashier_authority/);
   assert.match(returns,/jsonb_array_length\(_lines\) NOT BETWEEN 1 AND 30/);
   assert.match(returns,/count\(DISTINCT/);
-  assert.match(returns,/INSERT INTO pos.return_lines/);
+  assert.match(returns,/INSERT INTO pos_cashier.return_lines/);
   assert.match(returns,/pos_return_replay_mismatch/);
   assert.match(returns,/return_request/);
 });
@@ -62,6 +62,6 @@ test('return approval requires different manager with valid current organization
   assert.match(returns,/review_request_id=_request/);
   assert.match(returns,/return_approve/);
   assert.match(returns,/return_reject/);
-  assert.match(returns,/REVOKE ALL ON FUNCTION pos.review_cashier_return/);
-  assert.doesNotMatch(returns,/INSERT INTO pos.refund_events|UPDATE pos.payment_events/);
+  assert.match(returns,/REVOKE ALL ON FUNCTION pos_cashier.review_cashier_return/);
+  assert.doesNotMatch(returns,/INSERT INTO pos_cashier.refund_events|UPDATE pos_cashier.payment_events/);
 });
