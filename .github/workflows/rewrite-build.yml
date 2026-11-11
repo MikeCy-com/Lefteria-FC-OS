@@ -158,6 +158,12 @@ jobs:
             -v ON_ERROR_STOP=1 -v app_role="$DATABASE_APP_USER" \
             -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" \
             -f /opt/lefteria-postgres/general-charge-private-ledger-checks.sql
+      - name: Check Academy profile migration boundaries in disposable PostgreSQL
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/admin-academy-profile-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/admin-first-team-profile-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/admin-profiled-group-create-boundary.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/guardian-permission-boundary.sql
       - name: Preserved Python bcrypt password compatibility
         run: dotnet run --project backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-build -- --web-admin-password-policy
       - name: Independent admin credential and origin configuration
@@ -234,6 +240,8 @@ jobs:
       - run: git diff --exit-code -- frontend/src/lib/api/schema.d.ts
       - run: npm run check
         working-directory: frontend
+      - name: Audit source-led route and mobile role coverage
+        run: node frontend/scripts/audit-original-parity.mjs
       - run: npm test
         working-directory: frontend
       - name: Verify that no unapproved OS release can pass the readiness gate
