@@ -12,11 +12,11 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// does not authorize taxable sales or bypass Cyprus fiscal review.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110159000_PosCyprusVatCatalog")]
+[Migration("20261110223000_PosCyprusVatCatalog")]
 public sealed class PosCyprusVatCatalog : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE TABLE pos.vat_treatments (
+      CREATE TABLE pos_cashier.vat_treatments (
         organization_id varchar(32) NOT NULL
           REFERENCES club.organizations(id) ON DELETE RESTRICT
           CHECK (organization_id IN ('lefteria_fc','lefteria_fc_academy')),
@@ -48,7 +48,7 @@ public sealed class PosCyprusVatCatalog : Migration
       );
       -- Rates are not interchangeable with exemptions. Product assignment
       -- is a separate, reviewable decision, scoped to its exact variant.
-      CREATE TABLE pos.variant_vat_assignments (
+      CREATE TABLE pos_cashier.variant_vat_assignments (
         organization_id varchar(32) NOT NULL,
         product_id varchar(80) NOT NULL,
         variant_id varchar(60) NOT NULL,
@@ -63,26 +63,26 @@ public sealed class PosCyprusVatCatalog : Migration
           REFERENCES pos.product_variants(organization_id,product_id,id)
           ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,treatment_code,treatment_revision)
-          REFERENCES pos.vat_treatments(organization_id,code,policy_revision)
+          REFERENCES pos_cashier.vat_treatments(organization_id,code,policy_revision)
           ON DELETE RESTRICT
       );
       CREATE INDEX ix_pos_vat_effective
-        ON pos.vat_treatments(organization_id,code,effective_from)
+        ON pos_cashier.vat_treatments(organization_id,code,effective_from)
         WHERE enabled;
-      REVOKE ALL ON TABLE pos.vat_treatments,pos.variant_vat_assignments FROM PUBLIC;
-      ALTER TABLE pos.vat_treatments ENABLE ROW LEVEL SECURITY;
-      ALTER TABLE pos.variant_vat_assignments ENABLE ROW LEVEL SECURITY;
+      REVOKE ALL ON TABLE pos_cashier.vat_treatments,pos_cashier.variant_vat_assignments FROM PUBLIC;
+      ALTER TABLE pos_cashier.vat_treatments ENABLE ROW LEVEL SECURITY;
+      ALTER TABLE pos_cashier.variant_vat_assignments ENABLE ROW LEVEL SECURITY;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       DO $guard$
       BEGIN
-        IF EXISTS(SELECT 1 FROM pos.vat_treatments)
-           OR EXISTS(SELECT 1 FROM pos.variant_vat_assignments) THEN
+        IF EXISTS(SELECT 1 FROM pos_cashier.vat_treatments)
+           OR EXISTS(SELECT 1 FROM pos_cashier.variant_vat_assignments) THEN
           RAISE EXCEPTION 'pos_vat_catalog_requires_forward_recovery';
         END IF;
       END $guard$;
-      DROP TABLE pos.variant_vat_assignments;
-      DROP TABLE pos.vat_treatments;
+      DROP TABLE pos_cashier.variant_vat_assignments;
+      DROP TABLE pos_cashier.vat_treatments;
     """);
 }
