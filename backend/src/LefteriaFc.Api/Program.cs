@@ -162,6 +162,7 @@ app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
 app.MapAdminPosLocations();
+app.MapAdminPosCashier();
 app.MapAdminAudiences();
 app.MapAdminGroupCreates();
 app.MapAdminRosterPlayers();
