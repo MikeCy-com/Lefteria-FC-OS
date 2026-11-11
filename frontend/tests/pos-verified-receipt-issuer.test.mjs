@@ -8,7 +8,7 @@ test('internal receipt issuer refuses without approved fiscal policy and current
  assert.match(source,/fiscal_receipt_policy_disabled/);
  assert.match(source,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
  assert.match(source,/v_role NOT IN \('manager','super_admin'\)/);
- assert.match(source,/REVOKE ALL ON FUNCTION pos\.issue_verified_internal_receipt/);
+ assert.match(source,/REVOKE ALL ON FUNCTION pos_cashier\.issue_verified_internal_receipt/);
  assert.doesNotMatch(source,/GRANT EXECUTE|MapPost|HttpPost/);
 });
 test('issuer locks sale and only accepts exactly reconciled verified payment',()=>{
@@ -27,6 +27,6 @@ test('receipt number is database-serialized and payload snapshotted',()=>{
  assert.match(source,/v_data,encode\(sha256\(convert_to\(v_data::text,'UTF8'\)\),'hex'\)\)/);
  assert.match(source,/WHERE organization_id=_owner AND sale_id=_sale/);
  assert.match(source,/receipt_number',v_exists\.receipt_number/);
- assert.match(source,/INSERT INTO pos\.transaction_audit/);
+ assert.match(source,/INSERT INTO pos_cashier\.transaction_audit/);
  assert.match(source,/INSERT INTO audit\.security_events/);
 });
