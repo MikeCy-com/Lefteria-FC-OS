@@ -9,15 +9,15 @@ const receipt=load('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations
 const financial=load('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110151000_PosLedgerFinancialGuards.cs');
 
 test('cash settlement requires two disabled-by-default independently reviewed fiscal policies',()=>{
-  assert.match(sql,/pos.checkout_policies/);
-  assert.match(sql,/pos.receipt_policies/);
+  assert.match(sql,/pos_cashier.checkout_policies/);
+  assert.match(sql,/pos_cashier.receipt_policies/);
   assert.match(sql,/checkout_tax_policy_disabled|cash_tender_fiscal_policy_disabled/);
   assert.match(sql,/tax_treatment='verified_exempt'/);
-  assert.match(sql,/REVOKE ALL ON FUNCTION pos.settle_exact_cash_sale/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION pos_cashier.settle_exact_cash_sale/);
   assert.doesNotMatch(sql,/GRANT EXECUTE|GRANT INSERT|GRANT UPDATE/);
 });
 test('cashier is freshly authorized and owns the open register shift and sale',()=>{
-  assert.match(sql,/pos.current_cashier_authority\(/);
+  assert.match(sql,/pos_cashier.current_cashier_authority\(/);
   assert.match(sql,/v_shift.closed_at IS NOT NULL/);
   assert.match(sql,/v_sale.cashier_id<>v_actor/);
   assert.match(sql,/v_sale.shift_id<>v_shift.id/);
@@ -33,15 +33,15 @@ test('cash replay is exact, counted, change-tracked and cannot double collect',(
   assert.match(sql,/cash_tendered_cents=amount_cents\+cash_change_cents/);
   assert.match(sql,/v_change:=_tendered-v_sale.total_cents/);
   assert.match(sql,/_tendered<v_sale.total_cents/);
-  assert.match(sql,/EXISTS \(SELECT 1 FROM pos.payment_events p/);
-  assert.match(sql,/INSERT INTO pos.payment_events/);
-  assert.match(sql,/INSERT INTO pos.transaction_audit/);
+  assert.match(sql,/EXISTS \(SELECT 1 FROM pos_cashier.payment_events p/);
+  assert.match(sql,/INSERT INTO pos_cashier.payment_events/);
+  assert.match(sql,/INSERT INTO pos_cashier.transaction_audit/);
 });
 test('cash receipt and inventory are committed atomically or rolled back',()=>{
-  assert.match(sql,/v_receipt:=pos.issue_verified_internal_receipt\(/);
+  assert.match(sql,/v_receipt:=pos_cashier.issue_verified_internal_receipt\(/);
   assert.match(sql,/cash_tender_inventory_not_reserved/);
   assert.match(sql,/cash_tender_receipt_missing/);
-  assert.match(receipt,/pos.receipts/);
+  assert.match(receipt,/pos_cashier.receipts/);
   assert.match(financial,/pos_receipt_paid_guard/);
   assert.match(sql,/cash_payment_history_requires_forward_recovery/);
 });
@@ -51,7 +51,7 @@ test('cash HTTP endpoint requires admin authorization; no card capture provided'
   assert.match(api,/AdminPermissions.Has\(session.User.Role, "shop:write"\)/);
   assert.match(api,/session.User.Organizations.Any/);
   assert.match(api,/CashTenderRequest\(Guid RequestId, long TenderedCashCents\)/);
-  assert.match(api,/pos.settle_exact_cash_sale\(@digest,@owner,@sale,@request,@cash\)/);
+  assert.match(api,/pos_cashier.settle_exact_cash_sale\(@digest,@owner,@sale,@request,@cash\)/);
   assert.match(api,/TenderVerifiedAdminPosCashSale/);
   assert.doesNotMatch(api,/payabl\.capture|refund\.execute|MapPost\("\/card/);
 });
