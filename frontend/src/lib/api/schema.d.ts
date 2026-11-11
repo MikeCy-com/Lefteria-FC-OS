@@ -96,6 +96,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/club/players/{playerId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyPlayerDocuments"];
+        put?: never;
+        post: operations["QuarantineAdminPlayerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/club/players/{playerId}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyPlayerEvaluations"];
+        put?: never;
+        post: operations["CreateAdminPlayerEvaluation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/communications/announcement-drafts": {
         parameters: {
             query?: never;
@@ -1813,6 +1845,27 @@ export interface components {
             name: string;
             organization_id: string;
         };
+        CreateEvaluationCommand: {
+            character: null | {
+                [key: string]: number | string;
+            };
+            notes: null | string;
+            overall: null | {
+                [key: string]: string;
+            };
+            physical: null | {
+                [key: string]: number | string;
+            };
+            /** Format: uuid */
+            request_id: string;
+            summary: null | string;
+            tactical: null | {
+                [key: string]: number | string;
+            };
+            technical: null | {
+                [key: string]: number | string;
+            };
+        };
         FamilyChildDto: {
             academy_group_ids: string[];
             id: string;
@@ -3502,6 +3555,98 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    ReadAdminAcademyPlayerDocuments: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    QuarantineAdminPlayerDocument: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyPlayerEvaluations: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminPlayerEvaluation: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEvaluationCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
