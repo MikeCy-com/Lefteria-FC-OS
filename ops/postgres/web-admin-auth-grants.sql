@@ -75,7 +75,7 @@ $guard$;
 REVOKE ALL PRIVILEGES ON DATABASE :"admin_auth_database" FROM :"admin_auth_role";
 GRANT CONNECT ON DATABASE :"admin_auth_database" TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
-GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos TO :"admin_auth_role";
+GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos,hub TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON identity.admin_sessions,identity.admin_auth_rate_buckets FROM PUBLIC, :"app_role";
