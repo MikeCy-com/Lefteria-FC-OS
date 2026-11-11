@@ -33,3 +33,17 @@ test('review and source imports have structural replay barriers',()=>{
   assert.match(migration,/decided_by IS NOT NULL/);
   assert.match(migration,/DROP SCHEMA academy_intake/);
 });
+
+test('consent revisions preserve changed choices and policy versions',()=>{
+  assert.match(migration,/revision integer NOT NULL CHECK/);
+  assert.match(migration,/PRIMARY KEY \(registration_id,consent_kind,revision\)/);
+  assert.match(migration,/CREATE TRIGGER consent_history_append_only/);
+});
+test('review audit is enforced at commit and events cannot be rewritten',()=>{
+  assert.match(migration,/CREATE TRIGGER review_events_append_only/);
+  assert.match(migration,/CREATE CONSTRAINT TRIGGER registration_status_audit/);
+  assert.match(migration,/DEFERRABLE INITIALLY DEFERRED/);
+  assert.match(migration,/NEW.status_version <> OLD.status_version \+ 1/);
+  assert.match(migration,/e.previous_status=OLD.status/);
+  assert.match(migration,/e.next_status=NEW.status/);
+});
