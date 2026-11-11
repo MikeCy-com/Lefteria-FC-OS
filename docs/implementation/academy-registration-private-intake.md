@@ -13,14 +13,19 @@ Original `frontend/src/pages/RegistrationPage.jsx` has five steps:
 Original `backend/models.py` includes the pending application, group assignment, status and administrative notes. This is not a ready-made safe access model for OS; import and implementation require separate privacy/security review.
 
 ## Implemented
-An additive EF/PostgreSQL migration stores staging applications, independent consent evidence with explicit media refusal, sealed medical/signature evidence as ciphertext, and an immutable-intended review history table. It enforces Academy organization scope, unique legacy import identifiers, decision actor linkage and a non-automatic roster link. All four tables have RLS enabled, default denial and no runtime grants. This migration intentionally does not enable anonymous intake or automated billing.
+An additive EF/PostgreSQL migration stores staging applications, independent consent evidence with explicit media refusal, sealed medical/signature evidence as ciphertext, and an append-only review history table enforced with database mutation guards. Consent decisions retain versioned revision rows and their original policy versions. Registration status updates require a matching event in the same transaction, verified at commit. It enforces Academy organization scope, unique legacy import identifiers, decision actor linkage and a non-automatic roster link. All four tables have RLS enabled, default denial and no runtime grants. This migration intentionally does not enable anonymous intake or automated billing.
 
 ## Next work before a working registration
 - Consent wording and required flags must have approved, versioned Greek legal copy; establish age/retention rules and key rotation/recovery for sealed data.
 - Add bounded rate-limited public POST with anti-abuse, strict validation, idempotent request receipt and encrypted evidence using a reviewed encryption service. Never trust browser timestamps, chosen fees, payment state, or user-supplied role.
-- Add manager-scoped private list/detail/decision functions with atomic status transitions, actual append-only database-enforced review audit, admin UI and negative authorization tests.
+- Add manager-scoped private list/detail/decision functions with atomic status transitions, admin UI and negative authorization tests.
 - Reconcile original registrations by immutable source IDs without sending historical private data to public results. Approval must not automatically create a player, guardian account, invoice, group or SMS.
 - Restore the branded five-step UI only after the secure live submission path exists; until then the current public fallback remains truthful.
 - Run actual .NET + PostgreSQL + SvelteKit CI on the exact PR SHA, privacy/retention tests, migration rehearsal and source parity review before merge.
 
 **Not yet production ready.** No tests against a running database are claimed. The source-level Node assertions are smoke checks only.
+
+## Hardening update (2026-11-11)
+- Consent changes append a new revision for each registration and consent type. Historical rows are protected from UPDATE/DELETE by database triggers.
+- Review events are similarly append-only; deferred registration status auditing checks that a matching versioned event exists by COMMIT. No runtime write permissions are provided by this migration.
+- This is defense in depth, not a completed registration workflow: transaction-safe manager functions, role separation, consent policy review and real database security integration tests remain required.
