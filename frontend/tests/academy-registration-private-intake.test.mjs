@@ -47,3 +47,10 @@ test('review audit is enforced at commit and events cannot be rewritten',()=>{
   assert.match(migration,/e.previous_status=OLD.status/);
   assert.match(migration,/e.next_status=NEW.status/);
 });
+
+test('consent revisions are consecutive and unchanged statuses need no synthetic audit',()=>{
+  assert.match(migration,/CREATE CONSTRAINT TRIGGER consent_revision_sequence/);
+  assert.match(migration,/prior\.revision=NEW\.revision-1/);
+  assert.match(migration,/OLD\.status IS DISTINCT FROM NEW\.status/);
+  assert.match(migration,/OLD\.status_version IS DISTINCT FROM NEW\.status_version/);
+});
