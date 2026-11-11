@@ -30,6 +30,13 @@
   let avatarFailed = $state(false);
   let roleTrigger = $state<HTMLButtonElement>();
   let roleMenu = $state<HTMLDivElement>();
+  function dismissRoles(event: PointerEvent) {
+    if (!roleMenuOpen) return;
+    const target = event.target;
+    if (!(target instanceof Node)) return;
+    if (roleMenu?.contains(target) || roleTrigger?.contains(target)) return;
+    roleMenuOpen = false;
+  }
   const roles = $derived([...new Set(availableRoles)]);
   const tabs = $derived(primaryTabs(role));
   const hasComposer = $derived(canComposePost(role));
@@ -61,6 +68,7 @@
   }
 </script>
 
+<svelte:window onpointerdown={dismissRoles} />
 <div class="lf-mobile-theme mobile-shell" data-mobile-role={role} data-testid="mobile-app" aria-busy={busy}>
   <a class="skip-link" href={`#${id}-content`}>Μετάβαση στο περιεχόμενο</a>
   <header class="mobile-header">
