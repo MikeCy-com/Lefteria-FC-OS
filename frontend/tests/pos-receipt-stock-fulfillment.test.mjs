@@ -8,7 +8,7 @@ const guard=load('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/2
 const cancellation=load('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110155000_PosUnpaidSaleCancellation.cs');
 
 test('receipt issuance consumes only currently reserved stock',()=>{
-  assert.match(fulfillment,/AFTER INSERT ON pos.receipts/);
+  assert.match(fulfillment,/AFTER INSERT ON pos_cashier.receipts/);
   assert.match(fulfillment,/v_sale.status<>'paid'/);
   assert.match(fulfillment,/v_line_count<>v_reserved_count/);
   assert.match(fulfillment,/inventory_receipt_reservation_line_mismatch/);
@@ -30,6 +30,6 @@ test('unpaid cancelled stock cannot also be consumed',()=>{
   assert.match(guard,/receipt_requires_paid_sale/);
 });
 test('receipt fulfillment has no public or automatic runtime permission',()=>{
-  assert.match(fulfillment,/REVOKE ALL ON FUNCTION pos.fulfill_receipt_reserved_inventory\(\) FROM PUBLIC/);
+  assert.match(fulfillment,/REVOKE ALL ON FUNCTION pos_cashier.fulfill_receipt_reserved_inventory\(\) FROM PUBLIC/);
   assert.doesNotMatch(fulfillment,/GRANT EXECUTE|GRANT INSERT|CREATE POLICY/);
 });
