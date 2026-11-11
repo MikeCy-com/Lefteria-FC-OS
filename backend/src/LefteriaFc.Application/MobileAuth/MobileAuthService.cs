@@ -109,6 +109,14 @@ public sealed partial class MobileAuthService(
         {
             predictedRoles.Add(MobileRole.Fan);
         }
+        // The issuing parent grants access by phone without inviting the
+        // recipient. The recipient must still prove that phone via OTP.
+        // An inactive/existing Parent identity is never silently replaced.
+        var hasParent=profiles.Any(p=>p.Role==MobileRole.Parent);
+        var canCreateParent=!hasParent &&
+            await transaction.HasCurrentGuardianPhoneGrantAsync(phone,cancellationToken);
+        if(canCreateParent)
+            predictedRoles.Add(MobileRole.Parent);
         var needsPicker = requestedWire is null && predictedRoles.Count > 1;
         var requestedIsAvailable = requestedWire is null ||
             requestedIsKnown && predictedRoles.Contains(requestedRole);
@@ -153,6 +161,15 @@ public sealed partial class MobileAuthService(
         {
             await transaction.EnsureNeutralFanIdentityAsync(phone, NeutralFanDisplayName,
                 platform, now, cancellationToken);
+        }
+
+        if (canCreateParent)
+        {
+            // Never create a Parent role before the successful OTP check.
+            // The transaction revalidates the current phone grant before
+            // provisioning; revocation makes the login fail closed.
+            await transaction.EnsureGrantedParentIdentityAsync(phone,platform,now,
+                cancellationToken);
         }
 
         profiles = ValidateProfiles(

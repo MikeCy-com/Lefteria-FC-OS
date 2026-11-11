@@ -1,13 +1,14 @@
 <script lang="ts">
   import { browser } from '$app/env';
+  import AdminPlayerPrivateRecordsPanel from './AdminPlayerPrivateRecordsPanel.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = {id: string;name: string;kind: 'team'|'academy_group';active_players: number};
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];
+  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
@@ -19,6 +20,7 @@
   let failed = $state(false);
   let editing = $state<string|null>(null);
   let selectedGroups = $state<string[]>([]);
+  let inspectedPlayer = $state<string|null>(null);
   let saving = $state(false);
   let saveError = $state<string|null>(null);
   let saveSuccess = $state<string|null>(null);
@@ -141,7 +143,7 @@
     const generation=refresh;
     void actor;void generation;
 
-    page=null;loading=false;failed=false;editing=null;selectedGroups=[];saveError=null;
+    page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
     loading=true;
@@ -202,6 +204,14 @@
             <strong>{player.name}</strong>
             <div class="admin-player-actions">
               <span>{groupLabels(player)}</span>
+              {#if allowPrivate && currentGroups(player).length>0}
+                <button type="button" class="admin-secondary"
+                  aria-expanded={inspectedPlayer===player.id}
+                  disabled={saving||loading}
+                  onclick={()=>inspectedPlayer=inspectedPlayer===player.id?null:player.id}>
+                  {inspectedPlayer===player.id?'Κλείσιμο φακέλου':'Αξιολογήσεις & έγγραφα'}
+                </button>
+              {/if}
               {#if editing===player.id}
                 <div class="admin-player-editor" data-testid="admin-player-assignment-editor">
                   {#if owner==='lefteria_fc'}
@@ -237,6 +247,10 @@
                   onclick={()=>startEditing(player)}>Αλλαγή ανάθεσης</button>
               {/if}
             </div>
+            {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
+              <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
+                playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {onExpired} {onRevoked}/>
+            {/if}
           </li>
         {/each}
       </ul>

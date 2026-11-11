@@ -1,5 +1,37 @@
 // Generated from contracts/openapi.json. Run npm run api:generate; do not edit.
 export interface paths {
+    "/api/admin/academy/training": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/{eventId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingAttendance"];
+        put?: never;
+        post: operations["RecordAdminAcademyTrainingAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/login": {
         parameters: {
             query?: never;
@@ -58,6 +90,38 @@ export interface paths {
         get: operations["GetAdminClubProfile"];
         put: operations["UpdateAdminClubProfile"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/club/players/{playerId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyPlayerDocuments"];
+        put?: never;
+        post: operations["QuarantineAdminPlayerDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/club/players/{playerId}/evaluations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyPlayerEvaluations"];
+        put?: never;
+        post: operations["CreateAdminPlayerEvaluation"];
         delete?: never;
         options?: never;
         head?: never;
@@ -176,6 +240,166 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/crm/academy/leads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyLeads"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/crm/academy/leads/{leadId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["UpdateAdminAcademyLeadStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/invoices/{invoiceId}.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadAdminAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadAdminAcademyMultiInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/payment-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListPayablAdminPaymentRequests"];
+        put?: never;
+        post: operations["CreatePayablAdminPaymentRequest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPayablAdminStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/training-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingFees"];
+        put?: never;
+        post: operations["IssueAdminAcademyTrainingFee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/training-fees/{feeId}/cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RecordAdminAcademyTrainingFeeCash"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/training-fees/{feeId}/sms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SendAdminAcademyTrainingFeeSms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/football/academy-group-profiles/{groupId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyGroupProfile"];
+        put: operations["WriteAdminAcademyGroupProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/assignments": {
         parameters: {
             query?: never;
@@ -240,6 +464,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/first-team-profiles/{teamId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminFirstTeamProfile"];
+        put: operations["WriteAdminFirstTeamProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/groups": {
         parameters: {
             query?: never;
@@ -256,6 +496,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/groups/with-profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAdminProfiledGroup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/players": {
         parameters: {
             query?: never;
@@ -264,6 +520,198 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetAdminRosterPlayers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/finance-handoff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosFinanceHandoff"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/receipts/{receiptId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosAssignedCashierReceipt"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/registers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosCashierRegisters"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/registers/{registerId}/sales/prepare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PrepareAdminPosReservedSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/registers/{registerId}/shifts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["OpenAdminPosCashierShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/returns/{returnId}/refund-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RequestAdminPosApprovedReturnRefund"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/returns/{returnId}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReviewAdminPosSaleReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/sales/{saleId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CancelAdminPosUnpaidSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/sales/{saleId}/returns": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RequestAdminPosSaleReturn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/sales/{saleId}/tender-cash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["TenderVerifiedAdminPosCashSale"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/shifts/{shiftId}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CloseAdminPosCashierShift"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cashier/shifts/{shiftId}/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosCashierReconciliation"];
         put?: never;
         post?: never;
         delete?: never;
@@ -314,6 +762,70 @@ export interface paths {
         get?: never;
         put: operations["UpdateAdminPosCategory"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/cities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAdminPosCity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosLocations"];
+        put?: never;
+        post: operations["CreateAdminPosLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations/{locationId}/products/{productId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["AssignAdminPosLocationProduct"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/pos/locations/{locationId}/stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReceiveAdminPosStock"];
         delete?: never;
         options?: never;
         head?: never;
@@ -491,6 +1003,38 @@ export interface paths {
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/app/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMobileWebPushConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/app/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubscribeMobileWebPushDevice"];
+        delete: operations["UnsubscribeMobileWebPushDevice"];
         options?: never;
         head?: never;
         patch?: never;
@@ -822,6 +1366,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/family/children/{playerId}/guardian-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IssueGuardianPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/family/children/{playerId}/invitations": {
         parameters: {
             query?: never;
@@ -848,6 +1408,54 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["RevokeCurrentFamilyPlayerDelegation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/family/guardian-permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetIssuedGuardianPermissions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/family/guardian-permissions/{permissionId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RevokeIssuedGuardianPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/family/guardian-permissions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IssueManyGuardianPermissions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -926,6 +1534,70 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetParentOutgoingInvitations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/invoices/{invoiceId}.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadParentAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadParentAcademyMultiInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SaveParentTrainingFeePreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/training-fees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadParentTrainingFees"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1127,6 +1799,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payabl/webhooks/{id}/{nonce}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReceivePayablPaymentNotification"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/news": {
         parameters: {
             query?: never;
@@ -1227,6 +1915,21 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AcademyLeadFollowUpCommand: {
+            expected_status: null | string;
+            next_status: null | string;
+        };
+        AcademyTrainingFeeIssueCommand: {
+            /** Format: int64 */
+            amount_cents: number | string;
+            /** Format: uuid */
+            client_request_id: string;
+            fee_month: null | string;
+            payer_email: null | string;
+            payer_first_name: null | string;
+            payer_last_name: null | string;
+            player_id: null | string;
+        };
         AdminAnnouncementDraftCommand: {
             body: null | string;
             group_id: null | string;
@@ -1493,6 +2196,17 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        AssignProductCommand: {
+            enabled: boolean;
+            /** Format: int64 */
+            expected_version: number | string;
+        };
+        AttendanceMarkCommand: {
+            /** Format: int32 */
+            expected_version: number | string;
+            player_id: null | string;
+            status: null | string;
+        };
         CalendarOwnResponse: {
             player_id: string;
             status: string;
@@ -1503,6 +2217,57 @@ export interface components {
             id: string;
             name: string;
             organization_id: string;
+        };
+        CancelSaleRequest: {
+            /** Format: uuid */
+            request_id: string;
+        };
+        CashTenderRequest: {
+            /** Format: uuid */
+            request_id: string;
+            /** Format: int64 */
+            tendered_cash_cents: number | string;
+        };
+        CheckoutItem: {
+            product_id: string;
+            /** Format: int32 */
+            quantity: number | string;
+            variant_id: string;
+        };
+        CloseShiftRequest: {
+            /** Format: int64 */
+            counted_cash_cents: number | string;
+            /** Format: uuid */
+            request_id: string;
+        };
+        CreateCityCommand: {
+            name: null | string;
+        };
+        CreateEvaluationCommand: {
+            character: null | {
+                [key: string]: number | string;
+            };
+            notes: null | string;
+            overall: null | {
+                [key: string]: string;
+            };
+            physical: null | {
+                [key: string]: number | string;
+            };
+            /** Format: uuid */
+            request_id: string;
+            summary: null | string;
+            tactical: null | {
+                [key: string]: number | string;
+            };
+            technical: null | {
+                [key: string]: number | string;
+            };
+        };
+        CreateLocationCommand: {
+            city_id: null | string;
+            code: null | string;
+            name: null | string;
         };
         FamilyChildDto: {
             academy_group_ids: string[];
@@ -1540,10 +2305,41 @@ export interface components {
             open: boolean;
             subtitle: string;
         };
+        GuardianBulkChild: {
+            player_id: string;
+            /** Format: uuid */
+            request_id: string;
+        };
+        GuardianBulkResult: {
+            items: components["schemas"]["GuardianPermissionDto"][];
+        };
+        GuardianPermissionDto: {
+            /** Format: date-time */
+            expires_at: null | string;
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            organization_id: string;
+            player_id: string;
+            recipient_hint: null | string;
+            status: string;
+        };
+        GuardianPermissionsResult: {
+            items: components["schemas"]["GuardianPermissionDto"][];
+        };
         HealthResponse: {
             status: string;
         };
         IssueFamilyInvitationBody: {
+            phone: null | string;
+        };
+        IssueGuardianPermissionBody: {
+            phone: null | string;
+            /** Format: uuid */
+            request_id: string;
+        };
+        IssueManyGuardianPermissionsBody: {
+            children: null | components["schemas"]["GuardianBulkChild"][];
             phone: null | string;
         };
         MobileAppAnnouncementDto: {
@@ -1880,6 +2676,26 @@ export interface components {
                 [key: string]: boolean;
             } | null;
         };
+        MobilePushConfigDto: {
+            /** Format: int32 */
+            active_devices: number | string;
+            enabled: boolean;
+            public_key: null | string;
+        };
+        MobilePushKeysBody: {
+            auth: null | string;
+            p256dh: null | string;
+        };
+        MobilePushSubscriptionBody: {
+            endpoint: null | string;
+            keys: null | components["schemas"]["MobilePushKeysBody"];
+        };
+        MobilePushSubscriptionStateDto: {
+            subscribed: boolean;
+        };
+        MobilePushUnsubscribeBody: {
+            endpoint: null | string;
+        };
         MobileRoleSwitchResult: {
             available_roles?: null | string[];
             noop?: null | boolean;
@@ -1929,6 +2745,12 @@ export interface components {
             multi_role?: boolean;
             phone: string;
         };
+        OpenShiftRequest: {
+            /** Format: int64 */
+            opening_cash_cents: number | string;
+            /** Format: uuid */
+            request_id: string;
+        };
         OrganizationOptionDto: {
             id: string;
             name: string;
@@ -1977,6 +2799,25 @@ export interface components {
         ParentOutgoingInvitationsResult: {
             items: components["schemas"]["ParentOutgoingInvitationDto"][];
         };
+        ParentTrainingFeePreferenceCommand: {
+            automatic_collection_requested: boolean;
+            /** Format: int32 */
+            preferred_day: number | string;
+            save_card_requested: boolean;
+        };
+        PayablPaymentCreateCommand: {
+            /** Format: int64 */
+            amount_cents: number | string;
+            /** Format: uuid */
+            client_request_id: string;
+            currency: null | string;
+            /** Format: uuid */
+            fee_issue_id?: null | string;
+            payer_email: null | string;
+            payer_first_name: null | string;
+            payer_last_name: null | string;
+            purpose: null | string;
+        };
         PendingFamilyInvitationDto: {
             /** Format: date-time */
             created_at: string;
@@ -1985,6 +2826,27 @@ export interface components {
             /** Format: uuid */
             id: string;
             status: string;
+        };
+        PrepareSaleRequest: {
+            items: null | components["schemas"]["CheckoutItem"][];
+            /** Format: uuid */
+            request_id: string;
+            /** Format: uuid */
+            shift_id: string;
+        };
+        ProfileWrite: {
+            age_range: string;
+            banner_url: string;
+            coach_name: string;
+            description: string;
+            /** Format: int32 */
+            display_order: number | string;
+            /** Format: int64 */
+            expected_revision: number | string;
+            /** Format: int32 */
+            max_players: number | string;
+            season: string;
+            training_schedule: string;
         };
         PublicAcademyGroup: {
             age_range: null | string;
@@ -2534,6 +3396,14 @@ export interface components {
             name: string;
             organization_id: string;
         };
+        ReceiveStockCommand: {
+            product_id: null | string;
+            /** Format: int32 */
+            quantity: number | string;
+            /** Format: uuid */
+            request_id: string;
+            variant_id: null | string;
+        };
         RecipientPendingInvitationDto: {
             /** Format: date-time */
             created_at: string;
@@ -2547,8 +3417,42 @@ export interface components {
         RecipientPendingInvitationsResult: {
             items: components["schemas"]["RecipientPendingInvitationDto"][];
         };
+        RecordAcademyCashPaymentCommand: {
+            /** Format: uuid */
+            client_request_id: string;
+            notes: null | string;
+        };
+        RequestRefundRequest: {
+            /** Format: int64 */
+            amount_cents: number | string;
+            /** Format: uuid */
+            payment_event_id: string;
+            /** Format: uuid */
+            request_id: string;
+        };
+        ReturnLineRequest: {
+            /** Format: int32 */
+            line_number: number | string;
+            /** Format: int32 */
+            quantity: number | string;
+        };
+        ReturnSaleRequest: {
+            lines: null | components["schemas"]["ReturnLineRequest"][];
+            reason_code: string;
+            /** Format: uuid */
+            request_id: string;
+        };
+        ReviewReturnRequest: {
+            approve: boolean;
+            /** Format: uuid */
+            request_id: string;
+        };
         RoleSwitchBody: {
             role: null | string;
+        };
+        TrainingFeeSmsCommand: {
+            /** Format: uuid */
+            client_request_id: string;
         };
         WebAdminError: {
             code: string;
@@ -2587,6 +3491,77 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ReadAdminAcademyTrainingSessions: {
+        parameters: {
+            query?: {
+                end?: string;
+                group_id?: string;
+                organization_id?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyTrainingAttendance: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RecordAdminAcademyTrainingAttendance: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceMarkCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     LoginWebAdmin: {
         parameters: {
             query?: never;
@@ -3074,6 +4049,98 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    ReadAdminAcademyPlayerDocuments: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    QuarantineAdminPlayerDocument: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyPlayerEvaluations: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminPlayerEvaluation: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEvaluationCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -3877,6 +4944,501 @@ export interface operations {
             };
         };
     };
+    ReadAdminAcademyLeads: {
+        parameters: {
+            query?: {
+                limit?: number | string;
+                offset?: number | string;
+                organization_id?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateAdminAcademyLeadStatus: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                leadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademyLeadFollowUpCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadAdminAcademyInvoicePdf: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadAdminAcademyMultiInvoicePdf: {
+        parameters: {
+            query?: {
+                ids?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListPayablAdminPaymentRequests: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    CreatePayablAdminPaymentRequest: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PayablPaymentCreateCommand"];
+            };
+        };
+        responses: {
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    GetPayablAdminStatus: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unsupported Media Type */
+            415: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    ReadAdminAcademyTrainingFees: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    IssueAdminAcademyTrainingFee: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademyTrainingFeeIssueCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RecordAdminAcademyTrainingFeeCash: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                feeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordAcademyCashPaymentCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SendAdminAcademyTrainingFeeSms: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                feeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingFeeSmsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyGroupProfile: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WriteAdminAcademyGroupProfile: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileWrite"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PutAdminRosterAssignment: {
         parameters: {
             query: {
@@ -4195,6 +5757,54 @@ export interface operations {
             };
         };
     };
+    ReadAdminFirstTeamProfile: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WriteAdminFirstTeamProfile: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                teamId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileWrite"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateAdminRosterGroup: {
         parameters: {
             query: {
@@ -4294,6 +5904,26 @@ export interface operations {
             };
         };
     };
+    CreateAdminProfiledGroup: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetAdminRosterPlayers: {
         parameters: {
             query: {
@@ -4352,6 +5982,298 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    ReadAdminPosFinanceHandoff: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosAssignedCashierReceipt: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                receiptId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosCashierRegisters: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PrepareAdminPosReservedSale: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                registerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PrepareSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    OpenAdminPosCashierShift: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                registerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RequestAdminPosApprovedReturnRefund: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                returnId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestRefundRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReviewAdminPosSaleReturn: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                returnId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewReturnRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelAdminPosUnpaidSale: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                saleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CancelSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RequestAdminPosSaleReturn: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                saleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReturnSaleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    TenderVerifiedAdminPosCashSale: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                saleId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CashTenderRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CloseAdminPosCashierShift: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseShiftRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosCashierReconciliation: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                shiftId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -4611,6 +6533,127 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    CreateAdminPosCity: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCityCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosLocations: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminPosLocation: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLocationCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    AssignAdminPosLocationProduct: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+                productId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignProductCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReceiveAdminPosStock: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                locationId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReceiveStockCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -5355,6 +7398,263 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileAppNotificationInboxDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetMobileWebPushConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilePushConfigDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    SubscribeMobileWebPushDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobilePushSubscriptionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilePushSubscriptionStateDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    UnsubscribeMobileWebPushDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobilePushUnsubscribeBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobilePushSubscriptionStateDto"];
                 };
             };
             /** @description Bad Request */
@@ -7460,6 +9760,104 @@ export interface operations {
             };
         };
     };
+    IssueGuardianPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueGuardianPermissionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianPermissionDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
     IssuePendingFamilyInvitation: {
         parameters: {
             query?: never;
@@ -7576,6 +9974,270 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FamilyOperationResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetIssuedGuardianPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianPermissionsResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    RevokeIssuedGuardianPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyOperationResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    IssueManyGuardianPermissions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssueManyGuardianPermissionsBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GuardianBulkResult"];
                 };
             };
             /** @description Bad Request */
@@ -8088,6 +10750,86 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MobileAuthError"];
                 };
+            };
+        };
+    };
+    DownloadParentAcademyInvoicePdf: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                invoiceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DownloadParentAcademyMultiInvoicePdf: {
+        parameters: {
+            query?: {
+                ids?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SaveParentTrainingFeePreferences: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ParentTrainingFeePreferenceCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadParentTrainingFees: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -9414,6 +12156,45 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MobileAuthError"];
                 };
+            };
+        };
+    };
+    ReceivePayablPaymentNotification: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                nonce: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
