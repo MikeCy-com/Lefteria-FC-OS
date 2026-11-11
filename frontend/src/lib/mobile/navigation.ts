@@ -10,7 +10,7 @@ export const TAB_NAMES = {
   profile: 'Προφίλ', notifications: 'Ειδοποιήσεις', more: 'Περισσότερα',
   social: 'Lefteria', financials: 'Οικονομικά', reels: 'Στιγμές', gamehub: 'Παιχνίδια',
   news: 'Νέα', announcements: 'Ανακοινώσεις', shop: 'Κατάστημα', team: 'Ομάδα & Ακαδημία',
-  teams: 'Ομάδες', squad: 'Ρόστερ', children: 'Παιδιά', education: 'Εκπαίδευση', fixtures: 'Πρόγραμμα αγώνων',
+  teams: 'Ομάδες', squad: 'Ρόστερ', children: 'Παιδιά', education: 'Εκπαίδευση', hub: 'HUB', fixtures: 'Πρόγραμμα αγώνων',
   standings: 'Βαθμολογία', predict: 'Προβλέψεις', potm: 'Παίκτης του μήνα'
 } as const;
 
@@ -33,19 +33,19 @@ export const MOBILE_ROLE_DEFINITIONS = {
     label: ROLE_NAMES.fan,
     defaultTab: 'home',
     primaryTabs: ['home', 'matches', 'gamehub', 'shop'],
-    allowedTabs: [...commonTabs, 'matches', 'gamehub', 'news', 'shop', 'team', 'fixtures', 'standings', 'predict', 'potm']
+    allowedTabs: [...commonTabs, 'matches', 'gamehub', 'news', 'shop', 'team', 'fixtures', 'standings', 'predict', 'potm', 'hub']
   },
   player: {
     label: ROLE_NAMES.player,
     defaultTab: 'home',
     primaryTabs: ['home', 'matches', 'social', 'shop'],
-    allowedTabs: [...commonTabs, ...memberTabs, 'shop']
+    allowedTabs: [...commonTabs, ...memberTabs, 'shop', 'hub']
   },
   parent: {
     label: ROLE_NAMES.parent,
     defaultTab: 'home',
     primaryTabs: ['home', 'calendar', 'children', 'chat', 'more'],
-    allowedTabs: [...commonTabs, ...memberTabs, 'children', 'education', 'financials']
+    allowedTabs: [...commonTabs, ...memberTabs, 'children', 'education', 'hub', 'financials']
   },
   coach: {
     label: ROLE_NAMES.coach,
@@ -62,7 +62,7 @@ export const MOBILE_ROLE_DEFINITIONS = {
 } as const satisfies Record<MobileRole, MobileRoleDefinition>;
 
 const legacyTabAliases: Readonly<Partial<Record<string, MobileTab>>> = {
-  schedule: 'calendar', training: 'calendar', event: 'calendar', match: 'matches',
+  education_hub: 'hub', schedule: 'calendar', training: 'calendar', event: 'calendar', match: 'matches',
   parent: 'home', player: 'home', coach: 'home', management: 'home'
 };
 
