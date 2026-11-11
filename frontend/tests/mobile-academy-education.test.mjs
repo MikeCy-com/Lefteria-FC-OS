@@ -72,9 +72,10 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
   assert.match(html,/class="education-stage-hint[^"]*" aria-live="polite"/);
   assert.doesNotMatch(html,/data-testid="parent-home-child"|family-child-calendar|guardian_phone|Bearer/);
   const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
-  assert.match(route,/activeTab === 'education' && role === 'parent' && !composing/);
-  assert.match(route,/<MobileAcademyEducation \/>/);
-  assert.match(route,/onEducation=\{\(\) => openTab\('education'\)\}/);
+  assert.match(route,/activeTab === 'hub'/);
+  assert.match(route,/role === 'parent' \|\| role === 'player' \|\| role === 'fan'/);
+  assert.match(route,/<MobileAcademyEducation viewerRole=\{role\} \/>/);
+  assert.match(route,/onEducation=\{\(\) => openTab\('hub'\)\}/);
   const home=readFileSync(new URL('../src/lib/mobile/components/MobileParentHome.svelte',import.meta.url),'utf8');
   assert.match(home,/data-testid="parent-shortcut-education"/);
   assert.match(home,/onEducation\(\)/);

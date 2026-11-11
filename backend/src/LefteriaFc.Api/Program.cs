@@ -117,10 +117,10 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.P
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
-// All mobile account, OTP, family, roster, and calendar responses are
-// session-specific, including authentication failures and service errors.
-// Register OnStarting so endpoint/error handlers cannot accidentally emit
-// cacheable private data. Public content and avatars are unaffected.
+// Authenticated mobile and web-admin API responses may contain account,
+// roster, child, financial or session data. Never let shared intermediaries or
+// the browser store them, including auth failures and error responses.
+// Public content routes remain cacheable under their own explicit policies.
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/api/mobile", StringComparison.OrdinalIgnoreCase) ||
