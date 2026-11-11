@@ -1,7 +1,7 @@
 <script lang="ts">
   import {
     ACADEMY_EDUCATION_ARTICLES, EDUCATION_STAGES, EDUCATION_TOPICS,
-    academyEducationFor, type EducationAudience, type EducationStage, type EducationTopic
+    searchAcademyEducation, type EducationAudience, type EducationStage, type EducationTopic
   } from '../academy-education.ts';
   import './mobile-theme.css';
 
@@ -10,7 +10,8 @@
   let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : viewerRole === 'fan' ? 'parent' : 'all');
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
-  const cards = $derived(academyEducationFor(stage,audience,topic));
+  let search = $state('');
+  const cards = $derived(searchAcademyEducation(stage,audience,topic,search));
   const id = $props.id();
 </script>
 
@@ -74,6 +75,16 @@
     </div>
   </section>
 
+  <div class="education-search">
+    <label for={id+'-search'}>Αναζήτηση στο HUB</label>
+    <input id={id+'-search'} type="search" maxlength="120" autocomplete="off"
+      placeholder="Αναζήτησε άρθρα και συμβουλές" bind:value={search}
+      oninput={() => {expanded = null;}} data-testid="hub-content-search" />
+    {#if search}
+      <button type="button" onclick={() => {search = ''; expanded = null;}}
+        aria-label="Καθαρισμός αναζήτησης">Καθαρισμός</button>
+    {/if}
+  </div>
   <section class="education-articles" aria-labelledby={id+'-materials'} data-testid="education-materials">
     <h2 id={id+'-materials'}>Ιδέες για συζήτηση</h2>
     {#if cards.length === 0}
@@ -137,7 +148,7 @@
   .education-age-tabs button,.education-audiences button,.education-topics button{min-height:44px;padding:10px 15px;border:1px solid #383d3d;border-radius:8px;background:#202323;color:#d2d6d5;cursor:pointer;font-size:13px}
   .education-age-tabs button.chosen,.education-audiences button.chosen,.education-topics button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
   .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
-  .education-articles{margin:28px 0}
+  .education-search{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:20px 0}\n  .education-search label{flex:0 0 100%;font-size:13px;font-weight:700;color:#e8e8e8}\n  .education-search input{flex:1;min-width:180px;min-height:44px;background:#181a1b;color:#fff;border:1px solid #5b5e60;border-radius:8px;padding:10px 12px;font:inherit}\n  .education-search button{min-height:44px;padding:10px 14px;border:1px solid #695329;border-radius:8px;background:#2c2519;color:#ffd47a;cursor:pointer}\n  .education-articles{margin:28px 0}
   .education-result-count{color:#c8ceca;font-size:13px;line-height:1.5;margin:0 0 10px}
   .education-empty{padding:12px 15px;border:1px solid #48433b;border-radius:8px;color:#e1d5ba;font-size:13px}
   .education-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;margin-top:15px}
