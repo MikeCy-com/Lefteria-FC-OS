@@ -274,7 +274,7 @@
             </select>
           </label>
           <label>Όνομα σημείου <input bind:value={locationName} maxlength="100" required/></label>
-          <label>Μοναδικός κωδικός <input bind:value={locationCode} maxlength="64" pattern="[a-z0-9][a-z0-9-]{1,63}" required/></label>
+          <label>Μοναδικός κωδικός <input bind:value={locationCode} maxlength="64" pattern={'[a-z0-9][a-z0-9-]{1,63}'} required/></label>
           <button class="admin-secondary" type="submit" disabled={saving}>Δημιουργία σημείου</button>
         </form>
       {/if}
@@ -315,7 +315,7 @@
               </select>
             </label>
             <label>Τεμάχια
-              <input type="text" inputmode="numeric" pattern="[0-9]{1,6}"
+              <input type="text" inputmode="numeric" pattern={'[0-9]{1,6}'}
                 bind:value={stockQuantity} oninput={()=>stockRequestId=''} required/>
             </label>
             <button type="submit" class="admin-secondary" disabled={stockBusy}>
