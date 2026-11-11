@@ -10690,6 +10690,73 @@
         ]
       }
     },
+    "/api/admin/hub/editorial": {
+      "get": {
+        "operationId": "GetAdminHubEditorial",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
     "/api/admin/pos/cashier/finance-handoff": {
       "get": {
         "operationId": "ReadAdminPosFinanceHandoff",
@@ -19077,6 +19144,9 @@
     },
     {
       "name": "App announcements administration"
+    },
+    {
+      "name": "HUB administration"
     },
     {
       "name": "Mobile chat"
