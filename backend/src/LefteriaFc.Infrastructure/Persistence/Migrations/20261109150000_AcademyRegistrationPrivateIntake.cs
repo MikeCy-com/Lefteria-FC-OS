@@ -74,14 +74,29 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
         consent_kind varchar(32) NOT NULL CHECK (consent_kind IN (
           'participation','medical_authorization','privacy_notice',
           'media','communications','liability','financial')),
+        -- A new policy version or changed choice creates a new row, never an overwrite.
+        revision integer NOT NULL CHECK (revision BETWEEN 1 AND 100000),
         granted boolean NOT NULL,
         policy_version varchar(80) NOT NULL
           CHECK (length(btrim(policy_version)) BETWEEN 1 AND 80),
         recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         evidence_digest char(64) COLLATE "C" NOT NULL
           CHECK (evidence_digest ~ '^[0-9a-f]{64}$'),
-        PRIMARY KEY (registration_id,consent_kind)
+        PRIMARY KEY (registration_id,consent_kind,revision)
       );
+
+      -- Reject mutation of evidence, including by privileged migration users.
+      -- Database owners/superusers can still replace triggers; those accounts
+      -- must remain unavailable to the application.
+      CREATE FUNCTION academy_intake.reject_evidence_mutation()
+      RETURNS trigger LANGUAGE plpgsql AS $evidence$
+      BEGIN
+        RAISE EXCEPTION 'registration evidence is append-only' USING ERRCODE='42501';
+      END;
+      $evidence$;
+      CREATE TRIGGER consent_history_append_only
+        BEFORE UPDATE OR DELETE ON academy_intake.registration_consents
+        FOR EACH ROW EXECUTE FUNCTION academy_intake.reject_evidence_mutation();
 
       -- Medical responses and signatures must never appear in ordinary
       -- registration listings. Ciphertext only, with external key management;
@@ -111,6 +126,39 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
         UNIQUE (registration_id,status_version)
       );
 
+      CREATE TRIGGER review_events_append_only
+        BEFORE UPDATE OR DELETE ON academy_intake.registration_review_events
+        FOR EACH ROW EXECUTE FUNCTION academy_intake.reject_evidence_mutation();
+
+      -- Status changes must have exactly the corresponding versioned audit
+      -- event before COMMIT. This deferrable trigger permits the audit INSERT
+      -- and status UPDATE in either order within one transaction.
+      CREATE FUNCTION academy_intake.assert_registration_audit()
+      RETURNS trigger LANGUAGE plpgsql AS $audit$
+      BEGIN
+        IF NEW.status_version <> OLD.status_version + 1 THEN
+          RAISE EXCEPTION 'registration status version must increment by one'
+            USING ERRCODE='23514';
+        END IF;
+        IF NOT EXISTS (
+          SELECT 1 FROM academy_intake.registration_review_events e
+          WHERE e.registration_id=NEW.id
+            AND e.status_version=NEW.status_version
+            AND e.previous_status=OLD.status
+            AND e.next_status=NEW.status
+            AND (NEW.decided_by IS NULL OR e.actor_id=NEW.decided_by)
+        ) THEN
+          RAISE EXCEPTION 'registration status change requires an audit event'
+            USING ERRCODE='23514';
+        END IF;
+        RETURN NULL;
+      END;
+      $audit$;
+      CREATE CONSTRAINT TRIGGER registration_status_audit
+        AFTER UPDATE OF status, status_version ON academy_intake.registrations
+        DEFERRABLE INITIALLY DEFERRED
+        FOR EACH ROW EXECUTE FUNCTION academy_intake.assert_registration_audit();
+
       REVOKE ALL ON ALL TABLES IN SCHEMA academy_intake FROM PUBLIC;
       ALTER TABLE academy_intake.registrations ENABLE ROW LEVEL SECURITY;
       ALTER TABLE academy_intake.registration_consents ENABLE ROW LEVEL SECURITY;
@@ -125,6 +173,8 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
       DROP TABLE academy_intake.registration_sealed_evidence;
       DROP TABLE academy_intake.registration_consents;
       DROP TABLE academy_intake.registrations;
+      DROP FUNCTION academy_intake.assert_registration_audit();
+      DROP FUNCTION academy_intake.reject_evidence_mutation();
       DROP SCHEMA academy_intake;
     """);
 }
