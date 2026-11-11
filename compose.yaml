@@ -79,6 +79,10 @@ services:
     image: ${LEFTERIA_API_IMAGE:-lefteria-fc-os-api:local}
     build:
       context: ./backend
+    # Exact branded club crest already shipped in OS frontend; read-only
+    # for the A4 Academy invoice PDF, never fetched from external URLs.
+    volumes:
+      - ./frontend/static/mobile/club-logo.png:/app/club-logo.png:ro
     restart: unless-stopped
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -105,6 +109,10 @@ services:
       Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
       Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
       Twilio__FromNumber: ${TWILIO_FROM_NUMBER:-}
+      WebPush__Enabled: "${WEB_PUSH_ENABLED:-false}"
+      WebPush__VapidPublicKey: ${WEB_PUSH_VAPID_PUBLIC_KEY:-}
+      WebPush__VapidPrivateKey: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
+      WebPush__Subject: ${WEB_PUSH_SUBJECT:-}
     depends_on:
       postgres:
         condition: service_healthy

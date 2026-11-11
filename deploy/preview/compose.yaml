@@ -82,6 +82,11 @@ services:
       MobileAuth__SigningKey: ${PREVIEW_SIGNING_KEY:?Set a fresh preview signing key}
       MobileAuth__OtpKey: ${PREVIEW_OTP_KEY:?Set a separate preview OTP key}
       LegacyMobileBridge__Enabled: "false"
+      # Preview never sends pushes to real enrolled browsers.
+      WebPush__Enabled: "false"
+      WebPush__VapidPublicKey: ""
+      WebPush__VapidPrivateKey: ""
+      WebPush__Subject: ""
       Http__KnownProxies__0: 172.30.92.2
       Twilio__AccountSid: ""
       Twilio__AuthToken: ""

@@ -342,6 +342,36 @@ REVOKE ALL ON FUNCTION club.ack_mobile_app_announcement_read(
 GRANT EXECUTE ON FUNCTION club.ack_mobile_app_announcement_read(
   uuid,text,text,timestamptz,text,text,text) TO :"app_role";
 
+-- Device subscriptions and leases are private; no application runtime
+-- table reads, writes or endpoint enumeration. Only narrow functions return
+-- confirmed state or bounded worker claims.
+REVOKE ALL ON TABLE club.mobile_push_subscriptions,
+  club.app_announcement_push_attempts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.save_mobile_push_subscription(
+  uuid,text,text,timestamptz,text,text,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.remove_mobile_push_subscription(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.mobile_push_subscription_status(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.claim_app_announcement_push_attempts(integer)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.check_app_announcement_push_lease(uuid,uuid)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.finish_app_announcement_push_attempt(
+  uuid,uuid,text,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.save_mobile_push_subscription(
+  uuid,text,text,timestamptz,text,text,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.remove_mobile_push_subscription(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.mobile_push_subscription_status(
+  uuid,text,text,timestamptz) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.claim_app_announcement_push_attempts(integer)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.check_app_announcement_push_lease(uuid,uuid)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.finish_app_announcement_push_attempt(
+  uuid,uuid,text,integer) TO :"app_role";
+
 -- Official notice notification events are queued by the table-owner
 -- trigger, never by the member API; members only get a scoped projection.
 REVOKE ALL ON TABLE club.app_announcement_notification_events FROM PUBLIC, :"app_role";

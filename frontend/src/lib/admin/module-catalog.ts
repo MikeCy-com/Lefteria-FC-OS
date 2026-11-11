@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'app' | 'crm' | 'pos' | 'finance' | 'fo
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/attendance';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -35,7 +35,7 @@ const catalog: readonly Section[] = [
     { id: 'app_media', name: 'Συνημμένα εφαρμογής', description: 'Προστατευμένα αρχεία και banner ανακοινώσεων. Καμία δημόσια ανάρτηση.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] }
   ] },
   { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
-    { id: 'leads', name: 'Ενδιαφερόμενοι & επαφές', description: 'Απαιτεί ιδιωτικό API και πολιτική δεδομένων.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] },
+    { id: 'leads', name: 'Ενδιαφερόμενοι Ακαδημίας', description: 'Ιδιωτικός κατάλογος αιτημάτων και ελεγχόμενη καταχώριση επικοινωνίας (χωρίς αυτόματη εγγραφή ή αποστολή).', status: 'live', href: '/admin/leads', scope: 'academy', anyPermission: ['marketing:read'] },
     { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Αιτήματα γονέων και κηδεμόνων.', status: 'planned', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
@@ -45,6 +45,7 @@ const catalog: readonly Section[] = [
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
+    { id: 'payabl', name: 'Ακαδημία · Χρεώσεις, PDF & payabl. (sandbox)', description: 'Έκδοση επιλεγμένου μήνα ανά παιδί, καταχώριση μετρητών, λήψη αυθεντικού PDF και δοκιμαστικοί σύνδεσμοι Payabl με προστατευμένο Twilio SMS. Οι πραγματικές αυτόματες εισπράξεις, η παραγωγική διασύνδεση και οι πληρωμές προσωπικού παραμένουν ανενεργές.', status: 'live', href: '/admin/finance', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'charges', name: 'Χρεώσεις & εισπράξεις', description: 'Οφειλές και πληρωμές.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'reports', name: 'Αναφορές & έξοδα', description: 'Οικονομικά ανά οργανισμό.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] }
   ] },
@@ -82,6 +83,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
         ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy') &&
         hasAdminPermission(user.permissions,'attendance:read'));
+      if (item.id === 'leads') return (['manager','super_admin'].includes(user.role) &&
+        organizations.includes('lefteria_fc_academy') &&
+        hasAdminPermission(user.permissions,'marketing:read'));
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));

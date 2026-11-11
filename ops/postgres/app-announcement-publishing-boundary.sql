@@ -29,6 +29,40 @@ BEGIN
     END IF;
   END LOOP;
   IF NOT has_function_privilege(mobile_role,
+       'club.save_mobile_push_subscription(uuid,text,text,timestamptz,text,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.remove_mobile_push_subscription(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.mobile_push_subscription_status(uuid,text,text,timestamptz)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.claim_app_announcement_push_attempts(integer)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.check_app_announcement_push_lease(uuid,uuid)','EXECUTE')
+    OR NOT has_function_privilege(mobile_role,
+       'club.finish_app_announcement_push_attempt(uuid,uuid,text,integer)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.save_mobile_push_subscription(uuid,text,text,timestamptz,text,text,text,text)','EXECUTE')
+    OR has_function_privilege(auth_role,
+       'club.claim_app_announcement_push_attempts(integer)','EXECUTE')
+    OR has_any_column_privilege(auth_role,
+       'club.mobile_push_subscriptions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,
+       'club.mobile_push_subscriptions','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(mobile_role,
+       'club.mobile_push_subscriptions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,
+       'club.mobile_push_subscriptions','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(auth_role,
+       'club.app_announcement_push_attempts','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(auth_role,
+       'club.app_announcement_push_attempts','DELETE,TRUNCATE,TRIGGER')
+    OR has_any_column_privilege(mobile_role,
+       'club.app_announcement_push_attempts','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(mobile_role,
+       'club.app_announcement_push_attempts','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Web Push subscription/attempt boundary leaked';
+  END IF;
+  IF NOT has_function_privilege(mobile_role,
        'club.read_mobile_app_notification_inbox(uuid,text,text,timestamptz,integer)','EXECUTE')
     OR has_function_privilege(auth_role,
        'club.read_mobile_app_notification_inbox(uuid,text,text,timestamptz,integer)','EXECUTE')
