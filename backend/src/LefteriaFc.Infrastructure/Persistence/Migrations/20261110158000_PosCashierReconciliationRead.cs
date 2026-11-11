@@ -10,17 +10,17 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// No payment changes, private children records, or raw table grants.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110158000_PosCashierReconciliationRead")]
+[Migration("20261110222000_PosCashierReconciliationRead")]
 public sealed class PosCashierReconciliationRead : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE FUNCTION pos.read_cashier_shift_reconciliation(
+      CREATE FUNCTION pos_cashier.read_cashier_shift_reconciliation(
         _digest text,_owner text,_shift uuid
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $report$
       DECLARE
         v_actor uuid;
-        v_shift pos.shifts%ROWTYPE;
+        v_shift pos_cashier.shifts%ROWTYPE;
         v_sales bigint; v_paid bigint; v_unpaid bigint;
         v_cash bigint; v_card bigint;
         v_refunds_cash bigint; v_refunds_card bigint;
@@ -31,12 +31,12 @@ public sealed class PosCashierReconciliationRead : Migration
         IF _owner NOT IN ('lefteria_fc','lefteria_fc_academy') OR _shift IS NULL
         THEN RAISE EXCEPTION 'pos_shift_report_invalid' USING ERRCODE='22023';
         END IF;
-        SELECT * INTO v_shift FROM pos.shifts
+        SELECT * INTO v_shift FROM pos_cashier.shifts
           WHERE organization_id=_owner AND id=_shift;
         IF NOT FOUND THEN
           RAISE EXCEPTION 'pos_shift_report_unavailable' USING ERRCODE='42501';
         END IF;
-        v_actor:=pos.current_cashier_authority(
+        v_actor:=pos_cashier.current_cashier_authority(
           _digest,_owner,v_shift.register_id);
         IF v_shift.cashier_id<>v_actor THEN
           RAISE EXCEPTION 'pos_shift_report_access_denied' USING ERRCODE='42501';
@@ -45,7 +45,7 @@ public sealed class PosCashierReconciliationRead : Migration
           count(*) FILTER(WHERE status='paid'),
           count(*) FILTER(WHERE status IN ('awaiting_payment','partially_paid'))
           INTO v_sales,v_paid,v_unpaid
-        FROM pos.sales WHERE organization_id=_owner AND shift_id=_shift;
+        FROM pos_cashier.sales WHERE organization_id=_owner AND shift_id=_shift;
         IF v_sales>10000 THEN
           RAISE EXCEPTION 'pos_shift_report_too_large' USING ERRCODE='54000';
         END IF;
@@ -57,8 +57,8 @@ public sealed class PosCashierReconciliationRead : Migration
           count(*) FILTER(
             WHERE p.status='pending' AND p.payment_kind='card')
           INTO v_cash,v_card,v_card_pending
-        FROM pos.payment_events p
-        JOIN pos.sales s ON s.organization_id=p.organization_id AND s.id=p.sale_id
+        FROM pos_cashier.payment_events p
+        JOIN pos_cashier.sales s ON s.organization_id=p.organization_id AND s.id=p.sale_id
         WHERE s.organization_id=_owner AND s.shift_id=_shift;
         SELECT
           coalesce(sum(f.amount_cents) FILTER(
@@ -66,32 +66,32 @@ public sealed class PosCashierReconciliationRead : Migration
           coalesce(sum(f.amount_cents) FILTER(
             WHERE f.status='verified' AND f.refund_kind='card'),0)
           INTO v_refunds_cash,v_refunds_card
-        FROM pos.refund_events f
-        JOIN pos.returns r ON r.organization_id=f.organization_id
+        FROM pos_cashier.refund_events f
+        JOIN pos_cashier.returns r ON r.organization_id=f.organization_id
           AND r.id=f.return_id
-        JOIN pos.sales s ON s.organization_id=r.organization_id
+        JOIN pos_cashier.sales s ON s.organization_id=r.organization_id
           AND s.id=r.sale_id
         WHERE s.organization_id=_owner AND s.shift_id=_shift;
-        SELECT count(*) INTO v_receipts FROM pos.receipts r
-          JOIN pos.sales s ON s.organization_id=r.organization_id
+        SELECT count(*) INTO v_receipts FROM pos_cashier.receipts r
+          JOIN pos_cashier.sales s ON s.organization_id=r.organization_id
             AND s.id=r.sale_id
           WHERE s.organization_id=_owner AND s.shift_id=_shift;
-        SELECT count(*) INTO v_reservations FROM pos.sale_reservations rs
-          JOIN pos.sales s ON s.organization_id=rs.organization_id
+        SELECT count(*) INTO v_reservations FROM pos_cashier.sale_reservations rs
+          JOIN pos_cashier.sales s ON s.organization_id=rs.organization_id
             AND s.id=rs.sale_id
           WHERE s.organization_id=_owner AND s.shift_id=_shift
             AND rs.released_at IS NULL AND rs.consumed_at IS NULL;
-        SELECT count(*) INTO v_inconsistent FROM pos.sales s
+        SELECT count(*) INTO v_inconsistent FROM pos_cashier.sales s
           WHERE s.organization_id=_owner AND s.shift_id=_shift
             AND (
               (s.status='paid' AND NOT EXISTS (
-                SELECT 1 FROM pos.receipts r
+                SELECT 1 FROM pos_cashier.receipts r
                 WHERE r.organization_id=s.organization_id AND r.sale_id=s.id))
               OR (s.status<>'paid' AND EXISTS(
-                SELECT 1 FROM pos.receipts r
+                SELECT 1 FROM pos_cashier.receipts r
                 WHERE r.organization_id=s.organization_id AND r.sale_id=s.id))
               OR (s.status='voided' AND EXISTS(
-                SELECT 1 FROM pos.sale_reservations rs
+                SELECT 1 FROM pos_cashier.sale_reservations rs
                 WHERE rs.organization_id=s.organization_id AND rs.sale_id=s.id
                   AND rs.released_at IS NULL AND rs.consumed_at IS NULL))
             );
@@ -119,11 +119,11 @@ public sealed class PosCashierReconciliationRead : Migration
         );
       END $report$;
 
-      REVOKE ALL ON FUNCTION pos.read_cashier_shift_reconciliation(
+      REVOKE ALL ON FUNCTION pos_cashier.read_cashier_shift_reconciliation(
         text,text,uuid) FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DROP FUNCTION pos.read_cashier_shift_reconciliation(text,text,uuid);
+      DROP FUNCTION pos_cashier.read_cashier_shift_reconciliation(text,text,uuid);
     """);
 }
