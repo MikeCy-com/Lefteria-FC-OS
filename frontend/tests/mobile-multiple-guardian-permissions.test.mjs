@@ -1,0 +1,92 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,existsSync} from 'node:fs';
+
+const get=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const db=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110173000_MultipleGuardianPermissions.cs');
+const access=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110175000_GuardianVerifiedPhoneScope.cs');
+const chat=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110176000_DelegatedGuardianChatDirectory.cs');
+const service=get('backend/src/LefteriaFc.Application/Family/GuardianPermissionService.cs');
+const backend=get('backend/src/LefteriaFc.Api/Family/ParentFamilyEndpoints.cs');
+const scope=get('backend/src/LefteriaFc.Infrastructure/ClubCalendar/OperationalScopeSql.cs');
+const family=get('backend/src/LefteriaFc.Infrastructure/Family/PostgresParentFamilyQueries.cs');
+const canonical=get('backend/src/LefteriaFc.Infrastructure/Identity/CanonicalMobileProfiles.cs');
+const auth=get('backend/src/LefteriaFc.Application/MobileAuth/MobileAuthService.cs');
+const identityRepo=get('backend/src/LefteriaFc.Infrastructure/Identity/PostgresMobileAuthRepository.cs');
+const controller=get('frontend/src/lib/mobile/controller.ts');
+const ui=get('frontend/src/lib/mobile/components/MobileFamily.svelte');
+const page=get('frontend/src/routes/app/[...path]/+page.svelte');
+
+test('one child is automatic, multiple children can be selected, guardian can select all children',()=>{
+  assert.match(ui,/family\.children\.length===1/);
+  assert.match(ui,/family\.children\[0\]\.name/);
+  assert.match(ui,/resolvedChild/);
+  assert.match(ui,/family\?\.children\.length===1/);
+  assert.match(ui,/\{#if family\.children\.length===1\}/);
+  assert.match(ui,/\{:else\}\s*<label>Επίλεξε παιδί/);
+  assert.match(ui,/permissionType==='guardian'/);
+  assert.match(ui,/<option value="all">Όλα τα παιδιά μου<\/option>/);
+  assert.match(ui,/permissionType==='guardian'&&resolvedChild==='all'/);
+  assert.match(ui,/onCreateManyGuardian/);
+  assert.match(ui,/children.length>1/);
+  assert.match(ui,/submitting=false/);
+});
+test('direct parent grant uses phone only, without invitation acceptance or expiry',()=>{
+  assert.match(db,/status varchar\(16\) NOT NULL DEFAULT 'granted'/);
+  assert.match(db,/status IN \('granted','revoked'\)/);
+  assert.match(db,/source_permission_id uuid REFERENCES identity\.family_guardian_permissions/);
+  assert.match(db,/UNIQUE INDEX uq_family_guardian_live_recipient/);
+  assert.match(db,/status='granted'/);
+  assert.doesNotMatch(db,/expires_at timestamptz|accepted_at timestamptz|target_identity_id uuid/);
+  assert.match(service,/result\.Status != "granted"/);
+  assert.match(controller,/kind==='guardian'\?'granted':'pending'/);
+  assert.match(ui,/permission\.recipient_hint/);
+  assert.match(backend,/IssueGuardianPermission/);
+  assert.doesNotMatch(backend,/AcceptRecipientGuardianConsent|GetRecipientGuardianInvitations/);
+  assert.doesNotMatch(page,/MobileGuardianConsent/);
+  assert.equal(existsSync(new URL('../../frontend/src/lib/mobile/components/MobileGuardianConsent.svelte',import.meta.url)),false);
+});
+test('a parent identity is provisioned only after OTP proof of the granted phone',()=>{
+  const proofIndex=auth.indexOf('challenge.Verify(');
+  const provisionIndex=auth.indexOf('transaction.EnsureGrantedParentIdentityAsync');
+  assert.ok(proofIndex>=0&&provisionIndex>proofIndex);
+  assert.match(auth,/predictedRoles\.Add\(MobileRole\.Parent\)/);
+  assert.match(identityRepo,/HasCurrentGuardianPhoneGrantAsync/);
+  assert.match(identityRepo,/EnsureGrantedParentIdentityAsync/);
+  assert.match(identityRepo,/Role=="parent"/);
+  assert.match(identityRepo,/if\(!existing\.IsActive\)/);
+  assert.match(identityRepo,/context\.MobileIdentities\.Add\(row\)/);
+  assert.match(canonical,/"parent"=>players\.Length>0/);
+  assert.match(canonical,/identity\.current_phone_granted_children/);
+});
+test('all parent child reads and calendar membership use current phone grant scope',()=>{
+  assert.match(access,/WITH RECURSIVE valid/);
+  assert.match(access,/issuer\.normalized_phone=valid\.target_phone/);
+  assert.match(access,/source_permission_id=valid\.permission_id/);
+  assert.match(access,/valid\.depth<20/);
+  assert.match(access,/current_phone_granted_children/);
+  assert.match(family,/identity\.current_phone_granted_children/);
+  assert.match(family,/DISTINCT ON \(id\)/);
+  assert.match(scope,/identity\.current_phone_granted_children/);
+  assert.match(chat,/identity\.current_phone_granted_children/);
+  assert.match(chat,/CREATE OR REPLACE FUNCTION club\.read_mobile_chat_groups/);
+});
+test('granting by a delegated parent is traced to current authority and revocation cascades',()=>{
+  assert.match(db,/v_source/);
+  assert.match(db,/identity\.current_phone_granted_children/);
+  assert.match(db,/identity\.valid_guardian_phone_grants/);
+  assert.match(db,/WITH RECURSIVE affected/);
+  assert.match(db,/g\.source_permission_id=affected\.id/);
+  assert.match(db,/g\.status='granted'/);
+  assert.match(db,/status='revoked',revoked_at=v_now/);
+  assert.match(db,/issuer_identity_id=_actor/);
+  assert.match(db,/audit\.security_events/);
+});
+test('phone number cannot impersonate a child or management identity',()=>{
+  assert.match(db,/c\.kind='player_own' AND c\.normalized_phone=_target/);
+  assert.match(db,/i\.role IN \('player','coach','management'\)/);
+  assert.match(access,/recipient\.role='parent' AND _role='parent'/);
+  assert.match(access,/recipient\.normalized_phone=_phone/);
+  assert.match(canonical,/"player"=>players\.Length==1/);
+  assert.match(ui,/Παίκτη — μόνο το δικό του προφίλ/);
+});
