@@ -75,7 +75,7 @@ $guard$;
 REVOKE ALL PRIVILEGES ON DATABASE :"admin_auth_database" FROM :"admin_auth_role";
 GRANT CONNECT ON DATABASE :"admin_auth_database" TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
-GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos TO :"admin_auth_role";
+GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos,hub TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON identity.admin_sessions,identity.admin_auth_rate_buckets FROM PUBLIC, :"app_role";
@@ -226,6 +226,11 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
+-- HUB editorial is exposed only through a scoped security-definer function.
+-- Never grant direct hub table access or callable access to the mobile role.
+REVOKE ALL ON FUNCTION hub.read_admin_editorial(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_admin_editorial(text,text) TO :"admin_auth_role";
+\ir admin-hub-editorial-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
 \ir app-announcement-publishing-boundary.sql
 
@@ -259,6 +264,7 @@ BEGIN
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
+                  'hub.read_admin_editorial(text,text)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
