@@ -47,5 +47,6 @@ test('UI only shows validated expiry metadata and clears it on account change',(
   assert.match(page,/permitted=\$derived/);
   assert.match(page,/document\.expiry_date/);
   assert.doesNotMatch(page,/download|object\.blob|window\.open|href=\{document/);
-  assert.match(navigation,/item\.id === 'documents'.*\['manager','super_admin'\]/);
+  assert.match(navigation,/item\.id === 'documents' \|\| item\.id === 'evaluations'/);
+  assert.match(navigation,/\['manager','super_admin'\]\.includes\(user\.role\)/);
 });
