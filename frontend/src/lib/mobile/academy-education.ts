@@ -130,3 +130,25 @@ export function academyEducationFor(
     article.stage === stage && (audience === 'all' || audience === article.audience) &&
     (topic === 'all' || topic === article.topic));
 }
+
+
+// Content search intentionally operates on the static, public starter library.
+// It never receives guardian identities, child rosters or protected media.
+export function searchAcademyEducation(
+  stage: EducationStage,
+  audience: EducationAudience | 'all',
+  topic: EducationTopic | 'all',
+  query: string
+): readonly AcademyEducationArticle[] {
+  const tokens = query.normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('el-GR').trim().slice(0, 120)
+    .split(/\s+/).filter(Boolean);
+  const articles = academyEducationFor(stage, audience, topic);
+  if (tokens.length === 0) return articles;
+  return articles.filter(article => {
+    const haystack = [article.title, article.summary, article.discussion, ...article.points]
+      .join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');
+    return tokens.every(token => haystack.includes(token));
+  });
+}
