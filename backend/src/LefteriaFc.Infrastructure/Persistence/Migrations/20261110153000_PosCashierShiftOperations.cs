@@ -10,15 +10,15 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// no grants, enrollments, locations, registers, payments or cashier assignments.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110153000_PosCashierShiftOperations")]
+[Migration("20261110213000_PosCashierShiftOperations")]
 public sealed class PosCashierShiftOperations : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      ALTER TABLE pos.shifts ADD COLUMN open_request_id uuid;
-      ALTER TABLE pos.shifts ADD COLUMN close_request_id uuid;
-      ALTER TABLE pos.shifts ADD COLUMN expected_cash_cents bigint;
-      ALTER TABLE pos.shifts ADD COLUMN variance_cents bigint;
-      ALTER TABLE pos.shifts ADD CONSTRAINT ck_pos_shift_closure_values
+      ALTER TABLE pos_cashier.shifts ADD COLUMN open_request_id uuid;
+      ALTER TABLE pos_cashier.shifts ADD COLUMN close_request_id uuid;
+      ALTER TABLE pos_cashier.shifts ADD COLUMN expected_cash_cents bigint;
+      ALTER TABLE pos_cashier.shifts ADD COLUMN variance_cents bigint;
+      ALTER TABLE pos_cashier.shifts ADD CONSTRAINT ck_pos_shift_closure_values
         CHECK (
           (closed_at IS NULL AND close_request_id IS NULL
             AND expected_cash_cents IS NULL AND variance_cents IS NULL)
@@ -28,13 +28,13 @@ public sealed class PosCashierShiftOperations : Migration
             AND variance_cents=counted_cash_cents-expected_cash_cents)
         );
       CREATE UNIQUE INDEX uq_pos_shift_open_request
-        ON pos.shifts(organization_id,open_request_id)
+        ON pos_cashier.shifts(organization_id,open_request_id)
         WHERE open_request_id IS NOT NULL;
       CREATE UNIQUE INDEX uq_pos_shift_close_request
-        ON pos.shifts(organization_id,close_request_id)
+        ON pos_cashier.shifts(organization_id,close_request_id)
         WHERE close_request_id IS NOT NULL;
 
-      CREATE FUNCTION pos.current_cashier_authority(
+      CREATE FUNCTION pos_cashier.current_cashier_authority(
         _digest text,_owner text,_register text
       ) RETURNS uuid LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $auth$
@@ -55,10 +55,10 @@ public sealed class PosCashierShiftOperations : Migration
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
           JOIN identity.admin_organization_grants g
             ON g.admin_account_id=a.id AND g.organization_id=_owner
-          JOIN pos.cashier_assignments ca
+          JOIN pos_cashier.cashier_assignments ca
             ON ca.organization_id=_owner AND ca.register_id=_register
               AND ca.admin_account_id=a.id AND ca.is_active
-          JOIN pos.registers r
+          JOIN pos_cashier.registers r
             ON r.organization_id=_owner AND r.id=_register AND r.is_active
           JOIN pos.locations l
             ON l.organization_id=_owner AND l.id=r.location_id AND l.is_active
@@ -73,7 +73,7 @@ public sealed class PosCashierShiftOperations : Migration
         RETURN v_actor;
       END $auth$;
 
-      CREATE FUNCTION pos.read_admin_cashier_registers(
+      CREATE FUNCTION pos_cashier.read_admin_cashier_registers(
         _digest text,_owner text
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $read$
@@ -96,10 +96,10 @@ public sealed class PosCashierShiftOperations : Migration
         IF NOT FOUND OR v_role NOT IN ('manager','super_admin') THEN
           RAISE EXCEPTION 'cashier_read_denied' USING ERRCODE='42501';
         END IF;
-        SELECT count(*) INTO v_total FROM pos.registers r
+        SELECT count(*) INTO v_total FROM pos_cashier.registers r
           JOIN pos.locations l ON l.organization_id=r.organization_id
             AND l.id=r.location_id
-          JOIN pos.cashier_assignments ca
+          JOIN pos_cashier.cashier_assignments ca
             ON ca.organization_id=r.organization_id AND ca.register_id=r.id
               AND ca.admin_account_id=v_actor AND ca.is_active
           WHERE r.organization_id=_owner AND r.is_active AND l.is_active;
@@ -111,13 +111,13 @@ public sealed class PosCashierShiftOperations : Migration
           'location_name',l.name,'shift_id',sh.id,
           'opened_at',sh.opened_at,'opening_cash_cents',sh.opening_cash_cents)
           ORDER BY r.id),'[]'::jsonb) INTO v_rows
-          FROM pos.registers r
+          FROM pos_cashier.registers r
           JOIN pos.locations l
             ON l.organization_id=r.organization_id AND l.id=r.location_id
-          JOIN pos.cashier_assignments ca
+          JOIN pos_cashier.cashier_assignments ca
             ON ca.organization_id=r.organization_id AND ca.register_id=r.id
               AND ca.admin_account_id=v_actor AND ca.is_active
-          LEFT JOIN pos.shifts sh
+          LEFT JOIN pos_cashier.shifts sh
             ON sh.organization_id=r.organization_id
               AND sh.register_id=r.id AND sh.closed_at IS NULL
           WHERE r.organization_id=_owner AND r.is_active AND l.is_active;
@@ -125,18 +125,18 @@ public sealed class PosCashierShiftOperations : Migration
           'registers',v_rows,'total',v_total);
       END $read$;
 
-      CREATE FUNCTION pos.open_admin_cashier_shift(
+      CREATE FUNCTION pos_cashier.open_admin_cashier_shift(
         _digest text,_owner text,_register text,_opening bigint,_request uuid
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $open$
-      DECLARE v_actor uuid; v_id uuid; v_existing pos.shifts%ROWTYPE;
+      DECLARE v_actor uuid; v_id uuid; v_existing pos_cashier.shifts%ROWTYPE;
       BEGIN
         IF _opening IS NULL OR _opening NOT BETWEEN 0 AND 100000000
           OR _request IS NULL OR _request='00000000-0000-0000-0000-000000000000'::uuid
         THEN RAISE EXCEPTION 'cashier_open_invalid' USING ERRCODE='22023';
         END IF;
-        v_actor:=pos.current_cashier_authority(_digest,_owner,_register);
-        SELECT * INTO v_existing FROM pos.shifts
+        v_actor:=pos_cashier.current_cashier_authority(_digest,_owner,_register);
+        SELECT * INTO v_existing FROM pos_cashier.shifts
           WHERE organization_id=_owner AND open_request_id=_request FOR UPDATE;
         IF FOUND THEN
           IF v_existing.register_id<>_register OR v_existing.cashier_id<>v_actor
@@ -148,21 +148,21 @@ public sealed class PosCashierShiftOperations : Migration
             'opening_cash_cents',v_existing.opening_cash_cents,'replay',true);
         END IF;
         v_id:=gen_random_uuid();
-        INSERT INTO pos.shifts(id,organization_id,register_id,cashier_id,
+        INSERT INTO pos_cashier.shifts(id,organization_id,register_id,cashier_id,
           opening_cash_cents,open_request_id)
         VALUES(v_id,_owner,_register,v_actor,_opening,_request);
-        INSERT INTO pos.transaction_audit(id,organization_id,actor_id,action,request_id)
+        INSERT INTO pos_cashier.transaction_audit(id,organization_id,actor_id,action,request_id)
         VALUES(gen_random_uuid(),_owner,v_actor,'shift_open',_request);
         RETURN jsonb_build_object('organization_id',_owner,
           'register_id',_register,'shift_id',v_id,
           'opening_cash_cents',_opening,'replay',false);
       END $open$;
 
-      CREATE FUNCTION pos.close_admin_cashier_shift(
+      CREATE FUNCTION pos_cashier.close_admin_cashier_shift(
         _digest text,_owner text,_shift uuid,_counted bigint,_request uuid
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $close$
-      DECLARE v_actor uuid; v_shift pos.shifts%ROWTYPE;
+      DECLARE v_actor uuid; v_shift pos_cashier.shifts%ROWTYPE;
         v_cash_in bigint; v_cash_out bigint; v_expected bigint;
       BEGIN
         IF _shift IS NULL OR _counted IS NULL
@@ -172,11 +172,11 @@ public sealed class PosCashierShiftOperations : Migration
         END IF;
         -- Obtain current authorization before the shift row lock, matching
         -- the checkout lock order and avoiding an auth/shift deadlock.
-        SELECT * INTO v_shift FROM pos.shifts
+        SELECT * INTO v_shift FROM pos_cashier.shifts
           WHERE id=_shift AND organization_id=_owner;
         IF NOT FOUND THEN RAISE EXCEPTION 'cashier_shift_missing' USING ERRCODE='42501'; END IF;
-        v_actor:=pos.current_cashier_authority(_digest,_owner,v_shift.register_id);
-        SELECT * INTO v_shift FROM pos.shifts
+        v_actor:=pos_cashier.current_cashier_authority(_digest,_owner,v_shift.register_id);
+        SELECT * INTO v_shift FROM pos_cashier.shifts
           WHERE id=_shift AND organization_id=_owner FOR UPDATE;
         IF NOT FOUND OR v_actor<>v_shift.cashier_id THEN
           RAISE EXCEPTION 'cashier_shift_other_actor' USING ERRCODE='42501';
@@ -192,12 +192,12 @@ public sealed class PosCashierShiftOperations : Migration
         END IF;
         -- No closing with unresolved payments/returns: settlement and
         -- pending refunds must be resolved first by approved handlers.
-        IF EXISTS(SELECT 1 FROM pos.sales WHERE organization_id=_owner
+        IF EXISTS(SELECT 1 FROM pos_cashier.sales WHERE organization_id=_owner
           AND shift_id=_shift AND status NOT IN ('paid','voided'))
-          OR EXISTS(SELECT 1 FROM pos.refund_events f
-            JOIN pos.returns r ON r.organization_id=f.organization_id
+          OR EXISTS(SELECT 1 FROM pos_cashier.refund_events f
+            JOIN pos_cashier.returns r ON r.organization_id=f.organization_id
               AND r.id=f.return_id
-            JOIN pos.sales s ON s.organization_id=r.organization_id
+            JOIN pos_cashier.sales s ON s.organization_id=r.organization_id
               AND s.id=r.sale_id
             WHERE s.organization_id=_owner AND s.shift_id=_shift
               AND f.status='pending') THEN
@@ -205,25 +205,25 @@ public sealed class PosCashierShiftOperations : Migration
             USING ERRCODE='55000';
         END IF;
         SELECT coalesce(sum(p.amount_cents),0) INTO v_cash_in
-          FROM pos.payment_events p JOIN pos.sales s
+          FROM pos_cashier.payment_events p JOIN pos_cashier.sales s
             ON s.organization_id=p.organization_id AND s.id=p.sale_id
           WHERE s.organization_id=_owner AND s.shift_id=_shift
             AND p.status='verified' AND p.payment_kind='cash';
         SELECT coalesce(sum(f.amount_cents),0) INTO v_cash_out
-          FROM pos.refund_events f JOIN pos.returns r
+          FROM pos_cashier.refund_events f JOIN pos_cashier.returns r
             ON r.organization_id=f.organization_id AND r.id=f.return_id
-          JOIN pos.sales s ON s.organization_id=r.organization_id AND s.id=r.sale_id
+          JOIN pos_cashier.sales s ON s.organization_id=r.organization_id AND s.id=r.sale_id
           WHERE s.organization_id=_owner AND s.shift_id=_shift
             AND f.status='verified' AND f.refund_kind='cash';
         v_expected:=v_shift.opening_cash_cents+v_cash_in-v_cash_out;
         IF v_expected<0 OR v_expected>100000000 THEN
           RAISE EXCEPTION 'cashier_expected_cash_out_of_range' USING ERRCODE='23514';
         END IF;
-        UPDATE pos.shifts SET closed_at=clock_timestamp(),
+        UPDATE pos_cashier.shifts SET closed_at=clock_timestamp(),
           counted_cash_cents=_counted,expected_cash_cents=v_expected,
           variance_cents=_counted-v_expected,close_request_id=_request
           WHERE id=_shift;
-        INSERT INTO pos.transaction_audit(id,organization_id,actor_id,action,request_id)
+        INSERT INTO pos_cashier.transaction_audit(id,organization_id,actor_id,action,request_id)
         VALUES(gen_random_uuid(),_owner,v_actor,'shift_close',_request);
         RETURN jsonb_build_object('organization_id',_owner,
           'shift_id',_shift,'counted_cash_cents',_counted,
@@ -233,28 +233,28 @@ public sealed class PosCashierShiftOperations : Migration
 
       -- Sensitive operations remain default-deny until independently
       -- reviewed, explicitly granted to a dedicated admin database role.
-      REVOKE ALL ON FUNCTION pos.current_cashier_authority(text,text,text) FROM PUBLIC;
-      REVOKE ALL ON FUNCTION pos.read_admin_cashier_registers(text,text) FROM PUBLIC;
-      REVOKE ALL ON FUNCTION pos.open_admin_cashier_shift(text,text,text,bigint,uuid) FROM PUBLIC;
-      REVOKE ALL ON FUNCTION pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION pos_cashier.current_cashier_authority(text,text,text) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION pos_cashier.read_admin_cashier_registers(text,text) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid) FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       DO $guard$ BEGIN
-        IF EXISTS(SELECT 1 FROM pos.shifts) THEN
+        IF EXISTS(SELECT 1 FROM pos_cashier.shifts) THEN
           RAISE EXCEPTION 'cashier_shift_data_requires_forward_recovery';
         END IF;
       END $guard$;
-      DROP FUNCTION pos.close_admin_cashier_shift(text,text,uuid,bigint,uuid);
-      DROP FUNCTION pos.open_admin_cashier_shift(text,text,text,bigint,uuid);
-      DROP FUNCTION pos.read_admin_cashier_registers(text,text);
-      DROP FUNCTION pos.current_cashier_authority(text,text,text);
-      DROP INDEX pos.uq_pos_shift_close_request;
-      DROP INDEX pos.uq_pos_shift_open_request;
-      ALTER TABLE pos.shifts DROP CONSTRAINT ck_pos_shift_closure_values;
-      ALTER TABLE pos.shifts DROP COLUMN variance_cents;
-      ALTER TABLE pos.shifts DROP COLUMN expected_cash_cents;
-      ALTER TABLE pos.shifts DROP COLUMN close_request_id;
-      ALTER TABLE pos.shifts DROP COLUMN open_request_id;
+      DROP FUNCTION pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid);
+      DROP FUNCTION pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid);
+      DROP FUNCTION pos_cashier.read_admin_cashier_registers(text,text);
+      DROP FUNCTION pos_cashier.current_cashier_authority(text,text,text);
+      DROP INDEX pos_cashier.uq_pos_shift_close_request;
+      DROP INDEX pos_cashier.uq_pos_shift_open_request;
+      ALTER TABLE pos_cashier.shifts DROP CONSTRAINT ck_pos_shift_closure_values;
+      ALTER TABLE pos_cashier.shifts DROP COLUMN variance_cents;
+      ALTER TABLE pos_cashier.shifts DROP COLUMN expected_cash_cents;
+      ALTER TABLE pos_cashier.shifts DROP COLUMN close_request_id;
+      ALTER TABLE pos_cashier.shifts DROP COLUMN open_request_id;
     """);
 }
