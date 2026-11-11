@@ -85,6 +85,28 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
         PRIMARY KEY (registration_id,consent_kind,revision)
       );
 
+      -- A first decision is revision 1. Every later revision must have its
+      -- immediate predecessor, including when submitted in the same transaction.
+      CREATE FUNCTION academy_intake.assert_consent_revision()
+      RETURNS trigger LANGUAGE plpgsql AS $revision$
+      BEGIN
+        IF NEW.revision <> 1 AND NOT EXISTS (
+          SELECT 1 FROM academy_intake.registration_consents prior
+          WHERE prior.registration_id=NEW.registration_id
+            AND prior.consent_kind=NEW.consent_kind
+            AND prior.revision=NEW.revision-1
+        ) THEN
+          RAISE EXCEPTION 'consent revisions must be consecutive from one'
+            USING ERRCODE='23514';
+        END IF;
+        RETURN NULL;
+      END;
+      $revision$;
+      CREATE CONSTRAINT TRIGGER consent_revision_sequence
+        AFTER INSERT ON academy_intake.registration_consents
+        DEFERRABLE INITIALLY DEFERRED
+        FOR EACH ROW EXECUTE FUNCTION academy_intake.assert_consent_revision();
+
       -- Reject mutation of evidence, including by privileged migration users.
       -- Database owners/superusers can still replace triggers; those accounts
       -- must remain unavailable to the application.
@@ -157,7 +179,10 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
       CREATE CONSTRAINT TRIGGER registration_status_audit
         AFTER UPDATE OF status, status_version ON academy_intake.registrations
         DEFERRABLE INITIALLY DEFERRED
-        FOR EACH ROW EXECUTE FUNCTION academy_intake.assert_registration_audit();
+        FOR EACH ROW
+        WHEN (OLD.status IS DISTINCT FROM NEW.status
+              OR OLD.status_version IS DISTINCT FROM NEW.status_version)
+        EXECUTE FUNCTION academy_intake.assert_registration_audit();
 
       REVOKE ALL ON ALL TABLES IN SCHEMA academy_intake FROM PUBLIC;
       ALTER TABLE academy_intake.registrations ENABLE ROW LEVEL SECURITY;
@@ -174,6 +199,7 @@ public sealed class AcademyRegistrationPrivateIntake : Migration
       DROP TABLE academy_intake.registration_consents;
       DROP TABLE academy_intake.registrations;
       DROP FUNCTION academy_intake.assert_registration_audit();
+      DROP FUNCTION academy_intake.assert_consent_revision();
       DROP FUNCTION academy_intake.reject_evidence_mutation();
       DROP SCHEMA academy_intake;
     """);
