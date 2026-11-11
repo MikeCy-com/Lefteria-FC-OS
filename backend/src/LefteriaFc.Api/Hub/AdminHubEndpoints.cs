@@ -50,7 +50,7 @@ public static class AdminHubEndpoints
                     await using var connection = await connections.OpenAsync(token);
                     await using var command = new NpgsqlCommand(
                         "SELECT hub.read_admin_editorial(@digest,@owner)::text", connection);
-                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
                     command.Parameters.AddWithValue("owner", organization_id);
                     var raw = await command.ExecuteScalarAsync(token) as string;
                     if (raw is null) return Failure(503, "hub_unavailable");
@@ -109,7 +109,7 @@ public static class AdminHubEndpoints
                     await using var connection = await connections.OpenAsync(token);
                     await using var command = new NpgsqlCommand(
                         "SELECT hub.create_admin_draft(@digest,@owner,@id,@revision_id,@kind,@title,@body,@parent,@player,@age_min,@age_max)::text", connection);
-                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
                     command.Parameters.AddWithValue("owner", organization_id);
                     var id = Guid.NewGuid();
                     command.Parameters.AddWithValue("id", id);
@@ -180,7 +180,7 @@ public static class AdminHubEndpoints
                     await using var connection = await connections.OpenAsync(token);
                     await using var command = new NpgsqlCommand(
                         "SELECT hub.submit_admin_draft_review(@digest,@owner,@id,@version)::text", connection);
-                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
                     command.Parameters.AddWithValue("owner", organization_id);
                     command.Parameters.AddWithValue("id", id);
                     command.Parameters.AddWithValue("version", body.Version);
@@ -245,7 +245,7 @@ public static class AdminHubEndpoints
                     await using var connection = await connections.OpenAsync(token);
                     await using var command = new NpgsqlCommand(
                         "SELECT hub.read_admin_editorial_detail(@digest,@owner,@id)::text", connection);
-                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
                     command.Parameters.AddWithValue("owner", organization_id);
                     command.Parameters.AddWithValue("id", id);
                     var raw = await command.ExecuteScalarAsync(token) as string;
@@ -314,7 +314,7 @@ public static class AdminHubEndpoints
                     await using var connection = await connections.OpenAsync(token);
                     await using var command = new NpgsqlCommand(
                         "SELECT hub.review_admin_text(@digest,@owner,@id,@version,@decision)::text", connection);
-                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
                     command.Parameters.AddWithValue("owner", organization_id);
                     command.Parameters.AddWithValue("id", id);
                     command.Parameters.AddWithValue("version", body.Version);
