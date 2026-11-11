@@ -10,11 +10,11 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// The report never claims that a finance journal has been posted.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110165000_PosFinanceHandoffRead")]
+[Migration("20261110233000_PosFinanceHandoffRead")]
 public sealed class PosFinanceHandoffRead : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE FUNCTION pos.read_admin_finance_handoff(
+      CREATE FUNCTION pos_cashier.read_admin_finance_handoff(
         _digest text,_owner text
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $finance_status$
@@ -54,7 +54,7 @@ public sealed class PosFinanceHandoffRead : Migration
             WHERE event_kind='refund_verified'),0),
           min(created_at)
           INTO v_events,v_sales,v_refunds,v_gross,v_refunded,v_earliest
-        FROM pos.finance_posting_outbox WHERE organization_id=_owner;
+        FROM pos_cashier.finance_posting_outbox WHERE organization_id=_owner;
         RETURN jsonb_build_object(
           'organization_id',_owner,
           'posting_status','awaiting_verified_finance_consumer',
@@ -67,11 +67,11 @@ public sealed class PosFinanceHandoffRead : Migration
           'finance_posting_active',false
         );
       END $finance_status$;
-      REVOKE ALL ON FUNCTION pos.read_admin_finance_handoff(text,text)
+      REVOKE ALL ON FUNCTION pos_cashier.read_admin_finance_handoff(text,text)
         FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DROP FUNCTION pos.read_admin_finance_handoff(text,text);
+      DROP FUNCTION pos_cashier.read_admin_finance_handoff(text,text);
     """);
 }
