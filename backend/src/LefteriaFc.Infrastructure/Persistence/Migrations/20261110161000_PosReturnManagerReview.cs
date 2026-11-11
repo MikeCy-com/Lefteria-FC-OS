@@ -10,22 +10,22 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// execute a payment refund; card refunds require authenticated gateway flow.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110161000_PosReturnManagerReview")]
+[Migration("20261110225000_PosReturnManagerReview")]
 public sealed class PosReturnManagerReview : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      ALTER TABLE pos.returns ADD COLUMN review_request_id uuid;
+      ALTER TABLE pos_cashier.returns ADD COLUMN review_request_id uuid;
       CREATE UNIQUE INDEX uq_pos_return_review_request
-        ON pos.returns(organization_id,review_request_id)
+        ON pos_cashier.returns(organization_id,review_request_id)
         WHERE review_request_id IS NOT NULL;
 
-      CREATE FUNCTION pos.request_assigned_cashier_return(
+      CREATE FUNCTION pos_cashier.request_assigned_cashier_return(
         _digest text,_owner text,_sale uuid,_request uuid,
         _reason text,_lines jsonb
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $return$
-      DECLARE v_actor uuid; v_sale pos.sales%ROWTYPE; v_id uuid;
-        v_existing pos.returns%ROWTYPE; v_line record; v_count integer:=0;
+      DECLARE v_actor uuid; v_sale pos_cashier.sales%ROWTYPE; v_id uuid;
+        v_existing pos_cashier.returns%ROWTYPE; v_line record; v_count integer:=0;
       BEGIN
         IF _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
           OR _sale IS NULL OR _request IS NULL
@@ -35,14 +35,14 @@ public sealed class PosReturnManagerReview : Migration
           OR jsonb_array_length(_lines) NOT BETWEEN 1 AND 30
         THEN RAISE EXCEPTION 'pos_return_request_invalid' USING ERRCODE='22023'; END IF;
 
-        SELECT * INTO v_sale FROM pos.sales
+        SELECT * INTO v_sale FROM pos_cashier.sales
           WHERE organization_id=_owner AND id=_sale;
         IF NOT FOUND THEN RAISE EXCEPTION 'pos_return_sale_missing' USING ERRCODE='42501'; END IF;
-        v_actor:=pos.current_cashier_authority(_digest,_owner,v_sale.register_id);
-        SELECT * INTO v_sale FROM pos.sales
+        v_actor:=pos_cashier.current_cashier_authority(_digest,_owner,v_sale.register_id);
+        SELECT * INTO v_sale FROM pos_cashier.sales
           WHERE organization_id=_owner AND id=_sale FOR UPDATE;
         IF NOT FOUND OR v_sale.status<>'paid' OR
-          NOT EXISTS(SELECT 1 FROM pos.receipts
+          NOT EXISTS(SELECT 1 FROM pos_cashier.receipts
             WHERE organization_id=_owner AND sale_id=_sale) THEN
           RAISE EXCEPTION 'pos_return_requires_receipted_sale' USING ERRCODE='42501';
         END IF;
@@ -65,19 +65,19 @@ public sealed class PosReturnManagerReview : Migration
         THEN RAISE EXCEPTION 'pos_return_lines_invalid' USING ERRCODE='22023';
         END IF;
 
-        SELECT * INTO v_existing FROM pos.returns
+        SELECT * INTO v_existing FROM pos_cashier.returns
           WHERE organization_id=_owner AND request_id=_request FOR UPDATE;
         IF FOUND THEN
           IF v_existing.sale_id<>_sale OR v_existing.created_by<>v_actor
             OR v_existing.reason_code<>_reason
             OR EXISTS(
               SELECT 1 FROM jsonb_array_elements(_lines) x
-              LEFT JOIN pos.return_lines l
+              LEFT JOIN pos_cashier.return_lines l
                 ON l.return_id=v_existing.id
                   AND l.sale_line_number=(x.value->>'line_number')::int
               WHERE l.quantity IS DISTINCT FROM (x.value->>'quantity')::int
             )
-            OR (SELECT count(*) FROM pos.return_lines
+            OR (SELECT count(*) FROM pos_cashier.return_lines
                   WHERE return_id=v_existing.id)<>jsonb_array_length(_lines)
           THEN RAISE EXCEPTION 'pos_return_replay_mismatch' USING ERRCODE='23505'; END IF;
           RETURN jsonb_build_object('organization_id',_owner,
@@ -85,7 +85,7 @@ public sealed class PosReturnManagerReview : Migration
         END IF;
 
         v_id:=gen_random_uuid();
-        INSERT INTO pos.returns(
+        INSERT INTO pos_cashier.returns(
           id,organization_id,sale_id,request_id,reason_code,created_by)
         VALUES(v_id,_owner,_sale,_request,_reason,v_actor);
 
@@ -96,22 +96,22 @@ public sealed class PosReturnManagerReview : Migration
           ORDER BY line_number
         LOOP
           v_count:=v_count+1;
-          INSERT INTO pos.return_lines(
+          INSERT INTO pos_cashier.return_lines(
             organization_id,return_id,sale_id,sale_line_number,quantity)
           VALUES(_owner,v_id,_sale,v_line.line_number,v_line.quantity);
         END LOOP;
-        INSERT INTO pos.transaction_audit(
+        INSERT INTO pos_cashier.transaction_audit(
           id,organization_id,actor_id,sale_id,action,request_id)
         VALUES(gen_random_uuid(),_owner,v_actor,_sale,'return_request',_request);
         RETURN jsonb_build_object('organization_id',_owner,
           'return_id',v_id,'status','requested','replay',false);
       END $return$;
 
-      CREATE FUNCTION pos.review_cashier_return(
+      CREATE FUNCTION pos_cashier.review_cashier_return(
         _digest text,_owner text,_return uuid,_request uuid,_approve boolean
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $review$
-      DECLARE v_actor uuid; v_role text; v_return pos.returns%ROWTYPE;
+      DECLARE v_actor uuid; v_role text; v_return pos_cashier.returns%ROWTYPE;
         v_action text;
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
@@ -131,7 +131,7 @@ public sealed class PosReturnManagerReview : Migration
             AND a.password_hash IS NOT NULL;
         IF NOT FOUND OR v_role NOT IN ('manager','super_admin') THEN
           RAISE EXCEPTION 'pos_return_review_denied' USING ERRCODE='42501'; END IF;
-        SELECT * INTO v_return FROM pos.returns
+        SELECT * INTO v_return FROM pos_cashier.returns
           WHERE organization_id=_owner AND id=_return FOR UPDATE;
         IF NOT FOUND OR v_return.created_by=v_actor THEN
           RAISE EXCEPTION 'pos_return_self_approval_denied' USING ERRCODE='42501';
@@ -146,36 +146,36 @@ public sealed class PosReturnManagerReview : Migration
             'return_id',_return,'status',v_return.status,'replay',true);
         END IF;
         IF v_return.status<>'requested'
-          OR NOT EXISTS(SELECT 1 FROM pos.return_lines
+          OR NOT EXISTS(SELECT 1 FROM pos_cashier.return_lines
              WHERE organization_id=_owner AND return_id=_return) THEN
           RAISE EXCEPTION 'pos_return_not_reviewable' USING ERRCODE='42501';
         END IF;
         v_action:=CASE WHEN _approve THEN 'return_approve'
           ELSE 'return_reject' END;
-        UPDATE pos.returns SET status=CASE WHEN _approve THEN 'approved'
+        UPDATE pos_cashier.returns SET status=CASE WHEN _approve THEN 'approved'
           ELSE 'rejected' END,approved_by=v_actor,
           approved_at=clock_timestamp(),review_request_id=_request
           WHERE organization_id=_owner AND id=_return;
-        INSERT INTO pos.transaction_audit(
+        INSERT INTO pos_cashier.transaction_audit(
           id,organization_id,actor_id,sale_id,action,request_id)
         VALUES(gen_random_uuid(),_owner,v_actor,v_return.sale_id,v_action,_request);
         RETURN jsonb_build_object('organization_id',_owner,
           'return_id',_return,'status',CASE WHEN _approve
           THEN 'approved' ELSE 'rejected' END,'replay',false);
       END $review$;
-      REVOKE ALL ON FUNCTION pos.request_assigned_cashier_return(
+      REVOKE ALL ON FUNCTION pos_cashier.request_assigned_cashier_return(
         text,text,uuid,uuid,text,jsonb) FROM PUBLIC;
-      REVOKE ALL ON FUNCTION pos.review_cashier_return(
+      REVOKE ALL ON FUNCTION pos_cashier.review_cashier_return(
         text,text,uuid,uuid,boolean) FROM PUBLIC;
     """);
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       DO $guard$ BEGIN
-        IF EXISTS(SELECT 1 FROM pos.returns) THEN
+        IF EXISTS(SELECT 1 FROM pos_cashier.returns) THEN
           RAISE EXCEPTION 'pos_return_history_requires_forward_recovery'; END IF;
       END $guard$;
-      DROP FUNCTION pos.review_cashier_return(text,text,uuid,uuid,boolean);
-      DROP FUNCTION pos.request_assigned_cashier_return(text,text,uuid,uuid,text,jsonb);
-      DROP INDEX pos.uq_pos_return_review_request;
-      ALTER TABLE pos.returns DROP COLUMN review_request_id;
+      DROP FUNCTION pos_cashier.review_cashier_return(text,text,uuid,uuid,boolean);
+      DROP FUNCTION pos_cashier.request_assigned_cashier_return(text,text,uuid,uuid,text,jsonb);
+      DROP INDEX pos_cashier.uq_pos_return_review_request;
+      ALTER TABLE pos_cashier.returns DROP COLUMN review_request_id;
     """);
 }
