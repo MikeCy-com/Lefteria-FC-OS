@@ -8,10 +8,10 @@ const api=load('backend/src/LefteriaFc.Api/Pos/AdminPosCashierEndpoints.cs');
 const view=load('frontend/src/lib/admin/AdminPosCashierShiftsPanel.svelte');
 
 test('report refuses unassigned staff and rechecks the live identity session',()=>{
-  assert.match(sql,/pos.current_cashier_authority\(/);
+  assert.match(sql,/pos_cashier.current_cashier_authority\(/);
   assert.match(sql,/v_shift.cashier_id<>v_actor/);
   assert.match(sql,/WHERE organization_id=_owner AND id=_shift/);
-  assert.match(sql,/REVOKE ALL ON FUNCTION pos.read_cashier_shift_reconciliation/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION pos_cashier.read_cashier_shift_reconciliation/);
   assert.doesNotMatch(sql,/GRANT EXECUTE|GRANT SELECT/);
 });
 test('report separately reconciles verified cash, card, refunds, receipts and stock',()=>{
@@ -31,12 +31,12 @@ test('report separately reconciles verified cash, card, refunds, receipts and st
 });
 test('reconciliation API and front end expose no payment execution',()=>{
   assert.match(api,/MapGet\("\/shifts\/\{shiftId:guid\}\/reconciliation"/);
-  assert.match(api,/pos.read_cashier_shift_reconciliation/);
+  assert.match(api,/pos_cashier.read_cashier_shift_reconciliation/);
   assert.match(api,/ReadAdminPosCashierReconciliation/);
   assert.match(view,/validReport\(raw,expectedOwner,shift,register\)/);
   assert.match(view,/report.requires_review/);
   assert.match(view,/pos-cashier-reconciliation/);
   assert.match(view,/report.pending_card_events/);
   assert.match(view,/credentials:'same-origin',cache:'no-store'/);
-  assert.doesNotMatch(sql,/INSERT INTO pos.payment_events|UPDATE pos.sales/);
+  assert.doesNotMatch(sql,/INSERT INTO pos_cashier.payment_events|UPDATE pos_cashier.sales/);
 });
