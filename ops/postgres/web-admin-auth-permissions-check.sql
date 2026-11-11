@@ -89,6 +89,7 @@ BEGIN
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
+                  'hub.read_admin_editorial(text,text)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
