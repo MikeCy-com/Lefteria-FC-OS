@@ -19,7 +19,7 @@ BEGIN
       WHERE n.nspname='academy_intake' AND c.relname=tbl AND c.relrowsecurity
     ) THEN RAISE EXCEPTION 'RLS disabled on %', tbl; END IF;
     FOR role_name IN SELECT rolname FROM pg_roles
-      WHERE rolname IN (:'app_role', :'admin_auth_role')
+      WHERE rolname IN ('lefteria_identity_tests_app', 'lefteria_admin_auth_tests')
     LOOP
       IF has_table_privilege(role_name,'academy_intake.'||tbl,'SELECT')
         OR has_table_privilege(role_name,'academy_intake.'||tbl,'INSERT')
@@ -29,7 +29,7 @@ BEGIN
       END IF;
     END LOOP;
   END LOOP;
-  FOR role_name IN SELECT rolname FROM pg_roles WHERE rolname IN (:'app_role', :'admin_auth_role')
+  FOR role_name IN SELECT rolname FROM pg_roles WHERE rolname IN ('lefteria_identity_tests_app', 'lefteria_admin_auth_tests')
   LOOP
     IF has_schema_privilege(role_name,'academy_intake','USAGE') THEN
       RAISE EXCEPTION 'Unexpected runtime schema access for %',role_name;
