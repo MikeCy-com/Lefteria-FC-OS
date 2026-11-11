@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
+  import {browser} from '$app/env';
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Handoff={
     organization_id:Owner;
