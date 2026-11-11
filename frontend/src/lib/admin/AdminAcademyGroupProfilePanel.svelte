@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
 
   type Group={id:string;name:string;kind:'team'|'academy_group';active_players:number};
   type Profile={
@@ -57,7 +56,7 @@
     const id=selected,actor=actorId,generation=refresh;
     void generation;
     record=null;error='';saved='';loading=false;
-    if(!browser||!actor||!groups.some(g=>g.id===id&&g.kind==='academy_group'))
+    if(typeof window === 'undefined'||!actor||!groups.some(g=>g.id===id&&g.kind==='academy_group'))
       return;
     const controller=new AbortController();loading=true;
     void(async()=>{
@@ -83,7 +82,7 @@
     return()=>controller.abort();
   });
   async function save(){
-    if(!browser||!record||!group||saving||loading)return;
+    if(typeof window === 'undefined'||!record||!group||saving||loading)return;
     const id=selected,actor=actorId,revision=record.revision;
     if(!Number.isSafeInteger(maxPlayers)||maxPlayers<1||maxPlayers>200||
        !Number.isSafeInteger(displayOrder)||displayOrder<0||displayOrder>10000||

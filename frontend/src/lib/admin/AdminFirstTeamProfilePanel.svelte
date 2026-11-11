@@ -1,5 +1,4 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
   type Team={id:string;name:string;kind:'team'|'academy_group';active_players:number};
   type Profile={organization_id:'lefteria_fc';team_id:string;
     level:string;description:string;banner_url:string;revision:number};
@@ -34,7 +33,7 @@
     const selected=teamId,actor=actorId,generation=refresh;
     void generation;
     record=null;loading=false;error='';notice='';
-    if(!browser||!actor||!groups.some(t=>t.id===selected&&t.kind==='team'))
+    if(typeof window === 'undefined'||!actor||!groups.some(t=>t.id===selected&&t.kind==='team'))
       return;
     const controller=new AbortController();loading=true;
     void(async()=>{
@@ -58,7 +57,7 @@
     return()=>controller.abort();
   });
   async function save(){
-    if(!browser||!record||saving||loading)return;
+    if(typeof window === 'undefined'||!record||saving||loading)return;
     const selected=teamId,actor=actorId,revision=record.revision;
     if(level.trim()!==level||level.length<1||level.length>100||
       description.length>2000||bannerUrl.length>2048||
