@@ -11,29 +11,29 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// movement, payment tokens, keys, other customers, or database storage paths.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261110162000_PosProtectedReceiptRead")]
+[Migration("20261110230000_PosProtectedReceiptRead")]
 public sealed class PosProtectedReceiptRead : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      CREATE FUNCTION pos.read_assigned_cashier_receipt(
+      CREATE FUNCTION pos_cashier.read_assigned_cashier_receipt(
         _digest text,_owner text,_receipt uuid
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $receipt$
       DECLARE
-        v_receipt pos.receipts%ROWTYPE;
-        v_sale pos.sales%ROWTYPE;
+        v_receipt pos_cashier.receipts%ROWTYPE;
+        v_sale pos_cashier.sales%ROWTYPE;
         v_actor uuid;
         v_actual_hash text;
       BEGIN
         IF _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
           OR _receipt IS NULL
         THEN RAISE EXCEPTION 'pos_receipt_read_invalid' USING ERRCODE='22023'; END IF;
-        SELECT * INTO v_receipt FROM pos.receipts
+        SELECT * INTO v_receipt FROM pos_cashier.receipts
           WHERE organization_id=_owner AND id=_receipt;
         IF NOT FOUND THEN RAISE EXCEPTION 'pos_receipt_unavailable' USING ERRCODE='42501'; END IF;
-        v_actor:=pos.current_cashier_authority(
+        v_actor:=pos_cashier.current_cashier_authority(
           _digest,_owner,v_receipt.register_id);
-        SELECT * INTO v_sale FROM pos.sales
+        SELECT * INTO v_sale FROM pos_cashier.sales
           WHERE organization_id=_owner AND id=v_receipt.sale_id;
         IF NOT FOUND OR v_sale.cashier_id<>v_actor OR
           v_sale.register_id<>v_receipt.register_id OR v_sale.status<>'paid' THEN
@@ -60,11 +60,11 @@ public sealed class PosProtectedReceiptRead : Migration
           'payload_sha256',v_receipt.payload_sha256,
           'receipt',v_receipt.immutable_payload);
       END $receipt$;
-      REVOKE ALL ON FUNCTION pos.read_assigned_cashier_receipt(text,text,uuid)
+      REVOKE ALL ON FUNCTION pos_cashier.read_assigned_cashier_receipt(text,text,uuid)
         FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DROP FUNCTION pos.read_assigned_cashier_receipt(text,text,uuid);
+      DROP FUNCTION pos_cashier.read_assigned_cashier_receipt(text,text,uuid);
     """);
 }
