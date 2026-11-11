@@ -253,6 +253,10 @@
             {#key organization + ':' + $auth.session.user.id + ':' + $auth.session.user.role + ':' + $auth.session.user.permissions.join('|')}
               <AdminRosterPlayersPanel owner={organization as Organization}
                 actorId={$auth.session.user.id} groups={directory.groups}
+                allowPrivate={['manager','super_admin'].includes($auth.session.user.role)}
+                allowEvaluationWrite={['manager','super_admin'].includes($auth.session.user.role)&&
+                  hasAdminPermission($auth.session.user.permissions,
+                    organization==='lefteria_fc'?'teams:write':'academy:write')}
                 onExpired={() => auth.invalidateSession()}
                 onRevoked={() => void auth.bootstrap()}
                 onChanged={() => retry++}/>
