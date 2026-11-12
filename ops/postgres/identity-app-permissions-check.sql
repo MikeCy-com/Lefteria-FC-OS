@@ -207,6 +207,16 @@ BEGIN
   IF has_table_privilege(current_user, 'audit.security_events', 'TRUNCATE') THEN
     RAISE EXCEPTION 'Runtime can truncate audit rows';
   END IF;
+  -- Coach feedback is a private unsent draft, exposed only through an
+  -- assignment-checked routine; never through a raw table privilege.
+  IF NOT row_security_active('club.coach_feedback_drafts')
+    OR has_table_privilege(current_user,'club.coach_feedback_drafts',
+         'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+    OR NOT has_function_privilege(current_user,
+         'club.create_mobile_coach_feedback_draft(uuid,text,text,timestamptz,uuid,text,text,text,text,text)',
+         'EXECUTE') THEN
+    RAISE EXCEPTION 'Coach feedback draft isolation boundary is unsafe';
+  END IF;
   IF NOT has_function_privilege(current_user,
       'club.read_mobile_chat_groups(uuid,text,text,timestamptz)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped chat directory function unavailable';

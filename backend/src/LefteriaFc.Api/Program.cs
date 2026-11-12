@@ -82,6 +82,7 @@ builder.Services.AddOpenApi(options =>
 });
 builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
+builder.Services.AddScoped<PostgresCoachFeedbackDraftStore>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
@@ -148,6 +149,7 @@ app.MapMobileRoster();
 app.MapParentFamily();
 app.MapMobileCalendar();
 app.MapMobileGroupChat();
+app.MapMobileCoachFeedback();
 app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();

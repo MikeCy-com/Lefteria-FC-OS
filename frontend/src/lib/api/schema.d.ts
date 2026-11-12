@@ -1444,6 +1444,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/coach/feedback/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Coach-authored draft only. Requires a current canonical coach-to-player assignment; never sends, approves, publishes or attributes AI-generated words. */
+        post: operations["CreateMobileCoachFeedbackDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/family": {
         parameters: {
             query?: never;
@@ -2399,6 +2416,24 @@ export interface components {
             counted_cash_cents: number | string;
             /** Format: uuid */
             request_id: string;
+        };
+        CoachFeedbackDraftBody: {
+            focus_point: null | string;
+            language: null | string;
+            observation: null | string;
+            organization_id: null | string;
+            player_id: null | string;
+        };
+        CoachFeedbackDraftResult: {
+            /** Format: uuid */
+            id: string;
+            language: string;
+            organization_id: string;
+            player_id: string;
+            requires_coach_approval: boolean;
+            status: string;
+            /** Format: int64 */
+            version: number | string;
         };
         CreateCityCommand: {
             name: null | string;
@@ -10363,6 +10398,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileChatSeenAckDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    CreateMobileCoachFeedbackDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachFeedbackDraftBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachFeedbackDraftResult"];
                 };
             };
             /** @description Bad Request */
