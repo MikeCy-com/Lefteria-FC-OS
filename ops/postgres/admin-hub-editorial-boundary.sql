@@ -13,6 +13,7 @@ DECLARE
   rejection_returner pg_proc%ROWTYPE;
   image_quarantiner pg_proc%ROWTYPE;
   image_previewer pg_proc%ROWTYPE;
+  visual_rejecter pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -149,6 +150,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,image_previewer.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,image_previewer.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub private preview function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT visual_rejecter FROM pg_proc
+    WHERE oid='hub.reject_admin_hub_image(text,text,uuid,bigint,uuid)'::regprocedure;
+  IF NOT visual_rejecter.prosecdef OR visual_rejecter.provolatile<>'v'
+    OR visual_rejecter.prorettype<>'jsonb'::regtype OR visual_rejecter.prokind<>'f'
+    OR visual_rejecter.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(visual_rejecter.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(visual_rejecter.proacl,acldefault('f',visual_rejecter.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,visual_rejecter.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,visual_rejecter.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub manager visual rejection permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
