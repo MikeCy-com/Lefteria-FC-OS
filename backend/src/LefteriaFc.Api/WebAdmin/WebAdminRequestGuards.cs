@@ -39,7 +39,7 @@ public static class WebAdminRequestGuards
                       RegexOptions.CultureInvariant);
                 var hubImagePath = HttpMethods.IsPost(context.Request.Method) &&
                     Regex.IsMatch(context.Request.Path.Value ?? "",
-                      @"\\A/api/admin/hub/editorial/[0-9a-fA-F-]{36}/images/quarantine\\z",
+                      @"\A/api/admin/hub/editorial/[0-9a-fA-F-]{36}/images/quarantine\z",
                       RegexOptions.CultureInvariant);
                 var limit = hubImagePath ? 2 * 1024 * 1024 + 8192 :
                     mediaPath ? 4 * 1024 * 1024 + 128 * 1024 :
