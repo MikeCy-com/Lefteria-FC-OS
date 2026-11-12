@@ -10,6 +10,7 @@ DECLARE
   detail_reader pg_proc%ROWTYPE;
   text_reviewer pg_proc%ROWTYPE;
   draft_reviser pg_proc%ROWTYPE;
+  rejection_returner pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -101,6 +102,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,draft_reviser.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,draft_reviser.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub draft revision function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT rejection_returner FROM pg_proc
+    WHERE oid='hub.return_rejected_admin_draft(text,text,uuid,bigint)'::regprocedure;
+  IF NOT rejection_returner.prosecdef OR rejection_returner.provolatile<>'v'
+    OR rejection_returner.prorettype<>'jsonb'::regtype OR rejection_returner.prokind<>'f'
+    OR rejection_returner.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(rejection_returner.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(rejection_returner.proacl,acldefault('f',rejection_returner.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,rejection_returner.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,rejection_returner.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub rejected-return function permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
