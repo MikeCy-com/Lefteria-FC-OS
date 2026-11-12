@@ -63,11 +63,20 @@ test('Academy education SSR includes age filters, educational disclaimers and sa
   const html=render(Education).body;
   for(const value of ['parent-education-hub','education-editorial-status','education-materials',
     '6–9 ετών','10–12 ετών','13–15 ετών','16–18 ετών',
-    'Μαθαίνουμε μαζί','Για γονείς','Για αθλητές','Όλα τα θέματα','Διάβασε περισσότερα',
+    'Μαθαίνουμε μαζί','Εκπαιδευτικό υλικό για γονείς','Όλα τα θέματα','Διάβασε περισσότερα',
     'επίσημη δημοσίευση']){
     assert.ok(html.includes(value),value);
   }
-  assert.equal((html.match(/data-testid="education-article"/g)||[]).length,2);
+  assert.equal((html.match(/data-testid="education-article"/g)||[]).length,1);
+  assert.match(html,/ΓΙΑ ΓΟΝΕΙΣ/);
+  assert.doesNotMatch(html,/ΓΙΑ ΑΘΛΗΤΕΣ/);
+  const playerHtml=render(Education,{props:{viewerRole:'player'}}).body;
+  assert.equal((playerHtml.match(/data-testid="education-article"/g)||[]).length,1);
+  assert.match(playerHtml,/ΓΙΑ ΑΘΛΗΤΕΣ/);
+  assert.doesNotMatch(playerHtml,/ΓΙΑ ΓΟΝΕΙΣ/);
+  const fanHtml=render(Education,{props:{viewerRole:'fan'}}).body;
+  assert.match(fanHtml,/hub-subscription-required/);
+  assert.doesNotMatch(fanHtml,/data-testid="education-article"/);
   assert.match(html,/class="education-result-count[^"]*"[^>]*role="status"[^>]*aria-live="polite"/);
   assert.match(html,/class="education-stage-hint[^"]*" aria-live="polite"/);
   assert.doesNotMatch(html,/data-testid="parent-home-child"|family-child-calendar|guardian_phone|Bearer/);
