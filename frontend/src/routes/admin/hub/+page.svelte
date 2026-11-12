@@ -118,7 +118,7 @@
       const reply=await fetch('/api/admin/hub/ai/education-briefs?organization_id='+owner,{
         method:'POST',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({audience,ageMin,ageMax,topic,language})
+        body:JSON.stringify({audience,age_min:ageMin,age_max:ageMax,topic,language})
       });
       if(reply.status===401){auth.invalidateSession();return;}
       if(reply.status===403){void auth.bootstrap();return;}
@@ -203,10 +203,12 @@
                   <div class="image-review">
                     <p>{media.alt_text??'Χωρίς εναλλακτικό κείμενο'} · {media.moderation}</p>
                     {#if media.moderation==='quarantined'}
-                      <button type="button" onclick={()=>{showPreview=media.id;inspected=[...new Set([...inspected,media.id])];}}>Άνοιγμα πραγματικής εικόνας για έλεγχο</button>
+                      <button type="button" onclick={()=>{showPreview=media.id;inspected=inspected.filter(id=>id!==media.id);}}>Άνοιγμα πραγματικής εικόνας για έλεγχο</button>
                       {#if showPreview===media.id}
                         <img alt={media.alt_text??'Εικαστικό προς έλεγχο'} loading="lazy"
-                          src={'/api/admin/hub/editorial/'+detail.id+'/images/'+media.id+'/preview?organization_id='+detail.organization_id}/>
+                          src={'/api/admin/hub/editorial/'+detail.id+'/images/'+media.id+'/preview?organization_id='+detail.organization_id}
+                          onload={()=>{inspected=[...new Set([...inspected,media.id])];}}
+                          onerror={()=>{inspected=inspected.filter(id=>id!==media.id);}}/>
                       {/if}
                     {/if}
                   </div>
