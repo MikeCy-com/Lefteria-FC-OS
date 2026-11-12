@@ -159,6 +159,86 @@ public static class AdminHubEndpoints
             .Produces<WebAdminError>(503);
 
         // Human changes are allowed only while a draft is unpublished and unreviewed.
+        // Only an authenticated manager can inspect a sanitized, quarantined JPEG.
+        // No anonymous URL, member retrieval, approval or publication.
+        endpoints.MapGet("/api/admin/hub/editorial/{id:guid}/images/{mediaId:guid}/preview",
+            async (Guid id, Guid mediaId, string? organization_id,
+                   WebAdminService admin, WebAdminConnections connections,
+                   IWebAdminSecrets secrets, HttpContext context, CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                context.Response.Headers.Pragma = "no-cache";
+                context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+                context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; sandbox";
+                context.Response.Headers["Content-Disposition"] = "inline; filename=\"hub-review.jpg\"";
+                if (organization_id is null ||
+                    context.Request.Query["organization_id"].Count != 1 ||
+                    !PublicContentService.IsOrganization(organization_id))
+                    return Failure(400, "invalid_organization");
+                if (id == Guid.Empty || mediaId == Guid.Empty)
+                    return Failure(422, "invalid_hub_preview");
+                var cookie = context.Request.Cookies[WebAdminServices.CookieName];
+                var session = await admin.CurrentAsync(cookie, token);
+                if (session is null || !secrets.IsToken(cookie))
+                    return Failure(401, "not_authenticated");
+                if (!session.User.Organizations.Any(org => org.Id == organization_id) ||
+                    session.User.Role is not ("manager" or "super_admin"))
+                    return Failure(403, "not_authorized");
+                try
+                {
+                    await using var connection = await connections.OpenAsync(token);
+                    await using var command = new NpgsqlCommand(
+                        "SELECT hub.read_admin_quarantined_image(@digest,@owner,@id,@media)::text", connection);
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
+                    command.Parameters.AddWithValue("owner", organization_id);
+                    command.Parameters.AddWithValue("id", id);
+                    command.Parameters.AddWithValue("media", mediaId);
+                    var json = await command.ExecuteScalarAsync(token) as string;
+                    if (json is null) return Failure(503, "hub_unavailable");
+                    using var parsed = JsonDocument.Parse(json);
+                    var result = parsed.RootElement;
+                    if (result.ValueKind != JsonValueKind.Object ||
+                        !result.TryGetProperty("id", out var returnedId) || returnedId.GetGuid() != mediaId ||
+                        !result.TryGetProperty("content_id", out var contentId) || contentId.GetGuid() != id ||
+                        !result.TryGetProperty("organization_id", out var owner) || owner.GetString() != organization_id ||
+                        !result.TryGetProperty("mime_type", out var type) || type.GetString() != "image/jpeg" ||
+                        !result.TryGetProperty("sha256", out var sha) || sha.GetString() is not { Length: 64 } ||
+                        !result.TryGetProperty("byte_count", out var count) ||
+                        !count.TryGetInt32(out var expectedBytes) || expectedBytes is < 4 or > 1048576 ||
+                        !result.TryGetProperty("base64", out var encoded) ||
+                        encoded.GetString() is not { Length: > 0 and <= 1398104 })
+                        return Failure(503, "hub_unavailable");
+                    var raw = encoded.GetString()!;
+                    byte[] jpeg;
+                    try { jpeg = Convert.FromBase64String(raw); }
+                    catch (FormatException) { return Failure(503, "hub_unavailable"); }
+                    if (jpeg.Length != expectedBytes ||
+                        jpeg.Length < 4 ||
+                        jpeg[0] != 0xff || jpeg[1] != 0xd8 ||
+                        jpeg[^2] != 0xff || jpeg[^1] != 0xd9 ||
+                        !string.Equals(Convert.ToHexString(SHA256.HashData(jpeg)),
+                            sha.GetString(), StringComparison.OrdinalIgnoreCase))
+                        return Failure(503, "hub_unavailable");
+                    return Results.File(jpeg, "image/jpeg");
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (PostgresException ex) when (ex.SqlState == "P0002")
+                { return Failure(404, "hub_image_not_found"); }
+                catch (PostgresException ex) when (ex.SqlState == "42501")
+                { return Failure(403, "not_authorized"); }
+                catch (Exception) { return Failure(503, "hub_unavailable"); }
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("PreviewAdminHubQuarantinedImage")
+            .Produces(200, contentType: "image/jpeg")
+            .Produces<WebAdminError>(400)
+            .Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403)
+            .Produces<WebAdminError>(404)
+            .Produces<WebAdminError>(422)
+            .Produces<WebAdminError>(503);
+
         // Small, sanitized JPEGs are stored in quarantine only; there is no media download.
         endpoints.MapPost("/api/admin/hub/editorial/{id:guid}/images/quarantine",
             async (Guid id, string? organization_id, HubQuarantineImageCommand body,
