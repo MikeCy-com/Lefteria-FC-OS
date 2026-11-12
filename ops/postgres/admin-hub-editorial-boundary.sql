@@ -16,6 +16,7 @@ DECLARE
   visual_rejecter pg_proc%ROWTYPE;
   visual_approver pg_proc%ROWTYPE;
   content_approver pg_proc%ROWTYPE;
+  content_publisher pg_proc%ROWTYPE;
   ai_brief_writer pg_proc%ROWTYPE;
   target record;
 BEGIN
