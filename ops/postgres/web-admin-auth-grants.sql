@@ -238,6 +238,8 @@ REVOKE ALL ON FUNCTION hub.submit_admin_draft_review(text,text,uuid,bigint) FROM
 GRANT EXECUTE ON FUNCTION hub.submit_admin_draft_review(text,text,uuid,bigint) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.read_admin_editorial_detail(text,text,uuid) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_admin_editorial_detail(text,text,uuid) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.return_rejected_admin_draft(text,text,uuid,bigint) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.return_rejected_admin_draft(text,text,uuid,bigint) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.revise_admin_draft(text,text,uuid,bigint,text,text) FROM PUBLIC, :"app_role";
@@ -285,6 +287,7 @@ BEGIN
                   'hub.review_admin_text(text,text,uuid,bigint,text)'::regprocedure,
                   'hub.revise_admin_draft(text,text,uuid,bigint,text,text)'::regprocedure,
                   'hub.return_rejected_admin_draft(text,text,uuid,bigint)'::regprocedure,
+                  'hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
