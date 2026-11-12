@@ -7,7 +7,9 @@
 
   let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
   let stage = $state<EducationStage>('10-12');
-  let audience = $state<EducationAudience | 'all'>(viewerRole === 'player' ? 'player' : viewerRole === 'fan' ? 'parent' : 'all');
+  // Fan interest is a UI preference only; an actual parent/player role is fixed.
+  let fanInterest = $state<EducationAudience>('parent');
+  const audience = $derived<EducationAudience>(viewerRole === 'fan' ? fanInterest : viewerRole);
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
   let search = $state('');
@@ -19,7 +21,7 @@
   <header class="education-hero">
     <p class="education-kicker">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
     <h1 id={id+'-title'}>HUB · Μαθαίνουμε μαζί</h1>
-    <p>Μικρές ιδέες για τη στήριξη των νεαρών αθλητών και την ψυχολογία κάθε ηλικίας.</p>
+    <p>{viewerRole === 'player' ? 'Μικρά βήματα για να μαθαίνεις, να συνεργάζεσαι και να χαίρεσαι το παιχνίδι.' : 'Μικρές ιδέες για τη στήριξη των νεαρών αθλητών και την ψυχολογία κάθε ηλικίας.'}</p>
     <div class="education-hero-art" aria-hidden="true">
       <span class="education-art-ball">⚽</span><span class="education-art-heart">♥</span>
       <span class="education-art-star">✦</span>
@@ -55,14 +57,22 @@
     <p class="education-stage-hint" aria-live="polite" aria-atomic="true">
       {EDUCATION_STAGES.find(option => option.id === stage)?.hint}
     </p>
-    <div class="education-audiences" role="group" aria-label="Για ποιον">
-      <button type="button" aria-pressed={audience === 'all'}
-        class:chosen={audience === 'all'} onclick={() => {audience = 'all'; expanded = null;}}>Όλα</button>
-      <button type="button" aria-pressed={audience === 'parent'}
-        class:chosen={audience === 'parent'} onclick={() => {audience = 'parent'; expanded = null;}}>Για γονείς</button>
-      <button type="button" aria-pressed={audience === 'player'}
-        class:chosen={audience === 'player'} onclick={() => {audience = 'player'; expanded = null;}}>Για αθλητές</button>
-    </div>
+    {#if viewerRole === 'fan'}
+      <div class="education-audiences" role="group" aria-label="Ενδιαφέρον HUB">
+        <button type="button" aria-pressed={fanInterest === 'parent'}
+          class:chosen={fanInterest === 'parent'}
+          onclick={() => {fanInterest = 'parent'; expanded = null;}}>Για γονείς</button>
+        <button type="button" aria-pressed={fanInterest === 'player'}
+          class:chosen={fanInterest === 'player'}
+          onclick={() => {fanInterest = 'player'; expanded = null;}}>Για αθλητές</button>
+      </div>
+    {:else}
+      <p class="education-role-scope" data-testid="education-role-scope">
+        {viewerRole === 'parent'
+          ? 'Εκπαιδευτικό υλικό για γονείς και κηδεμόνες'
+          : 'Εκπαιδευτικό υλικό για νεαρούς αθλητές'}
+      </p>
+    {/if}
     <div class="education-topics" role="group" aria-label="Θέμα">
       <button type="button" aria-pressed={topic === 'all'} class:chosen={topic === 'all'}
         onclick={() => {topic = 'all'; expanded = null;}}>Όλα τα θέματα</button>
@@ -156,7 +166,7 @@
   .education-age-tabs,.education-audiences,.education-topics{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
   .education-age-tabs button,.education-audiences button,.education-topics button{min-height:44px;padding:10px 15px;border:1px solid #383d3d;border-radius:8px;background:#202323;color:#d2d6d5;cursor:pointer;font-size:13px}
   .education-age-tabs button.chosen,.education-audiences button.chosen,.education-topics button.chosen{border-color:#f0ad29;color:#f9c64d;background:#302514}
-  .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
+  .education-role-scope{color:#f8cb74;font-size:13px;font-weight:700;margin:14px 0}\n  .education-stage-hint{color:#f8cb74!important;font-size:13px!important}
   .education-search{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin:20px 0}\n  .education-search label{flex:0 0 100%;font-size:13px;font-weight:700;color:#e8e8e8}\n  .education-search input{flex:1;min-width:180px;min-height:44px;background:#181a1b;color:#fff;border:1px solid #5b5e60;border-radius:8px;padding:10px 12px;font:inherit}\n  .education-search button{min-height:44px;padding:10px 14px;border:1px solid #695329;border-radius:8px;background:#2c2519;color:#ffd47a;cursor:pointer}\n  .education-subscription-gate{margin:24px 0;padding:22px;border:1px solid #7b6237;border-radius:12px;background:linear-gradient(145deg,#302413,#171a1b);color:#eee}\n  .education-subscription-gate h2{font-size:23px;margin:0 0 10px}\n  .education-subscription-gate p{font-size:13px;line-height:1.7}\n  .education-articles{margin:28px 0}
   .education-result-count{color:#c8ceca;font-size:13px;line-height:1.5;margin:0 0 10px}
   .education-empty{padding:12px 15px;border:1px solid #48433b;border-radius:8px;color:#e1d5ba;font-size:13px}
