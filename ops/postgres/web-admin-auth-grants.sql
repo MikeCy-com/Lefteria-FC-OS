@@ -250,6 +250,8 @@ REVOKE ALL ON FUNCTION hub.return_rejected_admin_draft(text,text,uuid,bigint) FR
 GRANT EXECUTE ON FUNCTION hub.return_rejected_admin_draft(text,text,uuid,bigint) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.revise_admin_draft(text,text,uuid,bigint,text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.revise_admin_draft(text,text,uuid,bigint,text,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.approve_admin_hub_visual(text,text,uuid,bigint) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.approve_admin_hub_visual(text,text,uuid,bigint) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) TO :"admin_auth_role";
 \ir admin-hub-editorial-boundary.sql
