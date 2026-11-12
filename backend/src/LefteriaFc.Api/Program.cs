@@ -95,6 +95,19 @@ builder.Services.AddHttpClient("web-push",client=>
     });
 builder.Services.AddSingleton<WebPushDeliverySender>();
 builder.Services.AddHostedService<WebPushDispatchWorker>();
+// Explicit test-environment opt-in only. No API model key or worker DB role
+// is required unless LEFTERIA_AI_ENABLED=true.
+builder.Services.AddSingleton<HubAiEducationSettings>();
+builder.Services.AddHttpClient("hub-ai",client=>
+    client.Timeout=TimeSpan.FromSeconds(25))
+    .ConfigurePrimaryHttpMessageHandler(()=>new SocketsHttpHandler
+    {
+        AllowAutoRedirect=false,UseCookies=false,
+        AutomaticDecompression=System.Net.DecompressionMethods.None,
+        MaxConnectionsPerServer=2,
+        PooledConnectionLifetime=TimeSpan.FromMinutes(5)
+    });
+builder.Services.AddHostedService<HubAiEducationWorker>();
 builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
