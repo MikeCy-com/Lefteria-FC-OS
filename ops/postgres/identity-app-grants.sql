@@ -415,6 +415,16 @@ REVOKE ALL ON FUNCTION club.read_mobile_chat_groups(uuid,text,text,timestamptz)
 GRANT EXECUTE ON FUNCTION club.read_mobile_chat_groups(uuid,text,text,timestamptz)
   TO :"app_role";
 
+-- Private coach-authored player feedback stays in a separate draft store.
+-- The member runtime can invoke only the canonical assignment-checked writer;
+-- no one can read a stored draft or deliver it as a coach message.
+REVOKE ALL ON TABLE club.coach_feedback_drafts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.create_mobile_coach_feedback_draft(
+  uuid,text,text,timestamptz,uuid,text,text,text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_mobile_coach_feedback_draft(
+  uuid,text,text,timestamptz,uuid,text,text,text,text,text) TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
