@@ -213,6 +213,11 @@ BEGIN
     RAISE EXCEPTION 'Current coach signoff function is unavailable';
   END IF;
   IF NOT has_function_privilege(current_user,
+       'club.read_mobile_coach_feedback_targets(uuid,text,text,timestamptz)',
+       'EXECUTE') THEN
+    RAISE EXCEPTION 'Coach feedback scoped target directory unavailable';
+  END IF;
+  IF NOT has_function_privilege(current_user,
        'club.send_mobile_coach_feedback(uuid,text,text,timestamptz,uuid,bigint)',
        'EXECUTE')
     OR NOT has_function_privilege(current_user,
