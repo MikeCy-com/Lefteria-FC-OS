@@ -1,6 +1,7 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
+import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
 import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
@@ -1497,6 +1498,26 @@ export function createMobileAuthController(options: {
         encodeURIComponent(approved.id)+'/send','POST',{version:2});
       if(!validCoachSend(result,approved))
         throw new Error('Unverified coach feedback delivery.');
+      return result;
+    },
+    async getPublishedHubEducation(
+      organization:'lefteria_fc'|'lefteria_fc_academy',offset=0):Promise<PublishedHubPage> {
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('A verified parent or player role is required.');
+      if((organization!=='lefteria_fc'&&organization!=='lefteria_fc_academy')||
+         !Number.isSafeInteger(offset)||offset<0||offset>1000)
+        throw new Error('Invalid published education query.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('Missing verified mobile token.');
+      const result=await chatRequest('/api/mobile/hub/education?organization_id='+
+        encodeURIComponent(organization)+'&offset='+offset);
+      if(state.user?.id!==actorId||state.user.role!==role||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)
+        throw new Error('Identity changed during education request.');
+      if(!validPublishedHubPage(result,role,organization))
+        throw new Error('Unverified published education response.');
       return result;
     },
     async getPlayerCoachFeedback(offset=0):Promise<PlayerCoachFeedbackPage> {
