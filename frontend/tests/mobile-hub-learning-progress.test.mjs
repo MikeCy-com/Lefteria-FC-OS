@@ -7,7 +7,7 @@ const component=readFileSync(new URL('../src/lib/mobile/components/MobileAcademy
 
 test('HUB renders recommended articles only within current role and stage',()=>{
   assert.match(component,/recommendStarterEducation\(/);
-  assert.match(component,/searchAcademyEducation\(stage, audience, topic, search\)/);
+  assert.match(component,/searchAcademyEducation\(stage,\s*audience,\s*topic,\s*search\)/);
   assert.match(component,/if \(viewerRole === 'fan'\) return \[\]/);
   assert.match(component,/const order = new Map\(/);
   for(const role of ['parent','player']){
