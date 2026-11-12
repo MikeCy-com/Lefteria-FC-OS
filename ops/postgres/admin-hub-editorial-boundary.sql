@@ -15,6 +15,7 @@ DECLARE
   image_previewer pg_proc%ROWTYPE;
   visual_rejecter pg_proc%ROWTYPE;
   visual_approver pg_proc%ROWTYPE;
+  content_approver pg_proc%ROWTYPE;
   ai_brief_writer pg_proc%ROWTYPE;
   target record;
 BEGIN
@@ -182,6 +183,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,visual_approver.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,visual_approver.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub manager visual approval permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT content_approver FROM pg_proc
+    WHERE oid='hub.approve_admin_hub_content(text,text,uuid,bigint)'::regprocedure;
+  IF NOT content_approver.prosecdef OR content_approver.provolatile<>'v'
+    OR content_approver.prorettype<>'jsonb'::regtype OR content_approver.prokind<>'f'
+    OR content_approver.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(content_approver.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(content_approver.proacl,acldefault('f',content_approver.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,content_approver.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,content_approver.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub final content approval permissions unsafe';
   END IF;
   SELECT * INTO STRICT ai_brief_writer FROM pg_proc
     WHERE oid='hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure;
