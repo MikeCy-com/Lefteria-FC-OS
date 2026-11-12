@@ -69,3 +69,11 @@ test('no raw table or publishing rights are conferred to the AI worker',()=>{
  assert.doesNotMatch(grants,/GRANT EXECUTE ON FUNCTION hub\.review_admin_text|GRANT EXECUTE ON FUNCTION hub\.create_admin_draft|GRANT SELECT ON/);
  assert.doesNotMatch(store,/club\.players|identity\.mobile_identities|hub\.review_admin_text|status='published'/);
 });
+
+test('AI provider response bodies are bounded while streaming and require valid UTF-8',()=>{
+ assert.match(provider,/ReadAsStreamAsync\(token\)/);
+ assert.match(provider,/buffer\.Length\+count>65536/);
+ assert.match(provider,/UTF8Encoding\(false,true\)/);
+ assert.match(provider,/DecoderFallbackException/);
+ assert.doesNotMatch(provider,/ReadAsStringAsync\(token\)/);
+});
