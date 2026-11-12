@@ -1,6 +1,10 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
+import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
+  validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
+  type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
+} from './coach-feedback-composer.ts';
 import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
@@ -1446,6 +1450,54 @@ export function createMobileAuthController(options: {
         !('subscribed' in raw)||raw.subscribed!==false)
         throw new Error('Unverified device unsubscribe.');
       return true;
+    },
+    async getCoachFeedbackTargets():Promise<CoachFeedbackTargets> {
+      if(state.user?.role!=='coach'||!state.user.current_role_available)
+        throw new Error('Current verified coach role required.');
+      const result=await chatRequest('/api/mobile/coach/feedback/targets');
+      if(!validCoachFeedbackTargets(result))
+        throw new Error('Unverified coach feedback player directory.');
+      return result;
+    },
+    async createCoachFeedbackDraft(
+      target:CoachFeedbackTarget,observation:string,focusPoint:string,
+      language:'el'|'en'):Promise<CoachFeedbackDraft> {
+      if(state.user?.role!=='coach'||!state.user.current_role_available||
+        !validCoachFeedbackTargets({items:[target]})||
+        !validCoachText(observation,5,500)||!validCoachText(focusPoint,5,500)||
+        (language!=='el'&&language!=='en'))
+        throw new Error('Invalid feedback draft or coach role.');
+      const result=await chatRequest('/api/mobile/coach/feedback/drafts','POST',{
+        organizationId:target.organization_id,playerId:target.id,
+        observation,focusPoint,language
+      });
+      if(!validCoachDraft(result,target,language))
+        throw new Error('Unverified feedback draft.');
+      return result;
+    },
+    async approveCoachFeedbackDraft(
+      draft:CoachFeedbackDraft,finalText:string):Promise<CoachFeedbackApproved> {
+      if(state.user?.role!=='coach'||!state.user.current_role_available||
+        draft.status!=='draft'||draft.version!==1||
+        !validCoachText(finalText,30,1600))
+        throw new Error('Invalid coach sign-off request.');
+      const result=await chatRequest('/api/mobile/coach/feedback/drafts/'+
+        encodeURIComponent(draft.id)+'/approve','POST',{version:1,finalText});
+      if(!validCoachApproval(result,draft))
+        throw new Error('Unverified coach sign-off.');
+      return result;
+    },
+    async sendCoachFeedback(
+      approved:CoachFeedbackApproved):Promise<CoachFeedbackSent> {
+      if(state.user?.role!=='coach'||!state.user.current_role_available||
+        approved.status!=='approved'||approved.version!==2||
+        !approved.authorized_by_coach||approved.delivered)
+        throw new Error('This feedback has not been approved by its coach.');
+      const result=await chatRequest('/api/mobile/coach/feedback/drafts/'+
+        encodeURIComponent(approved.id)+'/send','POST',{version:2});
+      if(!validCoachSend(result,approved))
+        throw new Error('Unverified coach feedback delivery.');
+      return result;
     },
     async getPlayerCoachFeedback(offset=0):Promise<PlayerCoachFeedbackPage> {
       if(state.user?.role!=='player'||!state.user.current_role_available)

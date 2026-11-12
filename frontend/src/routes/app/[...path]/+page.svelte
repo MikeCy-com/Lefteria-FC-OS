@@ -17,6 +17,7 @@
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
+  import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
   import {mobileGuide} from '../../../lib/onboarding/guides.ts';
@@ -163,6 +164,10 @@
             onLoad={() => controller.loadRecipientInvitations()} />
         {/key}
         {/if}
+      {:else if activeTab === 'squad' && role === 'coach' && !composing}
+        {#key user.id+':'+role}
+          <MobileCoachFeedbackComposer {controller}/>
+        {/key}
       {:else if activeTab === 'financials' && role === 'parent' && !composing}
         {#key user.id+':'+role}
           <MobileTrainingFees {controller}/>
