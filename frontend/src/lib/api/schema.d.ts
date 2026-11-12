@@ -1882,6 +1882,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/hub/education": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Currently authenticated parent/player audience only; returns reviewed and published articles. Age-restricted player entries stay unavailable until authoritative age integration. */
+        get: operations["GetMobileHubPublishedEducation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/management/organization": {
         parameters: {
             query?: never;
@@ -2960,6 +2977,25 @@ export interface components {
         };
         MobileChatSendBody: {
             content: null | string;
+        };
+        MobileHubArticle: {
+            /** Format: int16 */
+            age_max: null | number | string;
+            /** Format: int16 */
+            age_min: null | number | string;
+            audience: string;
+            body: string;
+            /** Format: uuid */
+            id: string;
+            organization_id: string;
+            /** Format: date-time */
+            published_at: string;
+            title: string;
+        };
+        MobileHubPublishedResult: {
+            audience: string;
+            items: components["schemas"]["MobileHubArticle"][];
+            organization_id: string;
         };
         MobileIdentityOption: {
             name: string;
@@ -12747,6 +12783,92 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetMobileHubPublishedEducation: {
+        parameters: {
+            query?: {
+                offset?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileHubPublishedResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
             };
         };
     };
