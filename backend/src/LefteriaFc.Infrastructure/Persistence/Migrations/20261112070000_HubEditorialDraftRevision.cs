@@ -75,7 +75,7 @@ public sealed class HubEditorialDraftRevision : Migration
 
               INSERT INTO hub.review_events
                 (id,content_id,revision_id,admin_account_id,action,metadata)
-              VALUES (gen_random_uuid(),_content,v_revision,v_actor,'generated',
+              VALUES (gen_random_uuid(),_content,v_revision,v_actor,'revised',
                 jsonb_build_object('source','human_admin_revision','previous_version',_version));
               INSERT INTO audit.security_events
                 (id,actor_realm,occurred_at,actor_identity_id,device_session_id,
