@@ -108,11 +108,11 @@
       <label for="coach-feedback-observation">Τι παρατήρησες στην προπόνηση;</label>
       <textarea id="coach-feedback-observation" bind:value={observation} rows="3"
         minlength="5" maxlength="500" disabled={stage!=='edit'||busy}
-        placeholder="Π.χ. Έχεις βελτιώσει τον έλεγχο της μπάλας."/>
+        placeholder="Π.χ. Έχεις βελτιώσει τον έλεγχο της μπάλας."></textarea>
       <label for="coach-feedback-focus">Σε τι να επικεντρωθεί ο παίκτης;</label>
       <textarea id="coach-feedback-focus" bind:value={focusPoint} rows="3"
         minlength="5" maxlength="500" disabled={stage!=='edit'||busy}
-        placeholder="Π.χ. Να κοιτάζει γύρω πριν δεχτεί μια πάσα."/>
+        placeholder="Π.χ. Να κοιτάζει γύρω πριν δεχτεί μια πάσα."></textarea>
     </div>
     {#if stage==='edit'}
       <button type="button" class="primary" disabled={busy||!selected||
@@ -123,7 +123,7 @@
         <h2 id="coach-feedback-review">{stage==='sent'?'Αποσταλμένο μήνυμα':'Έλεγχος μηνύματος'}</h2>
         {#if stage==='draft'}
           <label for="coach-feedback-final">Επεξεργάσου το τελικό κείμενο πριν το εγκρίνεις</label>
-          <textarea id="coach-feedback-final" bind:value={finalText} rows="6" maxlength="1600"/>
+          <textarea id="coach-feedback-final" bind:value={finalText} rows="6" maxlength="1600"></textarea>
           <label class="confirmation">
             <input type="checkbox" bind:checked={acknowledgeApproval}/>
             Βεβαιώνω ότι αυτή είναι δική μου παρατήρηση και εγκρίνω προσωπικά τις τελικές λέξεις.
