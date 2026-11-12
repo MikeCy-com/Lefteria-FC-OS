@@ -25,8 +25,9 @@ test('Hub is only a preview for fan and never claims subscription or authorizati
   assert.match(component, /data-testid="hub-fan-preview"/);
   assert.match(component, /δεν δημιουργεί συνδρομή/);
   assert.match(component, /δεν αλλάζει τον ρόλο/);
-  assert.match(component, /audience === 'parent'/);
-  assert.match(component, /audience === 'player'/);
+  assert.match(component, /viewerRole === 'fan' \? fanInterest : viewerRole/);
+  assert.match(component, /viewerRole === 'parent'/);
+  assert.match(component, /viewerRole === 'player'/);
   assert.match(route, /MobileAcademyEducation viewerRole=\{role\}/);
   assert.doesNotMatch(component, /fetch\(|localStorage|POST|payment|payment_method|player_id/);
 });
