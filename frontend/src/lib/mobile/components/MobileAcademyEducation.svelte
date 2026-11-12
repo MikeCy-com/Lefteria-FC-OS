@@ -18,7 +18,7 @@
   // are sent to the AI provider or stored as part of this starter experience.
   let completedArticleIds = $state<string[]>([]);
   const cards = $derived.by(() => {
-    const matching = searchAcademyEducation(stage, audience, topic, search);
+    const matching = searchAcademyEducation(stage,audience,topic,search);
     if (viewerRole === 'fan') return [];
     const recommended = recommendStarterEducation({
       role: viewerRole,
