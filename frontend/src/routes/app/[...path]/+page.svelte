@@ -16,6 +16,7 @@
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
+  import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
   import {mobileGuide} from '../../../lib/onboarding/guides.ts';
@@ -169,6 +170,9 @@
       {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
         {#key user.id+':'+role}
           <MobileAcademyEducation viewerRole={role} />
+          {#if role === 'player'}
+            <MobilePlayerCoachFeedback {controller} />
+          {/if}
         {/key}
       {:else if activeTab === 'children' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}

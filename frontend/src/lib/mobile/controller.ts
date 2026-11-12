@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
+import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
@@ -1445,6 +1446,18 @@ export function createMobileAuthController(options: {
         !('subscribed' in raw)||raw.subscribed!==false)
         throw new Error('Unverified device unsubscribe.');
       return true;
+    },
+    async getPlayerCoachFeedback(offset=0):Promise<PlayerCoachFeedbackPage> {
+      if(state.user?.role!=='player'||!state.user.current_role_available)
+        throw new Error('Player role is required for private coach feedback.');
+      if(!Number.isSafeInteger(offset)||offset<0||offset>10000)
+        throw new Error('Invalid coach feedback offset.');
+      const result=await chatRequest('/api/mobile/player/coach-feedback?offset='+offset);
+      if(state.user?.role!=='player'||!state.user.current_role_available)
+        throw new Error('Player role changed during private feedback request.');
+      if(!validPlayerCoachFeedbackPage(result))
+        throw new Error('Unverified private coach feedback response.');
+      return result;
     },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
