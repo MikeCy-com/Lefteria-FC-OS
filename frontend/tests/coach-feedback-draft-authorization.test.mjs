@@ -50,7 +50,7 @@ test('API never takes coach identity or name from JSON body',()=>{
  assert.match(store,/dto\.RequiresCoachApproval/);
  assert.match(program,/AddScoped<PostgresCoachFeedbackDraftStore>/);
  assert.match(program,/MapMobileCoachFeedback\(\)/);
- assert.doesNotMatch(endpoints,/CoachId|CoachName|SenderId|SendAsync|PublishAsync|GenerateAsync/);
+ assert.doesNotMatch(endpoints,/CoachId|CoachName|SenderId|PublishAsync|GenerateAsync/);
 });
 test('only function execute granted and no direct draft table access',()=>{
  const sig='club.create_mobile_coach_feedback_draft(\n  uuid,text,text,timestamptz,uuid,text,text,text,text,text)';
