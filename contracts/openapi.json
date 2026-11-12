@@ -1590,6 +1590,102 @@
         ],
         "type": "object"
       },
+      "CoachFeedbackInboxItem": {
+        "properties": {
+          "coach_name": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "sent_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "coach_name",
+          "message",
+          "sent_at"
+        ],
+        "type": "object"
+      },
+      "CoachFeedbackInboxResult": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CoachFeedbackInboxItem"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "CoachFeedbackSendBody": {
+        "properties": {
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
+      "CoachFeedbackSendResult": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "inbox_available": {
+            "type": "boolean"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "status": {
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "status",
+          "version",
+          "inbox_available",
+          "read"
+        ],
+        "type": "object"
+      },
       "CoachFeedbackSignoffBody": {
         "properties": {
           "final_text": {
@@ -16899,6 +16995,123 @@
         ]
       }
     },
+    "/api/mobile/coach/feedback/drafts/{id}/send": {
+      "post": {
+        "description": "Coach explicitly releases an approved message into the exact player's private inbox; no push or team broadcast.",
+        "operationId": "SendMobileCoachFeedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoachFeedbackSendBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachFeedbackSendResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile coach feedback"
+        ]
+      }
+    },
     "/api/mobile/family": {
       "get": {
         "operationId": "GetParentFamily",
@@ -19020,6 +19233,111 @@
         ]
       }
     },
+    "/api/mobile/player/coach-feedback": {
+      "get": {
+        "description": "Current self-verified player reads only personally addressed, coach-signed and explicitly sent feedback.",
+        "operationId": "GetMobilePlayerCoachFeedback",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachFeedbackInboxResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile player education"
+        ]
+      }
+    },
     "/api/mobile/players-list": {
       "get": {
         "operationId": "GetMobilePlayersList",
@@ -20747,6 +21065,9 @@
     },
     {
       "name": "Mobile coach feedback"
+    },
+    {
+      "name": "Mobile player education"
     },
     {
       "name": "Mobile app notifications"
