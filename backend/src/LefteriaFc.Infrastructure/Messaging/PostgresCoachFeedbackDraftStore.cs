@@ -11,6 +11,105 @@ namespace LefteriaFc.Infrastructure.Messaging;
 /// fresh server-side coach/player/team membership check in PostgreSQL.</summary>
 public sealed class PostgresCoachFeedbackDraftStore(LefteriaDbContext database)
 {
+    public async Task<CoachFeedbackSendResult> SendAsync(
+        MobileSession actor,Guid draftId,long version,CancellationToken token)
+    {
+        if(actor.Role!=MobileRole.Coach || draftId==Guid.Empty || version!=2)
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid coach send request.");
+        try
+        {
+            await database.Database.OpenConnectionAsync(token);
+            try
+            {
+                await using var command=new NpgsqlCommand("""
+                    SELECT club.send_mobile_coach_feedback(
+                      @identity,@phone,@role,@expires,@id,@version)::text
+                    """,(NpgsqlConnection)database.Database.GetDbConnection());
+                command.Parameters.AddWithValue("identity",actor.IdentityId);
+                command.Parameters.AddWithValue("phone",actor.NormalizedPhone);
+                command.Parameters.AddWithValue("role","coach");
+                command.Parameters.AddWithValue("expires",actor.ExpiresAt);
+                command.Parameters.AddWithValue("id",draftId);
+                command.Parameters.AddWithValue("version",version);
+                var raw=await command.ExecuteScalarAsync(token) as string;
+                var dto=raw is null ? null : JsonSerializer.Deserialize<CoachFeedbackSendResult>(
+                    raw,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower});
+                if(dto is null || dto.Id!=draftId ||
+                    dto.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy") ||
+                    dto.Status!="sent" || dto.Version!=3 ||
+                    !dto.InboxAvailable || dto.Read)
+                    throw Unavailable();
+                return dto;
+            }
+            finally {await database.Database.CloseConnectionAsync();}
+        }
+        catch(PostgresException error)
+        {
+            throw error.SqlState switch
+            {
+                "42501" => new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.RoleUnavailable,
+                    "Coach or recipient permission is no longer available."),
+                "P0002" => new MobileAuthException(MobileAuthFaultKind.Validation,
+                    MobileAuthErrorCode.InvalidInput,"Coach draft is unavailable."),
+                "22023" => new MobileAuthException(MobileAuthFaultKind.Validation,
+                    MobileAuthErrorCode.InvalidInput,"Invalid coach feedback send."),
+                "40001" => new MobileAuthException(MobileAuthFaultKind.Conflict,
+                    MobileAuthErrorCode.InvalidInput,"Feedback changed; refresh and retry."),
+                "55000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.RosterUnavailable,"Roster is not ready."),
+                _ => Unavailable()
+            };
+        }
+    }
+
+    public async Task<CoachFeedbackInboxResult> InboxAsync(
+        MobileSession actor,int offset,CancellationToken token)
+    {
+        if(actor.Role!=MobileRole.Player || offset is <0 or >10000)
+            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                MobileAuthErrorCode.RoleUnavailable,"Player role required.");
+        try
+        {
+            await database.Database.OpenConnectionAsync(token);
+            try
+            {
+                await using var command=new NpgsqlCommand("""
+                    SELECT club.read_mobile_player_coach_feedback(
+                      @identity,@phone,@role,@expires,@offset)::text
+                    """,(NpgsqlConnection)database.Database.GetDbConnection());
+                command.Parameters.AddWithValue("identity",actor.IdentityId);
+                command.Parameters.AddWithValue("phone",actor.NormalizedPhone);
+                command.Parameters.AddWithValue("role","player");
+                command.Parameters.AddWithValue("expires",actor.ExpiresAt);
+                command.Parameters.AddWithValue("offset",offset);
+                var raw=await command.ExecuteScalarAsync(token) as string;
+                var dto=raw is null ? null : JsonSerializer.Deserialize<CoachFeedbackInboxResult>(
+                    raw,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower});
+                if(dto?.Items is null || dto.Items.Count>20 ||
+                    dto.Items.Any(item=>item.Id==Guid.Empty ||
+                        item.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy") ||
+                        string.IsNullOrWhiteSpace(item.CoachName) ||
+                        item.Message.Length is <30 or >1600))
+                    throw Unavailable();
+                return dto;
+            }
+            finally {await database.Database.CloseConnectionAsync();}
+        }
+        catch(PostgresException error)
+        {
+            throw error.SqlState switch
+            {
+                "42501" => new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.RoleUnavailable,"Player account is no longer authorized."),
+                "55000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.RosterUnavailable,"Roster is not ready."),
+                _ => Unavailable()
+            };
+        }
+    }
+
     public async Task<CoachFeedbackSignoffResult> ApproveAsync(
         MobileSession actor,Guid draftId,long version,string finalText,
         CancellationToken token)
@@ -150,3 +249,9 @@ public sealed record CoachFeedbackDraftResult(
 
 public sealed record CoachFeedbackSignoffResult(Guid Id,string OrganizationId,
     string PlayerId,string Status,long Version,bool AuthorizedByCoach,bool Delivered);
+
+public sealed record CoachFeedbackSendResult(Guid Id,string OrganizationId,
+    string Status,long Version,bool InboxAvailable,bool Read);
+public sealed record CoachFeedbackInboxItem(Guid Id,string OrganizationId,
+    string CoachName,string Message,DateTimeOffset SentAt);
+public sealed record CoachFeedbackInboxResult(IReadOnlyList<CoachFeedbackInboxItem> Items);
