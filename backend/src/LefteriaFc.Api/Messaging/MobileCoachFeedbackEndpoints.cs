@@ -1,3 +1,5 @@
+using System.Globalization;
+using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Api.Identity;
 using LefteriaFc.Infrastructure.Messaging;
 
@@ -14,9 +16,36 @@ public static class MobileCoachFeedbackEndpoints
         string? Observation, string? FocusPoint, string? Language);
 
     public sealed record CoachFeedbackSignoffBody(long Version,string? FinalText);
+    public sealed record CoachFeedbackSendBody(long Version);
 
     public static IEndpointRouteBuilder MapMobileCoachFeedback(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapPost("/api/mobile/coach/feedback/drafts/{id:guid}/send",
+            (Guid id,CoachFeedbackSendBody body,HttpContext context,
+             PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => store.SendAsync(MobilePrincipal.Read(context.User),
+                        id,body.Version,token),context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile coach feedback")
+            .WithName("SendMobileCoachFeedback")
+            .WithDescription("Coach explicitly releases an approved message into the exact player's private inbox; no push or team broadcast.")
+            .Produces<CoachFeedbackSendResult>()
+            .WithMobileErrors();
+
+        endpoints.MapGet("/api/mobile/player/coach-feedback",
+            (string? offset,HttpContext context,
+             PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => store.InboxAsync(MobilePrincipal.Read(context.User),
+                        ParseFeedbackOffset(context,offset),token),context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile player education")
+            .WithName("GetMobilePlayerCoachFeedback")
+            .WithDescription("Current self-verified player reads only personally addressed, coach-signed and explicitly sent feedback.")
+            .Produces<CoachFeedbackInboxResult>()
+            .WithMobileErrors();
+
         // Final message must be explicitly signed by its true coach, but
         // signoff is NOT delivery and creates no outbound notification.
         endpoints.MapPost("/api/mobile/coach/feedback/drafts/{id:guid}/approve",
@@ -47,5 +76,16 @@ public static class MobileCoachFeedbackEndpoints
             .Produces<CoachFeedbackDraftResult>()
             .WithMobileErrors();
         return endpoints;
+    }
+
+    private static int ParseFeedbackOffset(HttpContext context,string? raw)
+    {
+        if(context.Request.Query["offset"].Count>1 ||
+            (raw is not null &&
+             (!int.TryParse(raw,NumberStyles.None,CultureInfo.InvariantCulture,out var offset) ||
+              offset is <0 or >10000)))
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid feedback offset.");
+        return raw is null ? 0 : int.Parse(raw,CultureInfo.InvariantCulture);
     }
 }

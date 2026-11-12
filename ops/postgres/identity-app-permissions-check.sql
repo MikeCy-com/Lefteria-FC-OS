@@ -212,6 +212,17 @@ BEGIN
        'EXECUTE') THEN
     RAISE EXCEPTION 'Current coach signoff function is unavailable';
   END IF;
+  IF NOT has_function_privilege(current_user,
+       'club.send_mobile_coach_feedback(uuid,text,text,timestamptz,uuid,bigint)',
+       'EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'club.read_mobile_player_coach_feedback(uuid,text,text,timestamptz,integer)',
+       'EXECUTE')
+    OR has_function_privilege(current_user,
+       'club.current_feedback_coach_assignment(uuid,text,timestamptz,text,text,text)',
+       'EXECUTE') THEN
+    RAISE EXCEPTION 'Coach feedback send/inbox function boundary is unsafe';
+  END IF;
   -- Coach feedback is a private unsent draft, exposed only through an
   -- assignment-checked routine; never through a raw table privilege.
   IF NOT row_security_active('club.coach_feedback_drafts')

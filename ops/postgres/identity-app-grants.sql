@@ -431,6 +431,18 @@ REVOKE ALL ON FUNCTION club.approve_mobile_coach_feedback_draft(
 GRANT EXECUTE ON FUNCTION club.approve_mobile_coach_feedback_draft(
   uuid,text,text,timestamptz,uuid,bigint,text) TO :"app_role";
 
+-- The canonical assignment helper is internal to the send routine.
+REVOKE ALL ON FUNCTION club.current_feedback_coach_assignment(
+  uuid,text,timestamptz,text,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.send_mobile_coach_feedback(
+  uuid,text,text,timestamptz,uuid,bigint) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_player_coach_feedback(
+  uuid,text,text,timestamptz,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.send_mobile_coach_feedback(
+  uuid,text,text,timestamptz,uuid,bigint) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_player_coach_feedback(
+  uuid,text,text,timestamptz,integer) TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
