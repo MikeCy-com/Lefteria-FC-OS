@@ -3,6 +3,7 @@
     ACADEMY_EDUCATION_ARTICLES, EDUCATION_STAGES, EDUCATION_TOPICS,
     searchAcademyEducation, type EducationAudience, type EducationStage, type EducationTopic
   } from '../academy-education.ts';
+  import { recommendStarterEducation } from '../education-recommendations.ts';
   import './mobile-theme.css';
 
   let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
@@ -13,7 +14,23 @@
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
   let search = $state('');
-  const cards = $derived(searchAcademyEducation(stage,audience,topic,search));
+  // Session-local preference only. No child identity, roster, or analytics data
+  // are sent to the AI provider or stored as part of this starter experience.
+  let completedArticleIds = $state<string[]>([]);
+  const cards = $derived.by(() => {
+    const matching = searchAcademyEducation(stage,audience,topic,search);
+    if (viewerRole === 'fan') return [];
+    const recommended = recommendStarterEducation({
+      role: viewerRole,
+      stage,
+      preferredTopics: topic === 'all' ? [] : [topic],
+      completedArticleIds,
+      limit: 10
+    });
+    const order = new Map(recommended.map((item, index) => [item.id, index]));
+    return [...matching].sort((left, right) =>
+      (order.get(left.id) ?? 100) - (order.get(right.id) ?? 100));
+  });
   const id = $props.id();
 </script>
 
@@ -132,6 +149,15 @@
               <ul>
                 {#each article.points as point (point)}<li>{point}</li>{/each}
               </ul>
+              <button class="education-complete" type="button"
+                aria-pressed={completedArticleIds.includes(article.id)}
+                onclick={() => {
+                  completedArticleIds = completedArticleIds.includes(article.id)
+                    ? completedArticleIds.filter(item => item !== article.id)
+                    : [...completedArticleIds, article.id];
+                }}>
+                {completedArticleIds.includes(article.id) ? '✓ Ολοκληρώθηκε · Αναίρεση' : 'Σημείωσε ως ολοκληρωμένο'}
+              </button>
               <div class="education-conversation">
                 <strong>Μια ερώτηση για συζήτηση</strong>
                 <p>{article.discussion}</p>
@@ -182,6 +208,8 @@
   .education-details h4{margin:0 0 8px}
   .education-details ul{padding-left:22px;margin:0 0 18px;color:#d8d9d6}
   .education-details li{margin-bottom:8px}
+  .education-complete{display:block;min-height:44px;margin:12px 0;padding:10px 14px;border:1px solid #5a6b4b;border-radius:8px;background:#1c2b1d;color:#e1efc5;cursor:pointer}
+  .education-complete[aria-pressed='true']{border-color:#9bbb78;background:#273e2c}
   .education-conversation{border-left:3px solid #efae31;padding:10px 13px;background:#2b261d}
   .education-conversation p{margin:5px 0 0}
   .education-boundary{border:1px solid #48433b;border-radius:12px;background:#1a1d1d;padding:22px}
