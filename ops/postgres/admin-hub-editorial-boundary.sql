@@ -11,6 +11,7 @@ DECLARE
   text_reviewer pg_proc%ROWTYPE;
   draft_reviser pg_proc%ROWTYPE;
   rejection_returner pg_proc%ROWTYPE;
+  image_quarantiner pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -117,6 +118,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,rejection_returner.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,rejection_returner.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub rejected-return function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT image_quarantiner FROM pg_proc
+    WHERE oid='hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea)'::regprocedure;
+  IF NOT image_quarantiner.prosecdef OR image_quarantiner.provolatile<>'v'
+    OR image_quarantiner.prorettype<>'jsonb'::regtype OR image_quarantiner.prokind<>'f'
+    OR image_quarantiner.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(image_quarantiner.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(image_quarantiner.proacl,acldefault('f',image_quarantiner.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,image_quarantiner.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,image_quarantiner.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub image quarantine function permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables

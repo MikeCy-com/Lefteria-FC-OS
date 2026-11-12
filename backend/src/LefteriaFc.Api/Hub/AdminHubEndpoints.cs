@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using LefteriaFc.Application.MobileAuth;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Application.WebAdmin;
@@ -20,6 +22,7 @@ public sealed record HubDraftCommand(
 
 public sealed record HubReviewSubmitCommand(long Version);
 public sealed record HubDraftRevisionCommand(long Version, string Title, string Body);
+public sealed record HubQuarantineImageCommand(long Version, string Base64, string AltText);
 public sealed record HubTextReviewCommand(long Version, string Decision);
 
 public static class AdminHubEndpoints
@@ -156,6 +159,91 @@ public static class AdminHubEndpoints
             .Produces<WebAdminError>(503);
 
         // Human changes are allowed only while a draft is unpublished and unreviewed.
+        // Small, sanitized JPEGs are stored in quarantine only; there is no media download.
+        endpoints.MapPost("/api/admin/hub/editorial/{id:guid}/images/quarantine",
+            async (Guid id, string? organization_id, HubQuarantineImageCommand body,
+                   WebAdminService admin, WebAdminConnections connections,
+                   IWebAdminSecrets secrets, IAvatarImageSanitizer sanitizer,
+                   HttpContext context, CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                context.Response.Headers.Pragma = "no-cache";
+                if (organization_id is null ||
+                    context.Request.Query["organization_id"].Count != 1 ||
+                    !PublicContentService.IsOrganization(organization_id))
+                    return Failure(400, "invalid_organization");
+                if (id == Guid.Empty || body.Version < 1 ||
+                    string.IsNullOrWhiteSpace(body.Base64) ||
+                    body.Base64.Length > 2097152 ||
+                    string.IsNullOrWhiteSpace(body.AltText) ||
+                    body.AltText.Length > 500 ||
+                    body.AltText != body.AltText.Trim() || body.AltText.Any(char.IsControl))
+                    return Failure(422, "invalid_hub_image");
+                var cookie = context.Request.Cookies[WebAdminServices.CookieName];
+                var session = await admin.CurrentAsync(cookie, token);
+                if (session is null || !secrets.IsToken(cookie))
+                    return Failure(401, "not_authenticated");
+                if (!session.User.Organizations.Any(org => org.Id == organization_id) ||
+                    !AdminPermissions.Has(session.User.Role, "news:write"))
+                    return Failure(403, "not_authorized");
+                byte[] raw;
+                try { raw = Convert.FromBase64String(body.Base64); }
+                catch (FormatException) { return Failure(422, "invalid_hub_image"); }
+                byte[]? clean = null;
+                try
+                {
+                    if (raw.Length is < 4 or > 1048576) return Failure(422, "invalid_hub_image");
+                    try { clean = sanitizer.Sanitize(raw, "image/jpeg", token).JpegBytes; }
+                    catch (MobileAuthException) { return Failure(422, "invalid_hub_image"); }
+                    if (clean.Length is < 4 or > 1048576) return Failure(422, "invalid_hub_image");
+                    var mediaId = Guid.NewGuid();
+                    await using var connection = await connections.OpenAsync(token);
+                    await using var command = new NpgsqlCommand(
+                        "SELECT hub.quarantine_admin_image(@digest,@owner,@id,@version,@media,@alt,@jpeg)::text", connection);
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
+                    command.Parameters.AddWithValue("owner", organization_id);
+                    command.Parameters.AddWithValue("id", id);
+                    command.Parameters.AddWithValue("version", body.Version);
+                    command.Parameters.AddWithValue("media", mediaId);
+                    command.Parameters.AddWithValue("alt", body.AltText);
+                    command.Parameters.Add("jpeg", NpgsqlDbType.Bytea).Value = clean;
+                    var returned = await command.ExecuteScalarAsync(token) as string;
+                    if (returned is null) return Failure(503, "hub_unavailable");
+                    using var parsed = JsonDocument.Parse(returned);
+                    var result = parsed.RootElement;
+                    if (!result.TryGetProperty("id", out var resultId) || resultId.GetGuid() != mediaId ||
+                        !result.TryGetProperty("organization_id", out var owner) || owner.GetString() != organization_id ||
+                        !result.TryGetProperty("content_id", out var content) || content.GetGuid() != id ||
+                        !result.TryGetProperty("status", out var status) || status.GetString() != "quarantined")
+                        return Failure(503, "hub_unavailable");
+                    return Results.Content(returned, "application/json", statusCode: 201);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (PostgresException ex) when (ex.SqlState is "40001" or "23505")
+                { return Failure(409, "hub_image_conflict"); }
+                catch (PostgresException ex) when (ex.SqlState == "P0002")
+                { return Failure(404, "hub_draft_not_found"); }
+                catch (PostgresException ex) when (ex.SqlState == "42501")
+                { return Failure(403, "not_authorized"); }
+                catch (Exception) { return Failure(503, "hub_unavailable"); }
+                finally
+                {
+                    CryptographicOperations.ZeroMemory(raw);
+                    if (clean is not null) CryptographicOperations.ZeroMemory(clean);
+                }
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("QuarantineAdminHubImage")
+            .Produces(201, contentType: "application/json")
+            .Produces<WebAdminError>(400)
+            .Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403)
+            .Produces<WebAdminError>(404)
+            .Produces<WebAdminError>(409)
+            .Produces<WebAdminError>(422)
+            .Produces<WebAdminError>(503);
+
         endpoints.MapPost("/api/admin/hub/editorial/{id:guid}/revise",
             async (Guid id, string? organization_id, HubDraftRevisionCommand body,
                    WebAdminService admin, WebAdminConnections connections,
