@@ -1,12 +1,14 @@
 <script lang="ts">
   import {onMount} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
-  import type {PublishedHubArticle} from '../published-education.ts';
+  import {searchPublishedHubEducation, type PublishedHubArticle} from '../published-education.ts';
   import './mobile-theme.css';
 
   let {controller,viewerRole}:{controller:MobileAuthController,
     viewerRole:'parent'|'player'}=$props();
   let items=$state<PublishedHubArticle[]>([]);
+  let search=$state('');
+  const visibleItems=$derived(searchPublishedHubEducation(items,search));
   let organization=$state<'lefteria_fc'|'lefteria_fc_academy'>('lefteria_fc_academy');
   let busy=$state(true);
   let error=$state<string|null>(null);
@@ -65,8 +67,17 @@
     <p role="status" class="note">Δεν υπάρχουν ακόμα δημοσιευμένα άρθρα για αυτή την ενότητα.</p>
   {/if}
   {#if items.length}
+    <div class="published-search">
+      <label for="published-hub-search">Αναζήτηση στα φορτωμένα άρθρα</label>
+      <input id="published-hub-search" type="search" maxlength="120" autocomplete="off"
+        placeholder="Αναζήτησε τίτλο ή κείμενο" bind:value={search} />
+      <p role="status" aria-live="polite">{visibleItems.length} από {items.length} φορτωμένα άρθρα</p>
+    </div>
+    {#if visibleItems.length===0}
+      <p role="status" class="note">Δεν βρέθηκε άρθρο στα φορτωμένα αποτελέσματα. Δοκίμασε άλλη αναζήτηση.</p>
+    {/if}
     <ol class="articles">
-      {#each items as item (item.id)}
+      {#each visibleItems as item (item.id)}
         <li class="article">
           <div class="meta">
             <span>{viewerRole==='parent'?'ΓΙΑ ΓΟΝΕΙΣ':'ΓΙΑ ΑΘΛΗΤΕΣ'}</span>
@@ -100,6 +111,10 @@
   .article h3{font-size:20px;margin:12px 0}
   .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--lf-gold);font-size:11px}
   .body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+  .published-search{display:grid;gap:9px;margin:16px 0}
+  .published-search label{font-size:13px;font-weight:700}
+  .published-search input{min-height:44px;border:1px solid var(--lf-line);border-radius:9px;background:var(--lf-elevated);color:var(--lf-text);padding:10px 12px;font:inherit}
+  .published-search p{margin:0;font-size:12px;color:var(--lf-muted)}
   .more{width:100%}
   .failure{color:#ffcdbe;border:1px solid #7b3e35;border-radius:8px;padding:13px}
 </style>

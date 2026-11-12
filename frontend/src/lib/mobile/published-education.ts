@@ -38,3 +38,23 @@ export function validPublishedHubPage(value:unknown,expected:'parent'|'player',
       (expected!=='player'||(a.age_min===null&&a.age_max===null));
   });
 }
+
+
+/**
+ * Searches only a page of articles ALREADY authorized and returned by the
+ * server. Search never changes the audience, organization or entitlement
+ * boundary and must never be used to authorize a result.
+ */
+export function searchPublishedHubEducation(
+  items: readonly PublishedHubArticle[], query: string
+): readonly PublishedHubArticle[] {
+  const normalized = query.trim().slice(0, 120)
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');
+  const tokens = normalized.split(/\s+/).filter(Boolean);
+  if (!tokens.length) return items;
+  return items.filter(article => {
+    const searchable = (article.title + ' ' + article.body)
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');
+    return tokens.every(token => searchable.includes(token));
+  });
+}
