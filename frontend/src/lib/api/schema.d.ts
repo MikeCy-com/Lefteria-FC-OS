@@ -1461,6 +1461,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/coach/feedback/drafts/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Same verified coach signs final words, with current roster assignment. Does not send to player. */
+        post: operations["ApproveMobileCoachFeedbackDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/family": {
         parameters: {
             query?: never;
@@ -2431,6 +2448,22 @@ export interface components {
             organization_id: string;
             player_id: string;
             requires_coach_approval: boolean;
+            status: string;
+            /** Format: int64 */
+            version: number | string;
+        };
+        CoachFeedbackSignoffBody: {
+            final_text: null | string;
+            /** Format: int64 */
+            version: number | string;
+        };
+        CoachFeedbackSignoffResult: {
+            authorized_by_coach: boolean;
+            delivered: boolean;
+            /** Format: uuid */
+            id: string;
+            organization_id: string;
+            player_id: string;
             status: string;
             /** Format: int64 */
             version: number | string;
@@ -10485,6 +10518,95 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachFeedbackDraftResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    ApproveMobileCoachFeedbackDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CoachFeedbackSignoffBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachFeedbackSignoffResult"];
                 };
             };
             /** @description Bad Request */
