@@ -206,8 +206,9 @@ public static class AdminHubEndpoints
                         !result.TryGetProperty("byte_count", out var count) ||
                         !count.TryGetInt32(out var expectedBytes) || expectedBytes is < 4 or > 1048576 ||
                         !result.TryGetProperty("base64", out var encoded) ||
-                        encoded.GetString() is not { Length: > 0 and <= 1398104 } raw)
+                        encoded.GetString() is not { Length: > 0 and <= 1398104 })
                         return Failure(503, "hub_unavailable");
+                    var raw = encoded.GetString()!;
                     byte[] jpeg;
                     try { jpeg = Convert.FromBase64String(raw); }
                     catch (FormatException) { return Failure(503, "hub_unavailable"); }
