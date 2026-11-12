@@ -97,6 +97,7 @@ BEGIN
     'hub.revise_admin_draft(text,text,uuid,bigint,text,text)'::regprocedure,
     'hub.return_rejected_admin_draft(text,text,uuid,bigint)'::regprocedure,
     'hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea)'::regprocedure,
+    'hub.read_admin_quarantined_image(text,text,uuid,uuid)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
