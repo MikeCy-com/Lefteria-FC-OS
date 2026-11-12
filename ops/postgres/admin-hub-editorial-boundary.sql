@@ -168,6 +168,21 @@ BEGIN
     OR has_function_privilege(mobile_role,visual_rejecter.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub manager visual rejection permissions unsafe';
   END IF;
+  SELECT * INTO STRICT visual_approver FROM pg_proc
+    WHERE oid='hub.approve_admin_hub_visual(text,text,uuid,bigint)'::regprocedure;
+  IF NOT visual_approver.prosecdef OR visual_approver.provolatile<>'v'
+    OR visual_approver.prorettype<>'jsonb'::regtype OR visual_approver.prokind<>'f'
+    OR visual_approver.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(visual_approver.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(visual_approver.proacl,acldefault('f',visual_approver.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,visual_approver.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,visual_approver.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub manager visual approval permissions unsafe';
+  END IF;
   SELECT * INTO STRICT ai_brief_writer FROM pg_proc
     WHERE oid='hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure;
   IF NOT ai_brief_writer.prosecdef OR ai_brief_writer.provolatile<>'v'
