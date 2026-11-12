@@ -1452,9 +1452,14 @@ export function createMobileAuthController(options: {
         throw new Error('Player role is required for private coach feedback.');
       if(!Number.isSafeInteger(offset)||offset<0||offset>10000)
         throw new Error('Invalid coach feedback offset.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorId||!actorToken)throw new Error('Missing verified player identity.');
       const result=await chatRequest('/api/mobile/player/coach-feedback?offset='+offset);
-      if(state.user?.role!=='player'||!state.user.current_role_available)
-        throw new Error('Player role changed during private feedback request.');
+      // A same-role player identity switch can happen while this request
+      // is in flight. Never return previous identity data to the new user.
+      if(state.user?.role!=='player'||!state.user.current_role_available||
+         state.user.id!==actorId||token!==actorToken||revision!==actorRevision)
+        throw new Error('Player identity changed during private feedback request.');
       if(!validPlayerCoachFeedbackPage(result))
         throw new Error('Unverified private coach feedback response.');
       return result;

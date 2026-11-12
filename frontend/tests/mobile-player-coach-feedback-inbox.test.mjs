@@ -23,6 +23,13 @@ test('inbox fetch uses authenticated mobile client and rejects stale role or inv
  assert.match(controller,/Number\.isSafeInteger\(offset\)/);
  assert.match(controller,/offset>10000/);
 });
+test('inflight inbox results are invalidated across same-role player identity switches',()=>{
+ assert.match(controller,/const actorId=state\.user\.id,actorToken=token,actorRevision=revision/);
+ assert.match(controller,/state\.user\.id!==actorId/);
+ assert.match(controller,/token!==actorToken/);
+ assert.match(controller,/revision!==actorRevision/);
+ assert.match(controller,/if\(!actorId\|\|!actorToken\)/);
+});
 test('the actual visible app does not display unverified or optimistic messages',()=>{
  assert.match(component,/onMount\(\(\)=>/);
  assert.match(component,/getPlayerCoachFeedback\(0\)/);
