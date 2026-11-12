@@ -431,6 +431,12 @@ REVOKE ALL ON FUNCTION club.approve_mobile_coach_feedback_draft(
 GRANT EXECUTE ON FUNCTION club.approve_mobile_coach_feedback_draft(
   uuid,text,text,timestamptz,uuid,bigint,text) TO :"app_role";
 
+-- Coach-specific target list; no direct roster table enumeration rights.
+REVOKE ALL ON FUNCTION club.read_mobile_coach_feedback_targets(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_coach_feedback_targets(
+  uuid,text,text,timestamptz) TO :"app_role";
+
 -- The canonical assignment helper is internal to the send routine.
 REVOKE ALL ON FUNCTION club.current_feedback_coach_assignment(
   uuid,text,timestamptz,text,text,text) FROM PUBLIC, :"app_role";
