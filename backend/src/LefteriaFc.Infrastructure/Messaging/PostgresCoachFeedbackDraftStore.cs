@@ -11,6 +11,54 @@ namespace LefteriaFc.Infrastructure.Messaging;
 /// fresh server-side coach/player/team membership check in PostgreSQL.</summary>
 public sealed class PostgresCoachFeedbackDraftStore(LefteriaDbContext database)
 {
+    public async Task<CoachFeedbackTargetsResult> TargetsAsync(
+        MobileSession actor,CancellationToken token)
+    {
+        if(actor.Role!=MobileRole.Coach)
+            throw new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                MobileAuthErrorCode.RoleUnavailable,"Coach role required.");
+        try
+        {
+            await database.Database.OpenConnectionAsync(token);
+            try
+            {
+                await using var command=new NpgsqlCommand("""
+                    SELECT club.read_mobile_coach_feedback_targets(
+                      @identity,@phone,@role,@expires)::text
+                    """,(NpgsqlConnection)database.Database.GetDbConnection());
+                command.Parameters.AddWithValue("identity",actor.IdentityId);
+                command.Parameters.AddWithValue("phone",actor.NormalizedPhone);
+                command.Parameters.AddWithValue("role","coach");
+                command.Parameters.AddWithValue("expires",actor.ExpiresAt);
+                var raw=await command.ExecuteScalarAsync(token) as string;
+                var dto=raw is null ? null : JsonSerializer.Deserialize<CoachFeedbackTargetsResult>(
+                    raw,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower});
+                if(dto?.Items is null || dto.Items.Count>150 ||
+                    dto.Items.Select(item=>item.OrganizationId+"/"+item.Id).Distinct().Count()!=dto.Items.Count ||
+                    dto.Items.Any(item=>item.OrganizationId is not
+                        ("lefteria_fc" or "lefteria_fc_academy") ||
+                        string.IsNullOrWhiteSpace(item.Id) || item.Id.Length>128 ||
+                        string.IsNullOrWhiteSpace(item.Name) || item.Name.Length>200))
+                    throw Unavailable();
+                return dto;
+            }
+            finally {await database.Database.CloseConnectionAsync();}
+        }
+        catch(PostgresException error)
+        {
+            throw error.SqlState switch
+            {
+                "42501" => new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.RoleUnavailable,"Current coach assignment is unavailable."),
+                "54000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.AccountUnavailable,"Too many eligible players."),
+                "55000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.RosterUnavailable,"Coach roster is not ready."),
+                _ => Unavailable()
+            };
+        }
+    }
+
     public async Task<CoachFeedbackSendResult> SendAsync(
         MobileSession actor,Guid draftId,long version,CancellationToken token)
     {
@@ -255,3 +303,6 @@ public sealed record CoachFeedbackSendResult(Guid Id,string OrganizationId,
 public sealed record CoachFeedbackInboxItem(Guid Id,string OrganizationId,
     string CoachName,string Message,DateTimeOffset SentAt);
 public sealed record CoachFeedbackInboxResult(IReadOnlyList<CoachFeedbackInboxItem> Items);
+
+public sealed record CoachFeedbackTarget(string Id,string OrganizationId,string Name);
+public sealed record CoachFeedbackTargetsResult(IReadOnlyList<CoachFeedbackTarget> Items);
