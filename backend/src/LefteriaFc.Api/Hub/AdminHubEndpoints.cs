@@ -21,6 +21,7 @@ public sealed record HubDraftCommand(
     bool AudienceParent, bool AudiencePlayer, short? AgeMin, short? AgeMax);
 
 public sealed record HubReviewSubmitCommand(long Version);
+public sealed record HubAiEducationBriefCommand(string Audience, short AgeMin, short AgeMax, string Topic, string Language);
 public sealed record HubDraftRevisionCommand(long Version, string Title, string Body);
 public sealed record HubQuarantineImageCommand(long Version, string Base64, string AltText);
 public sealed record HubTextReviewCommand(long Version, string Decision);
@@ -29,6 +30,80 @@ public static class AdminHubEndpoints
 {
     public static IEndpointRouteBuilder MapAdminHub(this IEndpointRouteBuilder endpoints)
     {
+        // Structured AI brief intake. No provider execution, child records,
+        // coach attribution, content publication or automatic delivery.
+        endpoints.MapPost("/api/admin/hub/ai/education-briefs",
+            async (string? organization_id, HubAiEducationBriefCommand body,
+                   WebAdminService admin, WebAdminConnections connections,
+                   IWebAdminSecrets secrets, HttpContext context, CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                context.Response.Headers.Pragma = "no-cache";
+                if (organization_id is null ||
+                    context.Request.Query["organization_id"].Count != 1 ||
+                    !PublicContentService.IsOrganization(organization_id))
+                    return Failure(400, "invalid_organization");
+                var parent = body.Audience == "parent" &&
+                    body.Topic is "support" or "communication" or "development" or "wellbeing";
+                var player = body.Audience == "player" &&
+                    body.Topic is "confidence" or "teamwork" or "resilience" or "learning" or "wellbeing";
+                if (!(parent || player) || body.AgeMin < 6 || body.AgeMax > 18 ||
+                    body.AgeMax < body.AgeMin || body.Language is not ("el" or "en"))
+                    return Failure(422, "invalid_ai_education_brief");
+
+                var cookie = context.Request.Cookies[WebAdminServices.CookieName];
+                var session = await admin.CurrentAsync(cookie, token);
+                if (session is null || !secrets.IsToken(cookie))
+                    return Failure(401, "not_authenticated");
+                if (!session.User.Organizations.Any(org => org.Id == organization_id) ||
+                    !AdminPermissions.Has(session.User.Role, "news:write"))
+                    return Failure(403, "not_authorized");
+
+                try
+                {
+                    var id = Guid.NewGuid();
+                    await using var connection = await connections.OpenAsync(token);
+                    await using var command = new NpgsqlCommand(
+                        "SELECT hub.request_admin_ai_education(@digest,@owner,@id,@audience,@age_min,@age_max,@topic,@language)::text", connection);
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
+                    command.Parameters.AddWithValue("owner", organization_id);
+                    command.Parameters.AddWithValue("id", id);
+                    command.Parameters.AddWithValue("audience", body.Audience);
+                    command.Parameters.AddWithValue("age_min", NpgsqlDbType.Smallint, body.AgeMin);
+                    command.Parameters.AddWithValue("age_max", NpgsqlDbType.Smallint, body.AgeMax);
+                    command.Parameters.AddWithValue("topic", body.Topic);
+                    command.Parameters.AddWithValue("language", body.Language);
+                    var raw = await command.ExecuteScalarAsync(token) as string;
+                    if (raw is null) return Failure(503, "hub_unavailable");
+                    using var parsed = JsonDocument.Parse(raw);
+                    var result = parsed.RootElement;
+                    if (!result.TryGetProperty("id", out var returnedId) || returnedId.GetGuid() != id ||
+                        !result.TryGetProperty("organization_id", out var owner) || owner.GetString() != organization_id ||
+                        !result.TryGetProperty("audience", out var audience) || audience.GetString() != body.Audience ||
+                        !result.TryGetProperty("status", out var status) || status.GetString() != "pending")
+                        return Failure(503, "hub_unavailable");
+                    return Results.Content(raw, "application/json", statusCode: 201);
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (PostgresException ex) when (ex.SqlState == "23505")
+                { return Failure(409, "ai_brief_conflict"); }
+                catch (PostgresException ex) when (ex.SqlState == "42501")
+                { return Failure(403, "not_authorized"); }
+                catch (PostgresException ex) when (ex.SqlState == "22023")
+                { return Failure(422, "invalid_ai_education_brief"); }
+                catch (Exception) { return Failure(503, "hub_unavailable"); }
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("RequestAdminHubAiEducation")
+            .Produces(201, contentType: "application/json")
+            .Produces<WebAdminError>(400)
+            .Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403)
+            .Produces<WebAdminError>(409)
+            .Produces<WebAdminError>(422)
+            .Produces<WebAdminError>(503);
+
         endpoints.MapGet("/api/admin/hub/editorial",
             async (string? organization_id, WebAdminService admin, WebAdminConnections connections,
                    IWebAdminSecrets secrets, HttpContext context, CancellationToken token) =>

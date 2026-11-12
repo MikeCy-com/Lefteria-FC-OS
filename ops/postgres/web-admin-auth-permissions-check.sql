@@ -99,6 +99,7 @@ BEGIN
     'hub.quarantine_admin_image(text,text,uuid,bigint,uuid,text,bytea)'::regprocedure,
     'hub.read_admin_quarantined_image(text,text,uuid,uuid)'::regprocedure,
     'hub.reject_admin_hub_image(text,text,uuid,bigint,uuid)'::regprocedure,
+    'hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
