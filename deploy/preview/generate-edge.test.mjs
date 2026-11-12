@@ -210,7 +210,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 61);
+  assert.equal(protectedOperations(changed).length, 62);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
