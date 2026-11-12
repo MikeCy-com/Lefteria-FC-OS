@@ -446,6 +446,22 @@ BEGIN
     'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
+  IF NOT has_function_privilege(current_user,
+    'hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.content','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.revisions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.media_assets','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_function_privilege(current_user,
+      'hub.publish_admin_hub_content(text,text,uuid,bigint)','EXECUTE') THEN
+    RAISE EXCEPTION 'Mobile HUB published reader boundary violated';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM hub.read_mobile_published_education(gen_random_uuid(),'invalid','fan',
+      clock_timestamp()+interval '1 hour','lefteria_fc',0);
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed published education role gate'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
