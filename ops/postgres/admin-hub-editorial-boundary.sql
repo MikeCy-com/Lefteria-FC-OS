@@ -12,6 +12,7 @@ DECLARE
   draft_reviser pg_proc%ROWTYPE;
   rejection_returner pg_proc%ROWTYPE;
   image_quarantiner pg_proc%ROWTYPE;
+  image_previewer pg_proc%ROWTYPE;
   target record;
 BEGIN
   SELECT * INTO STRICT routine FROM pg_proc
@@ -133,6 +134,21 @@ BEGIN
     OR NOT has_function_privilege(auth_role,image_quarantiner.oid,'EXECUTE')
     OR has_function_privilege(mobile_role,image_quarantiner.oid,'EXECUTE') THEN
     RAISE EXCEPTION 'Hub image quarantine function permissions unsafe';
+  END IF;
+  SELECT * INTO STRICT image_previewer FROM pg_proc
+    WHERE oid='hub.read_admin_quarantined_image(text,text,uuid,uuid)'::regprocedure;
+  IF NOT image_previewer.prosecdef OR image_previewer.provolatile<>'v'
+    OR image_previewer.prorettype<>'jsonb'::regtype OR image_previewer.prokind<>'f'
+    OR image_previewer.proowner<>(SELECT relowner FROM pg_class WHERE oid='hub.content'::regclass)
+    OR NOT EXISTS (
+      SELECT 1 FROM unnest(coalesce(image_previewer.proconfig,ARRAY[]::text[])) AS conf(value)
+      WHERE regexp_replace(conf.value,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp')
+    OR EXISTS (
+      SELECT 1 FROM aclexplode(coalesce(image_previewer.proacl,acldefault('f',image_previewer.proowner)))
+      WHERE grantee=0 AND privilege_type='EXECUTE')
+    OR NOT has_function_privilege(auth_role,image_previewer.oid,'EXECUTE')
+    OR has_function_privilege(mobile_role,image_previewer.oid,'EXECUTE') THEN
+    RAISE EXCEPTION 'Hub private preview function permissions unsafe';
   END IF;
   FOR target IN SELECT table_name
     FROM information_schema.tables
