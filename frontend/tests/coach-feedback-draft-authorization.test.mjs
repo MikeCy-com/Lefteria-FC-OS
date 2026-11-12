@@ -55,7 +55,7 @@ test('API never takes coach identity or name from JSON body',()=>{
 test('only function execute granted and no direct draft table access',()=>{
  const sig='club.create_mobile_coach_feedback_draft(\n  uuid,text,text,timestamptz,uuid,text,text,text,text,text)';
  assert.ok(grants.includes('REVOKE ALL ON TABLE club.coach_feedback_drafts FROM PUBLIC, :"app_role"'));
- assert.ok(grants.includes('GRANT EXECUTE ON FUNCTION '+sig+') TO :"app_role"'));
+ assert.ok(grants.includes('GRANT EXECUTE ON FUNCTION '+sig+' TO :"app_role"'));
  assert.ok(perms.includes("row_security_active('club.coach_feedback_drafts')"));
  assert.ok(perms.includes("'club.create_mobile_coach_feedback_draft(uuid,text,text,timestamptz,uuid,text,text,text,text,text)'"));
 });
