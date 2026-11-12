@@ -80,7 +80,7 @@ public sealed class HubPrivateImageQuarantine : Migration
               END IF;
               -- No verified preview or malware-scanning service is connected.
               -- Keep the media quarantined and never mutate the draft's review.
-              v_sha:=encode(digest(_jpeg,'sha256'),'hex');
+              v_sha:=encode(sha256(_jpeg),'hex');
               INSERT INTO hub.media_assets
                 (id,revision_id,kind,storage_key,sha256,mime_type,
                  byte_count,alt_text,moderation,generated_by_ai)
