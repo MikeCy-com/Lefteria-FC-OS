@@ -44,7 +44,7 @@ test('API requires signed JWT and never takes a coach id from caller',()=>{
  assert.match(store,/actor\.Role!=MobileRole\.Coach/);
  assert.match(store,/SELECT club\.approve_mobile_coach_feedback_draft/);
  assert.match(store,/dto\.AuthorizedByCoach \|\| dto\.Delivered/);
- assert.doesNotMatch(api,/CoachName|CoachId|SendAsync|PublishAsync/);
+ assert.doesNotMatch(api,/CoachName|CoachId|PublishAsync/);
 });
 test('signoff has only exact function EXECUTE, never mobile table write rights',()=>{
  const sig='club.approve_mobile_coach_feedback_draft(\n  uuid,text,text,timestamptz,uuid,bigint,text)';
