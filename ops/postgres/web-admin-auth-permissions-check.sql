@@ -95,6 +95,7 @@ BEGIN
                   'hub.read_admin_editorial_detail(text,text,uuid)'::regprocedure,
                   'hub.review_admin_text(text,text,uuid,bigint,text)'::regprocedure,
     'hub.revise_admin_draft(text,text,uuid,bigint,text,text)'::regprocedure,
+    'hub.return_rejected_admin_draft(text,text,uuid,bigint)'::regprocedure,
                   'club.create_admin_announcement_draft(text,text,text,text,text,text)'::regprocedure,
                   'club.read_admin_announcement_drafts(text,text)'::regprocedure,
                   'club.publish_admin_app_announcement(text,text,text,bigint)'::regprocedure,
