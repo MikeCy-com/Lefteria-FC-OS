@@ -19,7 +19,7 @@ public sealed class HubMobilePublishedReader : Migration
               _identity uuid,_phone text,_role text,_expires timestamptz,
               _owner text,_offset integer
             ) RETURNS jsonb
-            LANGUAGE plpgsql STABLE SECURITY DEFINER
+            LANGUAGE plpgsql VOLATILE SECURITY DEFINER
             SET search_path=pg_catalog,pg_temp
             AS $hub_published_mobile$
             DECLARE
