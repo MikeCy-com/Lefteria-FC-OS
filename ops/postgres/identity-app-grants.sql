@@ -425,6 +425,12 @@ REVOKE ALL ON FUNCTION club.create_mobile_coach_feedback_draft(
 GRANT EXECUTE ON FUNCTION club.create_mobile_coach_feedback_draft(
   uuid,text,text,timestamptz,uuid,text,text,text,text,text) TO :"app_role";
 
+-- Explicit coach signoff is not a message send or a public publication.
+REVOKE ALL ON FUNCTION club.approve_mobile_coach_feedback_draft(
+  uuid,text,text,timestamptz,uuid,bigint,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.approve_mobile_coach_feedback_draft(
+  uuid,text,text,timestamptz,uuid,bigint,text) TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
