@@ -43,13 +43,18 @@ DECLARE v_table record;
 BEGIN
   FOR v_table IN SELECT c.oid FROM pg_class c JOIN pg_namespace n
     ON n.oid=c.relnamespace
-    WHERE n.nspname='hub' AND c.relkind IN ('r','p','v','m','S')
+    WHERE n.nspname='hub' AND c.relkind IN ('r','p','v','m')
   LOOP
     IF has_table_privilege(v_name,v_table.oid,
         'SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') THEN
       RAISE EXCEPTION 'AI worker has direct hub table privilege';
     END IF;
   END LOOP;
+  IF EXISTS (
+    SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+    WHERE n.nspname='hub' AND c.relkind='S'
+      AND has_sequence_privilege(v_name,c.oid,'USAGE,SELECT,UPDATE')
+  ) THEN RAISE EXCEPTION 'AI worker has direct hub sequence privilege'; END IF;
   IF NOT has_function_privilege(v_name,
       'hub.claim_ai_education_brief(uuid)','EXECUTE')
     OR NOT has_function_privilege(v_name,
