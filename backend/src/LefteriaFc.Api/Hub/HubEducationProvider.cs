@@ -171,8 +171,21 @@ public sealed class HubEducationProvider(HttpClient http,HubAiEducationSettings 
                     (int)response.StatusCode>=500 ? "provider_unavailable" : "provider_rejected");
             if(response.Content.Headers.ContentLength is > 65536)
                 return (null,"invalid_output");
-            var raw=await response.Content.ReadAsStringAsync(token);
-            return raw.Length<=65536 ? (raw,null) : (null,"invalid_output");
+            // Stream at most 64 KiB even when the provider omits or lies about
+            // Content-Length. ReadAsStringAsync would buffer an unbounded body.
+            await using var stream=await response.Content.ReadAsStreamAsync(token);
+            using var buffer=new MemoryStream();
+            var chunk=new byte[8192];
+            while(true)
+            {
+                var count=await stream.ReadAsync(chunk.AsMemory(),token);
+                if(count==0)break;
+                if(buffer.Length+count>65536)return (null,"invalid_output");
+                buffer.Write(chunk,0,count);
+            }
+            var decoder=new UTF8Encoding(false,true);
+            try { return (decoder.GetString(buffer.ToArray()),null); }
+            catch(DecoderFallbackException) {return (null,"invalid_output");}
         }
         catch(HttpRequestException) {return (null,"provider_unavailable");}
         catch(TaskCanceledException) when(!token.IsCancellationRequested)
