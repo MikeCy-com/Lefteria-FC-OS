@@ -20,6 +20,17 @@ public static class MobileCoachFeedbackEndpoints
 
     public static IEndpointRouteBuilder MapMobileCoachFeedback(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/mobile/coach/feedback/targets",
+            (HttpContext context,PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
+                MobileIdentityEndpoints.Execute(
+                    () => store.TargetsAsync(MobilePrincipal.Read(context.User),token),context))
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile coach feedback")
+            .WithName("GetMobileCoachFeedbackTargets")
+            .WithDescription("Only verified active coach's currently assigned players; no private contacts, guardian records or draft content.")
+            .Produces<CoachFeedbackTargetsResult>()
+            .WithMobileErrors();
+
         endpoints.MapPost("/api/mobile/coach/feedback/drafts/{id:guid}/send",
             (Guid id,CoachFeedbackSendBody body,HttpContext context,
              PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
