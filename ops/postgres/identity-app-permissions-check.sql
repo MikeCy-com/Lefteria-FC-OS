@@ -207,6 +207,11 @@ BEGIN
   IF has_table_privilege(current_user, 'audit.security_events', 'TRUNCATE') THEN
     RAISE EXCEPTION 'Runtime can truncate audit rows';
   END IF;
+  IF NOT has_function_privilege(current_user,
+       'club.approve_mobile_coach_feedback_draft(uuid,text,text,timestamptz,uuid,bigint,text)',
+       'EXECUTE') THEN
+    RAISE EXCEPTION 'Current coach signoff function is unavailable';
+  END IF;
   -- Coach feedback is a private unsent draft, exposed only through an
   -- assignment-checked routine; never through a raw table privilege.
   IF NOT row_security_active('club.coach_feedback_drafts')
