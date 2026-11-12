@@ -1,0 +1,40 @@
+/** Only the server may decide whether an article is published and role-eligible. */
+export interface PublishedHubArticle {
+  id:string;
+  organization_id:'lefteria_fc'|'lefteria_fc_academy';
+  title:string;
+  body:string;
+  published_at:string;
+  audience:'parent'|'player';
+  age_min:number|null;
+  age_max:number|null;
+}
+export interface PublishedHubPage {
+  organization_id:'lefteria_fc'|'lefteria_fc_academy';
+  audience:'parent'|'player';
+  items:PublishedHubArticle[];
+}
+const owner=(value:unknown):value is PublishedHubArticle['organization_id']=>
+  value==='lefteria_fc'||value==='lefteria_fc_academy';
+const age=(value:unknown)=>value===null||(typeof value==='number'&&
+  Number.isSafeInteger(value)&&value>=4&&value<=99);
+export function validPublishedHubPage(value:unknown,expected:'parent'|'player',
+  organization:PublishedHubArticle['organization_id']):value is PublishedHubPage {
+  if(!value||typeof value!=='object'||Array.isArray(value))return false;
+  const page=value as Record<string,unknown>;
+  if(!owner(page.organization_id)||page.organization_id!==organization||
+     page.audience!==expected||!Array.isArray(page.items)||page.items.length>20)return false;
+  return page.items.every((item:unknown)=>{
+    if(!item||typeof item!=='object'||Array.isArray(item))return false;
+    const a=item as Record<string,unknown>;
+    return typeof a.id==='string'&&/^[a-f0-9-]{36}$/i.test(a.id)&&
+      a.organization_id===organization&&a.audience===expected&&
+      typeof a.title==='string'&&a.title.length>=1&&a.title.length<=180&&
+      typeof a.body==='string'&&a.body.length>=1&&a.body.length<=20000&&
+      typeof a.published_at==='string'&&!Number.isNaN(Date.parse(a.published_at))&&
+      age(a.age_min)&&age(a.age_max)&&
+      ((a.age_min===null&&a.age_max===null)||
+       (typeof a.age_min==='number'&&typeof a.age_max==='number'&&a.age_max>=a.age_min))&&
+      (expected!=='player'||(a.age_min===null&&a.age_max===null));
+  });
+}
