@@ -36,7 +36,7 @@ test('only sandbox staging checkout initialization uses verified hosted gateway'
  assert.match(endpoints,/PayablCheckoutRequest\(/);
  assert.match(endpoints,/gateway\.InitializeAsync/);
  assert.match(endpoints,/returnUrl|origin\+"\/payments\/return"/);
- assert.match(endpoints,/status='ready'/i);
+ assert.match(endpoints,/"ready",hosted\.CheckoutUrl/);
  assert.match(program,/AddOptions<HubFanPayablOptions>/);
  assert.match(program,/MapHubFanPayablCheckout\(\)/);
 });
