@@ -32,7 +32,8 @@ BEGIN
     'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid,
     'club.preview_admin_academy_training_distribution(text,text,uuid,integer)'::regprocedure::oid,
     'club.publish_admin_academy_training_plan(text,text,uuid,integer,boolean)'::regprocedure::oid,
-    'club.read_admin_academy_training_publications(text,text,text,date,date)'::regprocedure::oid
+    'club.read_admin_academy_training_publications(text,text,text,date,date)'::regprocedure::oid,
+    'club.cancel_admin_academy_training_publication(text,text,uuid,integer,text,boolean)'::regprocedure::oid
   ] LOOP
     IF NOT (SELECT prosecdef AND NOT EXISTS(
       SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
@@ -57,6 +58,8 @@ GRANT EXECUTE ON FUNCTION club.publish_admin_academy_training_plan(
   text,text,uuid,integer,boolean) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_publications(
   text,text,text,date,date) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.cancel_admin_academy_training_publication(
+  text,text,uuid,integer,text,boolean) TO :"admin_auth_role";
 DO $postflight$
 DECLARE
   v_admin text:=current_setting('lefteria.training_plans_admin_role');
@@ -71,7 +74,8 @@ BEGIN
     'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid,
     'club.preview_admin_academy_training_distribution(text,text,uuid,integer)'::regprocedure::oid,
     'club.publish_admin_academy_training_plan(text,text,uuid,integer,boolean)'::regprocedure::oid,
-    'club.read_admin_academy_training_publications(text,text,text,date,date)'::regprocedure::oid
+    'club.read_admin_academy_training_publications(text,text,text,date,date)'::regprocedure::oid,
+    'club.cancel_admin_academy_training_publication(text,text,uuid,integer,text,boolean)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(v_admin,v_proc,'EXECUTE')
       OR has_function_privilege(v_mobile,v_proc,'EXECUTE')
@@ -96,7 +100,8 @@ BEGIN
     'club.academy_training_plan_drafts'::regclass::oid,
     'club.academy_training_plan_events'::regclass::oid,
     'club.academy_training_plan_approvals'::regclass::oid,
-    'club.academy_training_plan_publications'::regclass::oid
+    'club.academy_training_plan_publications'::regclass::oid,
+    'club.academy_training_publication_cancellations'::regclass::oid
   ] LOOP
     IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid=v_table)
       OR has_table_privilege(v_admin,v_table,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE')
