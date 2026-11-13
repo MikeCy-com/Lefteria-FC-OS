@@ -25,8 +25,9 @@ test('AI brief is always separate from human approval and protected rendering',(
  assert.match(page,/runAction\('visual-approve','review_required'\)/);
  assert.match(page,/runAction\('final-approve','approved'\)/);
  assert.match(page,/runAction\('publish','published'\)/);
- assert.match(page,/inspected=inspected\.filter\(id=>id!==media\.id\)/);
- assert.match(page,/onload=\{\(\)=>\{inspected=/);
+ assert.match(page,/inspected=inspected\.filter\(id=>id!==proof\)/);
+ assert.match(page,/onload=\{\(\)=>\{/);
+ assert.match(page,/inspected=\[\.\.\.new Set\(\[\.\.\.inspected,proof\]\)\]/);
  assert.doesNotMatch(page,/{@html|innerHTML/);
 });
 test('editorial DTO validator rejects cross-organization details and unverified transitions',()=>{
