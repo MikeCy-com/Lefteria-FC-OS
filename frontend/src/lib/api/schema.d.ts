@@ -2043,6 +2043,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/hub/learning/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Explicitly complete only this member's currently next approved lesson; rejects stale, guessed and cross-role submissions. */
+        post: operations["CompleteMobileHubLesson"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/hub/learning/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description First unfinished approved lesson for this authenticated parent/player, never the global newest lesson. */
+        get: operations["GetMobileHubNextLesson"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/management/organization": {
         parameters: {
             query?: never;
@@ -2897,6 +2931,12 @@ export interface components {
             /** Format: int64 */
             version: number | string;
         };
+        HubLessonCompletionBody: {
+            /** Format: uuid */
+            content_id: string;
+            /** Format: uuid */
+            revision_id: string;
+        };
         HubQuarantineImageCommand: {
             alt_text: string;
             base64: string;
@@ -3154,6 +3194,35 @@ export interface components {
             /** Format: date-time */
             published_at: string;
             title: string;
+        };
+        MobileHubCompletionResult: {
+            audience: string;
+            /** Format: uuid */
+            completed_id: string;
+            /** Format: uuid */
+            completed_revision_id: string;
+            organization_id: string;
+        };
+        MobileHubNextArticle: {
+            /** Format: int16 */
+            age_max: null | number | string;
+            /** Format: int16 */
+            age_min: null | number | string;
+            audience: string;
+            body: string;
+            /** Format: uuid */
+            id: string;
+            organization_id: string;
+            /** Format: date-time */
+            published_at: string;
+            /** Format: uuid */
+            revision_id: string;
+            title: string;
+        };
+        MobileHubNextPage: {
+            audience: string;
+            next: null | components["schemas"]["MobileHubNextArticle"];
+            organization_id: string;
         };
         MobileHubPublishedResult: {
             audience: string;
@@ -13255,6 +13324,180 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileHubPublishedResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    CompleteMobileHubLesson: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HubLessonCompletionBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileHubCompletionResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetMobileHubNextLesson: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileHubNextPage"];
                 };
             };
             /** @description Bad Request */
