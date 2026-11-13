@@ -640,6 +640,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/players/{playerId}/birthday-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPlayerBirthdayPreferences"];
+        put: operations["UpdateAdminPlayerBirthdayPreferences"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/hub/ai/education-briefs": {
         parameters: {
             query?: never;
@@ -2633,6 +2649,14 @@ export interface components {
             expected_version: number | string;
             player_id: null | string;
             status: null | string;
+        };
+        BirthdayPreferencesCommand: {
+            background_color: string;
+            disabled: boolean;
+            emoji: string;
+            /** Format: int32 */
+            expected_version: number | string;
+            wish_text: string;
         };
         CalendarOwnResponse: {
             player_id: string;
@@ -6750,6 +6774,54 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
                 };
+            };
+        };
+    };
+    ReadAdminPlayerBirthdayPreferences: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateAdminPlayerBirthdayPreferences: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BirthdayPreferencesCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
