@@ -1,7 +1,10 @@
+import {validPersonalLessonSchedule,validPersonalLessonInbox,
+  type PersonalLessonSchedule,type PersonalLessonInbox} from './learning-delivery.ts';
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
-import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
+import {validPublishedHubPage,validPublishedHubNext,validPublishedHubCompletion,
+  type PublishedHubPage,type PublishedHubNextPage,type PublishedHubCompletion} from './published-education.ts';
 import {validPlayerQuizPage,validPlayerQuizStart,validPlayerQuizAnswers,validPlayerQuizScore,
  type PlayerQuizPage,type PlayerQuizStart,type PlayerQuiz,type PlayerQuizAnswer,
  type PlayerQuizOrganization,type PlayerQuizScore} from './player-weekly-quiz.ts';
@@ -1690,6 +1693,76 @@ export function createMobileAuthController(options: {
         throw new Error('Identity changed during education request.');
       if(!validPublishedHubPage(result,role,organization))
         throw new Error('Unverified published education response.');
+      return result;
+    },
+    async enrollPersonalLessonSchedule(
+      organization:'lefteria_fc'|'lefteria_fc_academy'):Promise<PersonalLessonSchedule>{
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('Verified parent/player role required.');
+      const id=state.user.id,oldToken=token,oldRevision=revision;
+      if(!oldToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/schedule?organization_id='+
+        encodeURIComponent(organization),'POST');
+      if(state.user?.id!==id||state.user.role!==role||
+         !state.user.current_role_available||oldToken!==token||
+         oldRevision!==revision)
+        throw new Error('Learning identity changed.');
+      if(!validPersonalLessonSchedule(result,organization,role))
+        throw new Error('Unverified lesson schedule.');
+      return result;
+    },
+    async getPersonalLessonDeliveries(
+      organization:'lefteria_fc'|'lefteria_fc_academy'):Promise<PersonalLessonInbox>{
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('Verified parent/player role required.');
+      const id=state.user.id,oldToken=token,oldRevision=revision;
+      if(!oldToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/deliveries?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==id||state.user.role!==role||
+         !state.user.current_role_available||oldToken!==token||
+         oldRevision!==revision)
+        throw new Error('Learning identity changed.');
+      if(!validPersonalLessonInbox(result,organization,role))
+        throw new Error('Unverified lesson deliveries.');
+      return result;
+    },
+    async getNextHubLesson(
+      organization:'lefteria_fc'|'lefteria_fc_academy'):Promise<PublishedHubNextPage> {
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('Verified parent or player role required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/next?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==actorId||state.user.role!==role||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)
+        throw new Error('Identity changed during learning request.');
+      if(!validPublishedHubNext(result,role,organization))
+        throw new Error('Unverified learning response.');
+      return result;
+    },
+    async completeNextHubLesson(page:PublishedHubNextPage):Promise<PublishedHubCompletion> {
+      const role=state.user?.role,lesson=page.next;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available||
+         !validPublishedHubNext(page,role,page.organization_id)||!lesson)
+        throw new Error('No authorized lesson to complete.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/complete?organization_id='+
+        encodeURIComponent(page.organization_id),'POST',{
+          content_id:lesson.id,revision_id:lesson.revision_id
+        });
+      if(state.user?.id!==actorId||state.user.role!==role||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)
+        throw new Error('Identity changed during learning completion.');
+      if(!validPublishedHubCompletion(result,page))
+        throw new Error('Unverified completion response.');
       return result;
     },
     async getPlayerCoachFeedback(offset=0):Promise<PlayerCoachFeedbackPage> {
