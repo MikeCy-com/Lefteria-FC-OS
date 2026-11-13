@@ -481,6 +481,21 @@ GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl(
 GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_subscription(
   uuid,text,text,timestamptz,text) TO :"app_role";
 
+-- Paid fan schedules and notification inboxes are private to the subscriber.
+-- A separate worker role alone may process the global due queue.
+REVOKE ALL ON TABLE hub.fan_lesson_schedules,hub.fan_lesson_delivery_inbox
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.process_due_fan_lesson_schedules(integer)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_fan_lesson_schedule(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_lesson_deliveries(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_fan_lesson_schedule(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_lesson_deliveries(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+
 -- Verified fan learning: two independent parent/player topic tracks. Each
 -- SQL call verifies captured Payabl finance settlement and expiry.
 REVOKE ALL ON TABLE hub.fan_learning_completions FROM PUBLIC, :"app_role";
