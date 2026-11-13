@@ -295,7 +295,7 @@
       </form>
     {/if}
   {/if}
-  <AdminPlayerBirthdayPreferences {owner} {playerId} {actorId} {onExpired} {onRevoked}/>
+  <AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>
   {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}
   {#if loading}<p role="status">Ανάκτηση προστατευμένων στοιχείων…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}

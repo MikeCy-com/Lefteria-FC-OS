@@ -6,8 +6,8 @@
     wish_text:string;background_color:string;emoji:string;
     public_enabled:false;auto_post_facebook:false;auto_post_instagram:false;
   };
-  let {owner,playerId,actorId,onExpired,onRevoked}:{
-    owner:Owner;playerId:string;actorId:string;
+  let {owner,playerId,playerName,actorId,onExpired,onRevoked}:{
+    owner:Owner;playerId:string;playerName:string;actorId:string;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
   const colors=['#F5A623','#EF4444','#10B981','#3B82F6',
@@ -16,6 +16,7 @@
   let value=$state<Preferences|null>(null),loading=$state(false),
     saving=$state(false),error=$state(''),notice=$state(''),revision=$state(0);
   let disabled=$state(true),wish=$state(''),color=$state('#F5A623'),emoji=$state('🎂');
+  let previewOpen=$state(false);
 
   function valid(raw:unknown,expectedOwner:Owner,expectedPlayer:string):raw is Preferences {
     if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
@@ -32,6 +33,7 @@
     const currentOwner=owner,currentPlayer=playerId,currentActor=actorId;
     void revision;void currentActor;
     value=null;disabled=true;wish='';color='#F5A623';emoji='🎂';
+    previewOpen=false;
     error='';notice='';
     if(!browser||!currentPlayer)return;
     const controller=new AbortController();
@@ -115,6 +117,44 @@
       </select>
     </label>
     <p>Δημόσια προβολή: <strong>ανενεργή</strong> · Facebook / Instagram: <strong>ανενεργά</strong></p>
+    <button type="button" class="preview-toggle" disabled={saving}
+      aria-expanded={previewOpen} aria-controls="player-birthday-private-preview"
+      onclick={()=>previewOpen=!previewOpen}>
+      {previewOpen?'Απόκρυψη ιδιωτικής προεπισκόπησης':'Προεπισκόπηση κάρτας · μόνο διαχείριση'}
+    </button>
+    {#if previewOpen}
+      <div id="player-birthday-private-preview" class="birthday-card-wrap"
+        data-testid="birthday-private-branded-preview">
+        <div class="birthday-card" style={'--birthday-accent:'+color}>
+          <div class="card-glow"></div>
+          <div class="brand-mark">
+            <span class="brand-ball" aria-hidden="true">⚽</span>
+            <span>LEFTERIA <b>FC</b><small>ACADEMY · FOOTBALL FAMILY</small></span>
+          </div>
+          <div class="card-center">
+            <div class="card-emoji" aria-hidden="true">{emoji}</div>
+            <p class="card-overline">LEFTERIA FC WISHES YOU</p>
+            <h5>ΧΡΟΝΙΑ ΠΟΛΛΑ!</h5>
+            <strong>{playerName}</strong>
+            <p class="card-wish">{wish.trim()||'Χρόνια πολλά! Υγεία, χαρά και πολλά όμορφα ποδοσφαιρικά όνειρα!'}</p>
+          </div>
+          <div class="card-footer">
+            <span>ONE TEAM · ONE FAMILY</span><span>LEFTERIA FC</span>
+          </div>
+          <div class="preview-watermark">
+            ΙΔΙΩΤΙΚΗ ΠΡΟΕΠΙΣΚΟΠΗΣΗ · ΟΧΙ ΓΙΑ ΔΗΜΟΣΙΕΥΣΗ
+          </div>
+          {#if disabled}
+            <div class="disabled-shield" role="status">
+              Η κάρτα είναι απενεργοποιημένη
+            </div>
+          {/if}
+        </div>
+        <p class="preview-warning">Η προεπισκόπηση υπάρχει μόνο σε αυτή την εξουσιοδοτημένη οθόνη διαχείρισης.
+          Δεν δημιουργεί εικόνα προς λήψη, δεν δημοσιεύεται και δεν αποστέλλεται σε καμία πλατφόρμα.
+          Οι αλλαγές που δεν έχουν αποθηκευτεί εμφανίζονται μόνο προσωρινά.</p>
+      </div>
+    {/if}
     <button type="button" disabled={saving} onclick={()=>void save()}>
       {saving?'Αποθήκευση…':'Αποθήκευση ιδιωτικών ρυθμίσεων'}
     </button>
@@ -129,4 +169,48 @@
   textarea,select{background:#111;color:#fff;border:1px solid #555;border-radius:6px;padding:9px;min-height:42px;max-width:100%}
   button{min-height:44px;border:1px solid #d5a448;border-radius:7px;background:#3b2c17;color:#fff;cursor:pointer}
   button:disabled{opacity:.5}
+  .preview-toggle{background:transparent;color:#f5c979}
+  .birthday-card-wrap{display:grid;gap:10px;max-width:900px}
+  .birthday-card{position:relative;isolation:isolate;aspect-ratio:16/9;overflow:hidden;
+    border:1px solid color-mix(in srgb,var(--birthday-accent) 65%,#fff);
+    border-radius:14px;color:white;background:radial-gradient(ellipse at 80% 12%,
+    color-mix(in srgb,var(--birthday-accent) 28%,transparent),transparent 44%),
+    linear-gradient(130deg,#090b0c 8%,#19201e 51%,#060708 100%);
+    box-shadow:0 18px 40px #0008;display:flex;flex-direction:column;
+    padding:clamp(12px,3.5%,38px)}
+  .card-glow{position:absolute;z-index:-1;inset:-40%;pointer-events:none;
+    background:conic-gradient(from 40deg at 74% 65%,transparent 30%,
+    color-mix(in srgb,var(--birthday-accent) 35%,transparent),transparent 58%);opacity:.5}
+  .brand-mark{display:flex;align-items:center;gap:12px;font-weight:900;
+    line-height:1.05;letter-spacing:.11em;font-size:clamp(10px,2.4vw,23px)}
+  .brand-mark b{color:var(--birthday-accent)}
+  .brand-mark small{display:block;font-size:clamp(5px,1vw,10px);
+    letter-spacing:.16em;color:#d3d9d6;margin-top:5px}
+  .brand-ball{font-size:clamp(18px,4.3vw,42px)}
+  .card-center{display:flex;flex:1;min-height:0;align-items:center;
+    justify-content:center;flex-direction:column;text-align:center;gap:clamp(3px,.9vw,11px)}
+  .card-center .card-emoji{font-size:clamp(21px,5.5vw,56px);line-height:1}
+  .card-overline{color:var(--birthday-accent);font-size:clamp(7px,1.3vw,14px);
+    font-weight:900;letter-spacing:.23em}
+  .card-center h5{font-size:clamp(19px,5vw,55px);
+    letter-spacing:.035em;line-height:1;margin:0;font-weight:900;color:#fff;
+    text-shadow:0 4px 18px #000a}
+  .card-center strong{font-size:clamp(12px,3vw,30px);font-weight:900;
+    color:var(--birthday-accent);max-width:90%;overflow-wrap:anywhere}
+  .card-wish{max-width:80%;font-size:clamp(8px,1.4vw,16px);
+    line-height:1.4;color:#eef2ed;overflow-wrap:anywhere;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}
+  .card-footer{display:flex;justify-content:space-between;gap:8px;
+    color:#bfc7c4;font-size:clamp(6px,1.2vw,11px);letter-spacing:.12em;font-weight:700}
+  .preview-watermark{position:absolute;left:0;right:0;top:51%;
+    text-align:center;transform:rotate(-17deg);pointer-events:none;
+    font-size:clamp(10px,2.2vw,24px);font-weight:900;letter-spacing:.16em;
+    color:#ffffff2a;text-shadow:0 1px 1px #0006}
+  .disabled-shield{position:absolute;inset:0;background:#000a;display:grid;
+    place-items:center;text-align:center;padding:15px;font-size:clamp(11px,2.2vw,23px);
+    font-weight:900;color:#fff}
+  .preview-warning{font-size:11px;color:#d5b879}
+  @media(max-width:520px){.brand-mark{gap:5px}.birthday-card{border-radius:9px}
+    .card-wish{max-width:92%}}
+
 </style>
