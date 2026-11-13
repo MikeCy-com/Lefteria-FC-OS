@@ -20,6 +20,7 @@
   import MobilePublishedHubEducation from '../../../lib/mobile/components/MobilePublishedHubEducation.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
+  import MobileCoachFeedbackTargets from '../../../lib/mobile/components/MobileCoachFeedbackTargets.svelte';
   import OrganizationSwitcher from '../../../lib/mobile/components/OrganizationSwitcher.svelte';
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
   import {mobileGuide} from '../../../lib/onboarding/guides.ts';
@@ -143,6 +144,8 @@
             onNavigate={openTab}/>
           {#if role==='player'}
             <MobilePlayerCoachFeedback {controller}/>
+          {:else if role==='coach'}
+            <MobileCoachFeedbackTargets {controller} onOpenFeedback={()=>openTab('squad')}/>
           {/if}
         {/key}
       {:else if activeTab === 'profile' && !composing}
