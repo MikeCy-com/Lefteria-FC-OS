@@ -68,3 +68,25 @@ export function parentHomeRsvp(
   const value=matches[0].status;
   return value==='going'||value==='not_going'||value==='maybe'?value:null;
 }
+
+/** A separate warning feed: cancelled events are excluded from upcoming
+ * RSVP activities but must remain visible to this verified guardian/child.
+ * Never read cached siblings, unrelated owners or stale calendar months. */
+export function parentHomeCancelledEvents(
+  family:Family|null,calendar:ParentCalendar|null,identityId:string,
+  today=clubToday(),selectedChildId?:string,limit=3
+):ParentCalendarItem[] {
+  if(!matchingParentHomeCalendar(family,calendar,identityId,today,selectedChildId)
+    ||!calendar)return [];
+  const child=selectedChildId
+    ? family?.children.find(row=>row.id===selectedChildId)
+    :family?.children[0];
+  if(!child)return [];
+  return calendar.items.filter(item=>
+    item.organization_id===child.organization_id&&item.is_cancelled===true&&
+    item.end_date>=today&&item.date.slice(0,7)===calendar.month)
+    .toSorted((a,b)=>a.date.localeCompare(b.date)||
+      (a.start_time??'').localeCompare(b.start_time??'')||
+      a.id.localeCompare(b.id))
+    .slice(0,Math.max(0,Math.min(limit,5)));
+}

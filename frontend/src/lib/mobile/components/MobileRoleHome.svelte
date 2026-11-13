@@ -4,7 +4,7 @@
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar,MobileCalendarItem,AvailabilityStatus} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
-  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext} from '../role-home.ts';
+  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext,trustedRoleHomeCancelledEvents} from '../role-home.ts';
   import './mobile-theme.css';
 
   type HomeRole=Exclude<MobileRole,'parent'>;
@@ -26,6 +26,8 @@
   const upcoming=$derived(role==='fan'||!contextIsCurrent?[]:
     trustedRoleHomeEvents(calendar,role,identityId,organizationId,today));
   const shortcuts=$derived(ROLE_HOME_SHORTCUTS[role]);
+  const cancellations=$derived(role==='fan'||!contextIsCurrent?[]:
+    trustedRoleHomeCancelledEvents(calendar,role,identityId,organizationId,today));
   const nextMatch=$derived(role==='fan'||!contextIsCurrent?null:
     trustedNextRoleMatch(calendar,role,identityId,organizationId,today));
   const playerRsvp=$derived(role==='player'&&nextMatch&&calendar?.selected_player_id
@@ -70,6 +72,26 @@
       <a class="standalone-link" href="/news">Διάβασε τα τελευταία δημοσιευμένα νέα ›</a>
     </section>
   {:else}
+    {#if cancellations.length}
+      <section class="panel cancellations" role="status"
+        aria-labelledby={id+'-cancellations'} data-testid="role-home-cancellations">
+        <div class="panel-heading">
+          <h2 id={id+'-cancellations'}>⚠️ Αλλαγές προγράμματος · Ακυρώσεις</h2>
+          <button type="button" disabled={busy}
+            onclick={()=>void onNavigate('calendar')}>Ημερολόγιο ›</button>
+        </div>
+        <ul class="cancelled-events">
+          {#each cancellations as item (item.kind+':'+item.id)}
+            <li>
+              <strong>{item.title}</strong>
+              <small>{formatCalendarDate(item.date,{day:'numeric',month:'short'})}{item.start_time?' · '+item.start_time:''}</small>
+              <p>{item.cancel_reason?.trim()||'Η δραστηριότητα ακυρώθηκε.'}</p>
+            </li>
+          {/each}
+        </ul>
+        <p class="cancel-note">Οι προηγούμενες απαντήσεις συμμετοχής διατηρούνται. Δεν γίνονται νέες δηλώσεις για ακυρωμένες δραστηριότητες.</p>
+      </section>
+    {/if}
     <section class="panel matchday" aria-labelledby={id+'-matchday'} data-testid="role-home-matchday">
       <p class="eyebrow">GAME DAY · ΑΓΩΝΙΣΤΙΚΟ</p>
       <h2 id={id+'-matchday'}>Ο επόμενος αγώνας</h2>
@@ -131,6 +153,14 @@
   h1{font-size:clamp(25px,7vw,34px);line-height:1.15;margin:10px 0;font-weight:800}
   .intro{color:#ddd5c6;font-size:13px;line-height:1.6;max-width:38rem}
   .panel{padding:17px 15px;border:1px solid #343331;border-radius:12px;background:linear-gradient(135deg,#191b1c,#111314)}
+  .cancellations{border-color:#b36c42;background:linear-gradient(125deg,#2b1a13,#151719)}
+  .cancellations h2{color:#ffc08c}
+  .cancelled-events{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .cancelled-events li{padding:12px;display:grid;gap:5px;background:#241a16;border:1px solid #754c37;border-radius:9px}
+  .cancelled-events strong{font-size:14px;overflow-wrap:anywhere}
+  .cancelled-events small{color:#ffc596;font-size:11px}
+  .cancelled-events p,.cancel-note{font-size:12px;color:#dbc6b9;line-height:1.55;margin:0;overflow-wrap:anywhere}
+  .cancel-note{margin-top:10px}
   h2{font-size:19px;margin:0 0 14px;color:#fff}
   .shortcuts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   .shortcut{display:flex;align-items:center;justify-content:space-between;gap:6px;text-align:left;border:1px solid #4b412b;border-radius:10px;padding:14px 11px;min-height:63px;background:#28251f;color:#ffca46;text-decoration:none;font:inherit;cursor:pointer}

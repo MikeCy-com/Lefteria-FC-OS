@@ -70,6 +70,27 @@ export function trustedNextRoleMatch(
     .find(item=>item.kind==='match')??null;
 }
 
+/** Cancelled upcoming events remain visible as alerts without re-enabling
+ * attendance/RSVP. Never infer coach, management or player access locally:
+ * the exact current role + identity + owner calendar must match. */
+export function trustedRoleHomeCancelledEvents(
+  calendar:MobileCalendar|null,
+  role:Extract<MobileRole,'player'|'coach'|'management'>,
+  identityId:string,organizationId:string|null,today:string,limit=3
+):MobileCalendarItem[] {
+  if(!isTrustedRoleHomeContext(calendar,role,identityId,organizationId,today))return [];
+  return calendar.items.filter(item=>
+    (role==='coach'
+      ? (item.organization_id==='lefteria_fc'||item.organization_id==='lefteria_fc_academy')
+      :item.organization_id===calendar.organization_id)&&
+    item.end_date>=today&&item.is_cancelled===true&&
+    item.date.slice(0,7)===calendar.month)
+    .toSorted((a,b)=>a.date.localeCompare(b.date)||
+      (a.start_time??'').localeCompare(b.start_time??'')||
+      a.id.localeCompare(b.id))
+    .slice(0,Math.max(0,Math.min(limit,5)));
+}
+
 export const ROLE_HOME_SHORTCUTS={
   player:['calendar','hub','chat','announcements','profile'],
   coach:['calendar','squad','chat','announcements','profile'],
