@@ -122,3 +122,46 @@ any response claiming publication.
 individual read or RSVP, send a notification, generate a fixture, or write
 to the member calendar. A future publication transaction must revalidate
 all of the above against current authorization and rollout conditions.
+
+
+## OS-native approved training: canonical publication
+
+The manager may explicitly publish a currently human-approved draft through
+`POST /api/admin/academy/training/plans/{planId}/publish` with
+`confirm_publication=true` and the exact draft version. Publication is
+irreversible in this slice: editing the published draft is blocked, the same
+plan cannot be published twice, and the published canonical event has a
+separate provenance record `os_training` and a unique stable
+`os-training-<plan UUID>` event ID.
+
+This **does** add a real `training` item and its exact Academy group scope to
+`club.calendar_items` / `club.calendar_item_scopes`. Existing private
+calendar endpoints and RSVP authorization consume those same tables; the
+Academy attendance register also reads those canonical events. The mobile
+projection deliberately omits internal notes, private user records and any
+unverified attachments. Parent/player eligibility is checked against current
+Academy group membership, including primary group, on each request. Source
+documents imported from the original Lefteria FC are never rewritten.
+
+The publisher requires an active manager session and Academy grant, a matching
+human approval of the current draft version, an Academy group with at least
+one active assigned player and a non-past training date. The admin UI requires
+a separately confirmed distribution preview and a deliberate
+publication-specific checkbox. Both database writes and the audit event
+succeed or fail in one PostgreSQL transaction. Publication status can be read
+back separately by authorized managers, which prevents an apparently editable
+draft after successful publication.
+
+**Not yet included:** automatic push/SMS/email notifications, coach-side
+editing of the event, cancellations/reschedules of already published sessions,
+recurrence, facility conflict checks across *different* groups, and provider
+billing. A published event appears through existing member calendar and RSVP
+paths but those additional management operations still require dedicated
+implementation and staging acceptance.
+
+**Important deployment gate:** this migration alters canonical source
+constraints to allow separately identified OS-native rows. Before running
+against any staging database with imported history, take a verified backup and
+validate import/reconciliation behavior after an OS-native publication;
+do not rerun a destructive source import over published records. No live
+Hostinger deployment or original repository modification is authorized.
