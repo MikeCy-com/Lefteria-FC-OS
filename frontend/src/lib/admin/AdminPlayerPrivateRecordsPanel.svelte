@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import AdminPlayerBirthdayPreferences from './AdminPlayerBirthdayPreferences.svelte';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type ScoreSection='technical'|'tactical'|'physical'|'character';
@@ -294,6 +295,7 @@
       </form>
     {/if}
   {/if}
+  <AdminPlayerBirthdayPreferences {owner} {playerId} {actorId} {onExpired} {onRevoked}/>
   {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}
   {#if loading}<p role="status">Ανάκτηση προστατευμένων στοιχείων…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}

@@ -1,0 +1,43 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
+const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
+const migration=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113140000_PlayerBirthdayPrivatePreferences.cs');
+const api=read('../../backend/src/LefteriaFc.Api/Audiences/AdminPlayerBirthdayEndpoints.cs');
+const panel=read('../src/lib/admin/AdminPlayerBirthdayPreferences.svelte');
+const parent=read('../src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
+const grants=read('../../ops/postgres/player-birthday-admin-grants.sql');
+test('birthday preferences are opt-out first and never publicly distributed',()=>{
+  assert.match(migration,/disabled boolean NOT NULL DEFAULT true/);
+  assert.match(migration,/public_enabled',false/);
+  assert.match(migration,/auto_post_facebook',false/);
+  assert.match(migration,/auto_post_instagram',false/);
+  assert.doesNotMatch(migration,/INSERT INTO public_content|INSERT INTO club\.announcements/);
+  assert.match(migration,/ENABLE ROW LEVEL SECURITY/g);
+  assert.match(migration,/UNIQUE\(organization_id,player_id,version\)/);
+  assert.match(migration,/identity\.lock_admin_club_authority/);
+  assert.match(migration,/v_role NOT IN \('manager','super_admin'\)/);
+  assert.match(migration,/birthday_version_conflict/);
+  assert.match(migration,/birthday_preferences_history_exists/);
+});
+test('birthday UI is real private admin form and no social posting',()=>{
+  assert.ok(compile(panel,{filename:'AdminPlayerBirthdayPreferences.svelte',generate:'server'}).js.code.length>0);
+  assert.match(parent,/AdminPlayerBirthdayPreferences/);
+  assert.match(panel,/data-testid="birthday-private-preferences"/);
+  assert.match(panel,/expected_version:selected.version/);
+  assert.match(panel,/public_enabled===false/);
+  assert.match(panel,/auto_post_facebook===false/);
+  assert.match(panel,/auto_post_instagram===false/);
+  assert.match(panel,/Κανένα|Καμία κάρτα δεν δημοσιεύτηκε/);
+});
+test('manager-only private endpoint and dedicated SQL grants are explicit',()=>{
+  assert.match(api,/RequireAuthorization\(WebAdminServices.Policy\)/);
+  assert.match(api,/AdminPermissions.Has\(session.User.Role,capability\)/);
+  assert.match(api,/birthday_version_conflict/);
+  assert.match(api,/MapPut\("\/"/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_admin_player_birthday_preferences/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.write_admin_player_birthday_preferences/);
+  assert.match(grants,/birthday_raw_table_exposure/);
+  assert.match(grants,/birthday_function_exposure/);
+});

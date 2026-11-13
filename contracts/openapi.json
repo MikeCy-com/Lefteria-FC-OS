@@ -1407,6 +1407,38 @@
         ],
         "type": "object"
       },
+      "BirthdayPreferencesCommand": {
+        "properties": {
+          "background_color": {
+            "type": "string"
+          },
+          "disabled": {
+            "type": "boolean"
+          },
+          "emoji": {
+            "type": "string"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "wish_text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "disabled",
+          "wish_text",
+          "background_color",
+          "emoji"
+        ],
+        "type": "object"
+      },
       "CalendarOwnResponse": {
         "properties": {
           "player_id": {
@@ -11671,6 +11703,84 @@
         ],
         "tags": [
           "Football administration"
+        ]
+      }
+    },
+    "/api/admin/football/players/{playerId}/birthday-preferences": {
+      "get": {
+        "operationId": "ReadAdminPlayerBirthdayPreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Private player birthday card preferences"
+        ]
+      },
+      "put": {
+        "operationId": "UpdateAdminPlayerBirthdayPreferences",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BirthdayPreferencesCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Private player birthday card preferences"
         ]
       }
     },
@@ -22281,6 +22391,9 @@
     },
     {
       "name": "Academy administration"
+    },
+    {
+      "name": "Private player birthday card preferences"
     },
     {
       "name": "Academy evaluations"
