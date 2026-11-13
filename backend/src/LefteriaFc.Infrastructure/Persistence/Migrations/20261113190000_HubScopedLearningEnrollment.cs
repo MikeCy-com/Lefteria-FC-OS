@@ -100,6 +100,7 @@ public sealed class HubScopedLearningEnrollment : Migration
             SET search_path=pg_catalog,pg_temp
             AS $enroll$
             DECLARE v_row hub.learning_enrollments%ROWTYPE;
+                    v_now timestamptz:=clock_timestamp();
             BEGIN
               PERFORM hub.authorize_mobile_learning_enrollment(
                 _identity,_phone,_role,_expires,_owner,_audience);
@@ -109,7 +110,7 @@ public sealed class HubScopedLearningEnrollment : Migration
                 id,identity_id,organization_id,audience,
                 started_at,next_due_at,delivery_week,status)
               VALUES(gen_random_uuid(),_identity,_owner,_audience,
-                clock_timestamp(),clock_timestamp(),1,'active')
+                v_now,v_now,1,'active')
               ON CONFLICT (identity_id,organization_id,audience)
               DO NOTHING;
               SELECT * INTO STRICT v_row FROM hub.learning_enrollments
