@@ -61,6 +61,8 @@ export function parentHomeRsvp(
   event:ParentCalendarItem,selectedChildId:string|null|undefined
 ):'going'|'not_going'|'maybe'|null {
   if(!selectedChildId)return null;
+  // Historical/imported calendar events can omit responses entirely.
+  if(!Array.isArray(event.responses))return null;
   const matches=event.responses.filter(response=>response.player_id===selectedChildId);
   if(matches.length!==1)return null;
   const value=matches[0].status;
