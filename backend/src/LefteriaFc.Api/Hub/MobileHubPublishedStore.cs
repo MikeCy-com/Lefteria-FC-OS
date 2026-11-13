@@ -97,6 +97,7 @@ public sealed class MobileHubPublishedStore(LefteriaDbContext database)
                     result.Audience!=role || (result.Next is { } item &&
                     (item.Id==Guid.Empty || item.RevisionId==Guid.Empty ||
                      item.OrganizationId!=organization || item.Audience!=role ||
+                     (item.Kind!="article" && !(role=="player" && item.Kind=="course")) ||
                      string.IsNullOrWhiteSpace(item.Title) || item.Title.Length>180 ||
                      string.IsNullOrWhiteSpace(item.Body) || item.Body.Length>20000 ||
                      item.PublishedAt==default || item.PublishedAt>DateTimeOffset.UtcNow ||
@@ -186,7 +187,7 @@ public sealed class MobileHubPublishedStore(LefteriaDbContext database)
 }
 
 public sealed record MobileHubNextArticle(
-    Guid Id,string OrganizationId,string Audience,string Title,string Body,
+    Guid Id,string OrganizationId,string Audience,string Kind,string Title,string Body,
     DateTimeOffset PublishedAt,Guid RevisionId,short? AgeMin,short? AgeMax);
 public sealed record MobileHubNextPage(
     string OrganizationId,string Audience,MobileHubNextArticle? Next);
