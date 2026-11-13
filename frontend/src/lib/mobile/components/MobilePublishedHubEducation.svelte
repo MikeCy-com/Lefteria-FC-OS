@@ -26,6 +26,13 @@
     alive=true;void refresh();
     return()=>{alive=false;request++;items=[];completedIds=[];};
   });
+  // A reused component must never retain the previous role's authorized
+  // article bodies or session-local completion markers after role switching.
+  // The server independently re-authorizes every replacement page.
+  $effect(()=>{
+    const role=viewerRole;
+    if(alive && (role==='parent'||role==='player')) void refresh();
+  });
   async function refresh(){
     const current=++request;
     busy=true;error=null;items=[];nextOffset=null;completedIds=[];
