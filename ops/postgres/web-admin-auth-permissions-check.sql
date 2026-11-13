@@ -116,6 +116,8 @@ BEGIN
                   'club.record_admin_academy_training_attendance(text,text,text,text,text,integer)'::regprocedure,
                   'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure,
                   'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure,
+                  'club.read_admin_academy_training_plan_approvals(text,text,text,date,date)'::regprocedure,
+                  'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure,
                   'marketing.read_admin_academy_leads(text,text,integer,integer,text)'::regprocedure,
                   'marketing.update_admin_academy_lead_status(text,text,uuid,text,text)'::regprocedure)) THEN
     RAISE EXCEPTION 'Admin-auth role can execute an unexpected security-definer routine';
