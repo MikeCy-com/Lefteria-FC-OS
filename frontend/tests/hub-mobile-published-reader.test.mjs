@@ -32,7 +32,7 @@ test('only actually published approved and independently reviewed articles are r
 });
 test('mobile role has read function but no HUB table or publishing permissions',()=>{
  const sig='hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer)';
- assert.ok(grants.includes('GRANT EXECUTE ON FUNCTION '+sig+' TO :"app_role"'));
+ assert.ok(!grants.includes('GRANT EXECUTE ON FUNCTION '+sig+' TO :"app_role"'));
  assert.ok(grants.includes('REVOKE ALL ON FUNCTION '+sig+' FROM PUBLIC, :"app_role"'));
  assert.ok(checks.includes("'"+sig+"'"));
  assert.match(checks,/has_any_column_privilege\(current_user,'hub\.content'/);
@@ -53,4 +53,12 @@ test('published education rejects ambiguous organization scopes and malformed se
  assert.match(store,/item\.PublishedAt>DateTimeOffset\.UtcNow/);
  assert.match(store,/\(item\.AgeMin is null\)!=\(item\.AgeMax is null\)/);
  assert.match(store,/role=="player" && \(item\.AgeMin is not null \|\| item\.AgeMax is not null\)/);
+});
+
+test('legacy article route never allows navigating the global publication catalogue',()=>{
+ assert.match(store,/var page=await NextAsync\(actor,organization,token\)/);
+ assert.match(store,/offset==0 && page\.Next is \{ \} article/);
+ assert.match(store,/Array\.Empty<MobileHubArticle>\(\)/);
+ assert.doesNotMatch(store,/SELECT hub\.read_mobile_published_education\(/);
+ assert.match(checks,/IF has_function_privilege\(current_user,\s*'hub\.read_mobile_published_education/);
 });
