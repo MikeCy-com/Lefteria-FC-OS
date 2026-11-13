@@ -2356,6 +2356,23 @@
         ],
         "type": "object"
       },
+      "HubLessonCompletionBody": {
+        "properties": {
+          "content_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "content_id",
+          "revision_id"
+        ],
+        "type": "object"
+      },
       "HubQuarantineImageCommand": {
         "properties": {
           "alt_text": {
@@ -3434,6 +3451,115 @@
           "audience",
           "age_min",
           "age_max"
+        ],
+        "type": "object"
+      },
+      "MobileHubCompletionResult": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "completed_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completed_revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "completed_id",
+          "completed_revision_id"
+        ],
+        "type": "object"
+      },
+      "MobileHubNextArticle": {
+        "properties": {
+          "age_max": {
+            "format": "int16",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "age_min": {
+            "format": "int16",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "audience": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "audience",
+          "title",
+          "body",
+          "published_at",
+          "revision_id",
+          "age_min",
+          "age_max"
+        ],
+        "type": "object"
+      },
+      "MobileHubNextPage": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MobileHubNextArticle"
+              }
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "next"
         ],
         "type": "object"
       },
@@ -20159,6 +20285,226 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MobileHubPublishedResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/learning/complete": {
+      "post": {
+        "description": "Explicitly complete only this member's currently next approved lesson; rejects stale, guessed and cross-role submissions.",
+        "operationId": "CompleteMobileHubLesson",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HubLessonCompletionBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileHubCompletionResult"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/learning/next": {
+      "get": {
+        "description": "First unfinished approved lesson for this authenticated parent/player, never the global newest lesson.",
+        "operationId": "GetMobileHubNextLesson",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileHubNextPage"
                 }
               }
             },
