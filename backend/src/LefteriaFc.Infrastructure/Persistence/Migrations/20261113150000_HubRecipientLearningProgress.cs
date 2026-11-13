@@ -64,7 +64,7 @@ public sealed class HubRecipientLearningProgress : Migration
               END IF;
               SELECT jsonb_build_object(
                   'id',c.id,'organization_id',c.organization_id,
-                  'audience',_role,'title',c.title,'body',r.body_text,
+                  'audience',_role,'kind',c.kind,'title',c.title,'body',r.body_text,
                   'published_at',c.published_at,'revision_id',r.id,
                   'age_min',c.age_min,'age_max',c.age_max)
               INTO v_lesson
@@ -75,7 +75,10 @@ public sealed class HubRecipientLearningProgress : Migration
                 ORDER BY rr.revision DESC LIMIT 1
               ) r ON true
               WHERE c.organization_id=_owner AND c.status='published'
-                AND c.kind='article' AND c.approved_by IS NOT NULL
+                -- Educational articles for both roles; practical course lessons
+                -- ONLY for players. Parent and fan audiences never get courses.
+                AND (c.kind='article' OR (_role='player' AND c.kind='course'))
+                AND c.approved_by IS NOT NULL
                 AND c.approved_at IS NOT NULL AND c.published_at IS NOT NULL
                 AND c.published_at<=clock_timestamp()
                 AND r.text_review='passed' AND r.visual_review='passed'
