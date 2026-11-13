@@ -4,7 +4,7 @@
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
-  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents} from '../role-home.ts';
+  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch} from '../role-home.ts';
   import './mobile-theme.css';
 
   type HomeRole=Exclude<MobileRole,'parent'>;
@@ -27,6 +27,8 @@
   const upcoming=$derived(role==='fan'||!contextIsCurrent?[]:
     trustedRoleHomeEvents(calendar,role,identityId,organizationId,today));
   const shortcuts=$derived(ROLE_HOME_SHORTCUTS[role]);
+  const nextMatch=$derived(role==='fan'||!contextIsCurrent?null:
+    trustedNextRoleMatch(calendar,role,identityId,organizationId,today));
   let requestedScope=$state('');
   $effect(()=>{
     const scope=identityId+':'+role+':'+(organizationId??'')+':'+today.slice(0,7);
@@ -67,6 +69,23 @@
       <a class="standalone-link" href="/news">Διάβασε τα τελευταία δημοσιευμένα νέα ›</a>
     </section>
   {:else}
+    <section class="panel matchday" aria-labelledby={id+'-matchday'} data-testid="role-home-matchday">
+      <p class="eyebrow">GAME DAY · ΑΓΩΝΙΣΤΙΚΟ</p>
+      <h2 id={id+'-matchday'}>Ο επόμενος αγώνας</h2>
+      {#if needsOrganization}
+        <p class="notice">Επίλεξε τον οργανισμό για να δεις επιτρεπόμενους αγώνες.</p>
+      {:else if !contextIsCurrent}
+        <p class="notice" role="status">Επαλήθευση αγωνιστικού προγράμματος…</p>
+      {:else if nextMatch}
+        <p class="match-date">{formatCalendarDate(nextMatch.date,{weekday:'long',day:'numeric',month:'long'})}</p>
+        <h3>{nextMatch.title}</h3>
+        <p class="match-meta">{nextMatch.start_time||'Ώρα προς επιβεβαίωση'}{nextMatch.location?' · '+nextMatch.location:''}</p>
+        <button type="button" class="match-open" disabled={busy}
+          onclick={()=>void onNavigate('calendar')}>Άνοιγμα αγώνα & διαθεσιμότητας ›</button>
+      {:else}
+        <p class="notice">Δεν υπάρχει δημοσιευμένος επόμενος αγώνας στα φορτωμένα δεδομένα του μήνα.</p>
+      {/if}
+    </section>
     <section class="panel" aria-labelledby={id+'-schedule'} data-testid="role-home-schedule">
       <div class="panel-heading">
         <h2 id={id+'-schedule'}>Σήμερα & επόμενα</h2>
@@ -117,5 +136,10 @@
   .event-copy small{font-size:12px;color:var(--lf-muted)}
   .notice{font-size:13px;color:var(--lf-muted)}.error{color:#ffa7a7}
   .standalone-link{display:inline-flex;color:#ffca46;min-height:44px;align-items:center}
+  .matchday{border-color:#765320;background:linear-gradient(135deg,#35250e,#121313 75%)}
+  .matchday h3{font-family:var(--lf-heading);font-size:25px;line-height:1.2;margin:10px 0;color:#fff}
+  .match-date{font-size:13px;color:#ffca46;font-weight:700}
+  .match-meta{font-size:12px;color:#d0c4ae}
+  .match-open{min-height:44px;border:1px solid #8b672a;border-radius:8px;background:#272011;color:#ffca46;padding:10px 13px;margin-top:9px;cursor:pointer}
   @media(min-width:650px){.role-home{max-width:960px;margin:auto}.shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
