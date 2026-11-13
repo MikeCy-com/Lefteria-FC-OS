@@ -1337,6 +1337,26 @@
         ],
         "type": "object"
       },
+      "ApproveTrainingPlanCommand": {
+        "properties": {
+          "confirm_human_review": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_version",
+          "confirm_human_review"
+        ],
+        "type": "object"
+      },
       "AssignProductCommand": {
         "properties": {
           "enabled": {
@@ -8001,6 +8021,56 @@
         ]
       }
     },
+    "/api/admin/academy/training/plans/approvals": {
+      "get": {
+        "operationId": "ReadAdminAcademyTrainingPlanApprovals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "start",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end",
+            "schema": {
+              "format": "date",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
     "/api/admin/academy/training/plans/{planId}": {
       "put": {
         "operationId": "UpdateAdminAcademyTrainingPlanDraft",
@@ -8027,6 +8097,52 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TrainingPlanCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/approve": {
+      "post": {
+        "operationId": "ApproveAdminAcademyTrainingPlanDraft",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveTrainingPlanCommand"
               }
             }
           },
