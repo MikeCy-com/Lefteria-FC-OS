@@ -67,8 +67,8 @@ public sealed class HubFanPayablCheckout : Migration
           AS $fan_sync$
           BEGIN
             UPDATE hub.fan_subscriptions s
-              SET status='active',verified_at=p.updated_at,
-                expires_at=p.updated_at+interval '30 days'
+              SET status='active',provider_reference=p.captured_transaction_id,
+                verified_at=p.updated_at,expires_at=p.updated_at+interval '30 days'
             FROM hub.fan_checkout_links link
             JOIN finance.payment_requests p ON p.id=link.payment_request_id
             WHERE s.id=link.subscription_id
@@ -78,11 +78,10 @@ public sealed class HubFanPayablCheckout : Migration
               AND p.organization_id=_owner AND p.actor_id=_identity
               AND p.status='paid' AND p.captured_transaction_id IS NOT NULL
               AND p.currency='EUR'
-              AND p.amount_cents=(
-                SELECT plan.monthly_price_cents
-                FROM hub.fan_plan_prices plan
-                WHERE plan.organization_id=_owner
-                  AND plan.track=link.track)
+              -- Original checkout amount was immutable and server-priced;
+              -- later operator price changes never change an old invoice.
+              AND p.amount_cents BETWEEN 100 AND 1000000
+              AND p.purpose='fan_hub_'||link.track
               AND p.updated_at<=clock_timestamp()
               AND p.updated_at+interval '30 days'>clock_timestamp();
             UPDATE hub.fan_subscriptions s SET status='expired'
@@ -110,8 +109,8 @@ public sealed class HubFanPayablCheckout : Migration
               'audience_player',s.audience_player,
               'expires_at',s.expires_at,
               'checkout_url',CASE WHEN p.status='ready'
-                AND p.checkout_url LIKE 'https://sandbox.payabl.com/%'
-                  OR p.checkout_url LIKE 'https://pay4.sandbox.payabl.com/%'
+                AND (p.checkout_url LIKE 'https://sandbox.payabl.com/%'
+                  OR p.checkout_url LIKE 'https://pay4.sandbox.payabl.com/%')
                   THEN p.checkout_url ELSE NULL END)
               INTO v_status
               FROM hub.fan_subscriptions s
