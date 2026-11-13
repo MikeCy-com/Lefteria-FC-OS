@@ -163,6 +163,44 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
       END $os_publish_training$;
       REVOKE ALL ON FUNCTION club.publish_admin_academy_training_plan(
         text,text,uuid,integer,boolean) FROM PUBLIC;
+      CREATE FUNCTION club.read_admin_academy_training_publications(
+        _digest text,_owner text,_group text,_from date,_to date
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $native_training_pub_list$
+      DECLARE v_count integer;v_rows jsonb;
+      BEGIN
+        IF _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
+          OR _group ~ '[[:cntrl:]]' OR _from IS NULL OR _to IS NULL
+          OR _to<_from OR _to>_from+93 THEN
+          RAISE EXCEPTION 'training_publication_filters_invalid'
+            USING ERRCODE='22023'; END IF;
+        PERFORM club.require_academy_training_planner(_digest,_owner);
+        IF NOT EXISTS(SELECT 1 FROM club.academy_groups
+          WHERE organization_id=_owner AND id=_group)
+        THEN RAISE EXCEPTION 'training_publication_group_denied'
+          USING ERRCODE='42501'; END IF;
+        SELECT count(*) INTO v_count
+        FROM club.academy_training_plan_publications pub
+        JOIN club.academy_training_plan_drafts plan ON plan.id=pub.plan_id
+        WHERE pub.organization_id=_owner AND pub.group_id=_group
+          AND plan.training_day BETWEEN _from AND _to;
+        IF v_count>500 THEN
+          RAISE EXCEPTION 'training_publications_too_many'
+            USING ERRCODE='54000'; END IF;
+        SELECT coalesce(jsonb_agg(jsonb_build_object(
+          'id',pub.plan_id,'event_id',pub.event_id,
+          'published_version',pub.plan_version)
+          ORDER BY plan.training_day,pub.plan_id),'[]'::jsonb)
+        INTO v_rows FROM club.academy_training_plan_publications pub
+        JOIN club.academy_training_plan_drafts plan ON plan.id=pub.plan_id
+        WHERE pub.organization_id=_owner AND pub.group_id=_group
+          AND plan.training_day BETWEEN _from AND _to;
+        RETURN jsonb_build_object('organization_id',_owner,
+          'group_id',_group,'from',_from,'to',_to,
+          'publications',v_rows);
+      END $native_training_pub_list$;
+      REVOKE ALL ON FUNCTION club.read_admin_academy_training_publications(
+        text,text,text,date,date) FROM PUBLIC;
       """);
 
     protected override void Down(MigrationBuilder migrationBuilder) =>
@@ -171,6 +209,8 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
           IF EXISTS(SELECT 1 FROM club.academy_training_plan_publications)
           THEN RAISE EXCEPTION 'os_training_published_data_exists'; END IF;
         END $rollback_guard$;
+        DROP FUNCTION club.read_admin_academy_training_publications(
+          text,text,text,date,date);
         DROP FUNCTION club.publish_admin_academy_training_plan(
           text,text,uuid,integer,boolean);
         DROP TRIGGER academy_published_training_plan_immutable
