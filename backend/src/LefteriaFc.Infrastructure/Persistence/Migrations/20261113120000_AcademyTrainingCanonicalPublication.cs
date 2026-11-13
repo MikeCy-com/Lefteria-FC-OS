@@ -35,6 +35,8 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
           ON DELETE RESTRICT,
         plan_version integer NOT NULL CHECK(plan_version BETWEEN 1 AND 10000),
         event_id varchar(128) COLLATE "C" NOT NULL UNIQUE,
+        event_kind varchar(16) NOT NULL DEFAULT 'training'
+          CHECK(event_kind='training'),
         source_ordinal integer NOT NULL UNIQUE CHECK(source_ordinal>0),
         organization_id varchar(32) NOT NULL
           CHECK(organization_id='lefteria_fc_academy'),
@@ -44,17 +46,10 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
         published_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         FOREIGN KEY(organization_id,group_id)
           REFERENCES club.academy_groups(organization_id,id) ON DELETE RESTRICT,
-        FOREIGN KEY(organization_id,event_id)
-          REFERENCES club.calendar_items(organization_id,id) ON DELETE RESTRICT
+        FOREIGN KEY(organization_id,event_kind,event_id)
+          REFERENCES club.calendar_items(organization_id,kind,id)
+          ON DELETE RESTRICT
       );
-      -- The referenced calendar ID is globally unique by kind/id, not by
-      -- organization/id. Use a kind-pinned link instead of an ambiguous FK.
-      ALTER TABLE club.academy_training_plan_publications
-        DROP CONSTRAINT academy_training_plan_publications_organization_id_event_id_fkey;
-      ALTER TABLE club.academy_training_plan_publications
-        ADD CONSTRAINT fk_academy_native_training_calendar
-        FOREIGN KEY(organization_id,event_id)
-        REFERENCES club.calendar_items(organization_id,id) ON DELETE RESTRICT;
       REVOKE ALL ON club.academy_training_plan_publications FROM PUBLIC;
       ALTER TABLE club.academy_training_plan_publications ENABLE ROW LEVEL SECURITY;
 
