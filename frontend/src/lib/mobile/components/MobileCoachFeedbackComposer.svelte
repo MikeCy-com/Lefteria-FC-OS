@@ -13,6 +13,7 @@
   let focusPoint=$state('');
   let language=$state<'el'|'en'>('el');
   let finalText=$state('');
+  let signedText=$state('');
   let stage=$state<Stage>('edit');
   let draft=$state<CoachFeedbackDraft|null>(null);
   let approved=$state<CoachFeedbackApproved|null>(null);
@@ -28,7 +29,7 @@
   onMount(()=>{
     alive=true;
     void loadTargets();
-    return()=>{alive=false;targets=[];draft=null;approved=null;};
+    return()=>{alive=false;targets=[];draft=null;approved=null;signedText='';};
   });
   async function loadTargets(){
     loading=true;error=null;
@@ -49,6 +50,7 @@
       const result=await controller.createCoachFeedbackDraft(selected,observation,focusPoint,language);
       if(!alive)return;
       draft=result;
+      signedText='';
       finalText=language==='el'
         ? `Γεια σου ${selected.name}! Παρατήρησα την πρόοδό σου: ${observation}. Ένα σημείο που θα ήθελα να δουλέψεις είναι: ${focusPoint}. Συνέχισε με προσπάθεια και χαρά!`
         : `Hello ${selected.name}! I have noticed your progress: ${observation}. One thing I'd like you to focus on is ${focusPoint}. Keep learning and enjoying football!`;
@@ -61,9 +63,13 @@
     if(!draft||stage!=='draft'||busy||!acknowledgeApproval||
       !validCoachText(finalText,30,1600))return;
     busy=true;error=null;
+    // Display exactly the final text that was submitted for coach signoff.
+    // The editor is locked during the request; never display a later edit as approved.
+    const submittedText=finalText;
     try{
-      const result=await controller.approveCoachFeedbackDraft(draft,finalText);
+      const result=await controller.approveCoachFeedbackDraft(draft,submittedText);
       if(!alive)return;
+      signedText=submittedText;
       approved=result;stage='approved';acknowledgeDelivery=false;
     }catch{
       if(alive)error='Η έγκριση απέτυχε. Το μήνυμα δεν αποστάλθηκε.';
@@ -121,11 +127,12 @@
     {:else}
       <section class="review" aria-labelledby="coach-feedback-review">
         <h2 id="coach-feedback-review">{stage==='sent'?'Αποσταλμένο μήνυμα':'Έλεγχος μηνύματος'}</h2>
+        {#if selected}<p class="recipient">Παραλήπτης: <strong>{selected.name}</strong> · {selected.organization_id==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</p>{/if}
         {#if stage==='draft'}
           <label for="coach-feedback-final">Επεξεργάσου το τελικό κείμενο πριν το εγκρίνεις</label>
-          <textarea id="coach-feedback-final" bind:value={finalText} rows="6" maxlength="1600"></textarea>
+          <textarea id="coach-feedback-final" bind:value={finalText} rows="6" maxlength="1600" disabled={busy}></textarea>
           <label class="confirmation">
-            <input type="checkbox" bind:checked={acknowledgeApproval}/>
+            <input type="checkbox" bind:checked={acknowledgeApproval} disabled={busy}/>
             Βεβαιώνω ότι αυτή είναι δική μου παρατήρηση και εγκρίνω προσωπικά τις τελικές λέξεις.
           </label>
           <button type="button" class="primary"
@@ -133,16 +140,21 @@
             onclick={()=>void approveDraft()}>Έγκριση τελικού κειμένου</button>
           <p class="explain">Η έγκριση δεν στέλνει το μήνυμα.</p>
         {:else}
-          <p class="message">{finalText}</p>
+          <p class="message">{signedText}</p>
           {#if stage==='approved'}
             <label class="confirmation">
-              <input type="checkbox" bind:checked={acknowledgeDelivery}/>
+              <input type="checkbox" bind:checked={acknowledgeDelivery} disabled={busy}/>
               Επιβεβαιώνω την ξεχωριστή αποστολή μόνο σε αυτόν τον παίκτη.
             </label>
             <button type="button" class="primary" disabled={busy||!acknowledgeDelivery}
               onclick={()=>void sendApproved()}>Αποστολή στον παίκτη</button>
           {:else}
             <p class="success" role="status">Το μήνυμα καταχωρίστηκε στα προσωπικά μηνύματα του παίκτη. Δεν σημαίνει ότι έχει διαβαστεί.</p>
+            <button type="button" class="primary" disabled={busy} onclick={()=>{
+              stage='edit';draft=null;approved=null;signedText='';finalText='';
+              observation='';focusPoint='';acknowledgeApproval=false;acknowledgeDelivery=false;
+              selectedKey='';error=null;void loadTargets();
+            }}>Νέο μήνυμα σε επαληθευμένο παίκτη</button>
           {/if}
         {/if}
       </section>
@@ -169,6 +181,7 @@
   .confirmation{display:flex;gap:12px;align-items:start;font-weight:500;line-height:1.5}
   .confirmation input{width:20px;height:20px;flex-shrink:0;accent-color:var(--lf-gold)}
   .message{white-space:pre-wrap;font-size:14px;line-height:1.7}
+  .recipient{font-size:13px;color:var(--lf-muted);margin:0}
   .success{color:#a8e7a8;font-weight:700}.error{color:#ffcdbe;font-size:13px}
   :global(button:focus-visible),:global(select:focus-visible),:global(textarea:focus-visible){outline:2px solid var(--lf-gold);outline-offset:2px}
 </style>
