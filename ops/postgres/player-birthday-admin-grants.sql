@@ -10,8 +10,11 @@
   \quit 1
 \endif
 BEGIN;
+SELECT set_config('lefteria.birthday_admin_role', :'admin_auth_role', true),
+  set_config('lefteria.birthday_mobile_role', :'app_role', true);
 DO $birthday_grant_preflight$
-DECLARE v_admin text:=:'admin_auth_role';v_mobile text:=:'app_role';v_proc oid;
+DECLARE v_admin text:=current_setting('lefteria.birthday_admin_role');
+  v_mobile text:=current_setting('lefteria.birthday_mobile_role');v_proc oid;
 BEGIN
   IF v_admin=v_mobile OR current_database() IN ('postgres','template0','template1')
     OR NOT EXISTS(SELECT 1 FROM pg_roles WHERE rolname=v_admin AND rolcanlogin
@@ -39,7 +42,8 @@ GRANT EXECUTE ON FUNCTION club.read_admin_player_birthday_preferences(
 GRANT EXECUTE ON FUNCTION club.write_admin_player_birthday_preferences(
   text,text,text,integer,boolean,text,text,text) TO :"admin_auth_role";
 DO $birthday_grant_postflight$
-DECLARE v_admin text:=:'admin_auth_role';v_mobile text:=:'app_role';
+DECLARE v_admin text:=current_setting('lefteria.birthday_admin_role');
+  v_mobile text:=current_setting('lefteria.birthday_mobile_role');
   v_proc oid;v_table oid;
 BEGIN
   FOREACH v_proc IN ARRAY ARRAY[
