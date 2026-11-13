@@ -1547,7 +1547,7 @@ export function createMobileAuthController(options: {
       if(!actorToken)throw new Error('No verified session.');
       const result=await chatRequest('/api/mobile/hub/learning/complete?organization_id='+
         encodeURIComponent(page.organization_id),'POST',{
-          contentId:lesson.id,revisionId:lesson.revision_id
+          content_id:lesson.id,revision_id:lesson.revision_id
         });
       if(state.user?.id!==actorId||state.user.role!==role||
          !state.user.current_role_available||token!==actorToken||
