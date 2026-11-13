@@ -11,6 +11,7 @@ const api=read('../../backend/src/LefteriaFc.Api/Attendance/AdminAcademyTraining
 const lifecycle=read('../../ops/postgres/academy-training-plans-lifecycle-checks.sql');
 const access=read('../../backend/src/LefteriaFc.Infrastructure/ClubCalendar/CalendarAccessSql.cs');
 const grants=read('../../ops/postgres/academy-training-plans-admin-grants.sql');
+const mobileGrants=read('../../ops/postgres/identity-app-grants.sql');
 const plan={id:'51882d43-a9c9-4edf-92fa-928b47b67af0',
   organization_id:'lefteria_fc_academy',group_id:'u12',
   day:'2026-11-20',start_time:'17:00',duration_minutes:75,
@@ -62,6 +63,8 @@ test('OS-native calendar source has independent provenance, group scope and no p
   assert.match(migration,/prevent_published_academy_plan_edits/);
   assert.match(migration,/notifications_sent',false/);
   assert.match(access,/current_player\.primary_academy_group_id=assigned\.record_id/);
+  assert.match(mobileGrants,/primary_academy_group_id, is_active, is_archived/);
+  assert.doesNotMatch(mobileGrants,/GRANT SELECT ON club\.players TO/);
   assert.doesNotMatch(migration,/v_plan\.notes[,)]|notes',v_plan\.notes/);
   assert.doesNotMatch(migration,/INSERT INTO club\.calendar_responses/);
   assert.match(grants,/club\.publish_admin_academy_training_plan/);
