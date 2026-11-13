@@ -84,6 +84,9 @@ builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
 builder.Services.AddScoped<PostgresCoachFeedbackDraftStore>();
 builder.Services.AddScoped<MobileHubPublishedStore>();
+builder.Services.AddScoped<MobileLessonScheduleStore>();
+builder.Services.AddSingleton<HubLessonDeliverySettings>();
+builder.Services.AddHostedService<HubLessonDeliveryWorker>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
@@ -195,6 +198,7 @@ app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapAdminHub();
 app.MapMobileHubPublished();
+app.MapMobileLessonSchedules();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
 app.MapAdminAcademyDocuments();
