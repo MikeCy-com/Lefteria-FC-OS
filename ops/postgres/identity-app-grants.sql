@@ -238,8 +238,12 @@ REVOKE ALL ON FUNCTION
 GRANT EXECUTE ON FUNCTION
   identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)
   TO :"app_role";
+-- Exact-group mobile calendar visibility needs the current primary Academy
+-- group assignment as well as the existing explicit membership table.
+-- This adds ONE read-only column, not broad player-table SELECT.
 GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
-  is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
+  primary_academy_group_id, is_active, is_archived, is_transferred,
+  has_explicit_picker_fields) ON club.players TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
 -- Chat is accessible only through current-role, current-roster functions.
 -- Direct reads/writes to the message table remain denied.
