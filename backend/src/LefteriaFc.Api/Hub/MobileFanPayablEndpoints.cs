@@ -4,6 +4,8 @@ using LefteriaFc.Application.MobileAuth;
 namespace LefteriaFc.Api.Hub;
 
 /// <summary>Sandbox Payabl checkout for fans; no browser-settled entitlement.</summary>
+public sealed record MobileFanLessonScheduleRequest(string OrganizationId,string Audience);
+
 public static class MobileFanPayablEndpoints
 {
     public static IEndpointRouteBuilder MapMobileFanPayabl(
@@ -69,6 +71,33 @@ public static class MobileFanPayablEndpoints
             .WithName("CompleteMobileFanNextLesson")
             .Produces<MobileFanLessonCompletion>()
             .WithMobileErrors();
+        endpoints.MapPost("/api/mobile/hub/fan-learning/schedule",
+            (MobileFanLessonScheduleRequest body,HttpContext context,
+             MobileFanLessonScheduleStore store,CancellationToken ct)=>
+            {
+                Private(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.EnrollAsync(MobilePrincipal.Read(context.User),
+                      body.OrganizationId,body.Audience,ct),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile HUB fan education")
+            .WithName("EnrollMobileFanPersonalLessonSchedule")
+            .Produces<MobileFanLessonSchedule>().WithMobileErrors();
+
+        endpoints.MapGet("/api/mobile/hub/fan-learning/deliveries",
+            (string? organization_id,string? audience,HttpContext context,
+             MobileFanLessonScheduleStore store,CancellationToken ct)=>
+            {
+                Private(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.InboxAsync(MobilePrincipal.Read(context.User),
+                      Owner(organization_id,context),Audience(audience,context),ct),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile HUB fan education")
+            .WithName("GetMobileFanPersonalLessonDeliveries")
+            .Produces<MobileFanLessonDeliveryPage>().WithMobileErrors();
         return endpoints;
     }
     private static string Owner(string? owner,HttpContext context)
