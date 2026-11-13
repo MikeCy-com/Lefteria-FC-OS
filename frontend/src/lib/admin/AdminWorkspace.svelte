@@ -72,6 +72,11 @@
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
                     <span class="admin-tool-arrow" aria-hidden="true">↗</span>
                   </a>
+                {:else if module.status === 'live' && module.id === 'hub_editorial'}
+                  <a class="admin-tool admin-tool-live" href="/admin/hub" data-testid="admin-hub-editorial-module">
+                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
+                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
+                  </a>
                 {:else if module.status === 'live' && module.id === 'announcements'}
                   <a class="admin-tool admin-tool-live" href="/admin/announcements" data-testid="admin-announcements-module">
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
