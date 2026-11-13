@@ -3,7 +3,9 @@ import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
 import {validFanHubStatus,validFanHubCheckout,validFanHubLesson,
-  validFanHubCompleted,type FanHubOrganization,type FanHubTrack,
+  validFanHubCompleted,validFanHubDeliverySchedule,validFanHubDeliveryInbox,
+  type FanHubDeliverySchedule,type FanHubDeliveryInbox,
+  type FanHubOrganization,type FanHubTrack,
   type FanHubAudience,type FanHubStatus,type FanHubCheckout,
   type FanHubLessonPage,type FanHubLessonCompleted} from './fan-payabl.ts';
 
@@ -1537,6 +1539,36 @@ export function createMobileAuthController(options: {
         throw new Error('Fan identity changed.');
       if(!validFanHubCheckout(result))
         throw new Error('Unverified Payabl checkout.');
+      return result;
+    },
+    async enrollFanWeeklyLessonDelivery(
+      organization:FanHubOrganization,audience:FanHubAudience):Promise<FanHubDeliverySchedule>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new Error('Verified fan account required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('No verified fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-learning/schedule',
+        'POST',{organization_id:organization,audience});
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||savedToken!==token||version!==revision)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubDeliverySchedule(result,organization,audience))
+        throw new Error('Unverified fan lesson schedule.');
+      return result;
+    },
+    async getFanWeeklyLessonDeliveries(
+      organization:FanHubOrganization,audience:FanHubAudience):Promise<FanHubDeliveryInbox>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new Error('Verified fan account required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('No verified fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-learning/deliveries?organization_id='+
+        encodeURIComponent(organization)+'&audience='+encodeURIComponent(audience));
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||savedToken!==token||version!==revision)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubDeliveryInbox(result,organization,audience))
+        throw new Error('Unverified fan weekly delivery inbox.');
       return result;
     },
     async getFanHubNextLesson(
