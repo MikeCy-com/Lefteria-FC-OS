@@ -34,6 +34,10 @@ BEGIN
   END IF;
 END $verify$;
 
+SELECT current_database() AS hub_scheduler_database
+\gset
+GRANT CONNECT ON DATABASE :"hub_scheduler_database" TO :"scheduler_role";
+
 REVOKE ALL ON SCHEMA hub FROM PUBLIC, :"scheduler_role";
 GRANT USAGE ON SCHEMA hub TO :"scheduler_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM :"scheduler_role";
