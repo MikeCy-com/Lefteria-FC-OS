@@ -499,6 +499,21 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied:=true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Parent accessed fan-only paid material'; END IF;
+  IF NOT has_function_privilege(current_user,
+       'hub.start_mobile_fan_lesson_schedule(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.read_mobile_fan_lesson_deliveries(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+       'hub.process_due_fan_lesson_schedules(integer)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.fan_lesson_schedules',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_lesson_delivery_inbox',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.fan_lesson_schedules','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_lesson_delivery_inbox','DELETE')
+  THEN
+    RAISE EXCEPTION 'Fan lesson delivery runtime permissions unsafe';
+  END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
