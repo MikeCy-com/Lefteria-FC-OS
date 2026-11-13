@@ -463,9 +463,11 @@ BEGIN
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed published education role gate'; END IF;
   IF NOT has_function_privilege(current_user,
-      'hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)','EXECUTE')
+      'hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
       'hub.ready_mobile_fan_payabl(uuid,text,text,timestamptz,text,uuid,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.read_mobile_fan_plans(uuid,text,text,timestamptz,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
       'hub.read_mobile_fan_subscription(uuid,text,text,timestamptz,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
