@@ -16,6 +16,7 @@ test('home never misattributes a sibling or unrelated child RSVP to the selected
   assert.equal(parentHomeRsvp(event([{player_id:'a',status:'going'},{player_id:'a',status:'maybe'}]),'a'),null);
   assert.equal(parentHomeRsvp(event([{player_id:'a',status:'present'}]),'a'),null);
   assert.equal(parentHomeRsvp(event([]),'a'),null);
+  assert.equal(parentHomeRsvp({...event([]),responses:undefined},'a'),null);
 });
 test('RSVP is displayed only inside identity-verified linked-child schedule',()=>{
   assert.match(source,/const trustworthyCalendar = \$derived/);
