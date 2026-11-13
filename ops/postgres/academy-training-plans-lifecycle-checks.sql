@@ -65,6 +65,17 @@ BEGIN
      OR v_result->>'published'<>'false' THEN
     RAISE EXCEPTION 'Training approval did not confirm an unpublished exact revision';
   END IF;
+  -- Preview is bounded to a current human-approved version and never
+  -- includes planning notes or child identity information.
+  v_result:=club.preview_admin_academy_training_distribution(
+    v_digest,v_owner,v_id,1);
+  IF v_result->>'human_approved'<>'true'
+    OR v_result->>'published'<>'false'
+    OR (v_result->>'eligible_player_count')::integer<>0
+    OR v_result ? 'notes'
+    OR v_result ? 'players' OR v_result ? 'player_ids' THEN
+    RAISE EXCEPTION 'Human-approved distribution preview exposed private youth data';
+  END IF;
   v_result:=club.read_admin_academy_training_plan_approvals(
     v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
   IF jsonb_array_length(v_result->'approvals')<>1
@@ -104,6 +115,12 @@ BEGIN
   IF jsonb_array_length(v_result->'approvals')<>0 THEN
     RAISE EXCEPTION 'Editing an approved draft preserved stale approval';
   END IF;
+  BEGIN
+    PERFORM club.preview_admin_academy_training_distribution(
+      v_digest,v_owner,v_id,1);
+    RAISE EXCEPTION 'Edited plan still previewable using stale approval';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
   BEGIN
     PERFORM club.approve_admin_academy_training_plan(
       v_digest,v_owner,v_id,1);
@@ -146,8 +163,20 @@ BEGIN
     RAISE EXCEPTION 'Archived plan was editable';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
+  v_result:=club.preview_admin_academy_training_distribution(
+    v_digest,v_owner,v_id,2);
+  IF (v_result->>'version')::integer<>2
+     OR v_result->>'published'<>'false' THEN
+    RAISE EXCEPTION 'Approved updated private plan preview missing';
+  END IF;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
+  BEGIN
+    PERFORM club.preview_admin_academy_training_distribution(
+      v_digest,v_owner,v_id,2);
+    RAISE EXCEPTION 'Revoked manager could preview private training recipients';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   BEGIN
     PERFORM club.approve_admin_academy_training_plan(
       v_digest,v_owner,v_other,1);
