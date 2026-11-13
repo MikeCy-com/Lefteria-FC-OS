@@ -73,3 +73,36 @@ export function validFanHubCompleted(v:unknown,page:FanHubLessonPage):v is FanHu
   v.audience===page.audience&&v.completed_id===page.next.id&&
   v.completed_revision_id===page.next.revision_id;
 }
+
+export interface FanHubDeliverySchedule {
+ organization_id:FanHubOrganization;audience:FanHubAudience;
+ started_at:string;next_due_at:string;cadence_days:number;
+}
+export interface FanHubDeliveryNotice {
+ id:string;queued_at:string;type:'lesson_ready';
+ audience:FanHubAudience;content_id:string;
+}
+export interface FanHubDeliveryInbox {
+ organization_id:FanHubOrganization;audience:FanHubAudience;
+ items:FanHubDeliveryNotice[];
+}
+export function validFanHubDeliverySchedule(v:unknown,
+ org:FanHubOrganization,audience:FanHubAudience):v is FanHubDeliverySchedule {
+ return record(v)&&v.organization_id===org&&v.audience===audience&&
+   iso(v.started_at)&&iso(v.next_due_at)&&v.cadence_days===7&&
+   Date.parse(v.started_at)<=Date.now()&&
+   Date.parse(v.next_due_at)>=Date.parse(v.started_at);
+}
+export function validFanHubDeliveryInbox(v:unknown,
+ org:FanHubOrganization,audience:FanHubAudience):v is FanHubDeliveryInbox {
+ if(!record(v)||v.organization_id!==org||v.audience!==audience||
+   !Array.isArray(v.items)||v.items.length>10)return false;
+ const seen=new Set<string>();
+ return v.items.every((raw:unknown)=>{
+   if(!record(raw)||!validUuid(raw.id)||seen.has(raw.id)||
+     raw.type!=='lesson_ready'||raw.audience!==audience||
+     !validUuid(raw.content_id)||!iso(raw.queued_at)||
+     Date.parse(raw.queued_at)>Date.now())return false;
+   seen.add(raw.id);return true;
+ });
+}
