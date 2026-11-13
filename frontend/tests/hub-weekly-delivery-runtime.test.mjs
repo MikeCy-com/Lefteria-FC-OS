@@ -33,7 +33,7 @@ test('player and parent access is tied to canonical roster and current phone del
 
 test('dispatcher serializes due enrollment and never skips unavailable reviewed content',()=>{
  assert.match(dispatch,/FOR UPDATE OF e SKIP LOCKED/);
- assert.match(dispatch,/v_enrollment\.next_due_at<=clock_timestamp\(\)/);
+ assert.match(dispatch,/e\.next_due_at<=clock_timestamp\(\)/);
  assert.match(dispatch,/hub\.authorize_mobile_learning_enrollment/);
  assert.match(dispatch,/c\.status='published' AND c\.approved_by IS NOT NULL/);
  assert.match(dispatch,/rr\.text_review='passed' AND rr\.visual_review='passed'/);
