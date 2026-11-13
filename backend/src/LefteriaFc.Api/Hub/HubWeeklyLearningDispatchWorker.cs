@@ -25,10 +25,12 @@ public sealed class HubWeeklyLearningDispatchWorker(
             throw new InvalidOperationException(
                 "Dedicated weekly scheduler connection is required.");
         var value=new NpgsqlConnectionStringBuilder(raw);
+        var databaseName=value.Database;
         if(value.Username!="lefteria_hub_scheduler" ||
-           !(value.Database.EndsWith("_staging",StringComparison.OrdinalIgnoreCase) ||
-             value.Database.EndsWith("_preview",StringComparison.OrdinalIgnoreCase) ||
-             value.Database.EndsWith("_test",StringComparison.OrdinalIgnoreCase)))
+           string.IsNullOrWhiteSpace(databaseName) ||
+           !(databaseName.EndsWith("_staging",StringComparison.OrdinalIgnoreCase) ||
+             databaseName.EndsWith("_preview",StringComparison.OrdinalIgnoreCase) ||
+             databaseName.EndsWith("_test",StringComparison.OrdinalIgnoreCase)))
             throw new InvalidOperationException(
                 "Weekly dispatch requires the dedicated scheduler role and isolated database.");
         value.ApplicationName="lefteria-hub-weekly-dispatch";
