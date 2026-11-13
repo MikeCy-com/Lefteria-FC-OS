@@ -27,7 +27,9 @@ BEGIN
   THEN RAISE EXCEPTION 'training_plans_role_preconditions_failed'; END IF;
   FOREACH v_proc IN ARRAY ARRAY[
     'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure::oid,
-    'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid
+    'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid,
+    'club.read_admin_academy_training_plan_approvals(text,text,text,date,date)'::regprocedure::oid,
+    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid
   ] LOOP
     IF NOT (SELECT prosecdef AND NOT EXISTS(
       SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
@@ -42,6 +44,10 @@ GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_plans(
 GRANT EXECUTE ON FUNCTION club.write_admin_academy_training_plan(
   text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_plan_approvals(
+  text,text,text,date,date) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.approve_admin_academy_training_plan(
+  text,text,uuid,integer) TO :"admin_auth_role";
 DO $postflight$
 DECLARE
   v_admin text:=current_setting('lefteria.training_plans_admin_role');
@@ -51,7 +57,9 @@ DECLARE
 BEGIN
   FOREACH v_proc IN ARRAY ARRAY[
     'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure::oid,
-    'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid
+    'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid,
+    'club.read_admin_academy_training_plan_approvals(text,text,text,date,date)'::regprocedure::oid,
+    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(v_admin,v_proc,'EXECUTE')
       OR has_function_privilege(v_mobile,v_proc,'EXECUTE')
@@ -69,7 +77,8 @@ BEGIN
   THEN RAISE EXCEPTION 'training_plans_collision_trigger_exposed'; END IF;
   FOREACH v_table IN ARRAY ARRAY[
     'club.academy_training_plan_drafts'::regclass::oid,
-    'club.academy_training_plan_events'::regclass::oid
+    'club.academy_training_plan_events'::regclass::oid,
+    'club.academy_training_plan_approvals'::regclass::oid
   ] LOOP
     IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid=v_table)
       OR has_table_privilege(v_admin,v_table,'SELECT,INSERT,UPDATE,DELETE,TRUNCATE')
