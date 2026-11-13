@@ -2,7 +2,7 @@
  import {onMount,untrack} from 'svelte';
  import type {MobileAuthController} from '../controller.ts';
  import type {FanHubOrganization,FanHubTrack,FanHubAudience,FanHubStatus,
-   FanHubLessonPage} from '../fan-payabl.ts';
+   FanHubLessonPage,FanHubDeliverySchedule,FanHubDeliveryInbox} from '../fan-payabl.ts';
  import {validHostedPayablUrl} from '../fan-payabl.ts';
  import './mobile-theme.css';
 
@@ -12,6 +12,8 @@
  let audience=$state<FanHubAudience>('parent');
  let status=$state<FanHubStatus|null>(null);
  let lesson=$state<FanHubLessonPage|null>(null);
+ let schedule=$state<FanHubDeliverySchedule|null>(null);
+ let inbox=$state<FanHubDeliveryInbox|null>(null);
  let email=$state(''),firstName=$state(''),lastName=$state('');
  let consent=$state(false);
  let busy=$state(true),error=$state<string|null>(null);
@@ -22,7 +24,7 @@
 
  onMount(()=>{
    alive=true;void refresh();
-   return()=>{alive=false;epoch++;lessonEpoch++;status=null;lesson=null;};
+   return()=>{alive=false;epoch++;lessonEpoch++;status=null;lesson=null;schedule=null;inbox=null;};
  });
  $effect(()=>{
    const owner=organization;
@@ -53,7 +55,20 @@
    lesson=null;error=null;
    try{
      const data=await controller.getFanHubNextLesson(owner,selected);
-     if(alive&&lessonEpoch===token&&organization===owner&&audience===selected)lesson=data;
+     if(alive&&lessonEpoch===token&&organization===owner&&audience===selected){
+       lesson=data;
+       // Idempotent weekly delivery enrollment for this exact subscribed
+       // interest. The other interest keeps its own independent clock.
+       try{
+         const enrolled=await controller.enrollFanWeeklyLessonDelivery(owner,selected);
+         const deliveries=await controller.getFanWeeklyLessonDeliveries(owner,selected);
+         if(alive&&lessonEpoch===token&&organization===owner&&audience===selected){
+           schedule=enrolled;inbox=deliveries;
+         }
+       }catch{
+         if(alive&&lessonEpoch===token){schedule=null;inbox=null;}
+       }
+     }
    }catch{
      if(alive&&lessonEpoch===token)error='Το εγκεκριμένο μάθημα δεν είναι διαθέσιμο. Έλεγξε τη συνδρομή.';
    }
@@ -117,6 +132,17 @@
      onclick={()=>audience='player'}>Ποδοσφαιρικά μαθήματα</button>
    {/if}
   </div>
+  {#if schedule}
+   <p data-testid="fan-personal-weekly-schedule" role="status">
+    Εβδομαδιαία προσωπική ειδοποίηση. Επόμενος έλεγχος:
+    {schedule.next_due_at.slice(0,10)}.
+   </p>
+  {/if}
+  {#if inbox?.items.length}
+   <p role="status" data-testid="fan-scheduled-lesson-notice">
+    Έχεις {inbox.items.length} προσωπικές ειδοποιήσεις για το τρέχον εγκεκριμένο μάθημα.
+   </p>
+  {/if}
   {#if allowed&&lesson?.next}
    <article class="lesson">
     <p class="kicker">ΕΠΟΜΕΝΟ ΕΓΚΕΚΡΙΜΕΝΟ ΜΑΘΗΜΑ · {audience==='parent'?'ΓΟΝΕΙΣ':'ΠΑΙΚΤΕΣ'}</p>
