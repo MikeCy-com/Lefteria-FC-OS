@@ -9,8 +9,11 @@ const item=(id,kind='match',organization_id='lefteria_fc_academy',date='2026-11-
   ({id,kind,title:'Real fixture '+id,organization_id,date,end_date:date,is_cancelled:false,
     start_time:'18:00',location:'Home'});
 const month=(role='coach')=>({
-  identity_id:'member',role,month:'2026-11',organization_id:'lefteria_fc_academy',
-  selected_player_id:null,items:[item('training','training'),item('later','match','lefteria_fc_academy','2026-11-23'),
+  identity_id:'member',role,month:'2026-11',
+  organization_id:role==='coach'?null:'lefteria_fc_academy',
+  selected_player_id:role==='player'?'player-own':null,
+  players:role==='player'?[{id:'player-own',name:'Player',organization_id:'lefteria_fc_academy'}]:[],
+  items:[item('training','training'),item('later','match','lefteria_fc_academy','2026-11-23'),
     item('earlier'),item('foreign','match','lefteria_fc'),{...item('cancel'),is_cancelled:true}]
 });
 test('game-day preview chooses earliest server-authorized non-cancelled match, not first training',()=>{
