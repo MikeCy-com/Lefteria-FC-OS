@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {onMount} from 'svelte';
+  import {untrack} from 'svelte';
   import type {MobileRole,MobileTab} from '../navigation.ts';
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar} from '../calendar.ts';
@@ -27,8 +27,12 @@
   const upcoming=$derived(role==='fan'||!contextIsCurrent?[]:
     trustedRoleHomeEvents(calendar,role,identityId,organizationId,today));
   const shortcuts=$derived(ROLE_HOME_SHORTCUTS[role]);
-  onMount(()=>{
-    if(role!=='fan'&&!needsOrganization&&!busy)void onLoadCalendar(today.slice(0,7));
+  let requestedScope=$state('');
+  $effect(()=>{
+    const scope=identityId+':'+role+':'+(organizationId??'')+':'+today.slice(0,7);
+    if(role==='fan'||needsOrganization||busy||contextIsCurrent||requestedScope===scope)return;
+    requestedScope=scope;
+    untrack(()=>{void onLoadCalendar(today.slice(0,7));});
   });
 </script>
 <section class="role-home" data-testid={role+'-dashboard-home'} data-home-role={role} aria-labelledby={id+'-title'}>
