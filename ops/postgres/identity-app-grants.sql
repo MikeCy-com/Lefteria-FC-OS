@@ -482,6 +482,30 @@ GRANT EXECUTE ON FUNCTION hub.enroll_mobile_weekly_learning(
 GRANT EXECUTE ON FUNCTION hub.read_mobile_weekly_learning(
   uuid,text,text,timestamptz,text,text) TO :"app_role";
 
+-- Fan Payabl sandbox checkout is an idempotent pending intent.
+-- The signed callback is only reconciliation evidence; no activation
+-- routines or raw subscription tables are granted to the app role.
+REVOKE ALL ON TABLE hub.fan_payabl_checkout_intents,
+  hub.fan_payabl_checkout_notices FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.begin_mobile_fan_payabl_checkout(
+  uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.ready_mobile_fan_payabl_checkout(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.record_fan_payabl_checkout_notice(
+  uuid,text,text,text,integer,bigint,text,bigint,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.begin_mobile_fan_payabl_checkout(
+  uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl_checkout(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.record_fan_payabl_checkout_notice(
+  uuid,text,text,text,integer,bigint,text,bigint,text,text)
+  TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
