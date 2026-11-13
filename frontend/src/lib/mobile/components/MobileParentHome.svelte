@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { CALENDAR_KIND_LABELS, clubToday, formatCalendarDate } from '../calendar.ts';
   import type { CalendarLoadStatus,AvailabilityStatus,MobileCalendarItem } from '../calendar.ts';
-  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp } from '../parent-home.ts';
+  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp, parentHomeCancelledEvents } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
 
@@ -41,6 +41,7 @@
   const trustworthyCalendar = $derived(familyStatus === 'ready' &&
     matchingParentHomeCalendar(family, calendar, identityId, today, activeChild?.id) && calendarStatus === 'ready');
   const upcoming = $derived(trustworthyCalendar ? parentHomeSchedule(family, calendar, identityId, today, activeChild?.id) : []);
+  const cancellations = $derived(trustworthyCalendar ? parentHomeCancelledEvents(family,calendar,identityId,today,activeChild?.id) : []);
 
   // Every new dashboard mount rechecks guardian bindings. Cached sibling
   // selections and calendar data are not treated as lasting authorization.
@@ -112,6 +113,28 @@
       {/if}
     {/if}
   </section>
+
+  {#if cancellations.length && activeChild}
+    <section class="parent-section parent-cancellations" role="status"
+      aria-labelledby={id+'-cancellations-heading'} data-testid="parent-home-cancellations">
+      <div class="parent-section-heading">
+        <h2 id={id+'-cancellations-heading'}>⚠️ Ακυρώσεις προγράμματος</h2>
+        <button type="button" disabled={busy}
+          onclick={()=>void onCalendar(activeChild.id)}>Ημερολόγιο <span aria-hidden="true">›</span></button>
+      </div>
+      <p class="parent-scope">Για {activeChild.name} · επαληθευμένες αλλαγές τρέχοντος μήνα</p>
+      <ul class="cancelled-list">
+        {#each cancellations as event (event.kind+':'+event.id)}
+          <li>
+            <strong>{event.title}</strong>
+            <span>{calendarDateLabel(event.date)}{event.start_time?' · '+event.start_time:''}</span>
+            <p>{event.cancel_reason?.trim()||'Η δραστηριότητα ακυρώθηκε από τη διοίκηση.'}</p>
+          </li>
+        {/each}
+      </ul>
+      <p class="parent-cancel-note">Οι παλιές δηλώσεις συμμετοχής διατηρούνται για το ιστορικό. Δεν επιτρέπονται νέες απαντήσεις σε ακυρωμένη δραστηριότητα.</p>
+    </section>
+  {/if}
 
   <section class="parent-section" aria-labelledby={id + '-schedule-heading'} data-testid="parent-upcoming-schedule">
     <div class="parent-section-heading">
@@ -244,6 +267,14 @@
   .parent-child-card .parent-select-schedule[aria-pressed='true']{background:#6b4a18;border-color:#f5a623;color:#fff}
   .parent-child-card>button:not(.parent-select-schedule),.parent-event>button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;background:transparent;color:#ffca46;font-size:25px;cursor:pointer}
   .parent-scope{margin:0 0 12px;color:#aeb5b9;font-size:12px}
+  .parent-cancellations{border-color:#b36832;background:linear-gradient(130deg,#2b1b11,#17191a)}
+  .parent-cancellations h2{color:#ffbf86}
+  .cancelled-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .cancelled-list li{display:grid;gap:5px;padding:11px;border:1px solid #825334;border-radius:9px;background:#241b17}
+  .cancelled-list strong{font-size:14px;color:#fff;overflow-wrap:anywhere}
+  .cancelled-list span{font-size:11px;color:#ffc698}
+  .cancelled-list p{font-size:12px;color:#e6d4c4;margin:0;overflow-wrap:anywhere}
+  .parent-cancel-note{margin:10px 0 0;color:#ceb9a9;font-size:11px;line-height:1.6}
   .parent-schedule-list{border:1px solid #292d2e;border-radius:12px;overflow:hidden}
   .parent-event{display:flex;align-items:center;gap:12px;padding:15px 10px;background:#131516;border-bottom:1px solid #282b2d}
   .parent-event:last-child{border-bottom:0}
