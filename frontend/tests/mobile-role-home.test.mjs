@@ -12,8 +12,10 @@ const event=(id,organization_id='lefteria_fc_academy',date='2026-11-16')=>({
   is_cancelled:false,start_time:'17:00'
 });
 const payload=(role='coach')=>({
-  identity_id:'coach-1',role,organization_id:'lefteria_fc_academy',
-  selected_player_id:null,month:'2026-11',items:[event('b'),event('a')]
+  identity_id:'coach-1',role,organization_id:role==='coach'?null:'lefteria_fc_academy',
+  selected_player_id:role==='player'?'player-own':null,
+  players:role==='player'?[{id:'player-own',name:'Player',organization_id:'lefteria_fc_academy'}]:[],
+  month:'2026-11',items:[event('b'),event('a')]
 });
 test('all four missing role homes are mounted under authenticated current role and owner',()=>{
   assert.match(route,/import MobileRoleHome from/);
@@ -39,6 +41,7 @@ test('no stale organization, cancelled or past event can appear in authorized ho
     {...event('cancelled'),is_cancelled:true},event('past','lefteria_fc_academy','2026-11-01')]};
   assert.deepEqual(trustedRoleHomeEvents(calendar,'player','coach-1',null,today).map(x=>x.id),['future']);
   assert.deepEqual(trustedRoleHomeEvents(null,'player','coach-1',null,today),[]);
+  assert.deepEqual(trustedRoleHomeEvents({...payload('player'),selected_player_id:null},'player','coach-1',null,today),[]);
   assert.match(source,/role==='fan'\|\|!contextIsCurrent/);
   assert.match(source,/needsOrganization/);
   assert.doesNotMatch(source,/localStorage|fetch\(|{@html}|innerHTML|demoFixture|mockData/);
