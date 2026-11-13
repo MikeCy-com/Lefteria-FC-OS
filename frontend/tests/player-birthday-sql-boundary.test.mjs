@@ -6,6 +6,7 @@ const ci=read('../../.github/workflows/rewrite-build.yml');
 const lifecycle=read('../../ops/postgres/player-birthday-lifecycle-checks.sql');
 const grants=read('../../ops/postgres/player-birthday-admin-grants.sql');
 const allow=read('../../ops/postgres/web-admin-auth-permissions-check.sql');
+const authority=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113150000_PlayerBirthdayAuthorityDenials.cs');
 
 test('CI applies birthday-only grants before admin authority and rollback probes',()=>{
   const grant=ci.indexOf('/player-birthday-admin-grants.sql');
@@ -38,4 +39,10 @@ test('synthetic birthday lifecycle covers strict privacy and historical audit',(
   ])assert.ok(lifecycle.includes(phrase),phrase);
   assert.match(lifecycle,/ROLLBACK;/);
   assert.doesNotMatch(lifecycle,/INSERT INTO public_content|INSERT INTO marketing|DELETE FROM club\.players/);
+});
+
+test('current owner-grant lock denials resolve to permission denial, not internal server error',()=>{
+  assert.match(authority,/EXCEPTION WHEN raise_exception THEN/);
+  assert.match(authority,/RAISE EXCEPTION 'birthday_manager_denied' USING ERRCODE='42501'/);
+  assert.match(authority,/REVOKE ALL ON FUNCTION club\.require_player_birthday_manager/);
 });
