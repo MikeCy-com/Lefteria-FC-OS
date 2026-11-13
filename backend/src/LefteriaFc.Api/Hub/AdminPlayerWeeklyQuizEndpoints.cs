@@ -132,6 +132,25 @@ public static class AdminPlayerWeeklyQuizEndpoints
             .Produces<WebAdminError>(400).Produces<WebAdminError>(401)
             .Produces<WebAdminError>(403).Produces<WebAdminError>(404)
             .Produces<WebAdminError>(409).Produces<WebAdminError>(503);
+        endpoints.MapPost("/api/admin/hub/player-quizzes/{id:guid}/withdraw",
+            async (Guid id,string? organization_id,HttpContext context,
+                   WebAdminService admin,WebAdminConnections connections,
+                   IWebAdminSecrets secrets,CancellationToken token)=>
+            {
+                NoStore(context);
+                var access=await AccessAsync(organization_id,context,admin,secrets,
+                    true,true,token);
+                if(access.Error is { } error)return error;
+                return await RunAsync("withdraw",access.Digest!,organization_id!,
+                    id,null,connections,token);
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("WithdrawAdminPlayerWeeklyQuiz")
+            .Produces(200,contentType:"application/json")
+            .Produces<WebAdminError>(400).Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403).Produces<WebAdminError>(404)
+            .Produces<WebAdminError>(409).Produces<WebAdminError>(503);
         return endpoints;
     }
 
@@ -191,6 +210,7 @@ public static class AdminPlayerWeeklyQuizEndpoints
                 "create"=>"SELECT hub.create_admin_player_quiz(@digest,@owner,@id,@week,@topic,@position,@title,@questions)::text",
                 "approve"=>"SELECT hub.approve_admin_player_quiz(@digest,@owner,@id)::text",
                 "publish"=>"SELECT hub.publish_admin_player_quiz(@digest,@owner,@id)::text",
+                "withdraw"=>"SELECT hub.withdraw_admin_player_quiz(@digest,@owner,@id)::text",
                 _=>throw new InvalidOperationException("Unsupported quiz action.")
             };
             await using var command=new NpgsqlCommand(sql,connection);
