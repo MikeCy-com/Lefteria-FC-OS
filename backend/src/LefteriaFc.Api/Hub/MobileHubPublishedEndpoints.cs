@@ -13,7 +13,7 @@ public static class MobileHubPublishedEndpoints
              MobileHubPublishedStore store,CancellationToken token)=>
                 MobileIdentityEndpoints.Execute(
                     ()=>store.ReadAsync(MobilePrincipal.Read(context.User),
-                        organization_id??"",ParseOffset(offset,context),token),context))
+                        ParseOrganization(organization_id,context),ParseOffset(offset,context),token),context))
             .RequireAuthorization(IdentityServices.Policy)
             .WithTags("Mobile education")
             .WithName("GetMobileHubPublishedEducation")
@@ -21,6 +21,17 @@ public static class MobileHubPublishedEndpoints
             .Produces<MobileHubPublishedResult>()
             .WithMobileErrors();
         return endpoints;
+    }
+
+    private static string ParseOrganization(string? raw,HttpContext context)
+    {
+        // Never let framework query binding choose one of several conflicting
+        // organization scopes. Authorization must use one unambiguous owner.
+        if(context.Request.Query["organization_id"].Count!=1 ||
+           raw is not ("lefteria_fc" or "lefteria_fc_academy"))
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid education organization.");
+        return raw;
     }
 
     private static int ParseOffset(string? raw,HttpContext context)
