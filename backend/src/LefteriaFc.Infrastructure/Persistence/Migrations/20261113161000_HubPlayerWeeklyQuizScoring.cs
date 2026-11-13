@@ -31,8 +31,10 @@ public sealed class HubPlayerWeeklyQuizScoring : Migration
             PERFORM hub.assert_current_quiz_player(
               _identity,_phone,_role,_expires,_owner);
             IF _quiz IS NULL OR _answers IS NULL OR
-               jsonb_typeof(_answers)<>'array' OR
-               jsonb_array_length(_answers) NOT BETWEEN 3 AND 20 THEN
+               jsonb_typeof(_answers) IS DISTINCT FROM 'array' THEN
+              RAISE EXCEPTION 'quiz_answers_invalid' USING ERRCODE='22023';
+            END IF;
+            IF jsonb_array_length(_answers) NOT BETWEEN 3 AND 20 THEN
               RAISE EXCEPTION 'quiz_answers_invalid' USING ERRCODE='22023';
             END IF;
 
