@@ -14,7 +14,7 @@ const scheduler=read('ops/postgres/hub-weekly-scheduler-grants.sql');
 test('every enrollment begins independently at first week, while repeats preserve position',()=>{
  assert.match(enrollment,/ON CONFLICT \(identity_id,organization_id,audience\)\s*DO NOTHING/);
  assert.match(enrollment,/next_due_at,delivery_week,status\)/);
- assert.match(enrollment,/clock_timestamp\(\),clock_timestamp\(\),1,'active'/);
+ assert.match(enrollment,/v_now,v_now,1,'active'/);
  assert.match(enrollment,/WHERE identity_id=_identity AND organization_id=_owner/);
  assert.match(enrollment,/A cancelled track cannot silently re-enable/);
  assert.doesNotMatch(enrollment,/registered_at|enrolled_after|current_week_of_year/i);
