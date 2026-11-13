@@ -5,13 +5,12 @@ import type {MobileRole} from './navigation.ts';
  * Source of truth: only the authorized calendar response. No demo fixtures,
  * cached cross-role content, inferred membership or fabricated counts.
  */
-export function trustedRoleHomeEvents(
+function trustedRoleHomeItems(
   calendar:MobileCalendar|null,
   role:Extract<MobileRole,'player'|'coach'|'management'>,
   identityId:string,
   organizationId:string|null,
-  today:string,
-  limit=4
+  today:string
 ):MobileCalendarItem[] {
   if (!calendar || !identityId || calendar.identity_id!==identityId ||
       calendar.role!==role || calendar.month!==today.slice(0,7) ||
@@ -24,7 +23,25 @@ export function trustedRoleHomeEvents(
     .toSorted((a,b)=>a.date.localeCompare(b.date)||
       (a.start_time??'').localeCompare(b.start_time??'')||
       a.id.localeCompare(b.id))
+    ;
+}
+
+export function trustedRoleHomeEvents(
+  calendar:MobileCalendar|null,
+  role:Extract<MobileRole,'player'|'coach'|'management'>,
+  identityId:string,organizationId:string|null,today:string,limit=4
+):MobileCalendarItem[] {
+  return trustedRoleHomeItems(calendar,role,identityId,organizationId,today)
     .slice(0,Math.max(0,Math.min(limit,10)));
+}
+
+export function trustedNextRoleMatch(
+  calendar:MobileCalendar|null,
+  role:Extract<MobileRole,'player'|'coach'|'management'>,
+  identityId:string,organizationId:string|null,today:string
+):MobileCalendarItem|null {
+  return trustedRoleHomeItems(calendar,role,identityId,organizationId,today)
+    .find(item=>item.kind==='match')??null;
 }
 
 export const ROLE_HOME_SHORTCUTS={
