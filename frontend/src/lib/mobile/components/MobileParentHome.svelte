@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
   import { CALENDAR_KIND_LABELS, clubToday, formatCalendarDate } from '../calendar.ts';
   import type { CalendarLoadStatus } from '../calendar.ts';
-  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule } from '../parent-home.ts';
+  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
 
@@ -143,9 +143,13 @@
               </div>
               <div class="parent-event-icon" aria-hidden="true">{event.kind === 'match' ? '⚽' : event.kind === 'training' ? '◈' : '▦'}</div>
               <div class="parent-event-copy">
+                {@const ownRsvp=parentHomeRsvp(event,activeChild.id)}
                 <span>{CALENDAR_KIND_LABELS[event.kind as keyof typeof CALENDAR_KIND_LABELS] ?? 'Δραστηριότητα'}</span>
                 <h3>{event.title}</h3>
                 {#if event.location}<p>{event.location}</p>{/if}
+                <p class="parent-rsvp" data-testid="parent-home-event-rsvp">
+                  Δήλωση συμμετοχής: <strong>{ownRsvp==='going'?'Θα έρθει':ownRsvp==='not_going'?'Δεν θα έρθει':ownRsvp==='maybe'?'Ίσως':'Χωρίς απάντηση'}</strong>
+                </p>
               </div>
               <button type="button" aria-label={'Ημερολόγιο για ' + activeChild.name} disabled={busy}
                 onclick={() => void onCalendar(activeChild.id)}><span aria-hidden="true">›</span></button>
@@ -241,6 +245,8 @@
   .parent-event-copy>span{color:#f5a623;font-size:10px}
   .parent-event-copy h3{margin:4px 0;font-size:15px;line-height:1.3;overflow-wrap:anywhere}
   .parent-event-copy p{margin:0;color:#a2a7aa;font-size:11px}
+  .parent-event-copy .parent-rsvp{margin-top:6px;color:#c1b9aa;font-size:11px}
+  .parent-rsvp strong{color:#ffca46}
   .parent-more-note{border:0;border-radius:0;padding:14px;font-size:11px}
   .parent-shortcuts h2{margin-bottom:12px}
   .parent-shortcut-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
