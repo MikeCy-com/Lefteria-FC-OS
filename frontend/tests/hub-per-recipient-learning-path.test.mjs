@@ -89,3 +89,14 @@ test('app does not expose the global education archive or ungated starter articl
  assert.match(route,/\{#if role === 'fan'\}\s*<MobileAcademyEducation viewerRole=\{role\}/);
  assert.doesNotMatch(route,/\{#if role === 'parent' \|\| role === 'player'\}[\s\S]{0,180}<MobileAcademyEducation/);
 });
+
+test('player receives only their own active canonical club roster pathway',()=>{
+ assert.match(sql,/IF _role='player' THEN/);
+ assert.match(sql,/FROM identity\.mobile_record_links l/);
+ assert.match(sql,/JOIN identity\.canonical_contact_bindings b/);
+ assert.match(sql,/p\.organization_id=_owner AND p\.is_active/);
+ assert.match(sql,/NOT p\.is_archived AND NOT p\.is_transferred/);
+ assert.match(sql,/l\.kind='player_own'/);
+ assert.match(sql,/FOR SHARE OF l,b,p/);
+ assert.match(sql,/education_player_roster_denied/);
+});
