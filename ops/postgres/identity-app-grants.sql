@@ -456,6 +456,31 @@ GRANT EXECUTE ON FUNCTION club.send_mobile_coach_feedback(
 GRANT EXECUTE ON FUNCTION club.read_mobile_player_coach_feedback(
   uuid,text,text,timestamptz,integer) TO :"app_role";
 
+-- Mobile fan payment checkout only: server-owned plan price, sandbox
+-- gateway and ledger-authenticated capture. No raw finance or HUB tables.
+REVOKE ALL ON TABLE hub.fan_plan_prices,hub.fan_checkout_links
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.assert_mobile_fan(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.sync_mobile_fan_payabl(uuid,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.reserve_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.ready_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_subscription(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.reserve_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_subscription(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+
 -- Published education is role-scoped through one private read routine, not raw HUB tables.
 GRANT USAGE ON SCHEMA hub TO :"app_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
