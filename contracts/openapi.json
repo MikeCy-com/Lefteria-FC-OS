@@ -801,6 +801,75 @@
         ],
         "type": "object"
       },
+      "AdminPlayerQuizCreate": {
+        "properties": {
+          "position": {
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/AdminPlayerQuizQuestion"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "week_number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "week_number",
+          "topic",
+          "position",
+          "title",
+          "questions"
+        ],
+        "type": "object"
+      },
+      "AdminPlayerQuizQuestion": {
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "correct_index": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "explanation": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "prompt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "prompt",
+          "choices",
+          "correct_index",
+          "explanation"
+        ],
+        "type": "object"
+      },
       "AdminPosCatalogDto": {
         "properties": {
           "categories": {
@@ -2356,83 +2425,20 @@
         ],
         "type": "object"
       },
-      "HubFanPayablCheckoutRequest": {
+      "HubLessonCompletionBody": {
         "properties": {
-          "accepted_terms": {
-            "type": "boolean"
-          },
-          "audience": {
-            "type": "string"
-          },
-          "client_request_id": {
+          "content_id": {
             "format": "uuid",
             "type": "string"
           },
-          "email": {
-            "type": "string"
-          },
-          "first_name": {
-            "type": "string"
-          },
-          "last_name": {
+          "revision_id": {
+            "format": "uuid",
             "type": "string"
           }
         },
         "required": [
-          "client_request_id",
-          "audience",
-          "email",
-          "first_name",
-          "last_name",
-          "accepted_terms"
-        ],
-        "type": "object"
-      },
-      "HubFanPayablCheckoutResponse": {
-        "properties": {
-          "amount_cents": {
-            "format": "int64",
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ]
-          },
-          "audience": {
-            "type": "string"
-          },
-          "checkout_url": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "currency": {
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "replay": {
-            "type": "boolean"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "organization_id",
-          "audience",
-          "amount_cents",
-          "currency",
-          "status",
-          "checkout_url",
-          "replay"
+          "content_id",
+          "revision_id"
         ],
         "type": "object"
       },
@@ -2553,6 +2559,7 @@
         ],
         "type": "object"
       },
+      "JsonElement": {},
       "MobileAppAnnouncementDto": {
         "properties": {
           "body": {
@@ -3464,6 +3471,410 @@
         ],
         "type": "object"
       },
+      "MobileFanHubCheckout": {
+        "properties": {
+          "amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "checkout_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "payment_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "created",
+          "payment_id",
+          "amount_cents",
+          "checkout_url"
+        ],
+        "type": "object"
+      },
+      "MobileFanHubPlan": {
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "duration_days": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "monthly_price_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "track": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "track",
+          "monthly_price_cents",
+          "currency",
+          "duration_days"
+        ],
+        "type": "object"
+      },
+      "MobileFanHubPlans": {
+        "properties": {
+          "organization_id": {
+            "type": "string"
+          },
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/MobileFanHubPlan"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "organization_id",
+          "plans"
+        ],
+        "type": "object"
+      },
+      "MobileFanHubStartBody": {
+        "properties": {
+          "consent": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expected_amount_cents": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "first_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "last_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "track": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "organization_id",
+          "track",
+          "email",
+          "first_name",
+          "last_name",
+          "consent",
+          "expected_amount_cents"
+        ],
+        "type": "object"
+      },
+      "MobileFanHubStatus": {
+        "properties": {
+          "audience_parent": {
+            "type": "boolean"
+          },
+          "audience_player": {
+            "type": "boolean"
+          },
+          "checkout_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "status",
+          "audience_parent",
+          "audience_player",
+          "expires_at",
+          "checkout_url"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonCompleteBody": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "content_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "content_id",
+          "revision_id"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonCompletion": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "completed_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completed_revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "completed_id",
+          "completed_revision_id"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonDelivery": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "content_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "queued_at",
+          "type",
+          "audience",
+          "content_id"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonDeliveryPage": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MobileFanLessonDelivery"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "items"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonSchedule": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "cadence_days": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "next_due_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "started_at",
+          "next_due_at",
+          "cadence_days"
+        ],
+        "type": "object"
+      },
+      "MobileFanLessonScheduleRequest": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience"
+        ],
+        "type": "object"
+      },
+      "MobileFanNextArticle": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "revision_id",
+          "organization_id",
+          "audience",
+          "title",
+          "body",
+          "published_at"
+        ],
+        "type": "object"
+      },
+      "MobileFanNextPage": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MobileFanNextArticle"
+              }
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "next"
+        ],
+        "type": "object"
+      },
       "MobileHubArticle": {
         "properties": {
           "age_max": {
@@ -3517,6 +3928,119 @@
         ],
         "type": "object"
       },
+      "MobileHubCompletionResult": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "completed_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "completed_revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "completed_id",
+          "completed_revision_id"
+        ],
+        "type": "object"
+      },
+      "MobileHubNextArticle": {
+        "properties": {
+          "age_max": {
+            "format": "int16",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "age_min": {
+            "format": "int16",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "audience": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "revision_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "audience",
+          "kind",
+          "title",
+          "body",
+          "published_at",
+          "revision_id",
+          "age_min",
+          "age_max"
+        ],
+        "type": "object"
+      },
+      "MobileHubNextPage": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "next": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MobileHubNextArticle"
+              }
+            ]
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "next"
+        ],
+        "type": "object"
+      },
       "MobileHubPublishedResult": {
         "properties": {
           "audience": {
@@ -3551,6 +4075,92 @@
         "required": [
           "role",
           "name"
+        ],
+        "type": "object"
+      },
+      "MobileLessonDelivery": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "content_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "queued_at",
+          "type",
+          "audience",
+          "content_id"
+        ],
+        "type": "object"
+      },
+      "MobileLessonDeliveryInbox": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MobileLessonDelivery"
+            },
+            "type": "array"
+          },
+          "organization_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "items"
+        ],
+        "type": "object"
+      },
+      "MobileLessonSchedule": {
+        "properties": {
+          "audience": {
+            "type": "string"
+          },
+          "cadence_days": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "next_due_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "audience",
+          "started_at",
+          "next_due_at",
+          "cadence_days"
         ],
         "type": "object"
       },
@@ -4382,153 +4992,6 @@
           "phone"
         ]
       },
-      "MobileWeeklyLearningDelivery": {
-        "properties": {
-          "body": {
-            "type": "string"
-          },
-          "content_id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "delivered_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "type": "string"
-          },
-          "title": {
-            "type": "string"
-          },
-          "week": {
-            "format": "int32",
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ]
-          }
-        },
-        "required": [
-          "id",
-          "week",
-          "content_id",
-          "title",
-          "body",
-          "delivered_at"
-        ],
-        "type": "object"
-      },
-      "MobileWeeklyLearningEnrollment": {
-        "properties": {
-          "audience": {
-            "type": "string"
-          },
-          "delivery_week": {
-            "format": "int32",
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "integer",
-              "string"
-            ]
-          },
-          "next_due_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "type": "string"
-          },
-          "status": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "organization_id",
-          "audience",
-          "started_at",
-          "next_due_at",
-          "delivery_week",
-          "status"
-        ],
-        "type": "object"
-      },
-      "MobileWeeklyLearningInbox": {
-        "properties": {
-          "audience": {
-            "type": "string"
-          },
-          "deliveries": {
-            "items": {
-              "$ref": "#/components/schemas/MobileWeeklyLearningDelivery"
-            },
-            "type": "array"
-          },
-          "delivery_week": {
-            "format": "int32",
-            "pattern": "^-?(?:0|[1-9]\\d*)$",
-            "type": [
-              "null",
-              "integer",
-              "string"
-            ]
-          },
-          "enrolled": {
-            "type": "boolean"
-          },
-          "next_due_at": {
-            "format": "date-time",
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "organization_id": {
-            "type": "string"
-          },
-          "started_at": {
-            "format": "date-time",
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "status": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        },
-        "required": [
-          "organization_id",
-          "audience",
-          "enrolled",
-          "started_at",
-          "next_due_at",
-          "delivery_week",
-          "status",
-          "deliveries"
-        ],
-        "type": "object"
-      },
-      "MobileWeeklyLearningJoin": {
-        "properties": {
-          "audience": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "audience"
-        ],
-        "type": "object"
-      },
       "OpenShiftRequest": {
         "properties": {
           "opening_cash_cents": {
@@ -4869,6 +5332,174 @@
           "status",
           "created_at",
           "expires_at"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuiz": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "type": "string"
+          },
+          "questions": {
+            "items": {
+              "$ref": "#/components/schemas/PlayerWeeklyQuizQuestion"
+            },
+            "type": "array"
+          },
+          "title": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "week_number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "topic",
+          "position",
+          "week_number",
+          "questions"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuizPage": {
+        "properties": {
+          "organization_id": {
+            "type": "string"
+          },
+          "quiz": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PlayerWeeklyQuiz"
+              }
+            ]
+          },
+          "started": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "organization_id",
+          "started",
+          "quiz"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuizQuestion": {
+        "properties": {
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "sequence": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "sequence",
+          "prompt",
+          "choices"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuizScore": {
+        "properties": {
+          "organization_id": {
+            "type": "string"
+          },
+          "quiz_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "score": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "submitted": {
+            "type": "boolean"
+          },
+          "total": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "organization_id",
+          "quiz_id",
+          "score",
+          "total",
+          "submitted"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuizStart": {
+        "properties": {
+          "organization_id": {
+            "type": "string"
+          },
+          "started_at": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "started_at"
+        ],
+        "type": "object"
+      },
+      "PlayerWeeklyQuizSubmission": {
+        "properties": {
+          "answers": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "quiz_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "quiz_id",
+          "answers"
         ],
         "type": "object"
       },
@@ -13594,6 +14225,542 @@
         ]
       }
     },
+    "/api/admin/hub/player-quizzes": {
+      "get": {
+        "operationId": "ListAdminPlayerWeeklyQuizzes",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      },
+      "post": {
+        "operationId": "CreateAdminPlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminPlayerQuizCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
+    "/api/admin/hub/player-quizzes/{id}": {
+      "get": {
+        "operationId": "DetailAdminPlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
+    "/api/admin/hub/player-quizzes/{id}/approve": {
+      "post": {
+        "operationId": "ApproveAdminPlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
+    "/api/admin/hub/player-quizzes/{id}/publish": {
+      "post": {
+        "operationId": "PublishAdminPlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
+    "/api/admin/hub/player-quizzes/{id}/withdraw": {
+      "post": {
+        "operationId": "WithdrawAdminPlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebAdminError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "HUB administration"
+        ]
+      }
+    },
     "/api/admin/pos/cashier/finance-handoff": {
       "get": {
         "operationId": "ReadAdminPosFinanceHandoff",
@@ -20472,24 +21639,14 @@
         ]
       }
     },
-    "/api/mobile/hub/payabl/checkout": {
+    "/api/mobile/hub/fan-learning/complete": {
       "post": {
-        "description": "Begin a sandbox card checkout for a verified fan. A payment return and gateway callback cannot grant subscription access.",
-        "operationId": "CreateMobileFanHubPayablSandboxCheckout",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "organization_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "CompleteMobileFanNextLesson",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/HubFanPayablCheckoutRequest"
+                "$ref": "#/components/schemas/MobileFanLessonCompleteBody"
               }
             }
           },
@@ -20500,7 +21657,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HubFanPayablCheckoutResponse"
+                  "$ref": "#/components/schemas/MobileFanLessonCompletion"
                 }
               }
             },
@@ -20583,14 +21740,654 @@
           }
         ],
         "tags": [
-          "Mobile HUB Payabl sandbox"
+          "Mobile HUB fan education"
         ]
       }
     },
-    "/api/mobile/hub/weekly/enroll": {
+    "/api/mobile/hub/fan-learning/deliveries": {
+      "get": {
+        "operationId": "GetMobileFanPersonalLessonDeliveries",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "audience",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanLessonDeliveryPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan education"
+        ]
+      }
+    },
+    "/api/mobile/hub/fan-learning/next": {
+      "get": {
+        "operationId": "GetMobileFanNextLesson",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "audience",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanNextPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan education"
+        ]
+      }
+    },
+    "/api/mobile/hub/fan-learning/schedule": {
       "post": {
-        "description": "Start a persistent personal Week 1 delivery schedule; fans require independently verified active Payabl subscription.",
-        "operationId": "EnrollMobileWeeklyEducation",
+        "operationId": "EnrollMobileFanPersonalLessonSchedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileFanLessonScheduleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanLessonSchedule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan education"
+        ]
+      }
+    },
+    "/api/mobile/hub/fan-subscription": {
+      "get": {
+        "operationId": "GetMobileFanHubSubscription",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanHubStatus"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan subscriptions (Payabl sandbox)"
+        ]
+      }
+    },
+    "/api/mobile/hub/fan-subscription/checkout": {
+      "post": {
+        "operationId": "StartMobileFanPayablCheckout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileFanHubStartBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanHubCheckout"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan subscriptions (Payabl sandbox)"
+        ]
+      }
+    },
+    "/api/mobile/hub/fan-subscription/plans": {
+      "get": {
+        "operationId": "GetMobileFanHubPlans",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileFanHubPlans"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile HUB fan subscriptions (Payabl sandbox)"
+        ]
+      }
+    },
+    "/api/mobile/hub/learning/complete": {
+      "post": {
+        "description": "Explicitly complete only this member's currently next approved lesson; rejects stale, guessed and cross-role submissions.",
+        "operationId": "CompleteMobileHubLesson",
         "parameters": [
           {
             "in": "query",
@@ -20604,7 +22401,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MobileWeeklyLearningJoin"
+                "$ref": "#/components/schemas/HubLessonCompletionBody"
               }
             }
           },
@@ -20615,7 +22412,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MobileWeeklyLearningEnrollment"
+                  "$ref": "#/components/schemas/MobileHubCompletionResult"
                 }
               }
             },
@@ -20702,21 +22499,14 @@
         ]
       }
     },
-    "/api/mobile/hub/weekly/inbox": {
+    "/api/mobile/hub/learning/deliveries": {
       "get": {
-        "description": "Read only this member's scheduled reviewed lessons; live Payabl fan entitlement is rechecked on each read.",
-        "operationId": "GetMobileWeeklyEducationInbox",
+        "description": "Only the current authorized learner's scheduled lesson notification, never withdrawn or later lessons.",
+        "operationId": "GetMobilePersonalLessonDeliveries",
         "parameters": [
           {
             "in": "query",
             "name": "organization_id",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "query",
-            "name": "audience",
             "schema": {
               "type": "string"
             }
@@ -20727,7 +22517,542 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MobileWeeklyLearningInbox"
+                  "$ref": "#/components/schemas/MobileLessonDeliveryInbox"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/learning/next": {
+      "get": {
+        "description": "First unfinished approved lesson for this authenticated parent/player, never the global newest lesson.",
+        "operationId": "GetMobileHubNextLesson",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileHubNextPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/learning/schedule": {
+      "post": {
+        "description": "Start or resume a personal weekly in-app delivery schedule. Never resets when a new learner joins.",
+        "operationId": "EnrollMobilePersonalLessonSchedule",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileLessonSchedule"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/player-quizzes/next": {
+      "get": {
+        "description": "Read only the next human-approved, published player quiz eligible in this learner's own week; never expose answer keys.",
+        "operationId": "GetMobilePlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerWeeklyQuizPage"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/player-quizzes/start": {
+      "post": {
+        "description": "Start or resume the verified player's individual football quiz journey at Week 1.",
+        "operationId": "StartMobilePlayerQuizTrack",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerWeeklyQuizStart"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile education"
+        ]
+      }
+    },
+    "/api/mobile/hub/player-quizzes/submit": {
+      "post": {
+        "description": "Save one private server-graded attempt for the current player quiz; no answer key or public ranking.",
+        "operationId": "SubmitMobilePlayerWeeklyQuiz",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayerWeeklyQuizSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayerWeeklyQuizScore"
                 }
               }
             },
@@ -22552,57 +24877,6 @@
         ]
       }
     },
-    "/api/payabl/hub/webhooks/{id}/{nonce}": {
-      "post": {
-        "operationId": "RecordHubFanPayablSandboxNotification",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "nonce",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/x-www-form-urlencoded": {
-              "schema": {
-                "type": "string"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          },
-          "400": {
-            "description": "Bad Request"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "503": {
-            "description": "Service Unavailable"
-          }
-        },
-        "tags": [
-          "Payabl signed sandbox notifications"
-        ]
-      }
-    },
     "/api/payabl/webhooks/{id}/{nonce}": {
       "post": {
         "operationId": "ReceivePayablPaymentNotification",
@@ -23011,12 +25285,6 @@
       "name": "Payabl signed notifications"
     },
     {
-      "name": "Mobile HUB Payabl sandbox"
-    },
-    {
-      "name": "Payabl signed sandbox notifications"
-    },
-    {
       "name": "First-team trials"
     },
     {
@@ -23045,6 +25313,12 @@
     },
     {
       "name": "Mobile education"
+    },
+    {
+      "name": "Mobile HUB fan subscriptions (Payabl sandbox)"
+    },
+    {
+      "name": "Mobile HUB fan education"
     },
     {
       "name": "Mobile chat"

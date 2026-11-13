@@ -456,55 +456,121 @@ GRANT EXECUTE ON FUNCTION club.send_mobile_coach_feedback(
 GRANT EXECUTE ON FUNCTION club.read_mobile_player_coach_feedback(
   uuid,text,text,timestamptz,integer) TO :"app_role";
 
+-- Mobile fan payment checkout only: server-owned plan price, sandbox
+-- gateway and ledger-authenticated capture. No raw finance or HUB tables.
+REVOKE ALL ON TABLE hub.fan_plan_prices,hub.fan_checkout_links
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.assert_mobile_fan(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.sync_mobile_fan_payabl(uuid,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.reserve_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.ready_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_plans(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_plans(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_subscription(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.reserve_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl(
+  uuid,text,text,timestamptz,text,uuid,text,text)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_subscription(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+
+-- Paid fan schedules and notification inboxes are private to the subscriber.
+-- A separate worker role alone may process the global due queue.
+REVOKE ALL ON TABLE hub.fan_lesson_schedules,hub.fan_lesson_delivery_inbox
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.process_due_fan_lesson_schedules(integer)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_fan_lesson_schedule(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_lesson_deliveries(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_fan_lesson_schedule(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_lesson_deliveries(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+
+-- Verified fan learning: two independent parent/player topic tracks. Each
+-- SQL call verifies captured Payabl finance settlement and expiry.
+REVOKE ALL ON TABLE hub.fan_learning_completions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.current_mobile_fan_lesson(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.complete_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text,uuid,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.complete_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text,uuid,uuid) TO :"app_role";
+
 -- Published education is role-scoped through one private read routine, not raw HUB tables.
 GRANT USAGE ON SCHEMA hub TO :"app_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) TO :"app_role";
+-- No global education archive grant: the runtime can only request its next lesson.
 
--- Per-recipient scheduled learning uses only bounded role-checked
--- enrollment/inbox routines. No app account can dispatch messages,
--- activate subscriptions or read underlying delivery rows.
-REVOKE ALL ON TABLE hub.learning_enrollments,hub.learning_delivery_outbox
+-- Scheduled personal education: runtime can only enroll its own verified
+-- identity and read currently eligible notices. Only the separate worker role
+-- can process global due jobs, never the mobile runtime.
+REVOKE ALL ON TABLE hub.learning_schedules,hub.learning_delivery_inbox
   FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.fan_delivery_entitled(uuid,text,text,timestamptz)
+REVOKE ALL ON FUNCTION hub.process_due_mobile_lesson_schedules(integer)
   FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.authorize_mobile_learning_enrollment(
-  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.dispatch_due_weekly_learning(integer)
-  FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.enroll_mobile_weekly_learning(
-  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.read_mobile_weekly_learning(
-  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION hub.enroll_mobile_weekly_learning(
-  uuid,text,text,timestamptz,text,text) TO :"app_role";
-GRANT EXECUTE ON FUNCTION hub.read_mobile_weekly_learning(
-  uuid,text,text,timestamptz,text,text) TO :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_lesson_schedule(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_lesson_deliveries(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_lesson_schedule(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_lesson_deliveries(
+  uuid,text,text,timestamptz,text) TO :"app_role";
 
--- Fan Payabl sandbox checkout is an idempotent pending intent.
--- The signed callback is only reconciliation evidence; no activation
--- routines or raw subscription tables are granted to the app role.
-REVOKE ALL ON TABLE hub.fan_payabl_checkout_intents,
-  hub.fan_payabl_checkout_notices FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.begin_mobile_fan_payabl_checkout(
-  uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)
-  FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.ready_mobile_fan_payabl_checkout(
-  uuid,text,text,timestamptz,text,uuid,text,text)
-  FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION hub.record_fan_payabl_checkout_notice(
-  uuid,text,text,text,integer,bigint,text,bigint,text,text)
-  FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION hub.begin_mobile_fan_payabl_checkout(
-  uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)
-  TO :"app_role";
-GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl_checkout(
-  uuid,text,text,timestamptz,text,uuid,text,text)
-  TO :"app_role";
-GRANT EXECUTE ON FUNCTION hub.record_fan_payabl_checkout_notice(
-  uuid,text,text,text,integer,bigint,text,bigint,text,text)
-  TO :"app_role";
+-- Individual learning progress: no raw completion table access, no internal
+-- helper call, and no fan delivery until independently verified Payabl access.
+REVOKE ALL ON TABLE hub.education_completions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.current_mobile_education_lesson(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_next_education(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.complete_mobile_next_education(
+  uuid,text,text,timestamptz,text,uuid,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_next_education(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.complete_mobile_next_education(
+  uuid,text,text,timestamptz,text,uuid,uuid) TO :"app_role";
+
+
+
+-- Weekly youth football quiz reads and scoring are scoped to an active
+-- player identity. The mobile runtime cannot read hidden answer keys,
+-- change quiz review status or inspect another player's scores.
+REVOKE ALL ON TABLE hub.player_quizzes,hub.player_quiz_questions,
+  hub.player_quiz_tracks,hub.player_quiz_attempts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.assert_current_quiz_player(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_player_quiz_track(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.submit_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text,uuid,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_player_quiz_track(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.submit_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text,uuid,jsonb) TO :"app_role";
 
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.

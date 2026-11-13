@@ -6,9 +6,11 @@ const controller=read('frontend/src/lib/mobile/controller.ts');
 const validator=read('frontend/src/lib/mobile/published-education.ts');
 const component=read('frontend/src/lib/mobile/components/MobilePublishedHubEducation.svelte');
 const route=read('frontend/src/routes/app/[...path]/+page.svelte');
-test('real parent/player HUB mounts authenticated approved-content reader, not for fans',()=>{
- assert.match(route,/import MobilePublishedHubEducation from/);
- assert.match(route,/\{#if role === 'parent' \|\| role === 'player'\}\s*<MobilePublishedHubEducation \{controller\} viewerRole=\{role\}/);
+test('real parent/player HUB mounts individual approved pathway, not shared archive',()=>{
+ assert.doesNotMatch(route,/import MobilePublishedHubEducation from/);
+ assert.match(route,/\{#if role === 'parent' \|\| role === 'player'\}\s*<MobilePersonalLearningJourney \{controller\} viewerRole=\{role\}\/>/);
+ assert.doesNotMatch(route,/<MobilePublishedHubEducation/);
+ assert.match(route,/\{#if role === 'fan'\}\s*<MobileAcademyEducation viewerRole=\{role\}/);
  assert.match(component,/getPublishedHubEducation\(organization,0\)/);
  assert.match(component,/onMount\(\(\)=>/);
  assert.match(component,/if\(!alive\|\|current!==request\|\|page\.audience!==viewerRole\)return/);

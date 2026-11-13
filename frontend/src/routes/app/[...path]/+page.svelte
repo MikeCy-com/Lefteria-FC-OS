@@ -17,8 +17,9 @@
   import MobileRoleHome from '../../../lib/mobile/components/MobileRoleHome.svelte';
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
-  import MobilePublishedHubEducation from '../../../lib/mobile/components/MobilePublishedHubEducation.svelte';
-  import MobileWeeklyLearningInbox from '../../../lib/mobile/components/MobileWeeklyLearningInbox.svelte';
+  import MobileFanPayablHub from '../../../lib/mobile/components/MobileFanPayablHub.svelte';
+  import MobilePersonalLearningJourney from '../../../lib/mobile/components/MobilePersonalLearningJourney.svelte';
+  import MobilePlayerWeeklyQuiz from '../../../lib/mobile/components/MobilePlayerWeeklyQuiz.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
   import MobileCoachFeedbackTargets from '../../../lib/mobile/components/MobileCoachFeedbackTargets.svelte';
@@ -197,12 +198,17 @@
         {/key}
       {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
         {#key user.id+':'+role}
-          <MobileWeeklyLearningInbox {controller} viewerRole={role}/>
           {#if role === 'parent' || role === 'player'}
-            <MobilePublishedHubEducation {controller} viewerRole={role}/>
+            <MobilePersonalLearningJourney {controller} viewerRole={role}/>
           {/if}
-          <MobileAcademyEducation viewerRole={role} />
+          {#if role === 'fan'}
+            <MobileAcademyEducation viewerRole={role} />
+          {/if}
+          {#if role === 'fan'}
+            <MobileFanPayablHub {controller} />
+          {/if}
           {#if role === 'player'}
+            <MobilePlayerWeeklyQuiz {controller} />
             <MobilePlayerCoachFeedback {controller} />
           {/if}
         {/key}

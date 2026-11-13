@@ -84,8 +84,15 @@ builder.Services.AddLefteriaInfrastructure();
 builder.Services.AddScoped<PostgresMobileGroupChatStore>();
 builder.Services.AddScoped<PostgresCoachFeedbackDraftStore>();
 builder.Services.AddScoped<MobileHubPublishedStore>();
-builder.Services.AddScoped<MobileWeeklyLearningStore>();
-builder.Services.AddHostedService<HubWeeklyLearningDispatchWorker>();
+builder.Services.AddScoped<MobileLessonScheduleStore>();
+builder.Services.AddSingleton<HubLessonDeliverySettings>();
+builder.Services.AddHostedService<HubLessonDeliveryWorker>();
+builder.Services.AddScoped<MobilePlayerWeeklyQuizStore>();
+builder.Services.AddScoped<MobileFanPayablStore>();
+builder.Services.AddScoped<MobileFanLearningStore>();
+builder.Services.AddScoped<MobileFanLessonScheduleStore>();
+builder.Services.AddSingleton<HubFanLessonDeliverySettings>();
+builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
@@ -115,11 +122,6 @@ builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPayabl(builder.Configuration);
-builder.Services.AddOptions<HubFanPayablOptions>()
-    .Bind(builder.Configuration.GetSection("HubFanPayabl"))
-    .Validate(HubFanPayablOptions.Safe,
-        "Fan HUB checkout must use configured sandbox plan prices.")
-    .ValidateOnStart();
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
@@ -176,7 +178,6 @@ app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();
 app.MapWebAdmin();
 app.MapPayabl();
-app.MapHubFanPayablCheckout();
 app.MapAcademyFees();
 app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
@@ -202,8 +203,11 @@ app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapAdminHub();
+app.MapAdminPlayerWeeklyQuiz();
 app.MapMobileHubPublished();
-app.MapMobileWeeklyLearning();
+app.MapMobileLessonSchedules();
+app.MapMobilePlayerWeeklyQuiz();
+app.MapMobileFanPayabl();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
 app.MapAdminAcademyDocuments();

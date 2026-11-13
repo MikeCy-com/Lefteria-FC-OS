@@ -446,11 +446,19 @@ BEGIN
     'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
-  IF NOT has_function_privilege(current_user,
+  IF has_function_privilege(current_user,
     'hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer)','EXECUTE')
     OR has_any_column_privilege(current_user,'hub.content','SELECT,INSERT,UPDATE,REFERENCES')
     OR has_any_column_privilege(current_user,'hub.revisions','SELECT,INSERT,UPDATE,REFERENCES')
     OR has_any_column_privilege(current_user,'hub.media_assets','SELECT,INSERT,UPDATE,REFERENCES')
+    OR NOT has_function_privilege(current_user,
+      'hub.read_mobile_next_education(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.complete_mobile_next_education(uuid,text,text,timestamptz,text,uuid,uuid)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.current_mobile_education_lesson(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.education_completions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.education_completions','DELETE')
     OR has_function_privilege(current_user,
       'hub.publish_admin_hub_content(text,text,uuid,bigint)','EXECUTE') THEN
     RAISE EXCEPTION 'Mobile HUB published reader boundary violated';
@@ -462,46 +470,99 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed published education role gate'; END IF;
+  denied := false;
+  BEGIN
+    PERFORM hub.read_mobile_next_education(gen_random_uuid(),'invalid','fan',
+      clock_timestamp()+interval '1 hour','lefteria_fc');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed private learning gate'; END IF;
+  denied := false;
+  BEGIN
+    PERFORM hub.complete_mobile_next_education(gen_random_uuid(),'invalid','fan',
+      clock_timestamp()+interval '1 hour','lefteria_fc',gen_random_uuid(),gen_random_uuid());
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed private learning completion gate'; END IF;
+
   IF NOT has_function_privilege(current_user,
-      'hub.enroll_mobile_weekly_learning(uuid,text,text,timestamptz,text,text)','EXECUTE')
+      'hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
-      'hub.read_mobile_weekly_learning(uuid,text,text,timestamptz,text,text)','EXECUTE')
+      'hub.ready_mobile_fan_payabl(uuid,text,text,timestamptz,text,uuid,text,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
-      'hub.begin_mobile_fan_payabl_checkout(uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)','EXECUTE')
+      'hub.read_mobile_fan_plans(uuid,text,text,timestamptz,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
-      'hub.ready_mobile_fan_payabl_checkout(uuid,text,text,timestamptz,text,uuid,text,text)','EXECUTE')
+      'hub.read_mobile_fan_subscription(uuid,text,text,timestamptz,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
-      'hub.record_fan_payabl_checkout_notice(uuid,text,text,text,integer,bigint,text,bigint,text,text)','EXECUTE')
+      'hub.read_mobile_fan_next_lesson(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.complete_mobile_fan_next_lesson(uuid,text,text,timestamptz,text,text,uuid,uuid)','EXECUTE')
     OR has_function_privilege(current_user,
-      'hub.authorize_mobile_learning_enrollment(uuid,text,text,timestamptz,text,text)','EXECUTE')
+      'hub.assert_mobile_fan(uuid,text,text,timestamptz)','EXECUTE')
     OR has_function_privilege(current_user,
-      'hub.dispatch_due_weekly_learning(integer)','EXECUTE')
+      'hub.sync_mobile_fan_payabl(uuid,text)','EXECUTE')
     OR has_function_privilege(current_user,
-      'hub.fan_delivery_entitled(uuid,text,text,timestamptz)','EXECUTE')
-    OR has_any_column_privilege(current_user,'hub.learning_enrollments',
+      'hub.current_mobile_fan_lesson(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.fan_subscriptions',
       'SELECT,INSERT,UPDATE,REFERENCES')
-    OR has_any_column_privilege(current_user,'hub.learning_delivery_outbox',
+    OR has_any_column_privilege(current_user,'hub.fan_checkout_links',
       'SELECT,INSERT,UPDATE,REFERENCES')
-    OR has_any_column_privilege(current_user,'hub.fan_payabl_checkout_intents',
+    OR has_any_column_privilege(current_user,'hub.fan_plan_prices',
       'SELECT,INSERT,UPDATE,REFERENCES')
-    OR has_any_column_privilege(current_user,'hub.fan_payabl_checkout_notices',
+    OR has_any_column_privilege(current_user,'hub.fan_learning_completions',
       'SELECT,INSERT,UPDATE,REFERENCES')
-    OR has_table_privilege(current_user,'hub.learning_enrollments','DELETE')
-    OR has_table_privilege(current_user,'hub.learning_delivery_outbox','DELETE')
-    OR has_table_privilege(current_user,'hub.fan_payabl_checkout_intents','DELETE')
-    OR has_table_privilege(current_user,'hub.fan_payabl_checkout_notices','DELETE')
-  THEN
-    RAISE EXCEPTION 'Runtime weekly HUB/Payabl role boundary violated';
+    OR has_table_privilege(current_user,'hub.fan_subscriptions','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_checkout_links','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_plan_prices','DELETE')
+    THEN
+      RAISE EXCEPTION 'Payabl fan HUB runtime privileges unsafe';
   END IF;
   denied:=false;
   BEGIN
-    PERFORM hub.enroll_mobile_weekly_learning(gen_random_uuid(),'invalid',
-      'fan',clock_timestamp()+interval '1 hour','lefteria_fc','fan_parent');
+    PERFORM hub.read_mobile_fan_next_lesson(gen_random_uuid(),'invalid',
+      'parent',clock_timestamp()+interval '1 hour','lefteria_fc_academy','player');
   EXCEPTION WHEN insufficient_privilege THEN denied:=true;
   END;
-  IF NOT denied THEN
-    RAISE EXCEPTION 'Unverified fan bypassed paid weekly enrollment';
+  IF NOT denied THEN RAISE EXCEPTION 'Parent accessed fan-only paid material'; END IF;
+  IF NOT has_function_privilege(current_user,
+       'hub.start_mobile_fan_lesson_schedule(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.read_mobile_fan_lesson_deliveries(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+       'hub.process_due_fan_lesson_schedules(integer)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.fan_lesson_schedules',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_lesson_delivery_inbox',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.fan_lesson_schedules','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_lesson_delivery_inbox','DELETE')
+  THEN
+    RAISE EXCEPTION 'Fan lesson delivery runtime permissions unsafe';
   END IF;
+  IF NOT has_function_privilege(current_user,
+       'hub.start_mobile_player_quiz_track(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.read_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.submit_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text,uuid,jsonb)','EXECUTE')
+    OR has_function_privilege(current_user,
+       'hub.assert_current_quiz_player(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.player_quiz_questions',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.player_quiz_attempts',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.player_quiz_questions','DELETE')
+    OR has_table_privilege(current_user,'hub.player_quiz_attempts','DELETE')
+    THEN
+    RAISE EXCEPTION 'Player weekly quiz permissions are unsafe';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM hub.read_mobile_player_weekly_quiz(gen_random_uuid(),'invalid','fan',
+      clock_timestamp()+interval '1 hour','lefteria_fc_academy');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed player weekly quiz boundary'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
