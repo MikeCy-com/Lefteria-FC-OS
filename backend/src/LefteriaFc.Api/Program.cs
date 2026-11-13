@@ -188,6 +188,7 @@ app.MapAdminProfiledGroupCreates();
 app.MapAdminAcademyGroupProfiles();
 app.MapAdminFirstTeamProfiles();
 app.MapAdminRosterPlayers();
+app.MapAdminPlayerBirthdayPreferences();
 app.MapAdminRosterAssignments();
 app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
