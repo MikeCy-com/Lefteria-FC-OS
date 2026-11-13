@@ -8,14 +8,17 @@ export type LinkedChild = Family['children'][number];
 
 // The calendar response is child-scoped, not a family-wide feed. A cached
 // calendar for a sibling, another organization, identity, or month must never
-// appear as if it belongs to the first child on the Parent Home dashboard.
+// appear as if it belongs to a different selected child on Parent Home.
 export function parentHomeSchedule(
   family: Family | null,
   calendar: ParentCalendar | null,
   identityId: string,
-  today = clubToday()
+  today = clubToday(),
+  selectedChildId?:string
 ): ParentCalendarItem[] {
-  const child = family?.children[0];
+  const child = selectedChildId
+    ? family?.children.find(row=>row.id===selectedChildId)
+    : family?.children[0];
   if (!child || !calendar || calendar.role !== 'parent' ||
       calendar.identity_id !== identityId ||
       calendar.selected_player_id !== child.id ||
@@ -34,9 +37,11 @@ export function parentHomeSchedule(
 
 export function matchingParentHomeCalendar(
   family: Family | null, calendar: ParentCalendar | null,
-  identityId: string, today = clubToday()
+  identityId: string, today = clubToday(), selectedChildId?:string
 ): boolean {
-  const child = family?.children[0];
+  const child = selectedChildId
+    ? family?.children.find(row=>row.id===selectedChildId)
+    : family?.children[0];
   return !!child && !!calendar &&
     calendar.role === 'parent' && calendar.identity_id === identityId &&
     calendar.selected_player_id === child.id &&
