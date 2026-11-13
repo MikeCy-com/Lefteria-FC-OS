@@ -201,6 +201,37 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
       END $native_training_pub_list$;
       REVOKE ALL ON FUNCTION club.read_admin_academy_training_publications(
         text,text,text,date,date) FROM PUBLIC;
+      -- Runtime may test primary-group membership ONLY for a real published
+      -- OS-native Academy training. It cannot read the underlying private
+      -- roster group column and cannot widen imported legacy permissions.
+      CREATE FUNCTION club.os_native_training_primary_member(
+        _owner text,_event text,_player text
+      ) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $os_native_primary$
+        SELECT EXISTS(SELECT 1
+          FROM club.calendar_items c
+          JOIN club.academy_training_plan_publications pub
+            ON pub.organization_id=c.organization_id
+            AND pub.event_id=c.id AND pub.event_kind=c.kind
+          JOIN club.calendar_item_scopes sc
+            ON sc.organization_id=c.organization_id
+            AND sc.kind=c.kind AND sc.event_id=c.id
+            AND sc.scope_kind='group'
+          JOIN club.players player
+            ON player.id=_player AND player.organization_id=c.organization_id
+          WHERE _owner='lefteria_fc_academy'
+            AND c.organization_id=_owner AND c.kind='training'
+            AND c.source_collection='os_training'
+            AND c.id=_event
+            AND NOT c.is_archived AND NOT c.is_cancelled
+            AND c.member_projection_json IS NOT NULL
+            AND player.is_active AND NOT player.is_archived
+            AND NOT player.is_transferred
+            AND player.team_type='Academy'
+            AND player.primary_academy_group_id=sc.record_id)
+      $os_native_primary$;
+      REVOKE ALL ON FUNCTION club.os_native_training_primary_member(
+        text,text,text) FROM PUBLIC;
       """);
 
     protected override void Down(MigrationBuilder migrationBuilder) =>
@@ -209,6 +240,8 @@ public sealed class AcademyTrainingCanonicalPublication : Migration
           IF EXISTS(SELECT 1 FROM club.academy_training_plan_publications)
           THEN RAISE EXCEPTION 'os_training_published_data_exists'; END IF;
         END $rollback_guard$;
+        DROP FUNCTION club.os_native_training_primary_member(
+          text,text,text);
         DROP FUNCTION club.read_admin_academy_training_publications(
           text,text,text,date,date);
         DROP FUNCTION club.publish_admin_academy_training_plan(
