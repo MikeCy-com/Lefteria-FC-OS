@@ -267,8 +267,61 @@ BEGIN
     RAISE EXCEPTION 'Archived plan was editable';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
+  -- Cancellation retains the original published training, preserves
+  -- historical RSVP and blocks new writes through canonical is_cancelled.
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(
+      v_digest,v_owner,v_other,1,'Cancelled due to unsafe field',false);
+    RAISE EXCEPTION 'Unconfirmed training cancellation accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(
+      v_digest,v_owner,v_other,1,'short',true);
+    RAISE EXCEPTION 'Unusable public training cancellation reason accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  v_result:=club.cancel_admin_academy_training_publication(
+    v_digest,v_owner,v_other,1,'Cancelled due to unsafe field',true);
+  IF v_result->>'cancelled'<>'true'
+    OR v_result->>'notifications_sent'<>'false'
+    OR v_result->>'cancel_reason'<>'Cancelled due to unsafe field'
+    OR NOT EXISTS(SELECT 1 FROM club.calendar_items c
+      WHERE c.kind='training' AND c.id=v_published->>'event_id'
+        AND c.organization_id=v_owner AND c.source_collection='os_training'
+        AND c.is_cancelled AND NOT c.is_archived
+        AND c.member_projection_json IS NOT NULL
+        AND c.cancel_reason='Cancelled due to unsafe field')
+    OR NOT EXISTS(SELECT 1 FROM club.calendar_responses r
+      WHERE r.kind='training' AND r.event_id=v_published->>'event_id'
+        AND r.player_id=v_player AND r.collection='availability'
+        AND r.status='going')
+    OR NOT club.os_native_training_primary_member(
+      v_owner,v_published->>'event_id',v_player) THEN
+    RAISE EXCEPTION 'Cancellation hid event or rewrote historical member RSVP';
+  END IF;
+  v_result:=club.read_admin_academy_training_publications(
+    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+  IF jsonb_array_length(v_result->'publications')<>1
+    OR v_result->'publications'->0->>'is_cancelled'<>'true'
+    OR v_result->'publications'->0->>'cancel_reason'<>
+       'Cancelled due to unsafe field' THEN
+    RAISE EXCEPTION 'Authorized manager cancellation history missing';
+  END IF;
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(
+      v_digest,v_owner,v_other,1,'Cancelled due to unsafe field',true);
+    RAISE EXCEPTION 'Duplicate native training cancellation was allowed';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(
+      v_digest,v_owner,v_other,1,'Cancelled due to unsafe field',true);
+    RAISE EXCEPTION 'Revoked manager could cancel';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   BEGIN
     PERFORM club.publish_admin_academy_training_plan(
       v_digest,v_owner,v_other,1,true);
