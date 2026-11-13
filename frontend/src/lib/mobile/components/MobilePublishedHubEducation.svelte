@@ -1,7 +1,7 @@
 <script lang="ts">
   import {onMount} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
-  import {searchPublishedHubEducation, type PublishedHubArticle} from '../published-education.ts';
+  import {searchPublishedHubEducation,prioritizeUncompletedPublishedEducation, type PublishedHubArticle} from '../published-education.ts';
   import './mobile-theme.css';
 
   let {controller,viewerRole}:{controller:MobileAuthController,
@@ -14,8 +14,7 @@
   const visibleItems=$derived(searchPublishedHubEducation(items,search));
   // Reorder only the articles already authorized by the server and loaded
   // into this role-scoped session. Never infer entitlement or child age.
-  const learningOrder=$derived([...visibleItems].sort((a,b)=>
-    Number(completedIds.includes(a.id))-Number(completedIds.includes(b.id))));
+  const learningOrder=$derived(prioritizeUncompletedPublishedEducation(visibleItems,completedIds));
   const completedCount=$derived(items.filter(item=>completedIds.includes(item.id)).length);
   let organization=$state<'lefteria_fc'|'lefteria_fc_academy'>('lefteria_fc_academy');
   let busy=$state(true);
