@@ -195,6 +195,7 @@ app.MapAdminCoaches();
 app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapAdminHub();
+app.MapAdminPlayerWeeklyQuiz();
 app.MapMobileHubPublished();
 app.MapMobilePlayerWeeklyQuiz();
 app.MapMobileChatGroupDirectory();
