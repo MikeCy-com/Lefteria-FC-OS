@@ -11,9 +11,9 @@ export interface PersonalLessonDelivery{
 export interface PersonalLessonInbox{
  organization_id:Org;audience:Role;items:PersonalLessonDelivery[];
 }
-const uuid=(value:unknown)=>typeof value==='string'&&
+const uuid=(value:unknown):value is string=>typeof value==='string'&&
  /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
-const iso=(value:unknown)=>typeof value==='string'&&Number.isFinite(Date.parse(value));
+const iso=(value:unknown):value is string=>typeof value==='string'&&Number.isFinite(Date.parse(value));
 const object=(value:unknown):value is Record<string,unknown>=>!!value&&
  typeof value==='object'&&!Array.isArray(value);
 export function validPersonalLessonSchedule(value:unknown,owner:Org,role:Role):
