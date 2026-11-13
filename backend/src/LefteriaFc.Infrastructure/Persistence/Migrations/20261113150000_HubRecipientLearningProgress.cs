@@ -25,7 +25,7 @@ public sealed class HubRecipientLearningProgress : Migration
               content_id uuid NOT NULL REFERENCES hub.content(id) ON DELETE RESTRICT,
               revision_id uuid NOT NULL REFERENCES hub.revisions(id) ON DELETE RESTRICT,
               completed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-              PRIMARY KEY(identity_id,organization_id,viewer_role,audience,content_id),
+              PRIMARY KEY(identity_id,organization_id,viewer_role,audience,content_id,revision_id),
               CONSTRAINT ck_education_role_audience CHECK(
                 viewer_role='fan' OR viewer_role=audience),
               CONSTRAINT ck_education_completion_org CHECK(
