@@ -30,3 +30,11 @@ test('role and organization fetch boundaries remain unchanged in pathway UI',()=
   assert.match(component,/busy=true;error=null;items=\[\];nextOffset=null;completedIds=\[\];/);
   assert.doesNotMatch(component,/localStorage|sessionStorage|AI_PROVIDER|payment/);
 });
+
+test('reused education viewer re-authorizes content when parent/player role changes',()=>{
+  assert.match(component,/\$effect\(\(\)=>\{/);
+  assert.match(component,/const role=viewerRole;/);
+  assert.match(component,/untrack\(\(\)=>void refresh\(\)\)/);
+  assert.match(component,/busy=true;error=null;items=\[\];nextOffset=null;completedIds=\[\];/);
+  assert.match(component,/if\(!alive\|\|current!==request\|\|page\.audience!==viewerRole\)return;/);
+});
