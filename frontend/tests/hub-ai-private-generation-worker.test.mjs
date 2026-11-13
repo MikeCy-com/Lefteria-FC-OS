@@ -77,3 +77,12 @@ test('AI provider response bodies are bounded while streaming and require valid 
  assert.match(provider,/DecoderFallbackException/);
  assert.doesNotMatch(provider,/ReadAsStringAsync\(token\)/);
 });
+
+test('missing required provider JSON properties fail closed instead of escaping the worker',()=>{
+ // JsonElement.GetProperty throws KeyNotFoundException for missing keys,
+ // unlike malformed JSON which throws JsonException.
+ assert.match(provider,/catch\(KeyNotFoundException\) \{return new\(null,"invalid_output"\);\}/);
+ assert.match(provider,/catch\(KeyNotFoundException\) \{return new\(null,"provider_unavailable"\);\}/);
+ assert.match(provider,/root\.GetProperty\("status"\)/);
+ assert.match(provider,/moderationDoc\.RootElement\.GetProperty\("results"\)/);
+});
