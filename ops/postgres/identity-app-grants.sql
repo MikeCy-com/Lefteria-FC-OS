@@ -462,6 +462,26 @@ REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) TO :"app_role";
 
+-- Per-recipient scheduled learning uses only bounded role-checked
+-- enrollment/inbox routines. No app account can dispatch messages,
+-- activate subscriptions or read underlying delivery rows.
+REVOKE ALL ON TABLE hub.learning_enrollments,hub.learning_delivery_outbox
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.fan_delivery_entitled(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.authorize_mobile_learning_enrollment(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.dispatch_due_weekly_learning(integer)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.enroll_mobile_weekly_learning(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_weekly_learning(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.enroll_mobile_weekly_learning(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_weekly_learning(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
