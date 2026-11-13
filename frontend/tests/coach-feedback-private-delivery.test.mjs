@@ -68,3 +68,14 @@ test('player feedback inbox refuses malformed entries and future timestamps',()=
  assert.match(store,/item\.Message\.Length is <30 or >1600/);
  assert.match(store,/item\.SentAt==default \|\| item\.SentAt>DateTimeOffset\.UtcNow/);
 });
+
+test('private coach targets and player inbox always disable HTTP caches',()=>{
+ const targets=api.split('MapGet("/api/mobile/coach/feedback/targets"')[1]?.split('.WithName("GetMobileCoachFeedbackTargets")')[0];
+ const inbox=api.split('MapGet("/api/mobile/player/coach-feedback"')[1]?.split('.WithName("GetMobilePlayerCoachFeedback")')[0];
+ assert.ok(targets&&inbox);
+ for(const route of [targets,inbox]){
+   assert.match(route,/Response\.Headers\.CacheControl="private, no-store"/);
+   assert.match(route,/Response\.Headers\.Pragma="no-cache"/);
+   assert.match(route,/RequireAuthorization\(IdentityServices\.Policy\)/);
+ }
+});
