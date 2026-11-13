@@ -11,7 +11,7 @@ const validation=read('frontend/src/lib/mobile/coach-feedback.ts');
 
 test('player Hub mounts own private inbox; parent and fan cannot mount it',()=>{
  assert.match(route,/import MobilePlayerCoachFeedback from/);
- assert.match(route,/\{#if role === 'player'\}\s*<MobilePlayerCoachFeedback \{controller\}/);
+ assert.match(route,/\{#if role\s*===\s*'player'\}\s*<MobilePlayerCoachFeedback \{controller\}/);
  assert.match(route,/MobileAcademyEducation viewerRole=\{role\}/);
  assert.doesNotMatch(route,/\{#if role === 'parent'\}\s*<MobilePlayerCoachFeedback/);
 });
