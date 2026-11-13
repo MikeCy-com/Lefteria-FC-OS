@@ -81,3 +81,11 @@ test('individual next page and exact completion are validated in the controller'
  assert.match(route,/MobilePersonalLearningJourney \{controller\} viewerRole=\{role\}/);
  assert.doesNotMatch(journey,/localStorage|sessionStorage|Payabl|fanInterest/);
 });
+
+test('app does not expose the global education archive or ungated starter articles to members',()=>{
+ assert.match(route,/\{#if role === 'parent' \|\| role === 'player'\}/);
+ assert.match(route,/<MobilePersonalLearningJourney \{controller\} viewerRole=\{role\}/);
+ assert.doesNotMatch(route,/<MobilePublishedHubEducation/);
+ assert.match(route,/\{#if role === 'fan'\}\s*<MobileAcademyEducation viewerRole=\{role\}/);
+ assert.doesNotMatch(route,/\{#if role === 'parent' \|\| role === 'player'\}[\s\S]{0,180}<MobileAcademyEducation/);
+});
