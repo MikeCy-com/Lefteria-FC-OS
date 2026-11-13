@@ -121,6 +121,7 @@ BEGIN
                   'club.preview_admin_academy_training_distribution(text,text,uuid,integer)'::regprocedure,
                   'club.publish_admin_academy_training_plan(text,text,uuid,integer,boolean)'::regprocedure,
                   'club.read_admin_academy_training_publications(text,text,text,date,date)'::regprocedure,
+                  'club.cancel_admin_academy_training_publication(text,text,uuid,integer,text,boolean)'::regprocedure,
                   'club.os_native_training_primary_member(text,text,text)'::regprocedure,
                   'marketing.read_admin_academy_leads(text,text,integer,integer,text)'::regprocedure,
                   'marketing.update_admin_academy_lead_status(text,text,uuid,text,text)'::regprocedure)) THEN
