@@ -4,7 +4,7 @@
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
-  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch} from '../role-home.ts';
+  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext} from '../role-home.ts';
   import './mobile-theme.css';
 
   type HomeRole=Exclude<MobileRole,'parent'>;
@@ -20,10 +20,8 @@
     calendarError,busy=false,today=clubToday(),onLoadCalendar,onNavigate}:Props=$props();
   const id=$props.id();
   const needsOrganization=$derived(role==='management'&&!organizationId);
-  const contextIsCurrent=$derived(!!calendar&&calendarStatus==='ready'&&
-    calendar.identity_id===identityId&&calendar.role===role&&
-    calendar.month===today.slice(0,7)&&calendar.selected_player_id===null&&
-    (role!=='management'||(!!organizationId&&calendar.organization_id===organizationId)));
+  const contextIsCurrent=$derived(calendarStatus==='ready'&&role!=='fan'&&
+    isTrustedRoleHomeContext(calendar,role,identityId,organizationId,today));
   const upcoming=$derived(role==='fan'||!contextIsCurrent?[]:
     trustedRoleHomeEvents(calendar,role,identityId,organizationId,today));
   const shortcuts=$derived(ROLE_HOME_SHORTCUTS[role]);
