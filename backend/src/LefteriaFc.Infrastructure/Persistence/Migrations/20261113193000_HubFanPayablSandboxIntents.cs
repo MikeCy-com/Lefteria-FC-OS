@@ -23,6 +23,7 @@ public sealed class HubFanPayablSandboxIntents : Migration
             audience varchar(12) NOT NULL CHECK(audience IN ('fan_parent','fan_player','fan_both')),
             client_request_id uuid NOT NULL,
             amount_cents bigint NOT NULL CHECK(amount_cents BETWEEN 1 AND 100000000),
+            consent_at timestamptz NOT NULL DEFAULT clock_timestamp(),
             currency char(3) NOT NULL DEFAULT 'EUR' CHECK(currency='EUR'),
             callback_digest char(64) NOT NULL UNIQUE CHECK(callback_digest ~ '^[a-f0-9]{64}$'),
             order_id varchar(30) NOT NULL UNIQUE,
@@ -49,6 +50,12 @@ public sealed class HubFanPayablSandboxIntents : Migration
             recorded_at timestamptz NOT NULL DEFAULT clock_timestamp(),
             PRIMARY KEY(intent_id,transaction_id,event_type,error_code,provider_timestamp,payment_state)
           );
+          -- A different client request ID cannot create another concurrent
+          -- pending charge for the same fan, organization and interest.
+          CREATE UNIQUE INDEX ux_hub_fan_checkout_open
+            ON hub.fan_payabl_checkout_intents(
+              subscriber_identity_id,organization_id,audience)
+            WHERE status IN ('initiating','ready','review_required');
           CREATE INDEX ix_hub_fan_checkout_identity ON hub.fan_payabl_checkout_intents(
             subscriber_identity_id,organization_id,created_at DESC);
           ALTER TABLE hub.fan_payabl_checkout_intents ENABLE ROW LEVEL SECURITY;
@@ -116,7 +123,7 @@ public sealed class HubFanPayablSandboxIntents : Migration
           SET search_path=pg_catalog,pg_temp
           AS $fan_checkout_ready$
           BEGIN
-            IF _id IS NULL OR _url !~ '^https://' OR length(_url)>2048
+            IF _id IS NULL OR _url !~ '^https://(sandbox[.]payabl[.]com|pay4[.]sandbox[.]payabl[.]com)(/|$)' OR length(_url)>2048
               OR _transaction !~ '^[0-9]{1,40}$'
             THEN RAISE EXCEPTION 'fan_checkout_ready_invalid' USING ERRCODE='22023'; END IF;
             PERFORM 1 FROM identity.mobile_identities i
