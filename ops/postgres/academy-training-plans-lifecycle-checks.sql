@@ -9,6 +9,8 @@ DECLARE
   v_session uuid:=gen_random_uuid();
   v_id uuid:=gen_random_uuid();
   v_other uuid:=gen_random_uuid();
+  v_player text:='ci_pub_player_'||left(replace(gen_random_uuid()::text,'-',''),16);
+  v_published jsonb;
   v_digest text:=repeat('d',64);
   v_group text:='ci_plan_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
@@ -20,6 +22,17 @@ BEGIN
     repeat('a',40),'development',0,1,0,0,clock_timestamp());
   INSERT INTO club.academy_groups(id,organization_id,name)
     VALUES(v_group,v_owner,'Disposable CI training group');
+  INSERT INTO club.players(id,organization_id,name,number,position,
+    team_type,team_id,primary_academy_group_id,image_url,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+  VALUES(v_player,v_owner,'Synthetic CI member',17,'Midfielder',
+    'Academy',NULL,v_group,NULL,true,false,false,true);
+  INSERT INTO club.calendar_import_state(
+    id,digest,roster_digest,source_commit,environment,time_zone,
+    is_complete,exported_at,applied_at,counts_json,manifest_bytes)
+  VALUES('initial',repeat('c',64),repeat('a',64),repeat('b',40),
+    'development','Asia/Nicosia',true,clock_timestamp(),clock_timestamp(),
+    '{"quarantined_rows":0}'::jsonb,decode('7b7d','hex'));
   INSERT INTO identity.admin_accounts(
     id,username,display_name,role,is_active,password_hash)
   VALUES(v_actor,'ci_planner_'||left(replace(v_actor::text,'-',''),14),
@@ -155,6 +168,53 @@ BEGIN
     OR (v_result->>'version')::integer<>1 THEN
     RAISE EXCEPTION 'Archived plan still blocks unrelated new draft';
   END IF;
+  -- Only the exact approved new draft may become a canonical OS training.
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(
+      v_digest,v_owner,v_other,1,true);
+    RAISE EXCEPTION 'Unapproved native training was published';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  PERFORM club.approve_admin_academy_training_plan(
+    v_digest,v_owner,v_other,1);
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(
+      v_digest,v_owner,v_other,1,false);
+    RAISE EXCEPTION 'Publish without explicit confirmation accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  v_published:=club.publish_admin_academy_training_plan(
+    v_digest,v_owner,v_other,1,true);
+  IF v_published->>'published'<>'true'
+    OR v_published->>'notifications_sent'<>'false'
+    OR v_published->>'event_id'<>'os-training-'||v_other::text
+    OR NOT EXISTS(SELECT 1 FROM club.calendar_items c
+      JOIN club.calendar_item_scopes sc
+        ON sc.organization_id=c.organization_id
+        AND sc.kind=c.kind AND sc.event_id=c.id
+      WHERE c.id=v_published->>'event_id' AND c.kind='training'
+        AND c.source_collection='os_training'
+        AND c.member_projection_json IS NOT NULL
+        AND sc.scope_kind='group' AND sc.record_id=v_group)
+    OR NOT EXISTS(SELECT 1 FROM migration.calendar_source_documents src
+      WHERE src.collection='os_training'
+        AND src.target_id=v_published->>'event_id') THEN
+    RAISE EXCEPTION 'Native Academy training publication was not group-scoped';
+  END IF;
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(
+      v_digest,v_owner,v_other,1,true);
+    RAISE EXCEPTION 'Duplicate canonical event publication accepted';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(
+      v_digest,v_owner,v_other,v_group,DATE '2026-11-21',
+      TIME '18:00',60,'Edited after publication',
+      'Disposable pitch','',1,false);
+    RAISE EXCEPTION 'Published plan could still be edited';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
   IF (SELECT count(*) FROM club.academy_training_plan_events
       WHERE plan_id=v_id)<>3
     OR EXISTS(SELECT 1 FROM club.calendar_items WHERE id=v_id::text)
@@ -171,6 +231,12 @@ BEGIN
   END;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(
+      v_digest,v_owner,v_other,1,true);
+    RAISE EXCEPTION 'Revoked manager could publish';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   BEGIN
     PERFORM club.preview_admin_academy_training_distribution(
       v_digest,v_owner,v_id,2);
