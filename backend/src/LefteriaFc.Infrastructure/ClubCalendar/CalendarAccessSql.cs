@@ -18,9 +18,21 @@ internal static class CalendarAccessSql
           EXISTS(SELECT 1 FROM club.calendar_item_guests guest
             WHERE guest.kind=c.kind AND guest.event_id=c.id AND guest.player_id=p.id)
           OR EXISTS(SELECT 1 FROM club.calendar_item_scopes assigned
-            JOIN club.player_academy_groups membership ON membership.academy_group_id=assigned.record_id
-              AND membership.organization_id=assigned.organization_id AND membership.player_id=p.id
-            WHERE assigned.kind=c.kind AND assigned.event_id=c.id AND assigned.scope_kind='group')
+            WHERE assigned.kind=c.kind AND assigned.event_id=c.id
+              AND assigned.organization_id=c.organization_id
+              AND assigned.scope_kind='group'
+              AND (
+                EXISTS(SELECT 1 FROM club.player_academy_groups membership
+                  WHERE membership.academy_group_id=assigned.record_id
+                    AND membership.organization_id=assigned.organization_id
+                    AND membership.player_id=p.id)
+                OR EXISTS(SELECT 1 FROM club.players current_player
+                  WHERE current_player.id=p.id
+                    AND current_player.organization_id=c.organization_id
+                    AND current_player.is_active AND NOT current_player.is_archived
+                    AND NOT current_player.is_transferred
+                    AND current_player.primary_academy_group_id=assigned.record_id)
+              ))
           OR (NOT EXISTS(SELECT 1 FROM club.calendar_item_scopes assigned WHERE assigned.kind=c.kind AND assigned.event_id=c.id AND assigned.scope_kind='group')
             AND EXISTS(SELECT 1 FROM club.calendar_item_scopes assigned WHERE assigned.kind=c.kind AND assigned.event_id=c.id
               AND assigned.scope_kind='team' AND assigned.record_id=p.team_id))
