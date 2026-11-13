@@ -66,7 +66,7 @@ test('subscription is strictly sandbox priced, and never activates from redirect
  assert.match(store,/!body\.Consent/);
  assert.match(store,/!gateway\.Available/);
  assert.match(store,/return reserved with \{ CheckoutUrl=hosted\.CheckoutUrl \}/);
- assert.match(store,/do not retry/i);
+ assert.match(store,/Never retry a gateway initialization/);
 });
 test('fan subscription interest never confers guardian or player identity',()=>{
  assert.match(checkout,/_role IS DISTINCT FROM 'fan'/);
