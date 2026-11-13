@@ -5,9 +5,10 @@
   import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
     validTrainingPlanApprovals,validTrainingPlanApprovalResult,
     validTrainingDistributionPreview,validTrainingPublicationsPage,
-    validPublishedTrainingResult}
+    validPublishedTrainingResult,validTrainingCancellationResult}
     from './academy-training-plans.ts';
-  import type {TrainingPlanDraft,TrainingPlanForm,TrainingDistributionPreview} from './academy-training-plans.ts';
+  import type {TrainingPlanDraft,TrainingPlanForm,TrainingDistributionPreview,
+    TrainingPublicationRecord} from './academy-training-plans.ts';
 
   let {groupId,from,to,actor,allowed,canWrite}:{
     groupId:string;from:string;to:string;actor:string;
@@ -18,6 +19,9 @@
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
   let approvedIds=$state<string[]>([]),publishedIds=$state<string[]>([]);
+  let publicationRows=$state<TrainingPublicationRecord[]>([]);
+  let cancellationTarget=$state<TrainingPlanDraft|null>(null);
+  let cancellationReason=$state(''),cancellationConfirmed=$state(false);
   let reviewConfirmed=$state(false),publishConfirmed=$state(false);
   let preview=$state<TrainingDistributionPreview|null>(null),previewing=$state(false);
   let error=$state(''),notice=$state(''),refreshNonce=$state(0);
@@ -30,6 +34,7 @@
   function reset(){
     editing=null;archiveConfirmed=false;reviewConfirmed=false;
     publishConfirmed=false;preview=null;notice='';error='';
+    cancellationTarget=null;cancellationConfirmed=false;cancellationReason='';
     form={day:from,start_time:'17:00',duration_minutes:75,
       title:'',location:'',notes:''};
   }
@@ -42,12 +47,19 @@
   }
   const base='/api/admin/academy/training/plans/';
   const ownerQuery='organization_id='+org;
+  const validCancellationReason=$derived(
+    cancellationReason.length>=8&&cancellationReason.length<=500&&
+    cancellationReason.trim()===cancellationReason&&
+    !/[\x00-\x1f\x7f]/.test(cancellationReason)
+  );
 
   $effect(()=>{
     const scope=actor+':'+groupId+':'+from+':'+to;
     const valid=allowed&&!!actor&&!!groupId&&!!from&&!!to;
     void refreshNonce;void scope;
-    rows=[];approvedIds=[];publishedIds=[];preview=null;editing=null;
+    rows=[];approvedIds=[];publishedIds=[];publicationRows=[];
+    cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;
+    preview=null;editing=null;
     archiveConfirmed=false;reviewConfirmed=false;publishConfirmed=false;notice='';error='';
     if(!browser||!valid)return;
     const controller=new AbortController();
@@ -97,6 +109,7 @@
           rows=raw.plans;
           approvedIds=approvals.approvals.map(p=>p.id);
           publishedIds=published.publications.map(p=>p.id);
+          publicationRows=published.publications;
         }
       }catch(e){
         if(!controller.signal.aborted)
@@ -105,6 +118,42 @@
     })();});
     return()=>controller.abort();
   });
+
+  async function cancelPublished(plan:TrainingPlanDraft){
+    if(!browser||!canWrite||loading||saving||!cancellationConfirmed||
+      !validCancellationReason||cancellationTarget?.id!==plan.id||
+      !publishedIds.includes(plan.id)||
+      publicationRows.find(row=>row.id===plan.id)?.is_cancelled)return;
+    const owner=actor,group=groupId,period=from+':'+to;
+    const reason=cancellationReason;
+    saving=true;error='';notice='';
+    try{
+      const response=await fetch(
+        base+encodeURIComponent(plan.id)+'/cancel?'+ownerQuery,{
+          method:'POST',credentials:'same-origin',cache:'no-store',
+          headers:{'Content-Type':'application/json','Accept':'application/json',
+            'X-Lefteria-Admin':'1'},
+          body:JSON.stringify({expected_version:plan.version,
+            reason,confirm_cancellation:true})
+        });
+      if(owner!==actor||group!==groupId||period!==from+':'+to||
+        !allowed||!canWrite)return;
+      if(response.status===401||response.status===403){
+        void auth.bootstrap();throw Error('Η εξουσιοδότηση άλλαξε.');
+      }
+      if(response.status===409){
+        refreshNonce++;throw Error('Η προπόνηση έχει ήδη ακυρωθεί ή άλλαξε η έκδοση.');
+      }
+      if(!response.ok)throw Error('Η ακύρωση δεν καταχωρήθηκε.');
+      const raw:unknown=await response.json();
+      if(!validTrainingCancellationResult(raw,plan,reason))
+        throw Error('Η απόκριση ακύρωσης δεν επαληθεύτηκε.');
+      cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;
+      notice='Η δημοσιευμένη προπόνηση ακυρώθηκε στο ημερολόγιο του τμήματος. Δεν στάλθηκαν αυτόματες ειδοποιήσεις.';
+      refreshNonce++;
+    }catch(e){error=e instanceof Error?e.message:'Η ακύρωση απέτυχε.';}
+    finally{saving=false;}
+  }
 
   async function publish(plan:TrainingPlanDraft){
     if(!browser||!canWrite||loading||saving||previewing||!publishConfirmed||
@@ -254,7 +303,7 @@
       <h2 id="training-plan-heading">Ιδιωτικός σχεδιασμός προπονήσεων</h2></div>
     <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving}>Ανανέωση</button>
   </header>
-  <p class="plan-note">Τα πρόχειρα είναι ξεχωριστά από το επίσημο ημερολόγιο και ΔΕΝ δημοσιεύονται στους αθλητές, γονείς ή προπονητές. Η πραγματική έκδοση προπόνησης παραμένει επόμενο στάδιο.</p>
+  <p class="plan-note">Τα πρόχειρα μένουν ιδιωτικά μέχρι να εγκριθούν και να δημοσιευτούν από διαχειριστή. Οι δημοσιευμένες προπονήσεις εμφανίζονται στο ημερολόγιο του σωστού τμήματος. Οι ακυρώσεις δεν στέλνουν αυτόματες ειδοποιήσεις.</p>
   {#if error}<p class="plan-error" role="alert">{error}</p>{/if}
   {#if notice}<p class="plan-notice" role="status">{notice}</p>{/if}
   {#if loading}
@@ -266,7 +315,15 @@
         <li class:archived={plan.status==='archived'}>
           <span><strong>{plan.title}</strong><small>{plan.day} · {plan.start_time} · {plan.duration_minutes}′
             {plan.location?' · '+plan.location:''}</small>
-            <small>Έκδοση {plan.version} · {publishedIds.includes(plan.id)?'Δημοσιευμένο στο ημερολόγιο':plan.status==='archived'?'Αρχειοθετημένο':approvedIds.includes(plan.id)?'Εγκρίθηκε · Αναμένει δημοσίευση':'Αναμένει ανθρώπινη έγκριση'}</small></span>
+            <small>Έκδοση {plan.version} · {publicationRows.find(p=>p.id===plan.id)?.is_cancelled?'Ακυρώθηκε στο ημερολόγιο':publishedIds.includes(plan.id)?'Δημοσιευμένο στο ημερολόγιο':plan.status==='archived'?'Αρχειοθετημένο':approvedIds.includes(plan.id)?'Εγκρίθηκε · Αναμένει δημοσίευση':'Αναμένει ανθρώπινη έγκριση'}</small>
+            {#if publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
+              <small data-testid="academy-native-training-cancel-reason">Λόγος ακύρωσης: {publicationRows.find(p=>p.id===plan.id)?.cancel_reason}</small>
+            {/if}</span>
+          {#if canWrite&&publishedIds.includes(plan.id)&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
+            <button type="button" disabled={saving||loading}
+              onclick={()=>{cancellationTarget=plan;cancellationReason='';cancellationConfirmed=false;preview=null;}}
+              data-testid="academy-native-cancel-open">Ακύρωση δημοσιευμένης</button>
+          {/if}
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)}
             <button type="button" disabled={saving} onclick={()=>edit(plan)}>Επεξεργασία</button>
             {#if !approvedIds.includes(plan.id)}
@@ -280,6 +337,30 @@
         </li>
       {/each}
     </ul>
+  {/if}
+  {#if cancellationTarget}
+    <section class="training-distribution" data-testid="academy-native-cancel-panel"
+      aria-label="Ακύρωση δημοσιευμένης προπόνησης">
+      <h3>Ακύρωση δημοσιευμένης προπόνησης</h3>
+      <p><strong>{cancellationTarget.title}</strong> · {cancellationTarget.day} {cancellationTarget.start_time}</p>
+      <p class="plan-note">Ο δημόσιος λόγος θα φαίνεται στους γονείς και αθλητές του τμήματος. Οι παλιές απαντήσεις RSVP και παρουσίες διατηρούνται. Οι νέες απαντήσεις αποκλείονται. Δεν αποστέλλεται ειδοποίηση push/SMS.</p>
+      <label class="cancel-reason">Δημόσιος λόγος ακύρωσης
+        <textarea bind:value={cancellationReason} maxlength="500" rows="3"
+          disabled={saving} placeholder="Π.χ. Ακύρωση λόγω ακαταλληλότητας γηπέδου" />
+      </label>
+      <label class="review-confirm"><input type="checkbox"
+        bind:checked={cancellationConfirmed} disabled={saving}/>
+        Επιβεβαιώνω την ακύρωση στο ημερολόγιο του συγκεκριμένου τμήματος.
+      </label>
+      <button type="button" class="publish" disabled={!validCancellationReason||!cancellationConfirmed||saving}
+        onclick={()=>{if(cancellationTarget)void cancelPublished(cancellationTarget);}}>
+        Επιβεβαίωση ακύρωσης
+      </button>
+      <button type="button" disabled={saving}
+        onclick={()=>{cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;}}>
+        Επιστροφή χωρίς ακύρωση
+      </button>
+    </section>
   {/if}
   {#if preview}
     <section class="training-distribution" aria-label="Προεπισκόπηση αποδεκτών" data-testid="training-distribution-preview">
@@ -361,6 +442,8 @@
   .training-distribution{border:1px solid #bd8e3f;background:#211e15;border-radius:9px;padding:14px;margin:16px 0}
   .training-distribution h3{color:#ffca46}
   .training-distribution p{font-size:12px;line-height:1.6}
+  .cancel-reason{display:grid;gap:8px;font-size:12px;color:#f2ddac}
+  .cancel-reason textarea{background:#101213;color:#fff;border:1px solid #6d5d3d;border-radius:7px;padding:10px;font:inherit;max-width:100%}
   .publish{background:#5c4117;border-color:#f5a623;color:#fff;font-weight:700;margin-right:8px}
   .review-confirm{display:flex;gap:9px;align-items:center;font-size:12px;margin:14px 0;color:#f2ddac}
   .review-confirm input{accent-color:#f5a623;min-width:18px;min-height:18px}
