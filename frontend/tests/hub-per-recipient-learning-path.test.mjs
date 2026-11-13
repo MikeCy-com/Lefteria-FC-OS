@@ -90,7 +90,7 @@ test('app does not expose the global education archive or ungated starter articl
  assert.match(route,/<MobilePersonalLearningJourney \{controller\} viewerRole=\{role\}/);
  assert.doesNotMatch(route,/<MobilePublishedHubEducation/);
  assert.match(route,/\{#if role === 'fan'\}\s*<MobileAcademyEducation viewerRole=\{role\}/);
- assert.doesNotMatch(route,/\{#if role === 'parent' \|\| role === 'player'\}[\s\S]{0,180}<MobileAcademyEducation/);
+ assert.doesNotMatch(route,/\{#if role === 'parent' \|\| role === 'player'\}(?:(?!\{\/if\})[\s\S])*?<MobileAcademyEducation/);
 });
 
 test('player receives only their own active canonical club roster pathway',()=>{
