@@ -8,7 +8,11 @@
     viewerRole:'parent'|'player'}=$props();
   let items=$state<PublishedHubArticle[]>([]);
   let search=$state('');
+  // Progress is deliberately ephemeral: no child profile, AI telemetry or
+  // provider storage. Reset on every authoritative fetch/context change.
+  let completedIds=$state<string[]>([]);
   const visibleItems=$derived(searchPublishedHubEducation(items,search));
+  const completedCount=$derived(items.filter(item=>completedIds.includes(item.id)).length);
   let organization=$state<'lefteria_fc'|'lefteria_fc_academy'>('lefteria_fc_academy');
   let busy=$state(true);
   let error=$state<string|null>(null);
@@ -17,11 +21,11 @@
 
   onMount(()=>{
     alive=true;void refresh();
-    return()=>{alive=false;request++;items=[];};
+    return()=>{alive=false;request++;items=[];completedIds=[];};
   });
   async function refresh(){
     const current=++request;
-    busy=true;error=null;items=[];nextOffset=null;
+    busy=true;error=null;items=[];nextOffset=null;completedIds=[];
     try{
       const page=await controller.getPublishedHubEducation(organization,0);
       if(!alive||current!==request||page.audience!==viewerRole)return;
@@ -71,7 +75,7 @@
       <label for="published-hub-search">Αναζήτηση στα φορτωμένα άρθρα</label>
       <input id="published-hub-search" type="search" maxlength="120" autocomplete="off"
         placeholder="Αναζήτησε τίτλο ή κείμενο" bind:value={search} />
-      <p role="status" aria-live="polite">{visibleItems.length} από {items.length} φορτωμένα άρθρα</p>
+      <p role="status" aria-live="polite">{visibleItems.length} από {items.length} φορτωμένα άρθρα · {completedCount} σημειωμένα ως ολοκληρωμένα (μόνο για αυτή τη συνεδρία)</p>
     </div>
     {#if visibleItems.length===0}
       <p role="status" class="note">Δεν βρέθηκε άρθρο στα φορτωμένα αποτελέσματα. Δοκίμασε άλλη αναζήτηση.</p>
@@ -85,6 +89,14 @@
           </div>
           <h3>{item.title}</h3>
           <p class="body">{item.body}</p>
+          <button type="button" class="completion" aria-pressed={completedIds.includes(item.id)}
+            onclick={() => {
+              completedIds=completedIds.includes(item.id)
+                ? completedIds.filter(id=>id!==item.id)
+                : [...completedIds,item.id];
+            }}>
+            {completedIds.includes(item.id) ? '✓ Ολοκληρώθηκε · Αναίρεση' : 'Σημείωσε ως ολοκληρωμένο'}
+          </button>
         </li>
       {/each}
     </ol>
@@ -111,6 +123,8 @@
   .article h3{font-size:20px;margin:12px 0}
   .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;color:var(--lf-gold);font-size:11px}
   .body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.7}
+  .completion{min-height:44px;margin-top:12px;padding:10px 14px;background:var(--lf-surface);color:var(--lf-gold-light);border:1px solid var(--lf-brand-edge);border-radius:9px;cursor:pointer}
+  .completion[aria-pressed='true']{background:var(--lf-elevated);border-color:var(--lf-gold)}
   .published-search{display:grid;gap:9px;margin:16px 0}
   .published-search label{font-size:13px;font-weight:700}
   .published-search input{min-height:44px;border:1px solid var(--lf-line);border-radius:9px;background:var(--lf-elevated);color:var(--lf-text);padding:10px 12px;font:inherit}
