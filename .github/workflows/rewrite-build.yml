@@ -127,6 +127,9 @@ jobs:
       - name: Verify private POS cashier ledger in disposable PostgreSQL
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/pos-cashier-ledger-checks.sql
+      - name: Verify late-registration learning journeys (disposable PostgreSQL)
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/hub-recipient-learning-checks.sql
       - name: Provision and check restricted runtime role
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
