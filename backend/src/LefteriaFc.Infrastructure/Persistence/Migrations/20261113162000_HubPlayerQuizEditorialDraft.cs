@@ -197,7 +197,8 @@ public sealed class HubPlayerQuizEditorialDraft : Migration
             RETURN jsonb_build_object('id',_id,'organization_id',_owner,
               'status',v_quiz.status,'title',v_quiz.title,
               'topic',v_quiz.topic,'position',v_quiz.position,
-              'week_number',v_quiz.week_number,'questions',v_questions);
+              'week_number',v_quiz.week_number,'question_count',
+              jsonb_array_length(v_questions),'questions',v_questions);
           EXCEPTION WHEN no_data_found THEN
             RAISE EXCEPTION 'quiz_not_found' USING ERRCODE='P0002';
           END $quiz_admin_detail$;
