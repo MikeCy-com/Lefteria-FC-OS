@@ -2,6 +2,11 @@ import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
+import {validFanHubStatus,validFanHubCheckout,validFanHubLesson,
+  validFanHubCompleted,type FanHubOrganization,type FanHubTrack,
+  type FanHubAudience,type FanHubStatus,type FanHubCheckout,
+  type FanHubLessonPage,type FanHubLessonCompleted} from './fan-payabl.ts';
+
 import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
@@ -1498,6 +1503,73 @@ export function createMobileAuthController(options: {
         encodeURIComponent(approved.id)+'/send','POST',{version:2});
       if(!validCoachSend(result,approved))
         throw new Error('Unverified coach feedback delivery.');
+      return result;
+    },
+    async getFanHubSubscription(
+      organization:FanHubOrganization):Promise<FanHubStatus>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new Error('Verified fan identity required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('Missing fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-subscription?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||token!==savedToken||revision!==version)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubStatus(result,organization))
+        throw new Error('Unverified subscription status.');
+      return result;
+    },
+    async startFanHubCheckout(organization:FanHubOrganization,
+      track:FanHubTrack,email:string,firstName:string,lastName:string,
+      consent:boolean):Promise<FanHubCheckout>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available||
+         !consent||!email.includes('@')||email.length>50||
+         firstName.length>50||lastName.length>50)
+        throw new Error('Valid fan consent and payer details are required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('Missing fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-subscription/checkout',
+        'POST',{organization_id:organization,track,email,
+          first_name:firstName,last_name:lastName,consent:true});
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||token!==savedToken||revision!==version)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubCheckout(result))
+        throw new Error('Unverified Payabl checkout.');
+      return result;
+    },
+    async getFanHubNextLesson(
+      organization:FanHubOrganization,audience:FanHubAudience):Promise<FanHubLessonPage>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new Error('Verified fan account required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('Missing fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-learning/next?organization_id='+
+        encodeURIComponent(organization)+'&audience='+encodeURIComponent(audience));
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||token!==savedToken||revision!==version)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubLesson(result,organization,audience))
+        throw new Error('Unverified subscription lesson.');
+      return result;
+    },
+    async completeFanHubLesson(page:FanHubLessonPage):Promise<FanHubLessonCompleted>{
+      const item=page.next;
+      if(state.user?.role!=='fan'||!state.user.current_role_available||!item||
+         !validFanHubLesson(page,page.organization_id,page.audience))
+        throw new Error('No eligible fan lesson.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('Missing fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-learning/complete','POST',{
+        organization_id:page.organization_id,audience:page.audience,
+        content_id:item.id,revision_id:item.revision_id
+      });
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||token!==savedToken||revision!==version)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubCompleted(result,page))
+        throw new Error('Unverified fan completion.');
       return result;
     },
     async getPublishedHubEducation(
