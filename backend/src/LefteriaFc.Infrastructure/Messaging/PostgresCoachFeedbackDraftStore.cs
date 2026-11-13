@@ -136,10 +136,13 @@ public sealed class PostgresCoachFeedbackDraftStore(LefteriaDbContext database)
                 var dto=raw is null ? null : JsonSerializer.Deserialize<CoachFeedbackInboxResult>(
                     raw,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower});
                 if(dto?.Items is null || dto.Items.Count>20 ||
-                    dto.Items.Any(item=>item.Id==Guid.Empty ||
+                    dto.Items.Any(item=>item is null || item.Id==Guid.Empty ||
                         item.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy") ||
                         string.IsNullOrWhiteSpace(item.CoachName) ||
-                        item.Message.Length is <30 or >1600))
+                        item.CoachName.Length>200 ||
+                        string.IsNullOrWhiteSpace(item.Message) ||
+                        item.Message.Length is <30 or >1600 ||
+                        item.SentAt==default || item.SentAt>DateTimeOffset.UtcNow))
                     throw Unavailable();
                 return dto;
             }
