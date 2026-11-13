@@ -80,6 +80,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/publication-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["PreviewAdminAcademyTrainingDistribution"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans/approvals": {
         parameters: {
             query?: never;
@@ -4172,6 +4188,29 @@ export interface operations {
                 "application/json": components["schemas"]["ApproveTrainingPlanCommand"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PreviewAdminAcademyTrainingDistribution: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+                version?: number | string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
