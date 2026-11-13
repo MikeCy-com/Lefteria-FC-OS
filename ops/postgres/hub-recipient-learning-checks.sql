@@ -74,11 +74,17 @@ BEGIN
     RAISE EXCEPTION 'Subscriber could jump to a later lesson';
   END IF;
 
-  result:=hub.read_mobile_next_education(
-    other_role,'35799500103','player',clock_timestamp()+interval '1 hour',
-    'lefteria_fc_academy');
-  IF result->'next' <> 'null'::jsonb THEN
-    RAISE EXCEPTION 'Player received a parent-only curriculum';
+  -- An unlinked synthetic player must not receive even general player
+  -- lessons: player role alone does not prove active academy membership.
+  denied:=false;
+  BEGIN
+    PERFORM hub.read_mobile_next_education(
+      other_role,'35799500103','player',clock_timestamp()+interval '1 hour',
+      'lefteria_fc_academy');
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'Unlinked player bypassed canonical roster boundary';
   END IF;
   denied:=false;
   BEGIN
