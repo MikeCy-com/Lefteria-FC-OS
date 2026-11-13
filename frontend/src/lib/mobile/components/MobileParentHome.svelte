@@ -30,10 +30,14 @@
   const id = $props.id();
   let familyRequested = $state(false);
   let calendarRequestedFor = $state<string | null>(null);
+  let selectedChildId = $state<string | null>(null);
   const firstChild = $derived(familyStatus === 'ready' ? family?.children[0] ?? null : null);
+  // Only linked children in the latest server-verified family may be selected.
+  const activeChild = $derived(familyStatus === 'ready'
+    ? family?.children.find(child=>child.id===selectedChildId) ?? firstChild : null);
   const trustworthyCalendar = $derived(familyStatus === 'ready' &&
-    matchingParentHomeCalendar(family, calendar, identityId, today) && calendarStatus === 'ready');
-  const upcoming = $derived(trustworthyCalendar ? parentHomeSchedule(family, calendar, identityId, today) : []);
+    matchingParentHomeCalendar(family, calendar, identityId, today, activeChild?.id) && calendarStatus === 'ready');
+  const upcoming = $derived(trustworthyCalendar ? parentHomeSchedule(family, calendar, identityId, today, activeChild?.id) : []);
 
   // Every new dashboard mount rechecks guardian bindings. Cached sibling
   // selections and calendar data are not treated as lasting authorization.
@@ -45,9 +49,9 @@
   });
 
   $effect(() => {
-    if (familyStatus === 'ready' && firstChild && !busy && calendarRequestedFor !== firstChild.id) {
-      calendarRequestedFor = firstChild.id;
-      untrack(() => { void onLoadCalendar(parentHomeCalendarMonth(today), firstChild.id); });
+    if (familyStatus === 'ready' && activeChild && !busy && calendarRequestedFor !== activeChild.id) {
+      calendarRequestedFor = activeChild.id;
+      untrack(() => { void onLoadCalendar(parentHomeCalendarMonth(today), activeChild.id); });
     }
   });
 
@@ -91,6 +95,12 @@
                 <h3>{child.name}</h3>
                 <p>{organizationLabel(child.organization_id)} · {child.team_type === 'Academy' ? 'Ακαδημία' : 'Πρώτη ομάδα'}</p>
               </div>
+              <button type="button" class="parent-select-schedule"
+                aria-label={'Εμφάνιση προγράμματος για '+child.name}
+                aria-pressed={activeChild?.id===child.id}
+                disabled={busy}
+                onclick={()=>{selectedChildId=child.id;}}
+                data-testid="parent-home-select-child">Πρόγραμμα</button>
               <button type="button" aria-label={'Πρόγραμμα για ' + child.name} disabled={busy}
                 onclick={() => void onCalendar(child.id)} data-testid="parent-home-child-calendar"><span aria-hidden="true">›</span></button>
             </article>
@@ -103,17 +113,17 @@
   <section class="parent-section" aria-labelledby={id + '-schedule-heading'} data-testid="parent-upcoming-schedule">
     <div class="parent-section-heading">
       <h2 id={id + '-schedule-heading'}>Σήμερα & επόμενα</h2>
-      {#if firstChild}
-        <button type="button" disabled={busy} onclick={() => void onCalendar(firstChild.id)}
+      {#if activeChild}
+        <button type="button" disabled={busy} onclick={() => void onCalendar(activeChild.id)}
           data-testid="parent-home-open-calendar">Ημερολόγιο <span aria-hidden="true">›</span></button>
       {/if}
     </div>
-    {#if firstChild}
-      <p class="parent-scope" data-testid="parent-home-schedule-scope">Πρόγραμμα: {firstChild.name} · {formatCalendarDate(today, { month: 'long', year: 'numeric' })}</p>
+    {#if activeChild}
+      <p class="parent-scope" data-testid="parent-home-schedule-scope">Πρόγραμμα: {activeChild.name} · {formatCalendarDate(today, { month: 'long', year: 'numeric' })}</p>
       {#if calendarStatus === 'error'}
         <div class="parent-notice parent-error" role="alert" data-testid="parent-home-calendar-error">
           <p>{calendarError || 'Το πρόγραμμα δεν είναι διαθέσιμο.'}</p>
-          <button type="button" disabled={busy} onclick={() => void onLoadCalendar(parentHomeCalendarMonth(today), firstChild.id)}>Δοκιμή ξανά</button>
+          <button type="button" disabled={busy} onclick={() => void onLoadCalendar(parentHomeCalendarMonth(today), activeChild.id)}>Δοκιμή ξανά</button>
         </div>
       {:else if !trustworthyCalendar}
         <p class="parent-notice" role="status" data-testid="parent-home-calendar-loading">Φόρτωση προγράμματος…</p>
@@ -135,8 +145,8 @@
                 <h3>{event.title}</h3>
                 {#if event.location}<p>{event.location}</p>{/if}
               </div>
-              <button type="button" aria-label={'Ημερολόγιο για ' + firstChild.name} disabled={busy}
-                onclick={() => void onCalendar(firstChild.id)}><span aria-hidden="true">›</span></button>
+              <button type="button" aria-label={'Ημερολόγιο για ' + activeChild.name} disabled={busy}
+                onclick={() => void onCalendar(activeChild.id)}><span aria-hidden="true">›</span></button>
             </article>
           {/each}
           {#if calendar?.next_offset != null}
@@ -201,7 +211,9 @@
   .parent-child-copy{min-width:0;flex:1}
   .parent-child-copy h3{font-size:19px;margin:0 0 5px;overflow-wrap:anywhere}
   .parent-child-copy p{margin:0;color:#a7adb0;font-size:12px}
-  .parent-child-card>button,.parent-event>button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;background:transparent;color:#ffca46;font-size:25px;cursor:pointer}
+  .parent-child-card .parent-select-schedule{flex:0 0 auto;width:auto;min-width:76px;padding:7px;font-size:11px;border:1px solid #62502c;border-radius:7px;background:#201d15;color:#ffca46}
+  .parent-child-card .parent-select-schedule[aria-pressed='true']{background:#6b4a18;border-color:#f5a623;color:#fff}
+  .parent-child-card>button:not(.parent-select-schedule),.parent-event>button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;background:transparent;color:#ffca46;font-size:25px;cursor:pointer}
   .parent-scope{margin:0 0 12px;color:#aeb5b9;font-size:12px}
   .parent-schedule-list{border:1px solid #292d2e;border-radius:12px;overflow:hidden}
   .parent-event{display:flex;align-items:center;gap:12px;padding:15px 10px;background:#131516;border-bottom:1px solid #282b2d}
