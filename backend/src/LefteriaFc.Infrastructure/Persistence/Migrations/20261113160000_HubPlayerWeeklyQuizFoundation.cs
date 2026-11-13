@@ -67,7 +67,6 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
             identity_id uuid NOT NULL,
             organization_id varchar(32) NOT NULL,
             quiz_id uuid NOT NULL REFERENCES hub.player_quizzes(id) ON DELETE RESTRICT,
-            answer_digest char(64) NOT NULL CHECK(answer_digest ~ '^[0-9a-f]{64}$'),
             score integer NOT NULL CHECK(score BETWEEN 0 AND 20),
             total integer NOT NULL CHECK(total BETWEEN 1 AND 20 AND score<=total),
             submitted_at timestamptz NOT NULL DEFAULT clock_timestamp(),
