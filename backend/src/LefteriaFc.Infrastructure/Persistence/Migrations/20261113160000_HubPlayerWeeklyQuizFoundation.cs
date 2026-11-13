@@ -200,10 +200,14 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
                   (clock_timestamp()-v_started))/604800)::integer
                 AND (SELECT count(*) FROM hub.player_quiz_questions qq
                      WHERE qq.quiz_id=q.id) BETWEEN 3 AND 20
+                -- One private graded quiz per curriculum week, even if a
+                -- manager later publishes a new position-specific variant.
                 AND NOT EXISTS(
                   SELECT 1 FROM hub.player_quiz_attempts a
+                  JOIN hub.player_quizzes completed ON completed.id=a.quiz_id
                   WHERE a.identity_id=_identity AND a.organization_id=_owner
-                    AND a.quiz_id=q.id)
+                    AND completed.organization_id=_owner
+                    AND completed.week_number=q.week_number)
               ORDER BY q.week_number ASC,q.published_at ASC,q.id ASC
               LIMIT 1;
             RETURN jsonb_build_object('organization_id',_owner,
