@@ -11,6 +11,7 @@
   import type {AdminRosterGroup,AcademyTrainingList} from '../../../lib/admin/academy-schedule.ts';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   const permitted=$derived($auth.status==='authenticated'&&!!$auth.session&&
     ['manager','super_admin'].includes($auth.session.user.role)&&
     $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy')&&
@@ -123,7 +124,8 @@
     </section>
   </AdminFrame>
 {:else}
-  <AdminSessionStatus status={$auth.status} error={$auth.error} onLogin={()=>void goto('/admin/login')} />
+  <AdminSessionStatus unavailable={$auth.status==='unavailable'} busy={$auth.busy}
+    error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
   .academy-schedule{max-width:1100px;margin:0 auto;padding:22px 0 60px}
