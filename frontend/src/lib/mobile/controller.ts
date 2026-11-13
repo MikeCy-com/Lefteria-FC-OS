@@ -2,6 +2,9 @@ import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
+import {validWeeklyLearningEnrollment,validWeeklyLearningInbox,
+ type WeeklyLearningOrganization,type WeeklyLearningAudience,
+ type WeeklyLearningEnrollment,type WeeklyLearningInbox} from './weekly-learning.ts';
 import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
@@ -1498,6 +1501,48 @@ export function createMobileAuthController(options: {
         encodeURIComponent(approved.id)+'/send','POST',{version:2});
       if(!validCoachSend(result,approved))
         throw new Error('Unverified coach feedback delivery.');
+      return result;
+    },
+    async enrollWeeklyLearning(
+      organization:WeeklyLearningOrganization,
+      audience:WeeklyLearningAudience):Promise<WeeklyLearningEnrollment> {
+      const role=state.user?.role;
+      if(!role||!state.user?.current_role_available||
+        !((role==='parent'&&audience==='parent')||
+          (role==='player'&&audience==='player')||
+          (role==='fan'&&(audience==='fan_parent'||audience==='fan_player'))))
+        throw new Error('Active verified HUB audience is required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('Missing verified HUB session.');
+      const result=await chatRequest('/api/mobile/hub/weekly/enroll?organization_id='+
+        encodeURIComponent(organization),'POST',{audience});
+      if(state.user?.id!==actorId||state.user.role!==role||
+        !state.user.current_role_available||token!==actorToken||
+        revision!==actorRevision)
+        throw new Error('Identity changed during weekly enrollment.');
+      if(!validWeeklyLearningEnrollment(result,organization,audience))
+        throw new Error('Unverified weekly enrollment response.');
+      return result;
+    },
+    async getWeeklyLearningInbox(
+      organization:WeeklyLearningOrganization,
+      audience:WeeklyLearningAudience):Promise<WeeklyLearningInbox> {
+      const role=state.user?.role;
+      if(!role||!state.user?.current_role_available||
+        !((role==='parent'&&audience==='parent')||
+          (role==='player'&&audience==='player')||
+          (role==='fan'&&(audience==='fan_parent'||audience==='fan_player'))))
+        throw new Error('Active verified HUB audience is required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('Missing verified HUB session.');
+      const result=await chatRequest('/api/mobile/hub/weekly/inbox?organization_id='+
+        encodeURIComponent(organization)+'&audience='+encodeURIComponent(audience));
+      if(state.user?.id!==actorId||state.user.role!==role||
+        !state.user.current_role_available||token!==actorToken||
+        revision!==actorRevision)
+        throw new Error('Identity changed during weekly delivery read.');
+      if(!validWeeklyLearningInbox(result,organization,audience))
+        throw new Error('Unverified weekly delivery response.');
       return result;
     },
     async getPublishedHubEducation(
