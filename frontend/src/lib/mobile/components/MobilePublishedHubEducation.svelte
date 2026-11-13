@@ -12,6 +12,10 @@
   // provider storage. Reset on every authoritative fetch/context change.
   let completedIds=$state<string[]>([]);
   const visibleItems=$derived(searchPublishedHubEducation(items,search));
+  // Reorder only the articles already authorized by the server and loaded
+  // into this role-scoped session. Never infer entitlement or child age.
+  const learningOrder=$derived([...visibleItems].sort((a,b)=>
+    Number(completedIds.includes(a.id))-Number(completedIds.includes(b.id))));
   const completedCount=$derived(items.filter(item=>completedIds.includes(item.id)).length);
   let organization=$state<'lefteria_fc'|'lefteria_fc_academy'>('lefteria_fc_academy');
   let busy=$state(true);
@@ -80,8 +84,9 @@
     {#if visibleItems.length===0}
       <p role="status" class="note">Δεν βρέθηκε άρθρο στα φορτωμένα αποτελέσματα. Δοκίμασε άλλη αναζήτηση.</p>
     {/if}
+    <p class="note">Πρώτα εμφανίζονται όσα δεν έχεις σημειώσει ως ολοκληρωμένα. Η σειρά ισχύει μόνο στην τρέχουσα συνεδρία.</p>
     <ol class="articles">
-      {#each visibleItems as item (item.id)}
+      {#each learningOrder as item (item.id)}
         <li class="article">
           <div class="meta">
             <span>{viewerRole==='parent'?'ΓΙΑ ΓΟΝΕΙΣ':'ΓΙΑ ΑΘΛΗΤΕΣ'}</span>
