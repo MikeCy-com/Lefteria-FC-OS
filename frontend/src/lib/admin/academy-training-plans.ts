@@ -148,7 +148,7 @@ export function validTrainingPublicationsPage(
         typeof row.cancel_reason!=='string'||
         row.cancel_reason.length<8||row.cancel_reason.length>500||
         row.cancel_reason!==row.cancel_reason.trim()||
-        /[\\x00-\\x1f\\x7f]/.test(row.cancel_reason)
+        /[\x00-\x1f\x7f]/.test(row.cancel_reason)
       ) : row.cancel_reason!==null))return false;
     seen.add(row.id);return true;
   });
