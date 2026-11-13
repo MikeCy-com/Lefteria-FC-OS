@@ -5,6 +5,7 @@
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import {summarizeAcademyAttendance} from '../../../lib/admin/attendance-summary.ts';
 
   type Group={id:string;name:string;kind:'academy_group';active_players:number};
   type GroupDirectory={
@@ -40,6 +41,7 @@
   let sessions=$state<SessionList|null>(null);
   let selected=$state<string|null>(null);
   let register=$state<Register|null>(null);
+  const summary=$derived(register?summarizeAcademyAttendance(register.players):null);
   let start=$state('');
   let end=$state('');
   let loadingGroups=$state(false);
@@ -320,6 +322,22 @@
               <button class="admin-secondary" onclick={()=>registerReload++}
                 type="button">Ανανέωση παρουσιών</button>
             </div>
+            {#if summary}
+              <section class="attendance-summary" aria-label="Σύνοψη συμμετοχής και πραγματικής παρουσίας" data-testid="attendance-rsvp-summary">
+                <div><h3>Απαντήσεις συμμετοχής (RSVP)</h3>
+                  <p>Θα έρθει: <strong>{summary.responses.going}</strong></p>
+                  <p>Δεν θα έρθει: <strong>{summary.responses.not_going}</strong></p>
+                  <p>Ίσως: <strong>{summary.responses.maybe}</strong></p>
+                  <p>Χωρίς απάντηση: <strong>{summary.responses.no_response}</strong></p>
+                </div>
+                <div><h3>Πραγματική παρουσία</h3>
+                  <p>Παρόντες: <strong>{summary.actual.present}</strong></p>
+                  <p>Απόντες: <strong>{summary.actual.absent}</strong></p>
+                  <p>Χωρίς καταχώριση: <strong>{summary.actual.not_recorded}</strong></p>
+                </div>
+              </section>
+              <p class="attendance-summary-note">Η δήλωση συμμετοχής δεν υποκαθιστά την επιβεβαιωμένη φυσική παρουσία.</p>
+            {/if}
             {#if !register.writable}
               <p class="attendance-warning">Η προπόνηση είναι μελλοντική,
                 ακυρωμένη ή αρχειοθετημένη. Η παρουσία δεν μπορεί
@@ -386,6 +404,13 @@
   .attendance-register-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
   .attendance-register-head h2{margin:0}.attendance-register-head p{font-size:13px;color:#aaa}
   .attendance-warning{color:#ffc989}
+  .attendance-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
+  .attendance-summary>div{padding:15px;background:#181b1d;border:1px solid #444;border-radius:10px}
+  .attendance-summary h3{margin:0 0 12px;color:#ffca46;font-size:15px}
+  .attendance-summary p{font-size:12px;color:#d3d3d3;margin:7px 0;display:flex;justify-content:space-between;gap:10px}
+  .attendance-summary strong{color:#fff}
+  .attendance-summary-note{font-size:12px;color:#bfc6c8}
+  @media(max-width:580px){.attendance-summary{grid-template-columns:1fr}}
   .attendance-players{list-style:none;margin:0;padding:0}
   .attendance-players li{display:flex;justify-content:space-between;flex-wrap:wrap;
     gap:12px;align-items:center;border-top:1px solid #303335;padding:16px 0}
