@@ -22,8 +22,12 @@ public static class MobileCoachFeedbackEndpoints
     {
         endpoints.MapGet("/api/mobile/coach/feedback/targets",
             (HttpContext context,PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
-                MobileIdentityEndpoints.Execute(
-                    () => store.TargetsAsync(MobilePrincipal.Read(context.User),token),context))
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(
+                    () => store.TargetsAsync(MobilePrincipal.Read(context.User),token),context);
+            })
             .RequireAuthorization(IdentityServices.Policy)
             .WithTags("Mobile coach feedback")
             .WithName("GetMobileCoachFeedbackTargets")
@@ -47,9 +51,13 @@ public static class MobileCoachFeedbackEndpoints
         endpoints.MapGet("/api/mobile/player/coach-feedback",
             (string? offset,HttpContext context,
              PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
-                MobileIdentityEndpoints.Execute(
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(
                     () => store.InboxAsync(MobilePrincipal.Read(context.User),
-                        ParseFeedbackOffset(context,offset),token),context))
+                        ParseFeedbackOffset(context,offset),token),context);
+            })
             .RequireAuthorization(IdentityServices.Policy)
             .WithTags("Mobile player education")
             .WithName("GetMobilePlayerCoachFeedback")
