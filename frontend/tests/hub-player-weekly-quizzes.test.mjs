@@ -31,6 +31,8 @@ test('late registrant explicitly starts Week 1 without a global join-date offset
  assert.match(schema,/PRIMARY KEY\(identity_id,organization_id\)/);
  assert.match(schema,/INSERT INTO hub\.player_quiz_tracks\(identity_id,organization_id\)/);
  assert.match(schema,/ON CONFLICT DO NOTHING/);
+ assert.match(schema,/q\.week_number=1\+\(/);
+ assert.match(schema,/count\(DISTINCT completed\.week_number\)::integer/);
  assert.match(schema,/q\.week_number<=1\+floor\(extract\(epoch from/);
  assert.match(schema,/clock_timestamp\(\)-v_started/);
  assert.match(schema,/ORDER BY q\.week_number ASC/);
@@ -163,4 +165,22 @@ test('twelve editorial football lesson and quiz weeks remain unpublished pending
  assert.ok(draft.content.some(x=>/εξτρέμ/.test(x.lesson.title+' '+x.lesson.objective)));
  assert.ok(draft.content.every(x=>x.quiz.questions.every(q=>
    q.choices.length===4&&q.correct_index>=0&&q.correct_index<4)));
+});
+
+test('withdrawal requires a human manager and never erases private student results',()=>{
+ const withdrawal=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113164000_HubPlayerQuizEditorialWithdrawal.cs');
+ const endpoint=read('backend/src/LefteriaFc.Api/Hub/AdminPlayerWeeklyQuizEndpoints.cs');
+ const admin=read('frontend/src/routes/admin/hub/player-quizzes/+page.svelte');
+ const grants=read('ops/postgres/web-admin-auth-grants.sql');
+ const boundary=read('ops/postgres/admin-hub-quiz-boundary.sql');
+ assert.match(withdrawal,/hub\.authorize_admin_player_quiz\(_digest,_owner,true\)/);
+ assert.match(withdrawal,/status='withdrawn',published_at=NULL/);
+ assert.match(withdrawal,/INSERT INTO hub\.player_quiz_review_events/);
+ assert.doesNotMatch(withdrawal,/DELETE FROM hub\.player_quiz_attempts/);
+ assert.match(endpoint,/MapPost\("\/api\/admin\/hub\/player-quizzes\/\{id:guid\}\/withdraw"/);
+ assert.match(admin,/transition\('withdraw'\)/);
+ assert.match(admin,/confirm\('Να αποσυρθεί/);
+ assert.match(grants,/GRANT EXECUTE ON FUNCTION hub\.withdraw_admin_player_quiz/);
+ assert.match(boundary,/hub\.withdraw_admin_player_quiz\(text,text,uuid\)/);
+ assert.match(schema,/WHERE status<>'withdrawn'/);
 });
