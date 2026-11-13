@@ -21,6 +21,12 @@ internal static class CalendarAccessSql
             JOIN club.player_academy_groups membership ON membership.academy_group_id=assigned.record_id
               AND membership.organization_id=assigned.organization_id AND membership.player_id=p.id
             WHERE assigned.kind=c.kind AND assigned.event_id=c.id AND assigned.scope_kind='group')
+          -- OS-native publications may include players whose only current
+          -- Academy group assignment is their canonical primary group.
+          -- This path is strictly native-source and never changes imported
+          -- calendar eligibility or legacy RSVP permissions.
+          OR (c.source_collection='os_training' AND c.kind='training'
+            AND club.os_native_training_primary_member(c.organization_id,c.id,p.id))
           OR (NOT EXISTS(SELECT 1 FROM club.calendar_item_scopes assigned WHERE assigned.kind=c.kind AND assigned.event_id=c.id AND assigned.scope_kind='group')
             AND EXISTS(SELECT 1 FROM club.calendar_item_scopes assigned WHERE assigned.kind=c.kind AND assigned.event_id=c.id
               AND assigned.scope_kind='team' AND assigned.record_id=p.team_id))

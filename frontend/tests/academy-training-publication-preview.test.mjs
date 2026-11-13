@@ -30,14 +30,16 @@ test('preview is a strict exact-version projection with no private notes or chil
   assert.equal(validTrainingDistributionPreview({...preview,notes:'secret'},plan),false);
   assert.equal(validTrainingDistributionPreview({...preview,players:['child']},plan),false);
 });
-test('manager UI can only inspect an already approved plan without mutating the calendar',()=>{
+test('manager UI requires approval and a scoped read-only preview before explicit publication',()=>{
   assert.ok(compile(ui,{filename:'AdminAcademyTrainingPlans.svelte',generate:'server'}).js.code.length>0);
   assert.match(ui,/approvedIds\.includes\(plan\.id\)/);
   assert.match(ui,/publication-preview\?/);
   assert.match(ui,/data-testid="training-distribution-preview"/);
   assert.match(ui,/validTrainingDistributionPreview\(raw,plan\)/);
-  assert.match(ui,/Δεν δημοσιεύτηκε, δεν στάλθηκαν ειδοποιήσεις/);
-  assert.doesNotMatch(ui,/fetch\(.+method:'POST'.+publish/s);
+  assert.match(ui,/Δεν δημοσιεύτηκε ακόμη/);
+  assert.match(ui,/!approvedIds.includes\(plan.id\)/);
+  assert.match(ui,/publishConfirmed/);
+  assert.match(ui,/confirm_publication:true/);
 });
 test('backend reauthorizes current manager, exact approval and active roster only',()=>{
   assert.match(sql,/club\.require_academy_training_planner\(_digest,_owner\)/);

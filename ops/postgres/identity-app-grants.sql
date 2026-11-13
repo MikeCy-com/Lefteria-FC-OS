@@ -240,6 +240,13 @@ GRANT EXECUTE ON FUNCTION
   TO :"app_role";
 GRANT SELECT (id, organization_id, name, number, position, image_url, team_type, team_id,
   is_active, is_archived, is_transferred, has_explicit_picker_fields) ON club.players TO :"app_role";
+-- Deliberately do NOT grant primary_academy_group_id as a raw roster column.
+-- The helper only accepts an existing, member-visible OS-native training and
+-- returns a boolean for its current primary-group roster member.
+REVOKE ALL ON FUNCTION club.os_native_training_primary_member(
+  text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.os_native_training_primary_member(
+  text,text,text) TO :"app_role";
 GRANT SELECT (id) ON club.roster_import_state TO :"app_role";
 -- Chat is accessible only through current-role, current-roster functions.
 -- Direct reads/writes to the message table remain denied.

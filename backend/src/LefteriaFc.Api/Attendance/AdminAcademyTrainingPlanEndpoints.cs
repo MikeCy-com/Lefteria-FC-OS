@@ -17,6 +17,9 @@ namespace LefteriaFc.Api.Attendance;
 /// </summary>
 public static class AdminAcademyTrainingPlanEndpoints
 {
+    public sealed record PublishTrainingPlanCommand(
+        int ExpectedVersion,bool ConfirmPublication);
+
     public sealed record ApproveTrainingPlanCommand(
         int ExpectedVersion,bool ConfirmHumanReview);
 
@@ -156,6 +159,56 @@ public static class AdminAcademyTrainingPlanEndpoints
             command.Parameters.AddWithValue("expected",version.Value);
             return await Run(command,ct);
         }).WithName("PreviewAdminAcademyTrainingDistribution");
+
+        admin.MapPost("/{planId:guid}/publish",async (
+            Guid planId,string? organization_id,PublishTrainingPlanCommand body,
+            WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            if(planId==Guid.Empty||body.ExpectedVersion is <1 or >10000||
+               !body.ConfirmPublication)
+                throw new WebAdminException(422,"training_publication_not_confirmed",
+                    "Explicitly confirm publication of the exact approved version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.publish_admin_academy_training_plan(
+                  @digest,@owner,@id,@expected,@confirmed)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            command.Parameters.AddWithValue("confirmed",body.ConfirmPublication);
+            return await Run(command,ct,201);
+        }).WithName("PublishAdminAcademyTrainingPlan")
+          .Accepts<PublishTrainingPlanCommand>("application/json");
+
+        admin.MapGet("/publications",async (
+            string? organization_id,string? group_id,DateOnly? start,DateOnly? end,
+            WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            if(context.Request.Query["group_id"].Count!=1 ||
+                context.Request.Query["start"].Count!=1 ||
+                context.Request.Query["end"].Count!=1 ||
+                !ValidId(group_id)||start is null||end is null||
+                end<start||end.Value.DayNumber-start.Value.DayNumber>93)
+                throw new WebAdminException(400,"invalid_training_publication_filters",
+                    "Select exactly one Academy group and date range.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.read_admin_academy_training_publications(
+                  @digest,@owner,@group,@from,@to)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("from",NpgsqlDbType.Date,start.Value);
+            command.Parameters.AddWithValue("to",NpgsqlDbType.Date,end.Value);
+            return await Run(command,ct);
+        }).WithName("ReadAdminAcademyTrainingPublications");
 
         return endpoints;
     }
