@@ -29,7 +29,8 @@ BEGIN
     'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure::oid,
     'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid,
     'club.read_admin_academy_training_plan_approvals(text,text,text,date,date)'::regprocedure::oid,
-    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid
+    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid,
+    'club.preview_admin_academy_training_distribution(text,text,uuid,integer)'::regprocedure::oid
   ] LOOP
     IF NOT (SELECT prosecdef AND NOT EXISTS(
       SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
@@ -48,6 +49,8 @@ GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_plan_approvals(
   text,text,text,date,date) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.approve_admin_academy_training_plan(
   text,text,uuid,integer) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.preview_admin_academy_training_distribution(
+  text,text,uuid,integer) TO :"admin_auth_role";
 DO $postflight$
 DECLARE
   v_admin text:=current_setting('lefteria.training_plans_admin_role');
@@ -59,7 +62,8 @@ BEGIN
     'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure::oid,
     'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure::oid,
     'club.read_admin_academy_training_plan_approvals(text,text,text,date,date)'::regprocedure::oid,
-    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid
+    'club.approve_admin_academy_training_plan(text,text,uuid,integer)'::regprocedure::oid,
+    'club.preview_admin_academy_training_distribution(text,text,uuid,integer)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(v_admin,v_proc,'EXECUTE')
       OR has_function_privilege(v_mobile,v_proc,'EXECUTE')
