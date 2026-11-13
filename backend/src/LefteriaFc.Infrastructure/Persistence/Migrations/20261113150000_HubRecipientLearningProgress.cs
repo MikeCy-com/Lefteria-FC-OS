@@ -62,6 +62,26 @@ public sealed class HubRecipientLearningProgress : Migration
               IF NOT FOUND THEN
                 RAISE EXCEPTION 'education_identity_denied' USING ERRCODE='42501';
               END IF;
+              -- The player role alone does not authorize another club's
+              -- curriculum. Revalidate the canonical roster/phone link
+              -- for the requested organization on every next-lesson read.
+              IF _role='player' THEN
+                PERFORM 1 FROM identity.mobile_record_links l
+                  JOIN identity.canonical_contact_bindings b
+                    ON b.collection=l.collection AND b.kind=l.kind
+                      AND b.source_id=l.record_id
+                      AND b.normalized_phone=l.normalized_phone
+                  JOIN club.players p ON p.id=l.record_id
+                    AND p.organization_id=_owner AND p.is_active
+                    AND NOT p.is_archived AND NOT p.is_transferred
+                  WHERE l.identity_id=_identity AND l.normalized_phone=_phone
+                    AND l.role='player' AND l.collection='players'
+                    AND l.kind='player_own'
+                  FOR SHARE OF l,b,p;
+                IF NOT FOUND THEN
+                  RAISE EXCEPTION 'education_player_roster_denied' USING ERRCODE='42501';
+                END IF;
+              END IF;
               SELECT jsonb_build_object(
                   'id',c.id,'organization_id',c.organization_id,
                   'audience',_role,'kind',c.kind,'title',c.title,'body',r.body_text,
