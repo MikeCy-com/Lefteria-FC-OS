@@ -42,8 +42,11 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
               (reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)),
             CONSTRAINT ck_weekly_quiz_publish CHECK (
               (status='published')=(published_at IS NOT NULL)),
-            UNIQUE(organization_id,week_number,position)
+            CONSTRAINT ck_player_quiz_week_positive CHECK(week_number>=1)
           );
+          CREATE UNIQUE INDEX ux_hub_quiz_active_owner_week_position
+            ON hub.player_quizzes(organization_id,week_number,position)
+            WHERE status<>'withdrawn';
           CREATE TABLE hub.player_quiz_questions (
             id uuid PRIMARY KEY,
             quiz_id uuid NOT NULL REFERENCES hub.player_quizzes(id) ON DELETE RESTRICT,
