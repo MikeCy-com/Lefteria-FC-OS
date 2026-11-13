@@ -38,7 +38,9 @@ test('no worker or mobile role is granted access before audited delivery impleme
   assert.match(sql,/REVOKE ALL ON TABLE hub\.learning_enrollments FROM PUBLIC/);
   assert.match(sql,/REVOKE ALL ON TABLE hub\.learning_delivery_outbox FROM PUBLIC/);
   assert.match(sql,/REVOKE ALL ON FUNCTION hub\.fan_delivery_entitled\(uuid,text,text,timestamptz\) FROM PUBLIC/);
-  assert.match(sql,/FORCE ROW LEVEL SECURITY/g);
+  assert.match(sql,/ALTER TABLE hub\.learning_enrollments ENABLE ROW LEVEL SECURITY/);
+  assert.match(sql,/ALTER TABLE hub\.learning_delivery_outbox ENABLE ROW LEVEL SECURITY/);
+  assert.doesNotMatch(sql,/FORCE ROW LEVEL SECURITY/);
   assert.doesNotMatch(sql,/GRANT EXECUTE|GRANT SELECT|GRANT INSERT/);
   assert.match(sql,/Refusing to delete enrolled members or delivery history/);
 });
