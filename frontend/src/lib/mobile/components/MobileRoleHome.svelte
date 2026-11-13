@@ -2,7 +2,7 @@
   import {untrack} from 'svelte';
   import type {MobileRole,MobileTab} from '../navigation.ts';
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
-  import type {MobileCalendar} from '../calendar.ts';
+  import type {MobileCalendar,MobileCalendarItem,AvailabilityStatus} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
   import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext} from '../role-home.ts';
   import './mobile-theme.css';
@@ -15,9 +15,10 @@
     busy?:boolean;today?:string;
     onLoadCalendar:(month:string)=>Promise<boolean>|boolean;
     onNavigate:(tab:MobileTab)=>Promise<void>|void;
+    onRespond?:(item:MobileCalendarItem,status:AvailabilityStatus)=>Promise<boolean>|boolean;
   }
   let {role,identityId,userName,organizationId=null,calendar,calendarStatus,
-    calendarError,busy=false,today=clubToday(),onLoadCalendar,onNavigate}:Props=$props();
+    calendarError,busy=false,today=clubToday(),onLoadCalendar,onNavigate,onRespond}:Props=$props();
   const id=$props.id();
   const needsOrganization=$derived(role==='management'&&!organizationId);
   const contextIsCurrent=$derived(calendarStatus==='ready'&&role!=='fan'&&
@@ -27,6 +28,8 @@
   const shortcuts=$derived(ROLE_HOME_SHORTCUTS[role]);
   const nextMatch=$derived(role==='fan'||!contextIsCurrent?null:
     trustedNextRoleMatch(calendar,role,identityId,organizationId,today));
+  const playerRsvp=$derived(role==='player'&&nextMatch&&calendar?.selected_player_id
+    ?(nextMatch.responses.find(r=>r.player_id===calendar?.selected_player_id)?.status??null):null);
   let requestedScope=$state('');
   $effect(()=>{
     const scope=identityId+':'+role+':'+(organizationId??'')+':'+today.slice(0,7);
@@ -78,6 +81,15 @@
         <p class="match-date">{formatCalendarDate(nextMatch.date,{weekday:'long',day:'numeric',month:'long'})}</p>
         <h3>{nextMatch.title}</h3>
         <p class="match-meta">{nextMatch.start_time||'Ώρα προς επιβεβαίωση'}{nextMatch.location?' · '+nextMatch.location:''}</p>
+        {#if role==='player' && onRespond && !nextMatch.is_cancelled}
+          <fieldset class="match-rsvp" disabled={busy} data-testid="player-matchday-rsvp">
+            <legend>Η δήλωση συμμετοχής μου: {playerRsvp==='going'?'Θα έρθω':playerRsvp==='not_going'?'Δεν θα έρθω':playerRsvp==='maybe'?'Ίσως':'Χωρίς απάντηση'}</legend>
+            {#each [['going','Θα έρθω'],['not_going','Δεν θα έρθω'],['maybe','Ίσως']] as choice}
+              <button type="button" aria-pressed={playerRsvp===choice[0]}
+                onclick={()=>void onRespond?.(nextMatch,choice[0] as AvailabilityStatus)}>{choice[1]}</button>
+            {/each}
+          </fieldset>
+        {/if}
         <button type="button" class="match-open" disabled={busy}
           onclick={()=>void onNavigate('calendar')}>Άνοιγμα αγώνα & διαθεσιμότητας ›</button>
       {:else}
@@ -139,5 +151,11 @@
   .match-date{font-size:13px;color:#ffca46;font-weight:700}
   .match-meta{font-size:12px;color:#d0c4ae}
   .match-open{min-height:44px;border:1px solid #8b672a;border-radius:8px;background:#272011;color:#ffca46;padding:10px 13px;margin-top:9px;cursor:pointer}
+  .match-rsvp{border:0;padding:0;display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+  .match-rsvp legend{font-size:12px;color:#ddd0b1;margin-bottom:7px}
+  .match-rsvp button{min-height:44px;border:1px solid #6e5224;border-radius:7px;background:#2c2416;color:#ffca46;padding:8px 12px;font:inherit;cursor:pointer}
+  .match-rsvp button[aria-pressed='true']{background:#6d4b17;border-color:#f5a623;color:#fff;font-weight:700}
+  .match-rsvp button:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
+  .match-rsvp:disabled button{opacity:.5;cursor:wait}
   @media(min-width:650px){.role-home{max-width:960px;margin:auto}.shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
