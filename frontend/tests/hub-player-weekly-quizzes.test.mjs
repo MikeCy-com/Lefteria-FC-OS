@@ -40,7 +40,14 @@ test('weekly football question bank requires human publication and restricts ans
    assert.ok(schema.includes("'"+word+"'"));
  assert.match(schema,/reviewed_by IS NOT NULL AND q\.reviewed_at IS NOT NULL/);
  assert.match(schema,/q\.status='published'/);
- assert.match(schema,/q\.position='all'/);
+ assert.match(schema,/q\.position=v_position/);
+ assert.match(schema,/specialized\.position=v_position/);
+ assert.match(schema,/p\.organization_id=_owner/);
+ assert.match(schema,/l\.collection='players' AND l\.kind='player_own'/);
+ assert.match(schema,/identity\.canonical_contact_bindings/);
+ assert.match(schema,/WHEN 'Defender' THEN 'defender'/);
+ assert.match(schema,/WHEN 'Midfielder' THEN 'midfielder'/);
+ assert.match(schema,/WHEN 'Goalkeeper' THEN 'goalkeeper'/);
  assert.match(schema,/jsonb_build_object\(\s*'id',qq\.id,'sequence',qq\.sequence,'prompt',qq\.prompt,/);
  assert.doesNotMatch(schema,/jsonb_build_object\([\s\S]{0,120}'correct_index'/);
  assert.match(schema,/_role IS DISTINCT FROM 'player'/);
@@ -74,6 +81,7 @@ test('runtime never reads unpublished question keys or other player scores',()=>
 test('mobile rejects spoofed answer keys and submits all 3 questions only',()=>{
  assert.equal(validPlayerQuizPage(page,'lefteria_fc_academy'),true);
  assert.equal(validPlayerQuizPage({...page,quiz:{...quiz,position:'winger'}},'lefteria_fc_academy'),false);
+ assert.equal(validPlayerQuizPage({...page,quiz:{...quiz,position:'defender'}},'lefteria_fc_academy'),true);
  assert.equal(validPlayerQuizPage({...page,quiz:{...quiz,questions:[
    {...questions[0],correct_index:0},...questions.slice(1)]}},'lefteria_fc_academy'),false);
  const answers=questions.map(q=>({question_id:q.id,selected_index:0}));
