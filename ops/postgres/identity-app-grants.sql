@@ -462,6 +462,21 @@ REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) TO :"app_role";
 
+-- Individual learning progress: no raw completion table access, no internal
+-- helper call, and no fan delivery until independently verified Payabl access.
+REVOKE ALL ON TABLE hub.education_completions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.current_mobile_education_lesson(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_next_education(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.complete_mobile_next_education(
+  uuid,text,text,timestamptz,text,uuid,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_next_education(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.complete_mobile_next_education(
+  uuid,text,text,timestamptz,text,uuid,uuid) TO :"app_role";
+
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;
