@@ -38,3 +38,19 @@ Apply migrations in isolated PostgreSQL, review explicit role grants,
 test manager reads and version conflicts, verify cross-owner and revoked
 sessions deny, inspect audit rows, and confirm no birthday post appears
 on public website, social feeds or parent/player app. Do not deploy live.
+
+
+## Private responsive branded preview
+
+Managers viewing an already-authorized player record can toggle a
+responsive 16:9 visual preview using that player's roster display name,
+the currently selected birthday greeting, color and emoji. The original
+Lefteria FC birthday settings had a preview; this brings the admin
+workflow closer to that experience without using a public endpoint.
+
+The preview shows an **unmistakable PRIVATE / NOT FOR PUBLICATION
+watermark** and a full disabled overlay whenever the card is opted out.
+Unsaved edits appear only as a temporary local preview; this is not
+a publication, downloadable export, social post, notification or
+parent-approved greeting. Parental consent, scheduling and vetted
+media uploads are still not implemented.
