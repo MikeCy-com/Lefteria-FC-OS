@@ -3,9 +3,10 @@
   import {browser} from '$app/env';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
-    validTrainingPlanApprovals,validTrainingPlanApprovalResult}
+    validTrainingPlanApprovals,validTrainingPlanApprovalResult,
+    validTrainingDistributionPreview}
     from './academy-training-plans.ts';
-  import type {TrainingPlanDraft,TrainingPlanForm} from './academy-training-plans.ts';
+  import type {TrainingPlanDraft,TrainingPlanForm,TrainingDistributionPreview} from './academy-training-plans.ts';
 
   let {groupId,from,to,actor,allowed,canWrite}:{
     groupId:string;from:string;to:string;actor:string;
@@ -16,6 +17,7 @@
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
   let approvedIds=$state<string[]>([]),reviewConfirmed=$state(false);
+  let preview=$state<TrainingDistributionPreview|null>(null),previewing=$state(false);
   let error=$state(''),notice=$state(''),refreshNonce=$state(0);
   let editing=$state<TrainingPlanDraft|null>(null);
   let archiveConfirmed=$state(false);
@@ -24,7 +26,7 @@
     title:'',location:'',notes:''
   });
   function reset(){
-    editing=null;archiveConfirmed=false;reviewConfirmed=false;notice='';error='';
+    editing=null;archiveConfirmed=false;reviewConfirmed=false;preview=null;notice='';error='';
     form={day:from,start_time:'17:00',duration_minutes:75,
       title:'',location:'',notes:''};
   }
@@ -42,7 +44,7 @@
     const scope=actor+':'+groupId+':'+from+':'+to;
     const valid=allowed&&!!actor&&!!groupId&&!!from&&!!to;
     void refreshNonce;void scope;
-    rows=[];approvedIds=[];editing=null;archiveConfirmed=false;reviewConfirmed=false;notice='';error='';
+    rows=[];approvedIds=[];preview=null;editing=null;archiveConfirmed=false;reviewConfirmed=false;notice='';error='';
     if(!browser||!valid)return;
     const controller=new AbortController();
     loading=true;
@@ -85,6 +87,35 @@
     })();});
     return()=>controller.abort();
   });
+
+  async function inspect(plan:TrainingPlanDraft){
+    if(!browser||!allowed||loading||saving||previewing||
+      !approvedIds.includes(plan.id)||plan.status!=='draft')return;
+    const owner=actor,group=groupId,period=from+':'+to;
+    previewing=true;preview=null;error='';
+    try{
+      const params=new URLSearchParams({organization_id:org,
+        version:String(plan.version)});
+      const response=await fetch(
+        base+encodeURIComponent(plan.id)+'/publication-preview?'+params,{
+          credentials:'same-origin',cache:'no-store',
+          headers:{Accept:'application/json'}
+        });
+      if(owner!==actor||group!==groupId||period!==from+':'+to||!allowed)return;
+      if(response.status===401||response.status===403){
+        void auth.bootstrap();throw Error('Τα δικαιώματα άλλαξαν.');
+      }
+      if(response.status===409){
+        refreshNonce++;throw Error('Η έγκριση δεν αφορά πια αυτή την έκδοση.');
+      }
+      if(!response.ok)throw Error('Η προεπισκόπηση δεν είναι διαθέσιμη.');
+      const raw:unknown=await response.json();
+      if(!validTrainingDistributionPreview(raw,plan))
+        throw Error('Η προεπισκόπηση δεν επαληθεύτηκε.');
+      preview=raw;
+    }catch(e){error=e instanceof Error?e.message:'Σφάλμα προεπισκόπησης.';}
+    finally{previewing=false;}
+  }
 
   async function approve(plan:TrainingPlanDraft){
     if(!browser||!canWrite||loading||saving||!reviewConfirmed||
@@ -187,11 +218,27 @@
             {#if !approvedIds.includes(plan.id)}
               <button type="button" disabled={saving||!reviewConfirmed}
                 onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
+            {:else}
+              <button type="button" disabled={saving||previewing}
+                onclick={()=>void inspect(plan)}>Προεπισκόπηση αποδεκτών</button>
             {/if}
           {/if}
         </li>
       {/each}
     </ul>
+  {/if}
+  {#if preview}
+    <section class="training-distribution" aria-label="Προεπισκόπηση αποδεκτών" data-testid="training-distribution-preview">
+      <h3>Προεπισκόπηση · χωρίς δημοσίευση</h3>
+      <p><strong>{preview.title}</strong> · {preview.day} {preview.start_time} · {preview.duration_minutes} λεπτά</p>
+      <p>Τμήμα: {groupId} · Τοποθεσία: {preview.location||'Δεν ορίστηκε'}</p>
+      <p>Τρέχοντες επιλέξιμοι αθλητές: <strong>{preview.eligible_player_count}</strong></p>
+      {#if preview.eligible_player_count===0}
+        <p class="plan-error">Δεν υπάρχουν επιλέξιμοι αθλητές στο τμήμα.</p>
+      {/if}
+      <p class="plan-note">Εγκρίθηκε από άνθρωπο · Δεν δημοσιεύτηκε, δεν στάλθηκαν ειδοποιήσεις. Ο αριθμός μπορεί να αλλάξει με τις αναθέσεις αθλητών.</p>
+      <button type="button" onclick={()=>preview=null}>Κλείσιμο προεπισκόπησης</button>
+    </section>
   {/if}
   {#if canWrite}
     <label class="review-confirm"><input type="checkbox"
@@ -246,6 +293,9 @@
   .plan-fields label.full{grid-column:1/-1}
   .plan-fields input,.plan-fields textarea{min-height:44px;border:1px solid #515355;border-radius:7px;background:#101213;color:#fff;padding:9px;font:inherit;max-width:100%;min-width:0}
   .save{border-color:#bb8a30;background:#493412;color:#fff;font-weight:700}
+  .training-distribution{border:1px solid #bd8e3f;background:#211e15;border-radius:9px;padding:14px;margin:16px 0}
+  .training-distribution h3{color:#ffca46}
+  .training-distribution p{font-size:12px;line-height:1.6}
   .review-confirm{display:flex;gap:9px;align-items:center;font-size:12px;margin:14px 0;color:#f2ddac}
   .review-confirm input{accent-color:#f5a623;min-width:18px;min-height:18px}
   .archive-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:15px}
