@@ -62,3 +62,11 @@ test('legacy article route never allows navigating the global publication catalo
  assert.doesNotMatch(store,/SELECT hub\.read_mobile_published_education\(/);
  assert.match(checks,/IF has_function_privilege\(current_user,\s*'hub\.read_mobile_published_education/);
 });
+
+test('compatibility education endpoint uses no-store for private recipient data',()=>{
+ const legacy=api.split('MapGet("/api/mobile/hub/education"')[1]
+   ?.split('.WithName("GetMobileHubPublishedEducation")')[0];
+ assert.ok(legacy);
+ assert.match(legacy,/Response\.Headers\.CacheControl="private, no-store"/);
+ assert.match(legacy,/Response\.Headers\.Pragma="no-cache"/);
+});
