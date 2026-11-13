@@ -133,6 +133,7 @@ public sealed class HubEducationProvider(HttpClient http,HubAiEducationSettings 
         }
         catch(JsonException) {return new(null,"invalid_output");}
         catch(InvalidOperationException) {return new(null,"invalid_output");}
+        catch(KeyNotFoundException) {return new(null,"invalid_output");}
 
         // Fail closed if moderation endpoint is unavailable, incomplete or flags
         // the output. Human editorial review remains mandatory even if it passes.
@@ -152,6 +153,7 @@ public sealed class HubEducationProvider(HttpClient http,HubAiEducationSettings 
         }
         catch(JsonException) {return new(null,"provider_unavailable");}
         catch(InvalidOperationException) {return new(null,"provider_unavailable");}
+        catch(KeyNotFoundException) {return new(null,"provider_unavailable");}
 
         return new(article,null);
     }
