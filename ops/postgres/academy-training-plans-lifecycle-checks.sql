@@ -132,6 +132,12 @@ BEGIN
   IF (v_result->>'approved_version')::integer<>2 THEN
     RAISE EXCEPTION 'Updated draft could not receive fresh human signoff';
   END IF;
+  v_result:=club.preview_admin_academy_training_distribution(
+    v_digest,v_owner,v_id,2);
+  IF (v_result->>'version')::integer<>2
+     OR v_result->>'published'<>'false' THEN
+    RAISE EXCEPTION 'Approved updated private plan preview missing';
+  END IF;
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
     DATE '2026-11-21',TIME '17:30',90,'Updated private plan',
@@ -163,12 +169,6 @@ BEGIN
     RAISE EXCEPTION 'Archived plan was editable';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
-  v_result:=club.preview_admin_academy_training_distribution(
-    v_digest,v_owner,v_id,2);
-  IF (v_result->>'version')::integer<>2
-     OR v_result->>'published'<>'false' THEN
-    RAISE EXCEPTION 'Approved updated private plan preview missing';
-  END IF;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
   BEGIN
