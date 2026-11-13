@@ -18,6 +18,7 @@
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import MobilePublishedHubEducation from '../../../lib/mobile/components/MobilePublishedHubEducation.svelte';
+  import MobilePersonalLearningJourney from '../../../lib/mobile/components/MobilePersonalLearningJourney.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
   import MobileCoachFeedbackTargets from '../../../lib/mobile/components/MobileCoachFeedbackTargets.svelte';
@@ -197,6 +198,7 @@
       {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
         {#key user.id+':'+role}
           {#if role === 'parent' || role === 'player'}
+            <MobilePersonalLearningJourney {controller} viewerRole={role}/>
             <MobilePublishedHubEducation {controller} viewerRole={role}/>
           {/if}
           <MobileAcademyEducation viewerRole={role} />
