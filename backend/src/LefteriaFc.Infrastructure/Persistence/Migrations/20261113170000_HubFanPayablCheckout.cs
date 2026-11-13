@@ -83,7 +83,27 @@ public sealed class HubFanPayablCheckout : Migration
               AND p.amount_cents BETWEEN 100 AND 1000000
               AND p.purpose='fan_hub_'||link.track
               AND p.updated_at<=clock_timestamp()
-              AND p.updated_at+interval '30 days'>clock_timestamp();
+              AND p.updated_at+interval '30 days'>clock_timestamp()
+              AND NOT EXISTS (
+                SELECT 1 FROM finance.payment_notifications refund
+                WHERE refund.request_id=p.id
+                  AND refund.event_type IN ('refund','reversal')
+                  AND refund.error_code=0);
+            -- Any Payabl-signed successful refund or reversal revokes
+            -- already paid fan access even when finance retains its
+            -- historical "paid" capture ledger state.
+            UPDATE hub.fan_subscriptions s
+              SET status='cancelled',cancelled_at=clock_timestamp()
+            FROM hub.fan_checkout_links link
+            JOIN finance.payment_requests p ON p.id=link.payment_request_id
+            WHERE s.id=link.subscription_id
+              AND s.subscriber_identity_id=_identity
+              AND s.organization_id=_owner AND s.status='active'
+              AND EXISTS (
+                SELECT 1 FROM finance.payment_notifications refund
+                WHERE refund.request_id=p.id
+                  AND refund.event_type IN ('refund','reversal')
+                  AND refund.error_code=0);
             UPDATE hub.fan_subscriptions s SET status='expired'
               WHERE s.subscriber_identity_id=_identity
                 AND s.organization_id=_owner AND s.status='active'
@@ -128,9 +148,30 @@ public sealed class HubFanPayablCheckout : Migration
           REVOKE ALL ON FUNCTION hub.read_mobile_fan_subscription(
             uuid,text,text,timestamptz,text) FROM PUBLIC;
 
+          CREATE FUNCTION hub.read_mobile_fan_plans(
+            _identity uuid,_phone text,_role text,_expires timestamptz,_owner text
+          ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+          SET search_path=pg_catalog,pg_temp AS $fan_plans$
+          DECLARE v_items jsonb;
+          BEGIN
+            PERFORM hub.assert_mobile_fan(_identity,_phone,_role,_expires);
+            IF _owner NOT IN ('lefteria_fc','lefteria_fc_academy') THEN
+              RAISE EXCEPTION 'fan_plan_scope_denied' USING ERRCODE='42501';
+            END IF;
+            SELECT coalesce(jsonb_agg(jsonb_build_object(
+              'track',p.track,'monthly_price_cents',p.monthly_price_cents,
+              'currency','EUR','duration_days',30)
+              ORDER BY p.track),'[]'::jsonb)
+            INTO v_items FROM hub.fan_plan_prices p
+            WHERE p.organization_id=_owner AND p.is_enabled;
+            RETURN jsonb_build_object('organization_id',_owner,'plans',v_items);
+          END $fan_plans$;
+          REVOKE ALL ON FUNCTION hub.read_mobile_fan_plans(
+            uuid,text,text,timestamptz,text) FROM PUBLIC;
+
           CREATE FUNCTION hub.reserve_mobile_fan_payabl(
             _identity uuid,_phone text,_role text,_expires timestamptz,
-            _owner text,_track text,_payment uuid,_nonce_digest text,
+            _owner text,_track text,_expected_cents bigint,_payment uuid,_nonce_digest text,
             _email text,_first text,_last text)
           RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
           SET search_path=pg_catalog,pg_temp
@@ -154,6 +195,9 @@ public sealed class HubFanPayablCheckout : Migration
                 AND track=_track AND is_enabled FOR SHARE;
             IF NOT FOUND THEN
               RAISE EXCEPTION 'fan_plan_unavailable' USING ERRCODE='42501';
+            END IF;
+            IF _expected_cents IS NULL OR _expected_cents<>v_price THEN
+              RAISE EXCEPTION 'fan_price_changed' USING ERRCODE='40001';
             END IF;
             -- Serialize concurrent duplicate checkout attempts by fan identity.
             PERFORM 1 FROM identity.mobile_identities i
@@ -188,7 +232,7 @@ public sealed class HubFanPayablCheckout : Migration
               'payment_id',_payment,'amount_cents',v_price);
           END $fan_reserve$;
           REVOKE ALL ON FUNCTION hub.reserve_mobile_fan_payabl(
-            uuid,text,text,timestamptz,text,text,uuid,text,text,text,text) FROM PUBLIC;
+            uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text) FROM PUBLIC;
 
           CREATE FUNCTION hub.ready_mobile_fan_payabl(
             _identity uuid,_phone text,_role text,_expires timestamptz,
@@ -220,7 +264,9 @@ public sealed class HubFanPayablCheckout : Migration
     protected override void Down(MigrationBuilder migrationBuilder) =>
         migrationBuilder.Sql("""
           DROP FUNCTION hub.ready_mobile_fan_payabl(uuid,text,text,timestamptz,text,uuid,text,text);
-          DROP FUNCTION hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,uuid,text,text,text,text);
+          DROP FUNCTION hub.read_mobile_fan_plans(
+            uuid,text,text,timestamptz,text);
+          DROP FUNCTION hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text);
           DROP FUNCTION hub.read_mobile_fan_subscription(uuid,text,text,timestamptz,text);
           DROP FUNCTION hub.sync_mobile_fan_payabl(uuid,text);
           DROP FUNCTION hub.assert_mobile_fan(uuid,text,text,timestamptz);
