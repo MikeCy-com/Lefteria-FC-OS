@@ -21,7 +21,8 @@ const canonical='os-training-'+plan.id;
 test('canonical publication status is scoped to exact current draft',()=>{
   const actual={organization_id:'lefteria_fc_academy',group_id:'u12',
     from:'2026-11-01',to:'2026-11-30',
-    publications:[{id:plan.id,event_id:canonical,published_version:2}]};
+    publications:[{id:plan.id,event_id:canonical,published_version:2,
+      is_cancelled:false,cancel_reason:null}]};
   assert.equal(validTrainingPublicationsPage(actual,'u12',actual.from,actual.to,[plan]),true);
   assert.equal(validTrainingPublicationsPage({...actual,group_id:'other'},'u12',actual.from,actual.to,[plan]),false);
   assert.equal(validTrainingPublicationsPage({...actual,publications:[{...actual.publications[0],published_version:1}]},'u12',actual.from,actual.to,[plan]),false);
