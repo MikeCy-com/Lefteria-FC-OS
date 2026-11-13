@@ -13,13 +13,19 @@ namespace LefteriaFc.Api.Hub;
 
 public sealed record MobileFanHubStartBody(
     string? OrganizationId,string? Track,
-    string? Email,string? FirstName,string? LastName,bool Consent);
+    string? Email,string? FirstName,string? LastName,bool Consent,
+    long ExpectedAmountCents);
 public sealed record MobileFanHubStatus(
     string OrganizationId,string Status,bool AudienceParent,
     bool AudiencePlayer,DateTimeOffset? ExpiresAt,string? CheckoutUrl);
 public sealed record MobileFanHubCheckout(
     Guid Id,string Status,bool Created,Guid? PaymentId,long? AmountCents,
     string? CheckoutUrl);
+
+public sealed record MobileFanHubPlan(
+    string Track,long MonthlyPriceCents,string Currency,int DurationDays);
+public sealed record MobileFanHubPlans(
+    string OrganizationId,IReadOnlyList<MobileFanHubPlan> Plans);
 
 /// <summary>
 /// Sandbox-only fan subscription checkout. Never infer settlement from browser
@@ -33,6 +39,28 @@ public sealed class MobileFanPayablStore(
     private static readonly JsonSerializerOptions Json=new(){
         PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower
     };
+    public async Task<MobileFanHubPlans> PlansAsync(
+        MobileSession actor,string organization,CancellationToken ct)
+    {
+        Check(actor,organization);
+        try
+        {
+            var plans=await ExecuteAsync<MobileFanHubPlans>("plans",actor,
+                organization,null,null,null,null,null,null,null,null,ct);
+            if(plans is null || plans.OrganizationId!=organization ||
+               plans.Plans is null || plans.Plans.Count>3 ||
+               plans.Plans.Select(p=>p.Track).Distinct().Count()!=plans.Plans.Count ||
+               plans.Plans.Any(p=>p is null ||
+                 p.Track is not ("parent" or "player" or "both") ||
+                 p.MonthlyPriceCents is <100 or >1000000 ||
+                 p.Currency!="EUR" || p.DurationDays!=30))
+                throw Unavailable();
+            return plans;
+        }
+        catch(PostgresException ex)when(ex.SqlState=="42501"){throw Forbidden();}
+        catch(PostgresException){throw Unavailable();}
+    }
+
     public async Task<MobileFanHubStatus> StatusAsync(
         MobileSession actor,string organization,CancellationToken ct)
     {
@@ -40,7 +68,7 @@ public sealed class MobileFanPayablStore(
         try
         {
             var result=await ExecuteAsync<MobileFanHubStatus>("status",actor,
-                organization,null,null,null,null,null,null,null,ct);
+                organization,null,null,null,null,null,null,null,null,ct);
             if(result is null || result.OrganizationId!=organization ||
                result.Status is not ("none" or "pending" or "active" or "past_due") ||
                (result.Status=="active" &&
@@ -62,6 +90,7 @@ public sealed class MobileFanPayablStore(
         if(body is null || !body.Consent || body.OrganizationId is not
              ("lefteria_fc" or "lefteria_fc_academy") ||
            body.Track is not ("parent" or "player" or "both") ||
+           body.ExpectedAmountCents is <100 or >1000000 ||
            !SafePayer(body.Email,3,50) || !body.Email!.Contains('@') ||
            !SafePayer(body.FirstName,1,50) || !SafePayer(body.LastName,1,50))
             throw new MobileAuthException(MobileAuthFaultKind.Validation,
@@ -75,11 +104,17 @@ public sealed class MobileFanPayablStore(
         try
         {
             reserved=await ExecuteAsync<MobileFanHubCheckout>("reserve",actor,
-                body.OrganizationId,body.Track,paymentId,
+                body.OrganizationId,body.Track,body.ExpectedAmountCents,paymentId,
                 PayablSignature.CallbackDigest(nonce),
                 body.Email,body.FirstName,body.LastName,null,ct);
         }
         catch(PostgresException ex) when(ex.SqlState=="42501"){throw Forbidden();}
+        catch(PostgresException ex) when(ex.SqlState=="40001")
+        {
+            throw new MobileAuthException(MobileAuthFaultKind.Conflict,
+                MobileAuthErrorCode.InvalidInput,
+                "Subscription price changed. Review the new price.");
+        }
         catch(PostgresException ex) when(ex.SqlState=="22023")
         {
             throw new MobileAuthException(MobileAuthFaultKind.Validation,
@@ -119,7 +154,7 @@ public sealed class MobileFanPayablStore(
         try
         {
             var confirmed=await ExecuteAsync<bool>("ready",actor,
-                body.OrganizationId,null,paymentId,null,null,null,null,
+                body.OrganizationId,null,null,paymentId,null,null,null,null,
                 new ReadyCheckout(hosted.CheckoutUrl,hosted.TransactionId),ct);
             if(!confirmed)throw Unavailable();
             return reserved with { CheckoutUrl=hosted.CheckoutUrl };
@@ -129,7 +164,7 @@ public sealed class MobileFanPayablStore(
 
     private sealed record ReadyCheckout(string Url,string Transaction);
     private async Task<T?> ExecuteAsync<T>(string operation,MobileSession actor,
-        string owner,string? track,Guid? payment,string? digest,
+        string owner,string? track,long? expected,Guid? payment,string? digest,
         string? email,string? first,string? last,ReadyCheckout? ready,CancellationToken ct)
     {
         await database.Database.OpenConnectionAsync(ct);
@@ -137,7 +172,8 @@ public sealed class MobileFanPayablStore(
         {
             var statement=operation switch {
                 "status"=>"SELECT hub.read_mobile_fan_subscription(@identity,@phone,@role,@expires,@owner)::text",
-                "reserve"=>"SELECT hub.reserve_mobile_fan_payabl(@identity,@phone,@role,@expires,@owner,@track,@payment,@digest,@email,@first,@last)::text",
+                "plans"=>"SELECT hub.read_mobile_fan_plans(@identity,@phone,@role,@expires,@owner)::text",
+                "reserve"=>"SELECT hub.reserve_mobile_fan_payabl(@identity,@phone,@role,@expires,@owner,@track,@expected,@payment,@digest,@email,@first,@last)::text",
                 "ready"=>"SELECT hub.ready_mobile_fan_payabl(@identity,@phone,@role,@expires,@owner,@payment,@url,@transaction)::text",
                 _=>throw new InvalidOperationException("Unknown fan billing action.")
             };
@@ -150,6 +186,7 @@ public sealed class MobileFanPayablStore(
             cmd.Parameters.AddWithValue("owner",owner);
             if(payment is Guid paymentId)cmd.Parameters.AddWithValue("payment",paymentId);
             if(track is not null)cmd.Parameters.AddWithValue("track",track);
+            if(expected is long expectedPrice)cmd.Parameters.AddWithValue("expected",expectedPrice);
             if(digest is not null)cmd.Parameters.AddWithValue("digest",digest);
             if(email is not null)cmd.Parameters.AddWithValue("email",email);
             if(first is not null)cmd.Parameters.AddWithValue("first",first);
