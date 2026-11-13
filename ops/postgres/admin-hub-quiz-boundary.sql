@@ -12,7 +12,8 @@ BEGIN
     'hub.list_admin_player_quizzes(text,text)',
     'hub.detail_admin_player_quiz(text,text,uuid)',
     'hub.approve_admin_player_quiz(text,text,uuid)',
-    'hub.publish_admin_player_quiz(text,text,uuid)'
+    'hub.publish_admin_player_quiz(text,text,uuid)',
+    'hub.withdraw_admin_player_quiz(text,text,uuid)'
   ]) LOOP
     SELECT * INTO STRICT routine FROM pg_proc WHERE oid=signature::regprocedure;
     IF NOT routine.prosecdef OR routine.provolatile<>'v'
