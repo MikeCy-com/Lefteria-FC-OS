@@ -6,6 +6,9 @@ import {
  validFanHubLesson,validFanHubCompleted
 } from '../src/lib/mobile/fan-payabl.ts';
 
+import {validFanHubDeliverySchedule,validFanHubDeliveryInbox}
+  from '../src/lib/mobile/fan-payabl.ts';
+
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const checkout=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113170000_HubFanPayablCheckout.cs');
 const lessonSql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113171000_HubFanPersonalEducation.cs');
@@ -125,4 +128,56 @@ test('runtime has no direct private payment, subscription, or fan progress table
  assert.match(permissions,/Payabl fan HUB runtime privileges unsafe/);
  assert.match(permissions,/Parent accessed fan-only paid material/);
  assert.doesNotMatch(grant,/GRANT SELECT ON TABLE finance\.payment_requests/);
+});
+
+test('paid fan notification schedule uses independent weekly clocks for both interests',()=>{
+ const d=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113172000_HubFanWeeklyDelivery.cs');
+ const worker=read('backend/src/LefteriaFc.Api/Hub/HubFanLessonDeliveryWorker.cs');
+ const store=read('backend/src/LefteriaFc.Api/Hub/MobileFanLessonScheduleStore.cs');
+ const workerGrants=read('ops/postgres/hub-fan-lesson-worker-grants.sql');
+ const program=read('backend/src/LefteriaFc.Api/Program.cs');
+ assert.match(d,/PRIMARY KEY\(identity_id,organization_id,audience\)/);
+ assert.match(d,/UNIQUE\(identity_id,organization_id,audience,cycle\)/);
+ assert.match(d,/cadence_days integer NOT NULL DEFAULT 7 CHECK\(cadence_days=7\)/);
+ assert.match(d,/hub\.current_mobile_fan_lesson/);
+ assert.match(d,/FOR UPDATE SKIP LOCKED/);
+ assert.match(d,/v_now\+interval '7 days'/);
+ assert.match(d,/EXCEPTION WHEN insufficient_privilege/);
+ assert.match(d,/ON CONFLICT DO NOTHING/);
+ assert.match(d,/'type','lesson_ready'/);
+ assert.doesNotMatch(d,/INSERT INTO hub\.fan_lesson_delivery_inbox[\s\S]{0,250}body_text/);
+ assert.match(worker,/LEFTERIA_FAN_LESSON_DELIVERY_ENABLED/);
+ assert.match(worker,/LEFTERIA_FAN_LESSON_WORKER_CONNECTION/);
+ assert.match(worker,/if\(!settings\.Enabled\)return/);
+ assert.match(worker,/process_due_fan_lesson_schedules/);
+ assert.match(workerGrants,/GRANT EXECUTE ON FUNCTION hub\.process_due_fan_lesson_schedules/);
+ assert.match(workerGrants,/Fan lesson worker role permissions unsafe/);
+ assert.match(store,/actor\.Role!=MobileRole\.Fan/);
+ assert.match(program,/AddHostedService<HubFanLessonDeliveryWorker>/);
+ assert.match(endpoint,/MapPost\("\/api\/mobile\/hub\/fan-learning\/schedule"/);
+ assert.match(endpoint,/MapGet\("\/api\/mobile\/hub\/fan-learning\/deliveries"/);
+ assert.match(grant,/GRANT EXECUTE ON FUNCTION hub\.start_mobile_fan_lesson_schedule/);
+ assert.match(grant,/GRANT EXECUTE ON FUNCTION hub\.read_mobile_fan_lesson_deliveries/);
+ assert.match(grant,/REVOKE ALL ON FUNCTION hub\.process_due_fan_lesson_schedules/);
+ assert.match(permissions,/Fan lesson delivery runtime permissions unsafe/);
+ assert.match(mobile,/async enrollFanWeeklyLessonDelivery/);
+ assert.match(mobile,/async getFanWeeklyLessonDeliveries/);
+ assert.match(ui,/controller\.enrollFanWeeklyLessonDelivery/);
+ assert.match(ui,/controller\.getFanWeeklyLessonDeliveries/);
+});
+test('weekly fan notice cannot cross organizations, topic interests or dates',()=>{
+ const schedule={organization_id:org,audience:'parent',
+   started_at:'2026-11-01T00:00:00Z',
+   next_due_at:'2026-11-08T00:00:00Z',cadence_days:7};
+ assert.equal(validFanHubDeliverySchedule(schedule,org,'parent'),true);
+ assert.equal(validFanHubDeliverySchedule(schedule,org,'player'),false);
+ assert.equal(validFanHubDeliverySchedule({...schedule,cadence_days:2},org,'parent'),false);
+ const item={id,queued_at:'2026-11-01T00:00:00Z',
+   type:'lesson_ready',audience:'parent',content_id:rev};
+ const inbox={organization_id:org,audience:'parent',items:[item]};
+ assert.equal(validFanHubDeliveryInbox(inbox,org,'parent'),true);
+ assert.equal(validFanHubDeliveryInbox(inbox,org,'player'),false);
+ assert.equal(validFanHubDeliveryInbox({...inbox,items:[item,item]},org,'parent'),false);
+ assert.equal(validFanHubDeliveryInbox({...inbox,items:[
+  {...item,queued_at:'2090-11-01T00:00:00Z'}]},org,'parent'),false);
 });
