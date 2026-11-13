@@ -136,6 +136,7 @@
       {:else}
         <div class="parent-schedule-list" data-testid="parent-home-events">
           {#each upcoming as event (event.kind + ':' + event.id)}
+            {@const ownRsvp=parentHomeRsvp(event,activeChild.id)}
             <article class="parent-event" data-testid="parent-home-event">
               <div class="parent-event-date">
                 <strong>{event.start_time || '—'}</strong>
@@ -143,7 +144,6 @@
               </div>
               <div class="parent-event-icon" aria-hidden="true">{event.kind === 'match' ? '⚽' : event.kind === 'training' ? '◈' : '▦'}</div>
               <div class="parent-event-copy">
-                {@const ownRsvp=parentHomeRsvp(event,activeChild.id)}
                 <span>{CALENDAR_KIND_LABELS[event.kind as keyof typeof CALENDAR_KIND_LABELS] ?? 'Δραστηριότητα'}</span>
                 <h3>{event.title}</h3>
                 {#if event.location}<p>{event.location}</p>{/if}
