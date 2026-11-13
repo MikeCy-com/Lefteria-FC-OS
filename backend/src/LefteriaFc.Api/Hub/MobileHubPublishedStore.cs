@@ -50,10 +50,14 @@ public sealed class MobileHubPublishedStore(LefteriaDbContext database)
                 if(result is null || result.OrganizationId!=organization ||
                    result.Audience!=role || result.Items is null ||
                    result.Items.Count>20 ||
-                   result.Items.Any(item=>item.Id==Guid.Empty ||
+                   result.Items.Any(item=>item is null || item.Id==Guid.Empty ||
                        item.OrganizationId!=organization || item.Audience!=role ||
-                       item.Title.Length is <1 or >180 ||
-                       item.Body.Length is <1 or >20000 ||
+                       string.IsNullOrWhiteSpace(item.Title) || item.Title.Length>180 ||
+                       string.IsNullOrWhiteSpace(item.Body) || item.Body.Length>20000 ||
+                       item.PublishedAt==default || item.PublishedAt>DateTimeOffset.UtcNow ||
+                       (item.AgeMin is null)!=(item.AgeMax is null) ||
+                       (item.AgeMin is not null &&
+                        (item.AgeMin<4 || item.AgeMax>99 || item.AgeMax<item.AgeMin)) ||
                        (role=="player" && (item.AgeMin is not null || item.AgeMax is not null))))
                     throw Unavailable();
                 return result;
