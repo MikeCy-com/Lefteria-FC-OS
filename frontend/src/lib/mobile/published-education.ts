@@ -72,3 +72,47 @@ export function prioritizeUncompletedPublishedEducation(
   return [...authorized].sort((a,b)=>
     Number(completed.has(a.id))-Number(completed.has(b.id)));
 }
+
+
+/** An individual's next eligible approved lesson, not a global latest feed. */
+export interface PublishedHubNextArticle extends PublishedHubArticle {
+  revision_id:string;
+}
+export interface PublishedHubNextPage {
+  organization_id:PublishedHubArticle['organization_id'];
+  audience:'parent'|'player';
+  next:PublishedHubNextArticle|null;
+}
+export interface PublishedHubCompletion {
+  organization_id:PublishedHubArticle['organization_id'];
+  audience:'parent'|'player';
+  completed_id:string;
+  completed_revision_id:string;
+}
+const uuid=(v:unknown)=>typeof v==='string'&&
+  /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(v);
+export function validPublishedHubNext(value:unknown,role:'parent'|'player',
+  organization:PublishedHubArticle['organization_id']):value is PublishedHubNextPage {
+  if(!value||typeof value!=='object'||Array.isArray(value))return false;
+  const page=value as Record<string,unknown>;
+  if(page.organization_id!==organization||page.audience!==role)return false;
+  if(page.next===null)return true;
+  const next=page.next;
+  if(!next||typeof next!=='object'||Array.isArray(next))return false;
+  const a=next as Record<string,unknown>;
+  return uuid(a.id)&&uuid(a.revision_id)&&a.organization_id===organization&&
+    a.audience===role&&typeof a.title==='string'&&a.title.trim().length>0&&
+    a.title.length<=180&&typeof a.body==='string'&&a.body.trim().length>0&&
+    a.body.length<=20000&&typeof a.published_at==='string'&&
+    !Number.isNaN(Date.parse(a.published_at))&&
+    Date.parse(a.published_at)<=Date.now()&&a.age_min===null&&a.age_max===null;
+}
+export function validPublishedHubCompletion(value:unknown,
+  page:PublishedHubNextPage):value is PublishedHubCompletion {
+  if(!value||typeof value!=='object'||Array.isArray(value)||!page.next)return false;
+  const result=value as Record<string,unknown>;
+  return result.organization_id===page.organization_id&&
+    result.audience===page.audience&&
+    result.completed_id===page.next.id&&
+    result.completed_revision_id===page.next.revision_id;
+}
