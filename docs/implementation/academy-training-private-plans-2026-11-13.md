@@ -99,3 +99,26 @@ atomically verify a current human-approved version *and* implement member
 calendar reads, delegated and direct RSVP, real attendance eligibility,
 cancellation, coach assignment and safe member notifications. This follow-up
 adds the indispensable versioned human gate, not those remaining behaviors.
+
+
+## Exact-revision publication distribution preview
+
+A manager may inspect a human-approved draft's **proposed** player reach
+without revealing any child record. The `GET
+/api/admin/academy/training/plans/{planId}/publication-preview` endpoint
+locks the live manager session, current Academy grant, draft and exact
+human approval version in PostgreSQL before calculating the count of
+currently active Academy players associated with the exact group. The
+response contains day, time, duration, title, location, version, group,
+`eligible_player_count`, `human_approved=true` and `published=false`.
+
+It intentionally contains **no player IDs, phone numbers, names, emails or
+private coach planning notes**. Counts are a live estimate; membership may
+change before actual publication. The frontend rejects mismatched IDs,
+groups, versions, changed schedules, unknown extra child collections and
+any response claiming publication.
+
+**This is read-only.** It does not establish recipient authorization for
+individual read or RSVP, send a notification, generate a fixture, or write
+to the member calendar. A future publication transaction must revalidate
+all of the above against current authorization and rollout conditions.
