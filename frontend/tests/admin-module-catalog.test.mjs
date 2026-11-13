@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/documents', '/admin/evaluations'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations'].includes(item.href));
   }
 });
 
@@ -86,6 +86,12 @@ test('one canonical live groups module removes duplicate team/Academy admin link
   assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'])).includes('groups'));
   assert.ok(!ids(user(['academy:read'],['lefteria_fc'])).includes('groups'));
   assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('groups'));
+});
+
+test('Academy schedule has an explicit manager-only attendance grant',()=>{
+  assert.ok(ids(user(['attendance:read'],['lefteria_fc_academy'],'manager')).includes('academy_schedule'));
+  assert.ok(!ids(user(['attendance:read'],['lefteria_fc'],'manager')).includes('academy_schedule'));
+  assert.ok(!ids(user(['attendance:read'],['lefteria_fc_academy'],'coach')).includes('academy_schedule'));
 });
 
 test('announcement drafting is visible only to authorized owners and managers',()=>{
