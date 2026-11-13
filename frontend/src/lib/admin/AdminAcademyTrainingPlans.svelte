@@ -98,7 +98,7 @@
         void auth.bootstrap();throw Error('Η συνεδρία ή τα δικαιώματα άλλαξαν.');
       }
       if(response.status===409){
-        refreshNonce++;throw Error('Το πρόχειρο άλλαξε από άλλο διαχειριστή. Φορτώστε ξανά.');
+        refreshNonce++;throw Error('Η ώρα συγκρούεται με άλλο ενεργό πρόχειρο του τμήματος ή άλλαξε η έκδοση. Ελέγξτε το πρόγραμμα και δοκιμάστε ξανά.');
       }
       if(!response.ok)throw Error('Η αλλαγή δεν αποθηκεύτηκε. Δεν έγινε δημοσίευση.');
       const payload:unknown=await response.json();
