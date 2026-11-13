@@ -86,6 +86,9 @@ builder.Services.AddScoped<PostgresCoachFeedbackDraftStore>();
 builder.Services.AddScoped<MobileHubPublishedStore>();
 builder.Services.AddScoped<MobileFanPayablStore>();
 builder.Services.AddScoped<MobileFanLearningStore>();
+builder.Services.AddScoped<MobileFanLessonScheduleStore>();
+builder.Services.AddSingleton<HubFanLessonDeliverySettings>();
+builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
