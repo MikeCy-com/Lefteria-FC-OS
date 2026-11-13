@@ -41,7 +41,7 @@ test('dispatcher serializes due enrollment and never skips unavailable reviewed 
  assert.match(dispatch,/ORDER BY c\.published_at ASC,c\.id ASC/);
  assert.match(dispatch,/IF v_content IS NULL OR v_revision IS NULL THEN/);
  assert.match(dispatch,/ON CONFLICT DO NOTHING/);
- assert.match(dispatch,/e\.delivery_week=e\.delivery_week\+1/);
+ assert.match(dispatch,/SET delivery_week=e\.delivery_week\+1/);
  assert.match(dispatch,/interval '7 days'/);
  assert.match(dispatch,/e\.status='active'/);
  assert.doesNotMatch(dispatch,/INSERT INTO hub\.fan_subscriptions|UPDATE hub\.fan_subscriptions/);
