@@ -165,3 +165,30 @@ against any staging database with imported history, take a verified backup and
 validate import/reconciliation behavior after an OS-native publication;
 do not rerun a destructive source import over published records. No live
 Hostinger deployment or original repository modification is authorized.
+
+
+## Published OS-native training cancellation
+
+Only an authorized Academy manager can cancel a **published OS-native**
+training plan by explicitly confirming its exact published version and
+providing a public-safe, trimmed reason (8–500 characters). The database
+rechecks the current admin session/Academy grant, verifies the publication,
+rejects duplicates and past-day cancellation, and records an immutable
+cancellation row plus security audit. Imported legacy sessions cannot be
+changed using this function.
+
+The event remains in `club.calendar_items` with
+`is_cancelled=true`, `status=cancelled` and a visible cancellation reason.
+Parent, player, coach and management calendar readers still see the
+cancelled event if currently authorized: the private OS-native primary
+Academy-group predicate no longer hides cancelled events. Existing
+RSVP/attendance history is preserved; no response is rewritten or erased.
+The existing mobile availability write statements reject cancelled events
+using `NOT c.is_cancelled`. The manager can see the cancellation in the
+publication list and cannot cancel the same plan twice.
+
+**No automatic push, email, SMS, or fan notification is sent by cancellation.**
+A manager must use the separate announcement/messaging tools for urgent
+communication until a verified Academy training notification pipeline is
+implemented. This slice does not implement editing published session times,
+recurrence, roster-based push delivery or cancellation of imported sessions.
