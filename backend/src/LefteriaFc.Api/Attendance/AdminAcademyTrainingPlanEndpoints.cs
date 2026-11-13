@@ -134,6 +134,29 @@ public static class AdminAcademyTrainingPlanEndpoints
         }).WithName("ApproveAdminAcademyTrainingPlanDraft")
           .Accepts<ApproveTrainingPlanCommand>("application/json");
 
+        admin.MapGet("/{planId:guid}/publication-preview",async (
+            Guid planId,int? version,string? organization_id,
+            WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            if(planId==Guid.Empty || version is null ||
+               version is <1 or >10000 ||
+               context.Request.Query["version"].Count!=1)
+                throw new WebAdminException(422,"invalid_training_preview",
+                    "Select the exact approved training plan version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.preview_admin_academy_training_distribution(
+                  @digest,@owner,@id,@expected)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",version.Value);
+            return await Run(command,ct);
+        }).WithName("PreviewAdminAcademyTrainingDistribution");
+
         return endpoints;
     }
 
