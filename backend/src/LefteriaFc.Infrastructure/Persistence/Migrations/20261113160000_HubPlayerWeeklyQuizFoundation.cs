@@ -88,9 +88,10 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
 
           CREATE FUNCTION hub.assert_current_quiz_player(
             _identity uuid,_phone text,_role text,_expires timestamptz,_owner text)
-          RETURNS void LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+          RETURNS text LANGUAGE plpgsql VOLATILE SECURITY DEFINER
           SET search_path=pg_catalog,pg_temp
           AS $quiz_auth$
+          DECLARE v_position text;
           BEGIN
             IF _identity IS NULL OR _phone IS NULL
               OR _phone !~ '^[1-9][0-9]{7,14}$'
@@ -100,12 +101,33 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
             THEN
               RAISE EXCEPTION 'quiz_scope_denied' USING ERRCODE='42501';
             END IF;
-            PERFORM 1 FROM identity.mobile_identities i
+            -- Recheck the live canonical player ownership and exact
+            -- organization. An active role alone cannot prove a roster link,
+            -- selected position or cross-club membership.
+            SELECT p.position INTO STRICT v_position
+              FROM identity.mobile_identities i
+              JOIN identity.mobile_record_links l
+                ON l.identity_id=i.id AND l.role='player'
+                  AND l.normalized_phone=i.normalized_phone
+                  AND l.collection='players' AND l.kind='player_own'
+              JOIN identity.canonical_contact_bindings b
+                ON b.collection=l.collection AND b.kind=l.kind
+                  AND b.source_id=l.record_id
+                  AND b.normalized_phone=i.normalized_phone
+              JOIN club.players p ON p.id=l.record_id
+                AND p.organization_id=_owner
+                AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
               WHERE i.id=_identity AND i.normalized_phone=_phone
-                AND i.role='player' AND i.is_active FOR SHARE;
-            IF NOT FOUND THEN
-              RAISE EXCEPTION 'quiz_identity_denied' USING ERRCODE='42501';
-            END IF;
+                AND i.role='player' AND i.is_active
+              FOR SHARE OF i,l,b,p;
+            RETURN CASE v_position
+              WHEN 'Defender' THEN 'defender'
+              WHEN 'Midfielder' THEN 'midfielder'
+              WHEN 'Goalkeeper' THEN 'goalkeeper'
+              ELSE 'all'
+            END;
+          EXCEPTION WHEN no_data_found OR too_many_rows THEN
+            RAISE EXCEPTION 'quiz_identity_denied' USING ERRCODE='42501';
           END $quiz_auth$;
           REVOKE ALL ON FUNCTION hub.assert_current_quiz_player(
             uuid,text,text,timestamptz,text) FROM PUBLIC;
@@ -139,9 +161,9 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
           RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
           SET search_path=pg_catalog,pg_temp
           AS $quiz_read$
-          DECLARE v_started timestamptz; v_quiz jsonb;
+          DECLARE v_started timestamptz; v_quiz jsonb; v_position text;
           BEGIN
-            PERFORM hub.assert_current_quiz_player(
+            v_position:=hub.assert_current_quiz_player(
               _identity,_phone,_role,_expires,_owner);
             SELECT started_at INTO v_started FROM hub.player_quiz_tracks
               WHERE identity_id=_identity AND organization_id=_owner;
@@ -162,7 +184,19 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
               WHERE q.organization_id=_owner AND q.status='published'
                 AND q.reviewed_by IS NOT NULL AND q.reviewed_at IS NOT NULL
                 AND q.published_at IS NOT NULL AND q.published_at<=clock_timestamp()
-                AND q.position='all'
+                AND (q.position=v_position OR
+                     (q.position='all' AND NOT EXISTS (
+                       SELECT 1 FROM hub.player_quizzes specialized
+                       WHERE specialized.organization_id=_owner
+                         AND specialized.week_number=q.week_number
+                         AND specialized.position=v_position
+                         AND specialized.status='published'
+                         AND specialized.reviewed_by IS NOT NULL
+                         AND specialized.reviewed_at IS NOT NULL
+                         AND specialized.published_at<=clock_timestamp()
+                         AND (SELECT count(*) FROM hub.player_quiz_questions sq
+                              WHERE sq.quiz_id=specialized.id) BETWEEN 3 AND 20
+                     )))
                 AND q.week_number<=1+floor(extract(epoch from
                   (clock_timestamp()-v_started))/604800)::integer
                 AND (SELECT count(*) FROM hub.player_quiz_questions qq
