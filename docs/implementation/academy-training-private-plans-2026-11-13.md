@@ -58,3 +58,20 @@ drafts instead of pretending those rows are already published.
    attendance, and verify imported calendar row counts unchanged.
 6. Full real-environment stage tests and visual comparison before enabling
    any future publish capability.
+
+
+## Follow-up: same-group training collision protection
+
+Database trigger `club.reject_academy_training_plan_overlap` now serializes
+same-organization, same-group, same-day active draft writes using a transaction
+advisory lock. It rejects overlapping ranges with a conflict (HTTP 409);
+adjacent non-overlapping plans are allowed. Private archived drafts release
+their occupied slot. Training cannot silently cross into the next day;
+midnight-spanning drafts are rejected as invalid until a full overnight
+scheduling model exists. This prevents concurrent managers from bypassing
+the UI's availability checks and does not assert conflict-free **facilities**
+across different groups: that requires a separate facility assignment model.
+
+The PostgreSQL rollback-only lifecycle now covers overlapping sessions,
+overnight rejection, version conflicts, archive and reuse of a free slot.
+Neither this guard nor the private planner publishes events to member calendars.
