@@ -15,14 +15,14 @@
  let email=$state(''),firstName=$state(''),lastName=$state('');
  let consent=$state(false);
  let busy=$state(true),error=$state<string|null>(null);
- let alive=false,epoch=0;
+ let alive=false,epoch=0,lessonEpoch=0;
  const active=$derived(status?.status==='active');
  const allowed=$derived(active&&
    (audience==='parent'?status?.audience_parent:status?.audience_player));
 
  onMount(()=>{
    alive=true;void refresh();
-   return()=>{alive=false;epoch++;status=null;lesson=null;};
+   return()=>{alive=false;epoch++;lessonEpoch++;status=null;lesson=null;};
  });
  $effect(()=>{
    const owner=organization;
@@ -33,15 +33,15 @@
    if(alive&&active)untrack(()=>void readLesson(a));
  });
  async function refresh(owner=organization){
-   const token=++epoch;busy=true;error=null;status=null;lesson=null;
+   const token=++epoch;lessonEpoch++;busy=true;error=null;status=null;lesson=null;
    try{
      const data=await controller.getFanHubSubscription(owner);
      if(alive&&epoch===token&&organization===owner){
        status=data;
        if(data.status==='active'){
-         const selected=data.audience_parent?'parent':'player';
-         audience=selected;
-         await readLesson(selected);
+         audience=data.audience_parent?'parent':'player';
+         // The reactive audience/status watcher reads the permitted lesson
+         // without altering the subscription request's lifecycle.
        }
      }
    }catch{
@@ -49,13 +49,13 @@
    }finally{if(alive&&epoch===token)busy=false;}
  }
  async function readLesson(selected=audience){
-   const owner=organization,token=++epoch;
+   const owner=organization,token=++lessonEpoch;
    lesson=null;error=null;
    try{
      const data=await controller.getFanHubNextLesson(owner,selected);
-     if(alive&&epoch===token&&organization===owner&&audience===selected)lesson=data;
+     if(alive&&lessonEpoch===token&&organization===owner&&audience===selected)lesson=data;
    }catch{
-     if(alive&&epoch===token)error='Το εγκεκριμένο μάθημα δεν είναι διαθέσιμο. Έλεγξε τη συνδρομή.';
+     if(alive&&lessonEpoch===token)error='Το εγκεκριμένο μάθημα δεν είναι διαθέσιμο. Έλεγξε τη συνδρομή.';
    }
  }
  async function checkout(){
