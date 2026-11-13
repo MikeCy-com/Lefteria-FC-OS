@@ -4,6 +4,9 @@ import {readFileSync} from 'node:fs';
 import {validPublishedHubNext,validPublishedHubCompletion}
   from '../src/lib/mobile/published-education.ts';
 
+import {validPersonalLessonSchedule,validPersonalLessonInbox}
+  from '../src/lib/mobile/learning-delivery.ts';
+
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113150000_HubRecipientLearningProgress.cs');
 const store=read('backend/src/LefteriaFc.Api/Hub/MobileHubPublishedStore.cs');
@@ -98,5 +101,70 @@ test('player receives only their own active canonical club roster pathway',()=>{
  assert.match(sql,/NOT p\.is_archived AND NOT p\.is_transferred/);
  assert.match(sql,/l\.kind='player_own'/);
  assert.match(sql,/FOR SHARE OF l,b,p/);
+ assert.match(sql,/education_player_roster_denied/);
+});
+
+test('seven-day recipient-specific lesson delivery queue is durable and repeat-safe',()=>{
+ const delivery=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113180000_HubIndividualLessonSchedule.cs');
+ const worker=read('backend/src/LefteriaFc.Api/Hub/HubLessonDeliveryWorker.cs');
+ const workerGrants=read('ops/postgres/hub-learning-worker-grants.sql');
+ const api=read('backend/src/LefteriaFc.Api/Hub/MobileLessonScheduleEndpoints.cs');
+ const store=read('backend/src/LefteriaFc.Api/Hub/MobileLessonScheduleStore.cs');
+ const app=read('frontend/src/lib/mobile/components/MobilePersonalLearningJourney.svelte');
+ const grants=read('ops/postgres/identity-app-grants.sql');
+ const program=read('backend/src/LefteriaFc.Api/Program.cs');
+ assert.match(delivery,/PRIMARY KEY\(identity_id,organization_id,viewer_role,audience\)/);
+ assert.match(delivery,/UNIQUE\(identity_id,organization_id,viewer_role,audience,cycle\)/);
+ assert.match(delivery,/cadence_days integer NOT NULL DEFAULT 7 CHECK\(cadence_days=7\)/);
+ assert.match(delivery,/ORDER BY s\.next_due_at,s\.identity_id/);
+ assert.match(delivery,/FOR UPDATE SKIP LOCKED/);
+ assert.match(delivery,/hub\.current_mobile_education_lesson/);
+ assert.match(delivery,/ON CONFLICT DO NOTHING/);
+ assert.match(delivery,/v_now\+interval '7 days'/);
+ assert.match(delivery,/v_now\+interval '1 day'/);
+ assert.match(delivery,/'type','lesson_ready'/);
+ assert.doesNotMatch(delivery,/INSERT INTO hub\.learning_delivery_inbox[\s\S]{0,240}body_text/);
+ assert.match(worker,/LEFTERIA_LESSON_DELIVERY_ENABLED/);
+ assert.match(worker,/LEFTERIA_LESSON_WORKER_CONNECTION/);
+ assert.match(worker,/if\(!settings\.Enabled\)return/);
+ assert.match(worker,/process_due_mobile_lesson_schedules/);
+ assert.match(workerGrants,/GRANT EXECUTE ON FUNCTION hub\.process_due_mobile_lesson_schedules/);
+ assert.match(workerGrants,/Learning worker role is too powerful/);
+ assert.match(grants,/REVOKE ALL ON FUNCTION hub\.process_due_mobile_lesson_schedules/);
+ assert.match(grants,/GRANT EXECUTE ON FUNCTION hub\.start_mobile_lesson_schedule/);
+ assert.match(grants,/GRANT EXECUTE ON FUNCTION hub\.read_mobile_lesson_deliveries/);
+ assert.match(api,/MapPost\("\/api\/mobile\/hub\/learning\/schedule"/);
+ assert.match(api,/MapGet\("\/api\/mobile\/hub\/learning\/deliveries"/);
+ assert.match(api,/RequireAuthorization\(IdentityServices\.Policy\)/);
+ assert.match(store,/actor\.Role is not \(MobileRole\.Parent or MobileRole\.Player\)/);
+ assert.match(program,/AddHostedService<HubLessonDeliveryWorker>/);
+ assert.match(app,/controller\.enrollPersonalLessonSchedule\(organization\)/);
+ assert.match(app,/controller\.getPersonalLessonDeliveries\(organization\)/);
+});
+test('scheduled lesson client rejects other identities, future notices and wrong roles',()=>{
+ const owner='lefteria_fc_academy';
+ const scheduled={organization_id:owner,audience:'parent',
+   started_at:'2026-11-01T00:00:00Z',
+   next_due_at:'2026-11-08T00:00:00Z',cadence_days:7};
+ assert.equal(validPersonalLessonSchedule(scheduled,owner,'parent'),true);
+ assert.equal(validPersonalLessonSchedule({...scheduled,cadence_days:1},owner,'parent'),false);
+ const notice={id:'11111111-1111-4111-8111-111111111111',
+   queued_at:'2026-11-01T00:00:00Z',type:'lesson_ready',
+   audience:'parent',content_id:'22222222-2222-4222-8222-222222222222'};
+ const inbox={organization_id:owner,audience:'parent',items:[notice]};
+ assert.equal(validPersonalLessonInbox(inbox,owner,'parent'),true);
+ assert.equal(validPersonalLessonInbox(inbox,owner,'player'),false);
+ assert.equal(validPersonalLessonInbox({...inbox,items:[notice,notice]},owner,'parent'),false);
+ assert.equal(validPersonalLessonInbox({...inbox,items:[
+  {...notice,queued_at:'2090-01-01T00:00:00Z'}]},owner,'parent'),false);
+ const ctl=read('frontend/src/lib/mobile/controller.ts');
+ assert.match(ctl,/async enrollPersonalLessonSchedule/);
+ assert.match(ctl,/async getPersonalLessonDeliveries/);
+ assert.match(ctl,/oldToken!==token/);
+});
+test('guardian and player current-roster checks also protect scheduled delivery',()=>{
+ assert.match(sql,/IF _role='parent' THEN/);
+ assert.match(sql,/identity\.current_phone_granted_children/);
+ assert.match(sql,/education_parent_guardian_scope_denied/);
  assert.match(sql,/education_player_roster_denied/);
 });
