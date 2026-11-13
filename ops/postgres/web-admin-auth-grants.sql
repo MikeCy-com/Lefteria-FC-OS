@@ -251,6 +251,10 @@ GRANT EXECUTE ON FUNCTION hub.approve_admin_player_quiz(text,text,uuid)
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION hub.publish_admin_player_quiz(text,text,uuid)
   TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.withdraw_admin_player_quiz(text,text,uuid)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.withdraw_admin_player_quiz(text,text,uuid)
+  TO :"admin_auth_role";
 REVOKE ALL ON TABLE hub.player_quizzes,hub.player_quiz_questions,
   hub.player_quiz_tracks,hub.player_quiz_attempts,
   hub.player_quiz_review_events FROM PUBLIC, :"app_role", :"admin_auth_role";
