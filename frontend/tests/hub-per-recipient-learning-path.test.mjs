@@ -47,7 +47,7 @@ test('completion is explicit and strictly sequential, identity locked and versio
  assert.match(sql,/v_lesson->>'id'/);
  assert.match(sql,/v_lesson->>'revision_id'/);
  assert.match(sql,/INSERT INTO hub\.education_completions/);
- assert.match(sql,/PRIMARY KEY\(identity_id,organization_id,viewer_role,audience,content_id\)/);
+ assert.match(sql,/PRIMARY KEY\(identity_id,organization_id,viewer_role,audience,content_id,revision_id\)/);
  assert.match(sql,/viewer_role='fan' OR viewer_role=audience/);
  assert.match(sql,/ALTER TABLE hub\.education_completions ENABLE ROW LEVEL SECURITY/);
 });
