@@ -14,6 +14,7 @@
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
+  import MobileRoleHome from '../../../lib/mobile/components/MobileRoleHome.svelte';
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import MobilePublishedHubEducation from '../../../lib/mobile/components/MobilePublishedHubEducation.svelte';
@@ -128,6 +129,16 @@
             onChildren={() => openTab('children')}
             onEducation={() => openTab('hub')}
             onCalendar={(childId) => openTab('calendar', childId)} />
+        {/key}
+      {:else if activeTab === 'home' && role !== 'parent' && !composing}
+        {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id??'unselected':'')}
+          <MobileRoleHome {role} identityId={user.id} userName={user.name}
+            organizationId={role==='management' && !$controller.organization?.requires_organization_selection
+              ? $controller.organization?.organization_id : null}
+            calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
+            calendarError={$controller.calendarError} busy={$controller.busy}
+            onLoadCalendar={month=>controller.loadCalendar(month)}
+            onNavigate={openTab}/>
         {/key}
       {:else if activeTab === 'profile' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
