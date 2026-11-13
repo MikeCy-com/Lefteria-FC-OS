@@ -345,7 +345,7 @@
       <p><strong>{cancellationTarget.title}</strong> · {cancellationTarget.day} {cancellationTarget.start_time}</p>
       <p class="plan-note">Ο δημόσιος λόγος θα φαίνεται στους γονείς και αθλητές του τμήματος. Οι παλιές απαντήσεις RSVP και παρουσίες διατηρούνται. Οι νέες απαντήσεις αποκλείονται. Δεν αποστέλλεται ειδοποίηση push/SMS.</p>
       <label class="cancel-reason">Δημόσιος λόγος ακύρωσης
-        <textarea bind:value={cancellationReason} maxlength="500" rows="3"
+        <textarea data-testid="academy-native-cancel-reason" bind:value={cancellationReason} maxlength="500" rows="3"
           disabled={saving} placeholder="Π.χ. Ακύρωση λόγω ακαταλληλότητας γηπέδου" />
       </label>
       <label class="review-confirm"><input type="checkbox"
