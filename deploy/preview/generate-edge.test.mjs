@@ -9,9 +9,9 @@ const digest = 'a'.repeat(64);
 const permits = (document, method, path) => bearerRouteGroups(document).some(group =>
   group.method === method && new RegExp(group.expression).test(path));
 
-test('only the sixty-three explicitly declared Mobile operations receive Bearer routing', () => {
+test('only the sixty-five explicitly declared Mobile operations receive Bearer routing', () => {
   const operations = protectedOperations(contract);
-  assert.equal(operations.length, 63);
+  assert.equal(operations.length, 65);
   for (const operation of operations) {
     const path = operation.path.replace(/\{invoiceId\}/g,
       '11111111-2222-4333-8444-555555555555').replace(/\{[^}]+\}/g, 'record');
@@ -81,6 +81,13 @@ test('only the sixty-three explicitly declared Mobile operations receive Bearer 
     assert.equal(permits(contract, method, path), true);
     assert.equal(permits(contract, method === 'GET' ? 'POST' : 'GET', path), false);
   }
+  const nextLesson='/api/mobile/hub/learning/next';
+  const completeLesson='/api/mobile/hub/learning/complete';
+  assert.equal(permits(contract,'GET',nextLesson),true);
+  assert.equal(permits(contract,'POST',completeLesson),true);
+  for(const [method,path] of [['POST',nextLesson],['GET',completeLesson],
+    ['DELETE',completeLesson],['GET',nextLesson+'/extra'],['POST',completeLesson+'/extra']])
+    assert.equal(permits(contract,method,path),false);
   const coachTargets='/api/mobile/coach/feedback/targets';
   assert.equal(permits(contract,'GET',coachTargets),true);
   assert.equal(permits(contract,'GET',coachTargets+'/extra'),false);
@@ -210,7 +217,7 @@ test('anonymous and newly declared non-Mobile operations do not enter the protec
   changed.paths['/api/mobile/anonymous'] = { get: { security: [] } };
   changed.paths['/api/mobile/unmarked'] = { post: {} };
   changed.paths['/api/mobile/auth/exchange-legacy'].post.security = [{ LegacyMobile: [] }];
-  assert.equal(protectedOperations(changed).length, 63);
+  assert.equal(protectedOperations(changed).length, 65);
   assert.equal(permits(changed, 'GET', '/api/mobile/anonymous'), false);
   assert.equal(permits(changed, 'POST', '/api/mobile/unmarked'), false);
 });
