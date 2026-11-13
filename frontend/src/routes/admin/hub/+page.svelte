@@ -29,7 +29,10 @@
   let topic=$state('support');
   let language=$state<'el'|'en'>('el');
   let ageMin=$state(6),ageMax=$state(12);
+  // Inspection proofs are bound to a single revision, not a reusable media ID.
   let inspected=$state<string[]>([]);
+  const inspectionKey=(source:HubEditorialDetail,mediaId:string)=>
+    [source.organization_id,source.id,source.revision_id,source.version,mediaId].join(':');
   let showPreview=$state<string|null>(null);
   const topics=$derived(audience==='parent'?
     ['support','communication','development','wellbeing']:
@@ -84,7 +87,7 @@
       resulting:HubState,decision?:'passed'|'rejected'){
     const source=detail,owner=organization,actor=$auth.session?.user.id;
     if(!source||!owner||source.organization_id!==owner||!manager||busy)return;
-    if(action==='visual-approve'&&source.visuals.some(v=>!inspected.includes(v.id))){
+    if(action==='visual-approve'&&source.visuals.some(v=>!inspected.includes(inspectionKey(source,v.id)))){
       error='Ελέγξτε πρώτα κάθε πραγματική εικόνα.';return;
     }
     if(action==='publish'&&!confirm('Να δημοσιευθεί αυτό το εγκεκριμένο άρθρο στην εφαρμογή;'))return;
@@ -200,15 +203,20 @@
               {#if detail.visuals.length}
                 <h3>Εικαστικά προς έλεγχο</h3>
                 {#each detail.visuals as media (media.id)}
+                  {@const proof=inspectionKey(detail,media.id)}
                   <div class="image-review">
                     <p>{media.alt_text??'Χωρίς εναλλακτικό κείμενο'} · {media.moderation}</p>
                     {#if media.moderation==='quarantined'}
-                      <button type="button" onclick={()=>{showPreview=media.id;inspected=inspected.filter(id=>id!==media.id);}}>Άνοιγμα πραγματικής εικόνας για έλεγχο</button>
-                      {#if showPreview===media.id}
+                      <button type="button" onclick={()=>{showPreview=proof;inspected=inspected.filter(id=>id!==proof);}}>Άνοιγμα πραγματικής εικόνας για έλεγχο</button>
+                      {#if showPreview===proof}
                         <img alt={media.alt_text??'Εικαστικό προς έλεγχο'} loading="lazy"
-                          src={'/api/admin/hub/editorial/'+detail.id+'/images/'+media.id+'/preview?organization_id='+detail.organization_id}
-                          onload={()=>{inspected=[...new Set([...inspected,media.id])];}}
-                          onerror={()=>{inspected=inspected.filter(id=>id!==media.id);}}/>
+                          src={'/api/admin/hub/editorial/'+detail.id+'/images/'+media.id+'/preview?organization_id='+detail.organization_id+'&revision_id='+detail.revision_id+'&version='+detail.version}
+                          onload={()=>{
+                            if(detail&&organization===detail.organization_id&&
+                               showPreview===proof&&inspectionKey(detail,media.id)===proof)
+                              inspected=[...new Set([...inspected,proof])];
+                          }}
+                          onerror={()=>{inspected=inspected.filter(id=>id!==proof);}}/>
                       {/if}
                     {/if}
                   </div>
