@@ -57,6 +57,7 @@ public sealed class MobilePlayerWeeklyQuizStore(LefteriaDbContext database)
              quiz.Title.Length>180 || quiz.WeekNumber is <1 or >520 ||
              !Topics.Contains(quiz.Topic) || !Positions.Contains(quiz.Position) ||
              quiz.Questions is null || quiz.Questions.Count is <3 or >20 ||
+             quiz.Questions.Any(q=>q is null || q.Id==Guid.Empty) ||
              quiz.Questions.Select(q=>q.Id).Distinct().Count()!=quiz.Questions.Count ||
              quiz.Questions.Any(q=>q is null || q.Id==Guid.Empty ||
                q.Sequence is <1 or >20 || string.IsNullOrWhiteSpace(q.Prompt) ||
