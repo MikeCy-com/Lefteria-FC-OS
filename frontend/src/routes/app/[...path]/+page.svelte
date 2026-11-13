@@ -19,6 +19,7 @@
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import MobileFanPayablHub from '../../../lib/mobile/components/MobileFanPayablHub.svelte';
   import MobilePublishedHubEducation from '../../../lib/mobile/components/MobilePublishedHubEducation.svelte';
+  import MobilePlayerWeeklyQuiz from '../../../lib/mobile/components/MobilePlayerWeeklyQuiz.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
   import MobileCoachFeedbackTargets from '../../../lib/mobile/components/MobileCoachFeedbackTargets.svelte';
@@ -205,6 +206,7 @@
             <MobileFanPayablHub {controller} />
           {/if}
           {#if role === 'player'}
+            <MobilePlayerWeeklyQuiz {controller} />
             <MobilePlayerCoachFeedback {controller} />
           {/if}
         {/key}
