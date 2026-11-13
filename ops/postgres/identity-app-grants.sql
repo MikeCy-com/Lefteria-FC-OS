@@ -465,15 +465,19 @@ REVOKE ALL ON FUNCTION hub.assert_mobile_fan(uuid,text,text,timestamptz)
 REVOKE ALL ON FUNCTION hub.sync_mobile_fan_payabl(uuid,text)
   FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.reserve_mobile_fan_payabl(
-  uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)
+  uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)
   FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.ready_mobile_fan_payabl(
   uuid,text,text,timestamptz,text,uuid,text,text)
   FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_plans(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_plans(
+  uuid,text,text,timestamptz,text) TO :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_fan_subscription(
   uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.reserve_mobile_fan_payabl(
-  uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)
+  uuid,text,text,timestamptz,text,text,bigint,uuid,text,text,text,text)
   TO :"app_role";
 GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl(
   uuid,text,text,timestamptz,text,uuid,text,text)
