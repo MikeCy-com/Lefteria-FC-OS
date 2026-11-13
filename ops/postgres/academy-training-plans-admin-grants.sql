@@ -62,6 +62,11 @@ BEGIN
     OR has_function_privilege(v_mobile,
     'club.require_academy_training_planner(text,text)','EXECUTE')
   THEN RAISE EXCEPTION 'training_plans_private_helper_exposed'; END IF;
+  IF has_function_privilege(v_admin,
+       'club.reject_academy_training_plan_overlap()','EXECUTE')
+    OR has_function_privilege(v_mobile,
+       'club.reject_academy_training_plan_overlap()','EXECUTE')
+  THEN RAISE EXCEPTION 'training_plans_collision_trigger_exposed'; END IF;
   FOREACH v_table IN ARRAY ARRAY[
     'club.academy_training_plan_drafts'::regclass::oid,
     'club.academy_training_plan_events'::regclass::oid
