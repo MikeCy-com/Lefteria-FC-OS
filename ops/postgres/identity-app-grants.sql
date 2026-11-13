@@ -462,6 +462,22 @@ GRANT USAGE ON SCHEMA hub TO :"app_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
 
+-- Scheduled personal education: runtime can only enroll its own verified
+-- identity and read currently eligible notices. Only the separate worker role
+-- can process global due jobs, never the mobile runtime.
+REVOKE ALL ON TABLE hub.learning_schedules,hub.learning_delivery_inbox
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.process_due_mobile_lesson_schedules(integer)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_lesson_schedule(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_lesson_deliveries(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_lesson_schedule(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_lesson_deliveries(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+
 -- Individual learning progress: no raw completion table access, no internal
 -- helper call, and no fan delivery until independently verified Payabl access.
 REVOKE ALL ON TABLE hub.education_completions FROM PUBLIC, :"app_role";
