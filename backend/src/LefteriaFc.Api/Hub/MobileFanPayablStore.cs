@@ -49,6 +49,7 @@ public sealed class MobileFanPayablStore(
                 organization,null,null,null,null,null,null,null,null,ct);
             if(plans is null || plans.OrganizationId!=organization ||
                plans.Plans is null || plans.Plans.Count>3 ||
+               plans.Plans.Any(p=>p is null) ||
                plans.Plans.Select(p=>p.Track).Distinct().Count()!=plans.Plans.Count ||
                plans.Plans.Any(p=>p is null ||
                  p.Track is not ("parent" or "player" or "both") ||
