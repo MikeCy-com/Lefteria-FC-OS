@@ -2,6 +2,29 @@ export type FanHubOrganization='lefteria_fc'|'lefteria_fc_academy';
 export type FanHubTrack='parent'|'player'|'both';
 export type FanHubAudience='parent'|'player';
 export type FanHubStatusKind='none'|'pending'|'active'|'past_due';
+export interface FanHubPlan{
+ track:FanHubTrack;monthly_price_cents:number;currency:'EUR';duration_days:30;
+}
+export interface FanHubPlans{
+ organization_id:FanHubOrganization;plans:FanHubPlan[];
+}
+export function validFanHubPlans(v:unknown,org:FanHubOrganization):v is FanHubPlans{
+ if(!v||typeof v!=='object'||Array.isArray(v))return false;
+ const r=v as Record<string,unknown>;
+ if(r.organization_id!==org||!Array.isArray(r.plans)||r.plans.length>3)return false;
+ const seen=new Set<string>();
+ return r.plans.every((p:unknown)=>{
+   if(!p||typeof p!=='object'||Array.isArray(p))return false;
+   const item=p as Record<string,unknown>;
+   if(!['parent','player','both'].includes(item.track as string)||
+      seen.has(item.track as string)||item.currency!=='EUR'||
+      item.duration_days!==30||
+      !Number.isSafeInteger(item.monthly_price_cents)||
+      Number(item.monthly_price_cents)<100||
+      Number(item.monthly_price_cents)>1000000)return false;
+   seen.add(item.track as string);return true;
+ });
+}
 export interface FanHubStatus{
  organization_id:FanHubOrganization;status:FanHubStatusKind;
  audience_parent:boolean;audience_player:boolean;
