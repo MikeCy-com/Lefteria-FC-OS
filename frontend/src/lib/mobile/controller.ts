@@ -2,9 +2,9 @@ import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
-import {validFanHubStatus,validFanHubCheckout,validFanHubLesson,
+import {validFanHubPlans,validFanHubStatus,validFanHubCheckout,validFanHubLesson,
   validFanHubCompleted,validFanHubDeliverySchedule,validFanHubDeliveryInbox,
-  type FanHubDeliverySchedule,type FanHubDeliveryInbox,
+  type FanHubPlans,type FanHubDeliverySchedule,type FanHubDeliveryInbox,
   type FanHubOrganization,type FanHubTrack,
   type FanHubAudience,type FanHubStatus,type FanHubCheckout,
   type FanHubLessonPage,type FanHubLessonCompleted} from './fan-payabl.ts';
@@ -1507,6 +1507,20 @@ export function createMobileAuthController(options: {
         throw new Error('Unverified coach feedback delivery.');
       return result;
     },
+    async getFanHubPlans(organization:FanHubOrganization):Promise<FanHubPlans>{
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new Error('Verified fan identity required.');
+      const identity=state.user.id,savedToken=token,version=revision;
+      if(!savedToken)throw new Error('No verified fan session.');
+      const result=await chatRequest('/api/mobile/hub/fan-subscription/plans?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==identity||state.user.role!=='fan'||
+         !state.user.current_role_available||token!==savedToken||revision!==version)
+        throw new Error('Fan identity changed.');
+      if(!validFanHubPlans(result,organization))
+        throw new Error('Unverified subscription pricing.');
+      return result;
+    },
     async getFanHubSubscription(
       organization:FanHubOrganization):Promise<FanHubStatus>{
       if(state.user?.role!=='fan'||!state.user.current_role_available)
@@ -1524,16 +1538,19 @@ export function createMobileAuthController(options: {
     },
     async startFanHubCheckout(organization:FanHubOrganization,
       track:FanHubTrack,email:string,firstName:string,lastName:string,
-      consent:boolean):Promise<FanHubCheckout>{
+      consent:boolean,expectedAmountCents:number):Promise<FanHubCheckout>{
       if(state.user?.role!=='fan'||!state.user.current_role_available||
-         !consent||!email.includes('@')||email.length>50||
+         !consent||!Number.isSafeInteger(expectedAmountCents)||
+         expectedAmountCents<100||expectedAmountCents>1000000||
+         !email.includes('@')||email.length>50||
          firstName.length>50||lastName.length>50)
         throw new Error('Valid fan consent and payer details are required.');
       const identity=state.user.id,savedToken=token,version=revision;
       if(!savedToken)throw new Error('Missing fan session.');
       const result=await chatRequest('/api/mobile/hub/fan-subscription/checkout',
         'POST',{organization_id:organization,track,email,
-          first_name:firstName,last_name:lastName,consent:true});
+          first_name:firstName,last_name:lastName,consent:true,
+          expected_amount_cents:expectedAmountCents});
       if(state.user?.id!==identity||state.user.role!=='fan'||
          !state.user.current_role_available||token!==savedToken||revision!==version)
         throw new Error('Fan identity changed.');
