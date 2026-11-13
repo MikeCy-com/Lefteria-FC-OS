@@ -1449,6 +1449,30 @@
         ],
         "type": "object"
       },
+      "CancelPublishedTrainingCommand": {
+        "properties": {
+          "confirm_cancellation": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "expected_version",
+          "reason",
+          "confirm_cancellation"
+        ],
+        "type": "object"
+      },
       "CancelSaleRequest": {
         "properties": {
           "request_id": {
@@ -8213,6 +8237,52 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ApproveTrainingPlanCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/cancel": {
+      "post": {
+        "operationId": "CancelAdminAcademyPublishedTraining",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPublishedTrainingCommand"
               }
             }
           },
