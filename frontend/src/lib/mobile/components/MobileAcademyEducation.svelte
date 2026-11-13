@@ -9,8 +9,11 @@
   let { viewerRole = 'parent' }: { viewerRole?: 'parent' | 'player' | 'fan' } = $props();
   let stage = $state<EducationStage>('10-12');
   // Fan interest is a UI preference only; an actual parent/player role is fixed.
-  let fanInterest = $state<EducationAudience>('parent');
-  const audience = $derived<EducationAudience>(viewerRole === 'fan' ? fanInterest : viewerRole);
+  // Topic interest only. 'both' does not grant parent or player authorization.
+  let fanInterest = $state<EducationAudience | 'both'>('parent');
+  // Fans are always blocked from starter article bodies below, regardless of interest.
+  const audience = $derived<EducationAudience>(viewerRole === 'fan'
+    ? (fanInterest === 'player' ? 'player' : 'parent') : viewerRole);
   let expanded = $state<string | null>(null);
   let topic = $state<EducationTopic | 'all'>('all');
   let search = $state('');
@@ -82,6 +85,9 @@
         <button type="button" aria-pressed={fanInterest === 'player'}
           class:chosen={fanInterest === 'player'}
           onclick={() => {fanInterest = 'player'; expanded = null;}}>Για αθλητές</button>
+        <button type="button" aria-pressed={fanInterest === 'both'}
+          class:chosen={fanInterest === 'both'}
+          onclick={() => {fanInterest = 'both'; expanded = null;}}>Και τα δύο</button>
       </div>
     {:else}
       <p class="education-role-scope" data-testid="education-role-scope">
@@ -116,6 +122,7 @@
     <section class="education-subscription-gate" aria-labelledby={id+'-subscription'} data-testid="hub-subscription-required">
       <h2 id={id+'-subscription'}>Συνδρομή HUB</h2>
       <p>Το εκπαιδευτικό περιεχόμενο για φιλάθλους παρέχεται με ξεχωριστή συνδρομή HUB. Μπορείς να επιλέξεις ενδιαφέρον για γονείς, αθλητές ή και τα δύο, χωρίς να αποκτάς αντίστοιχο ρόλο.</p>
+      <p role="status">Επιλεγμένο ενδιαφέρον: {fanInterest==='both'?'Γονείς και αθλητές':fanInterest==='parent'?'Γονείς':'Αθλητές'} (μόνο σε αυτή την οθόνη).</p>
       <p>Η εγγραφή, η τιμολόγηση και η επαλήθευση ενεργής συνδρομής δεν είναι ακόμη διαθέσιμες. Δεν πραγματοποιείται χρέωση.</p>
       <p class="education-result-count" role="status">Το περιεχόμενο παραμένει κλειδωμένο έως την επιβεβαίωση ενεργής συνδρομής.</p>
     </section>
