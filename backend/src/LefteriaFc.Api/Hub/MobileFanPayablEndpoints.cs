@@ -40,6 +40,35 @@ public static class MobileFanPayablEndpoints
             .WithName("StartMobileFanPayablCheckout")
             .Produces<MobileFanHubCheckout>()
             .WithMobileErrors();
+        endpoints.MapGet("/api/mobile/hub/fan-learning/next",
+            (string? organization_id,string? audience,HttpContext context,
+             MobileFanLearningStore store,CancellationToken ct)=>
+            {
+                Private(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.NextAsync(MobilePrincipal.Read(context.User),
+                        Owner(organization_id,context),Audience(audience,context),ct),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile HUB fan education")
+            .WithName("GetMobileFanNextLesson")
+            .Produces<MobileFanNextPage>()
+            .WithMobileErrors();
+        endpoints.MapPost("/api/mobile/hub/fan-learning/complete",
+            (MobileFanLessonCompleteBody body,HttpContext context,
+             MobileFanLearningStore store,CancellationToken ct)=>
+            {
+                Private(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.CompleteAsync(MobilePrincipal.Read(context.User),
+                        body.OrganizationId,body.Audience,
+                        body.ContentId,body.RevisionId,ct),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile HUB fan education")
+            .WithName("CompleteMobileFanNextLesson")
+            .Produces<MobileFanLessonCompletion>()
+            .WithMobileErrors();
         return endpoints;
     }
     private static string Owner(string? owner,HttpContext context)
@@ -49,6 +78,14 @@ public static class MobileFanPayablEndpoints
             throw new MobileAuthException(MobileAuthFaultKind.Validation,
                 MobileAuthErrorCode.InvalidInput,"Invalid HUB organization.");
         return owner;
+    }
+    private static string Audience(string? audience,HttpContext context)
+    {
+        if(context.Request.Query["audience"].Count!=1 ||
+           audience is not ("parent" or "player"))
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid fan learning interest.");
+        return audience;
     }
     private static void Private(HttpContext context)
     {
