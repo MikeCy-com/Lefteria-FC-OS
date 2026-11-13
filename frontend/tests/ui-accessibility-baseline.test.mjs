@@ -27,3 +27,13 @@ test('the OS retains original brand typography while adding accessibility overri
   assert.match(mobile, /--lf-type-body: 13px/);
   assert.match(publicCss, /--public-gold:#f5a623/);
 });
+
+test('fixture details remain reachable when the mobile venue column is hidden', () => {
+  const fixtures = read('lib/public/Fixtures.svelte');
+  const publicCss = read('lib/public/public.css');
+  assert.ok(publicCss.includes('.fixture-venue{display:none}'));
+  assert.ok(fixtures.includes('fixture-mobile-detail-link'));
+  assert.ok(fixtures.includes('@media(max-width:767px)'));
+  assert.ok(fixtures.includes('encodeURIComponent(fixture.id)'));
+  assert.ok(fixtures.includes('min-height:44px'));
+});
