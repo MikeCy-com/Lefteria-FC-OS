@@ -6,6 +6,7 @@
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminAcademyTrainingPlans from '../../../lib/admin/AdminAcademyTrainingPlans.svelte';
   import {academyMonthWindow,isAcademyScheduleGroupList,isAcademyTrainingList,upcomingAcademySessions}
     from '../../../lib/admin/academy-schedule.ts';
   import type {AdminRosterGroup,AcademyTrainingList} from '../../../lib/admin/academy-schedule.ts';
@@ -16,6 +17,8 @@
     ['manager','super_admin'].includes($auth.session.user.role)&&
     $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy')&&
     hasAdminPermission($auth.session.user.permissions,'attendance:read'));
+  const canWritePlans=$derived(permitted&&!!$auth.session&&
+    hasAdminPermission($auth.session.user.permissions,'training:write'));
   let month=$state(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit'})
     .format(new Date()).slice(0,7));
   let groups=$state<AdminRosterGroup[]>([]);
@@ -119,6 +122,14 @@
           <a class="go-attendance" href="/admin/attendance">Άνοιγμα παρουσιολογίου προπονήσεων ›</a>
         {:else if !loadingGroups&&!loadingSessions&&groups.length===0}
           <p class="notice">Δεν υπάρχουν διαθέσιμα τμήματα για τον συγκεκριμένο οργανισμό.</p>
+        {/if}
+        {#if window && groupId && groups.some(g=>g.id===groupId)}
+          {#key $auth.session.user.id+':'+groupId+':'+window.start+':'+window.end}
+            <AdminAcademyTrainingPlans {groupId}
+              from={window.start} to={window.end}
+              actor={$auth.session.user.id} allowed={permitted}
+              canWrite={canWritePlans}/>
+          {/key}
         {/if}
       {/if}
     </section>

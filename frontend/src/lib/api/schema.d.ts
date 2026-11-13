@@ -32,6 +32,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingPlanDrafts"];
+        put?: never;
+        post: operations["CreateAdminAcademyTrainingPlanDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/{planId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateAdminAcademyTrainingPlanDraft"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/login": {
         parameters: {
             query?: never;
@@ -3892,6 +3924,20 @@ export interface components {
             /** Format: uuid */
             client_request_id: string;
         };
+        TrainingPlanCommand: {
+            archive: boolean;
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+            /** Format: int32 */
+            expected_version: number | string;
+            group_id: string;
+            location: string;
+            notes: string;
+            start_time: string;
+            title: string;
+        };
         WebAdminError: {
             code: string;
             detail: string;
@@ -3988,6 +4034,79 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["AttendanceMarkCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyTrainingPlanDrafts: {
+        parameters: {
+            query?: {
+                end?: string;
+                group_id?: string;
+                organization_id?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminAcademyTrainingPlanDraft: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingPlanCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateAdminAcademyTrainingPlanDraft: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingPlanCommand"];
             };
         };
         responses: {
