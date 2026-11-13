@@ -94,8 +94,6 @@ public sealed class HubScheduledDeliveryFoundation : Migration
             REVOKE ALL ON FUNCTION hub.fan_delivery_entitled(uuid,text,text,timestamptz) FROM PUBLIC;
             ALTER TABLE hub.learning_enrollments ENABLE ROW LEVEL SECURITY;
             ALTER TABLE hub.learning_delivery_outbox ENABLE ROW LEVEL SECURITY;
-            ALTER TABLE hub.learning_enrollments FORCE ROW LEVEL SECURITY;
-            ALTER TABLE hub.learning_delivery_outbox FORCE ROW LEVEL SECURITY;
             """);
 
     protected override void Down(MigrationBuilder migrationBuilder) =>
