@@ -58,3 +58,17 @@ export function searchPublishedHubEducation(
     return tokens.every(token => searchable.includes(token));
   });
 }
+
+
+/**
+ * Session-local progression of articles already authorized by the backend.
+ * This is only a stable ordering of the supplied list: it never grants an
+ * audience, changes organization, fetches articles or derives child age.
+ */
+export function prioritizeUncompletedPublishedEducation(
+  authorized: readonly PublishedHubArticle[], completedIds: readonly string[]
+): readonly PublishedHubArticle[] {
+  const completed=new Set(completedIds.filter(id=>typeof id==='string'&&id.length<=120));
+  return [...authorized].sort((a,b)=>
+    Number(completed.has(a.id))-Number(completed.has(b.id)));
+}
