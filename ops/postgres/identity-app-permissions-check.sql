@@ -446,7 +446,7 @@ BEGIN
     'identity.revoke_family_delegated_player_grant(uuid,text,text,timestamptz,uuid,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Scoped family functions not available to runtime';
   END IF;
-  IF NOT has_function_privilege(current_user,
+  IF has_function_privilege(current_user,
     'hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer)','EXECUTE')
     OR has_any_column_privilege(current_user,'hub.content','SELECT,INSERT,UPDATE,REFERENCES')
     OR has_any_column_privilege(current_user,'hub.revisions','SELECT,INSERT,UPDATE,REFERENCES')
