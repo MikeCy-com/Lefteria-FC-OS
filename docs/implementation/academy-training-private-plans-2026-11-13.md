@@ -75,3 +75,27 @@ across different groups: that requires a separate facility assignment model.
 The PostgreSQL rollback-only lifecycle now covers overlapping sessions,
 overnight rejection, version conflicts, archive and reuse of a free slot.
 Neither this guard nor the private planner publishes events to member calendars.
+
+
+## Human review of an exact draft revision (follow-up)
+
+A manager can explicitly approve a private training plan after checking its
+Academy group, local training day, starting time and duration. The API requires
+`confirm_human_review=true`; PostgreSQL reauthorizes the manager, locks the
+draft row and records an immutable `plan_id,plan_version,approved_by`
+approval with a read-only snapshot. A repeated approval for that version
+conflicts; an edit increments `version` and **invalidates the prior approval
+for any future publication gate**. Approval of archived plans, stale versions
+or plans dated before the current Cyprus calendar day is denied.
+
+The frontend reads approvals only for the current authorized organization,
+group and date range and checks the approval against each exact plan ID and
+version. It must never infer approval from a client checkbox alone.
+
+**Approval is NOT publication.** Nothing is inserted into canonical
+`club.calendar_items`, none of the child/guardian RSVP or attendance tables
+change, and no message or push is sent. Subsequent publication work must
+atomically verify a current human-approved version *and* implement member
+calendar reads, delegated and direct RSVP, real attendance eligibility,
+cancellation, coach assignment and safe member notifications. This follow-up
+adds the indispensable versioned human gate, not those remaining behaviors.
