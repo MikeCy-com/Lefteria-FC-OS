@@ -2,6 +2,7 @@
   import {onMount,untrack} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {PublishedHubNextPage,PublishedHubArticle} from '../published-education.ts';
+  import type {PersonalLessonSchedule,PersonalLessonInbox} from '../learning-delivery.ts';
   import './mobile-theme.css';
 
   let {controller,viewerRole}:{
@@ -9,6 +10,8 @@
   }=$props();
   let organization=$state<PublishedHubArticle['organization_id']>('lefteria_fc_academy');
   let page=$state<PublishedHubNextPage|null>(null);
+  let schedule=$state<PersonalLessonSchedule|null>(null);
+  let deliveries=$state<PersonalLessonInbox|null>(null);
   let busy=$state(true);
   let error=$state<string|null>(null);
   let alive=false,operation=0;
@@ -24,11 +27,25 @@
   });
   async function refresh(){
     const current=++operation;
-    busy=true;error=null;page=null;
+    busy=true;error=null;page=null;schedule=null;deliveries=null;
     try{
       const result=await controller.getNextHubLesson(organization);
-      if(alive&&current===operation&&result.audience===viewerRole)
+      if(alive&&current===operation&&result.audience===viewerRole){
         page=result;
+        // Idempotent enrollment: each member retains their original
+        // weekly schedule even if they log in again months later.
+        try{
+          const enrolled=await controller.enrollPersonalLessonSchedule(organization);
+          const inbox=await controller.getPersonalLessonDeliveries(organization);
+          if(alive&&current===operation&&inbox.audience===viewerRole){
+            schedule=enrolled;deliveries=inbox;
+          }
+        }catch{
+          // Reading approved content remains available if optional
+          // in-app delivery enrollment is not operational yet.
+          if(alive&&current===operation)deliveries=null;
+        }
+      }
     }catch{
       if(alive&&current===operation)error='Δεν ήταν δυνατή η ασφαλής φόρτωση του επόμενου μαθήματος.';
     }finally{
@@ -81,6 +98,17 @@
     </article>
   {:else if page}
     <p class="description" role="status">Έχεις ολοκληρώσει όλα τα διαθέσιμα εγκεκριμένα μαθήματα. Θα εμφανιστεί το επόμενο όταν δημοσιευθεί.</p>
+  {/if}
+  {#if schedule}
+    <p class="description" data-testid="hub-personal-delivery-schedule">
+      Εβδομαδιαία ειδοποίηση για το επόμενο εγκεκριμένο μάθημα.
+      Επόμενος έλεγχος: {schedule.next_due_at.slice(0,10)}.
+    </p>
+  {/if}
+  {#if deliveries?.items.length}
+    <p class="description" role="status" data-testid="hub-individual-learning-delivery">
+      Έχεις {deliveries.items.length} {deliveries.items.length===1?'προσωπική ειδοποίηση':'προσωπικές ειδοποιήσεις'} για το τρέχον εγκεκριμένο μάθημα.
+    </p>
   {/if}
   {#if error}<p class="failure" role="alert">{error}</p><button type="button" onclick={()=>void refresh()}>Δοκίμασε ξανά</button>{/if}
 </section>
