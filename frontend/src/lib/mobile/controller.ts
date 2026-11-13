@@ -1,3 +1,5 @@
+import {validPersonalLessonSchedule,validPersonalLessonInbox,
+  type PersonalLessonSchedule,type PersonalLessonInbox} from './learning-delivery.ts';
 import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
@@ -1519,6 +1521,40 @@ export function createMobileAuthController(options: {
         throw new Error('Identity changed during education request.');
       if(!validPublishedHubPage(result,role,organization))
         throw new Error('Unverified published education response.');
+      return result;
+    },
+    async enrollPersonalLessonSchedule(
+      organization:'lefteria_fc'|'lefteria_fc_academy'):Promise<PersonalLessonSchedule>{
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('Verified parent/player role required.');
+      const id=state.user.id,oldToken=token,oldRevision=revision;
+      if(!oldToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/schedule?organization_id='+
+        encodeURIComponent(organization),'POST');
+      if(state.user?.id!==id||state.user.role!==role||
+         !state.user.current_role_available||oldToken!==token||
+         oldRevision!==revision)
+        throw new Error('Learning identity changed.');
+      if(!validPersonalLessonSchedule(result,organization,role))
+        throw new Error('Unverified lesson schedule.');
+      return result;
+    },
+    async getPersonalLessonDeliveries(
+      organization:'lefteria_fc'|'lefteria_fc_academy'):Promise<PersonalLessonInbox>{
+      const role=state.user?.role;
+      if((role!=='parent'&&role!=='player')||!state.user?.current_role_available)
+        throw new Error('Verified parent/player role required.');
+      const id=state.user.id,oldToken=token,oldRevision=revision;
+      if(!oldToken)throw new Error('No verified session.');
+      const result=await chatRequest('/api/mobile/hub/learning/deliveries?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==id||state.user.role!==role||
+         !state.user.current_role_available||oldToken!==token||
+         oldRevision!==revision)
+        throw new Error('Learning identity changed.');
+      if(!validPersonalLessonInbox(result,organization,role))
+        throw new Error('Unverified lesson deliveries.');
       return result;
     },
     async getNextHubLesson(
