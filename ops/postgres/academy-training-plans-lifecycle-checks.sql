@@ -84,7 +84,7 @@ BEGIN
     v_digest,v_owner,v_id,1);
   IF v_result->>'human_approved'<>'true'
     OR v_result->>'published'<>'false'
-    OR (v_result->>'eligible_player_count')::integer<>0
+    OR (v_result->>'eligible_player_count')::integer<>1
     OR v_result ? 'notes'
     OR v_result ? 'players' OR v_result ? 'player_ids' THEN
     RAISE EXCEPTION 'Human-approved distribution preview exposed private youth data';
