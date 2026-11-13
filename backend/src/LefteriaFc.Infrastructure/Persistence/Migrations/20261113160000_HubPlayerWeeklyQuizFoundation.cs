@@ -199,6 +199,16 @@ public sealed class HubPlayerWeeklyQuizFoundation : Migration
                          AND (SELECT count(*) FROM hub.player_quiz_questions sq
                               WHERE sq.quiz_id=specialized.id) BETWEEN 3 AND 20
                      )))
+                -- No player can skip an unpublished or withdrawn Week 1.
+                -- Completion count, not public release dates or other players,
+                -- determines the exact next curriculum step.
+                AND q.week_number=1+(
+                  SELECT count(DISTINCT completed.week_number)::integer
+                  FROM hub.player_quiz_attempts a
+                  JOIN hub.player_quizzes completed ON completed.id=a.quiz_id
+                  WHERE a.identity_id=_identity AND a.organization_id=_owner
+                    AND completed.organization_id=_owner)
+                -- Only this learner's own weekly clock unlocks the next step.
                 AND q.week_number<=1+floor(extract(epoch from
                   (clock_timestamp()-v_started))/604800)::integer
                 AND (SELECT count(*) FROM hub.player_quiz_questions qq
