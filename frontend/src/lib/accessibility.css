@@ -1,0 +1,76 @@
+/*
+ * Shared accessibility guardrails for the original Lefteria FC public and
+ * mobile experiences. Scope everything to the two branded shells: admin,
+ * login, and backend tools must not inherit visual changes.
+ *
+ * Preserve original typography and spacing at the normal user setting.
+ * These overrides activate only for accessibility preferences or small screens.
+ */
+@media (prefers-reduced-motion: reduce) {
+  :is(.public-site, .public-dialog, .lf-mobile-theme) *,
+  :is(.public-site, .public-dialog, .lf-mobile-theme) *::before,
+  :is(.public-site, .public-dialog, .lf-mobile-theme) *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+:is(.public-site, .public-dialog, .lf-mobile-theme) :is(a, button, input, select, textarea, summary):focus-visible {
+  outline: 3px solid #ffca46;
+  outline-offset: 3px;
+}
+:is(.public-site, .public-dialog, .lf-mobile-theme) :is(p, li, dd, dt, h1, h2, h3, h4, h5, h6, a, button, label) {
+  overflow-wrap: break-word;
+}
+.public-site :is(.table-scroll, [class*="table-scroll"]) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.public-site :is(.public-subnav, .team-tabs) {
+  scroll-padding-inline: 16px;
+  overscroll-behavior-inline: contain;
+}
+:is(.public-site, .lf-mobile-theme) :is(section[id], article[id], h2[id], h3[id]) {
+  scroll-margin-top: 100px;
+}
+
+@media (prefers-contrast: more) {
+  .public-site, .public-dialog { --public-muted: #e4e4e4; --public-line: #777; }
+  .lf-mobile-theme { --lf-muted: #e4e4e4; --lf-line: #777; }
+  :is(.public-site, .public-dialog, .lf-mobile-theme) :is(a, button, input, select, textarea):focus-visible {
+    outline-width: 4px;
+  }
+  .lf-mobile-theme { --lf-type-caption: 12px; --lf-type-label: 13px; }
+}
+
+@media (forced-colors: active) {
+  :is(.public-site, .public-dialog, .lf-mobile-theme) :is(a, button, input, select, textarea):focus-visible {
+    outline: 3px solid Highlight;
+  }
+  :is(.public-site, .public-dialog, .lf-mobile-theme) :is(button, input, select, textarea) {
+    border-color: ButtonText;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-site :is(.public-subnav, .team-tabs) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .lf-mobile-theme .mobile-content,
+  .public-site .public-main {
+    min-width: 0;
+    max-width: 100%;
+  }
+}
+
+/* OS supports browser text zoom without clipping card names or table cells. */
+@media (min-resolution: 1dppx) {
+  :is(.public-site, .lf-mobile-theme) :is(.person-card-copy, .person-card, .roster-intro, .mobile-content) {
+    min-width: 0;
+  }
+}
