@@ -52,3 +52,19 @@ export function matchingParentHomeCalendar(
 export function parentHomeCalendarMonth(today = clubToday()): string {
   return today.slice(0, 7);
 }
+
+
+/** RSVP shown only for the currently authenticated and linked child.
+ * Never interpret another family member's answer as the selected player's.
+ * Availability is not physical attendance. */
+export function parentHomeRsvp(
+  event:ParentCalendarItem,selectedChildId:string|null|undefined
+):'going'|'not_going'|'maybe'|null {
+  if(!selectedChildId)return null;
+  // Historical/imported calendar events can omit responses entirely.
+  if(!Array.isArray(event.responses))return null;
+  const matches=event.responses.filter(response=>response.player_id===selectedChildId);
+  if(matches.length!==1)return null;
+  const value=matches[0].status;
+  return value==='going'||value==='not_going'||value==='maybe'?value:null;
+}
