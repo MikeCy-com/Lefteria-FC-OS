@@ -13,9 +13,13 @@ public static class MobileHubPublishedEndpoints
         endpoints.MapGet("/api/mobile/hub/education",
             (string? organization_id,string? offset,HttpContext context,
              MobileHubPublishedStore store,CancellationToken token)=>
-                MobileIdentityEndpoints.Execute(
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(
                     ()=>store.ReadAsync(MobilePrincipal.Read(context.User),
-                        ParseOrganization(organization_id,context),ParseOffset(offset,context),token),context))
+                        ParseOrganization(organization_id,context),ParseOffset(offset,context),token),context);
+            })
             .RequireAuthorization(IdentityServices.Policy)
             .WithTags("Mobile education")
             .WithName("GetMobileHubPublishedEducation")
