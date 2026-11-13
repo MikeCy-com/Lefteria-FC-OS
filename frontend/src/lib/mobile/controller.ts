@@ -2,6 +2,9 @@ import { writable } from 'svelte/store';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,type PublishedHubPage} from './published-education.ts';
+import {validPlayerQuizPage,validPlayerQuizStart,validPlayerQuizAnswers,validPlayerQuizScore,
+ type PlayerQuizPage,type PlayerQuizStart,type PlayerQuiz,type PlayerQuizAnswer,
+ type PlayerQuizOrganization,type PlayerQuizScore} from './player-weekly-quiz.ts';
 import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
@@ -1498,6 +1501,54 @@ export function createMobileAuthController(options: {
         encodeURIComponent(approved.id)+'/send','POST',{version:2});
       if(!validCoachSend(result,approved))
         throw new Error('Unverified coach feedback delivery.');
+      return result;
+    },
+    async startPlayerWeeklyQuiz(
+      organization:PlayerQuizOrganization):Promise<PlayerQuizStart> {
+      if(state.user?.role!=='player'||!state.user.current_role_available)
+        throw new Error('Active player role required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified player session.');
+      const result=await chatRequest('/api/mobile/hub/player-quizzes/start?organization_id='+
+        encodeURIComponent(organization),'POST');
+      if(state.user?.id!==actorId||state.user.role!=='player'||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)throw new Error('Quiz identity changed.');
+      if(!validPlayerQuizStart(result,organization))
+        throw new Error('Unverified quiz enrollment.');
+      return result;
+    },
+    async getPlayerWeeklyQuiz(
+      organization:PlayerQuizOrganization):Promise<PlayerQuizPage> {
+      if(state.user?.role!=='player'||!state.user.current_role_available)
+        throw new Error('Active player role required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified player session.');
+      const result=await chatRequest('/api/mobile/hub/player-quizzes/next?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==actorId||state.user.role!=='player'||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)throw new Error('Quiz identity changed.');
+      if(!validPlayerQuizPage(result,organization))
+        throw new Error('Unverified player quiz.');
+      return result;
+    },
+    async submitPlayerWeeklyQuiz(organization:PlayerQuizOrganization,quiz:PlayerQuiz,
+      answers:readonly PlayerQuizAnswer[]):Promise<PlayerQuizScore> {
+      if(state.user?.role!=='player'||!state.user.current_role_available||
+         !validPlayerQuizAnswers(quiz,answers))
+        throw new Error('Complete each quiz question before submitting.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified player session.');
+      const result=await chatRequest('/api/mobile/hub/player-quizzes/submit?organization_id='+
+        encodeURIComponent(organization),'POST',{
+          quiz_id:quiz.id,answers
+        });
+      if(state.user?.id!==actorId||state.user.role!=='player'||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)throw new Error('Quiz identity changed.');
+      if(!validPlayerQuizScore(result,organization,quiz))
+        throw new Error('Unverified quiz score.');
       return result;
     },
     async getPublishedHubEducation(
