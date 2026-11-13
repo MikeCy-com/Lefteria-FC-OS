@@ -22,7 +22,7 @@ public sealed class HubPlayerQuizEditorialDraft : Migration
             id uuid PRIMARY KEY,
             quiz_id uuid NOT NULL REFERENCES hub.player_quizzes(id) ON DELETE RESTRICT,
             actor_id uuid NOT NULL REFERENCES identity.admin_accounts(id) ON DELETE RESTRICT,
-            action varchar(20) NOT NULL CHECK(action IN ('created','approved','published')),
+            action varchar(20) NOT NULL CHECK(action IN ('created','approved','published','withdrawn')),
             occurred_at timestamptz NOT NULL DEFAULT clock_timestamp()
           );
           ALTER TABLE hub.player_quiz_review_events ENABLE ROW LEVEL SECURITY;
