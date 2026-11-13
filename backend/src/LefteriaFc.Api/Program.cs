@@ -199,6 +199,7 @@ app.MapAdminAcademyEvaluations();
 app.MapAdminAcademyDocuments();
 app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
+app.MapAdminAcademyTrainingPlans();
 app.MapAcademyLeadAdmin();
 
 if (app.Environment.IsDevelopment())
