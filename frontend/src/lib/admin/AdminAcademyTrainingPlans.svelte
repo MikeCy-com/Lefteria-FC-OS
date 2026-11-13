@@ -2,7 +2,8 @@
   import {getContext,untrack} from 'svelte';
   import {browser} from '$app/env';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
-  import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite}
+  import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
+    validTrainingPlanApprovals,validTrainingPlanApprovalResult}
     from './academy-training-plans.ts';
   import type {TrainingPlanDraft,TrainingPlanForm} from './academy-training-plans.ts';
 
@@ -14,6 +15,7 @@
   const org='lefteria_fc_academy';
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
+  let approvedIds=$state<string[]>([]),reviewConfirmed=$state(false);
   let error=$state(''),notice=$state(''),refreshNonce=$state(0);
   let editing=$state<TrainingPlanDraft|null>(null);
   let archiveConfirmed=$state(false);
@@ -22,7 +24,7 @@
     title:'',location:'',notes:''
   });
   function reset(){
-    editing=null;archiveConfirmed=false;notice='';error='';
+    editing=null;archiveConfirmed=false;reviewConfirmed=false;notice='';error='';
     form={day:from,start_time:'17:00',duration_minutes:75,
       title:'',location:'',notes:''};
   }
@@ -40,7 +42,7 @@
     const scope=actor+':'+groupId+':'+from+':'+to;
     const valid=allowed&&!!actor&&!!groupId&&!!from&&!!to;
     void refreshNonce;void scope;
-    rows=[];editing=null;archiveConfirmed=false;notice='';error='';
+    rows=[];approvedIds=[];editing=null;archiveConfirmed=false;reviewConfirmed=false;notice='';error='';
     if(!browser||!valid)return;
     const controller=new AbortController();
     loading=true;
@@ -61,7 +63,21 @@
         const raw:unknown=await response.json();
         if(!validTrainingPlanPage(raw,groupId,from,to))
           throw Error('Μη επαληθευμένη λίστα προγραμματισμένων προπονήσεων.');
-        if(!controller.signal.aborted)rows=raw.plans;
+        const approvalResponse=await fetch(base+'approvals?'+params,{
+          credentials:'same-origin',cache:'no-store',
+          headers:{Accept:'application/json'},signal:controller.signal
+        });
+        if(controller.signal.aborted)return;
+        if(approvalResponse.status===401||approvalResponse.status===403){
+          void auth.bootstrap();throw Error('Τα δικαιώματα άλλαξαν.');
+        }
+        if(!approvalResponse.ok)throw Error('Δεν επιβεβαιώθηκαν οι εγκρίσεις προπονήσεων.');
+        const approvals:unknown=await approvalResponse.json();
+        if(!validTrainingPlanApprovals(approvals,groupId,from,to,raw.plans))
+          throw Error('Μη επαληθευμένες εγκρίσεις προπονήσεων.');
+        if(!controller.signal.aborted){
+          rows=raw.plans;approvedIds=approvals.approvals.map(p=>p.id);
+        }
       }catch(e){
         if(!controller.signal.aborted)
           error=e instanceof Error?e.message:'Σφάλμα φόρτωσης προπονήσεων.';
@@ -69,6 +85,39 @@
     })();});
     return()=>controller.abort();
   });
+
+  async function approve(plan:TrainingPlanDraft){
+    if(!browser||!canWrite||loading||saving||!reviewConfirmed||
+      approvedIds.includes(plan.id)||plan.status!=='draft')return;
+    const owner=actor,group=groupId,period=from+':'+to;
+    saving=true;error='';notice='';
+    try{
+      const response=await fetch(
+        base+encodeURIComponent(plan.id)+'/approve?'+ownerQuery,{
+          method:'POST',credentials:'same-origin',cache:'no-store',
+          headers:{'Content-Type':'application/json','Accept':'application/json',
+            'X-Lefteria-Admin':'1'},
+          body:JSON.stringify({expected_version:plan.version,
+            confirm_human_review:true})
+        });
+      if(owner!==actor||group!==groupId||period!==from+':'+to||
+        !allowed||!canWrite)return;
+      if(response.status===401||response.status===403){
+        void auth.bootstrap();throw Error('Η εξουσιοδότηση άλλαξε.');
+      }
+      if(response.status===409){
+        refreshNonce++;throw Error('Το πρόχειρο άλλαξε ή εγκρίθηκε. Ελέγξτε τη νέα έκδοση.');
+      }
+      if(!response.ok)throw Error('Δεν εγκρίθηκε το πρόχειρο.');
+      const raw:unknown=await response.json();
+      if(!validTrainingPlanApprovalResult(raw,plan))
+        throw Error('Η έγκριση δεν επαληθεύτηκε.');
+      reviewConfirmed=false;
+      notice='Η συγκεκριμένη έκδοση εγκρίθηκε από άνθρωπο. ΔΕΝ δημοσιεύτηκε.';
+      refreshNonce++;
+    }catch(e){error=e instanceof Error?e.message:'Δεν εγκρίθηκε το πρόχειρο.';}
+    finally{saving=false;}
+  }
 
   async function save(archive=false){
     if(!browser||!canWrite||saving||loading||!validTrainingPlanForm(form)||
@@ -132,15 +181,23 @@
         <li class:archived={plan.status==='archived'}>
           <span><strong>{plan.title}</strong><small>{plan.day} · {plan.start_time} · {plan.duration_minutes}′
             {plan.location?' · '+plan.location:''}</small>
-            <small>Έκδοση {plan.version} · {plan.status==='draft'?'Ιδιωτικό πρόχειρο':'Αρχειοθετημένο'}</small></span>
+            <small>Έκδοση {plan.version} · {plan.status==='archived'?'Αρχειοθετημένο':approvedIds.includes(plan.id)?'Εγκρίθηκε ανθρώπινα · ΟΧΙ δημοσιευμένο':'Αναμένει ανθρώπινη έγκριση'}</small></span>
           {#if canWrite&&plan.status==='draft'}
             <button type="button" disabled={saving} onclick={()=>edit(plan)}>Επεξεργασία</button>
+            {#if !approvedIds.includes(plan.id)}
+              <button type="button" disabled={saving||!reviewConfirmed}
+                onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
+            {/if}
           {/if}
         </li>
       {/each}
     </ul>
   {/if}
   {#if canWrite}
+    <label class="review-confirm"><input type="checkbox"
+      bind:checked={reviewConfirmed} disabled={saving||loading}/>
+      Εξέτασα προσωπικά την ακριβή ημερομηνία, ώρα, διάρκεια και ομάδα. Η έγκριση ΔΕΝ δημοσιεύει προπόνηση.
+    </label>
     <form class="plan-form" onsubmit={e=>{e.preventDefault();void save();}}>
       <div class="plan-header">
         <h3>{editing?'Επεξεργασία πρόχειρου':'Νέο ιδιωτικό πρόχειρο'}</h3>
@@ -189,6 +246,8 @@
   .plan-fields label.full{grid-column:1/-1}
   .plan-fields input,.plan-fields textarea{min-height:44px;border:1px solid #515355;border-radius:7px;background:#101213;color:#fff;padding:9px;font:inherit;max-width:100%;min-width:0}
   .save{border-color:#bb8a30;background:#493412;color:#fff;font-weight:700}
+  .review-confirm{display:flex;gap:9px;align-items:center;font-size:12px;margin:14px 0;color:#f2ddac}
+  .review-confirm input{accent-color:#f5a623;min-width:18px;min-height:18px}
   .archive-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:15px}
   .archive-actions label{font-size:12px}.archive-actions input{accent-color:#f5a623}
   @media(max-width:650px){.plan-fields{grid-template-columns:1fr}.plan-list li{align-items:start;flex-direction:column}}

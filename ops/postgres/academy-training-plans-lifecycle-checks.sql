@@ -57,6 +57,26 @@ BEGIN
     RAISE EXCEPTION 'Overnight training draft was accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL;
   END;
+  -- Human manager approval is pinned to the exact version and never publishes.
+  v_result:=club.approve_admin_academy_training_plan(
+    v_digest,v_owner,v_id,1);
+  IF v_result->>'approval_status'<>'approved'
+     OR (v_result->>'approved_version')::integer<>1
+     OR v_result->>'published'<>'false' THEN
+    RAISE EXCEPTION 'Training approval did not confirm an unpublished exact revision';
+  END IF;
+  v_result:=club.read_admin_academy_training_plan_approvals(
+    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+  IF jsonb_array_length(v_result->'approvals')<>1
+    OR (v_result->'approvals'->0->>'approved_version')::integer<>1 THEN
+    RAISE EXCEPTION 'Approval list missed manager review';
+  END IF;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(
+      v_digest,v_owner,v_id,1);
+    RAISE EXCEPTION 'Repeated approval should not create duplicate review';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
   v_result:=club.read_admin_academy_training_plans(
     v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
   IF (v_result->>'total')::integer<>1
@@ -78,6 +98,22 @@ BEGIN
   IF (v_result->>'version')::integer<>2
     OR v_result->>'title'<>'Updated private plan' THEN
     RAISE EXCEPTION 'Private training plan update failed';
+  END IF;
+  v_result:=club.read_admin_academy_training_plan_approvals(
+    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+  IF jsonb_array_length(v_result->'approvals')<>0 THEN
+    RAISE EXCEPTION 'Editing an approved draft preserved stale approval';
+  END IF;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(
+      v_digest,v_owner,v_id,1);
+    RAISE EXCEPTION 'Stale draft revision was approved';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  v_result:=club.approve_admin_academy_training_plan(
+    v_digest,v_owner,v_id,2);
+  IF (v_result->>'approved_version')::integer<>2 THEN
+    RAISE EXCEPTION 'Updated draft could not receive fresh human signoff';
   END IF;
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
@@ -112,6 +148,12 @@ BEGIN
   END;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(
+      v_digest,v_owner,v_other,1);
+    RAISE EXCEPTION 'Revoked manager could approve a training plan';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
   BEGIN
     PERFORM club.read_admin_academy_training_plans(
       v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');

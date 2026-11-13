@@ -11,6 +11,9 @@ BEGIN
      OR to_regclass('club.academy_training_plan_events') IS NULL
      OR to_regprocedure('club.read_admin_academy_training_plans(text,text,text,date,date)') IS NULL
      OR to_regprocedure('club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)') IS NULL
+    OR to_regclass('club.academy_training_plan_approvals') IS NULL
+    OR to_regprocedure('club.approve_admin_academy_training_plan(text,text,uuid,integer)') IS NULL
+    OR to_regprocedure('club.read_admin_academy_training_plan_approvals(text,text,text,date,date)') IS NULL
   THEN RAISE EXCEPTION 'Training planning migration missing'; END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class
     WHERE oid='club.academy_training_plan_drafts'::regclass)
@@ -22,6 +25,18 @@ BEGIN
       v_unknown,'lefteria_fc','any',DATE '2026-11-01',DATE '2026-11-30');
     RAISE EXCEPTION 'Cross-org training plan read accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(
+      v_unknown,'lefteria_fc_academy',v_id,0);
+    RAISE EXCEPTION 'Invalid human review version allowed';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(
+      v_unknown,'lefteria_fc_academy',v_id,1);
+    RAISE EXCEPTION 'Unknown admin approved a youth training plan';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
   BEGIN
     PERFORM club.read_admin_academy_training_plans(
