@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
-const migration=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113130000_PlayerBirthdayPrivatePreferences.cs');
+const migration=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113140000_PlayerBirthdayPrivatePreferences.cs');
 const api=read('../../backend/src/LefteriaFc.Api/Audiences/AdminPlayerBirthdayEndpoints.cs');
 const panel=read('../src/lib/admin/AdminPlayerBirthdayPreferences.svelte');
 const parent=read('../src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
