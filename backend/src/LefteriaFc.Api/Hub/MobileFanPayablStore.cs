@@ -13,7 +13,7 @@ namespace LefteriaFc.Api.Hub;
 
 public sealed record MobileFanHubStartBody(
     string? OrganizationId,string? Track,
-    string? Email,string? FirstName,string? LastName);
+    string? Email,string? FirstName,string? LastName,bool Consent);
 public sealed record MobileFanHubStatus(
     string OrganizationId,string Status,bool AudienceParent,
     bool AudiencePlayer,DateTimeOffset? ExpiresAt,string? CheckoutUrl);
@@ -59,7 +59,7 @@ public sealed class MobileFanPayablStore(
     public async Task<MobileFanHubCheckout> StartAsync(
         MobileSession actor,MobileFanHubStartBody body,string sourceIp,CancellationToken ct)
     {
-        if(body is null || body.OrganizationId is not
+        if(body is null || !body.Consent || body.OrganizationId is not
              ("lefteria_fc" or "lefteria_fc_academy") ||
            body.Track is not ("parent" or "player" or "both") ||
            !SafePayer(body.Email,3,50) || !body.Email!.Contains('@') ||
