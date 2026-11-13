@@ -8,7 +8,7 @@ const component=read('frontend/src/lib/mobile/components/MobilePublishedHubEduca
 const route=read('frontend/src/routes/app/[...path]/+page.svelte');
 test('real parent/player HUB mounts authenticated approved-content reader, not for fans',()=>{
  assert.match(route,/import MobilePublishedHubEducation from/);
- assert.match(route,/\{#if role === 'parent' \|\| role === 'player'\}\s*<MobilePublishedHubEducation \{controller\} viewerRole=\{role\}/);
+ assert.match(route,/\{#if role === 'parent' \|\| role === 'player'\}\s*<MobilePersonalLearningJourney \{controller\} viewerRole=\{role\}\/>\s*<MobilePublishedHubEducation \{controller\} viewerRole=\{role\}/);
  assert.match(component,/getPublishedHubEducation\(organization,0\)/);
  assert.match(component,/onMount\(\(\)=>/);
  assert.match(component,/if\(!alive\|\|current!==request\|\|page\.audience!==viewerRole\)return/);
