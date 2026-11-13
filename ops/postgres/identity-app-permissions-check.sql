@@ -457,7 +457,8 @@ BEGIN
       'hub.complete_mobile_next_education(uuid,text,text,timestamptz,text,uuid,uuid)','EXECUTE')
     OR has_function_privilege(current_user,
       'hub.current_mobile_education_lesson(uuid,text,text,timestamptz,text)','EXECUTE')
-    OR has_any_column_privilege(current_user,'hub.education_completions','SELECT,INSERT,UPDATE,DELETE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.education_completions','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.education_completions','DELETE')
     OR has_function_privilege(current_user,
       'hub.publish_admin_hub_content(text,text,uuid,bigint)','EXECUTE') THEN
     RAISE EXCEPTION 'Mobile HUB published reader boundary violated';
