@@ -97,3 +97,26 @@ export function validTrainingPlanApprovalResult(
     value.approved_version===plan.version&&
     value.approval_status==='approved'&&value.published===false;
 }
+
+export interface TrainingDistributionPreview {
+  id:string;organization_id:'lefteria_fc_academy';group_id:string;
+  version:number;day:string;start_time:string;duration_minutes:number;
+  title:string;location:string;eligible_player_count:number;
+  human_approved:true;published:false;
+}
+export function validTrainingDistributionPreview(
+  value:unknown,plan:TrainingPlanDraft
+):value is TrainingDistributionPreview {
+  if(!rec(value)||value.id!==plan.id||
+    value.organization_id!=='lefteria_fc_academy'||value.group_id!==plan.group_id||
+    value.version!==plan.version||value.day!==plan.day||
+    value.start_time!==plan.start_time||value.duration_minutes!==plan.duration_minutes||
+    value.title!==plan.title||value.location!==plan.location||
+    value.human_approved!==true||value.published!==false||
+    !Number.isSafeInteger(value.eligible_player_count)||
+    (value.eligible_player_count as number)<0||
+    (value.eligible_player_count as number)>100000||
+    'notes' in value||'players' in value||'player_ids' in value||
+    'phone' in value||'emails' in value)return false;
+  return true;
+}
