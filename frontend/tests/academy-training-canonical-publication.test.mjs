@@ -62,8 +62,13 @@ test('OS-native calendar source has independent provenance, group scope and no p
   assert.match(migration,/club\.academy_training_plan_publications/);
   assert.match(migration,/prevent_published_academy_plan_edits/);
   assert.match(migration,/notifications_sent',false/);
-  assert.match(access,/current_player\.primary_academy_group_id=assigned\.record_id/);
-  assert.match(mobileGrants,/primary_academy_group_id, is_active, is_archived/);
+  assert.match(access,/c\.source_collection='os_training'/);
+  assert.match(access,/club\.os_native_training_primary_member\(c\.organization_id,c\.id,p\.id\)/);
+  assert.match(migration,/CREATE FUNCTION club\.os_native_training_primary_member/);
+  assert.match(migration,/c\.source_collection='os_training'/);
+  assert.match(migration,/player\.primary_academy_group_id=sc\.record_id/);
+  assert.match(mobileGrants,/GRANT EXECUTE ON FUNCTION club\.os_native_training_primary_member/);
+  assert.doesNotMatch(mobileGrants,/primary_academy_group_id, is_active/);
   assert.doesNotMatch(mobileGrants,/GRANT SELECT ON club\.players TO/);
   assert.doesNotMatch(migration,/v_plan\.notes[,)]|notes',v_plan\.notes/);
   assert.doesNotMatch(migration,/INSERT INTO club\.calendar_responses/);
