@@ -40,3 +40,17 @@ test('mobile role has read function but no HUB table or publishing permissions',
  assert.match(program,/AddScoped<MobileHubPublishedStore>/);
  assert.match(program,/MapMobileHubPublished\(\)/);
 });
+
+test('published education rejects ambiguous organization scopes and malformed server payloads',()=>{
+ const endpoint=read('backend/src/LefteriaFc.Api/Hub/MobileHubPublishedEndpoints.cs');
+ assert.match(endpoint,/ParseOrganization\(organization_id,context\)/);
+ assert.match(endpoint,/Request\.Query\["organization_id"\]\.Count!=1/);
+ assert.match(endpoint,/raw is not \("lefteria_fc" or "lefteria_fc_academy"\)/);
+ const store=read('backend/src/LefteriaFc.Api/Hub/MobileHubPublishedStore.cs');
+ assert.match(store,/string\.IsNullOrWhiteSpace\(item\.Title\)/);
+ assert.match(store,/string\.IsNullOrWhiteSpace\(item\.Body\)/);
+ assert.match(store,/item\.PublishedAt==default/);
+ assert.match(store,/item\.PublishedAt>DateTimeOffset\.UtcNow/);
+ assert.match(store,/\(item\.AgeMin is null\)!=\(item\.AgeMax is null\)/);
+ assert.match(store,/role=="player" && \(item\.AgeMin is not null \|\| item\.AgeMax is not null\)/);
+});
