@@ -45,8 +45,10 @@ export function validPlayerQuizPage(v:unknown,org:PlayerQuizOrganization):v is P
   if(!uuid(quiz.id)||!plain(quiz.title,180,5)||
     !topics.has(quiz.topic as PlayerQuizTopic)||
     !positions.has(quiz.position as PlayerQuizPosition)||
-    // Position-specific questions stay locked until roster-based position proof.
-    quiz.position!=='all'||
+    // Only positions the server can establish from the canonical roster
+    // are accepted; fine-grained winger/striker roles remain unavailable.
+    !['all','defender','midfielder','goalkeeper'].includes(
+      quiz.position as string)||
     !Number.isSafeInteger(quiz.week_number)||Number(quiz.week_number)<1||
     Number(quiz.week_number)>520||
     !Array.isArray(quiz.questions)||quiz.questions.length<3||
