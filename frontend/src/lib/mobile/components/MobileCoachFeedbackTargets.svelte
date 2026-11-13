@@ -43,7 +43,7 @@
   {:else if targets.length===0}
     <p class="state">Δεν υπάρχουν αυτή τη στιγμή επιτρεπόμενοι παραλήπτες.</p>
   {:else}
-    <p class="state" role="status">{targets.length} επαληθευμένοι παραλήπτες</p>
+    <p class="state" role="status" aria-live="polite">{targets.length} επαληθευμένοι παραλήπτες</p>
     <ul>
       {#each targets.slice(0,8) as target (target.organization_id+':'+target.id)}
         <li><span class="avatar" aria-hidden="true">{target.name.charAt(0).toLocaleUpperCase('el-GR')}</span>
