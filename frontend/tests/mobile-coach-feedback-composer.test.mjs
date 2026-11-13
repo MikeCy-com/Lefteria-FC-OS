@@ -18,7 +18,9 @@ test('coach Squad mounts guarded three-step feedback composer only for coach',()
  assert.doesNotMatch(route,/role === 'fan'[^\n]*<MobileCoachFeedbackComposer/);
  assert.match(component,/getCoachFeedbackTargets\(\)/);
  assert.match(component,/createCoachFeedbackDraft\(selected,observation,focusPoint,language\)/);
- assert.match(component,/approveCoachFeedbackDraft\(draft,finalText\)/);
+ assert.match(component,/const submittedText=finalText;/);
+ assert.match(component,/approveCoachFeedbackDraft\(draft,submittedText\)/);
+ assert.match(component,/signedText=submittedText;/);
  assert.match(component,/sendCoachFeedback\(approved\)/);
  assert.match(component,/acknowledgeApproval/);
  assert.match(component,/acknowledgeDelivery/);
