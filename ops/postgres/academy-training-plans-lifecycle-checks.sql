@@ -200,7 +200,13 @@ BEGIN
       WHERE src.collection='os_training'
         AND src.target_id=v_published->>'event_id')
     OR NOT club.academy_training_player_eligible(
-      v_owner,v_published->>'event_id',v_player) THEN
+      v_owner,v_published->>'event_id',v_player)
+    OR NOT club.os_native_training_primary_member(
+      v_owner,v_published->>'event_id',v_player)
+    OR club.os_native_training_primary_member(
+      'lefteria_fc',v_published->>'event_id',v_player)
+    OR club.os_native_training_primary_member(
+      v_owner,'unknown-event',v_player) THEN
     RAISE EXCEPTION 'Native Academy training publication was not group-scoped';
   END IF;
   v_result:=club.read_admin_academy_training_publications(
