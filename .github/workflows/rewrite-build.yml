@@ -139,6 +139,7 @@ jobs:
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-lifecycle-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-training-plans-admin-grants.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-training-plans-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-training-plans-lifecycle-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/academy-crm-admin-grants.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-crm-inbox-checks.sql
