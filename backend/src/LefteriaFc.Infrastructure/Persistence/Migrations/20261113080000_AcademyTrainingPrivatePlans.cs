@@ -144,7 +144,7 @@ public sealed class AcademyTrainingPrivatePlans : Migration
           OR _notes IS NULL OR length(_notes)>2000
           OR _notes ~ '[[:cntrl:]]'
           OR _expected IS NULL OR _expected NOT BETWEEN 0 AND 9999
-          OR _archive IS NULL THEN
+          OR _archive IS NULL OR (_expected=0 AND _archive) THEN
           RAISE EXCEPTION 'training_plan_invalid' USING ERRCODE='22023';
         END IF;
         SELECT actor_id,session_id INTO v_actor,v_session FROM
