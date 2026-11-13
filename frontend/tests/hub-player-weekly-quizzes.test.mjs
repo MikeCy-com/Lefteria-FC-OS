@@ -4,6 +4,9 @@ import {readFileSync} from 'node:fs';
 import {validPlayerQuizPage,validPlayerQuizAnswers,validPlayerQuizScore,
   validPlayerQuizStart} from '../src/lib/mobile/player-weekly-quiz.ts';
 
+import {validAdminQuizDraft,validAdminQuizList,validAdminQuizDetail,
+  validAdminQuizTransition} from '../src/lib/admin/player-quiz-editorial.ts';
+
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const schema=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113160000_HubPlayerWeeklyQuizFoundation.cs');
 const grade=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113161000_HubPlayerWeeklyQuizScoring.cs');
@@ -98,4 +101,66 @@ test('mobile rejects spoofed answer keys and submits all 3 questions only',()=>{
  assert.match(pageComponent,/controller\.submitPlayerWeeklyQuiz/);
  assert.match(appRoute,/MobilePlayerWeeklyQuiz \{controller\}/);
  assert.doesNotMatch(pageComponent,/localStorage|{@html|innerHTML/);
+});
+
+test('human manager separately approves reviewed quiz after another editor creates it',()=>{
+ const draft=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113162000_HubPlayerQuizEditorialDraft.cs');
+ const decisions=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261113163000_HubPlayerQuizEditorialApproval.cs');
+ const adminApi=read('backend/src/LefteriaFc.Api/Hub/AdminPlayerWeeklyQuizEndpoints.cs');
+ const adminPage=read('frontend/src/routes/admin/hub/player-quizzes/+page.svelte');
+ const hubPage=read('frontend/src/routes/admin/hub/+page.svelte');
+ const adminGrants=read('ops/postgres/web-admin-auth-grants.sql');
+ assert.match(draft,/CREATE FUNCTION hub\.authorize_admin_player_quiz/);
+ assert.match(draft,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+ assert.match(draft,/status,'review_required'|\'review_required\',v_actor/);
+ assert.match(decisions,/v_quiz\.created_by=v_actor/);
+ assert.match(decisions,/v_quiz\.status<>'review_required'/);
+ assert.match(decisions,/v_quiz\.status<>'approved'/);
+ assert.match(decisions,/status='published',published_at=clock_timestamp\(\)/);
+ assert.match(adminApi,/MapPost\("\/api\/admin\/hub\/player-quizzes"/);
+ assert.match(adminApi,/MapPost\("\/api\/admin\/hub\/player-quizzes\/\{id:guid\}\/approve"/);
+ assert.match(adminApi,/MapPost\("\/api\/admin\/hub\/player-quizzes\/\{id:guid\}\/publish"/);
+ assert.match(adminApi,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+ assert.match(adminApi,/Headers\.CacheControl="private, no-store"/);
+ assert.match(adminGrants,/GRANT EXECUTE ON FUNCTION hub\.create_admin_player_quiz/);
+ assert.match(adminGrants,/GRANT EXECUTE ON FUNCTION hub\.approve_admin_player_quiz/);
+ assert.match(adminGrants,/GRANT EXECUTE ON FUNCTION hub\.publish_admin_player_quiz/);
+ assert.match(adminGrants,/REVOKE ALL ON TABLE hub\.player_quizzes,hub\.player_quiz_questions/);
+ assert.match(adminPage,/validAdminQuizDraft\(draft\)/);
+ assert.match(adminPage,/validAdminQuizDetail\(v,owner,item\.id\)/);
+ assert.match(adminPage,/transition\('approve'\)/);
+ assert.match(adminPage,/transition\('publish'\)/);
+ assert.match(hubPage,/href="\/admin\/hub\/player-quizzes"/);
+ assert.doesNotMatch(pageComponent,/correct_index|correctIndex|{@html|innerHTML/);
+});
+test('editorial validation protects private quiz answer keys and admin actions',()=>{
+ const entry={week_number:1,topic:'general',position:'all',
+   title:'Football game understanding',questions:questions.map(q=>({
+     prompt:q.prompt,choices:q.choices,correct_index:0,explanation:''}))};
+ assert.equal(validAdminQuizDraft(entry),true);
+ assert.equal(validAdminQuizDraft({...entry,questions:entry.questions.slice(1)}),false);
+ assert.equal(validAdminQuizDraft({...entry,questions:[
+   {...entry.questions[0],choices:['x','x','y','z']},...entry.questions.slice(1)]}),false);
+ const summary={id,title:entry.title,week_number:1,topic:'general',
+   position:'all',status:'review_required',question_count:3};
+ assert.equal(validAdminQuizList({organization_id:'lefteria_fc_academy',
+   items:[summary]},'lefteria_fc_academy'),true);
+ const detail={...summary,organization_id:'lefteria_fc_academy',
+   questions:entry.questions.map((q,i)=>({...q,id:questions[i].id,sequence:i+1}))};
+ assert.equal(validAdminQuizDetail(detail,'lefteria_fc_academy',id),true);
+ assert.equal(validAdminQuizTransition({id,organization_id:'lefteria_fc_academy',
+   status:'approved'},'lefteria_fc_academy',id,'approved'),true);
+});
+test('twelve editorial football lesson and quiz weeks remain unpublished pending review',()=>{
+ const draft=JSON.parse(read('ops/content/editorial/player-football-first-12-weeks-drafts.json'));
+ assert.equal(draft.approval_required,true);
+ assert.equal(draft.content.length,12);
+ assert.deepEqual(draft.content.map(x=>x.week_number),Array.from({length:12},(_,i)=>i+1));
+ assert.ok(draft.content.every(x=>x.status==='draft_unapproved'));
+ assert.ok(draft.content.every(x=>x.quiz.questions.length===3));
+ assert.ok(draft.content.some(x=>x.topic==='transition'));
+ assert.ok(draft.content.some(x=>x.topic==='defending'));
+ assert.ok(draft.content.some(x=>/εξτρέμ/.test(x.lesson.title+' '+x.lesson.objective)));
+ assert.ok(draft.content.every(x=>x.quiz.questions.every(q=>
+   q.choices.length===4&&q.correct_index>=0&&q.correct_index<4)));
 });
