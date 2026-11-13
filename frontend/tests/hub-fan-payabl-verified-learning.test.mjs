@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {
- validHostedPayablUrl,validFanHubStatus,validFanHubCheckout,
+ validHostedPayablUrl,validFanHubPlans,validFanHubStatus,validFanHubCheckout,
  validFanHubLesson,validFanHubCompleted
 } from '../src/lib/mobile/fan-payabl.ts';
 
@@ -180,4 +180,35 @@ test('weekly fan notice cannot cross organizations, topic interests or dates',()
  assert.equal(validFanHubDeliveryInbox({...inbox,items:[item,item]},org,'parent'),false);
  assert.equal(validFanHubDeliveryInbox({...inbox,items:[
   {...item,queued_at:'2090-11-01T00:00:00Z'}]},org,'parent'),false);
+});
+
+test('subscription plan cost is disclosed and price cannot change between consent and checkout',()=>{
+ const plans={organization_id:org,plans:[
+   {track:'parent',monthly_price_cents:1200,currency:'EUR',duration_days:30},
+   {track:'player',monthly_price_cents:1400,currency:'EUR',duration_days:30}
+ ]};
+ assert.equal(validFanHubPlans(plans,org),true);
+ assert.equal(validFanHubPlans({...plans,plans:[
+   plans.plans[0],plans.plans[0]]},org),false);
+ assert.equal(validFanHubPlans({...plans,plans:[{
+   ...plans.plans[0],monthly_price_cents:0}]},org),false);
+ assert.match(checkout,/CREATE FUNCTION hub\.read_mobile_fan_plans/);
+ assert.match(checkout,/WHERE p\.organization_id=_owner AND p\.is_enabled/);
+ assert.match(checkout,/_expected_cents<>v_price/);
+ assert.match(checkout,/fan_price_changed/);
+ assert.match(store,/ExpectedAmountCents/);
+ assert.match(store,/@track,@expected,@payment/);
+ assert.match(endpoint,/MapGet\("\/api\/mobile\/hub\/fan-subscription\/plans"/);
+ assert.match(mobile,/async getFanHubPlans/);
+ assert.match(mobile,/expected_amount_cents:expectedAmountCents/);
+ assert.match(ui,/fan-exact-plan-price/);
+ assert.match(ui,/selectedPlan\.monthly_price_cents/);
+ assert.match(ui,/!plans\.length/);
+ assert.match(grant,/GRANT EXECUTE ON FUNCTION hub\.read_mobile_fan_plans/);
+});
+test('signed Payabl refund or reversal blocks future fan lesson access',()=>{
+ assert.match(checkout,/refund\.event_type IN \('refund','reversal'\)/);
+ assert.match(checkout,/refund\.error_code=0/);
+ assert.match(checkout,/status='cancelled',cancelled_at=clock_timestamp\(\)/);
+ assert.match(lessonSql,/s\.cancelled_at IS NULL/);
 });
