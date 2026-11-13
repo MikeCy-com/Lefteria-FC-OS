@@ -8163,6 +8163,54 @@
         ]
       }
     },
+    "/api/admin/academy/training/plans/{planId}/publication-preview": {
+      "get": {
+        "operationId": "PreviewAdminAcademyTrainingDistribution",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
     "/api/admin/academy/training/{eventId}/attendance": {
       "get": {
         "operationId": "ReadAdminAcademyTrainingAttendance",
