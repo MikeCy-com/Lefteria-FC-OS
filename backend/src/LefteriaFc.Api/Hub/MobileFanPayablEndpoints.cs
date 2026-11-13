@@ -11,6 +11,21 @@ public static class MobileFanPayablEndpoints
     public static IEndpointRouteBuilder MapMobileFanPayabl(
         this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/mobile/hub/fan-subscription/plans",
+            (string? organization_id,HttpContext context,
+             MobileFanPayablStore store,CancellationToken ct)=>
+            {
+                Private(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.PlansAsync(MobilePrincipal.Read(context.User),
+                        Owner(organization_id,context),ct),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile HUB fan subscriptions (Payabl sandbox)")
+            .WithName("GetMobileFanHubPlans")
+            .Produces<MobileFanHubPlans>()
+            .WithMobileErrors();
+
         endpoints.MapGet("/api/mobile/hub/fan-subscription",
             (string? organization_id,HttpContext context,
              MobileFanPayablStore store,CancellationToken ct)=>
