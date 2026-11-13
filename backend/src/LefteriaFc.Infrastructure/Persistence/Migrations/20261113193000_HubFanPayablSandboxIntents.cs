@@ -180,9 +180,11 @@ public sealed class HubFanPayablSandboxIntents : Migration
               amount_cents,currency,payment_state)
             VALUES(_id,_transaction,_kind,_code,_stamp,_amount,_currency,_state)
             ON CONFLICT DO NOTHING;
-            IF v_row.status IN ('initiating','ready') THEN
+            -- An 'order' notification is not a failed or settled capture.
+            -- Only a signed capture event changes reconciliation state.
+            IF v_row.status IN ('initiating','ready') AND _kind='capture' THEN
               UPDATE hub.fan_payabl_checkout_intents
-                SET status=CASE WHEN _kind='capture' AND _code=0
+                SET status=CASE WHEN _code=0
                     THEN 'review_required' ELSE 'failed' END,
                     updated_at=clock_timestamp()
                 WHERE id=_id;
