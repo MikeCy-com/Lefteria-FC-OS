@@ -115,12 +115,14 @@
       if(current===activeDetailRequest)error='Δεν επαληθεύτηκαν τα στοιχεία του κουίζ.';
     }
   }
-  async function transition(action:'approve'|'publish'){
+  async function transition(action:'approve'|'publish'|'withdraw'){
     const selected=detail,owner=organization,actor=$auth.session?.user.id;
     if(!selected||!owner||!manager||busy||
       (action==='approve'&&selected.status!=='review_required')||
-      (action==='publish'&&selected.status!=='approved'))return;
+      (action==='publish'&&selected.status!=='approved')||
+      (action==='withdraw'&&!['review_required','approved','published'].includes(selected.status)))return;
     if(action==='publish'&&!confirm('Να δημοσιευθεί αυτό το εγκεκριμένο κουίζ για τους αθλητές;'))return;
+    if(action==='withdraw'&&!confirm('Να αποσυρθεί το κουίζ από όλους τους αθλητές; Οι προηγούμενες βαθμολογίες διατηρούνται.'))return;
     busy=true;error=null;success=null;
     try{
       const response=await fetch('/api/admin/hub/player-quizzes/'+
@@ -132,11 +134,12 @@
       if(!response.ok)throw new Error();
       const v:unknown=await response.json();
       if(!validAdminQuizTransition(v,owner,selected.id,
-        action==='approve'?'approved':'published'))throw new Error();
+        action==='approve'?'approved':action==='publish'?'published':'withdrawn'))throw new Error();
       if(organization!==owner||$auth.session?.user.id!==actor)return;
       success=action==='approve'
         ?'Ο ανθρώπινος έλεγχος ολοκληρώθηκε. Απαιτείται ξεχωριστή δημοσίευση.'
-        :'Το κουίζ δημοσιεύθηκε για την κατάλληλη προσωπική εβδομάδα.';
+        :action==='publish'?'Το κουίζ δημοσιεύθηκε για την κατάλληλη προσωπική εβδομάδα.'
+        :'Το κουίζ αποσύρθηκε από την εφαρμογή χωρίς διαγραφή βαθμολογιών.';
       detail=null;activeDetailRequest++;reload++;
     }catch{error='Η ενέργεια δεν επιβεβαιώθηκε. Ίσως απαιτείται διαφορετικός υπεύθυνος ή νέα ανάκτηση.';}
     finally{busy=false;}
@@ -271,6 +274,10 @@
                 {:else if detail.status==='approved'}
                   <button type="button" class="primary" disabled={busy}
                     onclick={()=>void transition('publish')}>Δημοσίευση για αθλητές</button>
+                {/if}
+                {#if ['review_required','approved','published'].includes(detail.status)}
+                  <button type="button" disabled={busy}
+                    onclick={()=>void transition('withdraw')}>Απόσυρση κουίζ</button>
                 {/if}
               {:else}
                 <p>Επίλεξε κουίζ από τη λίστα για να δεις και να ελέγξεις όλες τις απαντήσεις.</p>
