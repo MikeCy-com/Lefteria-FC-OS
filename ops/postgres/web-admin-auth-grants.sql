@@ -288,6 +288,7 @@ GRANT EXECUTE ON FUNCTION hub.approve_admin_hub_visual(text,text,uuid,bigint) TO
 REVOKE ALL ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) TO :"admin_auth_role";
 \ir admin-hub-editorial-boundary.sql
+\ir admin-hub-quiz-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
 \ir app-announcement-publishing-boundary.sql
 
