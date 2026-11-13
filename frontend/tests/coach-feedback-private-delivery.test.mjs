@@ -59,3 +59,12 @@ test('mobile runtime cannot call the internal assignment helper directly',()=>{
  assert.match(perms,/Coach feedback send\/inbox function boundary is unsafe/);
  assert.match(perms,/has_function_privilege\(current_user,\s*'club\.current_feedback_coach_assignment/);
 });
+
+test('player feedback inbox refuses malformed entries and future timestamps',()=>{
+ assert.match(store,/dto\.Items\.Any\(item=>item is null \|\| item\.Id==Guid\.Empty/);
+ assert.match(store,/string\.IsNullOrWhiteSpace\(item\.CoachName\)/);
+ assert.match(store,/item\.CoachName\.Length>200/);
+ assert.match(store,/string\.IsNullOrWhiteSpace\(item\.Message\)/);
+ assert.match(store,/item\.Message\.Length is <30 or >1600/);
+ assert.match(store,/item\.SentAt==default \|\| item\.SentAt>DateTimeOffset\.UtcNow/);
+});
