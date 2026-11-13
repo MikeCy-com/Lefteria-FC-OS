@@ -76,8 +76,10 @@ export function canAccessSubscribedHub(
   audience: HubAudience,
   now: string
 ): boolean {
-  return role === 'fan' && Boolean(
-    entitlement && entitlement.subscriberId === userId &&
+  // Never authorize a blank or whitespace-only identity, even if a provider
+  // record happens to contain the same empty subscriber identifier.
+  return role === 'fan' && userId.trim().length > 0 && Boolean(
+    entitlement && entitlement.subscriberId.trim().length > 0 && entitlement.subscriberId === userId &&
     entitlement.status === 'active' && entitlement.confirmedByProvider &&
     entitlement.audiences.includes(audience) &&
     Number.isFinite(Date.parse(entitlement.expiresAt)) &&

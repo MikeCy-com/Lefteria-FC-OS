@@ -55,6 +55,9 @@ test('fan content requires provider-confirmed, unexpired audience-scoped entitle
     assert.equal(check('fan-1','fan',{...active,status}),false);
   assert.equal(check('fan-1','fan',{...active,expiresAt:'2026-11-10T10:00:00Z'}),false);
   assert.equal(check('fan-1','fan',null),false);
+  assert.equal(check('','fan',{...active,subscriberId:''}),false);
+  assert.equal(check('   ','fan',{...active,subscriberId:'   '}),false);
+  assert.equal(check('fan-1','fan',{...active,subscriberId:''}),false);
 });
 
 test('fan app stays locked until a protected subscription API is implemented', () => {
