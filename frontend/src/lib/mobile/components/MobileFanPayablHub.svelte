@@ -2,7 +2,7 @@
  import {onMount,untrack} from 'svelte';
  import type {MobileAuthController} from '../controller.ts';
  import type {FanHubOrganization,FanHubTrack,FanHubAudience,FanHubStatus,
-   FanHubLessonPage,FanHubDeliverySchedule,FanHubDeliveryInbox} from '../fan-payabl.ts';
+   FanHubLessonPage,FanHubDeliverySchedule,FanHubDeliveryInbox,FanHubPlan} from '../fan-payabl.ts';
  import {validHostedPayablUrl} from '../fan-payabl.ts';
  import './mobile-theme.css';
 
@@ -11,6 +11,7 @@
  let track=$state<FanHubTrack>('parent');
  let audience=$state<FanHubAudience>('parent');
  let status=$state<FanHubStatus|null>(null);
+ let plans=$state<FanHubPlan[]>([]);
  let lesson=$state<FanHubLessonPage|null>(null);
  let schedule=$state<FanHubDeliverySchedule|null>(null);
  let inbox=$state<FanHubDeliveryInbox|null>(null);
@@ -19,12 +20,13 @@
  let busy=$state(true),error=$state<string|null>(null);
  let alive=false,epoch=0,lessonEpoch=0;
  const active=$derived(status?.status==='active');
+ const selectedPlan=$derived(plans.find(p=>p.track===track)??null);
  const allowed=$derived(active&&
    (audience==='parent'?status?.audience_parent:status?.audience_player));
 
  onMount(()=>{
    alive=true;void refresh();
-   return()=>{alive=false;epoch++;lessonEpoch++;status=null;lesson=null;schedule=null;inbox=null;};
+   return()=>{alive=false;epoch++;lessonEpoch++;status=null;plans=[];lesson=null;schedule=null;inbox=null;};
  });
  $effect(()=>{
    const owner=organization;
@@ -42,8 +44,12 @@
        status=data;
        if(data.status==='active'){
          audience=data.audience_parent?'parent':'player';
-         // The reactive audience/status watcher reads the permitted lesson
-         // without altering the subscription request's lifecycle.
+       }else if(data.status==='none'){
+         const configured=await controller.getFanHubPlans(owner);
+         if(alive&&epoch===token&&organization===owner){
+           plans=configured.plans;
+           if(!plans.some(p=>p.track===track))track=plans[0]?.track??'parent';
+         }
        }
      }
    }catch{
@@ -74,11 +80,11 @@
    }
  }
  async function checkout(){
-   if(busy||!consent)return;
+   if(busy||!consent||!selectedPlan)return;
    const token=++epoch,owner=organization;busy=true;error=null;lesson=null;
    try{
      const data=await controller.startFanHubCheckout(owner,track,
-       email,firstName,lastName,consent);
+       email,firstName,lastName,consent,selectedPlan.monthly_price_cents);
      if(!alive||epoch!==token||organization!==owner)return;
      await refresh(owner);
      if(data.checkout_url&&validHostedPayablUrl(data.checkout_url)){
@@ -165,24 +171,34 @@
   {:else if status?.status==='pending'}
    <p role="status">Η προηγούμενη πληρωμή βρίσκεται σε διαδικασία συμφωνίας. Δεν δημιουργείται δεύτερο αίτημα.</p>
   {:else}
+   {#if !plans.length}
+    <p role="status">Δεν υπάρχει ακόμη ενεργοποιημένο πρόγραμμα και τιμή συνδρομής για αυτόν τον οργανισμό.</p>
+   {:else}
    <div class="form">
     <label>Ενδιαφέρον συνδρομής
      <select bind:value={track}>
-      <option value="parent">Μαθήματα γονέων</option>
-      <option value="player">Μαθήματα αθλητών</option>
-      <option value="both">Και οι δύο διαδρομές</option>
+      {#each plans as plan (plan.track)}
+       <option value={plan.track}>{plan.track==='parent'?'Μαθήματα γονέων':plan.track==='player'?'Μαθήματα αθλητών':'Και οι δύο διαδρομές'} · {(plan.monthly_price_cents/100).toFixed(2)} € / 30 ημέρες</option>
+      {/each}
      </select>
     </label>
+    {#if selectedPlan}
+     <p class="note" data-testid="fan-exact-plan-price">
+       Προς πληρωμή στο δοκιμαστικό Payabl: {(selectedPlan.monthly_price_cents/100).toFixed(2)} € για 30 ημέρες.
+       Δεν ενεργοποιείται αυτόματη ανανέωση.
+     </p>
+    {/if}
     <label>Email πληρωτή <input type="email" maxlength="50" bind:value={email} autocomplete="email"/></label>
     <label>Όνομα πληρωτή <input maxlength="50" bind:value={firstName} autocomplete="given-name"/></label>
     <label>Επώνυμο πληρωτή <input maxlength="50" bind:value={lastName} autocomplete="family-name"/></label>
     <label class="consent"><input type="checkbox" bind:checked={consent}/>
      <span>Συναινώ στη δημιουργία μηνιαίας συνδρομής μέσω δοκιμαστικού περιβάλλοντος Payabl.
       Η ανανέωση δεν είναι ακόμη αυτόματη. Δεν θα χρεωθώ από παραγωγικό Payabl.</span></label>
-    <button type="button" class="primary" disabled={!consent||busy||!email.includes('@')||
+    <button type="button" class="primary" disabled={!selectedPlan||!consent||busy||!email.includes('@')||
       firstName.trim().length===0||lastName.trim().length===0}
       onclick={()=>void checkout()}>Συνέχεια στο Payabl Sandbox</button>
    </div>
+   {/if}
   {/if}
  {/if}
  {#if error}<p role="alert" class="error">{error}</p>{/if}
