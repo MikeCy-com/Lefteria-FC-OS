@@ -12,8 +12,9 @@ REVOKE ALL ON FUNCTION hub.process_due_mobile_lesson_schedules(integer)
   FROM PUBLIC, :"learning_worker_role";
 GRANT EXECUTE ON FUNCTION hub.process_due_mobile_lesson_schedules(integer)
   TO :"learning_worker_role";
+SELECT set_config('lefteria.learning_worker_role', :'learning_worker_role', false);
 DO $worker_least_privilege$
-DECLARE role_name text:=:'learning_worker_role';
+DECLARE role_name text:=current_setting('lefteria.learning_worker_role');
 BEGIN
   IF has_any_column_privilege(role_name,'hub.learning_schedules',
       'SELECT,INSERT,UPDATE,REFERENCES')
