@@ -64,6 +64,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ApproveAdminAcademyTrainingPlanDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/approvals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingPlanApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/auth/login": {
         parameters: {
             query?: never;
@@ -2538,6 +2570,11 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        ApproveTrainingPlanCommand: {
+            confirm_human_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+        };
         AssignProductCommand: {
             enabled: boolean;
             /** Format: int64 */
@@ -4109,6 +4146,55 @@ export interface operations {
                 "application/json": components["schemas"]["TrainingPlanCommand"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApproveAdminAcademyTrainingPlanDraft: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveTrainingPlanCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyTrainingPlanApprovals: {
+        parameters: {
+            query?: {
+                end?: string;
+                group_id?: string;
+                organization_id?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
