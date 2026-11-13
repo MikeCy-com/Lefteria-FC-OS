@@ -141,6 +141,9 @@
             calendarError={$controller.calendarError} busy={$controller.busy}
             onLoadCalendar={month=>controller.loadCalendar(month)}
             onNavigate={openTab}/>
+          {#if role==='player'}
+            <MobilePlayerCoachFeedback {controller}/>
+          {/if}
         {/key}
       {:else if activeTab === 'profile' && !composing}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
