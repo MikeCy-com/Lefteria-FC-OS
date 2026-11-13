@@ -226,6 +226,35 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
+-- Manager-approved, position-aware weekly player quiz editorial.
+-- Only these narrow functions may be called by the web admin account.
+-- Never grant raw question, correct answer or attempt table access.
+REVOKE ALL ON FUNCTION hub.authorize_admin_player_quiz(text,text,boolean)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.list_admin_player_quizzes(text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.detail_admin_player_quiz(text,text,uuid)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.approve_admin_player_quiz(text,text,uuid)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.publish_admin_player_quiz(text,text,uuid)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.list_admin_player_quizzes(text,text)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.detail_admin_player_quiz(text,text,uuid)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.approve_admin_player_quiz(text,text,uuid)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.publish_admin_player_quiz(text,text,uuid)
+  TO :"admin_auth_role";
+REVOKE ALL ON TABLE hub.player_quizzes,hub.player_quiz_questions,
+  hub.player_quiz_tracks,hub.player_quiz_attempts,
+  hub.player_quiz_review_events FROM PUBLIC, :"app_role", :"admin_auth_role";
+
 -- HUB editorial is exposed only through a scoped security-definer function.
 -- Never grant direct hub table access or callable access to the mobile role.
 REVOKE ALL ON FUNCTION hub.read_admin_editorial(text,text) FROM PUBLIC, :"app_role";
