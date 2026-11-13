@@ -141,7 +141,8 @@
             calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
             calendarError={$controller.calendarError} busy={$controller.busy}
             onLoadCalendar={month=>controller.loadCalendar(month)}
-            onNavigate={openTab}/>
+            onNavigate={openTab}
+            onRespond={role==='player'?(item,status)=>controller.submitAvailability(item,status):undefined}/>
           {#if role==='player'}
             <MobilePlayerCoachFeedback {controller}/>
           {:else if role==='coach'}
