@@ -520,6 +520,26 @@ REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) TO :"app_role";
 
+-- Weekly youth football quiz reads and scoring are scoped to an active
+-- player identity. The mobile runtime cannot read hidden answer keys,
+-- change quiz review status or inspect another player's scores.
+REVOKE ALL ON TABLE hub.player_quizzes,hub.player_quiz_questions,
+  hub.player_quiz_tracks,hub.player_quiz_attempts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.assert_current_quiz_player(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.start_mobile_player_quiz_track(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.submit_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text,uuid,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.start_mobile_player_quiz_track(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.submit_mobile_player_weekly_quiz(
+  uuid,text,text,timestamptz,text,uuid,jsonb) TO :"app_role";
+
 -- The API can create verified fan records, never formal club-role grants.
 -- Owner migrations/imports retain the normal table-owner RLS bypass.
 ALTER TABLE identity.mobile_identities ENABLE ROW LEVEL SECURITY;

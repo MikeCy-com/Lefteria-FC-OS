@@ -516,6 +516,30 @@ BEGIN
   THEN
     RAISE EXCEPTION 'Fan lesson delivery runtime permissions unsafe';
   END IF;
+  IF NOT has_function_privilege(current_user,
+       'hub.start_mobile_player_quiz_track(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.read_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'hub.submit_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text,uuid,jsonb)','EXECUTE')
+    OR has_function_privilege(current_user,
+       'hub.assert_current_quiz_player(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.player_quiz_questions',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.player_quiz_attempts',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.player_quiz_questions','DELETE')
+    OR has_table_privilege(current_user,'hub.player_quiz_attempts','DELETE')
+    THEN
+    RAISE EXCEPTION 'Player weekly quiz permissions are unsafe';
+  END IF;
+  denied := false;
+  BEGIN
+    PERFORM hub.read_mobile_player_weekly_quiz(gen_random_uuid(),'invalid','fan',
+      clock_timestamp()+interval '1 hour','lefteria_fc_academy');
+  EXCEPTION WHEN insufficient_privilege THEN denied := true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed player weekly quiz boundary'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
