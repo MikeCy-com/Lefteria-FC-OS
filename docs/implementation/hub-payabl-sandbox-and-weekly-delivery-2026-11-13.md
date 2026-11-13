@@ -1,6 +1,6 @@
 # HUB Payabl sandbox and individual weekly learning — staging runbook
 
-**State:** development branch only. Not production-approved and not deployed.
+**State:** merged for isolated staging validation. Production activation requires a separate release decision.
 **Scope:** Payabl fan subscriptions, fan topic learning, and weekly in-app notices.
 
 ## Invariants
@@ -33,5 +33,7 @@
 - The Payabl adapter is **sandbox checkout**, not recurring stored-card billing. Renewal is manual. The initial access period is 30 days, not automatically a calendar-month charge.
 - Fan content is enabled only after an operator sets explicit plan prices and sandbox credentials. No default monetary amount is invented.
 - The seven-day schedule begins when each member opens the authenticated learning experience and is enrolled; member-registration-triggered enrollment and mobile push delivery are separate work.
-- Separate parent/player academy learning schedules are developed in PR #238. PR #241 must be reconciled after PR #238, and both require passing CI.
-- GitHub Actions jobs currently fail before runner assignment. See issue #240. **No merge, production deployment or provider activation while blocked.**
+## Integration decisions
+
+- PR #241 supplies fan checkout, verified-capture entitlements and fan lesson delivery. PR #244 supplies the separate academy parent/player lesson schedule. Both use the same approved-content model and independent per-member progress.
+- PR #242 proposed another checkout ledger and delivery queue. The integrated release uses the existing signed Payabl callback and bound finance ledger from #241, with the dedicated fan and academy workers from #241 and #244. Browser redirects and pending or unmatched payments do not grant access. Configure each existing worker only for its intended audience in isolated staging.
