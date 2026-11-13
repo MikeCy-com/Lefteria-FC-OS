@@ -66,3 +66,34 @@ export function matchingTrainingPlanWrite(
     (id===undefined||value.id===id)&&value.version===version&&
     value.status===status;
 }
+
+export interface TrainingPlanApprovals{
+  organization_id:'lefteria_fc_academy';group_id:string;from:string;to:string;
+  published:false;approvals:{id:string;approved_version:number}[];
+}
+export function validTrainingPlanApprovals(
+  value:unknown,group:string,from:string,to:string,
+  plans:readonly TrainingPlanDraft[]
+):value is TrainingPlanApprovals{
+  if(!rec(value)||value.organization_id!=='lefteria_fc_academy'||
+    value.group_id!==group||value.from!==from||value.to!==to||
+    value.published!==false||!Array.isArray(value.approvals)||
+    value.approvals.length>plans.length)return false;
+  const known=new Map(plans.map(p=>[p.id,p]));
+  const seen=new Set<string>();
+  return value.approvals.every((entry:unknown)=>{
+    if(!rec(entry)||typeof entry.id!=='string'||seen.has(entry.id))return false;
+    const plan=known.get(entry.id);
+    if(!plan||plan.status!=='draft'||entry.approved_version!==plan.version)return false;
+    seen.add(entry.id);
+    return true;
+  });
+}
+export function validTrainingPlanApprovalResult(
+  value:unknown,plan:TrainingPlanDraft
+):boolean{
+  return rec(value)&&value.id===plan.id&&
+    value.organization_id==='lefteria_fc_academy'&&
+    value.approved_version===plan.version&&
+    value.approval_status==='approved'&&value.published===false;
+}
