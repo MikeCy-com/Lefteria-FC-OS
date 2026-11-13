@@ -128,6 +128,8 @@
             onLoadCalendar={(month, childId) => controller.loadCalendar(month, childId)}
             onChildren={() => openTab('children')}
             onEducation={() => openTab('hub')}
+            onMessages={() => openTab('chat')}
+            onFinancials={() => openTab('financials')}
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'home' && role !== 'parent' && !composing}
