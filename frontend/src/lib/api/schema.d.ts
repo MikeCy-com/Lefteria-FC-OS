@@ -2060,6 +2060,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/hub/learning/deliveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Only the current authorized learner's scheduled lesson notification, never withdrawn or later lessons. */
+        get: operations["GetMobilePersonalLessonDeliveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/hub/learning/next": {
         parameters: {
             query?: never;
@@ -2071,6 +2088,23 @@ export interface paths {
         get: operations["GetMobileHubNextLesson"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/hub/learning/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Start or resume a personal weekly in-app delivery schedule. Never resets when a new learner joins. */
+        post: operations["EnrollMobilePersonalLessonSchedule"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3212,6 +3246,7 @@ export interface components {
             body: string;
             /** Format: uuid */
             id: string;
+            kind: string;
             organization_id: string;
             /** Format: date-time */
             published_at: string;
@@ -3232,6 +3267,31 @@ export interface components {
         MobileIdentityOption: {
             name: string;
             role: string;
+        };
+        MobileLessonDelivery: {
+            audience: string;
+            /** Format: uuid */
+            content_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: date-time */
+            queued_at: string;
+            type: string;
+        };
+        MobileLessonDeliveryInbox: {
+            audience: string;
+            items: components["schemas"]["MobileLessonDelivery"][];
+            organization_id: string;
+        };
+        MobileLessonSchedule: {
+            audience: string;
+            /** Format: int32 */
+            cadence_days: number | string;
+            /** Format: date-time */
+            next_due_at: string;
+            organization_id: string;
+            /** Format: date-time */
+            started_at: string;
         };
         MobileLoginResult: {
             available_roles: string[];
@@ -13480,6 +13540,91 @@ export interface operations {
             };
         };
     };
+    GetMobilePersonalLessonDeliveries: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileLessonDeliveryInbox"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
     GetMobileHubNextLesson: {
         parameters: {
             query?: {
@@ -13498,6 +13643,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MobileHubNextPage"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    EnrollMobilePersonalLessonSchedule: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileLessonSchedule"];
                 };
             };
             /** @description Bad Request */
