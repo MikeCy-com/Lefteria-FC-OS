@@ -462,6 +462,43 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed published education role gate'; END IF;
+  IF NOT has_function_privilege(current_user,
+      'hub.reserve_mobile_fan_payabl(uuid,text,text,timestamptz,text,text,uuid,text,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.ready_mobile_fan_payabl(uuid,text,text,timestamptz,text,uuid,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.read_mobile_fan_subscription(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.read_mobile_fan_next_lesson(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.complete_mobile_fan_next_lesson(uuid,text,text,timestamptz,text,text,uuid,uuid)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.assert_mobile_fan(uuid,text,text,timestamptz)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.sync_mobile_fan_payabl(uuid,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.current_mobile_fan_lesson(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.fan_subscriptions',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_checkout_links',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_plan_prices',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_learning_completions',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.fan_subscriptions','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_checkout_links','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_plan_prices','DELETE')
+    THEN
+      RAISE EXCEPTION 'Payabl fan HUB runtime privileges unsafe';
+  END IF;
+  denied:=false;
+  BEGIN
+    PERFORM hub.read_mobile_fan_next_lesson(gen_random_uuid(),'invalid',
+      'parent',clock_timestamp()+interval '1 hour','lefteria_fc_academy','player');
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true;
+  END;
+  IF NOT denied THEN RAISE EXCEPTION 'Parent accessed fan-only paid material'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
