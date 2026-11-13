@@ -123,6 +123,7 @@ export function validTrainingDistributionPreview(
 
 export interface TrainingPublicationRecord {
   id:string;event_id:string;published_version:number;
+  is_cancelled:boolean;cancel_reason:string|null;
 }
 export interface TrainingPublicationsPage {
   organization_id:'lefteria_fc_academy';group_id:string;from:string;to:string;
@@ -141,7 +142,14 @@ export function validTrainingPublicationsPage(
     if(!rec(row)||typeof row.id!=='string'||seen.has(row.id))return false;
     const plan=known.get(row.id);
     if(!plan||row.published_version!==plan.version||
-      row.event_id!=='os-training-'+row.id)return false;
+      row.event_id!=='os-training-'+row.id||
+      typeof row.is_cancelled!=='boolean'||
+      (row.is_cancelled ? (
+        typeof row.cancel_reason!=='string'||
+        row.cancel_reason.length<8||row.cancel_reason.length>500||
+        row.cancel_reason!==row.cancel_reason.trim()||
+        /[\\x00-\\x1f\\x7f]/.test(row.cancel_reason)
+      ) : row.cancel_reason!==null))return false;
     seen.add(row.id);return true;
   });
 }
@@ -155,4 +163,15 @@ export function validPublishedTrainingResult(
     value.event_id==='os-training-'+plan.id&&
     value.event_type==='training'&&value.published_version===plan.version&&
     value.published===true&&value.notifications_sent===false;
+}
+
+export function validTrainingCancellationResult(
+  value:unknown,plan:TrainingPlanDraft,reason:string
+):boolean{
+  return rec(value)&&value.id===plan.id&&
+    value.organization_id==='lefteria_fc_academy'&&
+    value.event_id==='os-training-'+plan.id&&
+    value.published_version===plan.version&&
+    value.cancelled===true&&value.cancel_reason===reason&&
+    value.notifications_sent===false;
 }
