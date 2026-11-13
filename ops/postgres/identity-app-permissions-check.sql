@@ -462,6 +462,46 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed published education role gate'; END IF;
+  IF NOT has_function_privilege(current_user,
+      'hub.enroll_mobile_weekly_learning(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.read_mobile_weekly_learning(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.begin_mobile_fan_payabl_checkout(uuid,text,text,timestamptz,text,text,uuid,uuid,text,bigint)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.ready_mobile_fan_payabl_checkout(uuid,text,text,timestamptz,text,uuid,text,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+      'hub.record_fan_payabl_checkout_notice(uuid,text,text,text,integer,bigint,text,bigint,text,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.authorize_mobile_learning_enrollment(uuid,text,text,timestamptz,text,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.dispatch_due_weekly_learning(integer)','EXECUTE')
+    OR has_function_privilege(current_user,
+      'hub.fan_delivery_entitled(uuid,text,text,timestamptz)','EXECUTE')
+    OR has_any_column_privilege(current_user,'hub.learning_enrollments',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.learning_delivery_outbox',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_payabl_checkout_intents',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(current_user,'hub.fan_payabl_checkout_notices',
+      'SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(current_user,'hub.learning_enrollments','DELETE')
+    OR has_table_privilege(current_user,'hub.learning_delivery_outbox','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_payabl_checkout_intents','DELETE')
+    OR has_table_privilege(current_user,'hub.fan_payabl_checkout_notices','DELETE')
+  THEN
+    RAISE EXCEPTION 'Runtime weekly HUB/Payabl role boundary violated';
+  END IF;
+  denied:=false;
+  BEGIN
+    PERFORM hub.enroll_mobile_weekly_learning(gen_random_uuid(),'invalid',
+      'fan',clock_timestamp()+interval '1 hour','lefteria_fc','fan_parent');
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true;
+  END;
+  IF NOT denied THEN
+    RAISE EXCEPTION 'Unverified fan bypassed paid weekly enrollment';
+  END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
