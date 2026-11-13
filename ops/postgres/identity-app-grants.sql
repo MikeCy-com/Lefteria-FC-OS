@@ -481,6 +481,20 @@ GRANT EXECUTE ON FUNCTION hub.ready_mobile_fan_payabl(
 GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_subscription(
   uuid,text,text,timestamptz,text) TO :"app_role";
 
+-- Verified fan learning: two independent parent/player topic tracks. Each
+-- SQL call verifies captured Payabl finance settlement and expiry.
+REVOKE ALL ON TABLE hub.fan_learning_completions FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.current_mobile_fan_lesson(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.read_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION hub.complete_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text,uuid,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text) TO :"app_role";
+GRANT EXECUTE ON FUNCTION hub.complete_mobile_fan_next_lesson(
+  uuid,text,text,timestamptz,text,text,uuid,uuid) TO :"app_role";
+
 -- Published education is role-scoped through one private read routine, not raw HUB tables.
 GRANT USAGE ON SCHEMA hub TO :"app_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
