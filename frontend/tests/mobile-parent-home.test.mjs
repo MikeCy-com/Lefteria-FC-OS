@@ -105,7 +105,9 @@ test('Svelte Parent Home renders only verified children and their current scoped
   }
   assert.equal((html.match(/data-testid="parent-home-child"/g)??[]).length,2);
   assert.equal((html.match(/data-testid="parent-home-event"/g)??[]).length,1);
-  assert.doesNotMatch(html,/Παλιό γεγονός|Ακυρωμένη προπόνηση|Άλλου συλλόγου/);
+  assert.doesNotMatch(html,/Παλιό γεγονός|Άλλου συλλόγου/);
+  assert.match(html,/parent-home-cancellations/);
+  assert.match(html,/Ακυρωμένη προπόνηση/);
   assert.doesNotMatch(html,/medical_notes|date_of_birth|private_contact|guardian_phone|Bearer/);
   assert.match(html,/Πρόγραμμα για Παιδί Άλφα/);
   assert.match(html,/Πρόγραμμα για Παιδί Βήτα/);
