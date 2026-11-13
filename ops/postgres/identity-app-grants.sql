@@ -456,11 +456,11 @@ GRANT EXECUTE ON FUNCTION club.send_mobile_coach_feedback(
 GRANT EXECUTE ON FUNCTION club.read_mobile_player_coach_feedback(
   uuid,text,text,timestamptz,integer) TO :"app_role";
 
--- Published education is role-scoped through one private read routine, not raw HUB tables.
+-- The global publication archive must not be callable by the runtime:
+-- members use only their per-identity next-lesson SQL function.
 GRANT USAGE ON SCHEMA hub TO :"app_role";
 REVOKE ALL ON ALL TABLES IN SCHEMA hub FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION hub.read_mobile_published_education(uuid,text,text,timestamptz,text,integer) TO :"app_role";
 
 -- Individual learning progress: no raw completion table access, no internal
 -- helper call, and no fan delivery until independently verified Payabl access.
