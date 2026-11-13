@@ -115,6 +115,11 @@ builder.Services.AddScoped<PostgresMobilePrivateChatStore>();
 builder.Services.AddMobileIdentity(builder.Configuration);
 builder.Services.AddWebAdmin(builder.Configuration);
 builder.Services.AddPayabl(builder.Configuration);
+builder.Services.AddOptions<HubFanPayablOptions>()
+    .Bind(builder.Configuration.GetSection("HubFanPayabl"))
+    .Validate(HubFanPayablOptions.Safe,
+        "Fan HUB checkout must use configured sandbox plan prices.")
+    .ValidateOnStart();
 builder.Services.AddPublicContent();
 builder.Services.AddPublicSections();
 builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader>();
@@ -171,6 +176,7 @@ app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();
 app.MapWebAdmin();
 app.MapPayabl();
+app.MapHubFanPayablCheckout();
 app.MapAcademyFees();
 app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
