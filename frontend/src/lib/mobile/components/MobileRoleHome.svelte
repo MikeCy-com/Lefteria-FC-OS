@@ -3,7 +3,7 @@
   import type {MobileRole,MobileTab} from '../navigation.ts';
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar} from '../calendar.ts';
-  import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate} from '../calendar.ts';
+  import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
   import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents} from '../role-home.ts';
   import './mobile-theme.css';
 
@@ -82,7 +82,7 @@
           {#each upcoming as event (event.kind+':'+event.id)}
             <li>
               <span class="day">{formatCalendarDate(event.date,{day:'numeric',month:'short'})}</span>
-              <span class="event-copy"><strong>{event.title}</strong><small>{CALENDAR_KIND_LABELS[event.kind]}{event.start_time?' · '+event.start_time:''}</small></span>
+              <span class="event-copy"><strong>{event.title}</strong><small>{(isCalendarKind(event.kind)?CALENDAR_KIND_LABELS[event.kind]:'Δραστηριότητα')}{event.start_time?' · '+event.start_time:''}</small></span>
             </li>
           {/each}
         </ol>
