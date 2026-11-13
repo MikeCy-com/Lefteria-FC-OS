@@ -43,7 +43,7 @@ BEGIN
   result:=hub.read_mobile_next_education(
     older_parent,'35799500101','parent',clock_timestamp()+interval '1 hour',
     'lefteria_fc_academy');
-  IF (result->'next'->>'id')::uuid<>first_id THEN
+  IF (result->'next'->>'id')::uuid IS DISTINCT FROM first_id THEN
     RAISE EXCEPTION 'Existing parent did not start with first approved lesson';
   END IF;
   PERFORM hub.complete_mobile_next_education(
@@ -52,7 +52,7 @@ BEGIN
   result:=hub.read_mobile_next_education(
     older_parent,'35799500101','parent',clock_timestamp()+interval '1 hour',
     'lefteria_fc_academy');
-  IF (result->'next'->>'id')::uuid<>second_id THEN
+  IF (result->'next'->>'id')::uuid IS DISTINCT FROM second_id THEN
     RAISE EXCEPTION 'Completed member did not advance independently';
   END IF;
 
@@ -60,7 +60,7 @@ BEGIN
   result:=hub.read_mobile_next_education(
     later_parent,'35799500102','parent',clock_timestamp()+interval '1 hour',
     'lefteria_fc_academy');
-  IF (result->'next'->>'id')::uuid<>first_id THEN
+  IF (result->'next'->>'id')::uuid IS DISTINCT FROM first_id THEN
     RAISE EXCEPTION 'Later registration skipped previously approved content';
   END IF;
   denied:=false;
