@@ -85,10 +85,8 @@ public sealed class HubPlayerWeeklyQuizScoring : Migration
               IF v_choice=v_correct THEN v_score:=v_score+1; END IF;
             END LOOP;
             INSERT INTO hub.player_quiz_attempts(
-              identity_id,organization_id,quiz_id,answer_digest,score,total)
-            VALUES(_identity,_owner,_quiz,
-              encode(sha256(convert_to(_answers::text,'UTF8')),'hex'),
-              v_score,v_total);
+              identity_id,organization_id,quiz_id,score,total)
+            VALUES(_identity,_owner,_quiz,v_score,v_total);
             RETURN jsonb_build_object('organization_id',_owner,
               'quiz_id',_quiz,'score',v_score,'total',v_total,
               'submitted',true);
