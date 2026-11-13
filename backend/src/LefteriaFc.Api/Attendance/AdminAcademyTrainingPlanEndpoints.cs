@@ -17,6 +17,9 @@ namespace LefteriaFc.Api.Attendance;
 /// </summary>
 public static class AdminAcademyTrainingPlanEndpoints
 {
+    public sealed record CancelPublishedTrainingCommand(
+        int ExpectedVersion,string Reason,bool ConfirmCancellation);
+
     public sealed record PublishTrainingPlanCommand(
         int ExpectedVersion,bool ConfirmPublication);
 
@@ -209,6 +212,34 @@ public static class AdminAcademyTrainingPlanEndpoints
             command.Parameters.AddWithValue("to",NpgsqlDbType.Date,end.Value);
             return await Run(command,ct);
         }).WithName("ReadAdminAcademyTrainingPublications");
+
+        admin.MapPost("/{planId:guid}/cancel",async (
+            Guid planId,string? organization_id,CancelPublishedTrainingCommand body,
+            WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            if(planId==Guid.Empty || body.ExpectedVersion is <1 or >10000 ||
+               !body.ConfirmCancellation || body.Reason is null ||
+               body.Reason.Length is <8 or >500 ||
+               body.Reason!=body.Reason.Trim() ||
+               body.Reason.Any(char.IsControl))
+                throw new WebAdminException(422,"training_cancellation_invalid",
+                    "Confirm the exact published plan and enter a public-safe reason.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.cancel_admin_academy_training_publication(
+                  @digest,@owner,@id,@version,@reason,@confirmed)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("version",body.ExpectedVersion);
+            command.Parameters.AddWithValue("reason",body.Reason);
+            command.Parameters.AddWithValue("confirmed",body.ConfirmCancellation);
+            return await Run(command,ct);
+        }).WithName("CancelAdminAcademyPublishedTraining")
+          .Accepts<CancelPublishedTrainingCommand>("application/json");
 
         return endpoints;
     }
