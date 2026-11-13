@@ -6,6 +6,8 @@ namespace LefteriaFc.Api.Hub;
 /// <summary>Approved, published education only; never drafts or fan subscriptions.</summary>
 public static class MobileHubPublishedEndpoints
 {
+    public sealed record HubLessonCompletionBody(Guid ContentId,Guid RevisionId);
+
     public static IEndpointRouteBuilder MapMobileHubPublished(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/mobile/hub/education",
@@ -20,6 +22,43 @@ public static class MobileHubPublishedEndpoints
             .WithDescription("Currently authenticated parent/player audience only; returns reviewed and published articles. Age-restricted player entries stay unavailable until authoritative age integration.")
             .Produces<MobileHubPublishedResult>()
             .WithMobileErrors();
+        // A new member starts at the earliest eligible approved lesson,
+        // independent of publication age or other people's completion state.
+        endpoints.MapGet("/api/mobile/hub/learning/next",
+            (string? organization_id,HttpContext context,
+             MobileHubPublishedStore store,CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.NextAsync(MobilePrincipal.Read(context.User),
+                        ParseOrganization(organization_id,context),token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile education")
+            .WithName("GetMobileHubNextLesson")
+            .WithDescription("First unfinished approved lesson for this authenticated parent/player, never the global newest lesson.")
+            .Produces<MobileHubNextPage>()
+            .WithMobileErrors();
+
+        endpoints.MapPost("/api/mobile/hub/learning/complete",
+            (string? organization_id,HubLessonCompletionBody body,HttpContext context,
+             MobileHubPublishedStore store,CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.CompleteNextAsync(MobilePrincipal.Read(context.User),
+                        ParseOrganization(organization_id,context),
+                        body.ContentId,body.RevisionId,token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile education")
+            .WithName("CompleteMobileHubLesson")
+            .WithDescription("Explicitly complete only this member's currently next approved lesson; rejects stale, guessed and cross-role submissions.")
+            .Produces<MobileHubCompletionResult>()
+            .WithMobileErrors();
+
         return endpoints;
     }
 
