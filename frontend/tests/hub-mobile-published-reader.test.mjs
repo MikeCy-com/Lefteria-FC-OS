@@ -51,8 +51,8 @@ test('published education rejects ambiguous organization scopes and malformed se
  assert.match(store,/string\.IsNullOrWhiteSpace\(item\.Body\)/);
  assert.match(store,/item\.PublishedAt==default/);
  assert.match(store,/item\.PublishedAt>DateTimeOffset\.UtcNow/);
- assert.match(store,/\(item\.AgeMin is null\)!=\(item\.AgeMax is null\)/);
- assert.match(store,/role=="player" && \(item\.AgeMin is not null \|\| item\.AgeMax is not null\)/);
+ assert.match(store,/item\.AgeMin is not null \|\| item\.AgeMax is not null/);
+ assert.match(store,/CheckLearningScope\(actor,organization\)/);
 });
 
 test('legacy article route never allows navigating the global publication catalogue',()=>{
