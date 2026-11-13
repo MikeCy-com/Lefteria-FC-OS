@@ -8,6 +8,7 @@ DECLARE
   v_actor uuid:=gen_random_uuid();
   v_session uuid:=gen_random_uuid();
   v_id uuid:=gen_random_uuid();
+  v_other uuid:=gen_random_uuid();
   v_digest text:=repeat('d',64);
   v_group text:='ci_plan_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
@@ -38,6 +39,24 @@ BEGIN
   IF v_result->>'status'<>'draft' OR (v_result->>'version')::integer<>1 THEN
     RAISE EXCEPTION 'Training plan draft create failed';
   END IF;
+  -- Two drafts for the same group may not overlap, even with different IDs.
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(
+      v_digest,v_owner,v_other,v_group,
+      DATE '2026-11-19',TIME '17:30',60,'Conflicting group plan',
+      'Disposable pitch','',0,false);
+    RAISE EXCEPTION 'Overlapping Academy draft was accepted';
+  EXCEPTION WHEN unique_violation THEN NULL;
+  END;
+  -- A training session cannot quietly wrap into the next calendar day.
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(
+      v_digest,v_owner,v_other,v_group,
+      DATE '2026-11-20',TIME '23:30',90,'Overnight plan',
+      'Disposable pitch','',0,false);
+    RAISE EXCEPTION 'Overnight training draft was accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  END;
   v_result:=club.read_admin_academy_training_plans(
     v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
   IF (v_result->>'total')::integer<>1
@@ -67,6 +86,15 @@ BEGIN
   IF (v_result->>'version')::integer<>3
     OR v_result->>'status'<>'archived' THEN
     RAISE EXCEPTION 'Private training plan archive failed';
+  END IF;
+  -- After archiving, the group/day/time slot is no longer occupied.
+  v_result:=club.write_admin_academy_training_plan(
+    v_digest,v_owner,v_other,v_group,
+    DATE '2026-11-21',TIME '18:00',60,'Available after archive',
+    'Disposable pitch','',0,false);
+  IF v_result->>'status'<>'draft'
+    OR (v_result->>'version')::integer<>1 THEN
+    RAISE EXCEPTION 'Archived plan still blocks unrelated new draft';
   END IF;
   IF (SELECT count(*) FROM club.academy_training_plan_events
       WHERE plan_id=v_id)<>3
