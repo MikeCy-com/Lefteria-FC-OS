@@ -1,7 +1,7 @@
 <script lang="ts">
   import { untrack } from 'svelte';
   import { CALENDAR_KIND_LABELS, clubToday, formatCalendarDate } from '../calendar.ts';
-  import type { CalendarLoadStatus } from '../calendar.ts';
+  import type { CalendarLoadStatus,AvailabilityStatus,MobileCalendarItem } from '../calendar.ts';
   import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
@@ -24,10 +24,11 @@
     onEducation?: () => void | Promise<void>;
     onMessages?: () => void | Promise<void>;
     onFinancials?: () => void | Promise<void>;
+    onRespond?: (event:MobileCalendarItem,status:AvailabilityStatus) => boolean | Promise<boolean>;
   }
 
   let { identityId, parentName, family, familyStatus, familyError, calendar, calendarStatus, calendarError,
-    busy = false, today = clubToday(), onLoadFamily, onLoadCalendar, onChildren, onCalendar, onEducation, onMessages, onFinancials }: Props = $props();
+    busy = false, today = clubToday(), onLoadFamily, onLoadCalendar, onChildren, onCalendar, onEducation, onMessages, onFinancials, onRespond }: Props = $props();
 
   const id = $props.id();
   let familyRequested = $state(false);
@@ -150,6 +151,15 @@
                 <p class="parent-rsvp" data-testid="parent-home-event-rsvp">
                   Δήλωση συμμετοχής: <strong>{ownRsvp==='going'?'Θα έρθει':ownRsvp==='not_going'?'Δεν θα έρθει':ownRsvp==='maybe'?'Ίσως':'Χωρίς απάντηση'}</strong>
                 </p>
+                {#if onRespond && !event.is_cancelled}
+                  <fieldset class="parent-home-rsvp-actions" disabled={busy} data-testid="parent-home-rsvp-actions">
+                    <legend>Απάντηση συμμετοχής για {activeChild.name}</legend>
+                    {#each [['going','Θα έρθει'],['not_going','Δεν θα έρθει'],['maybe','Ίσως']] as choice}
+                      <button type="button" aria-pressed={ownRsvp===choice[0]}
+                        onclick={()=>void onRespond?.(event,choice[0] as AvailabilityStatus)}>{choice[1]}</button>
+                    {/each}
+                  </fieldset>
+                {/if}
               </div>
               <button type="button" aria-label={'Ημερολόγιο για ' + activeChild.name} disabled={busy}
                 onclick={() => void onCalendar(activeChild.id)}><span aria-hidden="true">›</span></button>
@@ -247,6 +257,12 @@
   .parent-event-copy p{margin:0;color:#a2a7aa;font-size:11px}
   .parent-event-copy .parent-rsvp{margin-top:6px;color:#c1b9aa;font-size:11px}
   .parent-rsvp strong{color:#ffca46}
+  .parent-home-rsvp-actions{border:0;padding:0;margin:8px 0 0;display:flex;flex-wrap:wrap;gap:5px}
+  .parent-home-rsvp-actions legend{font-size:10px;color:#aab0b2;margin-bottom:5px}
+  .parent-home-rsvp-actions button{min-height:44px;border:1px solid #514731;border-radius:7px;background:#23201a;color:#e6d5b2;padding:7px;font-size:10px;cursor:pointer}
+  .parent-home-rsvp-actions button[aria-pressed='true']{border-color:#f5a623;background:#493515;color:#fff;font-weight:700}
+  .parent-home-rsvp-actions button:focus-visible{outline:2px solid #ffca46;outline-offset:2px}
+  .parent-home-rsvp-actions:disabled button{opacity:.5;cursor:wait}
   .parent-more-note{border:0;border-radius:0;padding:14px;font-size:11px}
   .parent-shortcuts h2{margin-bottom:12px}
   .parent-shortcut-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}

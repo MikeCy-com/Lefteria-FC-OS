@@ -131,6 +131,7 @@
             onEducation={() => openTab('hub')}
             onMessages={() => openTab('chat')}
             onFinancials={() => openTab('financials')}
+            onRespond={(item,status)=>controller.submitAvailability(item,status)}
             onCalendar={(childId) => openTab('calendar', childId)} />
         {/key}
       {:else if activeTab === 'home' && role !== 'parent' && !composing}
