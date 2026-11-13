@@ -198,8 +198,40 @@ BEGIN
         AND sc.scope_kind='group' AND sc.record_id=v_group)
     OR NOT EXISTS(SELECT 1 FROM migration.calendar_source_documents src
       WHERE src.collection='os_training'
-        AND src.target_id=v_published->>'event_id') THEN
+        AND src.target_id=v_published->>'event_id')
+    OR NOT club.academy_training_player_eligible(
+      v_owner,v_published->>'event_id',v_player) THEN
     RAISE EXCEPTION 'Native Academy training publication was not group-scoped';
+  END IF;
+  v_result:=club.read_admin_academy_training_publications(
+    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+  IF jsonb_array_length(v_result->'publications')<>1
+     OR v_result->'publications'->0->>'event_id'<>
+        v_published->>'event_id' THEN
+    RAISE EXCEPTION 'Native training publication status not retrievable';
+  END IF;
+  v_result:=club.read_admin_academy_training_sessions(
+    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+  IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_result->'sessions') it
+    WHERE it->>'id'=v_published->>'event_id') THEN
+    RAISE EXCEPTION 'Canonical published training missing from Academy register';
+  END IF;
+  v_result:=club.read_admin_academy_training_attendance(
+    v_digest,v_owner,v_published->>'event_id');
+  IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_result->'players') p
+    WHERE p->>'player_id'=v_player) THEN
+    RAISE EXCEPTION 'Published group athlete missing from authorized attendance';
+  END IF;
+  INSERT INTO club.calendar_responses(
+    collection,kind,event_id,player_id,organization_id,status,
+    updated_at,actor_identity_id,source_ordinal)
+  VALUES('availability','training',v_published->>'event_id',
+    v_player,v_owner,'going',clock_timestamp(),NULL,NULL);
+  IF NOT EXISTS(SELECT 1 FROM club.calendar_responses
+    WHERE collection='availability' AND kind='training'
+      AND event_id=v_published->>'event_id'
+      AND player_id=v_player AND status='going') THEN
+    RAISE EXCEPTION 'Canonical published training does not accept RSVP reference';
   END IF;
   BEGIN
     PERFORM club.publish_admin_academy_training_plan(
