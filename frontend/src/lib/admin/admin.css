@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Fira+Sans+Extra+Condensed:wght@500;600;700;800&family=Fira+Sans:wght@400;500;600;700&display=swap');
 .admin-app { --admin-gold:#f6bb38;min-height:100dvh;background:#0b0b0b;color:#f4f4f1;font-family:'Fira Sans',sans-serif;line-height:1.6; }
 .admin-app a { color:#f7c56d; text-underline-offset:4px; }
 .admin-app :is(h1,h2,h3,.admin-brand) { font-family:'Fira Sans Extra Condensed',sans-serif; }
