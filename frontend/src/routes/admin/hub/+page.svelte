@@ -8,6 +8,7 @@
     type HubOrganization,type HubEditorialItem,type HubEditorialDetail,type HubState
   } from '../../../lib/admin/hub-editorial.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -38,7 +39,10 @@
     ['support','communication','development','wellbeing']:
     ['confidence','teamwork','resilience','learning','wellbeing']);
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
-  $effect(()=>{if(!organization||!permitted.includes(organization))organization=permitted[0]??null;});
+  $effect(()=>{
+    const selected=scopedAdminOrganization($auth.session?.user??null,permitted);
+    if(organization!==selected)organization=selected;
+  });
   $effect(()=>{
     const owner=organization,actor=$auth.session?.user.id,generation=reload;
     void actor;void generation;
