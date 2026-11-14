@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['fixtures', '/admin/matches'], ['onboarding', '/admin/onboarding']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches'].includes(item.href));
   }
 });
 
@@ -138,4 +138,14 @@ test('Academy office discovery matches its existing manager and organization pol
     assert.ok(!ids(user(['*:*'],['lefteria_fc_academy'],role)).includes('registrations'),role);
   assert.ok(!ids(user(['*:*'],['lefteria_fc'],'super_admin')).includes('registrations'));
   assert.ok(!ids(user(['*:*'],[],'super_admin')).includes('registrations'));
+});
+
+
+test('published matches management is readable only for the selected authorized organization', () => {
+  const clubManager=user(['teams:read'],['lefteria_fc'],'manager');
+  const academyManager=user(['academy:read'],['lefteria_fc_academy'],'manager');
+  assert.equal(adminSectionsFor(clubManager,'lefteria_fc').flatMap(x=>x.modules).find(x=>x.id==='fixtures')?.href,'/admin/matches');
+  assert.equal(adminSectionsFor(academyManager,'lefteria_fc_academy').flatMap(x=>x.modules).find(x=>x.id==='fixtures')?.href,'/admin/matches');
+  assert.ok(!adminSectionsFor(clubManager,'lefteria_fc_academy').flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
+  assert.ok(!adminSectionsFor(academyManager,'lefteria_fc').flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
 });
