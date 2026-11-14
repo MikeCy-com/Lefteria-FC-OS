@@ -6,6 +6,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Article = components['schemas']['PublicArticle'];
@@ -35,7 +36,7 @@
   $effect(() => {
     // Never keep the prior organization's selection across fresh revocations.
     if (!allowedOrganizations.some(org => org.id === organization)) {
-      organization = allowedOrganizations[0]?.id ?? null;
+      organization = scopedAdminOrganization($auth.session?.user ?? null, allowedOrganizations.map(org => org.id));
       offset = 0;
     }
   });
