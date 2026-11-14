@@ -118,6 +118,14 @@ jobs:
       - name: Founding admin setup and owner protections (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/founding-admin-checks.sql
+      - name: Preview owner recovery guards (separate disposable PostgreSQL database)
+        run: |
+          set -euo pipefail
+          docker exec identity-postgres createdb -p 54329 -U "$POSTGRES_USER" lefteria_os_preview
+          trap 'docker exec identity-postgres dropdb --if-exists -p 54329 -U "$POSTGRES_USER" lefteria_os_preview' EXIT
+          LEFTERIA_MIGRATION_CONNECTION="Host=127.0.0.1;Port=54329;Database=lefteria_os_preview;Username=$POSTGRES_USER;Password=$POSTGRES_PASSWORD" \
+            dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d lefteria_os_preview -f /opt/lefteria-postgres/preview-owner-copy-checks.sql
       - name: Academy private evaluation score and RLS guards (disposable DB)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-private-evaluation-guards-checks.sql
