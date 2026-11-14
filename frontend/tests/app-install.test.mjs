@@ -109,5 +109,17 @@ test('manifest and footer install entry retain the app route and accessible devi
   assert.match(component, /<dialog[^>]*aria-labelledby="app-install-title"/);
   assert.match(component, /Προσθήκη στην οθόνη Αφετηρίας/);
   assert.match(component, /lockPageScroll\(document\)/);
-  assert.doesNotMatch(component, /\.apk|emergentagent|window\.location/);
+  assert.match(component, /href="https:\/\/lefteriafc\.cy\/api\/app\/android"/);
+  assert.match(component, /Η εφαρμογή Android συνδέεται στο επίσημο/);
+  assert.doesNotMatch(component, /emergentagent|window\.location/);
+});
+
+test('Android gets explicit official APK choice while iOS and desktop retain their own install flow', () => {
+  const controller = createInstallController(), state = observe(controller);
+  const android = browser({ navigator:{userAgent:'Mozilla/5.0 (Linux; Android 15)'} });
+  const stop = controller.start(android.events);
+  assert.equal(state().android, true); assert.equal(state().ios, false);
+  stop();
+  controller.start(browser({navigator:{userAgent:'iPhone'}}).events);
+  assert.equal(state().android, false); assert.equal(state().ios, true);
 });
