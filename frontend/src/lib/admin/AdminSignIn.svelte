@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { publicImages } from '../public/images';
   import type { AdminRememberDays } from './controller.ts';
 
   let { busy = false, error = null, onLogin }: {
@@ -18,8 +19,17 @@
   }
 </script>
 
-<main class="admin-signin" data-testid="admin-login-page">
+<main class="admin-signin admin-signin-editorial" data-testid="admin-login-page">
   <a class="admin-home-link" href="/">← Επιστροφή στην ιστοσελίδα</a>
+  <div class="admin-signin-grid">
+  <section class="admin-signin-story" style:background-image={`linear-gradient(180deg,#080a0b55,#080a0bf5),url("${publicImages.pitch}")`} aria-labelledby="admin-welcome-title">
+    <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC</p>
+    <h2 id="admin-welcome-title">ADMIN<br /><em>PORTAL</em></h2>
+    <p class="admin-signin-lead">Η ομάδα πίσω από την ομάδα.</p>
+    <p>Ο χώρος διαχείρισης του συλλόγου και της Ακαδημίας.</p>
+    <img src="/mobile/club-logo.png" alt="" width="180" height="180" />
+    <p class="admin-signin-motto">ONE TEAM <span aria-hidden="true">●</span> ONE DREAM</p>
+  </section>
   <section class="admin-panel">
     <img class="admin-crest" src="/mobile/club-logo.png" alt="Λευτεριά FC" width="72" height="72" />
     <p class="admin-eyebrow">LEFTERIA FC OS</p>
@@ -51,4 +61,5 @@
       </button>
     </form>
   </section>
+  </div>
 </main>
