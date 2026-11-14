@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { publicImages } from '../public/images';
+  import { publicImages } from '../public/images.ts';
   import type { AdminRememberDays } from './controller.ts';
 
   let { busy = false, error = null, onLogin }: {
