@@ -37,15 +37,22 @@ export function requirePublicId<T extends { id: string }>(rows: readonly T[], va
 
 // Original PlayerProfilePage serves First Team and Academy players; Academy names arrive abbreviated from the API.
 async function findPlayer(url: URL, id: string) {
+  let missingProjection = false;
+  const separator = id.indexOf('--');
+  // First Team takes precedence for a shared legacy ID. An unavailable
+  // First Team projection must not block an otherwise published Academy
+  // player, but an unresolved ID cannot be called 404 if either source failed.
   for (const [organization, type] of [['lefteria_fc', 'First Team'], ['lefteria_fc_academy', 'Academy']] as const) {
     const data = await loadSectionPage(url, organization);
-    if (!data.sectionsAvailable) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
+    if (!data.sectionsAvailable) {
+      missingProjection = true;
+      continue;
+    }
     const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
-    if (organization === 'lefteria_fc_academy') return { data, player: requirePublicId(rows, id) };
-    const separator = id.indexOf('--');
     const found = rows.find(row => row.id === id || (separator > 0 && row.id === id.slice(separator + 2)));
     if (found) return { data, player: found };
   }
+  if (missingProjection) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
   error(404, 'Η σελίδα δεν βρέθηκε.');
 }
 
