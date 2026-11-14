@@ -32,7 +32,7 @@ test('all active Lefteria FC screens and backend visuals use the new gold', () =
   const invoice = readFileSync(join(backend, 'LefteriaFc.Api/Payabl/AcademyInvoicePdf.cs'), 'utf8');
   assert.match(birthdayMigration, /ALTER COLUMN background_color SET DEFAULT '#F6BB38'/);
   assert.match(birthdayMigration, /ELSE '#F6BB38' END/);
-  assert.match(invoice, /Gold = Color\\(246,187,56\\)/);
+  assert.ok(invoice.includes('Gold = Color(246,187,56)'));
   const css = readFileSync(join(frontend, 'lib/public/public.css'), 'utf8');
   const admin = readFileSync(join(frontend, 'lib/admin/admin.css'), 'utf8');
   const mobile = readFileSync(join(frontend, 'lib/mobile/components/mobile-theme.css'), 'utf8');
