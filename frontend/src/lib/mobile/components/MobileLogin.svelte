@@ -170,10 +170,10 @@
 </section>
 
 <style>
-  .login-page { min-height:100dvh; display:flex; flex-direction:column; padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px); background:radial-gradient(ellipse at 15% 0%,#f5a62312,transparent 42%),radial-gradient(ellipse at 100% 100%,#174b3020,transparent 45%),var(--lf-bg); }
+  .login-page { min-height:100dvh; display:flex; flex-direction:column; padding:env(safe-area-inset-top,0px) 24px env(safe-area-inset-bottom,0px); background:radial-gradient(ellipse at 15% 0%,#f6bb3812,transparent 42%),radial-gradient(ellipse at 100% 100%,#174b3020,transparent 45%),var(--lf-bg); }
   .login-content { width:100%; max-width:380px; flex:1; align-content:center; margin:0 auto; padding:40px 0 28px; }
   .brand { text-align:center; margin-bottom:32px; }
-  .brand img { display:block; object-fit:contain; margin:0 auto 16px; filter:drop-shadow(0 7px 20px #f5a62328); }
+  .brand img { display:block; object-fit:contain; margin:0 auto 16px; filter:drop-shadow(0 7px 20px #f6bb3828); }
   .brand h1 { margin:0; font-size:36px; line-height:1.1; letter-spacing:.045em; }
   .brand p { margin:10px 0 0; color:var(--lf-gold); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.24em; }
   .brand p span { color:#626262; padding:0 6px; }
@@ -193,7 +193,7 @@
   .remember-choice label { margin-top:0; }
   .remember-choice select { min-height:44px; padding:9px 12px; font-size:13px; }
   button { cursor:pointer; }
-  .primary { display:flex; width:100%; min-height:49px; align-items:center; justify-content:center; gap:10px; margin-top:22px; border:1px solid var(--lf-gold); border-radius:8px; background:linear-gradient(110deg,#ffcd47,#f5a623); color:#090909; font-size:15px; font-weight:700; }
+  .primary { display:flex; width:100%; min-height:49px; align-items:center; justify-content:center; gap:10px; margin-top:22px; border:1px solid var(--lf-gold); border-radius:8px; background:linear-gradient(110deg,#ffcd47,#f6bb38); color:#090909; font-size:15px; font-weight:700; }
   .primary:hover:not(:disabled) { background:var(--lf-gold-light); }
   .text-button { min-height:44px; padding:8px 0; border:0; background:transparent; color:#b0b4b6; font-size:13px; }
   .text-button:hover:not(:disabled) { color:#fff; }
@@ -202,8 +202,8 @@
   .signup-prompt p { margin:0; color:#92979a; font-size:12px; }
   .signup-prompt button { font-weight:600; }
   .error { margin:0 0 20px; padding:12px 14px; border:1px solid #ef444440; border-radius:8px; background:#ef444411; color:#fca5a5; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
-  .step-icon { display:grid; width:52px; height:52px; place-items:center; margin:0 auto 16px; border-radius:50%; background:#f5a62314; color:var(--lf-gold); }
-  .role-pill { display:block; width:fit-content; margin:-9px auto 22px; padding:4px 12px; border-radius:20px; background:#f5a62314; color:var(--lf-gold); font-size:12px; }
+  .step-icon { display:grid; width:52px; height:52px; place-items:center; margin:0 auto 16px; border-radius:50%; background:#f6bb3814; color:var(--lf-gold); }
+  .role-pill { display:block; width:fit-content; margin:-9px auto 22px; padding:4px 12px; border-radius:20px; background:#f6bb3814; color:var(--lf-gold); font-size:12px; }
   .code-label { text-align:center; margin-top:22px; }
   .otp-code { height:60px; text-align:center; padding:8px 0 8px .48em; font-family:var(--lf-heading); font-size:32px; letter-spacing:.48em; }
   .otp-actions { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-top:10px; }
