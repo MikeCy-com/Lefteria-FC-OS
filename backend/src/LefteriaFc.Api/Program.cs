@@ -137,6 +137,7 @@ builder.Services.AddScoped<IAdminAnnouncementDraftStore, PostgresAdminAnnounceme
 builder.Services.AddScoped<IMobileChatGroupReader, PostgresMobileChatGroupReader>();
 builder.Services.AddScoped<MobileChatDirectoryService>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
+builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminNewsRepository, PostgresAdminNewsRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
