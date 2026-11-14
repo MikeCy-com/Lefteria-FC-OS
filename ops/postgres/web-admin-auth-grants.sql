@@ -75,7 +75,7 @@ $guard$;
 REVOKE ALL PRIVILEGES ON DATABASE :"admin_auth_database" FROM :"admin_auth_role";
 GRANT CONNECT ON DATABASE :"admin_auth_database" TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
-GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos,hub,academy_intake TO :"admin_auth_role";
+GRANT USAGE ON SCHEMA identity,club,audit,public_content,pos,hub TO :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public,identity,club,audit,migration,public_content,public_sections,pos FROM :"admin_auth_role";
 REVOKE ALL PRIVILEGES ON identity.admin_sessions,identity.admin_auth_rate_buckets FROM PUBLIC, :"app_role";
@@ -118,8 +118,8 @@ GRANT INSERT ON public_content.edits TO :"admin_auth_role";
 GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
-REVOKE ALL ON FUNCTION academy_intake.admin_office(text,text,jsonb) FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION academy_intake.admin_office(text,text,jsonb) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
@@ -322,7 +322,7 @@ BEGIN
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
-                  'academy_intake.admin_office(text,text,jsonb)'::regprocedure,
+                  'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,

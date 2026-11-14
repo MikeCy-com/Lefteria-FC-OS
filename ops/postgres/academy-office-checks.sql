@@ -17,36 +17,36 @@ BEGIN
   INSERT INTO club.players(id,organization_id,name,number,position,team_type,is_active,is_archived,is_transferred,has_explicit_picker_fields)
     VALUES(player,'lefteria_fc_academy','Fixture Player',1,'GK','Academy',true,false,false,true);
 
-  PERFORM academy_intake.admin_office(digest,'register',jsonb_build_object('id',registration,'first_name','Fixture',
+  PERFORM identity.admin_academy_office(digest,'register',jsonb_build_object('id',registration,'first_name','Fixture',
     'last_name','Applicant','birth_date','2016-01-01','guardian_name','Fixture Guardian',
     'guardian_relationship','Parent','guardian_phone','+35799123456','guardian_email','fixture@example.invalid'));
   IF NOT EXISTS(SELECT 1 FROM academy_intake.registrations WHERE id=registration AND status='pending' AND recorded_by=manager) THEN
     RAISE EXCEPTION 'Registration was not recorded';
   END IF;
-  PERFORM academy_intake.admin_office(digest,'review',jsonb_build_object('id',registration,'status','under_review','version',1));
-  PERFORM academy_intake.admin_office(digest,'review',jsonb_build_object('id',registration,'status','approved','version',2));
+  PERFORM identity.admin_academy_office(digest,'review',jsonb_build_object('id',registration,'status','under_review','version',1));
+  PERFORM identity.admin_academy_office(digest,'review',jsonb_build_object('id',registration,'status','approved','version',2));
   SET CONSTRAINTS ALL IMMEDIATE;
   IF NOT EXISTS(SELECT 1 FROM academy_intake.registrations WHERE id=registration AND status='approved'
       AND decided_by=manager AND onboarded_player_id IS NULL) THEN
     RAISE EXCEPTION 'Registration review state was incorrect';
   END IF;
-  IF jsonb_array_length(academy_intake.admin_office(digest,'players','{"search":"Fixture Player"}'))<>1 THEN
+  IF jsonb_array_length(identity.admin_academy_office(digest,'players','{"search":"Fixture Player"}'))<>1 THEN
     RAISE EXCEPTION 'Academy player search failed';
   END IF;
-  PERFORM academy_intake.admin_office(digest,'order',jsonb_build_object('id',order_id,'player_id',player,
+  PERFORM identity.admin_academy_office(digest,'order',jsonb_build_object('id',order_id,'player_id',player,
     'item','Training kit','size','152','quantity',2));
-  PERFORM academy_intake.admin_office(digest,'fulfilled',jsonb_build_object('id',order_id));
+  PERFORM identity.admin_academy_office(digest,'fulfilled',jsonb_build_object('id',order_id));
   IF NOT EXISTS(SELECT 1 FROM academy_intake.internal_orders WHERE id=order_id
       AND status='fulfilled' AND closed_by=manager AND quantity=2) THEN
     RAISE EXCEPTION 'Order was not fulfilled';
   END IF;
   BEGIN
-    PERFORM academy_intake.admin_office(digest,'cancelled',jsonb_build_object('id',order_id));
+    PERFORM identity.admin_academy_office(digest,'cancelled',jsonb_build_object('id',order_id));
     RAISE EXCEPTION 'Closed order changed';
   EXCEPTION WHEN unique_violation THEN NULL; END;
   DELETE FROM identity.admin_organization_grants WHERE admin_account_id=manager;
   BEGIN
-    PERFORM academy_intake.admin_office(digest,'registrations','{}');
+    PERFORM identity.admin_academy_office(digest,'registrations','{}');
     RAISE EXCEPTION 'Revoked Academy authority retained access';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $test$;

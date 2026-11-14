@@ -31,7 +31,7 @@ public sealed class AcademyOffice : Migration
         ALTER TABLE academy_intake.internal_orders ENABLE ROW LEVEL SECURITY;
         REVOKE ALL ON academy_intake.internal_orders FROM PUBLIC;
 
-        CREATE FUNCTION academy_intake.admin_office(_digest text,_operation text,_body jsonb)
+        CREATE FUNCTION identity.admin_academy_office(_digest text,_operation text,_body jsonb)
         RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
         SET search_path=pg_catalog,pg_temp AS $office$
         DECLARE
@@ -161,7 +161,7 @@ public sealed class AcademyOffice : Migration
           END IF;
           RETURN jsonb_build_object('id',request_id);
         END $office$;
-        REVOKE ALL ON FUNCTION academy_intake.admin_office(text,text,jsonb) FROM PUBLIC;
+        REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC;
         """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -172,7 +172,7 @@ public sealed class AcademyOffice : Migration
             RAISE EXCEPTION 'Academy office contains records. Use a forward migration to preserve them.';
           END IF;
         END $guard$;
-        DROP FUNCTION academy_intake.admin_office(text,text,jsonb);
+        DROP FUNCTION identity.admin_academy_office(text,text,jsonb);
         DROP TABLE academy_intake.internal_orders;
         ALTER TABLE academy_intake.registrations DROP COLUMN recorded_by;
         """);

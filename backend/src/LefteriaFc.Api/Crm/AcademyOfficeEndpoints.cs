@@ -70,7 +70,7 @@ public static class AcademyOfficeEndpoints
             throw new WebAdminException(403, "not_authorized", "Academy manager access required.");
 
         await using var connection = await db.OpenAsync(ct);
-        await using var cmd = new NpgsqlCommand("SELECT academy_intake.admin_office(@digest,@operation,@body)::text", connection);
+        await using var cmd = new NpgsqlCommand("SELECT identity.admin_academy_office(@digest,@operation,@body)::text", connection);
         cmd.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
         cmd.Parameters.AddWithValue("operation", operation);
         cmd.Parameters.AddWithValue("body", NpgsqlDbType.Jsonb, JsonSerializer.Serialize(payload, JsonOptions));
