@@ -5,7 +5,6 @@
   import { greekDate, safePublicHref } from './content';
   import { catalogTitles, catalogScopeLabel } from './PublicCatalog';
   import type { CatalogDetailData } from '../server/public-catalog';
-  import './PublicCatalog.css';
   let { data }: { data: CatalogDetailData } = $props();
   const safe = (value: string | null) => value ? safePublicHref(value) : null;
   const dateTime = (value: string) => new Intl.DateTimeFormat('el-GR', { timeZone: 'Asia/Nicosia', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
@@ -17,7 +16,6 @@
 <svelte:head><title>{data.title} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={data.event?.description?.slice(0,180) ?? data.partner?.tagline ?? data.sponsor?.description?.slice(0,180) ?? data.title} /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <article class="catalog catalog-detail" data-testid={`public-${data.kind}-detail`}>
-    <nav class="catalog-breadcrumb" aria-label="Διαδρομή σελίδας"><a href="/">Αρχική</a><span aria-hidden="true">/</span><a href={back}>{catalogTitles[data.kind]}</a><span aria-hidden="true">/</span><span aria-current="page">{data.title}</span></nav>
     <header class="catalog-heading"><p class="public-eyebrow">{catalogTitles[data.kind]}</p><h1>{data.title}</h1>{#if data.partner?.tagline}<p>{data.partner.tagline}</p>{/if}</header>
     {#if image}<div class="catalog-detail-image"><PublicImage src={image} alt="" eager /></div>{/if}
     {#if data.event}{@const event = data.event}<div class="catalog-detail-columns"><section class="catalog-prose"><p class="public-eyebrow">{event.event_type} · {catalogScopeLabel(event.organization_id)}</p><h2>Η ΕΚΔΗΛΩΣΗ</h2>{#if event.description}<MarkdownContent content={event.description} />{/if}</section><aside class="catalog-facts"><h2>ΜΕ ΜΙΑ ΜΑΤΙΑ</h2><dl><dt>Έναρξη</dt><dd><time datetime={event.start_at}>{dateTime(event.start_at)}</time></dd>{#if event.end_at}<dt>Λήξη</dt><dd><time datetime={event.end_at}>{dateTime(event.end_at)}</time></dd>{/if}<dt>Ζώνη ώρας</dt><dd>Κύπρος · Asia/Nicosia</dd>{#if event.location}<dt>Τοποθεσία</dt><dd>{event.location}</dd>{/if}{#if event.price_eur !== null}<dt>Τιμή</dt><dd>{Number(event.price_eur) === 0 ? 'Δωρεάν' : price(event.price_eur)}</dd>{/if}{#if event.capacity !== null}<dt>Χωρητικότητα</dt><dd>{event.capacity}</dd>{/if}<dt>Κατάσταση</dt><dd>{event.status === 'cancelled' ? 'Ακυρώθηκε' : event.status === 'completed' ? 'Ολοκληρώθηκε' : 'Δημοσιευμένη'}</dd></dl>{#if event.status === 'live'}{@render link(event.registration_url, 'ΠΛΗΡΟΦΟΡΙΕΣ & ΕΓΓΡΑΦΗ')}{/if}</aside></div>{/if}

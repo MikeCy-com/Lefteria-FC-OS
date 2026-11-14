@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const page=readFileSync(new URL('../src/routes/trials/+page.svelte',import.meta.url),'utf8');
+const css=readFileSync(new URL('../src/lib/public/public.css',import.meta.url),'utf8');
 const loader=readFileSync(new URL('../src/routes/trials/+page.server.ts',import.meta.url),'utf8');
 
 test('first-team trials retain original Lefteria branding and closed state',()=>{
@@ -16,8 +17,8 @@ test('first-team trials retain original Lefteria branding and closed state',()=>
   assert.ok(page.includes('Γίνε μέλος της πρώτης ομάδας LEFTERIA FC'));
   assert.ok(page.includes('Οι εγγραφές για δοκιμαστικά είναι προσωρινά κλειστές. Παρακαλούμε δοκιμάστε ξανά σύντομα.'));
   assert.ok(page.includes('ΕΤΟΙΜΟΣ ΝΑ ΞΕΚΙΝΗΣΕΙΣ ΤΟ ΤΑΞΙΔΙ ΣΟΥ;'));
-  assert.ok(page.includes('#f5a623'));
-  assert.ok(page.includes("'Fira Sans'"));
+  assert.ok(css.includes('#f5a623'));
+  assert.ok(css.includes("'Fira Sans'"));
   assert.ok(page.includes('href="/team"'));
   assert.ok(page.includes('href="/contact"'));
 });

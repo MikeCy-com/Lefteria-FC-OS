@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {existsSync,readFileSync} from 'node:fs';
 const url=(path)=>new URL('../src/routes/'+path,import.meta.url);
+const css=readFileSync(new URL('../src/lib/public/public.css',import.meta.url),'utf8');
 const text=(path)=>readFileSync(url(path),'utf8');
 
 test('all original top-level menu journeys have a real, safely branded destination',()=>{
@@ -25,10 +26,13 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.ok(page.includes('organization="lefteria_fc"'));
       assert.doesNotMatch(page,/<main\b/);
       assert.match(page,/ΠΡΩΤΗ ΟΜΑΔΑ/);
-      assert.match(page,/#f5a623/);
+      assert.match(css,/#f5a623/);
       assert.match(page,/href="\/team"/);
       assert.match(page,/href="\/contact"/);
       assert.match(page,/δεν ζητάμε προσωπικά στοιχεία/);
+    }else if(route==='academy/registration'){
+      assert.match(page, /<fieldset disabled/);
+      assert.ok(page.includes('organization="'+organization+'"'));
     }else{
       assert.match(page,/PublicJourney/);
       assert.ok(page.includes('organization="'+organization+'"'),route);
@@ -55,8 +59,8 @@ test('source-matched journey UI is one semantic main, Fira fonts and safe real l
   const page=readFileSync(new URL('../src/lib/public/PublicJourney.svelte',import.meta.url),'utf8');
   assert.match(page,/PublicShell/);
   assert.doesNotMatch(page,/<main\b/);
-  assert.match(page,/Fira Sans Extra Condensed/);
-  assert.match(page,/#f5a623/);
+  assert.match(css,/Fira Sans Extra Condensed/);
+  assert.match(css,/#f5a623/);
   assert.match(page,/data-testid="journey-primary"/);
   assert.match(page,/data-testid="journey-capability-status"/);
   assert.doesNotMatch(page,/<form|requestSubmit\(|fetch\(|submit\s*=|onclick=\{.*submit/i);

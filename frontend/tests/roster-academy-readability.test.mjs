@@ -25,7 +25,8 @@ test('academy navigation scrolls to labelled sections, cards remain keyboard acc
   }
   assert.match(source, /aria-labelledby="academy-groups-title"/);
   assert.match(source, /aria-labelledby="academy-fixtures-title"/);
-  assert.match(source, /scroll-margin-top:calc\(var\(--public-header,76px\) \+ 24px\)/);
-  assert.match(source, /\.academy-destination:focus-visible/);
+  const css = read('lib/public/public.css');
+  assert.match(css, /scroll-margin-top:calc\(var\(--public-header,76px\) \+ 24px\)/);
+  assert.match(css, /\.academy-destination:focus-visible/);
   assert.doesNotThrow(() => compile(source, {filename:'academy/+page.svelte',generate:'server'}));
 });
