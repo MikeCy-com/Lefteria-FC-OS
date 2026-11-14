@@ -20,6 +20,20 @@ test('Academy category appends generated DTO group links with original Greek slu
   assert.equal(categoryLinks(publicNavigation.find(item => item.id === 'club'),[group]).length,6);
 });
 
+test('player profiles use their resolved organization to highlight the correct nav category', () => {
+  const player = '/player/recorded-academy-player';
+  assert.equal(navigationOwner(player), 'team');
+  assert.equal(navigationOwner(player, 'lefteria_fc'), 'team');
+  assert.equal(navigationOwner(player, 'lefteria_fc_academy'), 'academy');
+  const academyMenu = publicNavigation.find(item => item.id === 'academy');
+  const teamMenu = publicNavigation.find(item => item.id === 'team');
+  assert.equal(navigationActive(academyMenu, player, 'lefteria_fc_academy'), true);
+  assert.equal(navigationActive(teamMenu, player, 'lefteria_fc_academy'), false);
+  assert.equal(navigationActive(teamMenu, player), true);
+  assert.equal(navigationOwner('/staff/coach', 'lefteria_fc_academy'), 'team');
+  assert.equal(navigationOwner('/academy/groups', 'lefteria_fc'), 'academy');
+});
+
 test('real public search normalizes Greek accents/case, keeps news and groups, deduplicates routes and bounds results', () => {
   const group = {id:'group',name:'Δοκιμή'};
   const news = Array.from({length:30},(_,i) => ({id:'news-'+i,title:'Νέα Δοκιμή '+i,organization_id:'lefteria_fc'}));
