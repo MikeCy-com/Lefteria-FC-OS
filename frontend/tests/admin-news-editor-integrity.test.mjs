@@ -31,7 +31,8 @@ test('Published news edits use current session and grant locks, optimistic confl
   assert.match(writer,/d\.kind='news' AND d\.organization_id=@org AND d\.id=@id/);
   assert.match(writer,/INSERT INTO public_content\.edits/);
   assert.match(writer,/WHERE edits\.version=@version/);
-  assert.match(writer,/WHERE @version=0/);
+  assert.match(writer,/WHERE \(@version=0 OR EXISTS\(/);
+  assert.match(writer,/WHERE kind='news' AND organization_id=@org AND id=@id AND version=@version/);
   assert.match(writer,/INSERT INTO audit\.security_events/);
   assert.match(writer,/admin\.news\.update/);
   assert.match(writer,/throw Conflict\(\)/);
