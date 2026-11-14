@@ -16,7 +16,7 @@ No clock schedule is required: the dispatcher responds to correctly scoped GitHu
 
 ## Quality and feature fidelity
 
-- Match the actual source website and all parent/player/coach/fan/management/admin surfaces, source Greek wording, Fira Sans / Fira Sans Extra Condensed, black `#080808`, gold `#f5a623`, and role/organization boundaries.
+- Match the actual source website and all parent/player/coach/fan/management/admin surfaces, source Greek wording, Fira Sans / Fira Sans Extra Condensed, black `#080808`, gold `#f6bb38`, and role/organization boundaries.
 - Preserve source function before pursuing 4K polish: real 3840×2160 browser verification, authentic image resolution, accessibility and keyboard tests. No generated substitute screenshots.
 - Use SvelteKit/TypeScript, .NET 10 / ASP.NET Core, PostgreSQL, isolated Docker Compose. Keep API/OpenAPI and generated client consistent.
 - Secure role grants, OTP, family delegation, consent, revocation, audits, concurrency and quarantine. Do not fabricate transactions or fake child/medical/payment data.
