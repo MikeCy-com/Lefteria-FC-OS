@@ -33,9 +33,9 @@
 </dialog>
 
 <style>
-  button.public-app-open { font: inherit; font-weight: 700; cursor: pointer; background: #f5a623; color: #090909; border-color: #f5a623; border-radius: 5px; }
+  button.public-app-open { font: inherit; font-weight: 700; cursor: pointer; background: var(--public-gold, #f6bb38); color: #090909; border-color: var(--public-gold, #f6bb38); border-radius: 5px; }
   button.public-app-open:disabled { opacity: .65; cursor: wait; }
-  dialog { width: min(92vw, 540px); max-height: 85dvh; overflow: auto; padding: 24px; color: #f5f5f5; background: #101112; border: 1px solid #f5a623; border-radius: 12px; box-shadow: 0 20px 80px #0009; }
+  dialog { width: min(92vw, 540px); max-height: 85dvh; overflow: auto; padding: 24px; color: #f5f5f5; background: #101112; border: 1px solid var(--public-gold, #f6bb38); border-radius: 12px; box-shadow: 0 20px 80px #0009; }
   dialog::backdrop { background: #000b; }
   .install-heading { display: flex; align-items: flex-start; gap: 16px; }
   .install-heading h2 { margin: 0; font-size: 24px; color: #ffca46; }
@@ -44,6 +44,6 @@
   ol { padding-left: 24px; }
   li + li { margin-top: 10px; }
   .install-note { color: #bbb; font-size: 14px; }
-  .install-open { display: inline-block; padding: 12px 18px; color: #090909; background: #f5a623; border-radius: 5px; font-weight: 700; text-decoration: none; }
+  .install-open { display: inline-block; padding: 12px 18px; color: #090909; background: var(--public-gold, #f6bb38); border-radius: 5px; font-weight: 700; text-decoration: none; }
   button:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 </style>
