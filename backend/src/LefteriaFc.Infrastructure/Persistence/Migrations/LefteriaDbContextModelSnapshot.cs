@@ -1335,7 +1335,7 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
 
                     b.ToTable("edits", "public_content", t =>
                         {
-                            t.HasCheckConstraint("ck_public_club_edit", "kind = 'club' AND version > 0");
+                            t.HasCheckConstraint("ck_public_club_edit", "kind IN ('club','news') AND version > 0");
 
                             t.HasCheckConstraint("ck_public_club_edit_identity", "(jsonb_typeof(data_json) = 'object' AND data_json->>'id' = id AND data_json->>'organization_id' = organization_id) IS TRUE");
                         });

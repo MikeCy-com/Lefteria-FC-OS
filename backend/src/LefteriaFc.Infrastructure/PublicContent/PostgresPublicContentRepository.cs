@@ -28,10 +28,24 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
                 .Select(row => row.DataJson).SingleOrDefaultAsync(token);
             if (edited is not null) club = JsonSerializer.Deserialize<PublicClub>(edited, Options) ?? throw new InvalidOperationException("Invalid club edit.");
         }
+        // Overlay only safe, full public DTOs under the current organization's
+        // immutable imported news IDs. The initial import/evidence count stays
+        // unchanged and the public response never contains a version or source.
+        var newsEdits = await database.Set<AdminClubEditRecord>().AsNoTracking()
+            .Where(row => row.Kind == PublicContentKinds.News && row.OrganizationId == organizationId)
+            // The public runtime has SELECT on safe projection columns only;
+            // never materialize Version (or any editor metadata) under its role.
+            .Select(row => new { row.Id, row.DataJson })
+            .ToDictionaryAsync(row => row.Id, row => row.DataJson, token);
+        var news = Read<PublicArticle>(PublicContentKinds.News)
+            .Select(row => newsEdits.TryGetValue(row.Id, out var edited)
+                ? JsonSerializer.Deserialize<PublicArticle>(edited, Options) ??
+                    throw new InvalidOperationException("Invalid edited public article.") : row)
+            .OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray();
         var result = new PublicSiteResult(organizationId, club,
             Read<PublicTeam>(PublicContentKinds.Team), Read<PublicAcademyGroup>(PublicContentKinds.AcademyGroup),
-            Read<PublicArticle>(PublicContentKinds.News).OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
-            Read<PublicFixture>(PublicContentKinds.Fixture).OrderBy(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray());
+            news, Read<PublicFixture>(PublicContentKinds.Fixture)
+                .OrderBy(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray());
         await transaction.CommitAsync(token);
         return result;
     }
@@ -44,10 +58,21 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
         var query = database.Set<PublicContentDocumentRecord>().AsNoTracking().Where(row => row.Kind == PublicContentKinds.News);
         if (organizationId is not null) query = query.Where(row => row.OrganizationId == organizationId);
         var rows = await query.ToArrayAsync(token);
-        // No selector means the original public all-news feed. A shared source
-        // article has two visibility copies; return its logical source ID once.
+        var editQuery = database.Set<AdminClubEditRecord>().AsNoTracking()
+            .Where(row => row.Kind == PublicContentKinds.News);
+        if (organizationId is not null) editQuery = editQuery.Where(row => row.OrganizationId == organizationId);
+        var newsEdits = (await editQuery
+            .Select(row => new { row.OrganizationId, row.Id, row.DataJson })
+            .ToArrayAsync(token))
+            .ToDictionary(row => (row.OrganizationId, row.Id), row => row.DataJson);
+        // No selector means the original public all-news feed. The same story
+        // may have distinct owner-specific edits; deduplicate *after* applying
+        // each owner's safe published projection, preserving original behavior.
         var articles = rows.OrderBy(row => row.OrganizationId, StringComparer.Ordinal)
-            .Select(row => JsonSerializer.Deserialize<PublicArticle>(row.DataJson, Options) ?? throw new InvalidOperationException("Invalid public projection."))
+            .Select(row => JsonSerializer.Deserialize<PublicArticle>(
+                newsEdits.TryGetValue((row.OrganizationId, row.Id), out var edited)
+                    ? edited : row.DataJson, Options) ??
+                throw new InvalidOperationException("Invalid public projection."))
             .GroupBy(row => row.Id, StringComparer.Ordinal).Select(group => group.First())
             .OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray();
         await transaction.CommitAsync(token);

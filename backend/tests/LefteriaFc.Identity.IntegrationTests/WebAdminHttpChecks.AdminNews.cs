@@ -56,6 +56,127 @@ internal sealed partial class WebAdminHttpChecks
                     "Admin news pagination was not bounded and repeatable.");
             }
 
+            // Edit only an already-published article. The original imported
+            // evidence stays immutable; both public endpoints must immediately
+            // reflect the exact owner-specific safe projection after saving.
+            const string editPath = "/api/admin/website/news/news-shared?organization_id=lefteria_fc";
+            using (var original = await GetAsync(client, editPath, login.Cookie))
+            {
+                var body = await ExpectJsonAsync(original, 200);
+                Require(body.GetProperty("version").GetInt64() == 0, "Imported news must begin with version zero.");
+                var published = body.GetProperty("article");
+                Require(published.GetProperty("id").GetString() == "news-shared" &&
+                    published.GetProperty("organization_id").GetString() == "lefteria_fc" &&
+                    published.GetProperty("created_at").GetDateTimeOffset().Year == 2026,
+                    "News editor changed source identity or publication date.");
+
+                var editedArticle = new
+                {
+                    title = "Verified published FC article",
+                    content = "Updated safe published content",
+                    excerpt = "Scoped edited excerpt",
+                    image_url = (string?)null,
+                    category = "Νέα",
+                    audience = "both",
+                    is_featured = false
+                };
+                using (var update = Mutation(editPath, JsonContent.Create(new
+                {
+                    expected_version = 0,
+                    article = editedArticle
+                })))
+                {
+                    update.Method = HttpMethod.Put;
+                    update.Headers.Add("Cookie", login.Cookie);
+                    using var saved = await client.SendAsync(update);
+                    var result = await ExpectJsonAsync(saved, 200);
+                    Require(result.GetProperty("version").GetInt64() == 1 &&
+                        result.GetProperty("article").GetProperty("title").GetString() == editedArticle.title &&
+                        result.GetProperty("article").GetProperty("created_at").GetRawText() ==
+                        published.GetProperty("created_at").GetRawText(),
+                        "News edit did not commit the expected safe projection.");
+                }
+                using (var stale = Mutation(editPath, JsonContent.Create(new { expected_version = 0, article = editedArticle })))
+                {
+                    stale.Method = HttpMethod.Put;
+                    stale.Headers.Add("Cookie", login.Cookie);
+                    using var denied = await client.SendAsync(stale);
+                    await ExpectJsonAsync(denied, 409, "news_version_conflict");
+                }
+                using (var duplicate = Mutation(editPath, new StringContent(
+                    "{\"expected_version\":1,\"expected_version\":1,\"article\":{}}",
+                    System.Text.Encoding.UTF8, "application/json")))
+                {
+                    duplicate.Method = HttpMethod.Put;
+                    duplicate.Headers.Add("Cookie", login.Cookie);
+                    using var denied = await client.SendAsync(duplicate);
+                    await ExpectJsonAsync(denied, 422, "invalid_news_article");
+                }
+
+                using (var publicNews = await client.GetAsync("/api/public/news?organization_id=lefteria_fc"))
+                {
+                    var listing = await ExpectJsonAsync(publicNews, 200);
+                    Require(listing.GetProperty("items").EnumerateArray().Any(item =>
+                        item.GetProperty("id").GetString() == "news-shared" &&
+                        item.GetProperty("title").GetString() == editedArticle.title),
+                        "Public FC news feed failed to apply the edited safe projection.");
+                }
+                using (var academyPublic = await client.GetAsync("/api/public/news?organization_id=lefteria_fc_academy"))
+                {
+                    var listing = await ExpectJsonAsync(academyPublic, 200);
+                    Require(listing.GetProperty("items").EnumerateArray().Any(item =>
+                        item.GetProperty("id").GetString() == "news-shared" &&
+                        item.GetProperty("title").GetString() == "Fixture club announcement"),
+                        "Editing FC article changed the independent Academy visibility copy.");
+                }
+                using (var publicSite = await client.GetAsync("/api/public/site?organization_id=lefteria_fc"))
+                {
+                    // The admin-private AssertSafeJson helper intentionally
+                    // rejects any "phone" key, but public club profiles may
+                    // legitimately expose an approved public phone field.
+                    // Keep the public-site status and private-source evidence
+                    // checks instead of weakening the admin-private helper.
+                    await ExpectStatusAsync(publicSite, 200);
+                    var json = await publicSite.Content.ReadAsStringAsync();
+                    Require(!json.Contains("private-news-fixture", StringComparison.Ordinal) &&
+                        !json.Contains("bank_iban", StringComparison.Ordinal),
+                        "Public website exposed imported private source evidence.");
+                    using var document = JsonDocument.Parse(json);
+                    var site = document.RootElement;
+                    Require(site.GetProperty("news").EnumerateArray().Any(item =>
+                        item.GetProperty("id").GetString() == "news-shared" &&
+                        item.GetProperty("title").GetString() == editedArticle.title),
+                        "Public homepage failed to apply the versioned article override.");
+                }
+
+                // Repeated edits must update version 1 -> 2 without inserting a
+                // new imported article and without accepting a stale version.
+                var revisedArticle = new
+                {
+                    title = "Second approved FC revision",
+                    content = editedArticle.content,
+                    excerpt = editedArticle.excerpt,
+                    image_url = editedArticle.image_url,
+                    category = editedArticle.category,
+                    audience = editedArticle.audience,
+                    is_featured = true
+                };
+                using (var next = Mutation(editPath, JsonContent.Create(new
+                {
+                    expected_version = 1,
+                    article = revisedArticle
+                })))
+                {
+                    next.Method = HttpMethod.Put;
+                    next.Headers.Add("Cookie", login.Cookie);
+                    using var saved = await client.SendAsync(next);
+                    var result = await ExpectJsonAsync(saved, 200);
+                    Require(result.GetProperty("version").GetInt64() == 2 &&
+                        result.GetProperty("article").GetProperty("title").GetString() == revisedArticle.title,
+                        "News editor failed to advance version 1 -> 2.");
+                }
+            }
+
             foreach (var path in new[] {
                 "/api/admin/website/news",
                 "/api/admin/website/news?organization_id=all",

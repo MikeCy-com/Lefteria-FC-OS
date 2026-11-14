@@ -44,7 +44,11 @@ public static class WebAdminRequestGuards
                 var limit = hubImagePath ? 2 * 1024 * 1024 + 8192 :
                     mediaPath ? 4 * 1024 * 1024 + 128 * 1024 :
                     HttpMethods.IsPut(context.Request.Method) && context.Request.Path == "/api/admin/club"
-                    ? 1024 * 1024 : 16 * 1024;
+                    ? 1024 * 1024 :
+                    HttpMethods.IsPut(context.Request.Method) &&
+                    Regex.IsMatch(context.Request.Path.Value ?? "",
+                        @"\A/api/admin/website/news/[^/]{1,128}\z", RegexOptions.CultureInvariant)
+                    ? 256 * 1024 : 16 * 1024;
                 if (context.Request.ContentLength > limit)
                 {
                     await Reject(context, 413, "request_too_large", "The request is too large.");

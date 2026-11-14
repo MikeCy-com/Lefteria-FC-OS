@@ -8,7 +8,7 @@ const page = read('routes/admin/news/+page.svelte');
 const backend = readFileSync(new URL(
   '../../backend/src/LefteriaFc.Api/PublicContent/AdminNewsEndpoints.cs', import.meta.url), 'utf8');
 
-test('news CMS is a protected real GET, never a public or synthetic CRUD UI', () => {
+test('news CMS retains protected, scoped, real published list with an owner-bound editor', () => {
   assert.ok(page.includes("$auth.status === 'authenticated' && $auth.session"));
   assert.ok(page.includes("hasAdminPermission($auth.session.user.permissions, 'news:read')"));
   assert.ok(page.includes("adminSectionsFor") === false);
@@ -20,12 +20,18 @@ test('news CMS is a protected real GET, never a public or synthetic CRUD UI', ()
   assert.ok(page.includes("data-testid=\"admin-news-empty\""));
   assert.ok(page.includes("data-testid=\"admin-news-list\""));
   assert.ok(page.includes("verifiedResponse(raw, selected, requestedOffset)"));
-  assert.doesNotMatch(page, /<form\b|<textarea\b|\binnerHTML\b|\{@html\}|method:\s*'POST'|method:\s*'PUT'|\/api\/public\/news/);
+  assert.match(page,/AdminNewsEditor/);
+  assert.match(page,/hasAdminPermission\(\$auth.session.user.permissions, 'news:write'\)/);
+  assert.doesNotMatch(page,/\binnerHTML\b|\{@html\}|method:\s*'POST'|\/api\/public\/news/);
   assert.ok(backend.includes('.RequireAuthorization(WebAdminServices.Policy)'));
   assert.ok(backend.includes('AdminPermissions.Has(session.User.Role, "news:read")'));
   assert.ok(backend.includes('session.User.Organizations.Any(org => org.Id == organization_id)'));
   assert.ok(backend.includes('content.GetNewsAsync(organization_id, token)'));
-  assert.doesNotMatch(backend,/\bMapPost\b|\bMapPut\b|\bMapDelete\b/);
+  assert.match(backend,/articles.MapPut\("", async/);
+  assert.match(backend,/UpdateAdminWebsiteNewsArticle/);
+  assert.match(backend,/AdminNewsUpdateCommand/);
+  assert.match(backend,/RejectDuplicateKeys/);
+  assert.doesNotMatch(backend,/\bMapPost\b|\bMapDelete\b/);
 });
 
 test('website news appears only for an assigned news reader in the admin menu', () => {

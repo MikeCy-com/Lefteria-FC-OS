@@ -9,7 +9,9 @@ public sealed class AdminNewsOperationTransformer : IOpenApiOperationTransformer
 {
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken token)
     {
-        if (context.Description.RelativePath?.Split('?')[0].Trim('/') != "api/admin/website/news" ||
+        var route = context.Description.RelativePath?.Split('?')[0].Trim('/') ?? "";
+        if (route != "api/admin/website/news" &&
+            route != "api/admin/website/news/{id}" ||
             operation.Parameters is null) return Task.CompletedTask;
 
         foreach (var parameter in operation.Parameters.OfType<OpenApiParameter>()

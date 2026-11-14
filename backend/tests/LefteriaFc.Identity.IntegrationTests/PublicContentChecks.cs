@@ -213,6 +213,10 @@ internal sealed partial class TestDatabase
         if(await context.Set<PublicContentDocumentRecord>().CountAsync()!=plan.Documents.Count || await context.Set<PublicContentSourceDocumentRecord>().CountAsync()!=plan.Source.Count)
             throw new InvalidOperationException("Refusing cleanup of an unexpected public snapshot.");
         var ids=plan.Documents.Select(row=>row.Id).Distinct().ToArray();
+        // Test-only cleanup of versioned safe overlays before imported rows.
+        // The digest and exact imported row counts above prevent accidentally
+        // cleaning any database other than the disposable fixture.
+        await context.Set<AdminClubEditRecord>().Where(row=>ids.Contains(row.Id)).ExecuteDeleteAsync();
         await context.Set<PublicContentDocumentRecord>().Where(row=>ids.Contains(row.Id)).ExecuteDeleteAsync();
         await context.Set<PublicContentSourceDocumentRecord>().Where(row=>row.ImportDigest==plan.Digest).ExecuteDeleteAsync();
         await context.Set<PublicContentImportEvidenceRecord>().Where(row=>row.Digest==plan.Digest).ExecuteDeleteAsync();
