@@ -232,16 +232,7 @@
         <h1>Ομάδες & τμήματα</h1>
         <p class="admin-muted">Ζωντανή εικόνα των ομάδων και των τμημάτων από το επαληθευμένο ρόστερ, όχι διπλές στατικές καταχωρίσεις. Οι αριθμοί περιλαμβάνουν μόνο ενεργούς παίκτες χωρίς αρχειοθέτηση ή μεταγραφή.</p>
         <section class="admin-panel admin-audiences-select" aria-label="Οργανισμός ομάδων">
-          <label for="admin-audience-owner">Οργανισμός</label>
-          <select id="admin-audience-owner" data-testid="admin-audience-owner" value={organization ?? ''}
-            onchange={event => {
-              if (assignments.some(org => org.id === event.currentTarget.value))
-                organization = event.currentTarget.value as Organization;
-            }}>
-            {#each assignments as org (org.id)}
-              <option value={org.id}>{org.name}</option>
-            {/each}
-          </select>
+          <span class="admin-organization-context-label" data-testid="admin-audience-owner">{assignments.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
           <button type="button" class="admin-secondary" onclick={() => retry++} disabled={loading}>Ανανέωση</button>
         </section>
 
