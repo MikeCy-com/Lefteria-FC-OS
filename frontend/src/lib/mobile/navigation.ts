@@ -105,3 +105,18 @@ export function tabFromLocation(
 export function bottomTabFor(activeTab: string, role: MobileRole): MobileTab | null {
   return primaryTabs(role).find((tab) => tab === activeTab) ?? null;
 }
+
+
+// Fan public reads already exist on the club website. Member match/calendar
+// routes stay private and must never inherit this navigation shortcut.
+export function fanPublicDestination(tab: string, role: MobileRole | null): string | null {
+  if (role !== 'fan') return null;
+  switch (tab) {
+    case 'matches': return '/team?tab=results';
+    case 'fixtures': return '/team?tab=schedule';
+    case 'standings': return '/team?tab=overview#standings';
+    case 'news': return '/news';
+    case 'team': return '/team';
+    default: return null;
+  }
+}
