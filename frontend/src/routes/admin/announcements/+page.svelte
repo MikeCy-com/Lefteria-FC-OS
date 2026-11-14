@@ -385,11 +385,7 @@
       <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα δημιουργίας πρόχειρων ανακοινώσεων.</section>
     {:else}
       <section class="admin-panel">
-        <label for="announcement-owner">Οργανισμός</label>
-        <select id="announcement-owner" data-testid="announcement-owner" value={organization??''}
-          onchange={e=>{if(permitted.some(o=>o.id===e.currentTarget.value))organization=e.currentTarget.value as Organization;}}>
-          {#each permitted as org (org.id)}<option value={org.id}>{org.name}</option>{/each}
-        </select>
+        <span class="admin-organization-context-label" data-testid="announcement-owner">{permitted.find(org=>org.id===organization)?.name??'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         {#if loading}
           <p role="status">Φόρτωση…</p>
         {:else}
