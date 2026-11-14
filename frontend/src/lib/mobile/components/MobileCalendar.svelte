@@ -124,7 +124,7 @@
     <div class="notice failure" role="alert" data-testid="calendar-unavailable"><p>{error ?? 'Το πρόγραμμα δεν είναι διαθέσιμο.'}</p>
       <button type="button" disabled={busy} onclick={() => void retryCalendar()}>Δοκιμή ξανά</button></div>
   {:else if calendar}
-    <h2 class="date-heading"><time datetime={selectedDate}>{formatCalendarDate(selectedDate)}</time></h2>
+    <h2 class="date-heading" aria-live="polite" aria-atomic="true"><time datetime={selectedDate}>{formatCalendarDate(selectedDate)}</time></h2>
     {#if dayItems.length === 0}
       <p class="notice" data-testid="calendar-empty">{calendar.next_offset !== null ? 'Δεν εμφανίζεται πρόγραμμα για αυτή την ημέρα. Φόρτωσε και την υπόλοιπη λίστα.' : 'Δεν υπάρχουν προγραμματισμένα γεγονότα για αυτή την ημέρα.'}</p>
     {:else}
@@ -193,21 +193,21 @@
   button { min-height:44px; border:1px solid var(--lf-line); border-radius:6px; background:var(--lf-surface); color:#d6d8da; cursor:pointer; }
   button[aria-pressed='true'] { border-color:var(--lf-gold); background:#f5a62319; color:var(--lf-gold-light); }
   .category-tabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:4px; }
-  .category-tabs button { flex:1; padding:8px 10px; font-size:11px; white-space:nowrap; }
+  .category-tabs button { flex:1; padding:8px 10px; font-size:13px; line-height:1.4; white-space:nowrap; }
   .month-heading { display:flex; align-items:center; gap:6px; margin:16px 0 10px; }
   .month-heading h2 { flex:1; margin:0; font-size:22px; text-align:center; text-transform:capitalize; }
-  .month-arrow { width:35px; border:0; background:transparent; font-size:29px; }
-  .month-toggle { margin-left:4px; padding:7px 10px; color:var(--lf-gold-light); font-size:11px; }
+  .month-arrow { width:44px; min-width:44px; border:0; background:transparent; font-size:29px; }
+  .month-toggle { margin-left:4px; padding:7px 10px; color:var(--lf-gold-light); font-size:13px; }
   .week-strip { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; }
   .week-strip button { display:flex; align-items:center; flex-direction:column; gap:3px; padding:9px 1px 5px; }
-  .week-strip small { font-size:9px; }
+  .week-strip small { font-size:11px; line-height:1.25; }
   .week-strip strong { font-family:var(--lf-heading); font-size:23px; font-weight:600; line-height:1.2; }
   i { display:block; width:4px; height:4px; margin:3px auto 0; border-radius:50%; background:transparent; }
   i.has-items { background:var(--lf-gold-light); }
   .month-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:4px; margin-top:12px; padding:12px 5px; border:1px solid var(--lf-line); border-radius:8px; }
   .month-grid .weekday { padding:5px 0; color:var(--lf-muted); font-size:10px; text-align:center; }
   .month-grid button { padding:5px 1px; font-size:12px; }
-  .time-zone { margin:12px 0 20px; font-size:10px; overflow-wrap:anywhere; }
+  .time-zone { margin:12px 0 20px; font-size:12px; line-height:1.5; overflow-wrap:anywhere; }
   .date-heading { margin:0 0 12px; font-size:19px; text-transform:capitalize; }
   .notice { margin:0 0 15px; padding:24px 16px; border:1px solid var(--lf-line); border-radius:8px; background:var(--lf-surface); color:var(--lf-muted); font-size:12px; text-align:center; }
   .notice p { margin:0 0 12px; }
@@ -218,16 +218,16 @@
   .event-card.cancelled { border-left-color:#b65b5b; }
   .event-type { display:flex; justify-content:space-between; gap:8px; margin-bottom:7px; color:var(--lf-gold-light); font-size:10px; }
   .event-card h3 { margin:0 0 8px; font-size:23px; line-height:1.15; }
-  .event-meta { display:flex; flex-wrap:wrap; gap:5px 12px; color:var(--lf-muted); font-size:11px; }
+  .event-meta { display:flex; flex-wrap:wrap; gap:7px 12px; color:#d5d7d8; font-size:13px; line-height:1.5; }
   .event-meta a { color:var(--lf-gold-light); }
-  .event-text,.member-detail p { margin:12px 0 0; color:#c5c8ca; font-size:12px; white-space:pre-wrap; }
+  .event-text,.member-detail p { margin:12px 0 0; color:#d5d7d8; font-size:14px; line-height:1.6; white-space:pre-wrap; }
   .member-detail h4 { margin:14px 0 0; color:var(--lf-gold-light); font-size:11px; font-weight:500; }
   .member-detail p { margin-top:5px; }
   .cancel-label { color:#fca5a5; font-size:12px; }
   .availability { display:flex; gap:6px; margin:16px 0 0; padding:0; border:0; }
-  .availability legend { margin-bottom:8px; color:var(--lf-muted); font-size:10px; }
-  .availability button { flex:1; padding:8px 4px; font-size:11px; }
-  .reply-state { margin:7px 0 0; color:var(--lf-muted); font-size:10px; }
+  .availability legend { margin-bottom:8px; color:#d5d7d8; font-size:13px; line-height:1.5; }
+  .availability button { flex:1; padding:8px 4px; font-size:13px; line-height:1.35; }
+  .reply-state { margin:7px 0 0; color:#d5d7d8; font-size:12px; line-height:1.5; }
   .replies-toggle { width:100%; margin-top:14px; color:var(--lf-gold-light); text-align:left; font-size:12px; }
   .replies { margin-top:10px; padding-top:8px; border-top:1px solid var(--lf-line); font-size:12px; }
   .reply-context { color:var(--lf-muted); font-size:10px; }
