@@ -98,3 +98,16 @@ test('new Academy enquiry counts require exact authorized owner and filtered sta
   assert.equal(verifiedAdminNewLeads({...good,leads:[{id:'l1',organization_id:academy,status:'contacted'}]},academy,25),null);
   assert.equal(verifiedAdminNewLeads(good,club,25),null);
 });
+
+
+test('Academy-only and First Team-only admin deep links follow the header scope', () => {
+  const readRoute = name => readFileSync(new URL('../src/routes/admin/' + name + '/+page.svelte', import.meta.url), 'utf8');
+  for (const name of ['academy-office', 'attendance', 'schedule', 'leads']) {
+    const source = readRoute(name);
+    assert.match(source, /preferredAdminOrganization\(\$auth\.session\.user\)\s*===?\s*'lefteria_fc_academy'/);
+    assert.match(source, /lib\/admin\/admin-organization\.ts/);
+  }
+  const trials = readRoute('trials');
+  assert.match(trials, /preferredAdminOrganization\(\$auth\.session\.user\) === 'lefteria_fc'/);
+  assert.match(trials, /!selectedClub\) return/);
+});
