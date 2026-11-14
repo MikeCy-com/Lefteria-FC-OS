@@ -5,6 +5,7 @@
   import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays, UiAction } from './component-types.ts';
   import MobileIcon from './MobileIcon.svelte';
   import './mobile-theme.css';
+  import { publicImages } from '../../public/images';
 
   interface Props {
     step?: MobileLoginStep;
@@ -81,6 +82,13 @@
 
 <section class="lf-mobile-theme login-page" aria-busy={isBusy} data-testid="mobile-login">
   <div class="login-content">
+    <div class="login-welcome" style:background-image={`linear-gradient(180deg,#080a0bc9,#080a0b18 45%,#080a0b),url("${publicImages.hero}")`}>
+      <a class="login-home" href="/">← ΛΕΥΤΕΡΙΑ FC</a>
+      <p class="welcome-kicker">ΜΙΑ ΟΜΑΔΑ. ΕΝΑ ΟΝΕΙΡΟ.</p>
+      <h2>Η ΟΜΑΔΑ ΣΟΥ.<br /><em>ΠΑΝΤΑ ΜΑΖΙ ΣΟΥ.</em></h2>
+      <p>Παίκτες, γονείς και φίλοι της Λευτεριάς. Το πρόγραμμά σου, η οικογένειά σου και τα νέα της ομάδας, σε ένα μέρος.</p>
+    </div>
+    <div class="login-form-panel">
     <header class="brand">
       <img src="/mobile/club-logo.png" alt="" width="112" height="112" />
       <h1>ΛΕΥΤΕΡΙΑ FC</h1>
@@ -165,6 +173,7 @@
         </div>
       {/if}
     </div>
+    </div>
   </div>
   <footer>ΛΕΥΤΕΡΙΑ FC © {new Date().getFullYear()}</footer>
 </section>
@@ -217,4 +226,31 @@
   footer { padding:18px 0 22px; text-align:center; color:#686d70; font-size:11px; }
   @media (max-width:360px) { .login-page{padding-right:18px;padding-left:18px}.brand img{width:96px;height:96px}.brand{margin-bottom:24px}.login-content{padding-top:28px} }
   @media (prefers-reduced-motion:reduce) { *,*::before,*::after { transition:none!important; } }
+
+  /* Presentation only: all OTP, registration and available-role steps above remain intact. */
+  .login-page { background:radial-gradient(ellipse at top right,#f6bb3814,transparent 55%),#080a0b; }
+  .login-content { max-width:1220px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:clamp(24px,4vw,64px); align-items:center; }
+  .login-welcome { min-height:640px; padding:36px; display:flex; flex-direction:column; justify-content:flex-end; background-size:cover; background-position:center; border:1px solid #77705a; border-radius:12px; }
+  .login-home { align-self:flex-start; margin-bottom:auto; min-height:44px; color:#fff; text-decoration:none; font-weight:700; }
+  .welcome-kicker { color:var(--lf-gold); font-weight:700; font-size:14px; }
+  .login-welcome h2 { text-align:left; font-size:clamp(36px,4vw,58px); font-style:italic; line-height:1.02; margin:12px 0; }
+  .login-welcome em { color:var(--lf-gold); }
+  .login-welcome>p:last-child { max-width:38ch; font-size:15px; line-height:1.6; }
+  .login-form-panel { min-width:0; padding:clamp(22px,3vw,38px); border:1px solid #8f8060; border-radius:12px; background:linear-gradient(145deg,#1b1c1c,#080a0b 70%); box-shadow:0 16px 45px #0006,inset 0 -2px #f6bb3860; }
+  .brand { padding-bottom:24px; border-bottom:1px solid #f6bb3855; }
+  .brand img { width:88px; height:88px; }
+  .brand h1 { font-style:italic; }
+  .primary { min-height:52px; box-shadow:0 3px 18px #f6bb381c; font-family:var(--lf-heading); font-size:20px; }
+  .identity-option { border-color:#8d7850; background:linear-gradient(130deg,#302713,#111314 70%); }
+  .identity-option strong { font-family:var(--lf-heading); font-size:21px; }
+  @media(max-width:760px) {
+    .login-content { display:block; max-width:520px; padding-top:20px; }
+    .login-welcome { min-height:260px; padding:22px; margin-bottom:20px; background-position:center 35%; }
+    .login-welcome h2 { font-size:34px; }
+    .login-welcome>p:last-child { font-size:13px; }
+    .login-home { margin-bottom:30px; }
+    .login-form-panel { padding:22px; }
+    .brand img { width:64px; height:64px; }
+    .brand h1 { font-size:30px; }
+  }
 </style>
