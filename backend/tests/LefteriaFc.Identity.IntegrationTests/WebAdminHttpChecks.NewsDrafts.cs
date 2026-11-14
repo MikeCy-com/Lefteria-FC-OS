@@ -6,7 +6,7 @@ namespace LefteriaFc.Identity.IntegrationTests;
 internal sealed partial class WebAdminHttpChecks
 {
     private const string NewsDraftsPath = "/api/admin/website/news-drafts?organization_id=lefteria_fc";
-    private const string AcademyDraftsPath = "/api/admin/website/news-drafts?organization_id=lefteria_fc_academy";
+    private const string AcademyNewsDraftsPath = "/api/admin/website/news-drafts?organization_id=lefteria_fc_academy";
 
     private async Task WebsiteNewsDraftWorkspaceHttpAsync()
     {
@@ -61,7 +61,7 @@ internal sealed partial class WebAdminHttpChecks
                     body.GetProperty("drafts")[0].GetProperty("id").GetString() == createdId,
                     "Saved draft could not be read through the scoped private API.");
             }
-            using (var other = await GetAsync(client, AcademyDraftsPath, login.Cookie))
+            using (var other = await GetAsync(client, AcademyNewsDraftsPath, login.Cookie))
             {
                 var body = await ExpectJsonAsync(other, 200);
                 Require(body.GetProperty("drafts").GetArrayLength() == 0,
@@ -123,7 +123,7 @@ internal sealed partial class WebAdminHttpChecks
                 var otherLogin = await LoginAsync(otherClient, academyOnly);
                 using (var denied = await GetAsync(otherClient, NewsDraftsPath, otherLogin.Cookie))
                     await ExpectJsonAsync(denied, 403, "organization_denied");
-                using (var allowed = await GetAsync(otherClient, AcademyDraftsPath, otherLogin.Cookie))
+                using (var allowed = await GetAsync(otherClient, AcademyNewsDraftsPath, otherLogin.Cookie))
                     await ExpectJsonAsync(allowed, 200);
             }
             await database.SetStateAsync(account, role: "coach");
