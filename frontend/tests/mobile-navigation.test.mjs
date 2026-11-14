@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MOBILE_ROLE_DEFINITIONS, ROLE_NAMES, TAB_NAMES, allowedTabs, bottomTabFor,
-  canComposePost, isMobileRole, normalizeTab, primaryTabs, tabFromLocation
+  canComposePost, isMobileRole, normalizeTab, primaryTabs, tabFromLocation, fanPublicDestination
 } from '../src/lib/mobile/navigation.ts';
 
 const roles = ['fan', 'player', 'parent', 'coach', 'management'];
@@ -130,4 +130,32 @@ test('header and nested destinations do not select another bottom tab', () => {
     assert.equal(bottomTabFor('notifications', role), null);
     assert.equal(bottomTabFor('schedule', role), null);
   }
+});
+
+
+test('fan public tabs use their existing API-backed club destinations', () => {
+  const destinations = {
+    matches:'/team?tab=results',
+    fixtures:'/team?tab=schedule',
+    standings:'/team?tab=overview#standings',
+    news:'/news',
+    team:'/team'
+  };
+  for (const [tab,href] of Object.entries(destinations)) {
+    assert.equal(fanPublicDestination(tab,'fan'),href);
+    for (const location of [
+      {pathname:'/app',search:'?tab='+tab},
+      {pathname:'/app/'+tab,search:''}
+    ]) assert.equal(fanPublicDestination(tabFromLocation(location,'fan'),'fan'),href);
+  }
+  assert.equal(fanPublicDestination(tabFromLocation({pathname:'/app/match',search:''},'fan'),'fan'),destinations.matches);
+});
+
+test('fan shortcuts never substitute public data for private role or unfinished workflows', () => {
+  for (const role of ['parent','player','coach','management',null]) {
+    for (const tab of Object.keys(TAB_NAMES)) assert.equal(fanPublicDestination(tab,role),null);
+  }
+  for (const tab of ['children','calendar','chat','announcements','financials','hub','profile',
+    'notifications','gamehub','potm','predict','shop','missing','__proto__','toString',
+    '/admin','https://example.invalid']) assert.equal(fanPublicDestination(tab,'fan'),null);
 });
