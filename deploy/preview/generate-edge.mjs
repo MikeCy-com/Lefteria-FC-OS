@@ -5,6 +5,26 @@ import { pathToFileURL } from 'node:url';
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
 const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections'];
+const publicMediaPath = '/api/uploads/{folder}/{fileName}';
+const publicMediaFolders = ['players', 'staff', 'news', 'partners', 'sponsors', 'gallery', 'opponent',
+  'groups', 'academy', 'products', 'venues', 'club', 'teams', 'events', 'reels', 'standings'];
+export const publicMediaExpression = '^/api/uploads/(?:' + publicMediaFolders.join('|') + ')/[^/]+$';
+export function reviewedPublicMedia(document) {
+  const operations = document?.paths?.[publicMediaPath];
+  for (const method of ['get', 'head']) {
+    const operation = operations?.[method];
+    if (!operation || (operation.security !== undefined &&
+      (!Array.isArray(operation.security) || operation.security.length !== 0)))
+      throw new Error('Reviewed public media must remain anonymous.');
+    for (const key of ['folder', 'fileName']) {
+      if (![...(operations.parameters ?? []), ...(operation.parameters ?? [])]
+        .some(value => value?.in === 'path' && value.name === key && value.required === true))
+        throw new Error('Reviewed public media requires path parameters.');
+    }
+  }
+  return publicMediaExpression;
+}
+
 const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
   ['get', '/api/admin/auth/setup', []], ['post', '/api/admin/auth/setup', []],
@@ -137,6 +157,7 @@ export function generateEdge(document, hostname, contractDigest) {
   const groups = bearerRouteGroups(document);
   const entries = entryRouteGroups(document);
   reviewedPublicReads(document);
+  reviewedPublicMedia(document);
   const matchers = groups.map(({ method, expression }) => `  @private_${method.toLowerCase()} {
     method ${method}
     path_regexp private_${method.toLowerCase()} ${expression}
@@ -198,6 +219,10 @@ ${entryMatchers}
     method GET
     path_regexp public_api ${publicApiExpression}
   }
+  @public_media {
+    method GET HEAD
+    path_regexp public_media ${publicMediaExpression}
+  }
   @legacy_upload {
     method GET HEAD
     path /uploads/* /api/uploads/*
@@ -221,6 +246,13 @@ ${entryMatchers}
       }
     }
 ${entryHandles}
+    handle @public_media {
+      # Public image folder allowlist; API validates filenames, extensions and disk paths.
+      reverse_proxy api:8080 {
+        header_up -Authorization
+        header_up -Cookie
+      }
+    }
     handle @legacy_upload {
       # Private restored uploads are not published. Missing image references
       # return a plain404 so browsers can use the public crest fallback.
