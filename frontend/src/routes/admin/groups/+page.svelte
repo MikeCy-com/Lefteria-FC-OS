@@ -5,6 +5,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
   import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
@@ -175,7 +176,7 @@
   $effect(() => {
     // An owner revoked by the server may never remain selected in the UI.
     if (!assignments.some(org => org.id === organization))
-      organization = assignments[0]?.id ?? null;
+      organization = scopedAdminOrganization($auth.session?.user ?? null, assignments.map(org => org.id));
   });
   $effect(() => {
     const sessionId = $auth.session?.user.id;
