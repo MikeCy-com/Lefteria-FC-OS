@@ -10,12 +10,12 @@
     owner:Owner;playerId:string;playerName:string;actorId:string;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
-  const colors=['#F5A623','#EF4444','#10B981','#3B82F6',
+  const colors=['#F6BB38','#EF4444','#10B981','#3B82F6',
     '#8B5CF6','#EC4899','#F97316','#0EA5E9'];
   const emojis=['🎂','🎉','🎈','🎁','🌟','⚽','🏆','❤️'];
   let value=$state<Preferences|null>(null),loading=$state(false),
     saving=$state(false),error=$state(''),notice=$state(''),revision=$state(0);
-  let disabled=$state(true),wish=$state(''),color=$state('#F5A623'),emoji=$state('🎂');
+  let disabled=$state(true),wish=$state(''),color=$state('#F6BB38'),emoji=$state('🎂');
   let previewOpen=$state(false);
 
   function valid(raw:unknown,expectedOwner:Owner,expectedPlayer:string):raw is Preferences {
@@ -32,7 +32,7 @@
   $effect(()=>{
     const currentOwner=owner,currentPlayer=playerId,currentActor=actorId;
     void revision;void currentActor;
-    value=null;disabled=true;wish='';color='#F5A623';emoji='🎂';
+    value=null;disabled=true;wish='';color='#F6BB38';emoji='🎂';
     previewOpen=false;
     error='';notice='';
     if(!browser||!currentPlayer)return;
