@@ -82,40 +82,40 @@
   --lf-panel-border: #5b584e;
   background: radial-gradient(ellipse at 100% 0%, #f6bb3810, transparent 42%), #080909;
 }
-.lf-mobile-theme .mobile-header {
+.lf-mobile-theme.mobile-shell .mobile-header {
   border-bottom-color: var(--lf-gold);
   background: linear-gradient(110deg, #151615, #050606 72%);
   box-shadow: 0 1px 12px #f6bb3826;
 }
-.lf-mobile-theme .brand-lockup p { font-style: italic; font-weight: 800; }
-.lf-mobile-theme .brand-lockup > span { color: var(--lf-gold-light); }
-.lf-mobile-theme .mobile-content {
+.lf-mobile-theme.mobile-shell .brand-lockup p { font-style: italic; font-weight: 800; }
+.lf-mobile-theme.mobile-shell .brand-lockup > span { color: var(--lf-gold-light); }
+.lf-mobile-theme.mobile-shell .mobile-content {
   max-width: 1280px;
   margin-inline: auto;
   padding-inline: clamp(12px, 2.5vw, 28px);
 }
-.lf-mobile-theme .bottom-nav {
+.lf-mobile-theme.mobile-shell .bottom-nav {
   border-top-color: #9c792f;
   background: linear-gradient(180deg, #161714f7, #050606fa);
   box-shadow: 0 -5px 22px #0008;
 }
-.lf-mobile-theme .bottom-items { max-width: 1000px; margin-inline: auto; gap: 5px; padding: 6px 8px; }
-.lf-mobile-theme .bottom-items > button { min-height: 58px; border-radius: 10px; }
-.lf-mobile-theme .bottom-items > button.active {
+.lf-mobile-theme.mobile-shell .bottom-items { max-width: 1000px; margin-inline: auto; gap: 5px; padding: 6px 8px; }
+.lf-mobile-theme.mobile-shell .bottom-items > button { min-height: 58px; border-radius: 10px; }
+.lf-mobile-theme.mobile-shell .bottom-items > button.active {
   background: linear-gradient(135deg, #ffda68, #f6bb38 55%, #d99509);
   color: #090909;
   box-shadow: inset 0 1px #fff7, 0 0 14px #f6bb3826;
 }
-.lf-mobile-theme .bottom-items > button.active:hover:not(:disabled) { color: #090909; }
-.lf-mobile-theme .role-menu { border-color: #9b7938; background: #101110; }
-.lf-mobile-theme .role-menu button[aria-pressed='true'] { background: #f6bb3822; }
+.lf-mobile-theme.mobile-shell .bottom-items > button.active:hover:not(:disabled) { color: #090909; }
+.lf-mobile-theme.mobile-shell .role-menu { border-color: #9b7938; background: #101110; }
+.lf-mobile-theme.mobile-shell .role-menu button[aria-pressed='true'] { background: #f6bb3822; }
 
 /* Hero panels reuse the shipped crest as a decorative watermark, without
    inventing player photos or exposing a child's private media. */
-.lf-mobile-theme .parent-home,
-.lf-mobile-theme .role-home { max-width: none; margin-inline: auto; padding: 0; }
-.lf-mobile-theme .parent-greeting,
-.lf-mobile-theme .role-home .hero {
+.lf-mobile-theme.mobile-shell .parent-home,
+.lf-mobile-theme.mobile-shell .role-home { max-width: none; margin-inline: auto; padding: 0; }
+.lf-mobile-theme.mobile-shell .parent-greeting,
+.lf-mobile-theme.mobile-shell .role-home .hero {
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -126,8 +126,8 @@
   box-shadow: inset 0 -2px #f6bb3855, 0 10px 28px #0005;
   margin-bottom: 22px;
 }
-.lf-mobile-theme .parent-greeting::before,
-.lf-mobile-theme .role-home .hero::before {
+.lf-mobile-theme.mobile-shell .parent-greeting::before,
+.lf-mobile-theme.mobile-shell .role-home .hero::before {
   content: "";
   position: absolute;
   z-index: -1;
@@ -135,8 +135,8 @@
   background: linear-gradient(115deg, transparent 72%, #f6bb382b 72%, #f6bb382b 76%, transparent 76%);
   pointer-events: none;
 }
-.lf-mobile-theme .parent-greeting::after,
-.lf-mobile-theme .role-home .hero::after {
+.lf-mobile-theme.mobile-shell .parent-greeting::after,
+.lf-mobile-theme.mobile-shell .role-home .hero::after {
   content: "";
   position: absolute;
   z-index: -1;
@@ -146,8 +146,8 @@
   opacity: .13;
   pointer-events: none;
 }
-.lf-mobile-theme .parent-greeting h1,
-.lf-mobile-theme .role-home .hero h1 {
+.lf-mobile-theme.mobile-shell .parent-greeting h1,
+.lf-mobile-theme.mobile-shell .role-home .hero h1 {
   font-size: clamp(30px, 5vw, 48px);
   font-weight: 800;
   font-style: italic;
@@ -155,9 +155,9 @@
   margin: 10px 0 18px;
   overflow-wrap: anywhere;
 }
-.lf-mobile-theme .parent-greeting .parent-eyebrow,
-.lf-mobile-theme .role-home .hero .eyebrow { color: var(--lf-gold); font-weight: 700; font-size: 14px; }
-.lf-mobile-theme .parent-greeting .parent-settings {
+.lf-mobile-theme.mobile-shell .parent-greeting .parent-eyebrow,
+.lf-mobile-theme.mobile-shell .role-home .hero .eyebrow { color: var(--lf-gold); font-weight: 700; font-size: 14px; }
+.lf-mobile-theme.mobile-shell .parent-greeting .parent-settings {
   min-height: 44px;
   padding: 10px 15px;
   background: linear-gradient(120deg, #ffda68, #f6bb38);
@@ -169,27 +169,27 @@
 
 /* Deliberately explicit selectors preserve error, cancellation and permission
    confirmation colours instead of restyling every section indiscriminately. */
-.lf-mobile-theme .role-home .panel:not(.cancellations),
-.lf-mobile-theme .parent-child-card,
-.lf-mobile-theme .parent-motto,
-.lf-mobile-theme .family-child,
-.lf-mobile-theme .family-invitations {
+.lf-mobile-theme.mobile-shell .role-home .panel:not(.cancellations),
+.lf-mobile-theme.mobile-shell .parent-child-card,
+.lf-mobile-theme.mobile-shell .parent-motto,
+.lf-mobile-theme.mobile-shell .family-child,
+.lf-mobile-theme.mobile-shell .family-invitations {
   background: var(--lf-panel-background);
   border-color: var(--lf-panel-border);
   border-radius: 12px;
   box-shadow: inset 0 1px #ffffff0d, 0 7px 22px #0003;
 }
-.lf-mobile-theme .parent-section-heading h2,
-.lf-mobile-theme .parent-shortcuts > h2,
-.lf-mobile-theme .role-home .panel h2,
-.lf-mobile-theme .family-heading h1 {
+.lf-mobile-theme.mobile-shell .parent-section-heading h2,
+.lf-mobile-theme.mobile-shell .parent-shortcuts > h2,
+.lf-mobile-theme.mobile-shell .role-home .panel h2,
+.lf-mobile-theme.mobile-shell .family-heading h1 {
   font-size: clamp(21px, 2.6vw, 28px);
   font-style: italic;
   font-weight: 800;
 }
-.lf-mobile-theme .parent-section-heading h2::before,
-.lf-mobile-theme .parent-shortcuts > h2::before,
-.lf-mobile-theme .role-home .panel h2::before {
+.lf-mobile-theme.mobile-shell .parent-section-heading h2::before,
+.lf-mobile-theme.mobile-shell .parent-shortcuts > h2::before,
+.lf-mobile-theme.mobile-shell .role-home .panel h2::before {
   content: "";
   display: inline-block;
   width: 12px;
@@ -198,53 +198,56 @@
   transform: skew(-20deg);
   margin-right: 10px;
 }
-.lf-mobile-theme .role-home .matchday {
+.lf-mobile-theme.mobile-shell .role-home .panel.matchday {
   border-color: #a17b30;
   background: radial-gradient(ellipse at bottom right, #f6bb3820, transparent 65%), #101211;
 }
-.lf-mobile-theme .role-home .matchday .match-open {
+.lf-mobile-theme.mobile-shell .role-home .matchday .match-open {
   background: linear-gradient(120deg, #ffda68, #f6bb38);
   color: #080808;
   border-color: #f6bb38;
   font-weight: 700;
 }
-.lf-mobile-theme .role-home .shortcut,
-.lf-mobile-theme .parent-shortcut-grid > button {
+.lf-mobile-theme.mobile-shell .role-home .shortcut,
+.lf-mobile-theme.mobile-shell .parent-shortcut-grid > button {
   background: linear-gradient(135deg, #25251f, #0b0c0c 75%);
   border-color: #686250;
   border-radius: 10px;
   color: #fff;
   box-shadow: inset 0 -1px #f6bb3833;
 }
-.lf-mobile-theme .role-home .shortcut strong,
-.lf-mobile-theme .parent-shortcut-grid strong { font-family: var(--lf-heading); font-size: 18px; }
-.lf-mobile-theme .role-home .shortcut span { color: var(--lf-gold); }
-.lf-mobile-theme .role-home .shortcut:hover:not(:disabled),
-.lf-mobile-theme .parent-shortcut-grid > button:hover:not(:disabled) { border-color: var(--lf-gold); background: #252117; }
-.lf-mobile-theme .parent-schedule-list { border-color: #5b584e; border-radius: 12px; }
-.lf-mobile-theme .parent-event { background: linear-gradient(120deg, #191b18, #0c0d0d); }
-.lf-mobile-theme .parent-child-card .parent-select-schedule[aria-pressed='true'] {
+.lf-mobile-theme.mobile-shell .role-home .shortcut strong,
+.lf-mobile-theme.mobile-shell .parent-shortcut-grid strong { font-family: var(--lf-heading); font-size: 18px; }
+.lf-mobile-theme.mobile-shell .role-home .shortcut span { color: var(--lf-gold); }
+.lf-mobile-theme.mobile-shell .role-home .shortcut:hover:not(:disabled),
+.lf-mobile-theme.mobile-shell .parent-shortcut-grid > button:hover:not(:disabled) { border-color: var(--lf-gold); background: #252117; }
+.lf-mobile-theme.mobile-shell .parent-schedule-list { border-color: #5b584e; border-radius: 12px; }
+.lf-mobile-theme.mobile-shell .parent-event { background: linear-gradient(120deg, #191b18, #0c0d0d); }
+.lf-mobile-theme.mobile-shell .parent-child-card .parent-select-schedule[aria-pressed='true'] {
   background: #f6bb38; color: #080808; font-weight: 700;
 }
-.lf-mobile-theme .family-heading {
+.lf-mobile-theme.mobile-shell .family-heading {
   border-bottom: 1px solid #a17b30;
   padding-bottom: 20px;
 }
-.lf-mobile-theme .family-permission-editor { border-top: 3px solid var(--lf-gold); }
-.lf-mobile-theme .family-calendar-link { color: var(--lf-gold-light); }
+.lf-mobile-theme.mobile-shell .family-permission-editor { border-top: 3px solid var(--lf-gold); }
+.lf-mobile-theme.mobile-shell .family-calendar-link { color: var(--lf-gold-light); }
 @media (min-width: 900px) {
-  .lf-mobile-theme .role-home { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
-  .lf-mobile-theme .role-home > .hero { grid-column: 1 / -1; margin-bottom: 0; }
-  .lf-mobile-theme .role-home > .cancellations { grid-column: 1 / -1; }
-  .lf-mobile-theme .parent-child-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .lf-mobile-theme .parent-shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
+  .lf-mobile-theme.mobile-shell .role-home { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+  .lf-mobile-theme.mobile-shell .role-home > .hero { grid-column: 1 / -1; margin-bottom: 0; }
+  .lf-mobile-theme.mobile-shell .role-home > .cancellations { grid-column: 1 / -1; }
+  .lf-mobile-theme.mobile-shell .parent-child-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lf-mobile-theme.mobile-shell .parent-shortcut-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
 }
 @media (max-width: 420px) {
-  .lf-mobile-theme .mobile-header { gap: 7px; padding-inline: 10px; }
-  .lf-mobile-theme .brand-lockup p { font-size: 22px; }
-  .lf-mobile-theme .parent-greeting,
-  .lf-mobile-theme .role-home .hero { padding: 22px 18px; }
-  .lf-mobile-theme .parent-child-card { flex-wrap: wrap; }
-  .lf-mobile-theme .parent-child-copy { flex-basis: calc(100% - 70px); }
-  .lf-mobile-theme .parent-child-card .parent-select-schedule { margin-left: 62px; }
+  .lf-mobile-theme.mobile-shell .mobile-header { gap: 7px; padding-inline: 10px; }
+  .lf-mobile-theme.mobile-shell .brand-lockup p { font-size: 22px; }
+  .lf-mobile-theme.mobile-shell .parent-greeting,
+  .lf-mobile-theme.mobile-shell .role-home .hero { padding: 22px 18px; }
+  .lf-mobile-theme.mobile-shell .parent-child-card { flex-wrap: wrap; }
+  .lf-mobile-theme.mobile-shell .parent-child-copy { flex-basis: calc(100% - 70px); }
+  .lf-mobile-theme.mobile-shell .parent-child-card .parent-select-schedule { margin-left: 62px; }
 }
+
+.lf-mobile-theme.mobile-shell .role-home > .panel { min-width: 0; overflow-wrap: anywhere; }
+.lf-mobile-theme.mobile-shell .role-home .panel-heading { flex-wrap: wrap; }
