@@ -5,7 +5,7 @@ import {
   adminOrganizationKey, preferredAdminOrganization, scopedAdminOrganization,
   chooseAdminOrganization
 } from '../src/lib/admin/admin-organization.ts';
-import { verifiedAdminAudiences, verifiedAdminPublishedNews } from '../src/lib/admin/admin-overview-data.ts';
+import { verifiedAdminAudiences, verifiedAdminPublishedNews, verifiedAdminNewLeads } from '../src/lib/admin/admin-overview-data.ts';
 import { adminSectionsFor } from '../src/lib/admin/module-catalog.ts';
 
 const club = 'lefteria_fc', academy = 'lefteria_fc_academy';
@@ -86,4 +86,15 @@ test('all multi-organization OS admin pages use only the header organization sel
     if(route!=='club') assert.match(src,/scopedAdminOrganization/);
   }
   assert.match(read('club'),/preferredAdminOrganization/);
+});
+
+test('new Academy enquiry counts require exact authorized owner and filtered status', () => {
+  const good={organization_id:academy,offset:0,limit:25,total:2,leads:[
+    {id:'l1',organization_id:academy,status:'new'},
+    {id:'l2',organization_id:academy,status:'new'}
+  ]};
+  assert.equal(verifiedAdminNewLeads(good,academy,25),2);
+  assert.equal(verifiedAdminNewLeads({...good,organization_id:club},academy,25),null);
+  assert.equal(verifiedAdminNewLeads({...good,leads:[{id:'l1',organization_id:academy,status:'contacted'}]},academy,25),null);
+  assert.equal(verifiedAdminNewLeads(good,club,25),null);
 });
