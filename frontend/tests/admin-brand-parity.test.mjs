@@ -7,7 +7,7 @@ test('admin retains original Fira Sans/condensed and Lefteria gold rather than a
   const css=read('admin.css');
   assert.match(css,/Fira Sans Extra Condensed/);
   assert.match(css,/Fira Sans/);
-  assert.match(css,/--admin-gold:#f5a623/);
+  assert.match(css,/--admin-gold:#f6bb38/);
   assert.match(css,/--admin-black:#080808/);
   assert.match(css,/@media \(min-width:2560px\)/);
   assert.match(css,/1800px/);
