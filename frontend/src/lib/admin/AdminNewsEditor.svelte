@@ -190,7 +190,7 @@
         </label>
       </div>
       <label>URL δημοσιευμένης εικόνας
-        <input type="url" maxlength="2048" placeholder="https://…" value={draft.image_url ?? ''}
+        <input type="text" maxlength="2048" placeholder="https://… ή /media/…" value={draft.image_url ?? ''}
           oninput={event => { if (draft) draft.image_url = event.currentTarget.value || null; }}
           disabled={!canWrite || saving || conflict} />
       </label>
