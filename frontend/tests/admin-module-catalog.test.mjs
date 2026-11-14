@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['onboarding', '/admin/onboarding']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office'].includes(item.href));
   }
 });
 
@@ -39,7 +39,7 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos','operations']);
   assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'payabl', 'charges', 'reports']);
   assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
-  assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['registrations', 'assigned_groups']);
+  assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['assigned_groups']);
   assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['campaigns']);
   assert.ok(legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
   assert.equal(legacyIds(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
@@ -113,4 +113,29 @@ test('application communications are isolated from the public website and CRM',(
   assert.ok(!website.modules.some(m=>m.id==='announcements' || m.id==='messages'));
   assert.ok(!crm.modules.some(m=>m.id==='announcements' || m.id==='messages'));
   assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('announcements'));
+});
+
+test('existing live workflows remain clickable instead of the planned fallback',()=>{
+  const workspace=read('AdminWorkspace.svelte');
+  // The formerly unreachable modules must share a live-link fallback before the disabled branch.
+  assert.match(workspace,/{:else if module.status === 'live' && module.href}[\s\S]*?href={module.href}[\s\S]*?{:else}[\s\S]*?admin-tool-planned/);
+  const all=modules(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
+  for(const id of ['leads','academy_schedule','attendance','evaluations','documents','registrations']){
+    const entry=all.find(m=>m.id===id);
+    assert.equal(entry?.status,'live',id);
+    assert.ok(entry?.href,id);
+    assert.ok(readFileSync(new URL('../src/routes'+entry.href+'/+page.svelte',import.meta.url),'utf8').includes('ADMIN_AUTH_CONTEXT'),id);
+  }
+  const frame=read('AdminFrame.svelte');
+  for(const href of ['/admin/hub','/admin/schedule','/admin/academy-office'])
+    assert.ok(frame.includes('href="'+href+'"'),href);
+});
+
+test('Academy office discovery matches its existing manager and organization policy',()=>{
+  for(const role of ['manager','super_admin'])
+    assert.ok(ids(user([],['lefteria_fc_academy'],role)).includes('registrations'));
+  for(const role of ['coach','editor','marketing','staff'])
+    assert.ok(!ids(user(['*:*'],['lefteria_fc_academy'],role)).includes('registrations'),role);
+  assert.ok(!ids(user(['*:*'],['lefteria_fc'],'super_admin')).includes('registrations'));
+  assert.ok(!ids(user(['*:*'],[],'super_admin')).includes('registrations'));
 });
