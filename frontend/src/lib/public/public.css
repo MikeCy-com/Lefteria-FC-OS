@@ -331,9 +331,9 @@ dialog.public-dialog::backdrop { background:#000c; }
 .public-site .public-destination { display: flex; align-items: flex-end; min-width: 0; width: 100%; max-width: 100%; }
 .public-site .public-destination > div { width: 100%; padding-right: 0; }
 .public-site .public-destination > svg { position: absolute; top: 12px; right: 12px; }
-.public-site .public-destinations .public-destination h2 { font-size: 17px !important; overflow-wrap: normal; word-break: normal; hyphens: none; }
-@media (max-width: 1023px) { .public-site .public-destinations { grid-template-columns: repeat(2, minmax(0, 1fr)); } .public-site .public-destinations .public-destination h2 { font-size: 14px !important; line-height: 1.25; } }
-@media (max-width: 480px) { .public-site .public-destinations .public-destination h2 { font-size: 12px !important; } .public-site .public-destination { min-height: 140px; padding-top: 38px; } }
+.public-site .public-destinations .public-destination h2 { font-size: 23px; overflow-wrap: normal; word-break: normal; hyphens: none; }
+@media (max-width: 1023px) { .public-site .public-destinations { grid-template-columns: repeat(2, minmax(0, 1fr)); } .public-site .public-destinations .public-destination h2 { font-size: 21px; line-height: 1.15; } }
+@media (max-width: 480px) { .public-site .public-destinations .public-destination h2 { font-size: 20px; } .public-site .public-destination { min-height: 140px; padding-top: 38px; } }
 
 .public-menu-back { display: flex; align-items: center; gap: 9px; color: #aaa; font-size: 12px; padding: 7px 0 15px; }
 .public-menu-back:hover { color: #f6bb38; }
