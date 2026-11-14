@@ -140,7 +140,7 @@
 {/if}
 <style>
   .academy-schedule{max-width:1100px;margin:0 auto;padding:22px 0 60px}
-  .eyebrow{font-size:11px;color:#f5a623;letter-spacing:.1em}
+  .eyebrow{font-size:11px;color:#f6bb38;letter-spacing:.1em}
   h1{font-family:'Fira Sans Extra Condensed',sans-serif}
   .intro,.notice{color:#b3b8bb;font-size:13px;line-height:1.7}
   .filters{display:flex;flex-wrap:wrap;align-items:end;gap:12px;margin:24px 0}
