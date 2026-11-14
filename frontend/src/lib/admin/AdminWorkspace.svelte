@@ -92,6 +92,11 @@
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
                     <span class="admin-tool-arrow" aria-hidden="true">↗</span>
                   </a>
+                {:else if module.status === 'live' && module.href}
+                  <a class="admin-tool admin-tool-live" href={module.href} data-testid={'admin-' + module.id + '-module'}>
+                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
+                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
+                  </a>
                 {:else}
                   <div class="admin-tool admin-tool-planned" data-testid={'admin-pending-' + module.id}>
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
