@@ -377,3 +377,52 @@
   .admin-app .admin-header-organization select { width: 132px; font-size: 12px; }
   .admin-app .admin-header-organization-fixed { font-size: 11px; padding: 5px; }
 }
+
+
+/* Verified organization statistics and working quick-navigation actions. */
+.admin-app .admin-club-metrics {margin:18px 0 22px;}
+.admin-app .admin-club-metrics-heading {
+  display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:18px;
+}
+.admin-app .admin-club-metrics-heading h2 {margin-bottom:7px;text-transform:uppercase;font-style:italic;}
+.admin-app .admin-club-metrics-heading .admin-muted {margin:0 0 16px;font-size:13px;}
+.admin-app .admin-club-metrics-grid {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-top:12px;
+}
+.admin-app .admin-club-metrics-grid > div {
+  display:flex;flex-direction:column;gap:5px;min-width:0;
+  padding:15px;border:1px solid #494038;border-top:3px solid var(--admin-gold);
+  background:linear-gradient(150deg,#1c1e20,#101214);
+}
+.admin-app .admin-club-metrics-grid span {
+  font:800 15px/1.2 'Fira Sans Extra Condensed',sans-serif;color:#e6e4e0;
+}
+.admin-app .admin-club-metrics-grid strong {
+  font:900 37px/1.1 'Fira Sans Extra Condensed',sans-serif;color:#f6bb38;
+}
+.admin-app .admin-club-metrics-grid small {font-size:11px;line-height:1.3;color:#c1c0ba;}
+.admin-app .admin-quick-navigation {margin:14px 0 22px;}
+.admin-app .admin-quick-navigation h2 {font-style:italic;text-transform:uppercase;font-size:25px;margin-bottom:14px;}
+.admin-app .admin-quick-navigation-grid {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
+}
+.admin-app .admin-quick-navigation-grid a {
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px;border:1px solid #434343;background:#1c1d1e;
+  text-decoration:none;color:#fff;font:800 17px/1.15 'Fira Sans Extra Condensed',sans-serif;
+  min-height:54px;
+}
+.admin-app .admin-quick-navigation-grid a:hover,
+.admin-app .admin-quick-navigation-grid a:focus-visible {
+  border-color:var(--admin-gold);background:#282218;
+}
+.admin-app .admin-quick-navigation-grid a span{color:var(--admin-gold);}
+@media(max-width:950px){
+  .admin-app .admin-club-metrics-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+  .admin-app .admin-quick-navigation-grid {grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:450px){
+  .admin-app .admin-club-metrics-grid {gap:8px;}
+  .admin-app .admin-club-metrics-grid strong {font-size:31px;}
+  .admin-app .admin-quick-navigation-grid {grid-template-columns:1fr;}
+}
