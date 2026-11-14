@@ -20,13 +20,13 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     venues:[{id:'venue',organization_id:'lefteria_fc',name:'Recorded Stadium',address:null,city:'Limassol',country:'Cyprus',capacity:1000,surface:'Grass',image_url:null,map_url:null,is_home_ground:true}],
     standings:[{id:'standing',organization_id:'lefteria_fc',competition:'Recorded league',team_name:'Fixture Club',played:4,won:2,drawn:1,lost:1,goals_for:6,goals_against:4,points:7}],
     modules:[],fixtures:[],academy_groups:[],seasons:[],sponsors:[],partners:[],events:[],products:[],tickets:[],archived_seasons:[],reviews:[],academy_stats:null,trial_settings:null,branding:null };
-  let unavailable = false; let wrongScope = false;
+  let unavailable = false; let firstTeamUnavailable = false; let wrongScope = false;
   const requests = [];
   const server = createServer((request,response) => {
     const url = new URL(request.url,'http://fixture.test'); requests.push({url,cookie:request.headers.cookie,authorization:request.headers.authorization});
     response.setHeader('content-type','application/json');
     if(url.pathname==='/api/public/sections') {
-      if(unavailable) {response.statusCode=503;response.end('{"code":"public_sections_unavailable"}');}
+      if(unavailable || (firstTeamUnavailable && url.searchParams.get('organization_id')==='lefteria_fc')) {response.statusCode=503;response.end('{"code":"public_sections_unavailable"}');}
       else if(url.searchParams.get('organization_id')==='lefteria_fc_academy') response.end(JSON.stringify({...sections,organization_id:'lefteria_fc_academy',
         players:[{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}]}));
       else response.end(JSON.stringify(wrongScope ? {...sections,organization_id:'lefteria_fc_academy'} : sections));
@@ -85,6 +85,12 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
       if(tab==='statistics')assert.match(html,/>0<\/td>/);
     }
     assert.equal((await loadTeamPage(new URL('https://preview.test/team?tab=unknown'))).tab,'overview');
+    firstTeamUnavailable=true;
+    const academyWithoutFirstTeam=await loadPlayerPage(url,'academy-child');
+    assert.equal(academyWithoutFirstTeam.organization,'lefteria_fc_academy');
+    await assert.rejects(loadPlayerPage(url,'unknown'),error=>error.status===503,
+      'Unknown ID must not become a false 404 while First Team projection is unavailable.');
+    firstTeamUnavailable=false;
     unavailable=true;
     await assert.rejects(loadPlayerPage(url,'unknown'),error=>error.status===503);
     await assert.rejects(loadTeamPage(new URL('https://preview.test/team?tab=roster')),error=>error.status===503);
