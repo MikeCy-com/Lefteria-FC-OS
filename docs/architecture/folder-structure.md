@@ -1,8 +1,69 @@
 # Folder structure and module ownership
 
-Status: proposed. No application directories are implemented by this document.
+Status: **implemented layout inventory verified at OS main `01f4d339` (2026-11-14)**. The original proposed tree below is a historical target, not a statement of today's filesystem. Follow the current ownership map before moving code.
 
-## Proposed tree
+## Implemented layout and ownership (verified 2026-11-14)
+
+The implemented OS is **not** the uncreated generic "Lefteria.Api/Modules"
+layout shown further below. It is a .NET modular monolith with four actual
+projects and a SvelteKit frontend. Moving code to match the historic proposal
+without migrating imports, generated contracts, runtime paths and integration
+tests will break the working application.
+
+| Implemented path | Current owner and purpose | Move/rename policy |
+|---|---|---|
+| `frontend/src/routes/` | SvelteKit URL ownership: public routes, `/admin`, `/app` and explicitly mounted endpoint routes | Preserve public URLs, deep links, search params and legacy redirects |
+| `frontend/src/lib/public/` | Public site shell, images, navigation, types and styling | Refactor components internally; keep SEO and image fallbacks intact |
+| `frontend/src/lib/admin/` | Admin workspace, editors, role-aware components and theme | Do not infer grants from navigation; API checks permissions |
+| `frontend/src/lib/mobile/` | Five mobile roles, controllers, navigation and app-specific components | Preserve auth, role switching, guardian scope, notifications and PWA paths |
+| `frontend/src/lib/api/` | Generated OpenAPI bindings and typed shared client | Never hand-edit generated `schema.d.ts` |
+| `frontend/src/lib/server/` | Server-only public projection and upstream clients | Keep private environment/config out of browser bundles |
+| `backend/src/LefteriaFc.Api/` | ASP.NET Core endpoints and request composition | Keep endpoint logic thin; no direct DB/provider operations |
+| `backend/src/LefteriaFc.Application/` | Application workflows/contracts | Must not depend on HTTP UI or infrastructure implementation |
+| `backend/src/LefteriaFc.Domain/` | Domain authorization and core rules | Remains independent of persistence and transport |
+| `backend/src/LefteriaFc.Infrastructure/` | PostgreSQL persistence, data access and adapters; EF migrations | Migrations append-only; add new migrations instead of rewriting history |
+| `backend/tools/` | Separate preview, import and diagnostic executables | Never mount preview/demo bootstrapping into live production |
+| `backend/server.py` | **Workspace-only** Python ASGI launcher/proxy for the fixed development runtime | Not the production Python backend; preserve existing workspace launch contract |
+| `scripts/workspace/` | Workspace runtime, demo seed and mirror import utilities | Keep runtime secrets and restored live data out of source |
+| `scripts/parity/` and `docs/parity/` | Source-to-OS feature/API/UI inventories and comparison evidence | Mark progress only with contract and test evidence |
+| `deploy/preview/`, `deploy/production/` | Isolated deployment configuration, guards and runbooks | No unreviewed public edge or production changes |
+| `ops/postgres/` | Role grants, isolated SQL probes and policy checks | Never weaken RLS or grant broad table access |
+| `contracts/openapi.json` | Exported .NET API contract | Regenerate when endpoints change; regenerate TS client too |
+
+### Verified SvelteKit route families
+
+- **Public:** `/`, `/team`, `/academy`, `/academy/groups`,
+  `/academy/registration`, `/news`, `/player/[id]`,
+  `/staff/[id]`, `/events`, `/partners`, `/sponsors`,
+  `/checkout`, `/shop`, `/match/[id]`, etc.
+- **Administration:** `/admin` with real subroutes for academy office,
+  attendance, announcements, club, documents, evaluations, finance, groups,
+  Hub, leads, news, POS, schedule and trials.
+- **Role application:** `/app/[...path]` routes five mobile roles through
+  their role-aware shell; `/app/login` is a separate entry.
+- **Legacy compatibility:** `/cart`, `/register` and `/profile` are
+  intentional server redirects and **must not be counted as implemented
+  e-commerce/profile journeys**.
+- **Public API:** ASP.NET Core owns `/api/public/*` and
+  `/api/uploads/{folder}/{fileName}`. The SvelteKit
+  `routes/api/public/news/+server.ts` handler is a fixed-origin
+  direct-Node-preview BFF. The workspace bridge and reviewed preview edge
+  route `/api/public/news` directly to .NET; they do not exercise that BFF.
+  Any removal or relocation must first update its isolated BFF tests and
+  verify both routing modes.
+
+### Safe reorganization checklist
+
+Before moving any existing route/component: (1) capture its current import
+callers, URL and query/deep-link contracts; (2) compare the legacy
+behavior/visibility; (3) identify the actual current owner above; (4) make the
+smallest behavior-preserving move, adjusting SvelteKit imports and source maps;
+(5) run frontend typecheck, tests, .NET policy/integration checks and visual
+audits; (6) record mapping and acceptance evidence in `docs/parity/`.
+No file should be moved solely because the historic proposed tree has a
+different directory name.
+
+## Historical proposed tree (not the implemented filesystem)
 
     .
     ├── AGENTS.md
@@ -102,7 +163,7 @@ Keep modules as folders inside the API project until isolation has measured valu
 10. Test domain/use cases, PostgreSQL integration, API contracts, authorization and PWA journeys at their boundaries.
 
 
-## Bootstrap files currently implemented
+## Initial bootstrap notes (historical; see implemented map above)
 
 The current implementation includes:
 
@@ -116,4 +177,4 @@ The current implementation includes:
 - compose.yaml and deploy/Caddyfile: single public edge proxy; API, web and PostgreSQL use segmented internal networks; only the proxy is host-published. The worker itself is not implemented yet.
 - .github/workflows/rewrite-build.yml: locked restores, policy/client/navigation checks, API contract drift, production web packaging and isolated container health checks.
 
-This physical bootstrap is incomplete compared with the intended module tree above. Do not add domain stubs merely to fill folders.
+This initial bootstrap summary is preserved for design history. The current implementation has many additional modules and routes; refer to the verified implemented map above. Do not add domain stubs merely to fill folders.
