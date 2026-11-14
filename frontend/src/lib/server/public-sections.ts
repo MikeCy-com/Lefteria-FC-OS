@@ -35,11 +35,24 @@ export function requirePublicId<T extends { id: string }>(rows: readonly T[], va
   return found;
 }
 
+// Original PlayerProfilePage serves First Team and Academy players; Academy names arrive abbreviated from the API.
+async function findPlayer(url: URL, id: string) {
+  for (const [organization, type] of [['lefteria_fc', 'First Team'], ['lefteria_fc_academy', 'Academy']] as const) {
+    const data = await loadSectionPage(url, organization);
+    if (!data.sectionsAvailable) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
+    const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
+    if (organization === 'lefteria_fc_academy') return { data, player: requirePublicId(rows, id) };
+    const separator = id.indexOf('--');
+    const found = rows.find(row => row.id === id || (separator > 0 && row.id === id.slice(separator + 2)));
+    if (found) return { data, player: found };
+  }
+  error(404, 'Η σελίδα δεν βρέθηκε.');
+}
+
 export async function loadPlayerPage(url: URL, id: string): Promise<PlayerPageData> {
-  const data = await loadSectionPage(url, 'lefteria_fc');
-  if (!data.sectionsAvailable) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
+  if (!id || id.length > 400) error(404, 'Η σελίδα δεν βρέθηκε.');
+  const { data, player } = await findPlayer(url, id);
   const sections = data.sections!;
-  const player = requirePublicId(sections.players.filter(row => row.organization_id === 'lefteria_fc' && row.team_type === 'First Team'), id);
   const gallery = sections.gallery.filter(image => image.organization_id === player.organization_id && image.player_id === player.id);
   const season = sections.seasons.find(item => item.organization_id === player.organization_id && item.is_current && !item.is_archived)?.name ?? null;
   return { site: data.site, available: data.available, organization: data.organization,

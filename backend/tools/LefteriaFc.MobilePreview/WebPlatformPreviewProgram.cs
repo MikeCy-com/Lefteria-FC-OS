@@ -114,7 +114,7 @@ internal static class WebPlatformPreviewProgram
         return exitCode;
     }
 
-    private static async Task VerifyAuthServerAsync(string connectionString, string username)
+    internal static async Task VerifyAuthServerAsync(string connectionString, string username)
     {
         await using var connection = new NpgsqlConnection(connectionString);
         await connection.OpenAsync();

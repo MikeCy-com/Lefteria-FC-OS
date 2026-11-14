@@ -184,6 +184,7 @@ app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
+app.MapPublicMedia();
 app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminPosCatalog();

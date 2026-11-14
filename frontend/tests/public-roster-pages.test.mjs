@@ -27,6 +27,8 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     response.setHeader('content-type','application/json');
     if(url.pathname==='/api/public/sections') {
       if(unavailable) {response.statusCode=503;response.end('{"code":"public_sections_unavailable"}');}
+      else if(url.searchParams.get('organization_id')==='lefteria_fc_academy') response.end(JSON.stringify({...sections,organization_id:'lefteria_fc_academy',
+        players:[{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}]}));
       else response.end(JSON.stringify(wrongScope ? {...sections,organization_id:'lefteria_fc_academy'} : sections));
     } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:[],academy_groups:[],fixtures:[],news:[]}));
     else {response.statusCode=404;response.end('{}');}
@@ -54,7 +56,10 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     const loaded=await loadPlayerPage(url,'Case--ID');assert.equal(loaded.player.id,'Case--ID');assert.equal(loaded.organization,'lefteria_fc');
     assert.equal(loaded.sections,undefined,'A player profile must not serialize unrelated public section collections.');
     assert.equal((await loadPlayerPage(url,'recorded-player--Case--ID')).player.id,'Case--ID');
-    for(const id of ['case--id','academy-child','unknown'])await assert.rejects(loadPlayerPage(url,id),error=>error.status===404);
+    for(const id of ['case--id','unknown'])await assert.rejects(loadPlayerPage(url,id),error=>error.status===404);
+    const academy=await loadPlayerPage(url,'academy-child');
+    assert.equal(academy.player.name,'Ανδρέας Πα.','Academy players keep the original profile page with the API-abbreviated name.');
+    assert.equal(academy.player.organization_id,'lefteria_fc_academy');
     assert.equal((await loadStaffPage(url,'staff-ID')).staff.name,'Recorded Coach');
     await assert.rejects(loadStaffPage(url,'academy-coach'),error=>error.status===404);
     const {default:Profile}=await import('../src/lib/public/PublicPersonProfile.svelte');
@@ -75,7 +80,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal((await loadTeamPage(new URL('https://preview.test/team?tab=schedule'))).available,true);
     unavailable=false;wrongScope=true;
     await assert.rejects(loadPlayerPage(url,'Case--ID'),error=>error.status===503);
-    assert.ok(requests.filter(row=>row.url.pathname==='/api/public/sections').every(row=>row.url.searchParams.get('organization_id')==='lefteria_fc'));
+    assert.ok(requests.filter(row=>row.url.pathname==='/api/public/sections').every(row=>['lefteria_fc','lefteria_fc_academy'].includes(row.url.searchParams.get('organization_id'))));
     assert.ok(requests.every(row=>!row.cookie&&!row.authorization));
   } finally {hooks.deregister();await new Promise(resolve=>server.close(resolve));}
 });

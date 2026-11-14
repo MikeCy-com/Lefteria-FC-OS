@@ -1,0 +1,5041 @@
+{
+ "meta": {
+  "generated_by": "scripts/parity/build_matrices.py",
+  "original_source": "MikeCy-com/Lefteria-FC main (uploaded zip, read-only)",
+  "os_contract": "contracts/openapi.json"
+ },
+ "screens": [
+  {
+   "id": "route:/",
+   "kind": "route",
+   "surface": "public",
+   "original": "/",
+   "component": "HomePage",
+   "source": "frontend/src/App.js#L2277",
+   "os_route_or_component": "frontend/src/routes/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/about",
+   "kind": "route",
+   "surface": "public",
+   "original": "/about",
+   "component": "AboutPage",
+   "source": "frontend/src/App.js#L2278",
+   "os_route_or_component": "frontend/src/routes/about/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/team",
+   "kind": "route",
+   "surface": "public",
+   "original": "/team",
+   "component": "TeamHubPage",
+   "source": "frontend/src/App.js#L2279",
+   "os_route_or_component": "frontend/src/routes/team/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:5253:GET",
+    "server.py:1328:GET",
+    "server.py:3582:GET",
+    "server.py:665:GET",
+    "server.py:1118:GET",
+    "server.py:1297:GET",
+    "server.py:1004:GET",
+    "server.py:633:GET",
+    "server.py:1341:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/academy",
+   "kind": "route",
+   "surface": "public",
+   "original": "/academy",
+   "component": "AcademyLandingPage",
+   "source": "frontend/src/App.js#L2280",
+   "os_route_or_component": "frontend/src/routes/academy/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:822:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/academy/philosophy",
+   "kind": "route",
+   "surface": "public",
+   "original": "/academy/philosophy",
+   "component": "AcademyPhilosophyPage",
+   "source": "frontend/src/App.js#L2281",
+   "os_route_or_component": "frontend/src/routes/academy/philosophy/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/academy/groups",
+   "kind": "route",
+   "surface": "public",
+   "original": "/academy/groups",
+   "component": "AcademyPage",
+   "source": "frontend/src/App.js#L2282",
+   "os_route_or_component": "frontend/src/routes/academy/groups/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/academy/registration",
+   "kind": "route",
+   "surface": "public",
+   "original": "/academy/registration",
+   "component": "RegistrationPage",
+   "source": "frontend/src/App.js#L2283",
+   "os_route_or_component": "frontend/src/routes/academy/registration/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:4169:POST"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/join",
+   "kind": "route",
+   "surface": "public",
+   "original": "/join",
+   "component": "JoinPage",
+   "source": "frontend/src/App.js#L2284",
+   "os_route_or_component": "frontend/src/routes/join/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/privacy",
+   "kind": "route",
+   "surface": "public",
+   "original": "/privacy",
+   "component": "PrivacyPage",
+   "source": "frontend/src/App.js#L2285",
+   "os_route_or_component": "frontend/src/routes/privacy/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/terms",
+   "kind": "route",
+   "surface": "public",
+   "original": "/terms",
+   "component": "TermsPage",
+   "source": "frontend/src/App.js#L2286",
+   "os_route_or_component": "frontend/src/routes/terms/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/events",
+   "kind": "route",
+   "surface": "public",
+   "original": "/events",
+   "component": "EventsPage",
+   "source": "frontend/src/App.js#L2287",
+   "os_route_or_component": "frontend/src/routes/events/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/marketing_events.py:107:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/events/:id",
+   "kind": "route",
+   "surface": "public",
+   "original": "/events/:id",
+   "component": "EventDetailPage",
+   "source": "frontend/src/App.js#L2288",
+   "os_route_or_component": "frontend/src/routes/events/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/marketing_events.py:123:GET",
+    "routes/marketing_events.py:137:POST"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/partners",
+   "kind": "route",
+   "surface": "public",
+   "original": "/partners",
+   "component": "PartnersPage",
+   "source": "frontend/src/App.js#L2289",
+   "os_route_or_component": "frontend/src/routes/partners/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/partners.py:118:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/partners/:slug",
+   "kind": "route",
+   "surface": "public",
+   "original": "/partners/:slug",
+   "component": "PartnerDetailPage",
+   "source": "frontend/src/App.js#L2290",
+   "os_route_or_component": "frontend/src/routes/partners/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/partners.py:135:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/trials",
+   "kind": "route",
+   "surface": "public",
+   "original": "/trials",
+   "component": "TrialsPage",
+   "source": "frontend/src/App.js#L2291",
+   "os_route_or_component": "frontend/src/routes/trials/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/trials.py:59:GET",
+    "routes/trials.py:70:POST"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/staff/:staffId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/staff/:staffId",
+   "component": "StaffProfilePage",
+   "source": "frontend/src/App.js#L2292",
+   "os_route_or_component": "frontend/src/routes/staff/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:1029:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/academy/:groupId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/academy/:groupId",
+   "component": "AcademyGroupPage",
+   "source": "frontend/src/App.js#L2293",
+   "os_route_or_component": "frontend/src/routes/academy/[slug]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:797:GET",
+    "server.py:804:GET",
+    "server.py:812:GET",
+    "server.py:3582:GET",
+    "server.py:1004:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/sponsors/first-team",
+   "kind": "route",
+   "surface": "public",
+   "original": "/sponsors/first-team",
+   "component": "SponsorsPage",
+   "source": "frontend/src/App.js#L2294",
+   "os_route_or_component": "frontend/src/routes/sponsors/first-team/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:5751:GET",
+    "server.py:5780:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/sponsors/academy",
+   "kind": "route",
+   "surface": "public",
+   "original": "/sponsors/academy",
+   "component": "SponsorsPage",
+   "source": "frontend/src/App.js#L2295",
+   "os_route_or_component": "frontend/src/routes/sponsors/academy/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:5751:GET",
+    "server.py:5780:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/sponsors/:sponsorId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/sponsors/:sponsorId",
+   "component": "SponsorDetailPage",
+   "source": "frontend/src/App.js#L2296",
+   "os_route_or_component": "frontend/src/routes/sponsors/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/fixtures",
+   "kind": "route",
+   "surface": "public",
+   "original": "/fixtures",
+   "component": "redirect",
+   "source": "frontend/src/App.js#L2297",
+   "os_route_or_component": "frontend/src/routes/fixtures/+page.server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/news",
+   "kind": "route",
+   "surface": "public",
+   "original": "/news",
+   "component": "NewsPage",
+   "source": "frontend/src/App.js#L2298",
+   "os_route_or_component": "frontend/src/routes/news/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/news/:newsId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/news/:newsId",
+   "component": "NewsArticlePage",
+   "source": "frontend/src/App.js#L2299",
+   "os_route_or_component": "frontend/src/routes/news/[slug]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:1415:GET",
+    "routes/og.py:586:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/seasons",
+   "kind": "route",
+   "surface": "public",
+   "original": "/seasons",
+   "component": "PastSeasonsPage",
+   "source": "frontend/src/App.js#L2300",
+   "os_route_or_component": "frontend/src/routes/seasons/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:3313:GET",
+    "server.py:3320:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/seasons/:archiveId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/seasons/:archiveId",
+   "component": "ArchivedSeasonDetailPage",
+   "source": "frontend/src/App.js#L2301",
+   "os_route_or_component": "frontend/src/routes/seasons/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/contact",
+   "kind": "route",
+   "surface": "public",
+   "original": "/contact",
+   "component": "ContactPage",
+   "source": "frontend/src/App.js#L2302",
+   "os_route_or_component": "frontend/src/routes/contact/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/shop",
+   "kind": "route",
+   "surface": "public",
+   "original": "/shop",
+   "component": "NewShopPage",
+   "source": "frontend/src/App.js#L2303",
+   "os_route_or_component": "frontend/src/routes/shop/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:4267:GET",
+    "server.py:3961:GET",
+    "server.py:4324:POST",
+    "server.py:4025:POST"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/vote",
+   "kind": "route",
+   "surface": "public",
+   "original": "/vote",
+   "component": "VotePage",
+   "source": "frontend/src/App.js#L2304",
+   "os_route_or_component": "frontend/src/routes/vote/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:628:GET",
+    "server.py:665:GET",
+    "server.py:5639:GET",
+    "server.py:5677:GET",
+    "server.py:5602:POST",
+    "server.py:5628:POST",
+    "server.py:5693:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/player/:playerId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/player/:playerId",
+   "component": "PlayerProfilePage",
+   "source": "frontend/src/App.js#L2305",
+   "os_route_or_component": "frontend/src/routes/player/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:777:GET",
+    "server.py:3582:GET",
+    "server.py:1430:GET",
+    "server.py:1341:GET",
+    "routes/og.py:194:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/match/:fixtureId",
+   "kind": "route",
+   "surface": "public",
+   "original": "/match/:fixtureId",
+   "component": "MatchReportPage",
+   "source": "frontend/src/App.js#L2306",
+   "os_route_or_component": "frontend/src/routes/match/[id]/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:2642:GET",
+    "server.py:633:GET",
+    "routes/og.py:622:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/login",
+   "kind": "route",
+   "surface": "public",
+   "original": "/login",
+   "component": "LoginPage",
+   "source": "frontend/src/App.js#L2308",
+   "os_route_or_component": "frontend/src/routes/login/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/register",
+   "kind": "route",
+   "surface": "public",
+   "original": "/register",
+   "component": "RegisterPage",
+   "source": "frontend/src/App.js#L2309",
+   "os_route_or_component": "frontend/src/routes/register/+server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/profile",
+   "kind": "route",
+   "surface": "public",
+   "original": "/profile",
+   "component": "ProfilePage",
+   "source": "frontend/src/App.js#L2310",
+   "os_route_or_component": "frontend/src/routes/profile/+server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/mobile_auth.py:634:GET",
+    "routes/mobile_auth.py:673:PUT",
+    "routes/mobile_auth.py:1839:POST",
+    "routes/mobile_auth.py:1797:PUT",
+    "routes/suggestions.py:39:POST",
+    "routes/suggestions.py:67:GET",
+    "routes/suggestions.py:77:POST",
+    "server.py:633:GET",
+    "routes/changelog.py:169:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/cart",
+   "kind": "route",
+   "surface": "public",
+   "original": "/cart",
+   "component": "CartPage",
+   "source": "frontend/src/App.js#L2311",
+   "os_route_or_component": "frontend/src/routes/cart/+server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "server.py:4281:GET",
+    "server.py:4358:PUT",
+    "server.py:4372:DELETE"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/checkout",
+   "kind": "route",
+   "surface": "public",
+   "original": "/checkout",
+   "component": "CheckoutPage",
+   "source": "frontend/src/App.js#L2312",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "server.py:4281:GET",
+    "server.py:4122:GET",
+    "routes/stripe_checkout.py:163:POST",
+    "server.py:4389:POST",
+    "server.py:4437:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/checkout/success",
+   "kind": "route",
+   "surface": "public",
+   "original": "/checkout/success",
+   "component": "CheckoutSuccessPage",
+   "source": "frontend/src/App.js#L2313",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/stripe_checkout.py:258:GET"
+   ],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/calendar",
+   "kind": "route",
+   "surface": "public",
+   "original": "/calendar",
+   "component": "redirect",
+   "source": "frontend/src/App.js#L2315",
+   "os_route_or_component": "frontend/src/routes/calendar/+page.server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/venues",
+   "kind": "route",
+   "surface": "public",
+   "original": "/venues",
+   "component": "redirect",
+   "source": "frontend/src/App.js#L2316",
+   "os_route_or_component": "frontend/src/routes/venues/+page.server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/staff",
+   "kind": "route",
+   "surface": "public",
+   "original": "/staff",
+   "component": "redirect",
+   "source": "frontend/src/App.js#L2317",
+   "os_route_or_component": "frontend/src/routes/staff/+page.server.ts",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "public"
+  },
+  {
+   "id": "route:/app/login",
+   "kind": "route",
+   "surface": "mobile",
+   "original": "/app/login",
+   "component": "MobileLoginPage",
+   "source": "frontend/src/App.js#L2319",
+   "os_route_or_component": "frontend/src/routes/app/login/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [
+    "routes/mobile_auth.py:372:POST",
+    "routes/mobile_auth.py:496:POST",
+    "routes/mobile_auth.py:2405:POST"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/app/shop/success",
+   "kind": "route",
+   "surface": "mobile",
+   "original": "/app/shop/success",
+   "component": "MobileShopSuccessPage",
+   "source": "frontend/src/App.js#L2320",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/stripe_checkout.py:465:GET"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/app/pay/success",
+   "kind": "route",
+   "surface": "mobile",
+   "original": "/app/pay/success",
+   "component": "MobilePaySuccessPage",
+   "source": "frontend/src/App.js#L2321",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/stripe_checkout.py:623:GET"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/app",
+   "kind": "route",
+   "surface": "mobile",
+   "original": "/app",
+   "component": "MobileApp",
+   "source": "frontend/src/App.js#L2322",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/mobile_auth.py:2470:POST"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/app/*",
+   "kind": "route",
+   "surface": "mobile",
+   "original": "/app/*",
+   "component": "MobileApp",
+   "source": "frontend/src/App.js#L2323",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/mobile_auth.py:2470:POST"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/admin/login",
+   "kind": "route",
+   "surface": "admin",
+   "original": "/admin/login",
+   "component": "AdminLoginPage",
+   "source": "frontend/src/App.js#L2325",
+   "os_route_or_component": "frontend/src/routes/admin/login/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/admin/invite/:token",
+   "kind": "route",
+   "surface": "admin",
+   "original": "/admin/invite/:token",
+   "component": "InviteAcceptPage",
+   "source": "frontend/src/App.js#L2326",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "status_note": "no OS route",
+   "api_operations": [
+    "routes/admin_users.py:571:GET",
+    "routes/admin_users.py:582:POST"
+   ],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "route:/admin",
+   "kind": "route",
+   "surface": "admin",
+   "original": "/admin",
+   "component": null,
+   "source": "frontend/src/App.js#L2327",
+   "os_route_or_component": "frontend/src/routes/admin/+page.svelte",
+   "os_status": "partial",
+   "status_note": "OS route exists; visual/content parity tracked in visual-baseline.md",
+   "api_operations": [],
+   "visibility": "authenticated"
+  },
+  {
+   "id": "admin-tab:dashboard",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "dashboard",
+   "label": "Πίνακας",
+   "component": "DashboardTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:pos",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "pos",
+   "label": "POS",
+   "component": "PosTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/pos",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:livescore",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "livescore",
+   "label": "Live Score",
+   "component": "LiveScoreTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "matchday_editor"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:players_crm",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "players_crm",
+   "label": "Players CRM",
+   "component": "AdminPlayerProfile",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/groups",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc",
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:social_control",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "social_control",
+   "label": "Social Control Centre",
+   "component": "SocialControlCenter",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "marketing"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:teams",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "teams",
+   "label": "Διαχείριση Ομάδων",
+   "component": "TeamsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/groups",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "server.py:1913:PUT",
+    "server.py:1930:DELETE",
+    "server.py:1900:POST",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:3582:GET",
+    "server.py:3620:POST",
+    "server.py:3611:POST",
+    "server.py:3628:PUT",
+    "server.py:3641:DELETE",
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:2425:POST",
+    "server.py:1715:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:fixtures",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "fixtures",
+   "label": "Πρόγραμμα",
+   "component": "FixturesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:2425:POST",
+    "routes/opponents.py:18:POST",
+    "routes/opponents.py:34:GET",
+    "routes/opponents.py:62:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:trials",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "trials",
+   "label": "Δοκιμαστικά (Α' Ομάδα)",
+   "component": "TrialsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/trials",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "routes/trials.py:84:GET",
+    "routes/trials.py:138:GET",
+    "routes/trials.py:142:PUT",
+    "routes/trials.py:92:PATCH",
+    "routes/trials.py:104:DELETE",
+    "routes/trials.py:111:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:club_opponents",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "club_opponents",
+   "label": "Αντίπαλοι",
+   "component": "ScopedOpponentsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:club_venues",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "club_venues",
+   "label": "Γήπεδα",
+   "component": "ScopedVenuesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:academy",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "academy",
+   "label": "Ομάδες",
+   "component": "EnhancedAcademyTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/groups",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "server.py:1760:PUT",
+    "server.py:1790:DELETE",
+    "server.py:1748:POST",
+    "server.py:1715:POST",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:933:POST",
+    "routes/admin_calendar.py:37:GET",
+    "server.py:872:POST",
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:3582:GET",
+    "server.py:3620:POST",
+    "server.py:3611:POST",
+    "server.py:3628:PUT",
+    "server.py:3641:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:registrations",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "registrations",
+   "label": "Εγγραφές",
+   "component": "RegistrationsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/academy-office",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "server.py:4178:GET",
+    "server.py:4194:PUT",
+    "server.py:4187:GET",
+    "server.py:4258:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:academy_opponents",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "academy_opponents",
+   "label": "Αντίπαλοι",
+   "component": "ScopedOpponentsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:academy_venues",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "academy_venues",
+   "label": "Γήπεδα",
+   "component": "ScopedVenuesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:news",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "news",
+   "label": "Νέα",
+   "component": "NewsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/news",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "editor"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:sponsors",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "sponsors",
+   "label": "Χορηγοί",
+   "component": "SponsorsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "editor"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5814:POST",
+    "server.py:5751:GET",
+    "server.py:5795:PUT",
+    "server.py:5806:DELETE",
+    "server.py:5787:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:partners",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "partners",
+   "label": "Συνεργάτες",
+   "component": "PartnersTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "editor"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/partners.py:169:GET",
+    "routes/partners.py:177:PUT",
+    "routes/partners.py:191:DELETE",
+    "routes/partners.py:146:GET",
+    "routes/partners.py:154:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:wall",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "wall",
+   "label": "Ανακοινώσεις",
+   "component": "AdminWallTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:messages",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "messages",
+   "label": "Μηνύματα",
+   "component": "MessagesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/announcements",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "coach"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/admin_messages.py:48:GET",
+    "routes/admin_messages.py:120:POST",
+    "routes/admin_messages.py:145:GET",
+    "routes/admin_messages.py:87:POST",
+    "routes/admin_messages.py:105:GET",
+    "routes/admin_messages.py:175:POST",
+    "server.py:3396:DELETE",
+    "routes/chat_moderation.py:59:PATCH",
+    "routes/chat_moderation.py:63:DELETE",
+    "routes/communication_media.py:87:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:polls",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "polls",
+   "label": "Δημοσκοπήσεις",
+   "component": "PollsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1715:POST",
+    "routes/polls.py:118:POST",
+    "routes/polls.py:129:GET",
+    "routes/polls.py:134:GET",
+    "routes/polls.py:141:PUT",
+    "routes/polls.py:152:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:reels",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "reels",
+   "label": "Στιγμές (Reels)",
+   "component": "ReelsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/reels.py:205:POST",
+    "server.py:1715:POST",
+    "routes/reels.py:228:GET",
+    "routes/reels.py:235:DELETE",
+    "routes/reels.py:157:POST",
+    "routes/reels.py:177:GET",
+    "routes/reels.py:182:PUT",
+    "routes/reels.py:195:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_dashboard",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_dashboard",
+   "label": "Πίνακας",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_campaigns",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_campaigns",
+   "label": "Καμπάνιες",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_leads",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_leads",
+   "label": "Leads & CRM",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_media",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_media",
+   "label": "Media Library",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_social",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_social",
+   "label": "Social Calendar",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_reviews",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_reviews",
+   "label": "Κριτικές & Φήμη",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_events",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_events",
+   "label": "Εκδηλώσεις",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_referrals",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_referrals",
+   "label": "Συστάσεις",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_loyalty",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_loyalty",
+   "label": "Πιστότητα",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_settings",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_settings",
+   "label": "Ρυθμίσεις",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_analytics",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_analytics",
+   "label": "Αναλυτικά",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:settings_charges",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_charges",
+   "label": "Χρεώσεις",
+   "component": "ChargesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/finance",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/charges.py:209:POST",
+    "routes/charges.py:261:GET",
+    "routes/charges.py:330:PUT",
+    "routes/charges.py:378:DELETE",
+    "routes/charges.py:981:GET",
+    "routes/charges.py:1029:POST",
+    "routes/charges.py:1063:POST",
+    "routes/charges.py:437:POST",
+    "routes/charges.py:303:POST",
+    "routes/charges.py:459:POST",
+    "routes/charges.py:398:POST",
+    "server.py:3512:GET",
+    "server.py:3518:PUT",
+    "server.py:3495:GET",
+    "server.py:3501:PUT"
+   ]
+  },
+  {
+   "id": "admin-tab:expenses",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "expenses",
+   "label": "Έξοδα",
+   "component": "ExpensesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1726:POST",
+    "routes/expenses.py:159:GET",
+    "routes/expenses.py:180:PUT",
+    "routes/expenses.py:200:DELETE",
+    "routes/expenses.py:113:GET",
+    "routes/expenses.py:169:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:financial_dashboard",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "financial_dashboard",
+   "label": "Ταμπλό",
+   "component": "FinancialDashboard",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/financial.py:109:POST",
+    "routes/financial.py:154:GET",
+    "routes/financial.py:310:GET",
+    "routes/charges.py:330:PUT",
+    "routes/charges.py:378:DELETE",
+    "routes/charges.py:398:POST",
+    "routes/charges.py:437:POST",
+    "routes/financial.py:189:PUT",
+    "routes/financial.py:256:DELETE",
+    "routes/financial.py:277:PUT",
+    "routes/financial.py:350:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:financial_reports",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "financial_reports",
+   "label": "Αναφορές",
+   "component": "FinancialReportsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/charges.py:618:GET",
+    "routes/charges.py:683:GET",
+    "routes/charges.py:706:GET",
+    "routes/charges.py:753:GET",
+    "routes/charges.py:803:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:admin_users",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "admin_users",
+   "label": "Διαχείριση Χρηστών",
+   "component": "AdminUsersTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:player_documents",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "player_documents",
+   "label": "Έγγραφα Παικτών",
+   "component": "PlayerDocumentsView",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/player_documents.py:300:PUT",
+    "routes/player_documents.py:327:DELETE",
+    "routes/player_documents.py:408:PUT",
+    "routes/player_documents.py:413:DELETE",
+    "routes/player_documents.py:226:GET",
+    "routes/player_documents.py:241:POST",
+    "routes/player_documents.py:390:GET",
+    "routes/player_documents.py:394:POST",
+    "routes/player_documents.py:136:GET",
+    "routes/player_documents.py:382:GET",
+    "routes/player_documents.py:186:GET",
+    "routes/player_documents.py:386:GET",
+    "routes/player_documents.py:128:GET",
+    "routes/player_documents.py:377:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:resources",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "resources",
+   "label": "Εγκαταστάσεις",
+   "component": "ResourceManagement",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/resources.py:13:POST",
+    "routes/resources.py:45:GET",
+    "routes/resources.py:100:POST",
+    "routes/resources.py:155:GET",
+    "routes/resources.py:380:GET",
+    "routes/resources.py:71:PUT",
+    "routes/resources.py:94:DELETE",
+    "routes/resources.py:178:PUT",
+    "routes/resources.py:208:DELETE",
+    "routes/resources.py:216:GET",
+    "routes/resources.py:352:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:suggestions",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "suggestions",
+   "label": "Προτάσεις Χρηστών",
+   "component": "SuggestionsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/suggestions.py:95:GET",
+    "routes/suggestions.py:105:PUT",
+    "routes/suggestions.py:124:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:changelog",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "changelog",
+   "label": "Ιστορικό Αλλαγών",
+   "component": "ChangelogTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/changelog.py:163:GET",
+    "routes/changelog.py:182:POST",
+    "routes/changelog.py:219:GET",
+    "routes/changelog.py:197:PUT",
+    "routes/changelog.py:212:DELETE"
+   ]
+  },
+  {
+   "id": "admin-tab:video_analytics",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "video_analytics",
+   "label": "Βίντεο Ανάλυση",
+   "component": "VideoAnalyticsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "coach"
+    ],
+    "organizations": [
+     "lefteria_fc",
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:drills",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "drills",
+   "label": "Drills",
+   "component": "DrillsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "coach"
+    ],
+    "organizations": [
+     "lefteria_fc",
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "routes/drills.py:335:POST",
+    "routes/drills.py:212:GET",
+    "routes/drills.py:229:PUT",
+    "routes/drills.py:277:DELETE",
+    "routes/drills.py:175:GET",
+    "routes/drills.py:222:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:shop_products",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "shop_products",
+   "label": "Προϊόντα",
+   "component": "AdminProductsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:shop_tickets",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "shop_tickets",
+   "label": "Εισιτήρια",
+   "component": "AdminTicketsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:shop_orders",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "shop_orders",
+   "label": "Παραγγελίες",
+   "component": "AdminOrdersTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_club",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_club",
+   "label": "Πληροφορίες",
+   "component": "ClubProfileTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/club",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_staff",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_staff",
+   "label": "Τεχνικό Επιτελείο",
+   "component": "StaffTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1040:GET",
+    "server.py:2169:POST",
+    "server.py:2290:PUT",
+    "server.py:2376:DELETE",
+    "server.py:2299:POST",
+    "server.py:2349:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:settings_staff_compliance",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_staff_compliance",
+   "label": "Συμμόρφωση Επιτελείου",
+   "component": "StaffComplianceView",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/staff_compliance.py:406:PUT",
+    "routes/staff_compliance.py:424:DELETE",
+    "routes/staff_compliance.py:350:POST",
+    "routes/staff_compliance.py:315:GET",
+    "routes/staff_compliance.py:222:GET",
+    "routes/staff_compliance.py:199:GET",
+    "routes/staff_compliance.py:274:GET",
+    "routes/staff_compliance.py:175:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:settings_social",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_social",
+   "label": "Social Media",
+   "component": "SocialMediaTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_sms",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_sms",
+   "label": "SMS / OTP",
+   "component": "SmsSettingsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_storage",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_storage",
+   "label": "Αποθήκευση Αρχείων",
+   "component": "StorageStatusTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_apk",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_apk",
+   "label": "Εφαρμογή Android",
+   "component": "AppApkTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/app_download.py:81:GET",
+    "routes/app_download.py:134:POST",
+    "routes/app_download.py:166:DELETE",
+    "routes/app_download.py:226:GET",
+    "routes/app_download.py:176:POST",
+    "routes/app_download.py:101:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:settings_stripe",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_stripe",
+   "label": "Πληρωμές (Stripe)",
+   "component": "StripeSettingsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_seasons",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_seasons",
+   "label": "Σεζόν",
+   "component": "SeasonsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_venues",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_venues",
+   "label": "Γήπεδα",
+   "component": "VenuesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:settings_backup",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_backup",
+   "label": "Backup & Restore",
+   "component": "BackupRestoreTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/backup.py:322:GET",
+    "routes/backup.py:330:GET",
+    "routes/backup.py:357:GET",
+    "routes/backup.py:421:POST",
+    "routes/backup.py:350:POST",
+    "routes/backup.py:340:POST",
+    "routes/backup.py:372:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:settings_security",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "settings_security",
+   "label": "Security",
+   "component": "SecurityTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/security_ops.py:60:GET",
+    "routes/security_ops.py:85:GET",
+    "routes/security_ops.py:103:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:club_dashboard",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "club_dashboard",
+   "label": "club_dashboard",
+   "component": "SectionDashboard",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:4981:POST",
+    "server.py:5013:GET",
+    "server.py:4546:POST",
+    "server.py:4602:GET",
+    "server.py:1118:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:academy_dashboard",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "academy_dashboard",
+   "label": "academy_dashboard",
+   "component": "SectionDashboard",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:4981:POST",
+    "server.py:5013:GET",
+    "server.py:4546:POST",
+    "server.py:4602:GET",
+    "server.py:1118:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:standings",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "standings",
+   "label": "standings",
+   "component": "StandingsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:gallery",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "gallery",
+   "label": "gallery",
+   "component": "GalleryTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:calendar",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "calendar",
+   "label": "calendar",
+   "component": "AdminCalendarTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/schedule",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:attendance",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "attendance",
+   "label": "attendance",
+   "component": "AdminAttendanceTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/attendance",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:financial",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "financial",
+   "label": "financial",
+   "component": "ChargesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/charges.py:209:POST",
+    "routes/charges.py:261:GET",
+    "routes/charges.py:330:PUT",
+    "routes/charges.py:378:DELETE",
+    "routes/charges.py:981:GET",
+    "routes/charges.py:1029:POST",
+    "routes/charges.py:1063:POST",
+    "routes/charges.py:437:POST",
+    "routes/charges.py:303:POST",
+    "routes/charges.py:459:POST",
+    "routes/charges.py:398:POST",
+    "server.py:3512:GET",
+    "server.py:3518:PUT",
+    "server.py:3495:GET",
+    "server.py:3501:PUT"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_automation",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_automation",
+   "label": "marketing_automation",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:marketing_connections",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "marketing_connections",
+   "label": "marketing_connections",
+   "component": "MarketingTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-tab:players",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "players",
+   "label": "players",
+   "component": "PlayersTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:3147:GET",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:1656:POST",
+    "server.py:3233:POST",
+    "server.py:1675:POST",
+    "server.py:3189:POST",
+    "server.py:3267:POST",
+    "server.py:3288:POST",
+    "server.py:933:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:staff",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "staff",
+   "label": "staff",
+   "component": "StaffTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1040:GET",
+    "server.py:2169:POST",
+    "server.py:2290:PUT",
+    "server.py:2376:DELETE",
+    "server.py:2299:POST",
+    "server.py:2349:POST"
+   ]
+  },
+  {
+   "id": "admin-tab:club",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "club",
+   "label": "club",
+   "component": "ClubProfileTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/club",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:venues",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "venues",
+   "label": "venues",
+   "component": "VenuesTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:seasons",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "seasons",
+   "label": "seasons",
+   "component": "SeasonsTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-tab:my_profile",
+   "kind": "admin-tab",
+   "surface": "admin",
+   "original": "my_profile",
+   "label": "my_profile",
+   "component": "MyProfileTab",
+   "source": "frontend/src/pages/AdminPanel.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:AnalyticsDashboard",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "AnalyticsDashboard",
+   "source": "frontend/src/pages/admin/AnalyticsDashboard.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/analytics.py:734:GET",
+    "routes/analytics.py:244:GET",
+    "routes/analytics.py:380:GET",
+    "routes/analytics.py:417:GET",
+    "routes/analytics.py:429:GET",
+    "routes/analytics.py:446:GET",
+    "routes/analytics.py:539:GET",
+    "routes/analytics.py:583:GET"
+   ]
+  },
+  {
+   "id": "admin-module:AppApkTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "AppApkTab",
+   "source": "frontend/src/pages/admin/AppApkTab.jsx",
+   "rendered_by_tabs": [
+    "settings_apk"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/app_download.py:81:GET",
+    "routes/app_download.py:134:POST",
+    "routes/app_download.py:166:DELETE",
+    "routes/app_download.py:226:GET",
+    "routes/app_download.py:176:POST",
+    "routes/app_download.py:101:GET"
+   ]
+  },
+  {
+   "id": "admin-module:AttendanceTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "AttendanceTab",
+   "source": "frontend/src/pages/admin/AttendanceTab.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5232:GET",
+    "server.py:5434:GET",
+    "server.py:812:GET",
+    "server.py:1118:GET",
+    "server.py:5342:POST",
+    "server.py:5418:GET"
+   ]
+  },
+  {
+   "id": "admin-module:BackupRestoreTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "BackupRestoreTab",
+   "source": "frontend/src/pages/admin/BackupRestoreTab.jsx",
+   "rendered_by_tabs": [
+    "settings_backup"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/backup.py:322:GET",
+    "routes/backup.py:330:GET",
+    "routes/backup.py:357:GET",
+    "routes/backup.py:421:POST",
+    "routes/backup.py:350:POST",
+    "routes/backup.py:340:POST",
+    "routes/backup.py:372:POST"
+   ]
+  },
+  {
+   "id": "admin-module:BirthdayCardSettings",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "BirthdayCardSettings",
+   "source": "frontend/src/pages/admin/BirthdayCardSettings.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/player_evaluations.py:207:GET",
+    "routes/player_evaluations.py:218:PUT",
+    "routes/player_evaluations.py:289:GET",
+    "routes/player_evaluations.py:294:PUT"
+   ]
+  },
+  {
+   "id": "admin-module:CalendarTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "CalendarTab",
+   "source": "frontend/src/pages/admin/CalendarTab.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/admin_calendar.py:37:GET",
+    "server.py:5026:PUT",
+    "server.py:5142:DELETE",
+    "server.py:4981:POST",
+    "server.py:5013:GET"
+   ]
+  },
+  {
+   "id": "admin-module:CalendarTab.test",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "CalendarTab.test",
+   "source": "frontend/src/pages/admin/CalendarTab.test.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:ChangelogTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ChangelogTab",
+   "source": "frontend/src/pages/admin/ChangelogTab.jsx",
+   "rendered_by_tabs": [
+    "changelog"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/changelog.py:163:GET",
+    "routes/changelog.py:182:POST",
+    "routes/changelog.py:219:GET",
+    "routes/changelog.py:197:PUT",
+    "routes/changelog.py:212:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:ChargesTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ChargesTab",
+   "source": "frontend/src/pages/admin/ChargesTab.jsx",
+   "rendered_by_tabs": [
+    "financial",
+    "settings_charges"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/finance",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/charges.py:209:POST",
+    "routes/charges.py:261:GET",
+    "routes/charges.py:330:PUT",
+    "routes/charges.py:378:DELETE",
+    "routes/charges.py:981:GET",
+    "routes/charges.py:1029:POST",
+    "routes/charges.py:1063:POST",
+    "routes/charges.py:437:POST",
+    "routes/charges.py:303:POST",
+    "routes/charges.py:459:POST",
+    "routes/charges.py:398:POST",
+    "server.py:3512:GET",
+    "server.py:3518:PUT",
+    "server.py:3495:GET",
+    "server.py:3501:PUT"
+   ]
+  },
+  {
+   "id": "admin-module:ChargesTab.test",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ChargesTab.test",
+   "source": "frontend/src/pages/admin/ChargesTab.test.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:DrillsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "DrillsTab",
+   "source": "frontend/src/pages/admin/DrillsTab.jsx",
+   "rendered_by_tabs": [
+    "drills"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "coach",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc",
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "routes/drills.py:335:POST",
+    "routes/drills.py:212:GET",
+    "routes/drills.py:229:PUT",
+    "routes/drills.py:277:DELETE",
+    "routes/drills.py:175:GET",
+    "routes/drills.py:222:POST"
+   ]
+  },
+  {
+   "id": "admin-module:EnhancedAcademyTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "EnhancedAcademyTab",
+   "source": "frontend/src/pages/admin/EnhancedAcademyTab.jsx",
+   "rendered_by_tabs": [
+    "academy"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/groups",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "server.py:1760:PUT",
+    "server.py:1790:DELETE",
+    "server.py:1748:POST",
+    "server.py:1715:POST",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:933:POST",
+    "routes/admin_calendar.py:37:GET",
+    "server.py:872:POST",
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:3582:GET",
+    "server.py:3620:POST",
+    "server.py:3611:POST",
+    "server.py:3628:PUT",
+    "server.py:3641:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:EnhancedAcademyTab.test",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "EnhancedAcademyTab.test",
+   "source": "frontend/src/pages/admin/EnhancedAcademyTab.test.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:EvaluationDrilldownModal",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "EvaluationDrilldownModal",
+   "source": "frontend/src/pages/admin/EvaluationDrilldownModal.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/videos.py:202:GET"
+   ]
+  },
+  {
+   "id": "admin-module:EventsView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "EventsView",
+   "source": "frontend/src/pages/admin/EventsView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing_events.py:238:GET",
+    "routes/marketing_events.py:247:PUT",
+    "routes/marketing_events.py:261:DELETE",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "routes/marketing_events.py:268:GET",
+    "routes/marketing_events.py:291:GET",
+    "routes/marketing_events.py:328:POST",
+    "routes/marketing_events.py:363:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:ExpensesTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ExpensesTab",
+   "source": "frontend/src/pages/admin/ExpensesTab.jsx",
+   "rendered_by_tabs": [
+    "expenses"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1726:POST",
+    "routes/expenses.py:159:GET",
+    "routes/expenses.py:180:PUT",
+    "routes/expenses.py:200:DELETE",
+    "routes/expenses.py:113:GET",
+    "routes/expenses.py:169:POST"
+   ]
+  },
+  {
+   "id": "admin-module:FinancialDashboard",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "FinancialDashboard",
+   "source": "frontend/src/pages/admin/FinancialDashboard.jsx",
+   "rendered_by_tabs": [
+    "financial_dashboard"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/financial.py:109:POST",
+    "routes/financial.py:154:GET",
+    "routes/financial.py:310:GET",
+    "routes/charges.py:330:PUT",
+    "routes/charges.py:378:DELETE",
+    "routes/charges.py:398:POST",
+    "routes/charges.py:437:POST",
+    "routes/financial.py:189:PUT",
+    "routes/financial.py:256:DELETE",
+    "routes/financial.py:277:PUT",
+    "routes/financial.py:350:POST"
+   ]
+  },
+  {
+   "id": "admin-module:FinancialReportsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "FinancialReportsTab",
+   "source": "frontend/src/pages/admin/FinancialReportsTab.jsx",
+   "rendered_by_tabs": [
+    "financial_reports"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/charges.py:618:GET",
+    "routes/charges.py:683:GET",
+    "routes/charges.py:706:GET",
+    "routes/charges.py:753:GET",
+    "routes/charges.py:803:GET"
+   ]
+  },
+  {
+   "id": "admin-module:FixturesTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "FixturesTab",
+   "source": "frontend/src/pages/admin/FixturesTab.jsx",
+   "rendered_by_tabs": [
+    "fixtures"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:2425:POST",
+    "routes/opponents.py:18:POST",
+    "routes/opponents.py:34:GET",
+    "routes/opponents.py:62:POST"
+   ]
+  },
+  {
+   "id": "admin-module:GuestPlayersPicker",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "GuestPlayersPicker",
+   "source": "frontend/src/pages/admin/GuestPlayersPicker.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5111:GET",
+    "server.py:5128:POST",
+    "server.py:665:GET"
+   ]
+  },
+  {
+   "id": "admin-module:InlineAttendance",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "InlineAttendance",
+   "source": "frontend/src/pages/admin/InlineAttendance.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5342:POST",
+    "server.py:5418:GET"
+   ]
+  },
+  {
+   "id": "admin-module:LoyaltyView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "LoyaltyView",
+   "source": "frontend/src/pages/admin/LoyaltyView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/loyalty.py:178:PUT",
+    "routes/loyalty.py:188:DELETE",
+    "routes/loyalty.py:162:GET",
+    "routes/loyalty.py:169:POST",
+    "routes/loyalty.py:153:POST",
+    "routes/loyalty.py:130:GET",
+    "routes/loyalty.py:194:GET",
+    "routes/loyalty.py:216:POST",
+    "routes/loyalty.py:230:POST"
+   ]
+  },
+  {
+   "id": "admin-module:MarketingTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "MarketingTab",
+   "source": "frontend/src/pages/admin/MarketingTab.jsx",
+   "rendered_by_tabs": [
+    "marketing_dashboard",
+    "marketing_campaigns",
+    "marketing_leads",
+    "marketing_automation",
+    "marketing_media",
+    "marketing_social",
+    "marketing_connections",
+    "marketing_settings",
+    "marketing_reviews",
+    "marketing_events",
+    "marketing_referrals",
+    "marketing_loyalty",
+    "marketing_analytics"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/marketing.py:389:GET",
+    "routes/marketing_events.py:201:GET",
+    "routes/marketing_events.py:222:POST",
+    "server.py:5751:GET",
+    "routes/partners.py:118:GET",
+    "server.py:665:GET",
+    "server.py:1370:GET",
+    "routes/marketing.py:247:GET",
+    "routes/marketing.py:255:PUT",
+    "routes/marketing.py:265:DELETE",
+    "routes/marketing.py:203:POST",
+    "routes/marketing.py:217:GET",
+    "routes/marketing.py:326:GET",
+    "routes/marketing.py:334:PUT",
+    "routes/marketing.py:359:DELETE",
+    "routes/marketing.py:365:POST",
+    "routes/marketing.py:275:POST",
+    "routes/marketing.py:299:GET",
+    "routes/marketing.py:458:GET",
+    "routes/marketing.py:463:PUT",
+    "routes/marketing.py:474:POST",
+    "routes/marketing.py:418:GET"
+   ]
+  },
+  {
+   "id": "admin-module:MatchEventPlayers",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "MatchEventPlayers",
+   "source": "frontend/src/pages/admin/MatchEventPlayers.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:MediaLibraryView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "MediaLibraryView",
+   "source": "frontend/src/pages/admin/MediaLibraryView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/media_library.py:122:GET",
+    "routes/media_library.py:130:PUT",
+    "routes/media_library.py:145:DELETE",
+    "routes/media_library.py:100:GET",
+    "routes/media_library.py:64:POST"
+   ]
+  },
+  {
+   "id": "admin-module:MessagesTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "MessagesTab",
+   "source": "frontend/src/pages/admin/MessagesTab.jsx",
+   "rendered_by_tabs": [
+    "messages"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/announcements",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "coach",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/admin_messages.py:48:GET",
+    "routes/admin_messages.py:120:POST",
+    "routes/admin_messages.py:145:GET",
+    "routes/admin_messages.py:87:POST",
+    "routes/admin_messages.py:105:GET",
+    "routes/admin_messages.py:175:POST",
+    "server.py:3396:DELETE",
+    "routes/chat_moderation.py:59:PATCH",
+    "routes/chat_moderation.py:63:DELETE",
+    "routes/communication_media.py:87:POST"
+   ]
+  },
+  {
+   "id": "admin-module:MessagesTab.test",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "MessagesTab.test",
+   "source": "frontend/src/pages/admin/MessagesTab.test.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:PartnersTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PartnersTab",
+   "source": "frontend/src/pages/admin/PartnersTab.jsx",
+   "rendered_by_tabs": [
+    "partners"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "editor",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/partners.py:169:GET",
+    "routes/partners.py:177:PUT",
+    "routes/partners.py:191:DELETE",
+    "routes/partners.py:146:GET",
+    "routes/partners.py:154:POST"
+   ]
+  },
+  {
+   "id": "admin-module:PlayerDevelopmentPanel",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayerDevelopmentPanel",
+   "source": "frontend/src/pages/admin/PlayerDevelopmentPanel.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "routes/quarterly_report.py:268:GET",
+    "server.py:4796:POST",
+    "server.py:4821:GET",
+    "server.py:4838:PUT",
+    "server.py:4853:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:PlayerDocumentsView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayerDocumentsView",
+   "source": "frontend/src/pages/admin/PlayerDocumentsView.jsx",
+   "rendered_by_tabs": [
+    "player_documents"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/player_documents.py:300:PUT",
+    "routes/player_documents.py:327:DELETE",
+    "routes/player_documents.py:408:PUT",
+    "routes/player_documents.py:413:DELETE",
+    "routes/player_documents.py:226:GET",
+    "routes/player_documents.py:241:POST",
+    "routes/player_documents.py:390:GET",
+    "routes/player_documents.py:394:POST",
+    "routes/player_documents.py:136:GET",
+    "routes/player_documents.py:382:GET",
+    "routes/player_documents.py:186:GET",
+    "routes/player_documents.py:386:GET",
+    "routes/player_documents.py:128:GET",
+    "routes/player_documents.py:377:GET"
+   ]
+  },
+  {
+   "id": "admin-module:PlayerEvaluationPanel",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayerEvaluationPanel",
+   "source": "frontend/src/pages/admin/PlayerEvaluationPanel.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "routes/player_evaluations.py:99:GET",
+    "routes/player_evaluations.py:113:POST",
+    "routes/player_evaluations.py:258:GET",
+    "routes/player_evaluations.py:263:POST"
+   ]
+  },
+  {
+   "id": "admin-module:PlayerEvaluationsPanel",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayerEvaluationsPanel",
+   "source": "frontend/src/pages/admin/PlayerEvaluationsPanel.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/player_evaluations.py:99:GET",
+    "routes/player_evaluations.py:113:POST",
+    "routes/player_evaluations.py:258:GET",
+    "routes/player_evaluations.py:263:POST",
+    "routes/player_evaluations.py:144:GET",
+    "routes/player_evaluations.py:153:PUT",
+    "routes/player_evaluations.py:178:DELETE",
+    "routes/player_evaluations.py:271:GET",
+    "routes/player_evaluations.py:276:PUT",
+    "routes/player_evaluations.py:281:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:PlayersCRM",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayersCRM",
+   "source": "frontend/src/pages/admin/PlayersCRM.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/players_crm.py:330:POST",
+    "routes/players_crm.py:335:POST",
+    "routes/players_crm.py:68:GET",
+    "routes/players_crm.py:300:GET",
+    "routes/players_crm.py:161:GET",
+    "routes/players_crm.py:320:GET"
+   ]
+  },
+  {
+   "id": "admin-module:PlayersTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PlayersTab",
+   "source": "frontend/src/pages/admin/PlayersTab.jsx",
+   "rendered_by_tabs": [
+    "players"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:3147:GET",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:1656:POST",
+    "server.py:3233:POST",
+    "server.py:1675:POST",
+    "server.py:3189:POST",
+    "server.py:3267:POST",
+    "server.py:3288:POST",
+    "server.py:933:POST"
+   ]
+  },
+  {
+   "id": "admin-module:PollsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PollsTab",
+   "source": "frontend/src/pages/admin/PollsTab.jsx",
+   "rendered_by_tabs": [
+    "polls"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1715:POST",
+    "routes/polls.py:118:POST",
+    "routes/polls.py:129:GET",
+    "routes/polls.py:134:GET",
+    "routes/polls.py:141:PUT",
+    "routes/polls.py:152:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:PosTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PosTab",
+   "source": "frontend/src/pages/admin/PosTab.jsx",
+   "rendered_by_tabs": [
+    "pos"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/pos",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:PosTab.test",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "PosTab.test",
+   "source": "frontend/src/pages/admin/PosTab.test.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:ReelsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ReelsTab",
+   "source": "frontend/src/pages/admin/ReelsTab.jsx",
+   "rendered_by_tabs": [
+    "reels"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/reels.py:205:POST",
+    "server.py:1715:POST",
+    "routes/reels.py:228:GET",
+    "routes/reels.py:235:DELETE",
+    "routes/reels.py:157:POST",
+    "routes/reels.py:177:GET",
+    "routes/reels.py:182:PUT",
+    "routes/reels.py:195:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:ReferralsView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ReferralsView",
+   "source": "frontend/src/pages/admin/ReferralsView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/referrals.py:161:GET",
+    "routes/referrals.py:169:PATCH",
+    "routes/referrals.py:212:DELETE",
+    "routes/referrals.py:135:GET"
+   ]
+  },
+  {
+   "id": "admin-module:RegistrationsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "RegistrationsTab",
+   "source": "frontend/src/pages/admin/RegistrationsTab.jsx",
+   "rendered_by_tabs": [
+    "registrations"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/academy-office",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc_academy"
+    ]
+   },
+   "api_operations": [
+    "server.py:4178:GET",
+    "server.py:4194:PUT",
+    "server.py:4187:GET",
+    "server.py:4258:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:ResourceManagement",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ResourceManagement",
+   "source": "frontend/src/pages/admin/ResourceManagement.jsx",
+   "rendered_by_tabs": [
+    "resources"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/resources.py:13:POST",
+    "routes/resources.py:45:GET",
+    "routes/resources.py:100:POST",
+    "routes/resources.py:155:GET",
+    "routes/resources.py:380:GET",
+    "routes/resources.py:71:PUT",
+    "routes/resources.py:94:DELETE",
+    "routes/resources.py:178:PUT",
+    "routes/resources.py:208:DELETE",
+    "routes/resources.py:216:GET",
+    "routes/resources.py:352:GET"
+   ]
+  },
+  {
+   "id": "admin-module:ReviewsView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ReviewsView",
+   "source": "frontend/src/pages/admin/ReviewsView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/reviews.py:139:GET",
+    "routes/reviews.py:159:POST",
+    "routes/reviews.py:119:GET",
+    "routes/reviews.py:176:PATCH",
+    "routes/reviews.py:198:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:ScopedManagement",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ScopedManagement",
+   "source": "frontend/src/pages/admin/ScopedManagement.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/opponents.py:42:PUT",
+    "routes/opponents.py:54:DELETE",
+    "routes/opponents.py:18:POST",
+    "routes/opponents.py:34:GET",
+    "routes/opponents.py:62:POST",
+    "routes/resources.py:71:PUT",
+    "routes/resources.py:94:DELETE",
+    "routes/resources.py:13:POST",
+    "routes/resources.py:45:GET"
+   ]
+  },
+  {
+   "id": "admin-module:SeasonRolloverWizard",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SeasonRolloverWizard",
+   "source": "frontend/src/pages/admin/SeasonRolloverWizard.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:2856:GET",
+    "server.py:2956:POST",
+    "server.py:1341:GET",
+    "server.py:2808:PUT",
+    "server.py:2824:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:SectionDashboard",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SectionDashboard",
+   "source": "frontend/src/pages/admin/SectionDashboard.jsx",
+   "rendered_by_tabs": [
+    "club_dashboard",
+    "academy_dashboard"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:4981:POST",
+    "server.py:5013:GET",
+    "server.py:4546:POST",
+    "server.py:4602:GET",
+    "server.py:1118:GET"
+   ]
+  },
+  {
+   "id": "admin-module:SecurityTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SecurityTab",
+   "source": "frontend/src/pages/admin/SecurityTab.jsx",
+   "rendered_by_tabs": [
+    "settings_security"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/security_ops.py:60:GET",
+    "routes/security_ops.py:85:GET",
+    "routes/security_ops.py:103:GET"
+   ]
+  },
+  {
+   "id": "admin-module:ShopTabs",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "ShopTabs",
+   "source": "frontend/src/pages/admin/ShopTabs.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1715:POST",
+    "server.py:3911:GET",
+    "server.py:3917:POST",
+    "server.py:3937:PUT",
+    "server.py:3950:DELETE",
+    "server.py:3971:GET",
+    "server.py:3981:POST",
+    "server.py:1118:GET",
+    "server.py:4000:PUT",
+    "server.py:4014:DELETE",
+    "server.py:4450:GET",
+    "server.py:4466:PUT"
+   ]
+  },
+  {
+   "id": "admin-module:SocialCalendarView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SocialCalendarView",
+   "source": "frontend/src/pages/admin/SocialCalendarView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/social_calendar.py:107:GET",
+    "routes/social_calendar.py:115:PUT",
+    "routes/social_calendar.py:125:DELETE",
+    "routes/social_calendar.py:71:POST",
+    "routes/social_calendar.py:86:GET",
+    "routes/social_calendar.py:133:POST",
+    "routes/social_publishing.py:565:POST"
+   ]
+  },
+  {
+   "id": "admin-module:SocialCommunityAdmin",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SocialCommunityAdmin",
+   "source": "frontend/src/pages/admin/SocialCommunityAdmin.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:SocialConnectionsView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SocialConnectionsView",
+   "source": "frontend/src/pages/admin/SocialConnectionsView.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/social_publishing.py:187:GET",
+    "routes/social_publishing.py:217:POST",
+    "routes/social_publishing.py:274:DELETE",
+    "routes/social_publishing.py:283:GET",
+    "routes/social_publishing.py:315:POST",
+    "routes/social_publishing.py:354:GET"
+   ]
+  },
+  {
+   "id": "admin-module:SocialControlCenter",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SocialControlCenter",
+   "source": "frontend/src/pages/admin/SocialControlCenter.jsx",
+   "rendered_by_tabs": [
+    "social_control"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "marketing",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:SocialOfficialAccountsAdmin",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SocialOfficialAccountsAdmin",
+   "source": "frontend/src/pages/admin/SocialOfficialAccountsAdmin.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:SponsorsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SponsorsTab",
+   "source": "frontend/src/pages/admin/SponsorsTab.jsx",
+   "rendered_by_tabs": [
+    "sponsors"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "editor",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5814:POST",
+    "server.py:5751:GET",
+    "server.py:5795:PUT",
+    "server.py:5806:DELETE",
+    "server.py:5787:POST"
+   ]
+  },
+  {
+   "id": "admin-module:StaffComplianceView",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "StaffComplianceView",
+   "source": "frontend/src/pages/admin/StaffComplianceView.jsx",
+   "rendered_by_tabs": [
+    "settings_staff_compliance"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/staff_compliance.py:406:PUT",
+    "routes/staff_compliance.py:424:DELETE",
+    "routes/staff_compliance.py:350:POST",
+    "routes/staff_compliance.py:315:GET",
+    "routes/staff_compliance.py:222:GET",
+    "routes/staff_compliance.py:199:GET",
+    "routes/staff_compliance.py:274:GET",
+    "routes/staff_compliance.py:175:GET"
+   ]
+  },
+  {
+   "id": "admin-module:StaffTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "StaffTab",
+   "source": "frontend/src/pages/admin/StaffTab.jsx",
+   "rendered_by_tabs": [
+    "settings_staff",
+    "staff"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any admin (switch case only)",
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:1040:GET",
+    "server.py:2169:POST",
+    "server.py:2290:PUT",
+    "server.py:2376:DELETE",
+    "server.py:2299:POST",
+    "server.py:2349:POST"
+   ]
+  },
+  {
+   "id": "admin-module:StorageFiles",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "StorageFiles",
+   "source": "frontend/src/pages/admin/StorageFiles.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:StorageStatusTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "StorageStatusTab",
+   "source": "frontend/src/pages/admin/StorageStatusTab.jsx",
+   "rendered_by_tabs": [
+    "settings_storage"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:SuggestionsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "SuggestionsTab",
+   "source": "frontend/src/pages/admin/SuggestionsTab.jsx",
+   "rendered_by_tabs": [
+    "suggestions"
+   ],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/suggestions.py:95:GET",
+    "routes/suggestions.py:105:PUT",
+    "routes/suggestions.py:124:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:TeamsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "TeamsTab",
+   "source": "frontend/src/pages/admin/TeamsTab.jsx",
+   "rendered_by_tabs": [
+    "teams"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/groups",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "server.py:1913:PUT",
+    "server.py:1930:DELETE",
+    "server.py:1900:POST",
+    "server.py:1590:PUT",
+    "server.py:1644:DELETE",
+    "server.py:1547:POST",
+    "server.py:3582:GET",
+    "server.py:3620:POST",
+    "server.py:3611:POST",
+    "server.py:3628:PUT",
+    "server.py:3641:DELETE",
+    "server.py:2466:PUT",
+    "server.py:2486:DELETE",
+    "server.py:2425:POST",
+    "server.py:1715:POST"
+   ]
+  },
+  {
+   "id": "admin-module:TrainingSessionsPanel",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "TrainingSessionsPanel",
+   "source": "frontend/src/pages/admin/TrainingSessionsPanel.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:4546:POST",
+    "server.py:4602:GET",
+    "server.py:4655:PUT",
+    "server.py:4778:DELETE",
+    "server.py:4719:POST",
+    "server.py:4742:POST",
+    "routes/opponents.py:78:POST",
+    "routes/drills.py:145:GET"
+   ]
+  },
+  {
+   "id": "admin-module:TransferLogPickerModal",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "TransferLogPickerModal",
+   "source": "frontend/src/pages/admin/TransferLogPickerModal.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/players_crm.py:188:GET",
+    "routes/players_crm.py:325:GET",
+    "routes/players_crm.py:335:POST"
+   ]
+  },
+  {
+   "id": "admin-module:TrialsTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "TrialsTab",
+   "source": "frontend/src/pages/admin/TrialsTab.jsx",
+   "rendered_by_tabs": [
+    "trials"
+   ],
+   "os_route_or_component": "frontend/src/routes/admin/trials",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "manager",
+     "super_admin"
+    ],
+    "organizations": [
+     "lefteria_fc"
+    ]
+   },
+   "api_operations": [
+    "routes/trials.py:84:GET",
+    "routes/trials.py:138:GET",
+    "routes/trials.py:142:PUT",
+    "routes/trials.py:92:PATCH",
+    "routes/trials.py:104:DELETE",
+    "routes/trials.py:111:GET"
+   ]
+  },
+  {
+   "id": "admin-module:VideoAnalyticsPanel",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "VideoAnalyticsPanel",
+   "source": "frontend/src/pages/admin/VideoAnalyticsPanel.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "routes/videos.py:185:GET",
+    "routes/videos.py:23:POST",
+    "routes/videos.py:45:GET",
+    "routes/videos.py:65:GET",
+    "routes/videos.py:72:PUT",
+    "routes/videos.py:86:DELETE",
+    "routes/videos.py:94:POST",
+    "routes/videos.py:117:POST",
+    "routes/videos.py:172:DELETE"
+   ]
+  },
+  {
+   "id": "admin-module:WallTab",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "WallTab",
+   "source": "frontend/src/pages/admin/WallTab.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": [
+    "server.py:5507:POST",
+    "server.py:5537:GET",
+    "server.py:5542:DELETE",
+    "server.py:5549:PUT",
+    "server.py:5582:POST",
+    "server.py:5596:GET",
+    "routes/communication_media.py:104:POST"
+   ]
+  },
+  {
+   "id": "admin-module:_adminShared",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "_adminShared",
+   "source": "frontend/src/pages/admin/_adminShared.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "admin-module:shared",
+   "kind": "admin-module",
+   "surface": "admin",
+   "original": "shared",
+   "source": "frontend/src/pages/admin/shared.jsx",
+   "rendered_by_tabs": [],
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "inherits parent tab / any admin"
+    ],
+    "organizations": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:ChatPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ChatPage",
+   "source": "frontend/src/mobile/pages/ChatPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileGroupChat.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:1901:GET",
+    "routes/mobile_auth.py:2051:POST",
+    "routes/mobile_auth.py:2073:GET",
+    "routes/mobile_auth.py:1935:GET",
+    "routes/mobile_auth.py:1973:POST",
+    "routes/communication_media.py:92:POST",
+    "routes/chat_moderation.py:15:DELETE",
+    "routes/chat_moderation.py:67:PATCH",
+    "routes/chat_moderation.py:71:DELETE"
+   ]
+  },
+  {
+   "id": "mobile-page:CoachDashboard",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "CoachDashboard",
+   "source": "frontend/src/mobile/pages/CoachDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "coach"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:841:GET",
+    "routes/mobile_auth.py:879:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:EducationHubPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "EducationHubPage",
+   "source": "frontend/src/mobile/pages/EducationHubPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobilePublishedHubEducation.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "hub"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:FamilySettingsPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "FamilySettingsPage",
+   "source": "frontend/src/mobile/pages/FamilySettingsPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileFamily.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "family"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:FanDashboard",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "FanDashboard",
+   "source": "frontend/src/mobile/pages/FanDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "player"
+    ],
+    "tabs": [
+     "shop"
+    ]
+   },
+   "api_operations": [
+    "routes/fan_engagement.py:154:GET",
+    "server.py:1370:GET",
+    "server.py:5762:GET",
+    "routes/fan_engagement.py:21:GET",
+    "routes/fan_engagement.py:102:GET",
+    "routes/fan_engagement.py:55:POST",
+    "server.py:1118:GET",
+    "server.py:1297:GET",
+    "server.py:665:GET",
+    "routes/fan_engagement.py:495:GET",
+    "routes/fan_engagement.py:524:POST",
+    "routes/fan_engagement.py:560:DELETE",
+    "server.py:4267:GET",
+    "routes/stripe_checkout.py:372:POST",
+    "server.py:785:GET",
+    "server.py:804:GET",
+    "server.py:4639:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:FinancialPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "FinancialPage",
+   "source": "frontend/src/mobile/pages/FinancialPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileTrainingFees.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "financials"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:1183:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:GameHub",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "GameHub",
+   "source": "frontend/src/mobile/pages/GameHub.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:634:GET",
+    "routes/mobile_auth.py:673:PUT",
+    "routes/mobile_auth.py:1797:PUT"
+   ]
+  },
+  {
+   "id": "mobile-page:ManagementDashboard",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ManagementDashboard",
+   "source": "frontend/src/mobile/pages/ManagementDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "management"
+    ],
+    "tabs": [
+     "management-approvals",
+     "management-players",
+     "management-reports"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:963:GET",
+    "routes/mobile_auth.py:1183:POST",
+    "server.py:4194:PUT",
+    "server.py:5232:GET",
+    "routes/mobile_auth.py:1322:GET",
+    "routes/mobile_auth.py:1132:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:MatchesPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "MatchesPage",
+   "source": "frontend/src/mobile/pages/MatchesPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:1783:GET",
+    "routes/mobile_auth.py:1468:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:MobileLoginPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "MobileLoginPage",
+   "source": "frontend/src/mobile/pages/MobileLoginPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileLogin.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:372:POST",
+    "routes/mobile_auth.py:496:POST",
+    "routes/mobile_auth.py:2405:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:MobilePaySuccessPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "MobilePaySuccessPage",
+   "source": "frontend/src/mobile/pages/MobilePaySuccessPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/stripe_checkout.py:623:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:MobileShopSuccessPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "MobileShopSuccessPage",
+   "source": "frontend/src/mobile/pages/MobileShopSuccessPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/stripe_checkout.py:465:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:MorePage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "MorePage",
+   "source": "frontend/src/mobile/pages/MorePage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "more"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:NewsPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "NewsPage",
+   "source": "frontend/src/mobile/pages/NewsPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "announcements"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:ParentDashboard",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ParentDashboard",
+   "source": "frontend/src/mobile/pages/ParentDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileParentHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "parent"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:689:GET",
+    "routes/mobile_auth.py:1783:GET",
+    "routes/mobile_auth.py:1468:POST",
+    "routes/mobile_auth.py:2263:POST",
+    "routes/mobile_auth.py:2180:POST",
+    "routes/charges.py:909:GET",
+    "routes/charges.py:1015:GET",
+    "routes/stripe_checkout.py:536:POST",
+    "routes/stripe_checkout.py:549:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:PlayerDashboard",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "PlayerDashboard",
+   "source": "frontend/src/mobile/pages/PlayerDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "player"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:894:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:PlayerDevelopmentPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "PlayerDevelopmentPage",
+   "source": "frontend/src/mobile/pages/PlayerDevelopmentPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobilePlayerCoachFeedback.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "player"
+    ],
+    "tabs": [
+     "development"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:ProfilePage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ProfilePage",
+   "source": "frontend/src/mobile/pages/ProfilePage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileProfile.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:634:GET",
+    "routes/mobile_auth.py:673:PUT",
+    "routes/mobile_auth.py:1839:POST",
+    "routes/mobile_auth.py:1797:PUT",
+    "routes/suggestions.py:39:POST",
+    "routes/suggestions.py:67:GET",
+    "routes/suggestions.py:77:POST",
+    "server.py:633:GET",
+    "routes/changelog.py:169:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:ReelsCommentNode",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ReelsCommentNode",
+   "source": "frontend/src/mobile/pages/ReelsCommentNode.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:ReelsPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "ReelsPage",
+   "source": "frontend/src/mobile/pages/ReelsPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/reels.py:304:GET",
+    "routes/reels.py:311:POST",
+    "routes/reels.py:340:DELETE",
+    "routes/reels.py:288:POST",
+    "routes/reels.py:267:POST",
+    "routes/reels.py:246:GET",
+    "server.py:5762:GET"
+   ]
+  },
+  {
+   "id": "mobile-page:RoleProfilePage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "RoleProfilePage",
+   "source": "frontend/src/mobile/pages/RoleProfilePage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileProfile.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": [
+     "profile"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:SchedulePage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "SchedulePage",
+   "source": "frontend/src/mobile/pages/SchedulePage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileCalendar.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:1201:GET",
+    "routes/mobile_auth.py:1783:GET",
+    "routes/mobile_auth.py:1468:POST"
+   ]
+  },
+  {
+   "id": "mobile-page:SocialCommunityHub",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "SocialCommunityHub",
+   "source": "frontend/src/mobile/pages/SocialCommunityHub.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:SocialNetworkPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "SocialNetworkPage",
+   "source": "frontend/src/mobile/pages/SocialNetworkPage.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "fan"
+    ],
+    "tabs": [
+     "home",
+     "social"
+    ]
+   },
+   "api_operations": []
+  },
+  {
+   "id": "mobile-page:SponsorDetailSheet",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "SponsorDetailSheet",
+   "source": "frontend/src/mobile/pages/SponsorDetailSheet.jsx",
+   "os_route_or_component": null,
+   "os_status": "missing",
+   "visibility": {
+    "roles": [
+     "any signed-in member (see MobileApp.jsx)"
+    ],
+    "tabs": []
+   },
+   "api_operations": [
+    "routes/sponsor_interactions.py:40:GET",
+    "routes/sponsor_interactions.py:100:GET",
+    "routes/sponsor_interactions.py:107:POST",
+    "routes/sponsor_interactions.py:85:POST",
+    "routes/sponsor_interactions.py:64:POST",
+    "routes/sponsor_interactions.py:134:DELETE"
+   ]
+  },
+  {
+   "id": "mobile-page:UnderDevelopmentPage",
+   "kind": "mobile-page",
+   "surface": "mobile",
+   "original": "UnderDevelopmentPage",
+   "source": "frontend/src/mobile/pages/UnderDevelopmentPage.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileShell.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "management"
+    ],
+    "tabs": []
+   },
+   "api_operations": []
+  },
+  {
+   "id": "role-dashboard:fan",
+   "kind": "role-dashboard",
+   "surface": "mobile",
+   "original": "FanDashboard",
+   "source": "frontend/src/mobile/pages/FanDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "fan"
+    ]
+   },
+   "api_operations": [
+    "routes/fan_engagement.py:154:GET",
+    "server.py:1370:GET",
+    "server.py:5762:GET",
+    "routes/fan_engagement.py:21:GET",
+    "routes/fan_engagement.py:102:GET",
+    "routes/fan_engagement.py:55:POST",
+    "server.py:1118:GET",
+    "server.py:1297:GET",
+    "server.py:665:GET",
+    "routes/fan_engagement.py:495:GET",
+    "routes/fan_engagement.py:524:POST",
+    "routes/fan_engagement.py:560:DELETE",
+    "server.py:4267:GET",
+    "routes/stripe_checkout.py:372:POST",
+    "server.py:785:GET",
+    "server.py:804:GET",
+    "server.py:4639:GET"
+   ]
+  },
+  {
+   "id": "role-dashboard:player",
+   "kind": "role-dashboard",
+   "surface": "mobile",
+   "original": "PlayerDashboard",
+   "source": "frontend/src/mobile/pages/PlayerDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "player"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:894:GET"
+   ]
+  },
+  {
+   "id": "role-dashboard:parent",
+   "kind": "role-dashboard",
+   "surface": "mobile",
+   "original": "ParentDashboard",
+   "source": "frontend/src/mobile/pages/ParentDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "parent"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:689:GET",
+    "routes/mobile_auth.py:1783:GET",
+    "routes/mobile_auth.py:1468:POST",
+    "routes/mobile_auth.py:2263:POST",
+    "routes/mobile_auth.py:2180:POST",
+    "routes/charges.py:909:GET",
+    "routes/charges.py:1015:GET",
+    "routes/stripe_checkout.py:536:POST",
+    "routes/stripe_checkout.py:549:POST"
+   ]
+  },
+  {
+   "id": "role-dashboard:coach",
+   "kind": "role-dashboard",
+   "surface": "mobile",
+   "original": "CoachDashboard",
+   "source": "frontend/src/mobile/pages/CoachDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "coach"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:841:GET",
+    "routes/mobile_auth.py:879:GET"
+   ]
+  },
+  {
+   "id": "role-dashboard:management",
+   "kind": "role-dashboard",
+   "surface": "mobile",
+   "original": "ManagementDashboard",
+   "source": "frontend/src/mobile/pages/ManagementDashboard.jsx",
+   "os_route_or_component": "frontend/src/lib/mobile/components/MobileRoleHome.svelte",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "management"
+    ]
+   },
+   "api_operations": [
+    "routes/mobile_auth.py:963:GET",
+    "routes/mobile_auth.py:1183:POST",
+    "server.py:4194:PUT",
+    "server.py:5232:GET",
+    "routes/mobile_auth.py:1322:GET",
+    "routes/mobile_auth.py:1132:POST"
+   ]
+  },
+  {
+   "id": "pos:PosApp",
+   "kind": "pos-screen",
+   "surface": "pos",
+   "original": "PosApp",
+   "source": "frontend/src/pos/PosApp.jsx",
+   "os_route_or_component": "frontend/src/routes/admin/pos",
+   "os_status": "partial",
+   "visibility": {
+    "roles": [
+     "super_admin",
+     "manager",
+     "cashier (see PosTab)"
+    ]
+   },
+   "api_operations": []
+  }
+ ]
+}

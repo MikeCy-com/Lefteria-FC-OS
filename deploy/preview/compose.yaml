@@ -92,6 +92,9 @@ services:
       Twilio__AccountSid: ""
       Twilio__AuthToken: ""
       Twilio__FromNumber: ""
+      PublicMedia__Root: /var/lib/lefteria/media
+    volumes:
+      - public_media:/var/lib/lefteria/media:ro
     tmpfs: [/tmp:size=32m]
     mem_limit: 512m
     cpus: 0.35
@@ -176,6 +179,7 @@ services:
 
 volumes:
   postgres_data:
+  public_media:
 
 networks:
   public:

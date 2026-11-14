@@ -63,7 +63,7 @@
     <button type="button" class="public-icon-button" disabled aria-label="Ειδοποιήσεις · προσωρινά μη διαθέσιμες" title="Οι ειδοποιήσεις δεν είναι ακόμη διαθέσιμες σε αυτή την προεπισκόπηση." data-testid="push-toggle"><Icon name="bell" size={19} /></button>
     <a href="/login" class="public-icon-button" aria-label="Σύνδεση" title="Σύνδεση" data-testid="public-account-link"><Icon name="user" size={21} /></a>
     <a href="/cart" class="public-icon-button public-cart" aria-label="Καλάθι" title="Καλάθι" data-testid="public-cart-link"><Icon name="bag" size={20} /></a>
-    <a href="/shop" class="public-button public-ticket-link" data-testid="public-shop-link">ΚΑΤΑΣΤΗΜΑ <Icon name="arrow" size={18} /></a>
+    <a href="/shop" class="public-button public-ticket-link" data-testid="public-tickets-link">ΕΙΣΙΤΗΡΙΑ <Icon name="arrow" size={18} /></a>
   </div>
 </header>
 <dialog bind:this={menu} class="public-dialog public-menu-dialog" aria-labelledby="public-menu-heading" aria-describedby="public-menu-description" onclose={() => { menuOpen = false; releaseScroll(); restoreFocus(); }} onclick={backdrop} data-testid="public-menu-drawer">

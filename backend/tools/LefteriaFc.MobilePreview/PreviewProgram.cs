@@ -15,6 +15,8 @@ internal static class PreviewProgram
     {
         if (args.Length > 0 && args[0] == "--web-platform")
             return await WebPlatformPreviewProgram.RunAsync(args[1..]);
+        if (args.Length > 0 && args[0] == "--workspace")
+            return await WorkspaceHostProgram.RunAsync(args[1..]);
         TestDatabase? database = null;
         PreviewApiFactory? factory = null;
         WebApplication? app = null;
@@ -134,7 +136,7 @@ internal static class PreviewProgram
         return exitCode;
     }
 
-    private static async Task SeedFanDetailsAsync(TestDatabase database, PhoneNumber phone)
+    internal static async Task SeedFanDetailsAsync(TestDatabase database, PhoneNumber phone)
     {
         await using var context = database.CreateContext();
         var fan = await context.MobileIdentities.SingleAsync(row => row.NormalizedPhone == phone.Digits && row.Role == "fan");

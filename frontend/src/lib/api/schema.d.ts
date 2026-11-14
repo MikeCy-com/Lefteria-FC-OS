@@ -2756,6 +2756,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/uploads/{folder}/{fileName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPublicMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head: operations["HeadPublicMedia"];
+        patch?: never;
+        trace?: never;
+    };
     "/api/uploads/avatars/{fileName}": {
         parameters: {
             query?: never;
@@ -17500,6 +17516,62 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FirstTeamTrialsSettings"];
                 };
+            };
+        };
+    };
+    GetPublicMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileName: string;
+                folder: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HeadPublicMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileName: string;
+                folder: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -7,3 +7,13 @@ frontend/node_modules/
 tools/api-client/node_modules/
 frontend/.svelte-kit/
 frontend/build/
+
+# Preview-workspace runtime (PostgreSQL data, local secrets, logs) and env-created yarn lockfile
+.runtime/
+frontend/yarn.lock
+backend/__pycache__/
+*.env
+credentials.json
+*.pem
+*.key
+.credentials

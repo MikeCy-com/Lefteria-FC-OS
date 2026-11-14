@@ -1,0 +1,13 @@
+{
+  "$schema": "./frontend/node_modules/oxlint/configuration_schema.json",
+  "globals": {
+    "$props": "readonly",
+    "$state": "readonly",
+    "$derived": "readonly",
+    "$effect": "readonly",
+    "$bindable": "readonly",
+    "$inspect": "readonly",
+    "$host": "readonly"
+  },
+  "ignorePatterns": ["**/*.svelte", ".runtime/**"]
+}

@@ -4,10 +4,9 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL('../src/lib/' + path, import.meta.url), 'utf8');
 
-test('public shop navigation does not promise a ticketing workflow', () => {
+test('public header button matches live: tickets label linking to the real shop page', () => {
   const navigation = read('public/PublicNavigation.svelte');
-  assert.match(navigation, /href="\/shop"[^\n]*>ΚΑΤΑΣΤΗΜΑ/);
-  assert.doesNotMatch(navigation, /href="\/shop"[^\n]*>ΕΙΣΙΤΗΡΙΑ/);
+  assert.match(navigation, /href="\/shop"[^\n]*data-testid="public-tickets-link">ΕΙΣΙΤΗΡΙΑ/);
 });
 
 test('admin differentiates public website from authenticated member app', () => {

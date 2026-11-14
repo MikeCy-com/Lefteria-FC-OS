@@ -1,0 +1,55 @@
+{
+  "summary": "Frontend/UI test of Lefteria FC OS preview (SvelteKit + .NET via ASGI bridge) against /app/memory/product/phase1/journeys.md. Playwright on the public preview URL, plus curl for JRN-1/2. All in-scope journeys PASS: JRN-1, 2, 5, 6, 7, 8 (one wrong-code attempt only), 9, 11, 12, 13, 14, 15, 16, 18 (coach), 19, 20, 21, 22. JRN-3/4/10/17 were not tested, as instructed. No workspace wiring problems found: cookies, sessions, role switching, RSVP writes and profile writes all work through the bridge.",
+  "journey_results": {
+    "JRN-1": "PASS - /api/health/live 200, /api/health/ready 200",
+    "JRN-2": "PASS - /api/openapi.json has 172 paths, including /api/mobile/auth/request-otp and /api/admin/auth/setup",
+    "JRN-5": "PASS - Greek homepage renders with club crest logo, sidebar plus top nav (22 nav links) and hero",
+    "JRN-6": "PASS - /news (empty state 'Δεν υπάρχουν δημοσιευμένα νέα'), /team (empty fixtures state), /academy (content), /fixtures (308 to /team?tab=results, empty state), /contact (content), /shop (repo's explicit 'ΤΟ ΠΕΡΙΕΧΟΜΕΝΟ ΔΕΝ ΕΙΝΑΙ ΔΙΑΘΕΣΙΜΟ' Unavailable component), /trials ('ΟΙ ΑΙΤΗΣΕΙΣ ΔΕΝ ΕΙΝΑΙ ΑΚΟΜΗ ΑΝΟΙΧΤΕΣ'). All HTTP 200, no blank pages",
+    "JRN-7": "PASS - sign-in form plus 'Αρχική ρύθμιση ιδιοκτήτη' section with 'Δημιουργία λογαριασμού ιδιοκτήτη' button",
+    "JRN-8": "PASS - exactly ONE POST /api/admin/auth/setup with setup_code 'a'x64 and a 17-char password. Got 403, UI shows 'Ο κωδικός αρχικής ρύθμισης είναι λανθασμένος.', setup form still offered, and the setup button is still there after reload",
+    "JRN-9": "PASS - made-up credentials give 'Λάθος όνομα χρήστη ή κωδικός.' and stay on /admin/login",
+    "JRN-11": "PASS - +999508474740001 / 123456 opens the role picker with Παίκτης and Φίλαθλος. Choosing Φίλαθλος opens the role home at /app, with role-switcher (player and fan options), notifications bell, profile avatar and bottom nav",
+    "JRN-12": "PASS - code 000000 shows error 'Invalid code' and the user stays on /app/login, signed out",
+    "JRN-13": "PASS - +35799000000 shows 'Η αποστολή του κωδικού δεν είναι διαθέσιμη. Δοκιμάστε ξανά.' (503 from request-otp) and the OTP step is never shown",
+    "JRN-14": "PASS - parent calendar Oct 2026 child selector has 3 children (Fictional child, Fictional FC child, Fictional second child). Fictional child: Oct 20 (3 events) and Oct 30. Fictional FC child (2nd option): only Oct 12 FC events. Fictional second child: only Oct 20 group-two events",
+    "JRN-15": "PASS - Oct 30 'Approved frozen training' (Fictional child): RSVP Ίσως saved, still 'Αποθηκευμένη απάντηση: Ίσως' with the button aria-pressed after page refresh",
+    "JRN-16": "PASS - Oct 21 shows calendar-empty for the parent (no draft) and has no event dot for any child. The coach does see an Oct 21 item, as expected for staff",
+    "JRN-18": "PASS (coach) - +999508474740003 role picker shows coach and fan only (management deferred, as expected). Calendar role=coach. Each Oct 12 and Oct 20 event has a 'Απαντήσεις συμμετοχής' toggle listing player replies (paginated with 'Περισσότερες απαντήσεις'). Staff cards have 0 RSVP buttons. Cross-check: parent set Ίσως on Oct 20 'Fictional outside' and the coach replies list shows 'Fictional child | Ίσως'",
+    "JRN-19": "PASS - fan profile first name changed to TEST_Nikos, saved ('Οι αλλαγές σου αποθηκεύτηκαν.'), still shown after refresh. Then restored to the original 'Δοκιμαστικός'",
+    "JRN-20": "PASS - header create-post (+) shows the exact label 'Under Developments'. The parent home also has 'Under Developments' shortcuts",
+    "JRN-21": "PASS - parent 'Πληρωμές' opens /app?tab=financials: 0,00 €, 'Δεν έχουν εκδοθεί μηνιαίες χρεώσεις', no click-to-pay button, no popup and no external payment requests",
+    "JRN-22": "PASS - notifications tab web-push-controls show 'Οι ειδοποιήσεις συσκευής δεν είναι ακόμα ενεργοποιημένες για τον σύλλογο.' with no enable button and no error page",
+    "NOT_TESTED": "JRN-3 (restart), JRN-4 (API down), JRN-10 (human only), JRN-17 (management deferred), as instructed"
+  },
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "GET /api/mobile/coach/feedback/targets", "issue": "Returns 503 for the coach. postgres.log shows 'ERROR: coach_targets_limit' raised by club.read_mobile_coach_feedback_targets: the fixture roster (~200 'roster peer' players) is over the function's limit. This is the repo's own guard reacting to its own fixture size, not bridge wiring. Not part of any journey."},
+      {"endpoint": "GET /api/public/sections", "issue": "Returns 503 public_sections_unavailable both through the bridge and directly at 127.0.0.1:5080. The repository returns null because no public sections snapshot is exported/imported. /shop therefore shows the repo's explicit Unavailable state (acceptable for JRN-6). Shop content only appears once the owner publishes sections."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "MobileCalendar event meta", "issue": "Oct 12 FC match 'Fictional home – Fictional away' shows the start time as raw '12:30:00.1234567' instead of HH:MM. Likely repo/fixture behaviour (start_time rendered as-is). Cosmetic.", "selector": ".event-card .event-meta span", "priority": "LOW"},
+      {"component": "MobileLogin error", "issue": "Wrong OTP error text is English 'Invalid code' in an otherwise Greek UI. It comes from the repo's MobileAuthService.cs:616, so it is existing behaviour.", "selector": "[data-testid='login-error']", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "None blocking. The journeys in scope pass.",
+    "Optional: tell the user that /shop stays in the 'unavailable' state and /news and /team stay empty until public content is published after owner setup.",
+    "Optional, repo-level and no product change required: coach feedback targets return 503 (coach_targets_limit) with the 200-player fixture roster."
+  ],
+  "critical_code_review_comments": [
+    "Bridge/wiring: auth cookies, CSRF-style X-Lefteria-Admin header, POST bodies and 4xx/5xx status codes all pass through correctly (403 setup, 401 login, 503 OTP delivery and 503 public sections were all reported faithfully)."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "not requested (JRN-1/2 curl checks passed)", "frontend": "100% of in-scope journeys (18/18)"},
+  "test_credentials": "Used /app/memory/test_credentials.md phones +999508474740001/2/3 with code 123456. Admin: one made-up sign-in and ONE wrong setup code ('a'x64). The real owner setup was not touched or attempted.",
+  "seed_data_creation": "No new records created. Demo data mutations: (1) fan first name changed to TEST_Nikos, then restored to 'Δοκιμαστικός'; (2) Fictional child RSVP = 'maybe' on Oct 30 'Approved frozen training' and Oct 20 'Fictional outside' (required by JRN-15/18, no UI path back to 'no response'); (3) one admin setup rate-limit attempt consumed.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Mobile UI testids: phone-input, request-otp-btn, otp-input, verify-otp-btn, choose-role-{player|fan|parent|coach}, mobile-app, role-switcher, mobile-notifications, mobile-profile, mobile-create-post, under-developments. Calendar: calendar-player-select, '.month-toggle' opens calendar-month-grid, day buttons have i.has-items dots, '.month-heading h2' is the month, prev button aria-label 'Προηγούμενος μήνας'. Browser 'today' is Nov 2026, so October is one click back. Admin setup and sign-in forms both use input names username/password, so scope selectors to section.owner-setup form. Do NOT submit more owner-setup attempts (rate limited; one already used in this iteration)."
+}
