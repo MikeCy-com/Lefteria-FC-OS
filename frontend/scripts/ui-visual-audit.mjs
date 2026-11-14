@@ -24,7 +24,8 @@ const routes = [
   { name:'contact', path:'/contact', expectedStatus:200 },
   { name:'privacy', path:'/privacy', expectedStatus:200 },
   { name:'web-app-access', path:'/login', expectedStatus:200 },
-  { name:'app-login', path:'/app/login', expectedStatus:200 }
+  { name:'app-login', path:'/app/login', expectedStatus:200 },
+  { name:'admin-login', path:'/admin/login', expectedStatus:200 }
 ];
 const viewports = [
   { name:'phone', width:390, height:844 },
@@ -230,9 +231,25 @@ try {
     for (const route of routes) {
       const page = await context.newPage();
       const url = base + route.path;
+      // Synthetic anonymous response exercises the actual login form, without credentials or a backend.
+      if (route.name === 'admin-login') {
+        await page.route('**/api/admin/auth/me', request => request.fulfill({status:401,contentType:'application/json',body:'{}'}));
+      }
       const response = await page.goto(url, { waitUntil:'domcontentloaded', timeout:30000 });
       await page.locator('body').waitFor();
+      if (route.name === 'admin-login') await page.getByTestId('admin-login-username').waitFor();
       await page.evaluate(() => document.fonts.ready);
+      const typography = await page.evaluate(async () => {
+        const faces = await document.fonts.load('italic 800 32px "Fira Sans Extra Condensed"', 'ΛΕΥΤΕΡΙΑ');
+        return {
+          italicLoaded: faces.length > 0 && faces.every(face => face.status === 'loaded'),
+          headings: [...document.querySelectorAll('h1,h2')].slice(0,12).map(element => {
+            const style = getComputedStyle(element);
+            return {text:element.textContent?.slice(0,80),family:style.fontFamily,size:style.fontSize,weight:style.fontWeight,style:style.fontStyle,lineHeight:style.lineHeight};
+          })
+        };
+      });
+      if (!typography.italicLoaded) failures.push(route.path + ' ' + viewport.name + ': real Greek italic font did not load');
       const metrics = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         clientWidth:document.documentElement.clientWidth,
@@ -242,7 +259,7 @@ try {
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);

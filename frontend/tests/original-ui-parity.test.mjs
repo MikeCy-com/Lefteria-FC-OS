@@ -83,7 +83,7 @@ test('original public menu preserves scope ownership across legacy aliases and e
   assert.equal(navigationOwner('/unported-private-route'),null);
 });
 
-test('homepage news follows the destination cards and supporter banner', () => {
+test('homepage news follows destination cards before fixtures and supporter promotion', () => {
   const home = read('routes/+page.svelte');
-  assert.match(home, /<HomeHero[\s\S]*<HomeDestinations[\s\S]*<SidelineBanner[\s\S]*<HomeNews/);
+  assert.match(home, /<HomeHero[\s\S]*<HomeDestinations[\s\S]*<HomeNews[\s\S]*<Fixtures[\s\S]*<SidelineBanner/);
 });

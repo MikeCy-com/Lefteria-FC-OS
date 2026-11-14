@@ -79,7 +79,7 @@
 
 <svelte:head><title>Πρόγραμμα προπονήσεων Ακαδημίας | Λευτεριά FC OS</title><meta name="robots" content="noindex"/></svelte:head>
 {#if $auth.status==='authenticated'&&$auth.session}
-  <AdminFrame user={$auth.session.user} active="groups" busy={$auth.busy} onLogout={()=>void auth.logout()}>
+  <AdminFrame user={$auth.session.user} active="schedule" busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <section class="academy-schedule" aria-labelledby="academy-schedule-title" data-testid="admin-academy-schedule">
       <p class="eyebrow">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
       <h1 id="academy-schedule-title">Πρόγραμμα προπονήσεων</h1>

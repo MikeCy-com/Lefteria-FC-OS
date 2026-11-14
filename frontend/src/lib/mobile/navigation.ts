@@ -86,6 +86,8 @@ export function canComposePost(role: MobileRole): boolean {
 export function normalizeTab(rawTab: string | null | undefined, role: MobileRole): MobileTab {
   const fallback = MOBILE_ROLE_DEFINITIONS[role].defaultTab;
   if (!rawTab) return fallback;
+  // Preserve the old family-settings URL without granting another role access.
+  if (rawTab === 'family') return role === 'parent' ? 'children' : fallback;
   const candidate = role === 'fan' && (rawTab === 'social' || rawTab === 'reels')
     ? 'home'
     : legacyTabAliases[rawTab] ?? rawTab;

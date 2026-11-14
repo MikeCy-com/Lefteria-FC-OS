@@ -1,4 +1,5 @@
 <script lang="ts">
+  import '../lib/public/fonts';
   import './app.css';
   import { onMount } from 'svelte';
   import { appInstall } from '../lib/mobile/app-install';

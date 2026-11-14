@@ -15,3 +15,9 @@ import '@fontsource/fira-sans-extra-condensed/600.css';
 import '@fontsource/fira-sans-extra-condensed/700.css';
 import '@fontsource/fira-sans-extra-condensed/800.css';
 import '@fontsource/fira-sans-extra-condensed/900.css';
+
+// Real italic faces: the application disables browser-synthesized fonts.
+import '@fontsource/fira-sans-extra-condensed/700-italic.css';
+import '@fontsource/fira-sans-extra-condensed/800-italic.css';
+import '@fontsource/fira-sans-extra-condensed/900-italic.css';
+import '@fontsource/fira-sans/700-italic.css';

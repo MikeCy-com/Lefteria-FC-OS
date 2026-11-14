@@ -9,6 +9,7 @@
   interface Props {
     role: Exclude<MobileRole, 'fan'>;
     initialPlayerId?: string | null;
+    initialFilter?: 'all' | CalendarKind;
     calendar: MobileCalendar | null;
     status: CalendarLoadStatus;
     error: string | null;
@@ -26,14 +27,14 @@
     onCloseResponses: () => void;
   }
 
-  let { role, initialPlayerId = null, calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
+  let { role, initialPlayerId = null, initialFilter = 'all', calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
     responsesError, responsesLoadingMore = false, onLoad, onLoadMore, onRespond, onLoadResponses, onCloseResponses }: Props = $props();
   const id = $props.id();
   let month = $state(untrack(() => calendar?.month ?? clubToday().slice(0, 7)));
   let selectedDate = $state(untrack(() => calendar?.month ? `${calendar.month}-01` : clubToday()));
   let playerId = $state<string | undefined>(untrack(() => calendar?.selected_player_id ?? (role === 'parent' ? initialPlayerId ?? undefined : undefined)));
   let showMonth = $state(false);
-  let filter = $state<'all' | CalendarKind>('all');
+  let filter = $state<'all' | CalendarKind>(untrack(() => initialFilter));
   const staff = $derived(role === 'coach' || role === 'management');
   const timeZone = $derived(calendar?.time_zone ?? 'Asia/Nicosia');
   const visibleItems = $derived((calendar?.items ?? []).filter((item) => filter === 'all' || item.kind === filter));
@@ -80,7 +81,7 @@
 </script>
 
 <section class="calendar-page" aria-labelledby={`${id}-title`} data-testid="mobile-calendar" data-calendar-role={role}>
-  <header class="page-heading"><p>ΗΜΕΡΟΛΟΓΙΟ</p><h1 id={`${id}-title`}>Το πρόγραμμά μας</h1><span>Προπονήσεις, αγώνες & εκδηλώσεις</span></header>
+  <header class="page-heading"><p>ΗΜΕΡΟΛΟΓΙΟ</p><h1 id={`${id}-title`}>{initialFilter === 'match' ? 'Οι αγώνες μας' : 'Το πρόγραμμά μας'}</h1><span>Προπονήσεις, αγώνες & εκδηλώσεις</span></header>
   {#if role === 'parent' && calendar && calendar.players.length > 0}
     <div class="player-picker"><label for={`${id}-player`}>Πρόγραμμα παιδιού</label>
       <select id={`${id}-player`} value={calendar.selected_player_id ?? ''} disabled={busy} onchange={(event) => void selectPlayer(event)} data-testid="calendar-player-select">
