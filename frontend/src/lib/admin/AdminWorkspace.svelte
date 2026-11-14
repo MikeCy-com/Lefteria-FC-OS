@@ -3,12 +3,13 @@
   import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole } from './permissions.ts';
   import { adminSectionsFor } from './module-catalog.ts';
   import AdminFrame from './AdminFrame.svelte';
+  import { preferredAdminOrganization } from './admin-organization.ts';
 
   let { session, busy = false, onLogout, onRefresh }: {
     session: WebAdminSession; busy?: boolean; onLogout: () => void; onRefresh: () => void;
   } = $props();
   const user = $derived(session.user);
-  const sections = $derived(adminSectionsFor(user));
+  const sections = $derived(adminSectionsFor(user, preferredAdminOrganization(user)));
   const liveCount = $derived(sections.reduce((n, group) => n + group.modules.filter(item => item.status === 'live').length, 0));
   const plannedCount = $derived(sections.reduce((n, group) => n + group.modules.filter(item => item.status === 'planned').length, 0));
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
