@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Application.WebAdmin;
@@ -62,7 +64,79 @@ public static class AdminNewsEndpoints
             .Produces<WebAdminError>(403)
             .Produces<WebAdminError>(503);
 
+        var articles = endpoints.MapGroup("/api/admin/website/news/{id}")
+            .WithTags("Website administration")
+            .RequireAuthorization(WebAdminServices.Policy);
+
+        var read = articles.MapGet("", async (
+            string id, string? organization_id, IAdminNewsRepository repository,
+            HttpContext context, CancellationToken token) =>
+        {
+            var owner = Organization(organization_id);
+            return Results.Ok(await repository.ReadAsync(Session(context), owner, id, token));
+        })
+        .WithName("GetAdminWebsiteNewsArticle")
+        .Produces<AdminNewsArticleDto>(200);
+        Errors(read);
+
+        var update = articles.MapPut("", async (
+            string id, string? organization_id, IAdminNewsRepository repository,
+            HttpContext context, CancellationToken token) =>
+        {
+            var owner = Organization(organization_id);
+            AdminNewsUpdateCommand? command;
+            try
+            {
+                using var document = await JsonDocument.ParseAsync(
+                    context.Request.Body, new JsonDocumentOptions { MaxDepth = 32 }, token);
+                RejectDuplicateKeys(document.RootElement);
+                command = document.Deserialize<AdminNewsUpdateCommand>(
+                    new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+                        NumberHandling = JsonNumberHandling.Strict,
+                        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+                        MaxDepth = 32
+                    });
+            }
+            catch (JsonException) { throw AdminNewsEditable.Invalid(); }
+            if (command is null) throw AdminNewsEditable.Invalid();
+            return Results.Ok(await repository.UpdateAsync(Session(context), owner, id, command, token));
+        })
+        .WithName("UpdateAdminWebsiteNewsArticle")
+        .Accepts<AdminNewsUpdateCommand>("application/json")
+        .Produces<AdminNewsArticleDto>(200);
+        Errors(update);
+
         return endpoints;
+    }
+
+    private static void Errors(RouteHandlerBuilder endpoint)
+    {
+        foreach (var status in new[] { 400, 401, 403, 404, 409, 413, 415, 422, 503 })
+            endpoint.Produces<WebAdminError>(status);
+    }
+
+    private static string Session(HttpContext context) =>
+        context.Request.Cookies[WebAdminServices.CookieName] ?? "";
+
+    private static string Organization(string? owner) =>
+        owner is not null && PublicContentService.IsOrganization(owner)
+            ? owner : throw new WebAdminException(400, "invalid_organization", "Choose a known organization.");
+
+    private static void RejectDuplicateKeys(JsonElement element)
+    {
+        if (element.ValueKind == JsonValueKind.Object)
+        {
+            var keys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var property in element.EnumerateObject())
+            {
+                if (!keys.Add(property.Name)) throw new JsonException();
+                RejectDuplicateKeys(property.Value);
+            }
+        }
+        else if (element.ValueKind == JsonValueKind.Array)
+            foreach (var child in element.EnumerateArray()) RejectDuplicateKeys(child);
     }
 
     private static IResult Error(int status, string code) =>
