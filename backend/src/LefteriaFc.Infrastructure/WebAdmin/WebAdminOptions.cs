@@ -7,6 +7,7 @@ public sealed class WebAdminOptions
 {
     public bool Enabled { get; set; }
     public string PublicOrigin { get; set; } = "";
+    public string FoundingSetupCode { get; set; } = "";
     public string ThrottleKey { get; set; } = "";
     public string Host { get; set; } = "";
     public int Port { get; set; } = 5432;

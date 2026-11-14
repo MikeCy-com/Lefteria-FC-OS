@@ -28,6 +28,7 @@ public static class WebAdminEndpoints
             { Secure = true, HttpOnly = true, SameSite = SameSiteMode.Lax, Path = "/" });
             return TypedResults.NoContent();
         }).WithName("LogoutWebAdmin").Produces(204));
+        endpoints.MapFoundingAdminSetup();
         return endpoints;
     }
 
