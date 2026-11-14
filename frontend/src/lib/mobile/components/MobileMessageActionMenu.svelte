@@ -147,7 +147,7 @@
   .choice{display:block;width:100%;padding:10px 12px;margin:5px 0;background:#202325;border:1px solid #35383a;color:#f6e4c0;text-align:left}
   .choice.destructive{color:#ffb4a9;border-color:#7c3e37;background:#2a1c1a}
   .notice{font-size:12px;color:#b9c0c2;line-height:1.55}
-  .primary{width:100%;padding:10px;background:#f5a623;color:#111;border:1px solid #f5a623;font-weight:700}
+  .primary{width:100%;padding:10px;background:#f6bb38;color:#111;border:1px solid #f6bb38;font-weight:700}
   label{display:block;margin-bottom:8px}
   textarea{width:100%;min-height:100px;border:1px solid #545b5e;border-radius:8px;background:#0b0d0e;color:#fff;padding:11px;font:inherit}
   .emojis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0}
