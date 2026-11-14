@@ -5,8 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 
-/// <summary>Make finance-only accountant a recognized admin role.
-—Authorization remains controlled by AdminPermissions and organization grants.</summary>
+/// <summary>Recognize an accountant role; permissions and organization grants remain mandatory.</summary>
 [DbContext(typeof(LefteriaDbContext))]
 [Migration("20261115093000_AccountantAdminRole")]
 public sealed class AccountantAdminRole : Migration
