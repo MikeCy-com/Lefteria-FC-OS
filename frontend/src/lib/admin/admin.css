@@ -426,3 +426,26 @@
   .admin-app .admin-club-metrics-grid strong {font-size:31px;}
   .admin-app .admin-quick-navigation-grid {grid-template-columns:1fr;}
 }
+
+.admin-app .admin-club-metrics-grid .admin-metric-link {
+  display:flex;flex-direction:column;gap:5px;min-width:0;
+  padding:15px;border:1px solid #66501f;border-top:3px solid var(--admin-gold);
+  background:linear-gradient(150deg,#271f11,#111214);
+  color:#fff;text-decoration:none;
+}
+.admin-app .admin-club-metrics-grid .admin-metric-link span {
+  font:800 15px/1.2 'Fira Sans Extra Condensed',sans-serif;color:#e6e4e0;
+}
+.admin-app .admin-club-metrics-grid .admin-metric-link strong {
+  font:900 37px/1.1 'Fira Sans Extra Condensed',sans-serif;color:#f6bb38;
+}
+.admin-app .admin-club-metrics-grid .admin-metric-link small {color:#c1c0ba;font-size:11px;}
+.admin-app .admin-club-metrics-grid .admin-metric-link:hover {border-color:#f6bb38;background:#2d2314;}
+.admin-app .admin-metric-notice {
+  display:flex;align-items:center;flex-wrap:wrap;gap:12px;
+  margin-top:14px;padding:13px;border:1px solid #f6bb38;
+  background:#241b0d;color:#fff;font-size:13px;
+}
+.admin-app .admin-metric-notice strong {font:900 17px/1.1 'Fira Sans Extra Condensed',sans-serif;}
+.admin-app .admin-metric-notice a {color:#f6bb38;font-weight:700;}
+.admin-app .admin-metric-notice button {margin-left:auto;min-width:40px;min-height:40px;}
