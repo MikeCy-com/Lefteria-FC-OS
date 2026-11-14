@@ -42,6 +42,9 @@ test('Public homepage and news feeds overlay only safe owner-specific published 
   assert.match(reader,/newsEdits\.TryGetValue\(row\.Id/);
   assert.match(reader,/newsEdits\.TryGetValue\(\(row\.OrganizationId, row\.Id\)/);
   assert.match(reader,/Kind == PublicContentKinds\.News/);
+  assert.match(reader,/\.Select\(row => new \{ row\.Id, row\.DataJson \}\)/);
+  assert.match(reader,/\.Select\(row => new \{ row\.OrganizationId, row\.Id, row\.DataJson \}\)/);
+  assert.doesNotMatch(reader,/editQuery\.ToArrayAsync\(token\)/);
   assert.match(reader,/GroupBy\(row => row\.Id, StringComparer\.Ordinal\)/);
   assert.match(migration,/kind IN \('club','news'\) AND version > 0/);
   assert.match(migration,/news_edits_require_forward_recovery/);
