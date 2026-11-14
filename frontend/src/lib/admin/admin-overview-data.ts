@@ -28,3 +28,16 @@ export function verifiedAdminPublishedNews(value: unknown, requestedLimit: numbe
       !Array.isArray(row.items) || row.items.length > requestedLimit) return null;
   return { publishedArticles: row.total as number };
 }
+
+/** Summary of genuinely new Academy CRM enquiries, scoped to the live API. */
+export function verifiedAdminNewLeads(value: unknown, organizationId: string, limit: number): number | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const row = value as Record<string, unknown>;
+  if (organizationId !== 'lefteria_fc_academy' || row.organization_id !== organizationId ||
+      row.offset !== 0 || row.limit !== limit || !validCount(row.total) ||
+      !Array.isArray(row.leads) || row.leads.length > limit ||
+      !row.leads.every((lead: unknown) => lead && typeof lead === 'object' && !Array.isArray(lead) &&
+        (lead as Record<string,unknown>).organization_id === organizationId &&
+        (lead as Record<string,unknown>).status === 'new')) return null;
+  return row.total as number;
+}
