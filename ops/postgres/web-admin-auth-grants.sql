@@ -118,6 +118,8 @@ GRANT INSERT ON public_content.edits TO :"admin_auth_role";
 GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
@@ -320,6 +322,7 @@ BEGIN
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
+                  'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,

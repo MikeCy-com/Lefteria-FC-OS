@@ -152,6 +152,7 @@ jobs:
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-crm-inbox-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-registration-intake-security-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-office-checks.sql
       - name: Verify Payabl finance schema, segregated grants and no raw ledger access
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
