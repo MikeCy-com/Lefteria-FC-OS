@@ -444,10 +444,10 @@
   .training-distribution p{font-size:12px;line-height:1.6}
   .cancel-reason{display:grid;gap:8px;font-size:12px;color:#f2ddac}
   .cancel-reason textarea{background:#101213;color:#fff;border:1px solid #6d5d3d;border-radius:7px;padding:10px;font:inherit;max-width:100%}
-  .publish{background:#5c4117;border-color:#f5a623;color:#fff;font-weight:700;margin-right:8px}
+  .publish{background:#5c4117;border-color:#f6bb38;color:#fff;font-weight:700;margin-right:8px}
   .review-confirm{display:flex;gap:9px;align-items:center;font-size:12px;margin:14px 0;color:#f2ddac}
-  .review-confirm input{accent-color:#f5a623;min-width:18px;min-height:18px}
+  .review-confirm input{accent-color:#f6bb38;min-width:18px;min-height:18px}
   .archive-actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:15px}
-  .archive-actions label{font-size:12px}.archive-actions input{accent-color:#f5a623}
+  .archive-actions label{font-size:12px}.archive-actions input{accent-color:#f6bb38}
   @media(max-width:650px){.plan-fields{grid-template-columns:1fr}.plan-list li{align-items:start;flex-direction:column}}
 </style>
