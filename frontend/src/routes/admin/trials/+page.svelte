@@ -99,8 +99,8 @@
 <style>
   .trials-admin { max-width: 900px; }
   .trials-admin h1 { margin: .4rem 0 1rem; font-size: clamp(1.75rem, 3vw, 2.8rem); }
-  .trials-state { display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:2rem 0;padding:20px;border-left:4px solid #f5a623;background:rgb(245 166 35 / 8%);color:#e7e7e7; }
-  .trials-state strong { color:#f5a623;letter-spacing:.06em; }
+  .trials-state { display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:2rem 0;padding:20px;border-left:4px solid #f6bb38;background:rgb(246 187 56 / 8%);color:#e7e7e7; }
+  .trials-state strong { color:#f6bb38;letter-spacing:.06em; }
   .trials-fields { margin:1.25rem 0 2rem;overflow-wrap:anywhere; }
-  .trials-alert { color:#f6cb84;border:1px solid rgb(245 166 35 / 40%);padding:16px;margin:1rem 0; }
+  .trials-alert { color:#f6cb84;border:1px solid rgb(246 187 56 / 40%);padding:16px;margin:1rem 0; }
 </style>
