@@ -53,12 +53,12 @@ BEGIN
   END;
   BEGIN
     PERFORM club.write_admin_player_birthday_preferences(
-      v_digest,v_owner,v_player,0,true,'Greeting'||chr(10),'#F5A623','🎂');
+      v_digest,v_owner,v_player,0,true,'Greeting'||chr(10),'#F6BB38','🎂');
     RAISE EXCEPTION 'Control character in birthday wish accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL;
   END;
   v_result:=club.write_admin_player_birthday_preferences(
-    v_digest,v_owner,v_player,0,true,'Χρόνια πολλά!','#F5A623','🎂');
+    v_digest,v_owner,v_player,0,true,'Χρόνια πολλά!','#F6BB38','🎂');
   IF (v_result->>'version')::integer<>1
     OR v_result->>'disabled'<>'true'
     OR v_result->>'wish_text'<>'Χρόνια πολλά!' THEN
@@ -66,7 +66,7 @@ BEGIN
   END IF;
   BEGIN
     PERFORM club.write_admin_player_birthday_preferences(
-      v_digest,v_owner,v_player,0,false,'Stale','#F5A623','🎉');
+      v_digest,v_owner,v_player,0,false,'Stale','#F6BB38','🎉');
     RAISE EXCEPTION 'Duplicate private birthday card create was accepted';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
@@ -102,7 +102,7 @@ BEGIN
     WHERE id=v_session;
   BEGIN
     PERFORM club.write_admin_player_birthday_preferences(
-      v_digest,v_owner,v_player,2,true,'Revoked','#F5A623','🎂');
+      v_digest,v_owner,v_player,2,true,'Revoked','#F6BB38','🎂');
     RAISE EXCEPTION 'Revoked manager could update birthday data';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
