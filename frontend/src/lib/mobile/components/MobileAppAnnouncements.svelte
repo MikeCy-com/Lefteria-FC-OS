@@ -41,6 +41,9 @@
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
       rooms=result;
+      // Directory loading finishes before choosing a room starts a new request.
+      // Otherwise that request invalidates this finally block and leaves loading stuck.
+      loading=false;
       const requested=result.find(room=>
         room.organization_id===initialOrganization&&room.group_id===initialGroup);
       if(requested)void chooseRoom(requested);
