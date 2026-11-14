@@ -48,6 +48,13 @@ public static class WebAdminRequestGuards
                     HttpMethods.IsPut(context.Request.Method) &&
                     Regex.IsMatch(context.Request.Path.Value ?? "",
                         @"\A/api/admin/website/news/[^/]{1,128}\z", RegexOptions.CultureInvariant)
+                    ? 256 * 1024 :
+                    (HttpMethods.IsPost(context.Request.Method) &&
+                     context.Request.Path == "/api/admin/website/news-drafts" ||
+                     HttpMethods.IsPut(context.Request.Method) &&
+                     Regex.IsMatch(context.Request.Path.Value ?? "",
+                        @"\A/api/admin/website/news-drafts/draft_[0-9a-f]{32}\z",
+                        RegexOptions.CultureInvariant))
                     ? 256 * 1024 : 16 * 1024;
                 if (context.Request.ContentLength > limit)
                 {
