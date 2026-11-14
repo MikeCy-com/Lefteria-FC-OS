@@ -116,6 +116,10 @@ GRANT INSERT ON audit.security_events TO :"admin_auth_role";
 GRANT SELECT ON public_content.documents,public_content.import_state,public_content.edits TO :"admin_auth_role";
 GRANT INSERT ON public_content.edits TO :"admin_auth_role";
 GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
+-- Private unpublished CMS drafts: never grant to the public/mobile role.
+REVOKE ALL ON public_content.news_drafts FROM PUBLIC, :"app_role";
+GRANT SELECT, INSERT ON public_content.news_drafts TO :"admin_auth_role";
+GRANT UPDATE (data_json,version,updated_at) ON public_content.news_drafts TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
