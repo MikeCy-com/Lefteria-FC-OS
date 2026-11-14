@@ -6,10 +6,12 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { canViewFirstTeamTrials } from '../../../lib/admin/trials-access.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Settings = components['schemas']['FirstTeamTrialsSettings'];
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  const selectedClub = $derived($auth.session && preferredAdminOrganization($auth.session.user) === 'lefteria_fc');
   let settings = $state<Settings | null>(null);
   let loading = $state(true);
   let unavailable = $state(false);
@@ -22,7 +24,7 @@
     // Authenticate and authorize first. The view must never fetch this
     // private endpoint for an anonymous or Academy-only browser session.
     if (!browser || $auth.status !== 'authenticated' || !$auth.session ||
-        !canViewFirstTeamTrials($auth.session.user)) return;
+        !canViewFirstTeamTrials($auth.session.user) || !selectedClub) return;
 
     settings = null;
     loading = true;
@@ -62,7 +64,7 @@
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="trials" busy={$auth.busy}
     onLogout={() => void auth.logout()}>
-    {#if canViewFirstTeamTrials($auth.session.user)}
+    {#if canViewFirstTeamTrials($auth.session.user) && selectedClub}
       <section class="admin-panel trials-admin" data-testid="admin-trials-readonly">
         <p class="admin-eyebrow">ΠΡΩΤΗ ΟΜΑΔΑ · ΔΟΚΙΜΑΣΤΙΚΑ</p>
         <h1>Κατάσταση εγγραφών</h1>
