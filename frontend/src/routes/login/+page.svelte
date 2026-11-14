@@ -1,6 +1,6 @@
 <script lang="ts">
   import PublicShell from '../../lib/public/PublicShell.svelte';
-  import { publicImages } from '../../lib/public/images';
+  import { publicImages } from '../../lib/public/images.ts';
   import type { PublicPageData } from '../../lib/public/types';
   let { data }: { data: PublicPageData } = $props();
   const welcomeImage = $derived(data.navigationGroups.find(group => group.banner_url)?.banner_url || publicImages.hero);
