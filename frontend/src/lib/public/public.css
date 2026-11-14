@@ -1156,3 +1156,10 @@ dialog.public-dialog::backdrop { background:#000c; }
   .public-site .registration-card fieldset { gap: 14px 10px; }
   .public-site .registration-card :is(input, select) { padding-inline: 8px; }
 }
+
+.public-site .profile-links { display:flex; flex-wrap:wrap; gap:20px; padding:20px var(--public-page-gutter); font-size:14px; }
+.public-site :is(#player-overview,#player-statistics,#player-biography,#player-gallery) { scroll-margin-top:calc(var(--public-header) + 16px); }
+.public-site #player-statistics a { display:inline-block; margin-top:12px; color:var(--public-gold); }
+.public-site .player-gallery { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); gap:16px; }
+.public-site .player-gallery img { width:100%; aspect-ratio:4 / 3; object-fit:cover; }
+.public-site .player-gallery figcaption { margin-top:8px; color:#bbb; }
