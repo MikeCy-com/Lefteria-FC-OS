@@ -2,8 +2,11 @@
   import type { SectionStatistics } from './sections-types';
   let { statistics }: { statistics: SectionStatistics | null | undefined } = $props();
   const format = new Intl.NumberFormat('el-CY', { maximumFractionDigits: 2 });
-  function average(value: number | null | undefined, appearances: number | null | undefined) {
-    return value != null && appearances != null && appearances > 0 ? format.format(value / appearances) : null;
+  function average(value: string | number | null | undefined, appearances: string | number | null | undefined) {
+    if (value == null || appearances == null || value === '' || appearances === '') return null;
+    const total = Number(value);
+    const matches = Number(appearances);
+    return Number.isFinite(total) && Number.isFinite(matches) && matches > 0 ? format.format(total / matches) : null;
   }
   const items = $derived([
     ['ΣΥΜΜΕΤΟΧΕΣ', statistics?.appearances], ['ΓΚΟΛ', statistics?.goals], ['ΑΣΙΣΤ', statistics?.assists],
