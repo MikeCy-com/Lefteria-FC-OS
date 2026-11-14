@@ -138,7 +138,7 @@
 </script>
 <svelte:head><title>HUB · Έλεγχος περιεχομένου | Lefteria FC</title></svelte:head>
 {#if $auth.status==='authenticated'&&$auth.session}
-  <AdminFrame user={$auth.session.user} busy={$auth.busy||busy}
+  <AdminFrame active="hub" user={$auth.session.user} busy={$auth.busy||busy}
     onLogout={()=>void auth.logout()}>
     <div class="hub-editor" data-testid="hub-editorial-workspace">
       <header>
