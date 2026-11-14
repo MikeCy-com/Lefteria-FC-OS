@@ -148,7 +148,7 @@
 <style>
   .role-home{padding:12px 14px 96px;color:var(--lf-text);display:grid;gap:16px}
   .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#221907,#101112 65%);border:1px solid #685022;border-radius:14px;padding:22px 18px;box-shadow:inset 0 1px #bf903740}
-  .hero:after{content:'✦';position:absolute;right:-10px;top:-20px;color:#f5a62320;font-size:160px;pointer-events:none}
+  .hero:after{content:'✦';position:absolute;right:-10px;top:-20px;color:#f6bb3820;font-size:160px;pointer-events:none}
   .eyebrow{font-size:11px;letter-spacing:.13em;color:var(--lf-gold-light);font-weight:700}
   h1{font-size:clamp(25px,7vw,34px);line-height:1.15;margin:10px 0;font-weight:800}
   .intro{color:#ddd5c6;font-size:13px;line-height:1.6;max-width:38rem}
@@ -184,7 +184,7 @@
   .match-rsvp{border:0;padding:0;display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
   .match-rsvp legend{font-size:12px;color:#ddd0b1;margin-bottom:7px}
   .match-rsvp button{min-height:44px;border:1px solid #6e5224;border-radius:7px;background:#2c2416;color:#ffca46;padding:8px 12px;font:inherit;cursor:pointer}
-  .match-rsvp button[aria-pressed='true']{background:#6d4b17;border-color:#f5a623;color:#fff;font-weight:700}
+  .match-rsvp button[aria-pressed='true']{background:#6d4b17;border-color:#f6bb38;color:#fff;font-weight:700}
   .match-rsvp button:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
   .match-rsvp:disabled button{opacity:.5;cursor:wait}
   @media(min-width:650px){.role-home{max-width:960px;margin:auto}.shortcuts{grid-template-columns:repeat(3,minmax(0,1fr))}}
