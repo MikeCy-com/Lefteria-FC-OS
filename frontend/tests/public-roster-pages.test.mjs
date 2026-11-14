@@ -63,16 +63,17 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal((await loadStaffPage(url,'staff-ID')).staff.name,'Recorded Coach');
     await assert.rejects(loadStaffPage(url,'academy-coach'),error=>error.status===404);
     const playerPage = readFileSync(new URL('../src/routes/player/[id]/+page.svelte', import.meta.url), 'utf8');
-    assert.match(playerPage,/organization=\\{data\\.organization\\}/,
+    assert.ok(playerPage.includes('organization={data.organization}'),
       'Player page must use the resolved player organization, not force the first team.');
     const {default:Profile}=await import('../src/lib/public/PublicPersonProfile.svelte');
     const profile=render(Profile,{props:{player:loaded.player}}).body;
     assert.match(profile,/&lt;script>Recorded Player&lt;\/script>/);assert.doesNotMatch(profile,/<script>|sentinel-private|sentinel-academy/);
     assert.match(profile,/Recorded public biography/);assert.match(profile,/>0<\/dd>/);assert.match(profile,/>—<\/dd>/);assert.match(profile,/href="\/team\?tab=roster"/);
     const academyProfile=render(Profile,{props:{player:academy.player}}).body;
-    assert.match(academyProfile,/href="\\/academy\\/groups"/);
+    assert.ok(academyProfile.includes('href="/academy/groups"'));
     assert.match(academyProfile,/ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ/);
-    assert.doesNotMatch(academyProfile,/href="\\/team\\?tab=(?:roster|statistics)"/);
+    assert.ok(!academyProfile.includes('href="/team?tab=roster"'));
+    assert.ok(!academyProfile.includes('href="/team?tab=statistics"'));
     assert.doesNotMatch(academyProfile,/Στατιστικά πρώτης ομάδας/);
     assert.equal(academy.organization,'lefteria_fc_academy');
 
