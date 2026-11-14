@@ -121,7 +121,9 @@ public sealed class PostgresAdminNewsRepository(WebAdminConnections connections,
                 await using var save = Command("""
                     INSERT INTO public_content.edits(kind,organization_id,id,data_json,version)
                     SELECT 'news',@org,@id,@data::jsonb,1
-                    WHERE @version=0
+                    WHERE (@version=0 OR EXISTS(
+                        SELECT 1 FROM public_content.edits
+                        WHERE kind='news' AND organization_id=@org AND id=@id AND version=@version))
                       AND EXISTS(SELECT 1 FROM identity.admin_sessions
                         WHERE id=@session AND revoked_at IS NULL AND expires_at>clock_timestamp())
                     ON CONFLICT(kind,organization_id,id)
