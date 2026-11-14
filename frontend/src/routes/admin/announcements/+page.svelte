@@ -5,6 +5,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Organization='lefteria_fc'|'lefteria_fc_academy';
@@ -108,7 +109,8 @@
     if(browser && $auth.status==='anonymous')void goto('/admin/login',{replace:true});
   });
   $effect(()=>{
-    if(!permitted.some(o=>o.id===organization))organization=permitted[0]?.id??null;
+    const selected=scopedAdminOrganization($auth.session?.user??null,permitted.map(o=>o.id));
+    if(organization!==selected)organization=selected;
   });
   $effect(()=>{
     const owner=organization;
@@ -383,11 +385,7 @@
       <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα δημιουργίας πρόχειρων ανακοινώσεων.</section>
     {:else}
       <section class="admin-panel">
-        <label for="announcement-owner">Οργανισμός</label>
-        <select id="announcement-owner" data-testid="announcement-owner" value={organization??''}
-          onchange={e=>{if(permitted.some(o=>o.id===e.currentTarget.value))organization=e.currentTarget.value as Organization;}}>
-          {#each permitted as org (org.id)}<option value={org.id}>{org.name}</option>{/each}
-        </select>
+        <span class="admin-organization-context-label" data-testid="announcement-owner">{permitted.find(org=>org.id===organization)?.name??'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         {#if loading}
           <p role="status">Φόρτωση…</p>
         {:else}

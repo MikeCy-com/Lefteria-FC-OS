@@ -5,6 +5,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminPosBasketPreview from '../../../lib/admin/AdminPosBasketPreview.svelte';
   import AdminPosLocationsPanel from '../../../lib/admin/AdminPosLocationsPanel.svelte';
@@ -314,7 +315,8 @@
   });
 
   $effect(() => {
-    if (!assignments.some(org => org.id === owner)) owner = assignments[0]?.id ?? null;
+    const selected = scopedAdminOrganization($auth.session?.user ?? null, assignments.map(org => org.id));
+    if (owner !== selected) owner = selected;
   });
 
   $effect(() => {
@@ -373,18 +375,9 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>Προϊόντα & κατηγορίες</h1>
-        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές.</p>
+        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Οι διαθέσιμες λειτουργίες σημείων πώλησης και βαρδιών εμφανίζονται παρακάτω με έλεγχο δικαιωμάτων. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
-          <label for="admin-pos-organization">Οργανισμός</label>
-          <select id="admin-pos-organization" value={owner ?? ''} data-testid="admin-pos-organization"
-            onchange={event => {
-              const selected = event.currentTarget.value;
-              if (assignments.some(org => org.id === selected)) owner = selected as Organization;
-            }}>
-            {#each assignments as org (org.id)}
-              <option value={org.id}>{org.name}</option>
-            {/each}
-          </select>
+          <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         </section>
         {#if busy}
           <section class="admin-panel" role="status" data-testid="admin-pos-loading">Φόρτωση επαληθευμένου καταλόγου…</section>

@@ -7,11 +7,12 @@
   import ClubEditor from '../../../lib/admin/ClubEditor.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const confirmDiscard = () => window.confirm('Υπάρχουν μη αποθηκευμένες αλλαγές. Θέλετε να τις απορρίψετε;');
   const editor = createClubEditorController({ baseUrl: browser ? window.location.origin : '',
-    initialOrganization: browser ? new URLSearchParams(window.location.search).get('organization_id') : null,
+    preferredOrganization: user => preferredAdminOrganization(user),
     confirmDiscard, onUnauthenticated: auth.invalidateSession, onForbidden: () => void auth.bootstrap() });
   $effect(() => {
     if ($auth.status === 'authenticated' && $auth.session) void editor.setAuthority($auth.session.user);

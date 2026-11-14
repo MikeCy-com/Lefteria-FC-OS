@@ -2,6 +2,7 @@ import type { WebAdminSession } from './controller.ts';
 import { hasAdminPermission } from './permissions.ts';
 import { canReadClub } from './club-controller.ts';
 import { canViewFirstTeamTrials } from './trials-access.ts';
+import type { AdminOrganizationId } from './admin-organization.ts';
 
 type AdminUser = WebAdminSession['user'];
 export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
@@ -44,7 +45,7 @@ const catalog: readonly Section[] = [
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
-    { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Χειριστές, βάρδιες και τοποθεσίες.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] },
+    { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Υφιστάμενη διαχείριση σημείων πώλησης και εξουσιοδοτημένων βαρδιών στο POS. Η πρόσβαση στις ενέργειες ελέγχεται από το API.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένος κατάλογος και ελεγχόμενη διαχείριση κατηγοριών · χωρίς πωλήσεις.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
   ] },
@@ -75,8 +76,12 @@ const catalog: readonly Section[] = [
 // Navigation is presentation-only. Protected API endpoints MUST independently
 // verify fresh session role and organization grants. Planned items never
 // receive clickable URLs and never imply live POS, CRM or payment operations.
-export function adminSectionsFor(user: AdminUser): AdminSection[] {
-  const organizations = user.organizations.map(org => org.id);
+export function adminSectionsFor(user: AdminUser, selectedOrganization?: AdminOrganizationId | null): AdminSection[] {
+  // Global header context narrows presentation to the current club. The
+  // backend remains the authority for every protected operation.
+  const grants = user.organizations.map(org => org.id);
+  const organizations = selectedOrganization === undefined
+    ? grants : grants.filter(org => org === selectedOrganization);
   const assigned = organizations.some(id => id === 'lefteria_fc' || id === 'lefteria_fc_academy');
   return catalog.flatMap(section => {
     const modules = section.modules.filter(item => {

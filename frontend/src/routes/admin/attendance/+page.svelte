@@ -4,6 +4,7 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import {summarizeAcademyAttendance} from '../../../lib/admin/attendance-summary.ts';
 
@@ -32,7 +33,8 @@
   const permitted=$derived($auth.status==='authenticated'&&$auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role)&&
     hasAdminPermission($auth.session.user.permissions,'attendance:read')&&
-    $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy'));
+    $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy') &&
+    preferredAdminOrganization($auth.session.user)==='lefteria_fc_academy');
   const canWrite=$derived(!!permitted&&$auth.session&&
     hasAdminPermission($auth.session.user.permissions,'attendance:write'));
 

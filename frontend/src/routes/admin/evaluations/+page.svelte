@@ -4,6 +4,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { preferredAdminOrganization, scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Row = {
@@ -29,10 +30,18 @@
             hasAdminPermission($auth.session!.user.permissions,'academy:read')
         ).map(o=>o.id as Organization) : []);
   let organization=$state<Organization>('lefteria_fc_academy');
-  $effect(()=>{if(availableOrgs.length && !availableOrgs.includes(organization))organization=availableOrgs[0];});
+  $effect(()=>{
+    const context=scopedAdminOrganization($auth.session?.user??null,availableOrgs);
+    if(context && organization!==context){
+      organization=context;
+      selected='';
+      timeline=null;
+    }
+  });
   const allowed=$derived($auth.status==='authenticated' && !!$auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
-    availableOrgs.includes(organization));
+    availableOrgs.includes(organization) &&
+    preferredAdminOrganization($auth.session.user)===organization);
   let playerId=$state('');
   let selected=$state('');
   let timeline=$state<Timeline|null>(null);
@@ -113,14 +122,7 @@
     <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
     {#if allowed}
-      <label class="flex flex-col gap-1 text-sm">Οργανισμός
-        <select class="rounded-lg border border-zinc-700 bg-zinc-900 p-3 text-white"
-          bind:value={organization} onchange={()=>{selected='';timeline=null;}}>
-          {#each availableOrgs as org}
-            <option value={org}>{org==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</option>
-          {/each}
-        </select>
-      </label>
+      <p class="admin-organization-context-label" data-testid="admin-evaluations-organization">{organization==='lefteria_fc'?'Σύλλογος / Ομάδες':'Ακαδημία'}</p>
       <form class="flex flex-wrap gap-3" onsubmit={(event)=>{event.preventDefault();selectPlayer();}}>
         <label class="flex flex-1 flex-col gap-1 text-sm">
           Αναγνωριστικό αθλητή

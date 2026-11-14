@@ -31,9 +31,10 @@ test('POS foundation keeps cents, scoped categories and variants, no sales or pa
   assert.doesNotMatch(program,/MapAdminPos\(|MapPosSales\(|MapPosCheckout\(/);
 });
 
-test('POS read-only catalog is live but registers and sales remain blocked', () => {
+test('POS catalog and authorized cashier/location tools are live, unverified sales remain blocked', () => {
   assert.match(catalog,/id: 'pos', name: 'POS & κατάστημα'/);
-  for (const id of ['registers', 'orders']) {
-    assert.match(catalog, new RegExp("id: '"+id+"'[^\\n]*status: 'planned'"));
-  }
+  assert.match(catalog,/id: 'registers'[^\n]*status: 'live', href: '\/admin\/pos'/);
+  assert.match(catalog,/id: 'products'[^\n]*status: 'live', href: '\/admin\/pos'/);
+  assert.match(catalog,/id: 'orders'[^\n]*status: 'planned'/);
+  assert.doesNotMatch(program,/MapPosCheckout\(/);
 });

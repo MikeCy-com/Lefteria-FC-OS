@@ -30,7 +30,8 @@ test('product writer has nested strict JSON, one audited SQL path and no checkou
 });
 
 test('catalog stays distinct from POS operators and checkout; product editing requires validated API',()=>{
-  assert.match(editor,/Τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές/);
+  assert.match(editor,/Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές/);
+  assert.match(editor,/<AdminPosLocationsPanel/);
   assert.match(editor,/data-testid="admin-pos-product-editor"/);
   assert.doesNotMatch(editor,/fetch\('\/api\/pos\/checkout|\/api\/pos\/sales/);
 });

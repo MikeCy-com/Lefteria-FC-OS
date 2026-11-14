@@ -6,6 +6,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Article = components['schemas']['PublicArticle'];
@@ -35,7 +36,7 @@
   $effect(() => {
     // Never keep the prior organization's selection across fresh revocations.
     if (!allowedOrganizations.some(org => org.id === organization)) {
-      organization = allowedOrganizations[0]?.id ?? null;
+      organization = scopedAdminOrganization($auth.session?.user ?? null, allowedOrganizations.map(org => org.id));
       offset = 0;
     }
   });
@@ -122,19 +123,7 @@
           <a class="admin-news-public" href="/news">Δημόσια νέα <span aria-hidden="true">↗</span></a>
         </header>
         <section class="admin-panel" aria-label="Φίλτρα δημοσιευμένων άρθρων">
-          <label for="admin-news-owner">Οργανισμός</label>
-          <select id="admin-news-owner" data-testid="admin-news-organization" value={organization ?? ''}
-            onchange={event => {
-              const next = event.currentTarget.value;
-              if (allowedOrganizations.some(org => org.id === next)) {
-                organization = next as Organization;
-                offset = 0;
-              }
-            }}>
-            {#each allowedOrganizations as org (org.id)}
-              <option value={org.id}>{org.name}</option>
-            {/each}
-          </select>
+          <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         </section>
         {#if loading}
           <div class="admin-panel admin-news-state" role="status" data-testid="admin-news-loading">Φόρτωση επαληθευμένων άρθρων…</div>

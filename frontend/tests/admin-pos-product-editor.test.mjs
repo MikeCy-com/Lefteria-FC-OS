@@ -30,7 +30,8 @@ test('editor preserves currency cents, full variants, safe image URLs, 16-varian
   assert.match(page,/font-family:'Fira Sans Extra Condensed'/);
   assert.match(page,/\.admin-pos-variant-row\{display:grid/);
   assert.match(page,/@media\(max-width:600px\)/);
-  assert.match(page,/Τα ταμεία, οι πωλήσεις και οι πληρωμές παραμένουν ανενεργές/);
+  assert.match(page,/Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές/);
+  assert.match(page,/<AdminPosCashierShiftsPanel/);
 });
 
 test('product form selection cannot leak across owner/permission changes',()=>{

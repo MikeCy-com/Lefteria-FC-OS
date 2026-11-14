@@ -81,6 +81,7 @@ function readProfile(value: ClubProfileWire | undefined, organization: ClubOrgan
 
 export function createClubEditorController(options: {
   baseUrl: string; fetch?: typeof globalThis.fetch; initialOrganization?: string | null;
+  preferredOrganization?: (user: Authority) => ClubOrganization | null;
   confirmDiscard?: () => boolean; onUnauthenticated: () => void; onForbidden?: () => void;
 }) {
   const api = createApiClient(options);
@@ -135,7 +136,7 @@ export function createClubEditorController(options: {
     if (!canReadClub(user)) { clear('forbidden', 'Δεν έχετε δικαίωμα προβολής προφίλ συλλόγου.'); return; }
     if (changedIdentity) {
       clear('idle');
-      const initial = options.initialOrganization;
+      const initial = options.preferredOrganization?.(user) ?? options.initialOrganization;
       update({ organizationId: initial ? isClubOrganization(initial) ? initial : null : organizations[0]?.id ?? null });
     }
     if (!allowed(state.organizationId)) { clear('forbidden', 'Ο επιλεγμένος οργανισμός δεν έχει ανατεθεί στον λογαριασμό σας.'); return; }
