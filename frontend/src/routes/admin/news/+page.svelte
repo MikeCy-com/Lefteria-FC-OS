@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminNewsEditor from '../../../lib/admin/AdminNewsEditor.svelte';
 
   type Article = components['schemas']['PublicArticle'];
   type Result = { items: Article[]; total: number; offset: number; limit: number };
@@ -28,6 +29,10 @@
   let total = $state(0);
   let loading = $state(false);
   let unavailable = $state(false);
+  let editingId = $state<string | null>(null);
+  const canWrite = $derived(!!organization && $auth.status === 'authenticated' && !!$auth.session &&
+    hasAdminPermission($auth.session.user.permissions, 'news:write') &&
+    $auth.session.user.organizations.some(org => org.id === organization));
 
   $effect(() => {
     if (browser && $auth.status === 'anonymous') void goto('/admin/login', { replace: true });
@@ -38,6 +43,7 @@
     if (!allowedOrganizations.some(org => org.id === organization)) {
       organization = scopedAdminOrganization($auth.session?.user ?? null, allowedOrganizations.map(org => org.id));
       offset = 0;
+      editingId = null;
     }
   });
 
@@ -118,13 +124,17 @@
           <div>
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ · ΔΗΜΟΣΙΕΥΜΕΝΟ ΠΕΡΙΕΧΟΜΕΝΟ</p>
             <h1>Άρθρα & νέα</h1>
-            <p class="admin-muted">Επαληθευμένη προβολή των δημοσιευμένων άρθρων του οργανισμού. Η δημιουργία, η επεξεργασία και η δημοσίευση παραμένουν ανενεργές.</p>
+            <p class="admin-muted">Προβολή πραγματικών δημοσιευμένων άρθρων. Με δικαίωμα επεξεργασίας μπορείτε να διορθώνετε υπάρχουσες δημοσιεύσεις με έλεγχο έκδοσης. Νέα άρθρα, πρόχειρα και προγραμματισμός δημοσιεύσεων δεν υποστηρίζονται ακόμη.</p>
           </div>
           <a class="admin-news-public" href="/news">Δημόσια νέα <span aria-hidden="true">↗</span></a>
         </header>
         <section class="admin-panel" aria-label="Φίλτρα δημοσιευμένων άρθρων">
           <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         </section>
+        {#if editingId && organization}
+          <AdminNewsEditor owner={organization} articleId={editingId} {canWrite}
+            onClose={() => editingId = null} onSaved={() => retry++} />
+        {/if}
         {#if loading}
           <div class="admin-panel admin-news-state" role="status" data-testid="admin-news-loading">Φόρτωση επαληθευμένων άρθρων…</div>
         {:else if unavailable}
@@ -154,7 +164,12 @@
                       <time datetime={item.created_at}>{new Intl.DateTimeFormat('el-GR', {dateStyle: 'medium', timeZone: 'Asia/Nicosia'}).format(new Date(item.created_at))}</time>
                     {/if}
                   </div>
-                  <span class="admin-news-status">Δημοσιευμένο</span>
+                  <div class="admin-news-article-actions">
+                    <span class="admin-news-status">Δημοσιευμένο</span>
+                    <button type="button" class="admin-secondary"
+                      aria-label={'Προβολή και επεξεργασία άρθρου ' + item.title}
+                      onclick={() => editingId = item.id}>Προβολή {canWrite ? '& επεξεργασία' : 'άρθρου'}</button>
+                  </div>
                 </li>
               {/each}
             </ul>
@@ -202,6 +217,8 @@
   .admin-news-article p{margin:0 0 8px;font-size:13px;color:#b9bdc0;overflow-wrap:anywhere}
   .admin-news-article time{font-size:11px;color:#a7adb0}
   .admin-news-status{flex:0 0 auto;color:#ffca46;border:1px solid #634b23;background:#302311;border-radius:7px;padding:5px 8px;font-size:11px}
+  .admin-news-article-actions{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end;gap:10px}
+  .admin-news-article-actions button{min-height:40px;white-space:nowrap;font:800 13px/1.2 'Fira Sans Extra Condensed',sans-serif}
   .admin-news-state{padding:23px;color:#c2c6c7}
   .admin-news-pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
   .admin-news-pagination span{color:#d5d7d8;font-size:12px}
