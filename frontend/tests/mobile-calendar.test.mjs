@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { createMobileAuthController } from '../src/lib/mobile/controller.ts';
+import { normalizeTab, tabFromLocation, fanPublicDestination } from '../src/lib/mobile/navigation.ts';
 import { createMobileSessionStorage } from '../src/lib/mobile/session.ts';
 import { calendarItemKey, calendarItemOnDate, calendarMonthDays, calendarWeekDays, clubToday,
   formatCalendarDate, isCalendarDate, safeCalendarLink, shiftCalendarMonth } from '../src/lib/mobile/calendar.ts';
@@ -521,6 +522,28 @@ test('rendered member and staff calendars show real content, safe links, unavail
       }
       assert.equal(body.includes('calendar-player-select'), role === 'parent');
     }
+    for (const role of ['parent', 'player', 'coach', 'management']) {
+      const match = item({ id: 'real-match', kind: 'match', event_type: 'match', title: 'Scoped match',
+        is_cancelled: true, cancel_reason: 'Weather' });
+      const result = calendar(role, { items: [item(), match], next_offset: 200 });
+      const filtered = render(MobileCalendar, { props: { ...base, role, calendar: result, initialFilter: 'match' } }).body;
+      assert.ok(filtered.includes('Οι αγώνες μας'));
+      assert.ok(filtered.includes('Scoped match'));
+      assert.equal(filtered.includes('Real training'), false, 'The matches entry must filter other kinds.');
+      assert.ok(filtered.includes('Weather'), 'Cancelled matches remain visible.');
+      assert.ok(filtered.includes('calendar-load-more'), 'Filtering must not hide pagination.');
+      assert.equal(filtered.includes('calendar-player-select'), role === 'parent');
+      if (role === 'parent' || role === 'player') {
+        assert.match(filtered, /<fieldset[^>]*disabled/);
+        assert.ok(filtered.includes('calendar-rsvp-maybe-match:real-match'));
+      } else {
+        assert.equal(filtered.includes('calendar-rsvp-'), false);
+        assert.ok(filtered.includes('Απαντήσεις συμμετοχής'));
+      }
+      const ordinary = render(MobileCalendar, { props: { ...base, role, calendar: result } }).body;
+      assert.ok(ordinary.includes('Real training'), 'Ordinary calendar retains all kinds.');
+      assert.ok(ordinary.includes('Scoped match'));
+    }
     const unavailable = render(MobileCalendar, { props: { ...base, role: 'parent', status: 'error', error: 'Import unavailable', calendar: null } }).body;
     assert.ok(unavailable.includes('calendar-unavailable'));
     assert.ok(unavailable.includes('Δοκιμή ξανά'));
@@ -533,4 +556,25 @@ test('rendered member and staff calendars show real content, safe links, unavail
     assert.ok(unanswered.includes('Scoped player'));
     assert.ok(unanswered.includes('Χωρίς απάντηση'));
   } finally { hooks.deregister(); }
+});
+
+test('legacy family settings links resolve only for parents and private matches never redirect publicly', () => {
+  for (const role of ['parent', 'player', 'coach', 'management', 'fan']) {
+    const expected = role === 'parent' ? 'children' : 'home';
+    assert.equal(normalizeTab('family', role), expected);
+    assert.equal(tabFromLocation({ pathname: '/app', search: '?tab=family' }, role), expected);
+    assert.equal(tabFromLocation({ pathname: '/app/family', search: '' }, role), expected);
+    assert.equal(normalizeTab('matches', role), 'matches');
+    assert.equal(fanPublicDestination('matches', role), role === 'fan' ? '/team?tab=results' : null);
+  }
+});
+
+test('member matches mount the existing scoped calendar with a fresh filter per tab', () => {
+  const source = readFileSync(new URL('../src/routes/app/[...path]/+page.svelte', import.meta.url), 'utf8');
+  assert.ok(source.includes("(activeTab === 'calendar' || activeTab === 'matches') && role !== 'fan' && !composing"));
+  assert.ok(source.includes("initialFilter={activeTab === 'matches' ? 'match' : 'all'}"));
+  assert.ok(source.includes("${user.id}:${role}:${activeTab}:"));
+  assert.ok(source.includes("initialPlayerId={role === 'parent' ? page.url.searchParams.get('player_id') : null}"));
+  assert.ok(source.includes('onRespond={(item, status) => controller.submitAvailability(item, status)}'));
+  assert.ok(source.includes('onLoadResponses={(item, append) => controller.loadCalendarResponses(item, append)}'));
 });
