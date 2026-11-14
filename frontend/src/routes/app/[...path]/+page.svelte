@@ -299,12 +299,12 @@
             {/if}
           {/key}
         {/if}
-      {:else if activeTab === 'calendar' && role !== 'fan' && !composing}
+      {:else if (activeTab === 'calendar' || activeTab === 'matches') && role !== 'fan' && !composing}
         {#if role === 'management' && (!$controller.organization?.organization_id || $controller.organization.requires_organization_selection)}
           <section class="content-card" data-testid="calendar-organization-required"><h1>Πρόγραμμα</h1><p>Επίλεξε οργανισμό για να δεις το πρόγραμμά του.</p></section>
         {:else}
-          {#key `${user.id}:${role}:${role === 'management' ? $controller.organization?.organization_id : ''}`}
-            <MobileCalendar {role} initialPlayerId={role === 'parent' ? page.url.searchParams.get('player_id') : null}
+          {#key `${user.id}:${role}:${activeTab}:${role === 'management' ? $controller.organization?.organization_id : ''}`}
+            <MobileCalendar {role} initialFilter={activeTab === 'matches' ? 'match' : 'all'} initialPlayerId={role === 'parent' ? page.url.searchParams.get('player_id') : null}
               calendar={$controller.calendar} status={$controller.calendarStatus} error={$controller.calendarError}
               loadingMore={$controller.calendarLoadingMore} busy={$controller.busy}
               responses={$controller.calendarResponses} responsesKey={$controller.calendarResponsesKey}
