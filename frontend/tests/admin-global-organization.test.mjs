@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   adminOrganizationKey, preferredAdminOrganization, scopedAdminOrganization,
@@ -72,4 +73,17 @@ test('overview accepts verified counts and never derives fake players or article
   },club),null);
   assert.deepEqual(verifiedAdminPublishedNews({items:[],total:17,offset:0,limit:20},20),{publishedArticles:17});
   assert.equal(verifiedAdminPublishedNews({items:[],total:17,offset:0,limit:100},20),null);
+});
+
+test('all multi-organization OS admin pages use only the header organization selector', () => {
+  const read = route => readFileSync(new URL('../src/routes/admin/' + route + '/+page.svelte',import.meta.url),'utf8');
+  const frame=readFileSync(new URL('../src/lib/admin/AdminFrame.svelte',import.meta.url),'utf8');
+  assert.match(frame,/data-testid="admin-header-organization"/);
+  assert.match(frame,/chooseAdminOrganization\(user, next\)/);
+  for(const route of ['club','news','groups','pos','hub','announcements','finance','documents','evaluations','hub/player-quizzes']) {
+    const src=read(route);
+    assert.doesNotMatch(src,/<select[^>]*(?:admin-.*owner|bind:value=\{organization\})/);
+    if(route!=='club') assert.match(src,/scopedAdminOrganization/);
+  }
+  assert.match(read('club'),/preferredAdminOrganization/);
 });
