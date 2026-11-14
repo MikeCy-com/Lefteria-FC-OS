@@ -28,6 +28,11 @@ function scan(root, results = []) {
 test('all active Lefteria FC screens and backend visuals use the new gold', () => {
   assert.deepEqual([...scan(frontend), ...scan(backend), ...scan(sql)], [],
     'Retired #f5a623 or its RGB equivalent remains in active source.');
+  const birthdayMigration = readFileSync(join(backend, 'LefteriaFc.Infrastructure/Persistence/Migrations/20261114193000_BrandGoldAccent.cs'), 'utf8');
+  const invoice = readFileSync(join(backend, 'LefteriaFc.Api/Payabl/AcademyInvoicePdf.cs'), 'utf8');
+  assert.match(birthdayMigration, /ALTER COLUMN background_color SET DEFAULT '#F6BB38'/);
+  assert.match(birthdayMigration, /ELSE '#F6BB38' END/);
+  assert.match(invoice, /Gold = Color\\(246,187,56\\)/);
   const css = readFileSync(join(frontend, 'lib/public/public.css'), 'utf8');
   const admin = readFileSync(join(frontend, 'lib/admin/admin.css'), 'utf8');
   const mobile = readFileSync(join(frontend, 'lib/mobile/components/mobile-theme.css'), 'utf8');
