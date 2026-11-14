@@ -43,6 +43,6 @@
 <style>
   .login-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
   .login-status p { max-width:32rem; text-align:center; }
-  button { min-height:44px; padding:10px 18px; border:1px solid #f5a623; border-radius:6px; background:#161616; color:#ffca46; cursor:pointer; }
+  button { min-height:44px; padding:10px 18px; border:1px solid #f6bb38; border-radius:6px; background:#161616; color:#ffca46; cursor:pointer; }
   button:focus-visible { outline:2px solid #ffca46; outline-offset:3px; }
 </style>
