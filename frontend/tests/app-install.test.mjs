@@ -103,7 +103,7 @@ test('manifest and footer install entry retain the app route and accessible devi
   const manifest = JSON.parse(readFileSync(new URL('../static/manifest.webmanifest', import.meta.url)));
   assert.equal(manifest.start_url, '/app'); assert.equal(manifest.id, '/app');
   assert.equal(manifest.scope, '/'); assert.equal(manifest.display, 'standalone');
-  assert.ok(manifest.icons.some(icon => icon.src === '/club/logo512.png' && icon.sizes === '512x512'));
+  assert.ok(manifest.icons.some(icon => icon.src === '/club/app-icon.svg' && icon.sizes === 'any'));
   const component = readFileSync(new URL('../src/lib/public/AppInstallButton.svelte', import.meta.url), 'utf8');
   assert.match(component, /Κατέβασε την επίσημη εφαρμογή/);
   assert.match(component, /<dialog[^>]*aria-labelledby="app-install-title"/);
