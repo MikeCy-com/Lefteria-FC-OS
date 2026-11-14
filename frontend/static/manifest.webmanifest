@@ -11,8 +11,14 @@
   "theme_color": "#0a0a0a",
   "icons": [
     {
+      "src": "/club/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
       "src": "/club/logo512.png",
-      "sizes": "512x512",
+      "sizes": "500x500",
       "type": "image/png",
       "purpose": "any"
     }
