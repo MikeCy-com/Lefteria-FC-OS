@@ -4,7 +4,7 @@
   --lf-bg: #080808;
   --lf-surface: #111314;
   --lf-elevated: #191b1c;
-  --lf-gold: #f5a623;
+  --lf-gold: #f6bb38;
   --lf-gold-light: #ffca46;
   --lf-line: #292b2c;
   --lf-muted: #a6aaad;
@@ -58,7 +58,7 @@
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
-.lf-mobile-theme :is(button,a) { -webkit-tap-highlight-color: rgb(245 166 35 / 12%); }
+.lf-mobile-theme :is(button,a) { -webkit-tap-highlight-color: rgb(246 187 56 / 12%); }
 .lf-mobile-theme :is(button,a,input,select,textarea):focus-visible {
   outline: 2px solid var(--lf-gold-light);
   outline-offset: 3px;
