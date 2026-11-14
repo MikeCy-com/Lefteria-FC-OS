@@ -8,6 +8,7 @@
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import type { PublicIconName } from '../../lib/public/icon-types';
   let { data }: { data: PublicPageData } = $props();
+  const academyBanner = $derived(data.site?.academy_groups.find(group => group.banner_url)?.banner_url);
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
     { href: '/academy/groups', icon: 'users', title: 'ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ', description: 'Βρες το τμήμα που ταιριάζει στο παιδί σου και δες το πρόγραμμα προπονήσεών του.' },
@@ -18,6 +19,7 @@
 <svelte:head><title>ΑΚΑΔΗΜΙΑ | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Η ακαδημία της Λευτεριάς FC. Γνώρισε τα ηλικιακά τμήματα και το πρόγραμμα αγώνων." /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc_academy" navigationGroups={data.navigationGroups}>
   <section class="public-page-heading academy-intro" data-testid="academy-landing-page">
+    {#if academyBanner}<PublicImage src={academyBanner} alt="" class="academy-hero-image" />{/if}
     <div class="academy-intro-copy"><p class="public-eyebrow">ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</p><h1>ΛΕΥΤΕΡΙΑ FC<br /><em>ΑΚΑΔΗΜΙΑ</em></h1>
       <p class="academy-description">{data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.'}</p>
       <div class="academy-actions"><a class="public-button" href="/academy/groups">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
