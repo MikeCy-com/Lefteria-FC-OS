@@ -2,14 +2,14 @@ export type InstallPromptEvent = Event & {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
-export type InstallState = { installed: boolean; available: boolean; busy: boolean; ios: boolean };
+export type InstallState = { installed: boolean; available: boolean; busy: boolean; ios: boolean; android: boolean };
 export function isAppleMobile(userAgent: string, platform: string, touchPoints: number): boolean {
   return /iPad|iPhone|iPod/.test(userAgent) || platform === 'MacIntel' && touchPoints > 1;
 }
 
 // One owner for the browser's single-use prompt, including client-side navigation.
 export function createInstallController() {
-  let state: InstallState = { installed: false, available: false, busy: false, ios: false };
+  let state: InstallState = { installed: false, available: false, busy: false, ios: false, android: false };
   let prompt: InstallPromptEvent | null = null;
   const listeners = new Set<(value: InstallState) => void>();
   function update(patch: Partial<InstallState>) {
@@ -25,7 +25,8 @@ export function createInstallController() {
       const display = browser.matchMedia('(display-mode: standalone)');
       const nav = browser.navigator as Navigator & { standalone?: boolean };
       update({ installed: display.matches || nav.standalone === true,
-        ios: isAppleMobile(nav.userAgent, nav.platform, nav.maxTouchPoints) });
+        ios: isAppleMobile(nav.userAgent, nav.platform, nav.maxTouchPoints),
+        android: /Android/i.test(nav.userAgent) });
       const capture = (event: Event) => {
         if (!('prompt' in event) || typeof event.prompt !== 'function') return;
         event.preventDefault(); prompt = event as InstallPromptEvent;
