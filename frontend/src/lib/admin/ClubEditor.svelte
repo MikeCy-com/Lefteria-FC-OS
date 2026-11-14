@@ -6,24 +6,16 @@
     { id: 'contact', title: 'Δημόσια επικοινωνία', keys: ['city', 'country', 'address', 'email', 'phone', 'website'] },
     { id: 'images', title: 'Λογότυπο & εικόνες', keys: ['logo_url', 'stadium_image_url'] }
   ];
-  async function select(event: Event) {
-    const input = event.currentTarget as HTMLSelectElement;
-    await controller.selectOrganization(input.value);
-    input.value = controller.getState().organizationId ?? '';
-  }
 </script>
 
 <div class="club-editor" data-testid="admin-club-editor">
   <div class="club-content">
     <p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ ΙΣΤΟΣΕΛΙΔΑΣ</p><h1>Προφίλ συλλόγου</h1>
     <p class="admin-muted">Δημόσια στοιχεία που εμφανίζονται στην ιστοσελίδα του επιλεγμένου οργανισμού.</p>
-    <div class="club-selector"><label for="club-organization">Οργανισμός</label>
-      <select id="club-organization" value={$controller.organizationId ?? ''} onchange={select}
-        disabled={$controller.saving || $controller.organizations.length === 0 ||
-          $controller.organizations.length === 1 && $controller.organizations[0].id === $controller.organizationId} data-testid="club-organization">
-        <option value="" disabled>Επιλέξτε οργανισμό</option>
-        {#each $controller.organizations as organization (organization.id)}<option value={organization.id}>{organization.name}</option>{/each}
-      </select>
+    <div class="club-selector">
+      <span class="admin-organization-context-label" data-testid="club-organization">
+        {$controller.organizations.find(org => org.id === $controller.organizationId)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}
+      </span>
     </div>
     {#if $controller.status === 'loading' || $controller.status === 'idle'}<p role="status">Φόρτωση στοιχείων συλλόγου…</p>
     {:else if $controller.status !== 'ready'}
