@@ -56,6 +56,18 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     const loaded=await loadPlayerPage(url,'Case--ID');assert.equal(loaded.player.id,'Case--ID');assert.equal(loaded.organization,'lefteria_fc');
     assert.equal(loaded.sections,undefined,'A player profile must not serialize unrelated public section collections.');
     assert.equal((await loadPlayerPage(url,'recorded-player--Case--ID')).player.id,'Case--ID');
+    // The API order must not let an ID matching the suffix hijack a raw ID.
+    const originalPlayers = sections.players;
+    const suffixPlayer = {...player,id:'ID',name:'Different suffix player'};
+    for (const ordered of [[suffixPlayer,...originalPlayers],[...originalPlayers,suffixPlayer]]) {
+      sections.players = ordered;
+      assert.equal((await loadPlayerPage(url,'Case--ID')).player.id,'Case--ID',
+        'An exact opaque ID wins over a different record matching its suffix.');
+      assert.equal((await loadPlayerPage(url,'recorded-player--Case--ID')).player.id,'Case--ID',
+        'Generated title slugs still resolve to an opaque ID containing the separator.');
+      assert.equal((await loadPlayerPage(url,'ID')).player.name,'Different suffix player');
+    }
+    sections.players = originalPlayers;
     for(const id of ['case--id','unknown'])await assert.rejects(loadPlayerPage(url,id),error=>error.status===404);
     const academy=await loadPlayerPage(url,'academy-child');
     assert.equal(academy.player.name,'Ανδρέας Πα.','Academy players keep the original profile page with the API-abbreviated name.');
