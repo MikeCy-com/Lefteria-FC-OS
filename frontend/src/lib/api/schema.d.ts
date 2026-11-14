@@ -1,5 +1,85 @@
 // Generated from contracts/openapi.json. Run npm run api:generate; do not edit.
 export interface paths {
+    "/api/admin/academy/office/{collection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAcademyOffice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/office/orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAcademyInternalOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/office/orders/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CloseAcademyInternalOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/office/registrations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/office/registrations/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ReviewAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training": {
         parameters: {
             query?: never;
@@ -3152,6 +3232,13 @@ export interface components {
             code: null | string;
             name: null | string;
         };
+        Decision: {
+            /** Format: uuid */
+            id: string;
+            status: null | string;
+            /** Format: int32 */
+            version: number | string;
+        };
         FamilyChildDto: {
             academy_group_ids: string[];
             id: string;
@@ -3868,6 +3955,15 @@ export interface components {
             opening_cash_cents: number | string;
             /** Format: uuid */
             request_id: string;
+        };
+        Order: {
+            /** Format: uuid */
+            id: string;
+            item: null | string;
+            player_id: null | string;
+            /** Format: int32 */
+            quantity: number | string;
+            size: null | string;
         };
         OrganizationOptionDto: {
             id: string;
@@ -4588,6 +4684,18 @@ export interface components {
             client_request_id: string;
             notes: null | string;
         };
+        Registration: {
+            /** Format: date */
+            birth_date: string;
+            first_name: null | string;
+            guardian_email: null | string;
+            guardian_name: null | string;
+            guardian_phone: null | string;
+            guardian_relationship: null | string;
+            /** Format: uuid */
+            id: string;
+            last_name: null | string;
+        };
         RequestRefundRequest: {
             /** Format: int64 */
             amount_cents: number | string;
@@ -4671,6 +4779,117 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ReadAcademyOffice: {
+        parameters: {
+            query?: {
+                offset?: number | string;
+                search?: string;
+            };
+            header?: never;
+            path: {
+                collection: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAcademyInternalOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Order"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CloseAcademyInternalOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Registration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReviewAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Decision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReadAdminAcademyTrainingSessions: {
         parameters: {
             query?: {

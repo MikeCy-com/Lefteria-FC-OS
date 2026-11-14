@@ -8,6 +8,11 @@ const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/new
 const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
   ['get', '/api/admin/auth/setup', []], ['post', '/api/admin/auth/setup', []],
+  ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
   ['get', '/api/admin/club', [{ WebAdmin: [] }]], ['put', '/api/admin/club', [{ WebAdmin: [] }]],
   // Reviewed admin announcement operations only. Caddy still defers every
@@ -112,8 +117,8 @@ export function entryRouteGroups(document) {
     if (!operation || JSON.stringify(operation.security ?? []) !== JSON.stringify(security)) {
       throw new Error('Reviewed application entry security changed.');
     }
-    const expression = path.replace(/\{(?:fileName|id|mediaId)\}/g, '[^/]+');
-    for (const parameter of ['fileName','id','mediaId']) {
+    const expression = path.replace(/\{(?:fileName|id|mediaId|collection)\}/g, '[^/]+');
+    for (const parameter of ['fileName','id','mediaId','collection']) {
       if (path.includes('{'+parameter+'}') &&
           ![...(document.paths[path]?.parameters ?? []),...(operation.parameters ?? [])]
             .some(value => value?.name === parameter && value.in === 'path' && value.required === true)) {

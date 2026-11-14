@@ -215,6 +215,7 @@ app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
 app.MapAdminAcademyTrainingPlans();
 app.MapAcademyLeadAdmin();
+app.MapAcademyOffice();
 
 if (app.Environment.IsDevelopment())
 {

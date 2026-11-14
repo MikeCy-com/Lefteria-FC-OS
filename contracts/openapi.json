@@ -2066,6 +2066,34 @@
         ],
         "type": "object"
       },
+      "Decision": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "version"
+        ],
+        "type": "object"
+      },
       "FamilyChildDto": {
         "properties": {
           "academy_group_ids": {
@@ -5056,6 +5084,48 @@
         "required": [
           "request_id",
           "opening_cash_cents"
+        ],
+        "type": "object"
+      },
+      "Order": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "item": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "quantity": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "size": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "player_id",
+          "item",
+          "size",
+          "quantity"
         ],
         "type": "object"
       },
@@ -8552,6 +8622,65 @@
         ],
         "type": "object"
       },
+      "Registration": {
+        "properties": {
+          "birth_date": {
+            "format": "date",
+            "type": "string"
+          },
+          "first_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardian_email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardian_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardian_phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "guardian_relationship": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "last_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "first_name",
+          "last_name",
+          "birth_date",
+          "guardian_name",
+          "guardian_relationship",
+          "guardian_phone",
+          "guardian_email"
+        ],
+        "type": "object"
+      },
       "RequestRefundRequest": {
         "properties": {
           "amount_cents": {
@@ -8866,6 +8995,165 @@
   },
   "openapi": "3.1.1",
   "paths": {
+    "/api/admin/academy/office/orders": {
+      "post": {
+        "operationId": "CreateAcademyInternalOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Order"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/orders/status": {
+      "post": {
+        "operationId": "CloseAcademyInternalOrder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/registrations": {
+      "post": {
+        "operationId": "CreateAcademyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/registrations/review": {
+      "post": {
+        "operationId": "ReviewAcademyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Decision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/{collection}": {
+      "get": {
+        "operationId": "ReadAcademyOffice",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "collection",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
     "/api/admin/academy/training": {
       "get": {
         "operationId": "ReadAdminAcademyTrainingSessions",

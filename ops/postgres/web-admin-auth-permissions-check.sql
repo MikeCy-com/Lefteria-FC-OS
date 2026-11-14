@@ -80,6 +80,7 @@ BEGIN
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
+                  'academy_intake.admin_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
