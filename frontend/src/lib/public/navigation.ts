@@ -1,4 +1,4 @@
-import type { PublicGroup, PublicArticle } from './types';
+import type { PublicGroup, PublicArticle, PublicOrganization } from './types';
 import { articleLink } from './content.ts';
 import type { PublicIconName } from './icon-types';
 
@@ -61,12 +61,13 @@ function scopedOwner(url: URL): 'academy' | 'team' | 'club' {
   if (url.pathname === '/sponsors/first-team') return 'team';
   return url.searchParams.get('scope') === 'academy' ? 'academy' : url.searchParams.get('scope') === 'first_team' ? 'team' : 'club';
 }
-export function navigationOwner(location: NavigationLocation): string | null {
+export function navigationOwner(location: NavigationLocation, organization: PublicOrganization = 'lefteria_fc'): string | null {
   const url = navigationLocation(location); const path = url.pathname;
   if (path === '/') return 'home';
   if (within(path, '/academy')) return 'academy';
   if (path === '/team') return ['schedule', 'results'].includes(teamTab(url)) || (teamTab(url) === 'overview' && url.hash === '#standings') ? 'matches' : 'team';
-  if (within(path, '/player') || within(path, '/staff') || path === '/trials') return 'team';
+  if (within(path, '/player')) return organization === 'lefteria_fc_academy' ? 'academy' : 'team';
+  if (within(path, '/staff') || path === '/trials') return 'team';
   if (within(path, '/match') || path === '/vote') return 'matches';
   if (within(path, '/partners') || within(path, '/sponsors')) return scopedOwner(url);
   if (within(path, '/about') || within(path, '/seasons') || ['/join', '/privacy', '/terms'].includes(path)) return 'club';
@@ -76,8 +77,8 @@ export function navigationOwner(location: NavigationLocation): string | null {
   if (path === '/contact') return 'contact';
   return null;
 }
-export function navigationActive(item: PublicNavigationItem, location: NavigationLocation): boolean {
-  return navigationOwner(location) === item.id;
+export function navigationActive(item: PublicNavigationItem, location: NavigationLocation, organization: PublicOrganization = 'lefteria_fc'): boolean {
+  return navigationOwner(location, organization) === item.id;
 }
 function academyIdentity(pathname: string, groups: readonly PublicGroup[]): string | null {
   if (!pathname.startsWith('/academy/')) return null;
