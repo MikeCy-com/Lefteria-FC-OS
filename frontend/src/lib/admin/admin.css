@@ -260,3 +260,40 @@
   .admin-app .admin-tool-copy strong{font-size:18px}
   .admin-app .admin-header{gap:8px}
 }
+
+/* OS sports visual language. Existing controls, permission states and modules remain visible. */
+.admin-app { --admin-line:#4c4840; --admin-surface:#111313; }
+.admin-app .admin-header { border-bottom-color:#b88a30; box-shadow:0 2px 18px #f6bb3814; }
+.admin-app .admin-brand { font-style:italic; }
+.admin-app .admin-panel { border-color:#645d4c; background:linear-gradient(145deg,#1c1d1d,#0c0e0e 75%); box-shadow:inset 0 1px #ffffff09; }
+.admin-app .admin-sidebar a[aria-current='page'] { background:linear-gradient(105deg,#ffd25a,#f6bb38); color:#111; border-left-color:#fff1ae; }
+.admin-app .admin-sidebar a[aria-current='page'] span { color:#111; }
+.admin-app .admin-workspace-intro { border-bottom-color:#9b762f; }
+.admin-app .admin-workspace-intro h1 { font-style:italic; }
+.admin-app .admin-hub-heading h2 { text-transform:uppercase; }
+.admin-app .admin-overview-stats>div { background:linear-gradient(145deg,#242119,#101212); border-color:#695834; }
+.admin-app .admin-tool-live { background:linear-gradient(130deg,#292417,#101212 75%); border-color:#7c6840; }
+.admin-app .admin-signin-editorial { width:min(1280px,100% - 40px); padding:32px 0 48px; }
+.admin-signin-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:clamp(24px,5vw,72px); align-items:center; }
+.admin-signin-story { min-height:610px; padding:clamp(24px,4vw,52px); border:1px solid #756642; border-radius:12px; background-size:cover; background-position:center; }
+.admin-app .admin-signin-story h2 { font-size:clamp(64px,7vw,100px); line-height:.9; font-style:italic; margin:24px 0; }
+.admin-signin-story em { color:var(--admin-gold); }
+.admin-signin-story>p { max-width:34ch; font-size:16px; }
+.admin-signin-story .admin-signin-lead { font-family:'Fira Sans Extra Condensed',sans-serif; font-size:30px; font-weight:700; }
+.admin-signin-story img { display:block; object-fit:contain; margin:32px 0; filter:drop-shadow(0 5px 25px #0008); }
+.admin-signin-story .admin-signin-motto { border-top:1px solid #a17a32; padding-top:22px; font-family:'Fira Sans Extra Condensed',sans-serif; font-style:italic; font-size:24px; font-weight:700; }
+.admin-signin-motto span { color:var(--admin-gold); padding-inline:8px; }
+.admin-app .admin-signin-grid>.admin-panel { padding:clamp(24px,4vw,46px); border:1px solid #a28a53; box-shadow:0 12px 50px #0006,inset 0 -2px #f6bb3870; }
+.admin-app .admin-signin-grid .admin-crest { width:92px; height:92px; margin-bottom:24px; }
+.admin-app .admin-signin-grid h1 { font-size:clamp(32px,3.5vw,44px); font-style:italic; }
+.admin-app .admin-signin-grid .admin-primary { font-family:'Fira Sans Extra Condensed',sans-serif; font-size:22px; min-height:52px; }
+.admin-app .admin-signin-grid :is(input,select) { border-color:#777064; border-radius:6px; }
+@media(max-width:760px) {
+  .admin-app .admin-signin-editorial { width:calc(100% - 32px); padding:20px 0; }
+  .admin-signin-grid { grid-template-columns:1fr; gap:20px; }
+  .admin-signin-story { min-height:0; padding:24px; }
+  .admin-app .admin-signin-story h2 { font-size:52px; }
+  .admin-signin-story img { width:72px; height:72px; margin:20px 0; }
+  .admin-signin-story .admin-signin-lead { font-size:24px; }
+  .admin-app .admin-signin-grid>.admin-panel { padding:24px; }
+}

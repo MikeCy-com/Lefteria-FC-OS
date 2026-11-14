@@ -23,6 +23,7 @@ const routes = [
   { name:'about', path:'/about', expectedStatus:200 },
   { name:'contact', path:'/contact', expectedStatus:200 },
   { name:'privacy', path:'/privacy', expectedStatus:200 },
+  { name:'web-app-access', path:'/login', expectedStatus:200 },
   { name:'app-login', path:'/app/login', expectedStatus:200 }
 ];
 const viewports = [

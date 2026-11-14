@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 
-test('public navigation exposes real admin access, legacy redirects and safe error recovery without changing authentication realms',async()=>{
+test('public navigation keeps admin access private and preserves legacy redirects and safe recovery',async()=>{
   const state='data:text/javascript,'+encodeURIComponent('export const page={status:500,error:{message:"sentinel-private-error"},url:new URL("https://fixture.test/academy")};');
   const hook=registerHooks({
     resolve(specifier,context,next){
@@ -26,19 +26,23 @@ test('public navigation exposes real admin access, legacy redirects and safe err
     const {default:ErrorPage}=await import('../src/routes/+error.svelte');
     const html=render(ErrorPage).body;
     assert.match(html,/Φόρτωση ξανά/);assert.match(html,/data-sveltekit-reload/);
-    assert.match(html,/href="\/admin\/login"/);assert.doesNotMatch(html,/sentinel-private-error|Internal Error/);
+    assert.doesNotMatch(html,/href="\/admin\/login"/);assert.doesNotMatch(html,/sentinel-private-error|Internal Error/);
     const {page}=await import(state);page.status=404;
     assert.match(render(ErrorPage).body,/ΔΕΝ ΒΡΗΚΑΜΕ/);
     for(const [route,location]of[['fixtures','/team?tab=results'],['calendar','/team?tab=schedule'],['venues','/team?tab=venues'],['staff','/team?tab=overview']]){
       const {load}=await import(`../src/routes/${route}/+page.server.ts`);
       assert.throws(()=>load(),error=>error.status===308&&error.location===location);
     }
+    const {default:Navigation}=await import('../src/lib/public/PublicNavigation.svelte');
+    const navigation=render(Navigation,{props:{club:null,groups:[]}}).body;
+    assert.doesNotMatch(navigation,/href="\/admin\/login"|public-menu-admin/);
+    assert.match(navigation,/href="\/login"/);
     const {default:Footer}=await import('../src/lib/public/PublicFooter.svelte');
     const footer=render(Footer,{props:{club:null}}).body;
-    assert.match(footer,/data-testid="footer-admin-link"/);assert.match(footer,/href="\/admin\/login"/);
+    assert.doesNotMatch(footer,/data-testid="footer-admin-link"|href="\/admin\/login"/);
     const {default:Access}=await import('../src/routes/login/+page.svelte');
     const access=render(Access,{props:{data:{site:null,branding:null,navigationGroups:[],available:false,organization:'lefteria_fc'}}}).body;
-    assert.match(access,/href="\/admin\/login"/);assert.match(access,/href="\/app\/login"/);
+    assert.doesNotMatch(access,/href="\/admin\/login"/);assert.match(access,/href="\/app\/login"/);
     assert.doesNotMatch(access,/type="password"|type="email"|name="password"|sentinel/);
   }finally{hook.deregister();}
 });

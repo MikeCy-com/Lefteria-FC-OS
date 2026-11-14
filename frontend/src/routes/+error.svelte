@@ -12,7 +12,7 @@
     <h1 id="recovery-title">{missing ? 'ΔΕΝ ΒΡΗΚΑΜΕ ΑΥΤΗ ΤΗ ΣΕΛΙΔΑ.' : 'ΑΣ ΤΟ ΔΟΚΙΜΑΣΟΥΜΕ ΞΑΝΑ.'}</h1>
     <p>{missing ? 'Ο σύνδεσμος μπορεί να έχει αλλάξει. Επίλεξε μια ενότητα για να συνεχίσεις.' : 'Η σελίδα δεν φορτώθηκε σωστά. Μπορείς να τη φορτώσεις ξανά ή να επιστρέψεις στην αρχική.'}</p>
     <div class="actions">{#if !missing}<button type="button" onclick={() => window.location.reload()}>Φόρτωση ξανά ↗</button>{/if}<a href="/" data-sveltekit-reload>Στην αρχική →</a></div>
-    <nav aria-label="Συνέχεια πλοήγησης"><a href="/academy" data-sveltekit-reload>Ακαδημία</a><a href="/team" data-sveltekit-reload>Πρώτη ομάδα</a><a href="/news" data-sveltekit-reload>Νέα</a><a href="/admin/login" data-sveltekit-reload>Διαχείριση συλλόγου</a></nav>
+    <nav aria-label="Συνέχεια πλοήγησης"><a href="/academy" data-sveltekit-reload>Ακαδημία</a><a href="/team" data-sveltekit-reload>Πρώτη ομάδα</a><a href="/news" data-sveltekit-reload>Νέα</a></nav>
   </section>
 </main>
 

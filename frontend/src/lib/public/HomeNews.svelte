@@ -6,7 +6,7 @@
   let { articles, available }: { articles: PublicArticle[]; available: boolean } = $props();
   let filter = $state('all');
   const categories = $derived([...new Set(articles.map(article => article.category).filter(Boolean))]);
-  const rows = $derived((filter === 'all' ? articles : articles.filter(article => article.category === filter)).slice(0,3));
+  const rows = $derived((filter === 'all' ? articles : articles.filter(article => article.category === filter)).slice(0,4));
 </script>
 <section class="public-news-section" data-testid="public-home-news"><div class="public-section-heading">
   <div><p class="public-eyebrow">ΤΕΛΕΥΤΑΙΑ ΝΕΑ</p><h2>ΝΕΑ & ΑΝΑΚΟΙΝΩΣΕΙΣ</h2></div>
