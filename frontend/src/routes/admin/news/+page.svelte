@@ -123,19 +123,7 @@
           <a class="admin-news-public" href="/news">Δημόσια νέα <span aria-hidden="true">↗</span></a>
         </header>
         <section class="admin-panel" aria-label="Φίλτρα δημοσιευμένων άρθρων">
-          <label for="admin-news-owner">Οργανισμός</label>
-          <select id="admin-news-owner" data-testid="admin-news-organization" value={organization ?? ''}
-            onchange={event => {
-              const next = event.currentTarget.value;
-              if (allowedOrganizations.some(org => org.id === next)) {
-                organization = next as Organization;
-                offset = 0;
-              }
-            }}>
-            {#each allowedOrganizations as org (org.id)}
-              <option value={org.id}>{org.name}</option>
-            {/each}
-          </select>
+          <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         </section>
         {#if loading}
           <div class="admin-panel admin-news-state" role="status" data-testid="admin-news-loading">Φόρτωση επαληθευμένων άρθρων…</div>
