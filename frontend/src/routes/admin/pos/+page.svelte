@@ -5,6 +5,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminPosBasketPreview from '../../../lib/admin/AdminPosBasketPreview.svelte';
   import AdminPosLocationsPanel from '../../../lib/admin/AdminPosLocationsPanel.svelte';
@@ -314,7 +315,8 @@
   });
 
   $effect(() => {
-    if (!assignments.some(org => org.id === owner)) owner = assignments[0]?.id ?? null;
+    const selected = scopedAdminOrganization($auth.session?.user ?? null, assignments.map(org => org.id));
+    if (owner !== selected) owner = selected;
   });
 
   $effect(() => {
