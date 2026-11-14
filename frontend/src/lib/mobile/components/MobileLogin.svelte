@@ -5,7 +5,7 @@
   import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays, UiAction } from './component-types.ts';
   import MobileIcon from './MobileIcon.svelte';
   import './mobile-theme.css';
-  import { publicImages } from '../../public/images';
+  import { publicImages } from '../../public/images.ts';
 
   interface Props {
     step?: MobileLoginStep;
