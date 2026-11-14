@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { page } from '$app/stores';
   import type { WebAdminSession } from './controller.ts';
   import { canReadClub } from './club-controller.ts';
   import { canViewFirstTeamTrials } from './trials-access.ts';
@@ -8,7 +7,7 @@
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -43,10 +42,10 @@
             <a class="admin-nav-tool" href="/admin/news" aria-current={active === 'news' ? 'page' : undefined} data-testid="admin-news-link">Άρθρα & νέα</a>
           {/if}
           {#if section.id === 'hub' && section.modules.some(item => item.id === 'hub_editorial' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/hub" aria-current={$page.url.pathname === '/admin/hub' ? 'page' : undefined} data-testid="admin-hub-link">Περιεχόμενο HUB</a>
+            <a class="admin-nav-tool" href="/admin/hub" aria-current={active === 'hub' ? 'page' : undefined} data-testid="admin-hub-link">Περιεχόμενο HUB</a>
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'academy_schedule' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/schedule" aria-current={$page.url.pathname === '/admin/schedule' ? 'page' : undefined} data-testid="admin-schedule-link">Πρόγραμμα Ακαδημίας</a>
+            <a class="admin-nav-tool" href="/admin/schedule" aria-current={active === 'schedule' ? 'page' : undefined} data-testid="admin-schedule-link">Πρόγραμμα Ακαδημίας</a>
           {/if}
           {#if section.id === 'app' && section.modules.some(item => item.id === 'announcements' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/announcements" aria-current={active === 'announcements' ? 'page' : undefined} data-testid="admin-announcements-link">Ανακοινώσεις εφαρμογής</a>
