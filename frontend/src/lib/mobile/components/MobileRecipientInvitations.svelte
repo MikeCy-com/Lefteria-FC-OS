@@ -213,7 +213,7 @@
   .recipient-delegation-status { padding: 15px; margin: 0 0 18px; background: #171d1c; border: 1px solid #47544a; border-radius: 8px; }
   .recipient-delegation-status h3 { font-size: 16px; margin: 0 0 8px; }
   .recipient-delegation-status p { font-size: 13px; line-height: 1.6; color: #c7d8ce; margin: 7px 0; }
-  .recipient-eyebrow { color: #f5a623; font-size: 10px; font-weight: 700;
+  .recipient-eyebrow { color: #f6bb38; font-size: 10px; font-weight: 700;
     letter-spacing: .1em; margin: 0 0 9px; }
   .recipient-heading h2 { font-size: clamp(21px,4vw,26px); line-height: 1.2; margin: 0 0 7px; }
   .recipient-heading>p:last-child { color: #afb5b6; font-size: 13px; line-height: 1.6; margin: 0; }
