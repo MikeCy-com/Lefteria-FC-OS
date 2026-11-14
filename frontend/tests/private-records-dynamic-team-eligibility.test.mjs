@@ -46,7 +46,9 @@ test('owner-scoped manager authorization applies on both API routes',()=>{
 test('the admin UI follows current allowed organizations rather than a hardcoded Academy view',()=>{
   for(const source of [evalUi,docUi]){
     assert.match(source,/availableOrgs\.includes\(organization\)/);
-    assert.match(source,/bind:value=\{organization\}/);
+    assert.match(source,/scopedAdminOrganization\(/);
+    assert.match(source,/preferredAdminOrganization\(\$auth\.session\.user\)/);
+    assert.doesNotMatch(source,/<select[^>]*bind:value=\{organization\}/);
     assert.match(source,/organization_id:owner/);
     assert.match(source,/\/api\/admin\/club\/players\//);
   }
