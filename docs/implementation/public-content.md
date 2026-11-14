@@ -86,9 +86,10 @@ not register owner-import connections or expose evidence endpoints.
 
 Same-snapshot replay compares original bytes, exact source rows, public JSON
 projections and counts; it refuses a different snapshot or modified projection
-rather than overwriting later edits. A future CMS content-write slice must
-maintain readiness document counts transactionally and retain this initial
-evidence; replay is not an editorial update mechanism.
+rather than overwriting later edits. The [club profile editor](club-profile-editor.md)
+keeps versioned public overrides separate from that base. Public reads merge them
+without changing the initial counts or private evidence. Replay still checks the
+immutable initial snapshot.
 
 ## Integration and checks
 
