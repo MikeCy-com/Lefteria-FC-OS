@@ -79,8 +79,13 @@ function pathShape(path){
     part.startsWith(':')?':param':part).join('/');
 }
 const osRouteShapes=new Set(frontendRoutes.map(pathShape));
+const redirectTargets=new Map(loadFiles.filter(file=>file.endsWith('/+server.ts')||file.endsWith('/+page.server.ts')).flatMap(file=>{
+  const target=/\bredirect\(30[1278],\s*(['"])(\/[^'"\n]*)\1\)/.exec(read(file));
+  return target?[[pathShape('/'+route(file)),target[2]]]:[];
+}));
 const originalRouteCoverage=sourceRoutes.map(entry=>({
   ...entry,os_page_declared:osRouteShapes.has(pathShape(entry.route)),
+  os_redirect_target:redirectTargets.get(pathShape(entry.route))??null,
   runtime_verified:false
 }));
 
@@ -134,9 +139,11 @@ else{
   console.log('Known source public categories:',summary.expected_source_public_sections.filter(x=>x.present).length+'/9');
   console.log('Mobile roles:',summary.expected_mobile_roles.filter(x=>x.present).length+'/5');
   console.log('Source public routes:',sourceRoutes.length,'OS page matches:',originalRouteCoverage.filter(x=>x.os_page_declared).length);
+  console.log('Original paths with an OS redirect instead of a page:',originalRouteCoverage.filter(x=>!x.os_page_declared&&x.os_redirect_target).length);
   console.log('Source admin render labels:',sourceAdminRows.length,'API source files:',sourceApiRows.length);
   console.log('Sensitive source workflows:',JSON.stringify(summary.unported_sensitive_workflows));
   if(failures.length)console.error('Structural discrepancies:',failures.join(', '));
   console.log('These counts do not prove runtime, authorization, visual, or payment parity.');
 }
 if(failures.length)process.exitCode=1;
+
