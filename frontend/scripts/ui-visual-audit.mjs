@@ -14,10 +14,16 @@ import { chromium } from 'playwright';
 const frontend = fileURLToPath(new URL('../', import.meta.url));
 const artifacts = process.env.LEFTERIA_UI_ARTIFACTS || await mkdtemp(path.join(os.tmpdir(), 'lefteria-ui-'));
 const routes = [
-  { name:'home', path:'/' },
-  { name:'first-team', path:'/team' },
-  { name:'academy', path:'/academy' },
-  { name:'app-login', path:'/app/login' }
+  { name:'home', path:'/', expectedStatus:200 },
+  { name:'first-team', path:'/team', expectedStatus:200 },
+  { name:'team-schedule', path:'/team?tab=schedule', expectedStatus:200 },
+  { name:'team-roster-unavailable', path:'/team?tab=roster', expectedStatus:503 },
+  { name:'academy', path:'/academy', expectedStatus:200 },
+  { name:'academy-philosophy', path:'/academy/philosophy', expectedStatus:200 },
+  { name:'about', path:'/about', expectedStatus:200 },
+  { name:'contact', path:'/contact', expectedStatus:200 },
+  { name:'privacy', path:'/privacy', expectedStatus:200 },
+  { name:'app-login', path:'/app/login', expectedStatus:200 }
 ];
 const viewports = [
   { name:'phone', width:390, height:844 },
@@ -81,10 +87,12 @@ try {
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
       results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,screenshot});
-      // Unavailable public API content is expected on the isolated server, not 500 errors.
-      if (status >= 500 && status !== 503) failures.push(`${route.path} ${viewport.name}: HTTP ${status}`);
+      // Status assertions distinguish real rendering from a redirect, missing page, or server error.
+      // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
+      if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);
       if (metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`${route.path} ${viewport.name}: horizontal overflow ${metrics.scrollWidth} > ${metrics.clientWidth}`);
       if (metrics.main < 1 && route.name !== 'app-login') failures.push(`${route.path} ${viewport.name}: missing main landmark`);
+      if (!metrics.title.trim()) failures.push(`${route.path} ${viewport.name}: empty document title`);
       await page.close();
     }
     await context.close();
