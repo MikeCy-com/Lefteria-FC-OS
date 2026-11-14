@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {stripTypeScriptTypes} from 'node:module';
 import {compile} from 'svelte/compiler';
 const root=new URL('../../',import.meta.url);
 const read=path=>readFileSync(new URL(path,root),'utf8');
@@ -222,4 +223,89 @@ test('Web Push remains opt-in, generic, private and disabled without operator ke
   assert.match(serviceWorker,/\/app\?tab=notifications/);
   assert.doesNotMatch(serviceWorker,/Bearer|Authorization|p256dh|auth_secret|announcement_id|\.title|\.body|fetch\(/);
   assert.doesNotMatch(browser,/localStorage|sessionStorage|requestPermission\(\).*onMount/);
+});
+
+
+// Run the component's actual asynchronous directory/feed functions against
+// deferred API fakes. SSR alone cannot exercise the onMount request handoff.
+function announcementDirectoryHarness(controller, initial = {}) {
+  const feed = read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
+  const start = feed.indexOf('  async function loadDirectory(){');
+  const end = feed.indexOf('  async function loadMore(){', start);
+  assert.ok(start >= 0 && end > start, 'Announcement request handlers must exist');
+  const handlers = stripTypeScriptTypes(feed.slice(start, end));
+  return new Function('controller', 'initial', `
+    let rooms=[],selected=null,announcements=[],nextOffset=null;
+    let loading=true,busy=false,error=null,reactionFor=null,reacting=null;
+    let requestNumber=0,alive=true;
+    const {initialOrganization=null,initialGroup=null,initialAnnouncementId=null}=initial;
+    const fault=error=>error.message;
+    const tick=async()=>{};
+    const document={getElementById:()=>null};
+    ${handlers}
+    return {loadDirectory,chooseRoom,
+      snapshot:()=>({loading,busy,error,rooms,selected,announcements}),
+      dispose:()=>{alive=false;requestNumber++;}};
+  `)(controller, initial);
+}
+function deferredAnnouncementResult() {
+  let resolve, reject;
+  const promise = new Promise((yes,no) => { resolve=yes;reject=no; });
+  return {promise,resolve,reject};
+}
+
+test('announcement auto-selection ends directory loading and enables refresh after feed success or failure', async () => {
+  const first={organization_id:'lefteria_fc_academy',group_id:'group-one',name:'First'};
+  const second={organization_id:'lefteria_fc_academy',group_id:'group-two',name:'Second'};
+  for (const requested of [false,true]) {
+    for (const failed of [false,true]) {
+      const pending=deferredAnnouncementResult();
+      const calls=[];
+      const harness=announcementDirectoryHarness({
+        getChatRooms:async()=>requested?[first,second]:[first],
+        getAppAnnouncements:(room,offset)=>{calls.push([room,offset]);return pending.promise;}
+      },requested?{initialOrganization:second.organization_id,initialGroup:second.group_id}:{});
+      await harness.loadDirectory();
+      const room=requested?second:first;
+      assert.equal(harness.snapshot().loading,false,'The directory is already loaded');
+      assert.equal(harness.snapshot().busy,true,'Only the feed is still loading');
+      assert.equal(harness.snapshot().selected,room);
+      assert.deepEqual(calls,[[room,0]]);
+      if(failed)pending.reject(new Error('Feed unavailable'));
+      else pending.resolve({announcements:[],next_offset:null});
+      await new Promise(resolve=>setImmediate(resolve));
+      assert.equal(harness.snapshot().loading,false);
+      assert.equal(harness.snapshot().busy,false,'Refresh must become available');
+      assert.equal(harness.snapshot().error,failed?'Feed unavailable':null);
+    }
+  }
+});
+
+test('announcement directory ignores stale and disposed results without selecting an unauthorized room', async () => {
+  const old=deferredAnnouncementResult(),current=deferredAnnouncementResult();
+  let calls=0,feedCalls=0;
+  const harness=announcementDirectoryHarness({
+    getChatRooms:()=>++calls===1?old.promise:current.promise,
+    getAppAnnouncements:()=>{feedCalls++;throw new Error('Unexpected feed call');}
+  });
+  const prior=harness.loadDirectory(),latest=harness.loadDirectory();
+  old.resolve([{organization_id:'lefteria_fc',group_id:'old',name:'Old'}]);
+  await prior;
+  assert.equal(harness.snapshot().loading,true);
+  assert.deepEqual(harness.snapshot().rooms,[]);
+  current.resolve([]);
+  await latest;
+  assert.equal(harness.snapshot().loading,false);
+  assert.equal(feedCalls,0);
+  const disposed=deferredAnnouncementResult();
+  const unmounted=announcementDirectoryHarness({
+    getChatRooms:()=>disposed.promise,
+    getAppAnnouncements:()=>{feedCalls++;throw new Error('Unexpected feed call');}
+  });
+  const request=unmounted.loadDirectory();
+  unmounted.dispose();
+  disposed.resolve([{organization_id:'lefteria_fc',group_id:'old',name:'Old'}]);
+  await request;
+  assert.deepEqual(unmounted.snapshot().rooms,[]);
+  assert.equal(feedCalls,0);
 });
