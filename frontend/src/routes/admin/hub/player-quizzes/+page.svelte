@@ -9,6 +9,7 @@
     type QuizOrg,type AdminQuizSummary,type AdminQuizDetail,
     type AdminQuizQuestionDraft,type AdminQuizDraft} from '../../../../lib/admin/player-quiz-editorial.ts';
   import AdminFrame from '../../../../lib/admin/AdminFrame.svelte';
+  import { scopedAdminOrganization } from '../../../../lib/admin/admin-organization.ts';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const permitted=$derived($auth.status==='authenticated'&&$auth.session&&
@@ -43,7 +44,8 @@
 
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   $effect(()=>{
-    if(!organization||!permitted.includes(organization))organization=permitted[0]??null;
+    const context=scopedAdminOrganization($auth.session?.user??null,permitted);
+    if(organization!==context)organization=context;
   });
   $effect(()=>{
     const owner=organization,actor=$auth.session?.user.id,generation=reload;
@@ -160,13 +162,7 @@
       </header>
       {#if permitted.length}
         <div class="toolbar">
-          <label>Οργανισμός
-            <select bind:value={organization}>
-              {#each permitted as owner (owner)}
-                <option value={owner}>{owner==='lefteria_fc'?'Lefteria FC':'Lefteria FC Academy'}</option>
-              {/each}
-            </select>
-          </label>
+          <span class="admin-organization-context-label" data-testid="quiz-admin-organization">{organization==='lefteria_fc'?'Lefteria FC':organization==='lefteria_fc_academy'?'Lefteria FC Academy':'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
           <button type="button" disabled={loading||busy} onclick={()=>reload++}>Ανανέωση</button>
         </div>
         {#if canWrite}
