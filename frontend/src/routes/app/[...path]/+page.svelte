@@ -27,7 +27,7 @@
   import GuidedSetup from '../../../lib/onboarding/GuidedSetup.svelte';
   import {mobileGuide} from '../../../lib/onboarding/guides.ts';
   import { MOBILE_AUTH_CONTEXT, type MobileAuthController } from '../../../lib/mobile/controller.ts';
-  import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
+  import { ROLE_NAMES, TAB_NAMES, allowedTabs, isMobileRole, tabFromLocation, fanPublicDestination, type MobileRole, type MobileTab } from '../../../lib/mobile/navigation.ts';
 
   const controller = getContext<MobileAuthController>(MOBILE_AUTH_CONTEXT);
   let composing = $state(false);
@@ -35,6 +35,7 @@
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
+  const publicDestination = $derived(fanPublicDestination(activeTab, role));
   let notificationCount=$state(0);
   $effect(()=>{
     const id=user?.id,currentRole=role,currentTab=activeTab,
@@ -64,6 +65,8 @@
 
   async function openTab(tab: MobileTab, childId?: string) {
     composing = false;
+    const destination = fanPublicDestination(tab, role);
+    if (destination) { await goto(destination); return; }
     // Caller-supplied child selection never replaces the server's current
     // guardian authorization check.
     const query = new URLSearchParams({ tab });
@@ -314,6 +317,13 @@
               onCloseResponses={() => controller.clearCalendarResponses()} />
           {/key}
         {/if}
+      {:else if publicDestination && !composing}
+        <section class="content-card fan-public-destination" aria-labelledby="fan-public-title" data-testid="fan-public-destination">
+          <p class="context">ΛΕΥΤΕΡΙΑ FC · {ROLE_NAMES.fan}</p>
+          <h1 id="fan-public-title">{TAB_NAMES[activeTab]}</h1>
+          <p>Δες το ενημερωμένο περιεχόμενο στην επίσημη ιστοσελίδα της ομάδας.</p>
+          <a class="fan-public-link" href={publicDestination}>Άνοιγμα: {TAB_NAMES[activeTab]} <span aria-hidden="true">↗</span></a>
+        </section>
       {:else if activeTab === 'more' && !composing}
         {#key user.id+':'+role}
           <GuidedSetup
@@ -368,6 +378,8 @@
   .more-links button { text-align:left; }
   .app-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
   .app-status p { max-width:32rem; text-align:center; }
+  .fan-public-link{display:inline-flex;gap:14px;align-items:center;min-height:48px;padding:12px 18px;border:1px solid #f6bb38;border-radius:8px;background:linear-gradient(120deg,#ffda68,#f6bb38);color:#080808;font-weight:700;text-decoration:none}
+  .fan-public-link:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
   .chat-mode-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 14px 0}
   .chat-mode-tabs button{min-height:44px;background:#202325;border:1px solid #525252;
     color:#f0e0bd;border-radius:10px;font-family:var(--lf-body);font-weight:700;cursor:pointer}

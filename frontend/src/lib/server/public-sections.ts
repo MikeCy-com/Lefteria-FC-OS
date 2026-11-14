@@ -39,6 +39,7 @@ export function requirePublicId<T extends { id: string }>(rows: readonly T[], va
 async function findPlayer(url: URL, id: string) {
   let missingProjection = false;
   const separator = id.indexOf('--');
+  const slugMatches: { data: PublicSectionPageData; player: PlayerPageData['player'] }[] = [];
   // First Team takes precedence for a shared legacy ID. An unavailable
   // First Team projection must not block an otherwise published Academy
   // player, but an unresolved ID cannot be called 404 if either source failed.
@@ -49,9 +50,14 @@ async function findPlayer(url: URL, id: string) {
       continue;
     }
     const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
-    const found = rows.find(row => row.id === id || (separator > 0 && row.id === id.slice(separator + 2)));
-    if (found) return { data, player: found };
+    // Raw legacy IDs may themselves contain '--'. Search both organizations
+    // for the exact ID before allowing a title-slug suffix to match another player.
+    const exact = rows.find(row => row.id === id);
+    if (exact) return { data, player: exact };
+    const suffix = separator > 0 ? rows.find(row => row.id === id.slice(separator + 2)) : undefined;
+    if (suffix) slugMatches.push({ data, player: suffix });
   }
+  if (slugMatches.length) return slugMatches[0];
   if (missingProjection) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
   error(404, 'Η σελίδα δεν βρέθηκε.');
 }

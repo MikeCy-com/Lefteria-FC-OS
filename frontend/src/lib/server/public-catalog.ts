@@ -2,19 +2,19 @@ import { error } from '@sveltejs/kit';
 import { loadPublicSite, publicApi } from './public-content';
 import type { components } from '../api/schema';
 import type { PublicOrganization, PublicPageData } from '../public/types';
-import { catalogHref, type CatalogKind, type CatalogScope } from '../public/PublicCatalog';
+import { catalogHref, catalogListHref, type CatalogKind, type CatalogScope } from '../public/PublicCatalog';
 
 type Sections = components['schemas']['PublicSectionsResult'];
 type Event = components['schemas']['PublicSectionEvent'];
 type Partner = components['schemas']['PublicSectionPartner'];
 type Sponsor = components['schemas']['PublicSectionSponsor'];
 type Archive = components['schemas']['PublicSectionArchive'];
-export type CatalogCard = { id: string; organization: PublicOrganization; title: string; summary: string | null; image: string | null; label: string; meta: string | null; href: string; scopeLabel?: string };
+export type CatalogCard = { id: string; organization: PublicOrganization; title: string; summary: string | null; image: string | null; label: string; meta: string | null; href: string; scopeLabel?: string; event?: Pick<Event, 'location' | 'price_eur' | 'status'> };
 export type CatalogData = PublicPageData & {
   kind: CatalogKind; scope: CatalogScope; cards: CatalogCard[]; when: 'upcoming' | 'past' | 'all'; eventType: string; eventTypes: string[];
 };
 export type CatalogDetailData = PublicPageData & {
-  kind: CatalogKind; scope: CatalogScope; event: Event | null; partner: Partner | null; sponsor: Sponsor | null; archives: Archive[]; title: string;
+  kind: CatalogKind; scope: CatalogScope; event: Event | null; partner: Partner | null; sponsor: Sponsor | null; archives: Archive[]; title: string; backHref?: string;
 };
 
 const club: PublicOrganization = 'lefteria_fc';
@@ -51,7 +51,7 @@ function rows(context: Sections[], kind: CatalogKind) {
 function card(kind: CatalogKind, row: Event | Partner | Sponsor | Archive): CatalogCard {
   if (kind === 'events') {
     const value = row as Event;
-    return { id: value.id, organization: value.organization_id as PublicOrganization, title: value.title, summary: value.description, image: value.cover_image_url, label: value.event_type, meta: value.start_at, href: catalogHref(kind, value, value.title) };
+    return { id: value.id, organization: value.organization_id as PublicOrganization, title: value.title, summary: value.description, image: value.cover_image_url, label: value.event_type, meta: value.start_at, href: catalogHref(kind, value, value.title), event: { location: value.location, price_eur: value.price_eur, status: value.status } };
   }
   if (kind === 'partners') {
     const value = row as Partner;
@@ -86,11 +86,28 @@ export async function loadPublicCatalog(url: URL, kind: CatalogKind, fixedScope?
     const first = new Set(rows([loaded.sections[0]], kind).map(row => row.id));
     for (const row of rows([loaded.sections[1]], kind)) if (first.has(row.id)) shared.add(row.id);
   }
-  return { ...loaded.site, kind, scope: loaded.scope, cards: records.map(row => ({ ...card(kind, row),
-    ...(shared.has(row.id) ? { scopeLabel: 'ΣΥΛΛΟΓΟΣ & ΑΚΑΔΗΜΙΑ' } : {}) })), when, eventType, eventTypes };
+  return { ...loaded.site, kind, scope: loaded.scope, cards: records.map(row => {
+    const item = card(kind, row);
+    const detailUrl = new URL(item.href, url.origin);
+    // Keep list context distinct from the record's organization scope.
+    detailUrl.searchParams.set('list_scope', loaded.scope ?? 'all');
+    if (kind === 'events') {
+      detailUrl.searchParams.set('when', when);
+      detailUrl.searchParams.set('type', eventType);
+    }
+    return { ...item, href: detailUrl.pathname + detailUrl.search,
+      ...(shared.has(row.id) ? { scopeLabel: 'ΣΥΛΛΟΓΟΣ & ΑΚΑΔΗΜΙΑ' } : {}) };
+  }), when, eventType, eventTypes };
 }
 export async function loadPublicCatalogDetail(url: URL, kind: CatalogKind, id: string): Promise<CatalogDetailData> {
   if (!id || id.length > 400 || /[\u0000-\u001f\u007f]/.test(id)) error(404, 'Η σελίδα δεν βρέθηκε.');
+  const returnUrl = new URL(url);
+  if (url.searchParams.has('list_scope')) returnUrl.searchParams.set('scope', url.searchParams.get('list_scope')!);
+  const returnScope = scopeFrom(returnUrl);
+  const when = url.searchParams.get('when') ?? 'all';
+  const eventType = url.searchParams.get('type') ?? 'all';
+  if (kind === 'events' && (!['upcoming', 'past', 'all'].includes(when) || eventType.length > 64 || /[\u0000-\u001f\u007f]/.test(eventType))) error(400, 'Μη έγκυρα φίλτρα.');
+  const backHref = catalogListHref(kind, returnScope, when as 'upcoming' | 'past' | 'all', eventType);
   const loaded = await context(url);
   const source = rows(loaded.sections, kind);
   let matches = source.filter(row => row.id === id);
@@ -99,7 +116,7 @@ export async function loadPublicCatalogDetail(url: URL, kind: CatalogKind, id: s
   if (!matches.length) error(404, 'Η σελίδα δεν βρέθηκε.');
   if (new Set(matches.map(row => row.id)).size > 1 || (kind !== 'seasons' && matches.length > 1)) error(503, 'Το περιεχόμενο δεν είναι προσωρινά διαθέσιμο.');
   const selected = matches[0];
-  return { ...loaded.site, kind, scope: loaded.scope, event: kind === 'events' ? selected as Event : null,
+  return { ...loaded.site, kind, scope: loaded.scope, backHref, event: kind === 'events' ? selected as Event : null,
     partner: kind === 'partners' ? selected as Partner : null, sponsor: kind === 'sponsors' ? selected as Sponsor : null,
     archives: kind === 'seasons' ? matches as Archive[] : [],
     title: kind === 'events' ? (selected as Event).title : kind === 'seasons' ? (selected as Archive).season_name : (selected as Partner | Sponsor).name };

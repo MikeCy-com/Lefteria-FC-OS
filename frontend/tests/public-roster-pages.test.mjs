@@ -20,6 +20,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     venues:[{id:'venue',organization_id:'lefteria_fc',name:'Recorded Stadium',address:null,city:'Limassol',country:'Cyprus',capacity:1000,surface:'Grass',image_url:null,map_url:null,is_home_ground:true}],
     standings:[{id:'standing',organization_id:'lefteria_fc',competition:'Recorded league',team_name:'Fixture Club',played:4,won:2,drawn:1,lost:1,goals_for:6,goals_against:4,points:7}],
     modules:[],fixtures:[],academy_groups:[],seasons:[],sponsors:[],partners:[],events:[],products:[],tickets:[],archived_seasons:[],reviews:[],academy_stats:null,trial_settings:null,branding:null };
+  const academyPlayers = [{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}];
   let unavailable = false; let firstTeamUnavailable = false; let wrongScope = false;
   const requests = [];
   const server = createServer((request,response) => {
@@ -28,7 +29,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     if(url.pathname==='/api/public/sections') {
       if(unavailable || (firstTeamUnavailable && url.searchParams.get('organization_id')==='lefteria_fc')) {response.statusCode=503;response.end('{"code":"public_sections_unavailable"}');}
       else if(url.searchParams.get('organization_id')==='lefteria_fc_academy') response.end(JSON.stringify({...sections,organization_id:'lefteria_fc_academy',
-        players:[{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}]}));
+        players:academyPlayers}));
       else response.end(JSON.stringify(wrongScope ? {...sections,organization_id:'lefteria_fc_academy'} : sections));
     } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:[],academy_groups:[],fixtures:[],news:[]}));
     else {response.statusCode=404;response.end('{}');}
@@ -56,6 +57,23 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     const loaded=await loadPlayerPage(url,'Case--ID');assert.equal(loaded.player.id,'Case--ID');assert.equal(loaded.organization,'lefteria_fc');
     assert.equal(loaded.sections,undefined,'A player profile must not serialize unrelated public section collections.');
     assert.equal((await loadPlayerPage(url,'recorded-player--Case--ID')).player.id,'Case--ID');
+    // The API order must not let an ID matching the suffix hijack a raw ID.
+    const originalPlayers = sections.players;
+    const suffixPlayer = {...player,id:'ID',name:'Different suffix player'};
+    for (const ordered of [[suffixPlayer,...originalPlayers],[...originalPlayers,suffixPlayer]]) {
+      sections.players = ordered;
+      assert.equal((await loadPlayerPage(url,'Case--ID')).player.id,'Case--ID',
+        'An exact opaque ID wins over a different record matching its suffix.');
+      assert.equal((await loadPlayerPage(url,'recorded-player--Case--ID')).player.id,'Case--ID',
+        'Generated title slugs still resolve to an opaque ID containing the separator.');
+      assert.equal((await loadPlayerPage(url,'ID')).player.name,'Different suffix player');
+    }
+    academyPlayers.push({...academyPlayers[0],id:'academy--ID',name:'Exact Academy Player'});
+    assert.equal((await loadPlayerPage(url,'academy--ID')).player.name,'Exact Academy Player',
+      'An Academy exact ID wins over a different First Team record matching only its suffix.');
+    assert.equal((await loadPlayerPage(url,'academy-player--academy--ID')).player.id,'academy--ID');
+    academyPlayers.pop();
+    sections.players = originalPlayers;
     for(const id of ['case--id','unknown'])await assert.rejects(loadPlayerPage(url,id),error=>error.status===404);
     const academy=await loadPlayerPage(url,'academy-child');
     assert.equal(academy.player.name,'Ανδρέας Πα.','Academy players keep the original profile page with the API-abbreviated name.');
