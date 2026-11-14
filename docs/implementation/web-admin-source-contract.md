@@ -136,6 +136,7 @@ statistics or enabled placeholder actions.
 
 Public content remains independent of CMS sessions. Original public callers
 omit cookies. The [public website slice](public-content.md) supplies imported
-news, club, team, Academy and fixture reads. Gallery/sponsor workflows and
-permission-checked CMS business writes remain subsequent migration slices.
+news, club, team, Academy and fixture reads. The [club profile editor](club-profile-editor.md)
+updates public settings for existing profiles using settings capabilities and
+organization grants.
 [Public fetch boundary](https://github.com/MikeCy-com/Lefteria-FC/blob/380b4022f0ab0db95fbc52a8613711160a5037a5/frontend/src/club-site/publicApi.js#L1).
