@@ -49,7 +49,10 @@ async function findPlayer(url: URL, id: string) {
       continue;
     }
     const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
-    const found = rows.find(row => row.id === id || (separator > 0 && row.id === id.slice(separator + 2)));
+    // Raw legacy IDs may themselves contain '--'. Prefer the exact record
+    // before treating the suffix as a generated title-slug destination.
+    const found = rows.find(row => row.id === id) ??
+      (separator > 0 ? rows.find(row => row.id === id.slice(separator + 2)) : undefined);
     if (found) return { data, player: found };
   }
   if (missingProjection) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
