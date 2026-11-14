@@ -4,7 +4,6 @@
   import { greekDate } from './content';
   import { catalogTitles, catalogScopeLabel } from './PublicCatalog';
   import type { CatalogData } from '../server/public-catalog';
-  import './PublicCatalog.css';
   let { data }: { data: CatalogData } = $props();
   const descriptions = { events: 'Οι στιγμές που φέρνουν την οικογένεια της Λευτεριάς πιο κοντά.', partners: 'Οι άνθρωποι και οι οργανισμοί που μοιράζονται το όραμά μας.', sponsors: 'Δίπλα στην ομάδα. Μέρος της διαδρομής μας.', seasons: 'Οι αγώνες, οι ομάδες και οι στιγμές κάθε σεζόν.' };
   const title = $derived(catalogTitles[data.kind]);
@@ -12,7 +11,6 @@
 <svelte:head><title>{title} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={descriptions[data.kind]} /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <section class="catalog" data-testid={`public-${data.kind}-catalog`}>
-    <nav class="catalog-breadcrumb" aria-label="Διαδρομή σελίδας"><a href="/">Αρχική</a><span aria-hidden="true">/</span><span aria-current="page">{title}</span></nav>
     <header class="catalog-heading"><p class="public-eyebrow">Η ΟΙΚΟΓΕΝΕΙΑ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p><h1>{title}</h1><p>{descriptions[data.kind]}</p></header>
     <form method="GET" action={`/${data.kind}`} class="catalog-filters" aria-label="Φίλτρα ενότητας">
       <label>Ενότητα<select name="scope" value={data.scope ?? 'all'}><option value="all">Όλος ο σύλλογος</option><option value="first_team">Πρώτη ομάδα</option><option value="academy">Ακαδημία</option></select></label>

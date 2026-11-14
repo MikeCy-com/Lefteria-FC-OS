@@ -81,6 +81,3 @@
   <button type="button" class="public-dialog-close" onclick={() => close()} aria-label="Κλείσιμο μενού" data-testid="public-menu-close"><Icon name="close" size={16} /></button>
 </dialog>
 
-<style>
-  .public-submenu a[aria-current] { color:var(--public-gold); background:#f5a62312; box-shadow:inset 3px 0 var(--public-gold); padding-left:12px; }
-</style>

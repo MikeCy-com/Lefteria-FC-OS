@@ -33,7 +33,7 @@ test('fixture details remain reachable when the mobile venue column is hidden', 
   const publicCss = read('lib/public/public.css');
   assert.ok(publicCss.includes('.fixture-venue{display:none}'));
   assert.ok(fixtures.includes('fixture-mobile-detail-link'));
-  assert.ok(fixtures.includes('@media(max-width:767px)'));
+  assert.ok(read('lib/public/public.css').includes('@media(max-width:767px)'));
   assert.ok(fixtures.includes('encodeURIComponent(fixture.id)'));
-  assert.ok(fixtures.includes('min-height:44px'));
+  assert.ok(publicCss.includes('min-height:44px'));
 });

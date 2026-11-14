@@ -8,5 +8,5 @@ export type SectionStatistics = components['schemas']['PublicSectionStatistics']
 export type TeamTab = 'overview' | 'roster' | 'staff' | 'schedule' | 'results' | 'gallery' | 'venues' | 'statistics';
 export type PublicSectionPageData = PublicPageData & { sections: PublicSections | null; sectionsAvailable: boolean };
 export type TeamPageData = PublicSectionPageData & { tab: TeamTab };
-export type PlayerPageData = PublicPageData & { player: SectionPlayer };
+export type PlayerPageData = PublicPageData & { player: SectionPlayer; gallery: PublicSections['gallery']; season: string | null };
 export type StaffPageData = PublicPageData & { staff: SectionStaff };

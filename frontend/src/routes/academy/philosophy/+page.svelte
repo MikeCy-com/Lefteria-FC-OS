@@ -81,35 +81,3 @@
   </div>
 </PublicShell>
 
-<style>
-  .academy-philosophy { background: #080808; min-height: 100vh; }
-  .philosophy-container { max-width: 1400px; margin-inline: auto; padding-inline: 24px; }
-  .philosophy-hero { padding: 76px 0 64px; }
-  .philosophy-eyebrow { display: inline-block; margin: 0 0 18px; padding: 7px 11px; color: #f5a623; background: #f5a62316; border: 1px solid #f5a62342; font-size: 12px; font-weight: 700; text-transform: uppercase; }
-  .philosophy-title { margin: 0; font-size: clamp(48px, 6.3vw, 72px); line-height: 1.05; letter-spacing: .01em; }
-  .philosophy-title span, .philosophy-section-title span { color: #f5a623; }
-  .philosophy-lead { max-width: 672px; margin: 24px 0 0; color: #a1a1aa; font-size: 18px; line-height: 1.65; }
-  .philosophy-divider { height: 1px; background: #262626; }
-  .philosophy-section { padding: 64px 0; }
-  .philosophy-section-title { margin: 0 0 12px; font-size: clamp(30px, 3.5vw, 40px); line-height: 1.1; }
-  .philosophy-accent-bar { width: 48px; height: 4px; margin: 0 0 40px; background: #f5a623; }
-  .philosophy-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-  .philosophy-approaches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-  .philosophy-card { min-width: 0; padding: 24px; background: #111; border: 1px solid #262626; }
-  .philosophy-card-icon { display: flex; margin-bottom: 16px; color: #f5a623; }
-  .philosophy-card-title { margin: 0 0 10px; font-size: 24px; line-height: 1.15; color: #fff; }
-  .philosophy-card-description { margin: 0; color: #8a8a92; font-size: 14px; line-height: 1.7; }
-  .philosophy-approach-card { display: flex; gap: 20px; align-items: flex-start; }
-  .philosophy-approach-card .philosophy-card-title { font-size: 21px; }
-  .philosophy-step { flex: 0 0 40px; display: grid; place-items: center; width: 40px; height: 40px; color: #f5a623; background: #f5a62316; font-family: 'Fira Sans Extra Condensed', sans-serif; font-weight: 700; font-size: 21px; }
-  @media (max-width: 1023px) { .philosophy-values { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 767px) {
-    .philosophy-container { padding-inline: 18px; }
-    .philosophy-hero { padding: 44px 0 48px; }
-    .philosophy-section { padding: 48px 0; }
-    .philosophy-values, .philosophy-approaches { grid-template-columns: 1fr; gap: 14px; }
-    .philosophy-lead { font-size: 16px; }
-    .philosophy-card { padding: 20px; }
-    .philosophy-approach-card { gap: 15px; }
-  }
-</style>

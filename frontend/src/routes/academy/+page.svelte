@@ -30,26 +30,3 @@
   {#if !data.available}<Unavailable />{:else}<section class="public-section" id="groups" aria-labelledby="academy-groups-title"><div class="section-heading"><h2 id="academy-groups-title">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</h2></div><div class="public-group-grid">{#each data.site?.academy_groups ?? [] as group (group.id)}<article id={`group-${encodeURIComponent(group.id)}`} class="public-group-card">{#if group.banner_url}<PublicImage src={group.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{group.age_range || group.season || 'ΑΚΑΔΗΜΙΑ'}</p><h3><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h3>{#if group.description}<p>{group.description}</p>{/if}{#if group.city || group.location_name}<p class="group-location">{[group.city, group.location_name].filter(Boolean).join(' · ')}</p>{/if}{#if group.training_schedule}<h4>ΠΡΟΓΡΑΜΜΑ ΠΡΟΠΟΝΗΣΕΩΝ</h4><p class="preserve-lines">{group.training_schedule}</p>{/if}<a class="group-open" href={academyGroupLink(group)}>ΓΝΩΡΙΣΕ ΤΟ ΤΜΗΜΑ <span aria-hidden="true">↗</span></a></div></article>{:else}<p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>{/each}</div></section><section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
 </PublicShell>
 
-<style>
-  .academy-intro { background:radial-gradient(ellipse at 95% 0,#3e2e1738,transparent 65%),#111; }
-  .academy-intro-copy { max-width:850px; padding:18px 0 44px; }
-  .academy-intro h1 { margin:0 0 24px; font-size:clamp(42px,5vw,68px); line-height:1.02; }
-  .academy-intro em,.academy-explore em { color:var(--public-gold); font-style:normal; }
-  .academy-description { max-width:680px; color:#c5c5c5; font-size:18px; line-height:1.65; }
-  .academy-actions { display:flex; flex-wrap:wrap; gap:14px; margin-top:30px; }
-  .academy-destinations { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:18px; }
-  .academy-destination { display:flex; flex-direction:column; align-items:flex-start; padding:26px; border:1px solid #303030; background:#141414; text-decoration:none; border-radius:6px; }
-  .academy-destination:hover { border-color:var(--public-gold); background:#1c1914; }
-  .academy-destination :global(svg) { color:var(--public-gold); }
-  .academy-destination h3 { font-size:25px; line-height:1.15; margin:24px 0 12px; }
-  .academy-destination p { color:#ddd; font-size:16px; line-height:1.65; margin:0 0 24px; }
-  .academy-destination:focus-visible { outline:3px solid #ffca46; outline-offset:4px; border-color:var(--public-gold); }
-  :is(#explore,#groups,#academy-fixtures) { scroll-margin-top:calc(var(--public-header,76px) + 24px); }
-  .academy-destination > span { display:flex; align-items:center; justify-content:space-between; gap:18px; width:100%; margin-top:auto; padding-top:18px; border-top:1px solid #ffffff18; color:var(--public-gold); font-size:13px; line-height:1.5; font-weight:600; }
-  .public-group-card h3 a { color:inherit; text-decoration:none; }
-  .public-group-card h3 a:hover { color:var(--public-gold); }
-  .group-open { display:flex; min-height:44px; gap:20px; align-items:center; justify-content:space-between; margin-top:24px; padding-top:16px; border-top:1px solid #ffffff24; color:var(--public-gold); font-weight:700; text-decoration:none; }
-  .group-open:focus-visible,.public-group-card h3 a:focus-visible { outline:2px solid var(--public-gold); outline-offset:5px; }
-  @media(max-width:1199px) { .academy-destinations { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-  @media(max-width:599px) { .academy-destinations { grid-template-columns:1fr; } .academy-intro-copy { padding:4px 0 28px; } .academy-description { font-size:16px; } .academy-destination { padding:22px; } }
-</style>

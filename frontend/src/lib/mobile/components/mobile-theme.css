@@ -34,6 +34,17 @@
   font-weight: 700;
   letter-spacing: -.015em;
 }
+.lf-mobile-theme .mobile-content :where(h1, h2, h3) {
+  font-size: var(--lf-type-title);
+  line-height: 1.2;
+}
+.lf-mobile-theme .mobile-content :where(h4, h5, h6) {
+  font-family: var(--lf-heading);
+  font-size: var(--lf-type-card);
+}
+.lf-mobile-theme .mobile-content :where(small, dt) {
+  font-size: var(--lf-type-caption);
+}
 .lf-mobile-theme :is(button, a, input, select, textarea):focus-visible {
   outline: 2px solid var(--lf-gold-light);
   outline-offset: 3px;

@@ -5,7 +5,6 @@ const read=(path)=>readFileSync(new URL('../src/'+path,import.meta.url),'utf8');
 
 test('public skin retains exact original Lefteria FC type, palette and geometry',()=>{
   const css=read('lib/public/public.css');
-  const refinements=read('lib/public/brand-parity.css');
   const shell=read('lib/public/PublicShell.svelte');
   assert.match(css,/Fira Sans Extra Condensed/);
   assert.match(css,/Fira Sans/);
@@ -13,12 +12,11 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   assert.match(css,/--public-black:#080808/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
-  assert.match(refinements,/--public-gold: #f5a623/);
-  assert.match(refinements,/--public-black: #080808/);
-  assert.match(refinements,/@media \(min-width:2560px\)/);
-  assert.ok(shell.indexOf("import './brand-parity.css'")>shell.indexOf("import './editorial.css'"),
-    'Brand refinements must load after the original source-like public styles');
-  assert.doesNotMatch(refinements,/#[0-9a-f]{6}[^\n]*(?:blue|navy)/i);
+  assert.match(css,/--public-gold: #f5a623/);
+  assert.match(css,/--public-black: #080808/);
+  assert.match(css,/@media \(min-width:2560px\)/);
+  assert.deepEqual([...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]), ['public.css']);
+  assert.match(css, /--public-title-size: 58px/);
 });
 
 test('native main/public menu preserves original nine categories and restores keyboard focus',async()=>{
@@ -83,4 +81,9 @@ test('original public menu preserves scope ownership across legacy aliases and e
     assert.deepEqual(active,[owner],'Incorrect active menu category for '+path);
   }
   assert.equal(navigationOwner('/unported-private-route'),null);
+});
+
+test('homepage news follows the destination cards and supporter banner', () => {
+  const home = read('routes/+page.svelte');
+  assert.match(home, /<HomeHero[\s\S]*<HomeDestinations[\s\S]*<SidelineBanner[\s\S]*<HomeNews/);
 });

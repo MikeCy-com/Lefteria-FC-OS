@@ -38,9 +38,12 @@ export function requirePublicId<T extends { id: string }>(rows: readonly T[], va
 export async function loadPlayerPage(url: URL, id: string): Promise<PlayerPageData> {
   const data = await loadSectionPage(url, 'lefteria_fc');
   if (!data.sectionsAvailable) error(503, 'Το προφίλ δεν είναι προσωρινά διαθέσιμο.');
-  const player = requirePublicId(data.sections!.players.filter(row => row.organization_id === 'lefteria_fc' && row.team_type === 'First Team'), id);
+  const sections = data.sections!;
+  const player = requirePublicId(sections.players.filter(row => row.organization_id === 'lefteria_fc' && row.team_type === 'First Team'), id);
+  const gallery = sections.gallery.filter(image => image.organization_id === player.organization_id && image.player_id === player.id);
+  const season = sections.seasons.find(item => item.organization_id === player.organization_id && item.is_current && !item.is_archived)?.name ?? null;
   return { site: data.site, available: data.available, organization: data.organization,
-    branding: data.branding, navigationGroups: data.navigationGroups, player };
+    branding: data.branding, navigationGroups: data.navigationGroups, player, gallery, season };
 }
 
 export async function loadStaffPage(url: URL, id: string): Promise<StaffPageData> {

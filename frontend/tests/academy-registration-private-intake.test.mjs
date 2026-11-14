@@ -25,7 +25,9 @@ test('new database surfaces are default-deny, with no public intake claim',()=>{
     assert.ok(migration.includes('academy_intake.'+name+' ENABLE ROW LEVEL SECURITY'),name);
   assert.match(migration,/REVOKE ALL ON ALL TABLES IN SCHEMA academy_intake FROM PUBLIC/);
   assert.doesNotMatch(migration,/GRANT (?:SELECT|INSERT|UPDATE|DELETE|EXECUTE)|CREATE POLICY/i);
-  assert.match(publicRoute,/Δεν συλλέγουμε ιατρικά δεδομένα/);
+  assert.match(publicRoute, /<fieldset disabled/);
+  assert.doesNotMatch(publicRoute, /<form|type="submit"|fetch\(/);
+  assert.match(publicRoute, /https:\/\/lefteriafc\.cy\/academy\/registration/);
 });
 test('review and source imports have structural replay barriers',()=>{
   assert.match(migration,/CREATE UNIQUE INDEX uq_academy_registration_legacy/);
