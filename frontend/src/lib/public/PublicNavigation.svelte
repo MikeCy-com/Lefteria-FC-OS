@@ -77,7 +77,7 @@
       {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} onclick={() => close(false)} class="public-menu-row" class:is-current={navigationActive(item, page.url, organization)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span></a>{/if}
     </div>{/each}{/if}
   </nav>
-  {#if !category}<div class="public-menu-account"><a href="/login" onclick={() => close(false)} data-testid="public-menu-account">Σύνδεση</a><a href="/academy/registration" onclick={() => close(false)} data-testid="public-menu-register">Εγγραφή αθλητή <Icon name="arrow" size={16} /></a><a href="/cart" onclick={() => close(false)} data-testid="public-menu-cart">Καλάθι</a><a href="/admin/login" onclick={() => close(false)} data-testid="public-menu-admin">Διαχείριση συλλόγου <Icon name="arrow" size={16} /></a></div>{/if}
+  {#if !category}<div class="public-menu-account"><a href="/login" onclick={() => close(false)} data-testid="public-menu-account">Σύνδεση</a><a href="/academy/registration" onclick={() => close(false)} data-testid="public-menu-register">Εγγραφή αθλητή <Icon name="arrow" size={16} /></a><a href="/cart" onclick={() => close(false)} data-testid="public-menu-cart">Καλάθι</a></div>{/if}
   <button type="button" class="public-dialog-close" onclick={() => close()} aria-label="Κλείσιμο μενού" data-testid="public-menu-close"><Icon name="close" size={16} /></button>
 </dialog>
 
