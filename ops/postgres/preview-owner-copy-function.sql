@@ -15,7 +15,6 @@ AS $recovery$
 DECLARE
     source_row migration.account_source_documents%ROWTYPE;
     source jsonb;
-    source_id uuid;
     copy_id uuid := gen_random_uuid();
     source_phone text;
     audit_digest text;
@@ -146,5 +145,11 @@ BEGIN
     VALUES (gen_random_uuid(),statement_timestamp(),copy_id,'admin.preview_password_copy',
             'succeeded',audit_digest,'approved_preview_password_only','admin');
     RETURN 'preview_password_copy_prepared';
+EXCEPTION WHEN OTHERS THEN
+    -- Never print a PostgreSQL row DETAIL that could contain the copied hash.
+    IF SQLERRM LIKE 'preview_%' THEN
+        RAISE EXCEPTION USING MESSAGE=SQLERRM;
+    END IF;
+    RAISE EXCEPTION USING MESSAGE='preview_recovery_failed';
 END
 $recovery$;
