@@ -141,7 +141,7 @@
   .role-menu { position:absolute; z-index:70; top:calc(68px + env(safe-area-inset-top,0px)); left:12px; width:min(290px,calc(100vw - 24px)); padding:8px; border:1px solid #54401c; border-radius:9px; background:#111415; box-shadow:0 16px 45px #000b; }
   .role-menu > p { margin:4px 9px 8px; color:var(--lf-muted); font-size:11px; text-transform:uppercase; letter-spacing:.08em; }
   .role-menu button { display:flex; align-items:center; justify-content:space-between; width:100%; min-height:46px; padding:10px; border:0; border-radius:5px; background:transparent; color:#d9dcde; text-align:left; cursor:pointer; }
-  .role-menu button[aria-pressed='true'] { color:var(--lf-gold-light); background:#f5a62310; }
+  .role-menu button[aria-pressed='true'] { color:var(--lf-gold-light); background:#f6bb3810; }
   .role-menu button:hover:not(:disabled) { background:#ffffff09; }
   .mobile-content { display:block; width:100%; min-height:calc(100dvh - 140px); margin:0; padding:20px 16px calc(92px + env(safe-area-inset-bottom,0px)); outline:none; }
   .bottom-nav { position:fixed; z-index:50; bottom:0; left:0; right:0; padding-bottom:env(safe-area-inset-bottom,0px); border-top:1px solid var(--lf-line); background:#070909f7; backdrop-filter:blur(14px); }
@@ -151,7 +151,7 @@
   .bottom-items > button.active { color:var(--lf-gold-light); }
   .bottom-items > button:hover:not(:disabled) { color:var(--lf-gold); }
   .bottom-items > .create-post { gap:0; }
-  .create-post > span { display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:linear-gradient(125deg,#ffcc43,#f5a623); color:#080808; box-shadow:0 1px 0 #ffd565 inset; }
+  .create-post > span { display:grid; place-items:center; width:48px; height:48px; border-radius:50%; background:linear-gradient(125deg,#ffcc43,#f6bb38); color:#080808; box-shadow:0 1px 0 #ffd565 inset; }
   .skip-link { position:fixed; z-index:100; left:12px; top:-100px; padding:10px 14px; border-radius:5px; background:var(--lf-gold); color:#080808; font-weight:600; }
   .skip-link:focus { top:8px; }
   @media (max-width:359px) { .mobile-header{gap:8px;padding-inline:12px}.header-action{width:34px}.brand-lockup p{font-size:22px}.header-actions{gap:0}.profile-action{width:35px;height:35px}.bottom-items > button > span{font-size:13px} }

@@ -13,7 +13,7 @@ Before coding:
 2. Review related open PRs; avoid duplicate work and preserve existing role, FC/Academy scope, user privacy, imports, audit and constraints.
 3. Announce: `DEVELOPMENT DIRECTOR → DEVELOPER: CONTINUE IMPLEMENTATION — <task>` in the issue/PR, and proceed to implement rather than waiting for an extra 'continue'.
 
-Implement on a new OS branch, with source-grounded UI parity and functionality. Use existing SvelteKit/TypeScript and ASP.NET Core/.NET 10/PostgreSQL infrastructure. Use exact source fonts/colors `Fira Sans`, `Fira Sans Extra Condensed`, `#080808`, `#f5a623`, and credible responsive/4K presentation. Validate security boundaries, auth, race conditions, error handling, accessibility and schema generation.
+Implement on a new OS branch, with source-grounded UI parity and functionality. Use existing SvelteKit/TypeScript and ASP.NET Core/.NET 10/PostgreSQL infrastructure. Use exact source fonts/colors `Fira Sans`, `Fira Sans Extra Condensed`, `#080808`, `#f6bb38`, and credible responsive/4K presentation. Validate security boundaries, auth, race conditions, error handling, accessibility and schema generation.
 
 Run local tests you can really run; inspect all five GitHub Rewrite build jobs when available. Do not fabricate test results, merge unverified code, deploy, or skip failed checks. Prepare a focused pull request that links the issue using `Fixes #ISSUE`; explain implementation, acceptance results, and remaining blockers. GitHub's protected review/CI gate controls merging. Do not automatically merge or close the PR merely to start the next task.
 

@@ -360,7 +360,7 @@
   .development-label { font-size:16px; }
   .error { margin:0 0 16px; padding:12px; border:1px solid #ef444455; border-radius:6px; background:#ef444411; color:#fca5a5!important; overflow-wrap:anywhere; }
   button { min-height:44px; padding:10px 16px; border:1px solid #383c3e; border-radius:6px; font:inherit; cursor:pointer; }
-  .primary { margin:8px 8px 0 0; border-color:#f5a623; background:#f5a623; color:#080808; }
+  .primary { margin:8px 8px 0 0; border-color:#f6bb38; background:#f6bb38; color:#080808; }
   .secondary { background:#151718; color:#ffca46; }
   button:disabled { opacity:.55; cursor:wait; }
   button:focus-visible { outline:2px solid #ffca46; outline-offset:3px; }

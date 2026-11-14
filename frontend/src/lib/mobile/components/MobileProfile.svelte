@@ -404,7 +404,7 @@
   .checkbox-row input { flex:0 0 auto; width:19px; height:19px; min-height:0; margin:0; accent-color:var(--lf-gold); }
   .feedback { margin:0 0 16px; font-size:13px; }
   button { width:100%; min-height:46px; padding:11px 14px; border-radius:6px; cursor:pointer; }
-  .primary { margin-top:16px; border:1px solid var(--lf-gold); background:linear-gradient(110deg,#ffcd47,#f5a623); color:#090909; font-weight:600; }
+  .primary { margin-top:16px; border:1px solid var(--lf-gold); background:linear-gradient(110deg,#ffcd47,#f6bb38); color:#090909; font-weight:600; }
   .primary:hover:not(:disabled) { background:var(--lf-gold-light); }
   .primary:disabled { cursor:default; }
   .error { padding:11px; border:1px solid #ef444455; border-radius:6px; background:#ef444411; color:#fca5a5; font-size:13px; overflow-wrap:anywhere; }

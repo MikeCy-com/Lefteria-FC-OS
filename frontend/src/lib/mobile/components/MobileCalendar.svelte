@@ -191,7 +191,7 @@
   .player-picker label { color:var(--lf-muted); font-size:12px; }
   select { width:100%; min-height:44px; padding:10px; border:1px solid #44381f; border-radius:6px; background:var(--lf-surface); color:var(--lf-gold-light); }
   button { min-height:44px; border:1px solid var(--lf-line); border-radius:6px; background:var(--lf-surface); color:#d6d8da; cursor:pointer; }
-  button[aria-pressed='true'] { border-color:var(--lf-gold); background:#f5a62319; color:var(--lf-gold-light); }
+  button[aria-pressed='true'] { border-color:var(--lf-gold); background:#f6bb3819; color:var(--lf-gold-light); }
   .category-tabs { display:flex; gap:5px; overflow-x:auto; padding-bottom:4px; }
   .category-tabs button { flex:1; padding:8px 10px; font-size:13px; line-height:1.4; white-space:nowrap; }
   .month-heading { display:flex; align-items:center; gap:6px; margin:16px 0 10px; }

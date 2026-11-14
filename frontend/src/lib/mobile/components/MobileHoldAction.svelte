@@ -75,6 +75,6 @@
   .chat-menu-trigger{display:grid;place-items:center;flex:0 0 38px;min-height:44px;
     border:0;border-radius:8px;background:transparent;color:#b6b7ba;
     font-size:16px;letter-spacing:2px;cursor:pointer}
-  .chat-menu-trigger:is(:hover,:focus-visible){background:#f5a6231c;color:#ffca46}
+  .chat-menu-trigger:is(:hover,:focus-visible){background:#f6bb381c;color:#ffca46}
   .chat-menu-trigger:focus-visible{outline:2px solid #ffca46;outline-offset:2px}
 </style>

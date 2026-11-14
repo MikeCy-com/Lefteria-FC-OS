@@ -398,7 +398,7 @@
   .attendance-events{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
   .attendance-events button{border:1px solid #3c3f41;background:#151719;color:inherit;
     border-radius:12px;display:grid;text-align:left;gap:9px;padding:14px;cursor:pointer}
-  .attendance-events button.selected{border-color:#f5a623;box-shadow:0 0 0 1px #f5a623}
+  .attendance-events button.selected{border-color:#f6bb38;box-shadow:0 0 0 1px #f6bb38}
   .attendance-events button span{font-size:12px;color:#b8babb}
   .attendance-register{margin-top:16px}
   .attendance-register-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}
@@ -419,7 +419,7 @@
   .attendance-actions{display:flex;gap:8px;flex-wrap:wrap}
   .attendance-actions button{border:1px solid #777;color:#eee;padding:9px 13px;
     border-radius:9px;background:transparent;cursor:pointer}
-  .attendance-actions button.chosen{background:#423319;border-color:#f5a623;color:#ffd777}
+  .attendance-actions button.chosen{background:#423319;border-color:#f6bb38;color:#ffd777}
   .attendance-actions button:disabled{opacity:.55;cursor:not-allowed}
   @media(max-width:620px){.attendance-filters label{width:100%}.attendance-filters select{width:100%}}
 </style>

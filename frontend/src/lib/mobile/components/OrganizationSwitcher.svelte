@@ -38,7 +38,7 @@
   .organization-options.single { grid-template-columns:1fr; }
   button { display:flex; align-items:center; justify-content:center; gap:8px; min-height:47px; padding:10px 12px; border:1px solid #343738; border-radius:6px; background:#0e1011; color:#d4d8da; cursor:pointer; }
   button:hover:not(:disabled) { border-color:var(--lf-gold); color:#fff; }
-  button[aria-pressed='true'] { border-color:var(--lf-gold); background:#f5a62315; color:var(--lf-gold-light); opacity:1; cursor:default; }
+  button[aria-pressed='true'] { border-color:var(--lf-gold); background:#f6bb3815; color:var(--lf-gold-light); opacity:1; cursor:default; }
   button span { overflow-wrap:anywhere; font-family:var(--lf-heading); font-size:17px; line-height:1.15; }
   .status { margin:12px 0 0; color:var(--lf-muted); font-size:12px; }
   .error { margin:12px 0 0; color:#fca5a5; font-size:13px; overflow-wrap:anywhere; }

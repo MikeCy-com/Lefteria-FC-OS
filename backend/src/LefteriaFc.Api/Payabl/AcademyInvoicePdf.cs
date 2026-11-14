@@ -31,7 +31,7 @@ public static class AcademyInvoicePdf
     private const float Mm = 72f / 25.4f;
     private const float Width = 210f * Mm, Height = 297f * Mm;
     private static readonly SKColor Black = Color(18,18,18);
-    private static readonly SKColor Gold = Color(245,166,35);
+    private static readonly SKColor Gold = Color(246,187,56);
     private static readonly SKColor Ink = Color(26,26,26);
     private static readonly SKColor Muted = Color(115,115,115);
     private static readonly SKColor Grey = Color(240,240,240);

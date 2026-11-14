@@ -26,7 +26,7 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.ok(page.includes('organization="lefteria_fc"'));
       assert.doesNotMatch(page,/<main\b/);
       assert.match(page,/ΠΡΩΤΗ ΟΜΑΔΑ/);
-      assert.match(css,/#f5a623/);
+      assert.match(css,/#f6bb38/);
       assert.match(page,/href="\/team"/);
       assert.match(page,/href="\/contact"/);
       assert.match(page,/δεν ζητάμε προσωπικά στοιχεία/);
@@ -60,7 +60,7 @@ test('source-matched journey UI is one semantic main, Fira fonts and safe real l
   assert.match(page,/PublicShell/);
   assert.doesNotMatch(page,/<main\b/);
   assert.match(css,/Fira Sans Extra Condensed/);
-  assert.match(css,/#f5a623/);
+  assert.match(css,/#f6bb38/);
   assert.match(page,/data-testid="journey-primary"/);
   assert.match(page,/data-testid="journey-capability-status"/);
   assert.doesNotMatch(page,/<form|requestSubmit\(|fetch\(|submit\s*=|onclick=\{.*submit/i);

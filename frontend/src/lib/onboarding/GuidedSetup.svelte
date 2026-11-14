@@ -118,7 +118,7 @@
   .setup-toggle,.setup-secondary{border:1px solid #65502d;background:#171819;color:#f9d69d}
   .setup-progress{display:flex;justify-content:space-between;gap:8px;margin-top:16px;color:#e6d2ae}
   .setup-bar{height:5px;margin:7px 0 17px;border-radius:99px;background:#4b4540;overflow:hidden}
-  .setup-bar span{display:block;height:100%;background:#f5a623;transition:width .2s}
+  .setup-bar span{display:block;height:100%;background:#f6bb38;transition:width .2s}
   .setup-steps{display:grid;gap:5px;list-style:none;padding:0;margin:0 0 12px}
   .setup-steps button{display:flex;align-items:center;gap:9px;width:100%;border:1px solid transparent;background:transparent;color:#d0d1d3;text-align:left}
   .setup-steps button.current{background:#302714;border-color:#806027;color:#fff}
@@ -132,7 +132,7 @@
   .setup-current .setup-planned{color:#c1aa83}
   .setup-current .setup-verified{color:#ffca46}
   .setup-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
-  .setup-primary{background:#f5a623;color:#101010;border:1px solid #f5a623;font-weight:700}
+  .setup-primary{background:#f6bb38;color:#101010;border:1px solid #f6bb38;font-weight:700}
   @media(min-width:700px){.setup-steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:380px){.setup-steps button{flex-wrap:wrap}.state{margin-left:34px}}
   @media(prefers-reduced-motion:reduce){.setup-bar span{transition:none}}

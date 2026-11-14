@@ -15,7 +15,7 @@
       <div class="max-w-7xl mx-auto">
         <span class="badge badge-secondary mb-4">Η Ιστορια μας</span>
         <h1 class="font-['Bebas_Neue'] text-4xl md:text-5xl text-white mb-6">
-          Σχετικα με την <span class="text-[#F5A623]">ΛΕΥΤΕΡΙΑ FC</span>
+          Σχετικα με την <span class="text-[#F6BB38]">ΛΕΥΤΕΡΙΑ FC</span>
         </h1>
         <p class="text-xl text-zinc-300 max-w-3xl">
           Ιδρύθηκε το 2024, η ΛΕΥΤΕΡΙΑ FC ενσαρκώνει το πνεύμα του πάθους, της αριστείας

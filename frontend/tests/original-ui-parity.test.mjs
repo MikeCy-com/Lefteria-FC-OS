@@ -8,7 +8,7 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   const shell=read('lib/public/PublicShell.svelte');
   assert.match(css,/Fira Sans Extra Condensed/);
   assert.match(css,/Fira Sans/);
-  assert.match(css,/--public-gold:#f5a623/);
+  assert.match(css,/--public-gold:#f6bb38/);
   assert.match(css,/--public-black:#080808/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
@@ -44,7 +44,7 @@ test('mobile roles retain original Fira font sizes and same logo asset',()=>{
     'display':'26px','title':'16px','card':'14px',
     'body':'13px','label':'12px','caption':'10px'
   }))assert.ok(mobile.includes('--lf-type-'+name+': '+value),name);
-  assert.match(mobile,/--lf-gold: #f5a623/);
+  assert.match(mobile,/--lf-gold: #f6bb38/);
   assert.match(mobile,/Fira Sans Extra Condensed/);
   assert.match(shell,/src="\/mobile\/club-logo\.png"/);
   for(const testid of ['mobile-app','bottom-nav','role-switcher','mobile-notifications','mobile-profile'])
