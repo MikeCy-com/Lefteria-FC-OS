@@ -208,7 +208,7 @@
   .admin-news-list{list-style:none;margin:16px 0 0;padding:0}
   .admin-news-article{display:flex;align-items:start;justify-content:space-between;gap:16px;padding:18px 0;border-top:1px solid #303335}
   .admin-news-article>div{min-width:0}
-  .admin-news-category{font-size:11px;color:#f5a623}
+  .admin-news-category{font-size:11px;color:#f6bb38}
   .admin-news-article h3{font-size:19px;margin:6px 0 8px;overflow-wrap:anywhere}
   .admin-news-article p{margin:0 0 8px;font-size:13px;color:#b9bdc0;overflow-wrap:anywhere}
   .admin-news-article time{font-size:11px;color:#a7adb0}
