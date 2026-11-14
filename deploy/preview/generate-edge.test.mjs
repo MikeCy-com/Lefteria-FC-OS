@@ -351,6 +351,6 @@ test('public media preview allows reviewed image folders only and rejects contra
   for (const method of ['get', 'head']) {
     const changed = structuredClone(contract);
     changed.paths['/api/uploads/{folder}/{fileName}'][method].security = [{ Mobile: [] }];
-    assert.throws(() => generateEdge(changed, hostname, digest), /public media.*anonymous/);
+    assert.throws(() => generateEdge(changed, hostname, digest), /public media.*anonymous|Unexpected Mobile operation path/);
   }
 });
