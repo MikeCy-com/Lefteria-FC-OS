@@ -272,27 +272,47 @@
 .admin-app .admin-hub-heading h2 { text-transform:uppercase; }
 .admin-app .admin-overview-stats>div { background:linear-gradient(145deg,#242119,#101212); border-color:#695834; }
 .admin-app .admin-tool-live { background:linear-gradient(130deg,#292417,#101212 75%); border-color:#7c6840; }
-.admin-app .admin-signin-editorial { width:min(1280px,100% - 40px); padding:32px 0 48px; }
-.admin-signin-grid { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,1fr); gap:clamp(24px,5vw,72px); align-items:center; }
-.admin-signin-story { min-height:610px; padding:clamp(24px,4vw,52px); border:1px solid #756642; border-radius:12px; background-size:cover; background-position:center; }
-.admin-app .admin-signin-story h2 { font-size:clamp(64px,7vw,100px); line-height:.9; font-style:italic; margin:24px 0; }
-.admin-signin-story em { color:var(--admin-gold); }
-.admin-signin-story>p { max-width:34ch; font-size:16px; }
-.admin-signin-story .admin-signin-lead { font-family:'Fira Sans Extra Condensed',sans-serif; font-size:30px; font-weight:700; }
-.admin-signin-story img { display:block; object-fit:contain; margin:32px 0; filter:drop-shadow(0 5px 25px #0008); }
-.admin-signin-story .admin-signin-motto { border-top:1px solid #a17a32; padding-top:22px; font-family:'Fira Sans Extra Condensed',sans-serif; font-style:italic; font-size:24px; font-weight:700; }
-.admin-signin-motto span { color:var(--admin-gold); padding-inline:8px; }
-.admin-app .admin-signin-grid>.admin-panel { padding:clamp(24px,4vw,46px); border:1px solid #a28a53; box-shadow:0 12px 50px #0006,inset 0 -2px #f6bb3870; }
-.admin-app .admin-signin-grid .admin-crest { width:92px; height:92px; margin-bottom:24px; }
-.admin-app .admin-signin-grid h1 { font-size:clamp(32px,3.5vw,44px); font-style:italic; }
-.admin-app .admin-signin-grid .admin-primary { font-family:'Fira Sans Extra Condensed',sans-serif; font-size:22px; min-height:52px; }
-.admin-app .admin-signin-grid :is(input,select) { border-color:#777064; border-radius:6px; }
-@media(max-width:760px) {
-  .admin-app .admin-signin-editorial { width:calc(100% - 32px); padding:20px 0; }
-  .admin-signin-grid { grid-template-columns:1fr; gap:20px; }
-  .admin-signin-story { min-height:0; padding:24px; }
+.admin-app .admin-signin-editorial { width:100%; padding:0; }
+.admin-access-header { display:flex;align-items:center;justify-content:space-between;gap:20px;min-height:64px;padding:10px clamp(20px,3.3vw,56px);border-bottom:1px solid #c49b38;background:#080a0b; }
+.admin-access-brand { display:flex;align-items:center;gap:16px;text-decoration:none;font-family:'Fira Sans Extra Condensed',sans-serif;font-size:30px;font-weight:800;font-style:italic;color:#fff!important; }
+.admin-access-brand img { object-fit:contain; }
+.admin-access-brand em,.admin-access-wordmark em { color:var(--admin-gold); }
+.admin-access-header .admin-home-link { display:flex;align-items:center;gap:12px;margin:0;font-size:13px; }
+.admin-signin-grid { display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(24px,4vw,64px);align-items:stretch;padding:32px clamp(20px,3.3vw,56px) 48px;min-height:calc(100dvh - 130px);background:linear-gradient(115deg,#080a0b 48%,#b9811929 48%,#080a0b 51%); }
+.admin-signin-story { display:flex;flex-direction:column;justify-content:center;min-width:0;padding:clamp(24px,4vw,56px);background-size:cover;background-position:center;border:0;border-radius:0; }
+.admin-app .admin-signin-story h2 { font-size:clamp(52px,5.4vw,90px);line-height:1;font-weight:800;font-style:italic;margin:14px 0 24px; }
+.admin-signin-story .admin-eyebrow { font-size:24px;font-style:italic; }
+.admin-signin-story>p { max-width:42ch;font-size:18px;line-height:1.5; }
+.admin-signin-story .admin-signin-lead { font-family:'Fira Sans Extra Condensed',sans-serif;font-size:clamp(32px,3.2vw,52px);line-height:1.1;font-style:italic;font-weight:700;margin:0 0 18px; }
+.admin-access-roles { display:flex;flex-wrap:wrap;gap:12px;margin:24px 0; }
+.admin-access-roles span { display:flex;align-items:center;gap:10px;border:1px solid var(--admin-gold);border-radius:5px;padding:10px 14px;font-family:'Fira Sans Extra Condensed',sans-serif;font-size:20px;font-weight:700; }
+.admin-access-roles svg { color:var(--admin-gold); }
+.admin-signin-story .admin-signin-motto { margin-top:36px;border-top:1px solid #a17a32;padding-top:22px;font-family:'Fira Sans Extra Condensed',sans-serif;font-style:italic;font-size:24px;font-weight:700; }
+.admin-signin-motto span { color:var(--admin-gold);padding-inline:8px; }
+.admin-app .admin-signin-grid>.admin-panel { display:flex;flex-direction:column;justify-content:center;min-width:0;padding:clamp(24px,3vw,50px);border:1px solid #a28a53;border-radius:12px;box-shadow:inset 0 -2px #f6bb3870;background:linear-gradient(140deg,#191b1b,#090b0b 75%); }
+.admin-app .admin-signin-grid .admin-crest { display:block;align-self:center;width:clamp(90px,9vw,150px);height:clamp(90px,9vw,150px);margin:0 auto 20px; }
+.admin-access-wordmark { margin:0;text-align:center;font-family:'Fira Sans Extra Condensed',sans-serif;font-weight:800;font-style:italic;font-size:clamp(30px,3.2vw,52px);line-height:1.1; }
+.admin-signin-grid>.admin-panel>.admin-eyebrow { text-align:center;font-size:16px;letter-spacing:.3em;margin:12px 0 24px; }
+.admin-app .admin-signin-grid h1 { font-size:clamp(28px,2.7vw,44px);font-style:italic;text-align:center;margin-bottom:10px; }
+.admin-signin-grid>.admin-panel>.admin-muted { text-align:center;margin:0 0 24px; }
+.admin-app .admin-signin-grid .admin-primary { display:flex;align-items:center;justify-content:center;gap:18px;font-family:'Fira Sans Extra Condensed',sans-serif;font-size:24px;min-height:56px; }
+.admin-app .admin-signin-grid :is(input,select) { border-color:#777064;border-radius:6px;min-height:52px;font-size:16px; }
+.admin-access-footer { display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:18px;border-top:1px solid #a17a32;padding:18px clamp(20px,3.3vw,56px);font-size:13px;background:#080a0b; }
+.admin-access-footer a { display:inline-flex;align-items:center;gap:8px; }
+@media(max-width:900px) {
+  .admin-signin-grid { grid-template-columns:1fr;gap:20px;min-height:0; }
+  .admin-signin-story { padding:24px; }
   .admin-app .admin-signin-story h2 { font-size:52px; }
-  .admin-signin-story img { width:72px; height:72px; margin:20px 0; }
-  .admin-signin-story .admin-signin-lead { font-size:24px; }
+  .admin-signin-story .admin-signin-lead { font-size:32px; }
+  .admin-signin-story>p { font-size:15px; }
+  .admin-signin-story .admin-signin-motto { margin-top:12px; }
   .admin-app .admin-signin-grid>.admin-panel { padding:24px; }
+}
+@media(max-width:480px) {
+  .admin-access-header { align-items:flex-start;flex-direction:column;gap:8px;padding:12px 20px; }
+  .admin-access-brand { font-size:26px; }
+  .admin-access-header .admin-home-link { font-size:12px; }
+  .admin-access-roles { gap:8px; }
+  .admin-access-roles span { font-size:16px;padding:8px;gap:6px; }
+  .admin-app .admin-signin-story h2 { font-size:42px; }
 }
