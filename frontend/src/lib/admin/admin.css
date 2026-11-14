@@ -316,3 +316,64 @@
   .admin-access-roles span { font-size:16px;padding:8px;gap:6px; }
   .admin-app .admin-signin-story h2 { font-size:42px; }
 }
+
+
+/* Global organization context belongs to the CMS header, not to each tool. */
+.admin-app .admin-header-organization {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  padding: 5px 9px;
+  border: 1px solid #9a7838;
+  background: linear-gradient(135deg, #1e1a12, #101112);
+  min-width: 0;
+}
+.admin-app .admin-header-organization > span {
+  color: #f6bb38;
+  font: 800 11px/1.15 'Fira Sans Extra Condensed', sans-serif;
+  letter-spacing: .07em;
+  white-space: nowrap;
+}
+.admin-app .admin-header-organization select {
+  color: #fff;
+  background: #141514;
+  border: 1px solid #565146;
+  min-height: 37px;
+  width: min(210px, 24vw);
+  margin: 0;
+  padding: 4px 9px;
+  font: 800 15px/1.15 'Fira Sans Extra Condensed', sans-serif;
+  letter-spacing: .025em;
+}
+.admin-app .admin-header-organization select option {
+  color: #fff;
+  background: #151515;
+}
+.admin-app .admin-header-organization-fixed {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #68532b;
+  color: #f6bb38;
+  font: 800 14px/1.1 'Fira Sans Extra Condensed', sans-serif;
+}
+.admin-app .admin-organization-context-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #f6bb38;
+  border-left: 3px solid #f6bb38;
+  padding: 10px 14px;
+  font: 800 17px/1.2 'Fira Sans Extra Condensed', sans-serif;
+  letter-spacing: .025em;
+}
+@media (max-width: 1000px) {
+  .admin-app .admin-header-organization > span { display: none; }
+  .admin-app .admin-header-organization select { width: min(165px, 23vw); font-size: 13px; }
+}
+@media (max-width: 600px) {
+  .admin-app .admin-header-organization { padding: 3px; }
+  .admin-app .admin-header-organization select { width: 132px; font-size: 12px; }
+  .admin-app .admin-header-organization-fixed { font-size: 11px; padding: 5px; }
+}
