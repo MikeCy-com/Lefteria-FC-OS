@@ -9,6 +9,7 @@
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminNewsEditor from '../../../lib/admin/AdminNewsEditor.svelte';
+  import AdminNewsDraftWorkspace from '../../../lib/admin/AdminNewsDraftWorkspace.svelte';
 
   type Article = components['schemas']['PublicArticle'];
   type Result = { items: Article[]; total: number; offset: number; limit: number };
@@ -124,13 +125,16 @@
           <div>
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ · ΔΗΜΟΣΙΕΥΜΕΝΟ ΠΕΡΙΕΧΟΜΕΝΟ</p>
             <h1>Άρθρα & νέα</h1>
-            <p class="admin-muted">Προβολή πραγματικών δημοσιευμένων άρθρων. Με δικαίωμα επεξεργασίας μπορείτε να διορθώνετε υπάρχουσες δημοσιεύσεις με έλεγχο έκδοσης. Νέα άρθρα, πρόχειρα και προγραμματισμός δημοσιεύσεων δεν υποστηρίζονται ακόμη.</p>
+            <p class="admin-muted">Προβολή πραγματικών δημοσιευμένων άρθρων, διορθώσεις με έλεγχο έκδοσης και ιδιωτικά νέα πρόχειρα. Η δημοσίευση νέων άρθρων, οι εγκρίσεις και ο προγραμματισμός δεν έχουν ενεργοποιηθεί.</p>
           </div>
           <a class="admin-news-public" href="/news">Δημόσια νέα <span aria-hidden="true">↗</span></a>
         </header>
         <section class="admin-panel" aria-label="Φίλτρα δημοσιευμένων άρθρων">
           <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
         </section>
+        {#if organization}
+          <AdminNewsDraftWorkspace owner={organization} {canWrite} />
+        {/if}
         {#if editingId && organization}
           <AdminNewsEditor owner={organization} articleId={editingId} {canWrite}
             onClose={() => editingId = null} onSaved={() => retry++} />
