@@ -7,9 +7,17 @@
   let releaseScroll: (() => void) | undefined;
   function restoreScroll() { releaseScroll?.(); releaseScroll = undefined; }
   onDestroy(restoreScroll);
-  async function install() {
+  function showGuidance() {
+    if (!dialog.open) { dialog.showModal(); releaseScroll = lockPageScroll(document); }
+  }
+  async function installCurrentSite() {
     const result = await appInstall.install();
-    if (result === 'help') { dialog.showModal(); releaseScroll = lockPageScroll(document); }
+    if (result === 'help') showGuidance();
+    else if (result === 'prompted' && dialog.open) dialog.close();
+  }
+  function install() {
+    if ($appInstall.android) showGuidance();
+    else void installCurrentSite();
   }
 </script>
 
@@ -22,6 +30,18 @@
 <dialog bind:this={dialog} onclose={restoreScroll} aria-labelledby="app-install-title" aria-describedby="app-install-description">
   <div class="install-heading"><h2 id="app-install-title">Η επίσημη εφαρμογή Λευτεριά FC</h2><button type="button" onclick={() => dialog.close()} aria-label="Κλείσιμο οδηγιών εγκατάστασης">×</button></div>
   <p id="app-install-description">Πρόσθεσε την εφαρμογή στην αρχική οθόνη για γρήγορη πρόσβαση στον λογαριασμό σου.</p>
+  {#if $appInstall.android}
+    <section aria-label="Επίσημη εφαρμογή Android">
+      <h3>Εφαρμογή Android</h3>
+      <p>Η εφαρμογή Android συνδέεται στο επίσημο <strong>lefteriafc.cy</strong>.</p>
+      <a class="install-open" href="https://lefteriafc.cy/api/app/android" data-testid="official-android-apk" data-sveltekit-preload-data="off" data-sveltekit-reload>Λήψη επίσημου Android APK — lefteriafc.cy</a>
+      <p>Μετά τη λήψη, άνοιξε το αρχείο και ακολούθησε την επιβεβαίωση εγκατάστασης της συσκευής σου.</p>
+    </section>
+    <hr />
+    <h3>Εφαρμογή αυτού του ιστοτόπου</h3>
+    <p>Για να συνεχίσεις στον ιστότοπο που χρησιμοποιείς τώρα, πρόσθεσέ τον στην αρχική οθόνη.</p>
+    {#if $appInstall.available}<button type="button" class="install-open" onclick={installCurrentSite} disabled={$appInstall.busy} data-testid="current-site-install">Εγκατάσταση αυτού του ιστοτόπου</button>{/if}
+  {/if}
   {#if $appInstall.ios}
     <ol><li>Άνοιξε αυτή τη σελίδα στο Safari.</li><li>Πάτησε <strong>Κοινοποίηση</strong> και <strong>Προσθήκη στην οθόνη Αφετηρίας</strong>.</li><li>Επιβεβαίωσε με <strong>Προσθήκη</strong> και άνοιξε το εικονίδιο Λευτεριά FC.</li></ol>
   {:else}
@@ -43,6 +63,9 @@
   p, li { line-height: 1.6; }
   ol { padding-left: 24px; }
   li + li { margin-top: 10px; }
+  h3 { color: var(--public-gold, #f6bb38); }
+  hr { border: 0; border-top: 1px solid #555; margin: 20px 0; }
+  button.install-open { font: inherit; cursor: pointer; border: 0; }
   .install-note { color: #bbb; font-size: 14px; }
   .install-open { display: inline-block; padding: 12px 18px; color: #090909; background: var(--public-gold, #f6bb38); border-radius: 5px; font-weight: 700; text-decoration: none; }
   button:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
