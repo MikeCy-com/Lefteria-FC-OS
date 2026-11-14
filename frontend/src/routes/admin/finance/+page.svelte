@@ -206,13 +206,7 @@
     </div>
     {#if organizations.length}
       <section class="admin-panel">
-        <label for="payabl-owner">Οργανισμός</label>
-        <select id="payabl-owner" value={owner ?? ''} onchange={event => {
-          const chosen = event.currentTarget.value;
-          if (organizations.some(org => org.id === chosen)) owner = chosen as Owner;
-        }}>
-          {#each organizations as org (org.id)}<option value={org.id}>{org.name}</option>{/each}
-        </select>
+        <span class="admin-organization-context-label" data-testid="payabl-owner">{organizations.find(org => org.id === owner)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
       </section>
       {#if loading}
         <section class="admin-panel" role="status">Ανάκτηση ασφαλών στοιχείων πληρωμών…</section>
