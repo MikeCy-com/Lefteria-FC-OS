@@ -2,6 +2,7 @@
   import type { PublicClub } from './types';
   import PublicImage from './PublicImage.svelte';
   import Icon from './PublicIcon.svelte';
+  import AppInstallButton from './AppInstallButton.svelte';
   import type { PublicIconName } from './icon-types';
   let { club }: { club: PublicClub | null } = $props();
   const links = [['home','Αρχική','/'],['about','Ο σύλλογος','/about'],['team','Πρώτη ομάδα','/team'],['academy','Ακαδημία','/academy'],['matches','Αγώνες','/team?tab=results'],['news','Νέα','/news'],['events','Εκδηλώσεις','/events'],['shop','Κατάστημα','/shop'],['contact','Επικοινωνία','/contact'],['registration','Εγγραφές','/academy/registration'],['seasons','Παλαιότερες σεζόν','/seasons'],['partners','Συνεργάτες','/partners']];
@@ -26,6 +27,6 @@
       <button class="public-back-top" type="button" onclick={top} aria-label="Επιστροφή στην κορυφή" title="Επιστροφή στην κορυφή" data-testid="public-back-top"><Icon name="up" size={22} /></button>
     </section>
   </div>
-  <div class="public-footer-app"><div class="public-app-download" data-testid="footer-app-download"><h4>Download Our Official App</h4><p>One official Lefteria FC app for iPhone, iPad, Android, and desktop.</p><a href="/app" class="public-app-open"><Icon name="download" size={21} />Άνοιξε την εφαρμογή στο browser</a></div></div>
+  <div class="public-footer-app"><div class="public-app-download" data-testid="footer-app-download"><h4>Download Our Official App</h4><p>One official Lefteria FC app for iPhone, iPad, Android, and desktop.</p><AppInstallButton /></div></div>
   <div class="public-footer-bottom"><a href="/privacy" data-testid="footer-privacy-link">Πολιτική απορρήτου</a><a href="/terms" data-testid="footer-terms-link">Όροι χρήσης</a><span>© {club?.founded || '2024'} ΛΕΥΤΕΡΙΑ FC. Με επιφύλαξη κάθε δικαιώματος.</span></div>
 </footer>
