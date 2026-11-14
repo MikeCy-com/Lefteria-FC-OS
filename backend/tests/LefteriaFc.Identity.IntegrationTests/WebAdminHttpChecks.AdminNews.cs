@@ -138,7 +138,16 @@ internal sealed partial class WebAdminHttpChecks
                 Console.WriteLine("NEWS_EDITOR_CHECK: Academy copy unchanged");
                 using (var publicSite = await client.GetAsync("/api/public/site?organization_id=lefteria_fc"))
                 {
+                    Console.WriteLine("NEWS_EDITOR_CHECK: homepage HTTP " + (int)publicSite.StatusCode);
                     var site = await ExpectJsonAsync(publicSite, 200);
+                    Console.WriteLine("NEWS_EDITOR_CHECK: homepage contains news = " +
+                        site.TryGetProperty("news", out var items));
+                    if (items.ValueKind == JsonValueKind.Array)
+                    {
+                        Console.WriteLine("NEWS_EDITOR_CHECK: homepage news count = " +
+                            items.GetArrayLength() + ", target present = " +
+                            items.EnumerateArray().Any(item => item.GetProperty("id").GetString() == "news-shared"));
+                    }
                     Require(site.GetProperty("news").EnumerateArray().Any(item =>
                         item.GetProperty("id").GetString() == "news-shared" &&
                         item.GetProperty("title").GetString() == editedArticle.title),
