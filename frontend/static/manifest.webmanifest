@@ -1,0 +1,20 @@
+{
+  "id": "/app",
+  "name": "Λευτεριά FC",
+  "short_name": "Λευτεριά FC",
+  "description": "Η επίσημη εφαρμογή της Λευτεριά FC",
+  "lang": "el",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "/club/logo512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
