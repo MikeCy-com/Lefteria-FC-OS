@@ -15,7 +15,7 @@ BEGIN
   INSERT INTO identity.admin_sessions(id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
     VALUES(gen_random_uuid(),digest,manager,repeat('a',64),clock_timestamp(),clock_timestamp()+interval '1 hour');
   INSERT INTO club.players(id,organization_id,name,number,position,team_type,is_active,is_archived,is_transferred,has_explicit_picker_fields)
-    VALUES(player,'lefteria_fc_academy','Fixture Player',1,'GK','Academy',true,false,false,true);
+    VALUES(player,'lefteria_fc_academy','Fixture Player',1,'Forward','Academy',true,false,false,true);
 
   PERFORM identity.admin_academy_office(digest,'register',jsonb_build_object('id',registration,'first_name','Fixture',
     'last_name','Applicant','birth_date','2016-01-01','guardian_name','Fixture Guardian',
