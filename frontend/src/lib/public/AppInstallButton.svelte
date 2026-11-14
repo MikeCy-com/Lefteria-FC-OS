@@ -1,10 +1,15 @@
 <script lang="ts">
+  import { onDestroy } from 'svelte';
+  import { lockPageScroll } from './dialog-scroll';
   import { appInstall } from '../mobile/app-install';
   import Icon from './PublicIcon.svelte';
   let dialog: HTMLDialogElement;
+  let releaseScroll: (() => void) | undefined;
+  function restoreScroll() { releaseScroll?.(); releaseScroll = undefined; }
+  onDestroy(restoreScroll);
   async function install() {
     const result = await appInstall.install();
-    if (result === 'help') dialog.showModal();
+    if (result === 'help') { dialog.showModal(); releaseScroll = lockPageScroll(document); }
   }
 </script>
 
@@ -14,8 +19,8 @@
   <button type="button" class="public-app-open" onclick={install} disabled={$appInstall.busy} aria-haspopup="dialog" data-testid="official-app-install"><Icon name="download" size={21} />{$appInstall.busy ? 'Αναμονή επιβεβαίωσης…' : 'Κατέβασε την επίσημη εφαρμογή'}</button>
 {/if}
 
-<dialog bind:this={dialog} aria-labelledby="app-install-title" aria-describedby="app-install-description">
-  <div class="install-heading"><h2 id="app-install-title">Η επίσημη εφαρμογή Λευτεριά FC</h2><button type="button" onclick={() => dialog.close()} aria-label="Κλείσιμο οδηγιών εγκατάστασης" autofocus>×</button></div>
+<dialog bind:this={dialog} onclose={restoreScroll} aria-labelledby="app-install-title" aria-describedby="app-install-description">
+  <div class="install-heading"><h2 id="app-install-title">Η επίσημη εφαρμογή Λευτεριά FC</h2><button type="button" onclick={() => dialog.close()} aria-label="Κλείσιμο οδηγιών εγκατάστασης">×</button></div>
   <p id="app-install-description">Πρόσθεσε την εφαρμογή στην αρχική οθόνη για γρήγορη πρόσβαση στον λογαριασμό σου.</p>
   {#if $appInstall.ios}
     <ol><li>Άνοιξε αυτή τη σελίδα στο Safari.</li><li>Πάτησε <strong>Κοινοποίηση</strong> και <strong>Προσθήκη στην οθόνη Αφετηρίας</strong>.</li><li>Επιβεβαίωσε με <strong>Προσθήκη</strong> και άνοιξε το εικονίδιο Λευτεριά FC.</li></ol>
@@ -28,7 +33,7 @@
 </dialog>
 
 <style>
-  button.public-app-open { font: inherit; cursor: pointer; }
+  button.public-app-open { font: inherit; font-weight: 700; cursor: pointer; background: #f5a623; color: #090909; border-color: #f5a623; border-radius: 5px; }
   button.public-app-open:disabled { opacity: .65; cursor: wait; }
   dialog { width: min(92vw, 540px); max-height: 85dvh; overflow: auto; padding: 24px; color: #f5f5f5; background: #101112; border: 1px solid #f5a623; border-radius: 12px; box-shadow: 0 20px 80px #0009; }
   dialog::backdrop { background: #000b; }
