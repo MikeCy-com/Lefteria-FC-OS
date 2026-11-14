@@ -40,9 +40,11 @@ async function verifyAppInstall(browser, base, artifacts) {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto(base + '/', { waitUntil:'networkidle' });
+    await page.goto(base + '/', { waitUntil:'domcontentloaded' });
     // Registration is performed by the root onMount: wait for hydration, not a timer.
     await page.waitForFunction(async () => !!await navigator.serviceWorker.getRegistration('/'));
+    await page.getByTestId('consent-decline').click();
+    await page.getByTestId('cookie-consent').waitFor({state:'hidden'});
     const install = page.getByTestId('official-app-install');
     await install.waitFor();
     await page.evaluate(() => {
@@ -132,16 +134,56 @@ async function verifyAppInstall(browser, base, artifacts) {
   });
   try {
     const page = await apple.newPage();
-    await page.goto(base + '/', { waitUntil:'networkidle' });
+    await page.goto(base + '/', { waitUntil:'domcontentloaded' });
     await page.waitForFunction(async () => !!await navigator.serviceWorker.getRegistration('/'));
+    await page.getByTestId('consent-decline').click();
+    await page.getByTestId('cookie-consent').waitFor({state:'hidden'});
     await page.getByTestId('official-app-install').click();
     const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
     await dialog.waitFor({state:'visible'});
     assert.match(await dialog.innerText(), /Safari/);
     assert.match(await dialog.innerText(), /Προσθήκη στην οθόνη Αφετηρίας/);
     await page.screenshot({path:path.join(artifacts,'app-install-ios-guidance.png'),fullPage:true});
+    assert.equal(await page.getByTestId('official-android-apk').count(), 0);
     checks.push('iPhone browser guidance without offering an Android APK');
   } finally { await apple.close(); }
+
+  const android = await browser.newContext({
+    viewport:{width:390,height:844}, isMobile:true, hasTouch:true,
+    userAgent:'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'
+  });
+  try {
+    let officialRequests = 0;
+    // Never contact production during this check, even if the UI regresses.
+    await android.route('https://lefteriafc.cy/**', route => { officialRequests++; return route.abort(); });
+    const page = await android.newPage();
+    await page.goto(base + '/', {waitUntil:'domcontentloaded'});
+    await page.waitForFunction(async () => !!await navigator.serviceWorker.getRegistration('/'));
+    await page.getByTestId('consent-decline').click();
+    await page.getByTestId('cookie-consent').waitFor({state:'hidden'});
+    await page.evaluate(() => {
+      window.installPromptCalls = 0;
+      const event = new Event('beforeinstallprompt', {cancelable:true});
+      event.prompt = () => { window.installPromptCalls++; return Promise.resolve(); };
+      event.userChoice = Promise.resolve({outcome:'dismissed'});
+      window.dispatchEvent(event);
+    });
+    await page.getByTestId('official-app-install').click();
+    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
+    await dialog.waitFor({state:'visible'});
+    const apk = page.getByTestId('official-android-apk');
+    assert.equal(await apk.getAttribute('href'), 'https://lefteriafc.cy/api/app/android');
+    assert.match(await apk.innerText(), /lefteriafc.cy/);
+    assert.equal(await page.evaluate(() => window.installPromptCalls), 0);
+    assert.equal(officialRequests, 0);
+    await page.screenshot({path:path.join(artifacts,'app-install-android-choices.png'),fullPage:true});
+    await page.getByTestId('current-site-install').click();
+    await dialog.waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(() => window.installPromptCalls), 1);
+    assert.equal(officialRequests, 0);
+    checks.push('Android official APK choice and separate current-site native install without production requests');
+  } finally { await android.close(); }
+
   return checks;
 }
 
