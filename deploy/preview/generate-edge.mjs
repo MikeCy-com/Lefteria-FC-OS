@@ -7,6 +7,7 @@ const supportedHost = 'srv1649602.hstgr.cloud';
 const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections'];
 const entryOperations = [
   ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
+  ['get', '/api/admin/auth/setup', []], ['post', '/api/admin/auth/setup', []],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
   ['get', '/api/admin/club', [{ WebAdmin: [] }]], ['put', '/api/admin/club', [{ WebAdmin: [] }]],
   // Reviewed admin announcement operations only. Caddy still defers every

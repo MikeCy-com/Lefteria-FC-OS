@@ -98,6 +98,7 @@ services:
       WebAdmin__Username: ${DATABASE_ADMIN_AUTH_USER:-}
       WebAdmin__Password: ${DATABASE_ADMIN_AUTH_PASSWORD:-}
       WebAdmin__ThrottleKey: ${WEB_ADMIN_THROTTLE_KEY:-}
+      WebAdmin__FoundingSetupCode: ${WEB_ADMIN_FOUNDING_SETUP_CODE:-}
       MobileAuth__SigningKey: ${MOBILE_SIGNING_KEY:?Set a random base64 MOBILE_SIGNING_KEY}
       MobileAuth__OtpKey: ${MOBILE_OTP_KEY:?Set a separate random base64 MOBILE_OTP_KEY}
       LegacyMobileBridge__Enabled: "${LEGACY_MOBILE_BRIDGE_ENABLED:-false}"

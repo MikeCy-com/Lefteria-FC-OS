@@ -77,6 +77,7 @@ services:
       WebAdmin__Username: lefteria_os_preview_admin_auth
       WebAdmin__Password: ${PREVIEW_ADMIN_AUTH_PASSWORD:-}
       WebAdmin__ThrottleKey: ${PREVIEW_ADMIN_THROTTLE_KEY:-}
+      WebAdmin__FoundingSetupCode: ${PREVIEW_ADMIN_FOUNDING_SETUP_CODE:-}
       MobileAuth__Issuer: lefteria-fc-os-preview
       MobileAuth__Audience: lefteria-fc-os-preview-mobile
       MobileAuth__SigningKey: ${PREVIEW_SIGNING_KEY:?Set a fresh preview signing key}

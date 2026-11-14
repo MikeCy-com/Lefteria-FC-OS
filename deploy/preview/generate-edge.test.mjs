@@ -279,7 +279,7 @@ test('only reviewed login/session, club editor and sanitized-avatar operations r
   assert.equal(permits(contract,'GET',adminReaders),false);
   const groups = entryRouteGroups(contract);
   const entryPermits = (method,path) => groups.some(group => group.method === method && new RegExp(group.expression).test(path));
-  for (const [method,path] of [['POST','/api/admin/auth/login'],['POST','/api/admin/auth/logout'],['GET','/api/admin/auth/me'],
+  for (const [method,path] of [['GET','/api/admin/auth/setup'],['POST','/api/admin/auth/setup'],['POST','/api/admin/auth/login'],['POST','/api/admin/auth/logout'],['GET','/api/admin/auth/me'],
     ['GET','/api/admin/club'],['PUT','/api/admin/club'],
     ['GET','/api/admin/communications/announcement-drafts'],
     ['POST','/api/admin/communications/announcement-drafts'],

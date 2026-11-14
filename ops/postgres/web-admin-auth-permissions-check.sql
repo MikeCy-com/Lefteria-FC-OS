@@ -79,7 +79,9 @@ BEGIN
   IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
               WHERE n.nspname !~ '^pg_' AND n.nspname<>'information_schema' AND p.prosecdef
                 AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
-                AND p.oid NOT IN ('identity.lock_admin_club_authority(text,text)'::regprocedure,
+                AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
+                  'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
+                  'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
