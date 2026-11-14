@@ -41,4 +41,19 @@ internal sealed partial class WebAdminDatabaseFixture
 
     public Task CleanupNewsFixtureAsync(ValidatedPublicContentImport plan) =>
         new TestDatabase(fixture, factory.OtpKey).CleanupPublicContentAsync(plan);
+
+    // Test-only fixture cleanup. Uses the isolated owner connection and only
+    // the exact randomly generated draft ID produced in this HTTP scenario.
+    public async Task DeletePrivateNewsDraftAsync(string organization, string draftId)
+    {
+        await using var connection = await OwnerAsync();
+        await using var command = new Npgsql.NpgsqlCommand("""
+            DELETE FROM public_content.news_drafts
+            WHERE organization_id=@org AND id=@id
+            """, connection);
+        command.Parameters.AddWithValue("org", organization);
+        command.Parameters.AddWithValue("id", draftId);
+        if (await command.ExecuteNonQueryAsync() != 1)
+            throw new InvalidOperationException("Expected one disposable news draft.");
+    }
 }
