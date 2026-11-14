@@ -2,12 +2,12 @@
   import { tick, onDestroy } from 'svelte';
   import { page } from '$app/state';
   import { publicNavigation, categoryLinks, navigationActive, navigationLinkCurrent } from './navigation';
-  import type { PublicClub, PublicGroup } from './types';
+  import type { PublicClub, PublicGroup, PublicOrganization } from './types';
   import Icon from './PublicIcon.svelte';
   import PublicImage from './PublicImage.svelte';
   import SiteSearch from './SiteSearch.svelte';
   import { lockPageScroll } from './dialog-scroll';
-  let { club, groups = [] }: { club: PublicClub | null; groups?: PublicGroup[] } = $props();
+  let { club, groups = [], organization = 'lefteria_fc' }: { club: PublicClub | null; groups?: PublicGroup[]; organization?: PublicOrganization } = $props();
   let menu: HTMLDialogElement; let title: HTMLHeadingElement;
   let menuOpen = $state(false); let selectedCategory = $state<string | null>(null);
   let unlockScroll: (() => void) | null = null;
@@ -52,8 +52,8 @@
 <aside class="public-rail" aria-label="Κύρια πλοήγηση" data-testid="public-sidebar">
   <a href="/" class="public-rail-logo" data-testid="nav-logo"><PublicImage src={club?.logo_url} alt={name} eager /></a>
   <nav>{#each publicNavigation as item (item.id)}
-    {#if item.items}<button class:is-current={navigationActive(item, page.url)} type="button" aria-haspopup="dialog" aria-expanded={menuOpen && selectedCategory === item.id} onclick={() => void open(item.id)} data-testid={`public-rail-${item.id}`}><Icon name={item.icon} size={23} /><span>{item.label}</span></button>
-    {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} class:is-current={navigationActive(item, page.url)} data-testid={`public-rail-${item.id}`}><Icon name={item.icon} size={23} /><span>{item.label}</span></a>{/if}
+    {#if item.items}<button class:is-current={navigationActive(item, page.url, organization)} type="button" aria-haspopup="dialog" aria-expanded={menuOpen && selectedCategory === item.id} onclick={() => void open(item.id)} data-testid={`public-rail-${item.id}`}><Icon name={item.icon} size={23} /><span>{item.label}</span></button>
+    {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} class:is-current={navigationActive(item, page.url, organization)} data-testid={`public-rail-${item.id}`}><Icon name={item.icon} size={23} /><span>{item.label}</span></a>{/if}
   {/each}</nav><span class="public-rail-year">{club?.founded || '2024'}</span>
 </aside>
 <header class="public-header" data-testid="main-navigation">
@@ -73,8 +73,8 @@
     {#if category}<button class="public-menu-back" type="button" onclick={() => void open()}><Icon name="back" size={16} />Όλες οι ενότητες</button>
       <div class="public-submenu public-submenu-only" data-testid={`public-submenu-${category.id}`}>{#each items as [id, label, path] (id)}<a href={path} aria-current={navigationLinkCurrent(path, page.url, groups)} onclick={() => close(false)} data-testid={`public-submenu-${category.id}-${id}`}>{label}<Icon name="arrow" size={14} /></a>{/each}</div>
     {:else}{#each publicNavigation as item (item.id)}<div class="public-menu-group">
-      {#if item.items}<button type="button" onclick={() => void open(item.id)} class="public-menu-row" class:is-current={navigationActive(item, page.url)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span><Icon name="chevron" size={18} /></button>
-      {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} onclick={() => close(false)} class="public-menu-row" class:is-current={navigationActive(item, page.url)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span></a>{/if}
+      {#if item.items}<button type="button" onclick={() => void open(item.id)} class="public-menu-row" class:is-current={navigationActive(item, page.url, organization)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span><Icon name="chevron" size={18} /></button>
+      {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} onclick={() => close(false)} class="public-menu-row" class:is-current={navigationActive(item, page.url, organization)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span></a>{/if}
     </div>{/each}{/if}
   </nav>
   {#if !category}<div class="public-menu-account"><a href="/login" onclick={() => close(false)} data-testid="public-menu-account">Σύνδεση</a><a href="/academy/registration" onclick={() => close(false)} data-testid="public-menu-register">Εγγραφή αθλητή <Icon name="arrow" size={16} /></a><a href="/cart" onclick={() => close(false)} data-testid="public-menu-cart">Καλάθι</a><a href="/admin/login" onclick={() => close(false)} data-testid="public-menu-admin">Διαχείριση συλλόγου <Icon name="arrow" size={16} /></a></div>{/if}
