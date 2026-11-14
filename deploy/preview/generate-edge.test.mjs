@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
-import { bearerRouteGroups, entryRouteGroups, generateEdge, protectedOperations, publicWebExpression, publicApiExpression, reviewedPublicReads } from './generate-edge.mjs';
+import { bearerRouteGroups, entryRouteGroups, generateEdge, protectedOperations, publicWebExpression, publicApiExpression, publicMediaExpression, reviewedPublicMedia, reviewedPublicReads } from './generate-edge.mjs';
 
 const contract = JSON.parse(await readFile(new URL('../../contracts/openapi.json', import.meta.url), 'utf8'));
 const hostname = 'srv1649602.hstgr.cloud';
@@ -260,6 +260,8 @@ test('public reads remain credential-free and private restored media remains una
   const output = generateEdge(contract, hostname, digest);
   assert.ok(output.indexOf('handle @public_web') < output.indexOf('handle @api {'));
   assert.match(output, /@public_api \{\n    method GET\n/);
+  assert.match(output, /@public_media \\{\\n    method GET HEAD\\n/);
+  assert.ok(output.indexOf('handle @public_media') < output.indexOf('handle @legacy_upload'));
   assert.match(output, /@legacy_upload[\s\S]*handle @legacy_upload[\s\S]*respond "" 404/);
 });
 
@@ -331,4 +333,24 @@ test('error routes apply the same security headers without replacing status or a
   }
   assert.ok(errorRoute.includes('respond "" {err.status_code}'));
   assert.doesNotMatch(errorRoute, /WWW-Authenticate|err\.(?:message|trace|id)|reverse_proxy|respond[^\n]*200/i);
+});
+
+test('public media preview allows reviewed image folders only and rejects contract drift', () => {
+  const expression = reviewedPublicMedia(contract);
+  assert.equal(expression, publicMediaExpression);
+  const allowed = new RegExp(expression);
+  for (const folder of ['players', 'staff', 'news', 'academy', 'events', 'reels', 'products'])
+    assert.equal(allowed.test('/api/uploads/' + folder + '/photo.webp'), true, folder);
+  for (const path of ['/uploads/players/photo.jpg', '/api/uploads/avatars/a.jpg',
+    '/api/uploads/player_docs/a.jpg', '/api/uploads/expenses/a.jpg',
+    '/api/uploads/players/a.jpg/extra', '/api/uploads/players/'])
+    assert.equal(allowed.test(path), false, path);
+  const output = generateEdge(contract, hostname, digest);
+  assert.match(output, /handle @public_media \\{[\\s\\S]*reverse_proxy api:8080/);
+  assert.match(output, /handle @legacy_upload \\{[\\s\\S]*respond "" 404/);
+  for (const method of ['get', 'head']) {
+    const changed = structuredClone(contract);
+    changed.paths['/api/uploads/{folder}/{fileName}'][method].security = [{ Mobile: [] }];
+    assert.throws(() => generateEdge(changed, hostname, digest), /public media.*anonymous/);
+  }
 });
