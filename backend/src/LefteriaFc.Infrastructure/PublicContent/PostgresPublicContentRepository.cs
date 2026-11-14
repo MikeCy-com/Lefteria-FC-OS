@@ -33,6 +33,9 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
         // unchanged and the public response never contains a version or source.
         var newsEdits = await database.Set<AdminClubEditRecord>().AsNoTracking()
             .Where(row => row.Kind == PublicContentKinds.News && row.OrganizationId == organizationId)
+            // The public runtime has SELECT on safe projection columns only;
+            // never materialize Version (or any editor metadata) under its role.
+            .Select(row => new { row.Id, row.DataJson })
             .ToDictionaryAsync(row => row.Id, row => row.DataJson, token);
         var news = Read<PublicArticle>(PublicContentKinds.News)
             .Select(row => newsEdits.TryGetValue(row.Id, out var edited)
@@ -58,7 +61,9 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
         var editQuery = database.Set<AdminClubEditRecord>().AsNoTracking()
             .Where(row => row.Kind == PublicContentKinds.News);
         if (organizationId is not null) editQuery = editQuery.Where(row => row.OrganizationId == organizationId);
-        var newsEdits = (await editQuery.ToArrayAsync(token))
+        var newsEdits = (await editQuery
+            .Select(row => new { row.OrganizationId, row.Id, row.DataJson })
+            .ToArrayAsync(token))
             .ToDictionary(row => (row.OrganizationId, row.Id), row => row.DataJson);
         // No selector means the original public all-news feed. The same story
         // may have distinct owner-specific edits; deduplicate *after* applying
