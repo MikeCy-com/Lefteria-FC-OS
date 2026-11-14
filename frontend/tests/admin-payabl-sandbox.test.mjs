@@ -166,7 +166,7 @@ const adminPdfTests=read('backend/tests/LefteriaFc.Identity.IntegrationTests/Pay
 test('source-matched invoice PDF reuses original A4 black and gold geometry',()=>{
   assert.match(pdfRenderer,/private const float Mm = 72f \/ 25\.4f/);
   assert.match(pdfRenderer,/const float Width = 210f \* Mm, Height = 297f \* Mm/);
-  assert.match(pdfRenderer,/private static readonly SKColor Gold = Color\(245,166,35\)/);
+  assert.match(pdfRenderer,/private static readonly SKColor Gold = Color\(246,187,56\)/);
   assert.match(pdfRenderer,/Rect\(c,0,0,Width,U\(42\),Black\)/);
   assert.match(pdfRenderer,/Section\(c,"PARENT \/ GUARDIAN DETAILS"/);
   assert.match(pdfRenderer,/Section\(c,"PLAYER DETAILS"/);
