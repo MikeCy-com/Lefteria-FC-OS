@@ -9,7 +9,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -63,7 +63,7 @@ const catalog: readonly Section[] = [
     { id: 'evaluations', name: 'Αξιολογήσεις αθλητών', description: 'Περιορισμένη προβολή αξιολογήσεων ανά αθλητή.', status: 'live', href: '/admin/evaluations', scope: 'any', anyPermission: ['academy:read','teams:read'] },
     { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
-    { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Αγωνιστικό πρόγραμμα και ενημερώσεις.', status: 'planned', scope: 'first-team', anyPermission: ['fixtures:read', 'results:read'] }
+    { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Επαληθευμένη προβολή δημοσιευμένων αγώνων, αποτελεσμάτων και Κυπέλλου για τον επιλεγμένο οργανισμό. Η επεξεργασία σκορ και η βαθμολογία απαιτούν ξεχωριστό API.', status: 'live', href: '/admin/matches', scope: 'any', anyPermission: ['teams:read', 'academy:read'] }
   ] },
   { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
@@ -106,7 +106,7 @@ export function adminSectionsFor(user: AdminUser, selectedOrganization?: AdminOr
       if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
-      if (item.id === 'groups') return (
+      if (item.id === 'groups' || item.id === 'fixtures') return (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read'))
       );

@@ -8,7 +8,7 @@
   import { chooseAdminOrganization, preferredAdminOrganization } from './admin-organization.ts';
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -100,6 +100,10 @@
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'groups' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/groups" aria-current={active === 'groups' ? 'page' : undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>
+          {/if}
+          {#if section.id === 'football' && section.modules.some(item => item.id === 'fixtures' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/matches"
+              aria-current={active === 'matches' ? 'page' : undefined} data-testid="admin-matches-link">Αγώνες & αποτελέσματα</a>
           {/if}
           {#if section.id === 'football' && section.modules.some(item => item.id === 'attendance' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/attendance"
