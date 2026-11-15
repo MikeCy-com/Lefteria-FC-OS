@@ -5,19 +5,21 @@ import {compile} from 'svelte/compiler';
 const read=p=>readFileSync(new URL('../src/'+p,import.meta.url),'utf8');
 const panel=read('lib/admin/AdminGroupMatchDraftPanel.svelte');
 const groups=read('routes/admin/groups/+page.svelte');
+const workspace=read('lib/admin/AdminGroupWorkspace.svelte');
 const territory=read('routes/admin/territories/+page.svelte');
 
 test('a selected group owns the private match draft form, and standalone menu is not restored',()=>{
   assert.ok(compile(panel,{filename:'AdminGroupMatchDraftPanel.svelte',generate:'server'}).js.code.length>100);
   assert.ok(compile(groups,{filename:'admin/groups/+page.svelte',generate:'server'}).js.code.length>100);
-  assert.match(groups,/import AdminGroupMatchDraftPanel/);
-  assert.match(groups,/groupId=\{focusedGroup\.id\}/);
-  assert.match(groups,/canWrite=\{canCreate\}/);
+  assert.match(workspace,/import AdminGroupMatchDraftPanel/);
+  assert.match(groups,/group=\{focusedGroup\}/);
+  assert.match(workspace,/groupId=\{group\.id\}/);
+  assert.match(workspace,/canWrite=\{canCreate\}/);
   assert.match(groups,/organization && \$auth\.session/);
   assert.match(groups,/data-testid="admin-group-workspace"/);
   for(const part of ['admin-group-new-match','admin-group-match-form','admin-group-private-drafts',
     'admin-group-matches-link','admin-group-training-link','admin-group-attendance-link']){
-      assert.ok((groups+panel).includes(part),part);
+      assert.ok((groups+workspace+panel).includes(part),part);
   }
 });
 
