@@ -204,8 +204,8 @@ BEGIN
   INSERT INTO identity.otp_challenges(
     id,normalized_phone,code_digest,created_at,expires_at,
     verification_calls,is_consumed)
-  VALUES(otp_challenge,'35799123456',otp_digest,clock_timestamp(),
-    clock_timestamp()+interval '5 minutes',0,false);
+  VALUES(otp_challenge,'35799123456',otp_digest,statement_timestamp(),
+    statement_timestamp()+interval '5 minutes',0,false);
   IF NOT identity.has_pending_academy_guardian_proof('35799123456',otp_challenge)
   THEN RAISE EXCEPTION 'Reviewed Academy guardian not eligible for OTP'; END IF;
   IF identity.has_pending_academy_guardian_proof('35799123457',otp_challenge)
