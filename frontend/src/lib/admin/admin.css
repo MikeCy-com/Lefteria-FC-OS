@@ -594,3 +594,36 @@
 @media (max-width:720px) {
   .admin-app .admin-sidebar .admin-nav-section {font-size:17px; font-weight:800}
 }
+
+/* Login reference: the two-column admin access experience fits in one
+   standard desktop viewport; smaller screens remain scrollable/accessibile. */
+@media (min-width: 901px) and (min-height: 730px) {
+  .admin-app .admin-signin-editorial { min-height: 100dvh; display: flex; flex-direction: column; }
+  .admin-app .admin-signin-grid {
+    flex:1; min-height:0; height:auto;
+    grid-template-columns:minmax(0,1.13fr) minmax(400px,.87fr);
+    padding:clamp(10px,1.2vh,20px) clamp(22px,2.5vw,50px);
+    gap:clamp(16px,2vw,36px);align-items:stretch;
+  }
+  .admin-app .admin-signin-story {padding:clamp(22px,2.5vw,44px);}
+  .admin-app .admin-signin-story h2 {font-size:clamp(47px,4.8vw,78px);margin:8px 0 12px}
+  .admin-app .admin-signin-story .admin-signin-lead {font-size:clamp(28px,2.5vw,43px);margin-bottom:10px}
+  .admin-app .admin-signin-story>p {font-size:clamp(14px,1vw,17px)}
+  .admin-app .admin-signin-story .admin-signin-motto {margin-top:18px;padding-top:12px}
+  .admin-app .admin-signin-grid>.admin-panel {padding:clamp(18px,2vw,32px)}
+  .admin-app .admin-signin-grid .admin-crest {width:clamp(65px,7.5vh,100px);height:clamp(65px,7.5vh,100px);margin-bottom:8px}
+  .admin-app .admin-signin-grid .admin-access-wordmark {font-size:clamp(28px,2.5vw,39px)}
+  .admin-app .admin-signin-grid>.admin-panel>.admin-eyebrow {margin:4px 0 8px;font-size:13px}
+  .admin-app .admin-signin-grid h1 {font-size:clamp(28px,2.3vw,36px);margin-bottom:5px}
+  .admin-app .admin-signin-grid>.admin-panel>.admin-muted {margin:0 0 12px;font-size:13px}
+  .admin-app .admin-signin-grid form {margin-top:10px;gap:6px}
+  .admin-app .admin-signin-grid label {margin-top:4px;font-size:12px}
+  .admin-app .admin-signin-grid :is(input,select) {min-height:44px}
+  .admin-app .admin-signin-grid .admin-primary {min-height:48px;font-size:20px;margin-top:10px}
+  .admin-app .admin-access-footer {min-height:58px;padding-block:10px}
+}
+@media (max-width: 900px) {
+  .admin-app .admin-signin-grid {display:flex;flex-direction:column}
+  .admin-app .admin-signin-grid>.admin-panel {order:0}
+  .admin-app .admin-signin-story {order:1}
+}

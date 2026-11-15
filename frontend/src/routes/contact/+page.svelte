@@ -134,10 +134,10 @@
 </PublicShell>
 
 <style>
-  .contact-page-heading{padding-bottom:48px;background:#0b0b0b}
+  .contact-page-heading{padding-bottom:28px;background:#0b0b0b}
   .contact-lead{color:#b7b7b7;line-height:1.6;max-width:64ch;margin:18px 0 28px}
   .contact-original-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,4vw,70px);background:#0a0a0a;align-items:start}
-  .contact-info-column h2,.contact-form-column h2{font:900 clamp(30px,3vw,44px)/1.06 'Fira Sans Extra Condensed',sans-serif;letter-spacing:.02em;border-bottom:3px solid #f6bb38;padding-bottom:19px;margin-bottom:15px}
+  .contact-info-column h2,.contact-form-column h2{font:800 clamp(23px,2.15vw,33px)/1.12 'Fira Sans Extra Condensed',sans-serif;letter-spacing:.02em;border-bottom:3px solid #f6bb38;padding-bottom:19px;margin-bottom:15px}
   .contact-section-caption{font-size:14px;line-height:1.6;color:#b4b4b4;margin-bottom:25px}
   .contact-info-cards{display:flex;flex-direction:column;gap:22px}
   .contact-info-card{display:flex;gap:20px;align-items:flex-start;border:1px solid #383735;background:linear-gradient(145deg,#191919,#101010);padding:24px;min-height:110px}

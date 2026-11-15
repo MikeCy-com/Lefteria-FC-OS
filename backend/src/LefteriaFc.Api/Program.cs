@@ -28,6 +28,7 @@ using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Api.Crm;
 using LefteriaFc.Api.Payabl;
 using LefteriaFc.Api.Football;
+using LefteriaFc.Api.Marketing;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -190,6 +191,8 @@ app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapPublicMedia();
+app.MapAcademyRegistration();
+app.MapAcademyIntakeAdmin();
 app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminNewsDrafts();

@@ -2740,6 +2740,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/academy/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitPublicAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/news": {
         parameters: {
             query?: never;
@@ -2864,6 +2880,40 @@ export interface components {
         AcademyLeadFollowUpCommand: {
             expected_status: null | string;
             next_status: null | string;
+        };
+        AcademyRegistrationRequest: {
+            allergies_details?: string;
+            comm_email?: boolean;
+            comm_sms?: boolean;
+            conditions_details?: string;
+            consent_communications?: boolean;
+            consent_financial?: boolean;
+            consent_gdpr?: boolean;
+            consent_liability?: boolean;
+            consent_media?: string;
+            consent_medical_auth?: boolean;
+            consent_participation?: boolean;
+            emergency_name?: string;
+            emergency_phone?: string;
+            emergency_relationship?: string;
+            has_allergies?: boolean;
+            has_conditions?: boolean;
+            has_medication?: boolean;
+            medication_details?: string;
+            parent_email?: string;
+            parent_name?: string;
+            parent_phone?: string;
+            parent_relationship?: string;
+            payment_method?: string;
+            player_address?: string;
+            player_city?: string;
+            player_dob?: string;
+            player_first_name?: string;
+            player_gender?: string;
+            player_last_name?: string;
+            player_postal_code?: string;
+            signature_data?: string;
+            signature_date?: string;
         };
         AcademyTrainingFeeIssueCommand: {
             /** Format: int64 */
@@ -18005,6 +18055,70 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitPublicAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademyRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

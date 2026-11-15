@@ -12,6 +12,10 @@
     applicant_last_name: string; applicant_birth_date: string; guardian_name: string;
     guardian_relationship: string; guardian_phone: string; guardian_email: string };
   type Order = { id: string; player_name: string; item: string; size: string | null; quantity: number; status: string };
+  type PublicIntake = { id:string; applicant_first_name:string; applicant_last_name:string;
+    applicant_birth_date:string; guardian_name:string; guardian_phone:string;
+    guardian_email:string; status:string; submitted_at:string };
+  type PublicIntakeResponse = { organization_id:string; applications:PublicIntake[]; offset:number };
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const access = $derived($auth.status === 'authenticated' && !!$auth.session &&
@@ -19,6 +23,13 @@
     $auth.session.user.organizations.some(org => org.id === 'lefteria_fc_academy') &&
     hasAdminPermission($auth.session.user.permissions, 'academy:read'));
   const api = '/api/admin/academy/office/';
+  // Unassigned public applications have a stricter audience than office
+  // records. The server+SQL re-check this independently of the UI.
+  const intakeAccess = $derived(access && $auth.session?.user.role === 'super_admin');
+  let intakeRows = $state<PublicIntake[]>([]);
+  let intakeLoading = $state(false);
+  let intakeError = $state('');
+  let intakeRevision = $state(0);
   let tab = $state<'registrations' | 'orders'>('registrations');
   let offset = $state(0);
   let revision = $state(0);
@@ -81,6 +92,37 @@
       })
       .catch(() => { if (!request.signal.aborted) error = 'Η λίστα δεν είναι διαθέσιμη.'; })
       .finally(() => { if (!request.signal.aborted) loading = false; });
+    return () => request.abort();
+  });
+
+  $effect(() => {
+    void intakeRevision;
+    const actor = $auth.session?.user.id;
+    const canRead = intakeAccess;
+    // Old requests must never repopulate this private queue after logout,
+    // account switch, or Academy-scope revocation.
+    intakeRows = [];
+    intakeError = '';
+    intakeLoading = false;
+    if (!canRead || !actor) return;
+    const request = new AbortController();
+    intakeLoading = true;
+    void fetch('/api/admin/academy/intake?limit=25&offset=0', {
+      signal:request.signal, cache:'no-store'
+    }).then(async response => {
+      if (!response.ok) throw new Error('intake_unavailable');
+      const result = await response.json() as PublicIntakeResponse;
+      if (result.organization_id !== 'lefteria_fc_academy' || !Array.isArray(result.applications))
+        throw new Error('invalid_intake_response');
+      if (!request.signal.aborted && intakeAccess && $auth.session?.user.id === actor)
+        intakeRows = result.applications;
+    }).catch(() => {
+      if (!request.signal.aborted && $auth.session?.user.id === actor)
+        intakeError = 'Η ασφαλής λίστα των ηλεκτρονικών αιτήσεων δεν είναι διαθέσιμη.';
+    }).finally(() => {
+      if (!request.signal.aborted && $auth.session?.user.id === actor)
+        intakeLoading = false;
+    });
     return () => request.abort();
   });
 
@@ -155,6 +197,40 @@
   <AdminFrame user={$auth.session.user} active="academy-office" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if access}
       <h1>Γραμματεία Ακαδημίας</h1>
+      {#if intakeAccess}
+        <section class="admin-panel admin-public-intake" data-testid="academy-public-intake"
+          aria-labelledby="academy-public-intake-title">
+          <div class="intake-heading">
+            <div>
+              <p class="admin-eyebrow">ΑΙΤΗΣΕΙΣ ΑΠΟ ΤΗΝ ΙΣΤΟΣΕΛΙΔΑ · ΑΚΑΔΗΜΙΑ</p>
+              <h2 id="academy-public-intake-title">Ηλεκτρονικές αιτήσεις εγγραφής</h2>
+              <p class="admin-muted">Αιτήσεις προς επεξεργασία. Η υποβολή δεν δημιουργεί αυτόματα παίκτη, χρέωση ή εγγραφή σε τμήμα.</p>
+            </div>
+            <button type="button" class="admin-secondary" disabled={intakeLoading}
+              onclick={() => intakeRevision++} data-testid="academy-intake-refresh">Ανανέωση</button>
+          </div>
+          {#if intakeLoading}<p role="status">Φόρτωση ηλεκτρονικών αιτήσεων…</p>
+          {:else if intakeError}<p role="alert" class="admin-error">{intakeError}</p>
+          {:else if intakeRows.length === 0}<p class="admin-muted">Δεν υπάρχουν ηλεκτρονικές αιτήσεις προς προβολή.</p>
+          {:else}
+            <div class="intake-list">
+              {#each intakeRows as row (row.id)}
+                <article class="intake-application">
+                  <div><strong>{row.applicant_first_name} {row.applicant_last_name}</strong>
+                    <small>Αίτηση {row.id} · {labels[row.status] ?? row.status}</small></div>
+                  <p>Γονέας/κηδεμόνας: {row.guardian_name}</p>
+                  <p>Ημ. γέννησης: {row.applicant_birth_date}</p>
+                  <div class="intake-contacts">
+                    <a href={'tel:' + row.guardian_phone}>{row.guardian_phone}</a>
+                    <a href={'mailto:' + row.guardian_email}>{row.guardian_email}</a>
+                  </div>
+                </article>
+              {/each}
+            </div>
+          {/if}
+          <p class="intake-privacy-note">Για την ασφάλεια των παιδιών, οι ιατρικές πληροφορίες και οι υπογραφές δεν εμφανίζονται σε αυτή τη λίστα. Οι αιτήσεις δεν μεταφέρονται αυτόματα στις εσωτερικές εγγραφές.</p>
+        </section>
+      {/if}
       <nav aria-label="Γραμματεία Ακαδημίας">
         <button class="admin-secondary" aria-pressed={tab === 'registrations'} disabled={busy}
           onclick={() => { tab = 'registrations'; offset = 0; }}>Εγγραφές παικτών</button>
@@ -250,4 +326,18 @@
   fieldset { width: 100%; border: 0; padding: 0; margin: 0; min-width: 0; }
   label { display: grid; gap: .3rem; min-width: min(100%, 15rem); }
   article p { overflow-wrap: anywhere; }
+  .admin-public-intake{margin-bottom:24px}
+  .intake-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+  .intake-heading h2{font-size:clamp(22px,2.2vw,32px)}
+  .intake-heading .admin-muted{max-width:65ch;font-size:13px}
+  .intake-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px}
+  .intake-application{background:#111;border:1px solid #5b4a2d;padding:18px;min-width:0}
+  .intake-application strong{font-family:'Fira Sans Extra Condensed',sans-serif;font-size:22px}
+  .intake-application small{display:block;color:#b4b4b4;overflow-wrap:anywhere;font-size:11px}
+  .intake-application p{font-size:13px;color:#ddd}
+  .intake-contacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
+  .intake-contacts a{font-size:13px;overflow-wrap:anywhere}
+  .intake-privacy-note{margin-top:14px;font-size:12px;color:#aaa}
+  @media(max-width:650px){.intake-heading{display:block}.intake-heading button{margin-top:12px}}
+
 </style>
