@@ -45,10 +45,12 @@
       ? [{id:'academy-group',label:'Νέο τμήμα Ακαδημίας',
           href:'/admin/groups?organization_id=lefteria_fc_academy&new=1'}] : []),
     ...(has('territories')&&hasOrganization('lefteria_fc_academy')&&
+      hasAdminPermission(user.permissions,'academy:write')&&
       user.role==='super_admin'
       ? [{id:'academy-city',label:'Νέα πόλη Ακαδημίας',
           href:'/admin/territories?organization_id=lefteria_fc_academy#create-city'}] : []),
     ...(has('territories')&&hasOrganization('lefteria_fc_academy')&&
+      hasAdminPermission(user.permissions,'academy:write')&&
       ['manager','super_admin'].includes(user.role)
       ? [{id:'academy-location',label:'Νέα τοποθεσία',
           href:'/admin/territories?organization_id=lefteria_fc_academy#create-location'}] : []),
