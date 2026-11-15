@@ -92,8 +92,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'orders') return ['manager','super_admin'].includes(user.role) &&
         hasAdminPermission(user.permissions,'shop:read') &&
         hasAdminPermission(user.permissions,'finance:read');
-      if (['payabl','charges','reports'].includes(item.id)) return
-        ['super_admin','accountant'].includes(user.role) &&
+      if (['payabl','charges','reports'].includes(item.id)) return ['super_admin','accountant'].includes(user.role) &&
         hasAdminPermission(user.permissions,'finance:read');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
       if (item.id === 'facilities') return ['manager','super_admin'].includes(user.role) && (
