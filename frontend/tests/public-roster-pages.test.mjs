@@ -100,7 +100,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     for(const [tab,text] of [['roster','Recorded Player'],['staff','Recorded Coach'],['gallery','Recorded team photo'],['venues','Recorded Stadium'],['statistics','ΣΤΑΤΙΣΤΙΚΑ ΠΑΙΚΤΩΝ']]) {
       const data=await loadTeamPage(new URL('https://preview.test/team?tab='+tab));assert.equal(data.tab,tab);
       const html=render(Team,{props:{data}}).body;assert.match(html,new RegExp(text));assert.doesNotMatch(html,/sentinel-academy|sentinel-private|<script>Recorded Player/);
-      if(tab==='roster')assert.match(html,/href="\/player\/Case--ID"/);
+      if(tab==='roster')assert.match(html,/href="\/player\/script-recorded-player-script--Case--ID"/);
       if(tab==='statistics')assert.match(html,/>0<\/td>/);
     }
     assert.equal((await loadTeamPage(new URL('https://preview.test/team?tab=unknown'))).tab,'overview');
@@ -118,8 +118,8 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal(womenPage.selectedTeamId,'women-id');
     const womenHtml=render(Team,{props:{data:womenPage}}).body;
     assert.match(womenHtml,/Recorded Women Player/);
-    assert.doesNotMatch(womenHtml,/Recorded Player&lt;\/script>|href="\/player\/Case--ID"/);
-    assert.match(womenHtml,/\/player\/women-player\?team_id=women-id/);
+    assert.doesNotMatch(womenHtml,/Recorded Player&lt;\/script>|href="\/player\/script-recorded-player-script--Case--ID"/);
+    assert.match(womenHtml,/\/player\/recorded-women-player--women-player\?team_id=women-id/);
     await assert.rejects(loadTeamPage(new URL('https://preview.test/team?team_id=not-published')),error=>error.status===404);
     const womenProfile=await loadPlayerPage(new URL('https://preview.test/player/women-player?team_id=women-id'),'women-player');
     assert.equal(womenProfile.returnTeamId,'women-id');
@@ -139,7 +139,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     ];
     const womenStaffPage=await loadTeamPage(new URL('https://preview.test/team?tab=staff&team_id=women-id'));
     const womenStaffHtml=render(Team,{props:{data:womenStaffPage}}).body;
-    assert.match(womenStaffHtml,/\/staff\/women-coach\?team_id=women-id/);
+    assert.match(womenStaffHtml,/\/staff\/recorded-women-coach--women-coach\?team_id=women-id/);
     assert.doesNotMatch(womenStaffHtml,/href="\/staff\/staff-ID"/);
     const womenCoach=await loadStaffPage(new URL('https://preview.test/staff/women-coach?team_id=women-id'),'women-coach');
     assert.equal(womenCoach.returnTeamId,'women-id');
