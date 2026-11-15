@@ -29,12 +29,11 @@
     {value:'contact',label:'Επικοινωνία'}
   ] as const;
 
-  const visibleParents = $derived(organization ? parents.filter(parent => websiteMenuParentAllowed(organization, parent.value)) : parents);
-
   const permitted = $derived($auth.status==='authenticated' && !!$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'news:read') ?
     $auth.session.user.organizations.filter(o=>o.id==='lefteria_fc' || o.id==='lefteria_fc_academy') : []);
   let organization = $state<PublicOrganization|null>(null);
+  const visibleParents = $derived(organization ? parents.filter(parent => websiteMenuParentAllowed(organization, parent.value)) : parents);
   let records = $state<WebsitePageRecord[]>([]);
   let picked = $state<string|null>(null);
   let creating = $state(false);
