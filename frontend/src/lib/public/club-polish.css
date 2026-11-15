@@ -1,0 +1,214 @@
+/*
+ * Lefteria FC public-site finish.
+ * References: dark editorial photography, gold club accents, angled strips,
+ * strong condensed type, accessible small-screen navigation.
+ *
+ * Scope every selector to .public-site: admin, finance and member app use
+ * separate design systems. No page content or data is duplicated here.
+ */
+.public-site {
+  --club-surface:#111415;
+  --club-surface-raised:#1b1e1f;
+  --club-gold-halo:rgb(246 187 56 / 18%);
+  --club-light-line:rgb(255 255 255 / 18%);
+  background:#080909;
+  color-scheme:dark;
+}
+.public-site .public-content {
+  background:radial-gradient(ellipse 70% 24% at 76% 0%,rgb(246 187 56 / 5%),transparent 80%),#080909;
+}
+.public-site .public-header {
+  box-shadow:0 8px 30px rgb(0 0 0 / 20%);
+}
+.public-site .public-rail {
+  background:linear-gradient(180deg,#141718 0%,#080909 48%,#111314 100%);
+}
+.public-site .public-rail-logo img {
+  filter:drop-shadow(0 4px 20px var(--club-gold-halo));
+}
+.public-site .public-rail nav :is(a,button),
+.public-site .public-header-tools :is(a,button) {
+  -webkit-tap-highlight-color:transparent;
+}
+.public-site .public-rail nav :is(a,button):focus-visible,
+.public-site .public-menu-row:focus-visible,
+.public-site .public-submenu a:focus-visible {
+  outline:3px solid var(--public-gold);
+  outline-offset:-3px;
+}
+.public-site .public-ticket-link {
+  border-radius:0 8px 0 8px;
+  box-shadow:inset 0 1px rgb(255 255 255 / 28%),0 2px 18px rgb(246 187 56 / 12%);
+}
+.public-site .public-ticket-link:hover {box-shadow:0 4px 24px rgb(246 187 56 / 23%);}
+.public-site .public-menu-dialog {
+  border-right:1px solid rgb(246 187 56 / 25%);
+  background:linear-gradient(140deg,#171919,#090a0a 55%);
+}
+.public-site .public-menu-row,
+.public-site .public-submenu a {
+  transition:background-color .2s ease,color .2s ease;
+}
+.public-site .public-menu-row:hover,
+.public-site .public-submenu a:hover {background:rgb(246 187 56 / 6%);}
+
+/* Shared internal page mastheads; preserve photographic Academy and Team heroes. */
+.public-site .public-page-heading:not(.academy-intro):not(.team-heading) {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  background:
+    radial-gradient(ellipse 52% 115% at 95% 15%,rgb(246 187 56 / 8%),transparent 72%),
+    linear-gradient(125deg,#1a1d1d,#090a0b 70%);
+  border-bottom:1px solid rgb(246 187 56 / 18%);
+}
+.public-site .public-page-heading:not(.academy-intro):not(.team-heading)::after {
+  content:"";
+  position:absolute;
+  right:clamp(-60px,-3vw,-18px);
+  top:-25%;
+  height:150%;
+  width:clamp(50px,6vw,130px);
+  transform:skew(-22deg);
+  background:linear-gradient(90deg,transparent 0 18%,rgb(246 187 56 / 10%) 18% 26%,transparent 26% 47%,rgb(246 187 56 / 4%) 47% 63%,transparent 63%);
+  pointer-events:none;
+  z-index:-1;
+}
+.public-site .public-page-heading .public-eyebrow {
+  color:var(--public-gold);
+  text-transform:uppercase;
+}
+.public-site .public-page-heading h1 {text-shadow:0 5px 26px rgb(0 0 0 / 38%);}
+.public-site .public-page-heading p:not(.public-eyebrow) {max-width:68ch;}
+.public-site :is(.public-section-heading,.section-heading) h2 {
+  text-wrap:balance;
+  overflow-wrap:anywhere;
+}
+.public-site :is(.public-section-heading,.section-heading) h2::before {
+  content:"";
+  display:inline-block;
+  width:5px;
+  height:.8em;
+  margin-right:12px;
+  background:var(--public-gold);
+  transform:skew(-18deg);
+  box-shadow:5px 0 0 rgb(246 187 56 / 15%);
+  vertical-align:-.03em;
+}
+.public-site .public-section {scroll-margin-top:calc(var(--public-header) + 12px);}
+.public-site .public-empty {
+  padding:28px;
+  border:1px dashed rgb(246 187 56 / 25%);
+  background:rgb(246 187 56 / 4%);
+  color:#d5d4ce;
+  line-height:1.55;
+}
+
+/* Cohesive asymmetric editorial cards, with legible content and motion opt-out. */
+.public-site :is(.public-group-card,.person-card,.venue-card,.academy-destination) {
+  border-radius:0 12px 0 8px;
+  overflow:hidden;
+  box-shadow:0 14px 34px rgb(0 0 0 / 14%);
+}
+.public-site :is(.public-group-card,.person-card,.venue-card,.academy-destination) :is(img) {
+  transition:transform .45s ease,filter .45s ease;
+}
+@media (hover:hover) and (prefers-reduced-motion:no-preference) {
+  .public-site :is(.public-group-card,.person-card,.venue-card,.academy-destination):hover {
+    transform:translateY(-3px);
+    border-color:var(--public-gold);
+    box-shadow:0 18px 46px rgb(0 0 0 / 30%);
+  }
+  .public-site :is(.public-group-card,.person-card,.venue-card,.academy-destination):hover img {
+    transform:scale(1.035);
+    filter:saturate(1.07);
+  }
+}
+.public-site .public-team-overview > img {
+  border:1px solid var(--club-light-line);
+  border-radius:0 26px 0 12px;
+  box-shadow:0 18px 40px rgb(0 0 0 / 20%);
+}
+.public-site .public-team-overview h2 {line-height:1.04;text-wrap:balance;}
+.public-site .public-markdown {line-height:1.84;}
+.public-site .public-markdown :is(a):not(:hover) {text-decoration-color:rgb(246 187 56 / 60%);text-underline-offset:3px;}
+.public-site .article-cover {object-position:center;max-width:100%;}
+.public-site .article-body {
+  position:relative;
+  background:linear-gradient(180deg,rgb(255 255 255 / 2%),transparent 220px);
+}
+.public-site .article-excerpt {background:linear-gradient(90deg,rgb(246 187 56 / 6%),transparent);padding-block:12px;}
+
+/* Keep game scores, standings and schedules visually distinct from article cards. */
+.public-site .fixture-row {transition:background-color .2s,border-color .2s;}
+.public-site .fixture-row:hover {border-color:rgb(246 187 56 / 45%);background:#1b1b19;}
+.public-site .fixture-teams strong {overflow-wrap:anywhere;}
+.public-site .table-scroll {border-radius:0 10px 0 10px;}
+.public-site .table-scroll :is(th,td) {font-variant-numeric:tabular-nums;}
+.public-site .table-scroll tr:focus-within {outline:2px solid var(--public-gold);outline-offset:-2px;}
+.public-site .public-team-selector a[aria-current="page"] {box-shadow:inset 0 -3px var(--public-gold);}
+.public-site .public-subnav a {white-space:nowrap;}
+.public-site .public-subnav a[aria-current] {font-weight:800;}
+.public-site .roster-filters :is(input,select) {background:#141616;border:1px solid #73716a;}
+
+/* First Team / Academy photographic language without crossing data scopes. */
+.public-site .academy-intro,
+.public-site .team-heading {border-bottom:1px solid rgb(246 187 56 / 34%);}
+.public-site .academy-intro .academy-intro-copy {text-shadow:0 2px 16px rgb(0 0 0 / 55%);}
+.public-site .academy-program-overview,
+.public-site .academy-philosophy,
+.public-site .academy-key-figures {border-block-color:rgb(246 187 56 / 17%);}
+.public-site .home-reference .public-hero-fixture {
+  box-shadow:0 22px 65px rgb(0 0 0 / 40%),inset 0 1px rgb(255 255 255 / 12%);
+}
+.public-site .home-reference .public-hero-fixture:focus-within {border-color:var(--public-gold);}
+.public-site .home-reference .public-hero-copy h1 {text-wrap:balance;}
+.public-site .home-reference .public-destination {box-shadow:inset 0 1px rgb(255 255 255 / 14%);}
+.public-site .home-reference .public-destination:focus-visible {outline:3px solid #fff;outline-offset:-5px;}
+.public-site .home-reference .public-news-card:focus-within {border-color:var(--public-gold);}
+
+/* Mobile use: fewer cramped rows and no unreachable horizontal sub-navigation. */
+@media(max-width:767px) {
+  .public-site .public-header {padding-inline:12px;gap:6px;}
+  .public-site .public-header-brand strong {font-size:clamp(18px,5vw,24px);}
+  .public-site .public-header-tools {gap:2px;}
+  .public-site .public-header-tools .public-icon-button {min-width:44px;min-height:44px;}
+  .public-site :is(.public-subnav,.team-tabs,.matches-reference-tabs,.public-team-selector) {
+    display:flex;
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-inline:contain;
+    scroll-padding-inline:16px;
+    scrollbar-width:thin;
+    -webkit-overflow-scrolling:touch;
+  }
+  .public-site :is(.public-subnav,.team-tabs,.matches-reference-tabs,.public-team-selector) > :is(a,button) {
+    flex:none;
+    min-height:44px;
+  }
+  .public-site .public-page-heading:not(.academy-intro):not(.team-heading) {padding-inline:20px;}
+  .public-site .public-section {padding-inline:18px;}
+  .public-site .fixture-teams {gap:8px;}
+  .public-site .article-body {padding-inline:20px;}
+  .public-site .public-team-overview {gap:18px;}
+  .public-site .public-menu-dialog {max-width:calc(100% - 12px);}
+}
+@media(max-width:430px) {
+  .public-site .public-header-brand strong {font-size:18px;}
+  .public-site .public-ticket-link {padding:8px 9px;font-size:13px;}
+  .public-site .public-header-tools .public-icon-button {width:40px;min-width:40px;}
+  .public-site .public-page-heading h1 {overflow-wrap:anywhere;}
+  .public-site .home-reference .public-hero-actions .public-button {min-height:44px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .public-site :is(.public-rail,.public-header,.public-menu-row,.public-destination,.public-group-card,.person-card,.venue-card,.academy-destination,.fixture-row) {
+    transition:none!important;
+    animation:none!important;
+  }
+  .public-site :is(.public-group-card,.person-card,.venue-card,.academy-destination) img {transition:none!important;}
+}
+@media(prefers-contrast:more) {
+  .public-site .public-page-heading:not(.academy-intro):not(.team-heading) {border-bottom-color:var(--public-gold);}
+  .public-site .public-empty {border-style:solid;border-color:var(--public-gold);}
+}
