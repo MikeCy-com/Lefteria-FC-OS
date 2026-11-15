@@ -2,6 +2,7 @@
   import PublicShell from '../../lib/public/PublicShell.svelte';
   import PublicImage from '../../lib/public/PublicImage.svelte';
   import Fixtures from '../../lib/public/Fixtures.svelte';
+  import PublicTeamMatchOverview from '../../lib/public/PublicTeamMatchOverview.svelte';
   import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import { safePublicHref } from '../../lib/public/content';
@@ -12,6 +13,12 @@
   const title = $derived(navigation.find(([id]) => id === data.tab)?.[1] ?? 'Η ΟΜΑΔΑ');
   const selectedTeam = $derived((data.site?.teams ?? []).find(team => team.id === data.selectedTeamId));
   const teamsCount = $derived((data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc').length);
+  // The legacy standings projection is First-Team-only. Do not present it
+  // as Women's/Selected Team standings without an authoritative team scope.
+  const firstTeamStandings = $derived(selectedTeam &&
+    /^(first team|first_team|a.? team|α.? ομάδα|πρώτη ομάδα)$/i.test(selectedTeam.level?.trim() ?? '')
+      ? (data.sections?.standings ?? []).filter(row=>row.organization_id==='lefteria_fc')
+      : []);
   const withTeam = (path: string, id: string | null = data.selectedTeamId) =>
     id ? path + (path.includes('?') ? '&' : '?') + 'team_id=' + encodeURIComponent(id) : path;
   const matchesTeam = (teamId: string | null) => !data.selectedTeamId ||
@@ -51,6 +58,11 @@
       <div id="standings" class="standings-anchor">{#each competitions as competition}<div class="section-heading"><h2>ΒΑΘΜΟΛΟΓΙΑ</h2><p>{competition}</p></div><div class="table-scroll"><table><caption class="sr-only">Βαθμολογία {competition}</caption><thead><tr><th scope="col">ΟΜΑΔΑ</th><th scope="col">ΑΓ</th><th scope="col">Ν</th><th scope="col">Ι</th><th scope="col">Η</th><th scope="col">ΓΚΟΛ</th><th scope="col">Β</th></tr></thead><tbody>{#each (data.sections?.standings ?? []).filter(row=>row.competition===competition) as row (row.id)}<tr><th scope="row">{row.team_name}</th><td>{row.played}</td><td>{row.won}</td><td>{row.drawn}</td><td>{row.lost}</td><td>{row.goals_for}:{row.goals_against}</td><td class="points">{row.points}</td></tr>{/each}</tbody></table></div>{/each}</div>
     {/if}
     {#if data.tab === 'overview' || data.tab === 'schedule' || data.tab === 'results'}
+      {#if data.tab === 'schedule'}
+        <PublicTeamMatchOverview {fixtures} standings={firstTeamStandings}
+          teamId={data.selectedTeamId} clubName={data.site?.club?.name ?? 'ΛΕΥΤΕΡΙΑ FC'}
+          clubLogo={data.site?.club?.logo_url ?? null} />
+      {/if}
       <div class="section-heading"><h2>{data.tab === 'results' ? 'ΑΠΟΤΕΛΕΣΜΑΤΑ' : 'ΑΓΩΝΕΣ & ΠΡΟΓΡΑΜΜΑ'}</h2></div>{#if fixtures.length}<Fixtures {fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες σε αυτή την ενότητα.</p>{/if}
     {:else if data.tab === 'roster'}
       <div class="roster-intro"><div><p class="public-eyebrow">ΟΙ ΑΝΘΡΩΠΟΙ ΠΙΣΩ ΑΠΟ ΤΗ ΦΑΝΕΛΑ</p><h2>ΤΟ ΡΟΣΤΕΡ ΜΑΣ</h2></div><span>{players.length} ΠΑΙΚΤΕΣ</span></div>
