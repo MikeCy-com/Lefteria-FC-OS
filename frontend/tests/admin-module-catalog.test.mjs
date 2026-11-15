@@ -121,7 +121,7 @@ test('existing live workflows remain clickable instead of the planned fallback',
   // The formerly unreachable modules must share a live-link fallback before the disabled branch.
   assert.match(workspace,/{:else if module.status === 'live' && module.href}[\s\S]*?href={module.href}[\s\S]*?{:else}[\s\S]*?admin-tool-planned/);
   const all=modules(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
-  for(const id of ['leads','academy_schedule','attendance','evaluations','documents','registrations','staff','users'){
+  for(const id of ['leads','academy_schedule','attendance','evaluations','documents','registrations','staff','users']){
     const entry=all.find(m=>m.id===id);
     assert.equal(entry?.status,'live',id);
     assert.ok(entry?.href,id);
