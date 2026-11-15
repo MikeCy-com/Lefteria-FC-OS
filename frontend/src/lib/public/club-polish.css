@@ -297,3 +297,38 @@
   .public-site[data-route="/about"] .source-about section:nth-child(2) .relative {padding:18px;}
   .public-site[data-route="/about"] .source-about .card {padding:24px;}
 }
+
+/* The hero must retain its next-match composition even before an upcoming
+   First Team fixture is published, without guessing the match or its time. */
+.public-site .home-reference .public-hero-fixture-empty {
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  min-height:clamp(260px,18vw,325px);
+  border-color:rgb(246 187 56 / 55%);
+  background:linear-gradient(135deg,rgb(13 16 16 / 94%),rgb(8 9 9 / 96%)),radial-gradient(circle at top right,rgb(246 187 56 / 17%),transparent 60%);
+}
+.public-site .home-reference .public-fixture-empty-copy {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:11px;
+  padding:16px 4px;
+  text-align:center;
+}
+.public-site .home-reference .public-fixture-empty-copy > svg {color:var(--public-gold);}
+.public-site .home-reference .public-fixture-empty-copy strong {
+  font:800 clamp(19px,1.7vw,26px)/1.1 'Fira Sans Extra Condensed',sans-serif;
+  max-width:28ch;
+  text-wrap:balance;
+}
+.public-site .home-reference .public-fixture-empty-copy p {
+  max-width:36ch;
+  color:#cecdc8;
+  font-size:13px;
+  line-height:1.5;
+}
+@media(max-width:767px) {
+  .public-site .home-reference .public-hero-fixture-empty {min-height:245px;}
+}
