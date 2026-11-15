@@ -7,6 +7,7 @@ const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/202
 const api=read('backend/src/LefteriaFc.Api/Audiences/AdminCoachDirectoryEndpoints.cs');
 const ui=read('frontend/src/lib/admin/AdminCoachDirectoryPanel.svelte');
 const parent=read('frontend/src/routes/admin/groups/+page.svelte');
+const groupWorkspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const grants=read('ops/postgres/web-admin-auth-grants.sql');
 const check=read('ops/postgres/admin-coach-directory-boundary.sql');
 test('private coach projection is current, owner-locked and contains no contact details',()=>{
@@ -30,6 +31,7 @@ test('coach UI uses real scoped pages and invalidates stale owner reads',()=>{
   assert.match(ui,/verified\(raw,selectedOwner,selectedOffset\)/);
   assert.match(ui,/response\.status===401/);
   assert.match(ui,/response\.status===403/);
-  assert.match(parent,/AdminCoachDirectoryPanel/);
+  assert.match(parent,/AdminGroupWorkspace/);
+  assert.match(groupWorkspace,/AdminCoachDirectoryPanel/);
   assert.doesNotMatch(ui,/@html|innerHTML|method:'POST'|mockCoaches/);
 });

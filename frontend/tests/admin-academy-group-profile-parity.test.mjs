@@ -7,6 +7,7 @@ const api=read('backend/src/LefteriaFc.Api/Audiences/AdminAcademyGroupProfileEnd
 const app=read('backend/src/LefteriaFc.Api/Program.cs');
 const ui=read('frontend/src/lib/admin/AdminAcademyGroupProfilePanel.svelte');
 const groupPage=read('frontend/src/routes/admin/groups/+page.svelte');
+const groupWorkspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const grant=read('ops/postgres/admin-academy-profile-grants.sql');
 const expected=['age_range','coach_name','training_schedule','description',
  'max_players','season','banner_url','display_order'];
@@ -19,7 +20,8 @@ test('Original Academy group creation fields have exact snake_case contract end-
   }
   assert.match(api,/MapAdminAcademyGroupProfiles/);
   assert.match(app,/app.MapAdminAcademyGroupProfiles\(\)/);
-  assert.match(groupPage,/AdminAcademyGroupProfilePanel/);
+  assert.match(groupWorkspace,/AdminAcademyGroupProfilePanel/);
+  assert.match(groupPage,/AdminGroupWorkspace/);
   assert.match(groupPage,/organization === 'lefteria_fc_academy'/);
 });
 test('profile creation preserves canonical roster IDs, memberships and independent coach assignments',()=>{

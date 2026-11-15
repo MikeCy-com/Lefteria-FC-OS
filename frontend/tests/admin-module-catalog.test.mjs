@@ -133,10 +133,12 @@ test('live workflows are reachable in contextual groups and authorized standalon
   for(const href of ['/admin/hub','/admin/academy-office','/admin/staff','/admin/groups'])
     assert.ok(frame.includes('href="'+href+'"'),href);
   const groupsPage=readFileSync(new URL('../src/routes/admin/groups/+page.svelte',import.meta.url),'utf8');
-  assert.match(groupsPage,/admin-group-training-link/);
-  assert.match(groupsPage,/admin-group-attendance-link/);
-  assert.match(groupsPage,/admin-group-matches-link/);
-  assert.match(groupsPage,/admin-group-players-link/);
+  const groupWorkspace=read('AdminGroupWorkspace.svelte');
+  assert.match(groupsPage,/AdminGroupWorkspace/);
+  assert.match(groupWorkspace,/admin-group-training-link/);
+  assert.match(groupWorkspace,/admin-group-attendance-link/);
+  assert.match(groupWorkspace,/admin-group-matches-link/);
+  assert.match(groupWorkspace,/admin-group-players-link/);
 });
 
 test('Academy office discovery matches its existing manager and organization policy',()=>{

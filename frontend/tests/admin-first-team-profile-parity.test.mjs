@@ -6,6 +6,7 @@ const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/202
 const api=read('backend/src/LefteriaFc.Api/Audiences/AdminFirstTeamProfileEndpoints.cs');
 const app=read('backend/src/LefteriaFc.Api/Program.cs');
 const page=read('frontend/src/routes/admin/groups/+page.svelte');
+const workspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const ui=read('frontend/src/lib/admin/AdminFirstTeamProfilePanel.svelte');
 const grant=read('ops/postgres/admin-first-team-profile-grants.sql');
 
@@ -17,7 +18,8 @@ test('First Team source fields level, description, banner are in database, API a
   }
   assert.match(api,/JsonPropertyName\("expected_revision"\)/);
   assert.match(app,/app.MapAdminFirstTeamProfiles\(\)/);
-  assert.match(page,/AdminFirstTeamProfilePanel/);
+  assert.match(workspace,/AdminFirstTeamProfilePanel/);
+  assert.match(page,/AdminGroupWorkspace/);
   assert.match(page,/organization === 'lefteria_fc'/);
 });
 test('source metadata retains canonical team ID and independent roster/staff',()=>{
