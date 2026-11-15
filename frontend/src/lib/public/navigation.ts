@@ -1,5 +1,6 @@
 import type { PublicGroup, PublicArticle, PublicOrganization } from './types';
 import { articleLink } from './content.ts';
+import { publicSlug } from './public-urls.ts';
 import type { PublicIconName } from './icon-types';
 
 export type PublicMenuLink = readonly [id: string, label: string, path: string];
@@ -33,8 +34,7 @@ export const publicNavigation: readonly PublicNavigationItem[] = [
   { id: "contact", label: "ΕΠΙΚΟΙΝΩΝΙΑ", path: "/contact", icon: 'phone' },
 ];
 export function academyGroupLink(group: Pick<PublicGroup, 'id' | 'name'>): string {
-  const slug = group.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR')
-    .trim().replace(/[^a-z0-9α-ω]+/g, '-').replace(/^-+|-+$/g, '');
+  const slug = publicSlug(group.name);
   return '/academy/' + (slug ? slug + '--' : '') + encodeURIComponent(group.id);
 }
 export function categoryLinks(item: PublicNavigationItem, groups: PublicGroup[]): readonly PublicMenuLink[] {
