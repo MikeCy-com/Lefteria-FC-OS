@@ -57,7 +57,7 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
             try
             {
                 approvedJson = await database.Database.SqlQueryRaw<string>(
-                    "SELECT club.read_public_academy_group_directory()::text AS \\"Value\\"")
+                    "SELECT club.read_public_academy_group_directory()::text AS \"Value\"")
                     .SingleOrDefaultAsync(token);
             }
             catch (PostgresException ex) when (ex.SqlState is "42883" or "42501" or "3F000")
