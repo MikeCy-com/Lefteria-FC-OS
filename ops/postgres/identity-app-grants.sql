@@ -156,6 +156,44 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON identity.otp_challenges TO :"app_role";
 GRANT SELECT, INSERT ON identity.auth_rate_buckets TO :"app_role";
 GRANT UPDATE (tokens, updated_at) ON identity.auth_rate_buckets TO :"app_role";
 GRANT INSERT ON audit.security_events TO :"app_role";
+-- Canonical Academy group directory: a manager-controlled, allowlisted
+-- public projection. This is the sole runtime path to admin group names
+-- and edited public metadata; the underlying profile table stays private.
+REVOKE ALL ON TABLE club.academy_group_profiles FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_public_academy_group_directory()
+  FROM PUBLIC, :"app_role";
+DO $academy_public_reader_guard$
+DECLARE
+  p record;
+BEGIN
+  SELECT prosecdef,provolatile,proconfig,prorettype INTO p
+  FROM pg_catalog.pg_proc
+  WHERE oid='club.read_public_academy_group_directory()'::regprocedure;
+  IF NOT FOUND OR p.prosecdef IS DISTINCT FROM true
+     OR p.provolatile IS DISTINCT FROM 's'
+     OR p.prorettype IS DISTINCT FROM 'pg_catalog.jsonb'::regtype
+     OR NOT EXISTS (
+       SELECT 1 FROM unnest(coalesce(p.proconfig,ARRAY[]::text[])) AS c(entry)
+       WHERE regexp_replace(c.entry,'[[:space:]]','','g') =
+         'search_path=pg_catalog,pg_temp'
+     ) THEN
+    RAISE EXCEPTION 'Unreviewed public Academy group directory; refusing runtime grant';
+  END IF;
+  IF NOT (SELECT relrowsecurity FROM pg_catalog.pg_class
+           WHERE oid='club.academy_group_profiles'::regclass) THEN
+    RAISE EXCEPTION 'Academy admin profiles must retain RLS';
+  END IF;
+  IF has_any_column_privilege(current_setting('lefteria.runtime_role'),
+      'club.academy_group_profiles','SELECT,INSERT,UPDATE,REFERENCES')
+      OR has_table_privilege(current_setting('lefteria.runtime_role'),
+      'club.academy_group_profiles','DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Academy group profile table cannot be directly exposed';
+  END IF;
+END
+$academy_public_reader_guard$;
+GRANT EXECUTE ON FUNCTION club.read_public_academy_group_directory()
+  TO :"app_role";
+
 -- First-team trial public DISPLAY projection only: no direct access to
 -- private admin settings, and no permission to open applications or collect
 -- athlete data. Assert the reviewed definer/search-path before granting.

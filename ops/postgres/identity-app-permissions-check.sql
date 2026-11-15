@@ -48,6 +48,21 @@ BEGIN
       OR has_function_privilege(current_user,'identity.lock_admin_club_authority(text,text)','EXECUTE') THEN
     RAISE EXCEPTION 'Public runtime exceeds safe club payload read boundary';
   END IF;
+  -- Canonical Academy names and public manager profiles are projected
+  -- through a fixed definer; no direct private-table or roster name access.
+  IF NOT has_function_privilege(current_user,
+       'club.read_public_academy_group_directory()','EXECUTE')
+     OR has_column_privilege(current_user,'club.academy_groups','name','SELECT')
+     OR has_any_column_privilege(current_user,'club.academy_group_profiles',
+       'SELECT,INSERT,UPDATE,REFERENCES')
+     OR has_table_privilege(current_user,'club.academy_group_profiles',
+       'DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Public Academy directory runtime privileges exceed allowlist';
+  END IF;
+  IF club.read_public_academy_group_directory() IS NOT NULL AND
+     jsonb_typeof(club.read_public_academy_group_directory()) <> 'array' THEN
+    RAISE EXCEPTION 'Academy directory did not return a bounded public array';
+  END IF;
   -- The only authorized trial settings permission is the fixed,
   -- source-backed, closed-only function; never the private settings table.
   IF NOT has_function_privilege(current_user,
