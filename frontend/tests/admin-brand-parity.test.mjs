@@ -19,7 +19,7 @@ test('admin visual refinements do not alter real role permissions or navigation'
   const frame=read('AdminFrame.svelte');
   assert.match(frame,/canReadClub\(user\)/);
   assert.match(frame,/data-testid="admin-logout"/);
-  assert.match(frame,/href="\/admin\/club"/);
+  assert.match(frame,/href="\/admin\/settings#website-settings"/);
   assert.match(frame,/src="\/mobile\/club-logo.png"/);
   assert.match(frame,/id="admin-main"/);
 });

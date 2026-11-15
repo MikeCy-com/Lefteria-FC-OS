@@ -627,3 +627,70 @@
   .admin-app .admin-signin-grid>.admin-panel {order:0}
   .admin-app .admin-signin-story {order:1}
 }
+
+/* Action-first admin: dense navigation for every verified role and a genuine
+   top-right account menu. Individual training/attendance/player data lives in
+   the selected group instead of duplicating five global nav entries. */
+@media (min-width:721px) {
+  .admin-app .admin-sidebar{
+    gap:0;padding:13px 12px 20px;
+    grid-auto-rows:min-content;
+  }
+  .admin-app .admin-sidebar .admin-nav-label{
+    font-size:13px;line-height:1.15;margin:7px 10px 3px;
+  }
+  .admin-app .admin-sidebar .admin-nav-group{
+    gap:0;margin-top:3px;padding-top:3px;
+  }
+  .admin-app .admin-sidebar a,
+  .admin-app .admin-sidebar .admin-nav-section,
+  .admin-app .admin-sidebar .admin-nav-tool{
+    min-height:44px;padding:6px 11px;
+    font-size:16px;line-height:1.12;
+  }
+  .admin-app .admin-sidebar .admin-nav-tool{
+    padding-left:17px;font-size:16px;
+  }
+  .admin-app .admin-sidebar .admin-nav-section{font-weight:800;font-size:17px}
+}
+.admin-app .admin-profile-menu{position:relative;flex:none;z-index:60}
+.admin-app .admin-profile-menu>summary{
+  display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;
+  min-height:44px;padding:3px 9px 3px 3px;
+  background:#151616;border:1px solid #847246;border-radius:8px;
+}
+.admin-app .admin-profile-menu>summary::-webkit-details-marker{display:none}
+.admin-app .admin-profile-avatar{
+  width:38px;height:38px;display:grid;place-items:center;flex:none;border-radius:50%;
+  background:linear-gradient(140deg,#f7c75a,#aa7820);color:#101010;
+  font:900 17px 'Fira Sans Extra Condensed',sans-serif;
+}
+.admin-app .admin-profile-menu-text{display:flex;flex-direction:column;gap:3px;max-width:190px}
+.admin-app .admin-profile-menu-text strong{font-size:12px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-app .admin-profile-menu-text small{font-size:10px;color:#ffcb56}
+.admin-app .admin-profile-menu summary:focus-visible{
+  outline:3px solid #ffca5b;outline-offset:2px;
+}
+.admin-app .admin-profile-dropdown{
+  position:absolute;right:0;top:calc(100% + 8px);width:min(290px,calc(100vw - 22px));
+  background:#111416;border:1px solid #ae8a45;border-radius:8px;
+  padding:10px;display:grid;gap:3px;box-shadow:0 18px 45px #000c;
+}
+.admin-app .admin-profile-dropdown-name{
+  margin:0 0 5px;padding:9px 10px 12px;border-bottom:1px solid #51452f;
+  color:#fff;font-weight:800;font-size:14px;
+}
+.admin-app .admin-profile-dropdown-name small{display:block;color:#ffc55f;font-size:11px;margin-top:5px}
+.admin-app .admin-profile-dropdown :is(a,button){
+  display:flex;align-items:center;min-height:42px;width:100%;
+  padding:9px 12px;color:#fff;border:0;background:transparent;
+  text-align:left;text-decoration:none;font:700 13px 'Fira Sans',sans-serif;cursor:pointer;
+}
+.admin-app .admin-profile-dropdown :is(a,button):is(:hover,:focus-visible){
+  background:#332711;color:#ffca58;outline:2px solid #f6bb38;outline-offset:0;
+}
+.admin-app .admin-profile-dropdown button[disabled]{opacity:.5}
+@media(max-width:720px){
+  .admin-app .admin-profile-menu-text{display:none}
+  .admin-app .admin-profile-menu>summary{padding:3px 9px 3px 3px}
+}

@@ -28,7 +28,8 @@ test('per-Academy group action links carry exact server-validated group to train
   assert.match(groups,/organization === 'lefteria_fc_academy'/);
   assert.match(groups,/admin-group-training-link/);
   assert.match(groups,/admin-group-attendance-link/);
-  assert.match(groups,/encodeURIComponent\(group\.id\)/);
+  assert.match(groups,/encodeURIComponent\(focusedGroup\.id\)/);
+  assert.match(groups,/focusedGroupId===group\.id/);
   assert.match(schedule,/page\.url\.searchParams\.get\('group_id'\)/);
   assert.match(schedule,/data\.groups\.find\(g=>g\.id===requestedGroup\)/);
   assert.match(schedule,/\/admin\/attendance\?group_id=/);

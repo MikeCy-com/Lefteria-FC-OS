@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -14,7 +15,11 @@
   type Tab = 'upcoming' | 'results' | 'cup' | 'all';
   type Choice = { id: string; name: string };
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
-  const organization = $derived(preferredAdminOrganization($auth.session?.user ?? null));
+  const requestedOrganization = $derived(page.url.searchParams.get('organization_id'));
+  const organization = $derived(
+    (requestedOrganization==='lefteria_fc'||requestedOrganization==='lefteria_fc_academy') &&
+    $auth.session?.user.organizations.some(org=>org.id===requestedOrganization)
+      ? requestedOrganization : preferredAdminOrganization($auth.session?.user ?? null));
   const canRead = $derived(
     $auth.status === 'authenticated' && !!$auth.session && !!organization &&
     $auth.session.user.organizations.some(org => org.id === organization) &&
@@ -100,6 +105,7 @@
     void actor; void reload;
     fixtures = []; choices = []; loading = false; unavailable = false;
     team = 'all'; season = 'all';
+    const requestedGroup=page.url.searchParams.get('group_id');
     if (!browser || !owner || !access) return;
     const request = new AbortController();
     loading = true;
@@ -118,6 +124,9 @@
         if (!request.signal.aborted) {
           fixtures = data.fixtures;
           choices = owner === 'lefteria_fc' ? data.teams : data.academy_groups;
+          // Deep links originate from a verified, selected group. Reject unknown
+          // ids rather than showing another organization's fixtures.
+          if (requestedGroup && choices.some(item=>item.id===requestedGroup))team=requestedGroup;
         }
       } catch {
         if (!request.signal.aborted) unavailable = true;
@@ -140,6 +149,11 @@
       <header class="admin-matches-heading">
         <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC · {organization === 'lefteria_fc' ? 'ΣΥΛΛΟΓΟΣ' : 'ΑΚΑΔΗΜΙΑ'}</p>
         <h1>ΑΓΩΝΕΣ <span>&amp; ΑΠΟΤΕΛΕΣΜΑΤΑ</span></h1>
+        {#if team!=='all' && choices.some(item=>item.id===team)}
+          <a class="admin-match-back-to-group"
+             href={`/admin/groups?group_id=${encodeURIComponent(team)}`}
+             data-testid="admin-match-back-to-group">← Επιστροφή στο τμήμα</a>
+        {/if}
         <p>Αγωνιστικό πρόγραμμα και αποτελέσματα που έχουν ήδη δημοσιευθεί. Η δημιουργία αγώνων και η επεξεργασία σκορ δεν έχουν ενεργοποιηθεί.</p>
       </header>
       {#if !canRead}

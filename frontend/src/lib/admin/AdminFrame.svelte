@@ -4,113 +4,106 @@
   import { canReadClub } from './club-controller.ts';
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
-  import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
+  import { ADMIN_ROLE_NAMES,isAdminRole } from './permissions.ts';
 
-
-  let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches' | 'staff' | 'users' | 'territories'; busy?: boolean;
-    onLogout: () => void; children: Snippet;
-  } = $props();
-  const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
-  // All granted organizations contribute to navigation. The authenticated
-  // session and permissions determine visibility, not a global browser switch.
-  const sections = $derived(adminSectionsFor(user));
+  let {user,active='account',busy=false,onLogout,children}:{
+    user:WebAdminSession['user'];
+    active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|
+      'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
+      'schedule'|'hub'|'matches'|'staff'|'users'|'territories';
+    busy?:boolean;onLogout:()=>void;children:Snippet;
+  }=$props();
+  const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
+  const sections=$derived(adminSectionsFor(user));
+  const liveIds=$derived(new Set(sections.flatMap(section=>section.modules)
+    .filter(module=>module.status==='live').map(module=>module.id)));
+  const initials=$derived((user.name || user.username).trim().split(/\s+/u)
+    .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
+  const hasGroupHub=$derived(liveIds.has('groups'));
+  const hasOperations=$derived(liveIds.has('staff')||liveIds.has('users')||liveIds.has('onboarding'));
+  const hasWebsite=$derived(liveIds.has('news')||canReadClub(user));
 </script>
 
 <div class="admin-workspace">
   <a class="admin-skip" href="#admin-main">Μετάβαση στο περιεχόμενο</a>
   <header class="admin-header">
     <a class="admin-brand" href="/admin" aria-label="Λευτεριά FC · Κέντρο διαχείρισης">
-      <img src="/mobile/club-logo.png" alt="" width="42" height="48" />
+      <img src="/mobile/club-logo.png" alt="" width="42" height="48"/>
       <span>ΛΕΥΤΕΡΙΑ FC <small>ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</small></span>
     </a>
     <div class="admin-actions">
-      <a class="admin-public-link" href="/" aria-label="Προβολή δημόσιας ιστοσελίδας">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
-      <a class="admin-public-link" href="/app" aria-label="Άνοιγμα εφαρμογής μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
-      <button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
+      <a class="admin-public-link" href="/" aria-label="Δημόσια ιστοσελίδα">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
+      <a class="admin-public-link" href="/app" aria-label="Εφαρμογή μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
+      <details class="admin-profile-menu" data-testid="admin-profile-menu">
+        <summary aria-label="Άνοιγμα προφίλ λογαριασμού" data-testid="admin-profile-menu-toggle">
+          <span class="admin-profile-avatar" aria-hidden="true">{initials}</span>
+          <span class="admin-profile-menu-text"><strong>{user.name || user.username}</strong><small>{roleName}</small></span>
+          <span aria-hidden="true">⌄</span>
+        </summary>
+        <div class="admin-profile-dropdown" role="group" aria-label="Λογαριασμός διαχειριστή">
+          <p class="admin-profile-dropdown-name">{user.name || user.username}<small>{roleName}</small></p>
+          <a href="/admin/profile" data-testid="admin-profile-link">Το προφίλ μου</a>
+          <a href="/admin/profile#security">Ασφάλεια & σύνδεση</a>
+          <a href="/admin/settings" data-testid="admin-settings-header-link">Ρυθμίσεις συλλόγου</a>
+          <button type="button" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
+        </div>
+      </details>
     </div>
   </header>
   <div class="admin-workspace-body">
     <nav class="admin-sidebar" aria-label="Διαχείριση συλλόγου" data-testid="admin-structured-navigation">
-      <p class="admin-nav-label">ΠΙΝΑΚΑΣ ΕΛΕΓΧΟΥ</p>
-      <a href="/admin" aria-current={active === 'account' ? 'page' : undefined}>Επισκόπηση</a>
-      {#each sections as section (section.id)}
-        <div class="admin-nav-group">
-          <p class="admin-nav-label">{section.name}</p>
-          <a class="admin-nav-section" href={'/admin#workspace-' + section.id}>{section.name} <span aria-hidden="true">›</span></a>
-          {#if section.id === 'website' && canReadClub(user)}
-            <a class="admin-nav-tool" href="/admin/club" aria-current={active === 'club' ? 'page' : undefined} data-testid="admin-club-link">Προφίλ συλλόγου</a>
-          {/if}
-          {#if section.id === 'website' && section.modules.some(item => item.id === 'news' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/news" aria-current={active === 'news' ? 'page' : undefined} data-testid="admin-news-link">Άρθρα & νέα</a>
-          {/if}
-          {#if section.id === 'hub' && section.modules.some(item => item.id === 'hub_editorial' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/hub" aria-current={active === 'hub' ? 'page' : undefined} data-testid="admin-hub-link">Περιεχόμενο HUB</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'academy_schedule' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/schedule" aria-current={active === 'schedule' ? 'page' : undefined} data-testid="admin-schedule-link">Πρόγραμμα Ακαδημίας</a>
-          {/if}
-          {#if section.id === 'app' && section.modules.some(item => item.id === 'announcements' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/announcements" aria-current={active === 'announcements' ? 'page' : undefined} data-testid="admin-announcements-link">Ανακοινώσεις εφαρμογής</a>
-          {/if}
-          {#if section.id === 'crm' && section.modules.some(item => item.id === 'leads' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/leads"
-              aria-current={active === 'leads' ? 'page' : undefined}
-              data-testid="admin-crm-leads-link">Ενδιαφερόμενοι Ακαδημίας</a>
-          {/if}
-          {#if section.id === 'pos' && section.modules.some(item => item.id === 'products' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/pos" aria-current={active === 'pos' ? 'page' : undefined} data-testid="admin-pos-link">Κατάλογος προϊόντων</a>
-          {/if}
-          {#if section.id === 'finance' && section.modules.some(item => item.id === 'payabl' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/finance" aria-current={active === 'finance' ? 'page' : undefined} data-testid="admin-payabl-link">payabl. · Sandbox</a>
-          {/if}
-          {#if section.id === 'operations' && section.modules.some(item => item.id === 'users' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/users" aria-current={active === 'users' ? 'page' : undefined} data-testid="admin-users-link">Χρήστες & δικαιώματα</a>
-          {/if}
-          {#if section.id === 'operations' && section.modules.some(item => item.id === 'staff' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/staff" aria-current={active === 'staff' ? 'page' : undefined} data-testid="admin-staff-link">Προσωπικό & προπονητές</a>
-          {/if}
-          {#if section.id === 'operations' && section.modules.some(item => item.id === 'onboarding' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/onboarding" aria-current={active === 'onboarding' ? 'page' : undefined} data-testid="admin-onboarding-link">Οδηγός πρώτης χρήσης</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'territories' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/territories" aria-current={active === 'territories' ? 'page' : undefined} data-testid="admin-territories-link">Πόλεις &amp; γήπεδα</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'groups' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/groups" aria-current={active === 'groups' ? 'page' : undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'fixtures' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/matches"
-              aria-current={active === 'matches' ? 'page' : undefined} data-testid="admin-matches-link">Αγώνες & αποτελέσματα</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'attendance' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/attendance"
-              aria-current={active === 'attendance' ? 'page' : undefined}
-              data-testid="admin-attendance-link">Παρουσίες προπονήσεων</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'evaluations' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/evaluations" aria-current={active === 'evaluations' ? 'page' : undefined}>Αξιολογήσεις αθλητών</a>
-          {/if}
-          {#if section.id === 'football' && section.modules.some(item => item.id === 'documents' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/documents" aria-current={active === 'documents' ? 'page' : undefined}>Προστατευμένα έγγραφα</a>
-          {/if}
-          {#if section.id === 'crm' && section.modules.some(item => item.id === 'registrations' && item.status === 'live')}
-            <a class="admin-nav-tool" href="/admin/academy-office" aria-current={active === 'academy-office' ? 'page' : undefined}>Γραμματεία Ακαδημίας</a>
-          {/if}
-          {#if section.id === 'football' && canViewFirstTeamTrials(user)}
-            <a class="admin-nav-tool" href="/admin/trials" aria-current={active === 'trials' ? 'page' : undefined} data-testid="admin-trials-link">Δοκιμαστικά πρώτης ομάδας</a>
-          {/if}
+      <p class="admin-nav-label">ΕΡΓΑΣΙΕΣ</p>
+      <a class="admin-nav-section" href="/admin" aria-current={active==='account'?'page':undefined}>Επισκόπηση</a>
+      {#if hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
+        <div class="admin-nav-group" data-testid="admin-football-navigation">
+          <p class="admin-nav-label">ΟΜΑΔΕΣ & ΑΚΑΔΗΜΙΑ</p>
+          {#if hasGroupHub}<a class="admin-nav-section" href="/admin/groups" aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)?'page':undefined} data-testid="admin-groups-link">Ομάδες & τμήματα</a>{/if}
+          {#if liveIds.has('territories')}<a class="admin-nav-tool" href="/admin/territories" aria-current={active==='territories'?'page':undefined} data-testid="admin-territories-link">Πόλεις & τοποθεσίες</a>{/if}
+          {#if canViewFirstTeamTrials(user)}<a class="admin-nav-tool" href="/admin/trials" aria-current={active==='trials'?'page':undefined} data-testid="admin-trials-link">Δοκιμαστικά</a>{/if}
         </div>
-      {/each}
-      <div class="admin-nav-group">
-        <p class="admin-nav-label">ΛΟΓΑΡΙΑΣΜΟΣ</p>
-        <a href="/admin#account">Στοιχεία</a>
-        <a href="/admin#session">Σύνδεση</a>
-        <a href="/admin#access">Δικαιώματα πρόσβασης</a>
-      </div>
-      <div class="admin-sidebar-context">
-        <span>ΣΥΝΔΕΔΕΜΕΝΟΣ ΩΣ</span><strong>{user.name || user.username}</strong><small>{roleName}</small>
-      </div>
+      {/if}
+      {#if hasWebsite}
+        <div class="admin-nav-group">
+          <p class="admin-nav-label">ΙΣΤΟΣΕΛΙΔΑ</p>
+          {#if liveIds.has('news')}<a class="admin-nav-section" href="/admin/news" aria-current={active==='news'?'page':undefined} data-testid="admin-news-link">Άρθρα & νέα</a>{/if}
+          {#if canReadClub(user)}<a class="admin-nav-tool" href="/admin/settings#website-settings" aria-current={active==='club'?'page':undefined}>Ρυθμίσεις ιστοσελίδας</a>{/if}
+        </div>
+      {/if}
+      {#if liveIds.has('hub_editorial') || liveIds.has('announcements')}
+        <div class="admin-nav-group">
+          <p class="admin-nav-label">ΕΦΑΡΜΟΓΗ ΜΕΛΩΝ</p>
+          {#if liveIds.has('announcements')}<a class="admin-nav-section" href="/admin/announcements" aria-current={active==='announcements'?'page':undefined} data-testid="admin-announcements-link">Ανακοινώσεις</a>{/if}
+          {#if liveIds.has('hub_editorial')}<a class="admin-nav-tool" href="/admin/hub" aria-current={active==='hub'?'page':undefined} data-testid="admin-hub-link">HUB · Περιεχόμενο</a>{/if}
+        </div>
+      {/if}
+      {#if liveIds.has('registrations') || liveIds.has('leads')}
+        <div class="admin-nav-group">
+          <p class="admin-nav-label">CRM & ΓΡΑΜΜΑΤΕΙΑ</p>
+          {#if liveIds.has('registrations')}<a class="admin-nav-section" href="/admin/academy-office" aria-current={active==='academy-office'?'page':undefined}>Γραμματεία Ακαδημίας</a>{/if}
+          {#if liveIds.has('leads')}<a class="admin-nav-tool" href="/admin/leads" aria-current={active==='leads'?'page':undefined} data-testid="admin-crm-leads-link">Ενδιαφερόμενοι</a>{/if}
+        </div>
+      {/if}
+      {#if liveIds.has('payabl') || liveIds.has('products')}
+        <div class="admin-nav-group">
+          <p class="admin-nav-label">ΟΙΚΟΝΟΜΙΚΑ & ΚΑΤΑΣΤΗΜΑ</p>
+          {#if liveIds.has('payabl')}<a class="admin-nav-section" href="/admin/finance" aria-current={active==='finance'?'page':undefined} data-testid="admin-payabl-link">Οικονομικά</a>{/if}
+          {#if liveIds.has('products')}<a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined} data-testid="admin-pos-link">POS & προϊόντα</a>{/if}
+        </div>
+      {/if}
+      {#if hasOperations}
+        <div class="admin-nav-group">
+          <p class="admin-nav-label">ΠΡΟΣΩΠΙΚΟ & ΠΡΟΣΒΑΣΗ</p>
+          {#if liveIds.has('staff')}<a class="admin-nav-section" href="/admin/staff" aria-current={active==='staff'?'page':undefined} data-testid="admin-staff-link">Προσωπικό & προπονητές</a>{/if}
+          {#if liveIds.has('users')}<a class="admin-nav-tool" href="/admin/users" aria-current={active==='users'?'page':undefined} data-testid="admin-users-link">Χρήστες & δικαιώματα</a>{/if}
+          {#if liveIds.has('onboarding')}<a class="admin-nav-tool" href="/admin/onboarding" aria-current={active==='onboarding'?'page':undefined}>Οδηγός διαχειριστή</a>{/if}
+        </div>
+      {/if}
+      {#if hasWebsite || liveIds.has('territories') || hasOperations}
+        <div class="admin-nav-group admin-settings-section">
+          <p class="admin-nav-label">ΣΥΣΤΗΜΑ</p>
+          <a class="admin-nav-section" href="/admin/settings" aria-current={active==='settings'?'page':undefined} data-testid="admin-settings-link">Ρυθμίσεις</a>
+        </div>
+      {/if}
     </nav>
     <main class="admin-content" id="admin-main" tabindex="-1">{@render children()}</main>
   </div>
