@@ -64,7 +64,7 @@ BEGIN
 
   v_bill:=(finance.create_admin_supplier_bill(
     v_acc_token,'lefteria_fc_academy',gen_random_uuid(),
-    'CI Private Reversal Vendor','CI-REV-'||substr(md5(v_bill::text||v_city::text),1,8),
+    'CI Private Reversal Vendor','CI-REV-'||substr(md5(v_city::text),1,8),
     'equipment','Academy balls and equipment',v_month,20000,v_site)->>'id')::uuid;
   v_first_bill:=(finance.create_admin_supplier_bill(
     v_first_token,'lefteria_fc',gen_random_uuid(),
