@@ -154,7 +154,7 @@
   .contact-other-links a{display:inline-flex;align-items:center;gap:10px;color:#f6bb38;font-size:14px;font-weight:800;text-decoration:none}
   .contact-message-form{display:flex;flex-direction:column;gap:11px;background:#111;padding:clamp(20px,2.5vw,32px);border:1px solid #343434}
   .contact-message-form label{font-size:13px;font-weight:800;color:#dbdbdb;margin-top:6px}
-  .contact-message-form input,.contact-message-form select,.contact-message-form textarea{box-sizing:border-box;display:block;width:100%;min-height:50px;background:#070707;border:1px solid #595959;border-radius:3px;color:#fff;padding:13px 15px;font:400 16px/1.45 inherit}
+  .contact-message-form input,.contact-message-form select,.contact-message-form textarea{box-sizing:border-box;display:block;width:100%;min-height:50px;background:#070707;border:1px solid #595959;border-radius:3px;color:#fff;padding:13px 15px;font-family:inherit;font-weight:400;font-size:16px;line-height:1.45}
   .contact-message-form textarea{min-height:150px;resize:vertical}
   .contact-message-form :is(input,select,textarea):focus-visible,.contact-info-card a:focus-visible,.contact-other-links a:focus-visible{outline:3px solid #f6bb38;outline-offset:2px}
   .contact-send-button{min-height:50px;width:100%;justify-content:center;display:flex;align-items:center;gap:10px;margin-top:15px}
