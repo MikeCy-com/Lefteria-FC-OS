@@ -705,7 +705,7 @@
   }
   .admin-app .admin-sidebar>.admin-nav-label,
   .admin-app .admin-sidebar .admin-nav-label{
-    margin:6px 10px 4px;font-size:11px;line-height:1.1;
+    margin:5px 10px 3px;font-size:13px;line-height:1.1;
   }
   .admin-app .admin-sidebar .admin-nav-group{
     margin-top:5px;padding-top:4px;gap:0;
@@ -713,11 +713,11 @@
   .admin-app .admin-sidebar a,
   .admin-app .admin-sidebar .admin-nav-section,
   .admin-app .admin-sidebar .admin-nav-tool{
-    min-height:39px;padding:5px 11px;
-    line-height:1.15;font-size:15px;white-space:normal;
+    min-height:44px;padding:5px 11px;
+    line-height:1.12;font-size:16px;white-space:normal;
   }
-  .admin-app .admin-sidebar .admin-nav-tool{padding-left:19px;font-size:14px}
-  .admin-app .admin-sidebar .admin-nav-section{font-size:15px}
+  .admin-app .admin-sidebar .admin-nav-tool{padding-left:19px;font-size:16px}
+  .admin-app .admin-sidebar .admin-nav-section{font-size:17px}
 }
 .admin-app .admin-nav-settings-details{
   display:block;padding:1px 0 2px;color:#ddd;
