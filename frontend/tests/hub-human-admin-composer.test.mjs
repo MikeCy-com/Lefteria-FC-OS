@@ -30,7 +30,7 @@ test('composer protects child permissions and editorial separation',()=>{
   assert.match(page,/Το ανθρώπινο πρόχειρο αποθηκεύτηκε ιδιωτικά/);
   assert.match(page,/όχι αλλαγή ρόλου ή εξουσιοδότηση κηδεμόνα/);
   assert.match(page,/δοκιμαστική ροή Payabl/);
-  assert.match(page,/Δεν υπάρχει ακόμη διαχειριστική λίστα συνδρομών/);
+  assert.match(page,/Η επισκόπηση συνδρομών είναι διαθέσιμη μόνο σε Super Admin/);
   assert.doesNotMatch(page,/{@html|innerHTML|localStorage|sessionStorage/);
   assert.doesNotMatch(page,/\/api\/mobile\/hub\/fan-subscription\/checkout/);
 });
