@@ -55,7 +55,14 @@
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   $effect(()=>{
     const selected=scopedAdminOrganization($auth.session?.user??null,permitted);
-    if(organization!==selected)organization=selected;
+    if(organization!==selected){
+      organization=selected;
+      // Never carry unsaved First Team text or audience settings into Academy,
+      // or vice versa, even if both organizations are accessible to this admin.
+      humanTitle='';humanBody='';humanKind='article';
+      humanParent=true;humanPlayer=false;humanAgeRestricted=false;
+      humanAgeMin=6;humanAgeMax=18;statusFilter='all';
+    }
   });
   $effect(()=>{
     const owner=organization,actor=$auth.session?.user.id,generation=reload;
