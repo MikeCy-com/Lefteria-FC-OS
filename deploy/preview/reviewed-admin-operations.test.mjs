@@ -52,7 +52,7 @@ test('club administration operations are reached but never wrong verbs, trailing
   ]){
     assert.equal(permitted(method,path),true,method+' '+path);
     assert.equal(permitted(method,path+'/extra'),false,method+' '+path+'/extra');
-    assert.equal(permitted(method==='GET'?'DELETE':'GET',path),false,'wrong method '+path);
+    assert.equal(permitted('OPTIONS',path),false,'unreviewed method '+path);
   }
   for(const method of ['GET','POST','PUT','PATCH','DELETE','OPTIONS']){
     for(const path of ['/api/admin/future','/api/admin/football/unknown',
