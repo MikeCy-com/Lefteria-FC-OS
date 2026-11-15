@@ -11,14 +11,14 @@ test('Academy directory reads canonical groups rather than exposing disconnected
   assert.match(reader,/if \(approvedJson is null\) return null;/);
   assert.doesNotMatch(reader,/Read<PublicAcademyGroup>\(PublicContentKinds\.AcademyGroup\)/);
   assert.match(migration,/FROM club\.academy_groups g/);
-  assert.match(migration,/LEFT JOIN club\.academy_group_profiles p/);
+  assert.match(migration,/JOIN club\.academy_group_profiles p/);
   assert.match(migration,/LEFT JOIN public_content\.documents d ON d\.kind='academy_group'/);
   assert.match(migration,/d\.id=g\.id/);
   assert.match(migration,/WHERE g\.organization_id='lefteria_fc_academy'/);
-  assert.match(migration,/club\.roster_import_state WHERE id='initial'/);
+  assert.doesNotMatch(migration,/roster_import_state/);
   for(const key of ['id','name','age_range','city','location_name','training_schedule','description','banner_url','season','display_order'])
     assert.ok(migration.includes("'"+key+"'"),'Missing public group field '+key);
-  const projection = migration.split('SELECT CASE WHEN EXISTS')[1]?.split('REVOKE ALL ON FUNCTION')[0] ?? '';
+  const projection = migration.split('SELECT coalesce(jsonb_agg(')[1]?.split('REVOKE ALL ON FUNCTION')[0] ?? '';
   assert.ok(projection.length > 100,'Actual executed public directory SQL body must exist');
   assert.doesNotMatch(projection,/player_phone|medical_notes|guardian|parent_contact|password_hash/);
 });
