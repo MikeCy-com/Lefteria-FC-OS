@@ -78,7 +78,7 @@ BEGIN
     SELECT 1 FROM jsonb_object_keys(v_group) AS key(name)
     WHERE key.name NOT IN ('id','organization_id','name','age_range','city',
       'location_name','training_schedule','description','banner_url',
-      'season','display_order')
+      'season','display_order','city_id','location_id','city_slug','location_slug')
   ) THEN RAISE EXCEPTION 'Private Academy fields leaked into public directory'; END IF;
   -- Private admin suppression must remove every public index/detail link
   -- without destroying canonical group, roster memberships or history.
