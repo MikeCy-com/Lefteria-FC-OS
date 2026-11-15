@@ -151,6 +151,7 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     assert.doesNotMatch(landingHtml,/footer-nav-team/);
     assert.doesNotMatch(landingHtml,/data-testid="academy-landing-verified-city"/);
     assert.doesNotMatch(landingHtml,/Άλλη περιοχή/);
+    assert.doesNotMatch(landingHtml,/Other group sentinel|Unassigned fixture sentinel|First-team fixture sentinel/);
 
     const cityGroup={...group,id:'verified-lemesos',name:'U10 Λεμεσός',
       city_id:'verified-city-lemesos',city:'Λεμεσός',city_slug:'lemesos',
@@ -171,7 +172,7 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     assert.match(mixedHtml,/Legacy Pafos U12/);
     assert.match(mixedHtml,/data-testid="academy-landing-unassigned-groups"/);
     assert.match(mixedHtml,/2 πόλεις · 2 τοποθεσίες/);
-    assert.doesNotMatch(mixedHtml,/Άλλη περιοχή|First-team fixture sentinel/);
+    assert.doesNotMatch(mixedHtml,/Άλλη περιοχή|Other group sentinel|Unassigned fixture sentinel|First-team fixture sentinel/);
 
     const {load:landingLoad}=await import('../src/routes/academy/+page.server.ts');
     const withStats=await landingLoad({url:new URL('https://fixture.test/academy')});
