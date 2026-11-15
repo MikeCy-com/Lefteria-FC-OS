@@ -233,6 +233,7 @@ app.MapAdminFootballTerritoryAccess();
 app.MapAdminAcademyLocationFinance();
 app.MapAdminFinanceOverview();
 app.MapAdminSupplierBills();
+app.MapAdminSupplierPayments();
 
 if (app.Environment.IsDevelopment())
 {
