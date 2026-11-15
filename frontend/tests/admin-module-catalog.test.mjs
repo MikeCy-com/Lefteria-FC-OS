@@ -18,13 +18,22 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
   }
+});
+
+test('communication control centre never appears for unassigned staff or unrelated roles',()=>{
+  assert.ok(ids(user(['teams:write'],['lefteria_fc'],'manager')).includes('communications'));
+  assert.ok(ids(user(['academy:write'],['lefteria_fc_academy'],'super_admin')).includes('communications'));
+  assert.ok(!ids(user(['teams:write'],['lefteria_fc'],'editor')).includes('communications'));
+  assert.ok(!ids(user(['messages:read'],['lefteria_fc'],'manager')).includes('communications'));
+  assert.ok(!ids(user(['academy:write'],['lefteria_fc'],'manager')).includes('communications'));
+  assert.ok(!ids(user(['teams:write'],[],'manager')).includes('communications'));
 });
 
 test('the dashboard cannot leak first-team, financial, POS or Academy modules across grants', () => {
