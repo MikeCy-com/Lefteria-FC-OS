@@ -112,10 +112,17 @@ public sealed partial class MobileAuthService(
         // The issuing parent grants access by phone without inviting the
         // recipient. The recipient must still prove that phone via OTP.
         // An inactive/existing Parent identity is never silently replaced.
-        var hasParent=profiles.Any(p=>p.Role==MobileRole.Parent);
-        var canCreateParent=!hasParent &&
+        var hasParent = profiles.Any(p => p.Role == MobileRole.Parent);
+        // The original Academy guardian's reviewed document is only a
+        // candidate. The challenge must have been issued AFTER that review.
+        // A disabled Parent is never reactivated, and proof alone grants no
+        // child visibility until the correct OTP is confirmed below.
+        var academyProofPending = await transaction.HasPendingAcademyGuardianProofAsync(
+            phone, stored.Id, cancellationToken);
+        var familyGrantAvailable = !hasParent &&
             await transaction.HasCurrentGuardianPhoneGrantAsync(phone,cancellationToken);
-        if(canCreateParent)
+        var canCreateParent = !hasParent && (familyGrantAvailable || academyProofPending);
+        if (canCreateParent || academyProofPending)
             predictedRoles.Add(MobileRole.Parent);
         var needsPicker = requestedWire is null && predictedRoles.Count > 1;
         var requestedIsAvailable = requestedWire is null ||
@@ -148,6 +155,18 @@ public sealed partial class MobileAuthService(
                 "requested_role_unavailable",
                 Fault(MobileAuthFaultKind.BadRequest, MobileAuthErrorCode.RoleUnavailable,
                     "Ο ρόλος που ζητήθηκε δεν είναι διαθέσιμος για αυτόν τον αριθμό."), cancellationToken);
+        }
+
+        // The code has now passed the existing OTP verifier, but it is NOT
+        // sufficient by itself: the SQL function separately checks the same
+        // HMAC digest, the locked challenge, human proof, latest consent and
+        // exact Academy child. The claim is revoked on proof withdrawal.
+        // This happens in the same uncommitted login transaction, so a later
+        // role/session failure rolls it back.
+        if (academyProofPending)
+        {
+            await transaction.ConfirmAcademyGuardianOtpAsync(phone, stored.Id,
+                otpProtector.ComputeDigest(stored.Id, phone, code), cancellationToken);
         }
 
         var platform = NormalizePlatform(context.Platform);

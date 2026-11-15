@@ -202,6 +202,27 @@ public sealed class PostgresMobileAuthRepository(LefteriaDbContext database) : I
             return eligibility;
         }
 
+        public async Task<bool> HasPendingAcademyGuardianProofAsync(
+            PhoneNumber phone, Guid challengeId, CancellationToken cancellationToken)
+        {
+            return await context.Database.SqlQuery<bool>($"""
+                SELECT identity.has_pending_academy_guardian_proof(
+                    {phone.Digits},{challengeId}) AS "Value"
+                """).SingleAsync(cancellationToken);
+        }
+
+        public async Task<int> ConfirmAcademyGuardianOtpAsync(
+            PhoneNumber phone, Guid challengeId, byte[] verifiedDigest,
+            CancellationToken cancellationToken)
+        {
+            if (!lockedChallenges.ContainsKey(challengeId) || verifiedDigest.Length != 32)
+                throw new InvalidOperationException("OTP challenge proof must be locked and verified.");
+            return await context.Database.SqlQuery<int>($"""
+                SELECT identity.confirm_academy_guardian_otp(
+                    {phone.Digits},{challengeId},{verifiedDigest}) AS "Value"
+                """).SingleAsync(cancellationToken);
+        }
+
         public async Task<MobileIdentityProfile> EnsureGrantedParentIdentityAsync(
             PhoneNumber phone, string platform, DateTimeOffset now,
             CancellationToken cancellationToken)

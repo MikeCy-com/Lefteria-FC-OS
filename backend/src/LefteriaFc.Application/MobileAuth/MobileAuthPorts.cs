@@ -132,6 +132,17 @@ public interface IMobileAuthTransaction : IAsyncDisposable
     Task<bool> HasCurrentGuardianPhoneGrantAsync(PhoneNumber phone,
         CancellationToken cancellationToken) => Task.FromResult(false);
 
+    // Eligibility never creates access: the OTP must be issued after a
+    // separately attested human proof and the Parent account must not be disabled.
+    Task<bool> HasPendingAcademyGuardianProofAsync(PhoneNumber phone, Guid challengeId,
+        CancellationToken cancellationToken) => Task.FromResult(false);
+
+    // Only called after the challenge's OTP HMAC has been successfully
+    // compared. SQL independently checks the same digest and reviewed case,
+    // recording an immutable, exact-child claim inside this transaction.
+    Task<int> ConfirmAcademyGuardianOtpAsync(PhoneNumber phone, Guid challengeId,
+        byte[] verifiedDigest, CancellationToken cancellationToken) => Task.FromResult(0);
+
     // Must be called ONLY after a successful OTP comparison and inside its
     // locked transaction. Does not reactivate disabled Parent identities.
     Task<MobileIdentityProfile> EnsureGrantedParentIdentityAsync(PhoneNumber phone,
