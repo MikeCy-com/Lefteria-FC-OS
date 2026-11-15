@@ -103,6 +103,12 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     assert.equal(academySponsor.backHref,'/sponsors/academy');
     await assert.rejects(detail(url('/sponsors/forged?scope=academy&list_scope=academy'),'sponsors',sponsor.id),error=>error.status===404);
     await assert.rejects(detail(url('/sponsors/forged?scope=first_team&list_scope=academy'),'sponsors',sponsor.id),error=>error.status===404);
+
+    const seasonList=await list(url('/seasons'),'seasons');assert.equal(seasonList.cards.length,2);
+    const season=await detail(url('/seasons/Archive--ID'),'seasons','Archive--ID');assert.equal(season.archives.length,2);
+    assert.equal((await detail(url('/seasons/Archive--ID?scope=academy'),'seasons','Archive--ID')).archives[0].organization_id,academy);
+    await assert.rejects(detail(url('/seasons/missing'),'seasons','missing'),error=>error.status===404);
+    const {default:List}=await import('../src/lib/public/PublicCatalogList.svelte');
     const academySponsorHtml=render(List,{props:{data:academySponsors}}).body;
     assert.ok(academySponsorHtml.includes('action="/sponsors/academy"'));
     assert.match(academySponsorHtml,/data-testid="catalog-locked-organization"/);
@@ -110,11 +116,6 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     const firstTeamSponsorHtml=render(List,{props:{data:sponsors}}).body;
     assert.ok(firstTeamSponsorHtml.includes('action="/sponsors/first-team"'));
     assert.doesNotMatch(firstTeamSponsorHtml,/academy-sponsor|<select name="scope"/);
-    const seasonList=await list(url('/seasons'),'seasons');assert.equal(seasonList.cards.length,2);
-    const season=await detail(url('/seasons/Archive--ID'),'seasons','Archive--ID');assert.equal(season.archives.length,2);
-    assert.equal((await detail(url('/seasons/Archive--ID?scope=academy'),'seasons','Archive--ID')).archives[0].organization_id,academy);
-    await assert.rejects(detail(url('/seasons/missing'),'seasons','missing'),error=>error.status===404);
-    const {default:List}=await import('../src/lib/public/PublicCatalogList.svelte');
     const {default:Detail}=await import('../src/lib/public/PublicCatalogDetail.svelte');
     const html=render(List,{props:{data:events}}).body;assert.match(html,/Recorded community day/);assert.match(html,/name="when"/);assert.match(html,/action="\/events"/);assert.doesNotMatch(html,/Recorded past event/);
     assert.match(html,/Recorded ground/);assert.match(html,/15:00/);assert.match(html,/Δωρεάν/);
