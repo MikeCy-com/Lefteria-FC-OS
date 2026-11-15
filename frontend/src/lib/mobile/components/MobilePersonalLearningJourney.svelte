@@ -15,6 +15,15 @@
   let busy=$state(true);
   let error=$state<string|null>(null);
   let alive=false,operation=0;
+  const cyprusTime=new Intl.DateTimeFormat('el-CY',{
+    timeZone:'Asia/Nicosia',day:'numeric',month:'long',year:'numeric',
+    hour:'2-digit',minute:'2-digit',hour12:false
+  });
+  const cyprusDate=new Intl.DateTimeFormat('el-CY',{
+    timeZone:'Asia/Nicosia',day:'numeric',month:'long',year:'numeric'
+  });
+  const notifications=$derived([...(deliveries?.items??[])].sort(
+    (a,b)=>Date.parse(b.queued_at)-Date.parse(a.queued_at)||b.id.localeCompare(a.id)));
 
   onMount(()=>{
     alive=true;void refresh();
@@ -88,7 +97,7 @@
   {#if busy}
     <p role="status" class="description">Φόρτωση προσωπικής διαδρομής…</p>
   {:else if page?.next}
-    <article class="lesson" data-testid="hub-next-approved-lesson">
+    <article class="lesson" id="hub-next-approved-lesson" data-testid="hub-next-approved-lesson">
       <p class="eyebrow">{viewerRole==='parent'?'ΕΚΠΑΙΔΕΥΣΗ ΓΟΝΕΩΝ':'ΕΚΠΑΙΔΕΥΣΗ ΑΘΛΗΤΩΝ'}</p>
       <p class="lesson-step" role="status">Το επόμενο μάθημα στη δική σου σειρά · εγκεκριμένο περιεχόμενο</p>
       <h3>{page.next.title}</h3>
@@ -107,13 +116,42 @@
       data-testid="hub-personal-delivery-schedule">
       <strong>Εβδομαδιαία ενημέρωση μαθημάτων</strong>
       <p class="description">Η προσωπική σου σειρά διατηρείται από την αρχή, ακόμη και αν εγγράφηκες αργότερα.</p>
-      <p class="description">Επόμενος προγραμματισμένος έλεγχος: <time datetime={schedule.next_due_at}>{schedule.next_due_at.slice(0,10)}</time>.</p>
+      <p class="description">Επόμενος προγραμματισμένος έλεγχος:
+        <time datetime={schedule.next_due_at}>{cyprusDate.format(new Date(schedule.next_due_at))}</time>.
+      </p>
     </section>
   {/if}
-  {#if deliveries?.items.length}
-    <p class="description" role="status" data-testid="hub-individual-learning-delivery">
-      Έχεις {deliveries.items.length} {deliveries.items.length===1?'προσωπική ειδοποίηση':'προσωπικές ειδοποιήσεις'} για το τρέχον εγκεκριμένο μάθημα.
-    </p>
+  {#if notifications.length}
+    <section class="delivery-inbox" aria-labelledby="hub-lesson-notifications-title"
+      data-testid="hub-individual-learning-delivery">
+      <div class="delivery-heading">
+        <h3 id="hub-lesson-notifications-title">Εβδομαδιαίες ειδοποιήσεις μαθημάτων</h3>
+        <span aria-label={`${notifications.length} προσωπικές ειδοποιήσεις`}>{notifications.length}</span>
+      </div>
+      <p class="description">Μόνο οι δικές σου επαληθευμένες ειδοποιήσεις. Δεν σημαίνει ότι
+        το μήνυμα διαβάστηκε ή ότι το παλιότερο υλικό εξακολουθεί να είναι διαθέσιμο.</p>
+      <ol class="delivery-list">
+        {#each notifications as notification (notification.id)}
+          <li class="delivery-item" data-testid="hub-lesson-delivery-item">
+            <span class="delivery-icon" aria-hidden="true">✦</span>
+            <div>
+              <strong>Προσωπική υπενθύμιση μαθήματος</strong>
+              <time datetime={notification.queued_at}>
+                {cyprusTime.format(new Date(notification.queued_at))}
+              </time>
+              {#if page?.next && notification.content_id===page.next.id}
+                <a href="#hub-next-approved-lesson" class="delivery-cta">
+                  Άνοιγμα του εγκεκριμένου μαθήματος ↑
+                </a>
+              {:else}
+                <p class="delivery-previous">Η ειδοποίηση αφορά προηγούμενο μάθημα
+                  της προσωπικής σου διαδρομής.</p>
+              {/if}
+            </div>
+          </li>
+        {/each}
+      </ol>
+    </section>
   {/if}
   {#if error}<p class="failure" role="alert">{error}</p><button type="button" onclick={()=>void refresh()}>Δοκίμασε ξανά</button>{/if}
 </section>
@@ -137,6 +175,26 @@
   .schedule strong{font-size:16px;color:var(--lf-text)}
   .schedule p{margin:8px 0 0}
   .schedule time{color:var(--lf-gold-light);font-weight:700}
+  .delivery-inbox{margin-top:18px;padding:16px;border:1px solid var(--lf-brand-edge);
+    border-radius:11px;background:var(--lf-elevated)}
+  .delivery-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .delivery-heading h3{font-size:21px;margin:0}
+  .delivery-heading span{display:grid;place-items:center;min-width:31px;height:31px;
+    border:1px solid var(--lf-gold);border-radius:50%;color:var(--lf-gold-light);font-weight:800}
+  .delivery-inbox>.description{font-size:12px;margin:9px 0 12px}
+  .delivery-list{margin:0;padding:0;list-style:none;display:grid;gap:9px}
+  .delivery-item{display:grid;grid-template-columns:30px minmax(0,1fr);
+    gap:12px;align-items:start;padding:13px 12px;background:var(--lf-surface);
+    border:1px solid var(--lf-line);border-radius:9px}
+  .delivery-icon{display:grid;place-items:center;width:30px;height:30px;
+    border-radius:9px;color:var(--lf-gold);background:var(--lf-elevated)}
+  .delivery-item strong{display:block;font-size:14px;line-height:1.5}
+  .delivery-item time{display:block;margin-top:3px;color:var(--lf-muted);font-size:12px}
+  .delivery-cta{display:inline-flex;align-items:center;min-height:44px;
+    margin-top:7px;color:var(--lf-gold-light);text-decoration:underline;
+    text-underline-offset:3px;font-weight:700;font-size:13px}
+  .delivery-cta:focus-visible{outline:2px solid var(--lf-gold);outline-offset:3px}
+  .delivery-previous{font-size:12px;color:var(--lf-muted);line-height:1.5;margin:7px 0 0}
   .finish{width:min(100%,400px);font-size:16px;line-height:1.4}
   @media(max-width:420px){.journey{padding:16px}.organizations button{flex:1 1 auto}.body{font-size:16px}.finish{width:100%}}
 </style>
