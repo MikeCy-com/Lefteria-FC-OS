@@ -112,3 +112,140 @@
   .public-site .home-reference [data-testid="public-home-news"] .public-news-card,
   .public-site .home-reference [data-testid="public-home-news"] .public-news-card:first-child { min-height:270px; }
 }
+
+
+/*
+ * 2026 screenshot reference — editorial homepage composition.
+ * These rules are home-scoped: existing SSR fixtures, carousel controls,
+ * news links and announcement data stay operational.
+ */
+@media(min-width:1200px) {
+  .public-site .home-reference .public-hero-stage {
+    min-height:505px;
+    height:clamp(500px,39vw,665px);
+    padding:clamp(38px,4vw,64px) clamp(32px,4.2vw,74px) 66px;
+    align-items:flex-start;
+    gap:clamp(16px,3vw,45px);
+    overflow:hidden;
+  }
+  .public-site .home-reference .public-hero-copy {
+    width:min(55%,690px);
+    flex:1 1 0;
+    margin-top:clamp(8px,1.5vw,28px);
+  }
+  .public-site .home-reference .public-hero-copy h1 {
+    font-family:var(--home-display)!important;
+    font-size:clamp(48px,5vw,94px);
+    line-height:.92;
+    font-weight:900;
+    font-style:italic;
+    max-width:760px;
+    text-transform:uppercase;
+    text-shadow:0 3px 15px #000a;
+  }
+  .public-site .home-reference .public-hero-copy .public-eyebrow {
+    font-family:var(--home-display)!important;
+    font-size:clamp(24px,2.2vw,38px);
+    font-style:italic;
+    font-weight:850;
+  }
+  .public-site .home-reference .public-hero-description {
+    max-width:45ch;
+    font-size:clamp(15px,1.1vw,20px);
+    line-height:1.38;
+    text-wrap:pretty;
+  }
+  .public-site .home-reference .public-hero-actions .public-button {
+    font-size:clamp(15px,1.15vw,20px);
+    padding:12px 22px;
+    min-height:48px;
+  }
+  .public-site .home-reference .public-hero-fixture {
+    width:clamp(310px,32vw,470px);
+    flex:0 0 clamp(310px,32vw,470px);
+    align-self:center;
+    margin:0;
+    border:1px solid #baa789;
+    border-radius:10px 10px 8px 8px;
+    padding:19px clamp(14px,1.6vw,25px);
+    background:linear-gradient(150deg,#111416e9 0%,#0b0c0df4 72%,#39270eec);
+    box-shadow:0 13px 42px #000c,inset 0 1px 0 #ffffff32,0 0 20px #ffbe361a;
+  }
+  .public-site .home-reference .public-hero-fixture::before {
+    content:"";position:absolute;pointer-events:none;
+    inset:-1px -1px auto;height:2px;
+    background:linear-gradient(90deg,transparent,#ffcb65 25%,#ffdd9d 75%,transparent);
+    box-shadow:0 0 12px #ffb92b;
+  }
+  .public-site .home-reference .public-fixture-heading {
+    font-style:italic;font-size:clamp(19px,1.65vw,29px);
+    color:white;border-bottom-color:#ffffff3b;
+  }
+  .public-site .home-reference .public-fixture-heading svg {color:var(--public-gold);}
+  .public-site .home-reference .public-fixture-teams strong {font-size:clamp(18px,1.45vw,25px);}
+  .public-site .home-reference .public-countdown strong {font-size:clamp(29px,2.25vw,39px);color:#fff;}
+  .public-site .home-reference .public-hero-bottom {
+    bottom:16px;left:clamp(32px,4.2vw,74px);right:clamp(32px,4.2vw,74px);
+  }
+}
+@media(min-width:768px) {
+  .public-site .home-reference .public-hero-stage::before {
+    background:
+      linear-gradient(90deg,#050608ed 0%,#050608a8 27%,#05060814 61%,#050608a8 100%),
+      linear-gradient(0deg,#080909f6 0%,transparent 34%);
+  }
+  .public-site .home-reference .public-destination {
+    clip-path:polygon(0 0,100% 0,94% 100%,0 100%);
+    box-shadow:inset 0 1px #ffffff30;
+  }
+  .public-site .home-reference .public-destination::after {
+    width:10px;right:0;top:-20%;height:150%;
+    transform:skew(-17deg);background:linear-gradient(#0000,#e8a52368,#0000);
+  }
+  .public-site .home-reference .public-destination:hover {
+    filter:drop-shadow(0 0 4px #f6bb3870);
+  }
+  .public-site .home-reference .public-destination h2 {
+    font-size:clamp(21px,1.85vw,31px);
+    font-style:italic;
+  }
+  .public-site .home-reference .public-section-heading h2,
+  .public-site .home-reference .public-news-section .public-section-heading h2 {
+    font-size:clamp(25px,2.1vw,37px);
+    font-style:italic;
+    font-weight:850;
+  }
+  .public-site .home-reference .public-news-card {
+    border:1px solid #77726a;
+    box-shadow:inset 0 1px #ffffff16;
+    overflow:hidden;
+  }
+  .public-site .home-reference .public-news-card:hover {
+    border-color:#ffc756;
+    box-shadow:0 0 0 1px #f6bb3833,0 12px 32px #0008;
+  }
+}
+@media(max-width:1199px) and (min-width:768px) {
+  .public-site .home-reference .public-hero-stage {min-height:515px;gap:14px;align-items:flex-start;}
+  .public-site .home-reference .public-hero-copy {flex:1;min-width:0;width:55%;}
+  .public-site .home-reference .public-hero-fixture {flex:0 0 min(36%,330px);width:min(36%,330px);align-self:center;}
+}
+@media(max-width:767px) {
+  .public-site .home-reference .public-hero-stage {
+    overflow:visible;isolation:isolate;
+    background:#090a0b;
+  }
+  .public-site .home-reference .public-hero-copy h1 {
+    font-size:clamp(34px,9vw,51px);
+    line-height:.98;
+    font-style:italic;
+  }
+  .public-site .home-reference .public-hero-fixture {
+    border-radius:9px;border-color:#b29a6f;
+    box-shadow:0 10px 30px #000a,inset 0 1px #ffffff2b;
+  }
+  .public-site .home-reference .public-destination {border-radius:5px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .public-site .home-reference .public-hero-copy {animation:none;}
+}

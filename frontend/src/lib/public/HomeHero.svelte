@@ -10,7 +10,10 @@
   let hovered = $state(false); let focused = $state(false); let hidden = $state(false); let region: HTMLElement;
   const club = $derived(site?.club); const firstTeam = $derived(site?.teams.find(team => team.banner_url) || site?.teams[0]);
   const academySlide = $derived(index === 0);
-  const backgrounds = $derived([navigationGroups.find(group => group.banner_url)?.banner_url || publicImages.hero, firstTeam?.banner_url || club?.stadium_image_url || publicImages.pitch]);
+  // The academy hero uses the original club editorial artwork rather than
+  // borrowing a specific age group's banner (which can wrongly change the
+  // homepage to a team/group promotion when CMS groups are edited).
+  const backgrounds = $derived([publicImages.hero, firstTeam?.banner_url || club?.stadium_image_url || publicImages.pitch]);
   const running = $derived(!paused && !hovered && !focused && visible && !hidden && !reduced);
   let clock = $state<number | null>(null);
   // SSR and initial hydration share the server snapshot. The mounted clock then
