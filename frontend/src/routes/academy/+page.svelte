@@ -5,6 +5,8 @@
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import type { PublicSectionPageData } from '../../lib/public/sections-types';
   import { academyGroupLink } from '../../lib/public/navigation';
+  import { buildAcademyTerritoryDirectory } from '../../lib/public/academy-territory-directory';
+  import type { PublicGroup } from '../../lib/public/types';
   import { publicImages } from '../../lib/public/images';
   import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
@@ -26,17 +28,12 @@
         academyReviews.reduce((sum,row)=>sum+row.rating,0)/academyReviews.length)
     : null);
   const scopedGroups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
-  // City catalog owns the published Academy opponents and fields; locations
-  // own their rosters and schedules. Never flatten these public groups into
-  // a single unscoped or First Team collection.
-  const academyCities = $derived([...new Set(scopedGroups.map(group => group.city?.trim() || 'Άλλη περιοχή'))]
-    .map(city => ({
-      city, locations:[...new Set(scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city)
-        .map(group => group.location_name?.trim() || 'Ακαδημία'))].map(location => ({
-          location, groups:scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city &&
-            (group.location_name?.trim() || 'Ακαδημία') === location)
-        }))
-    })));
+  // One verified, shared hierarchy for both Academy landing and directory.
+  // Imported legacy text is unassigned until an administrator verifies IDs.
+  const academyTerritory = $derived(buildAcademyTerritoryDirectory(scopedGroups));
+  const academyCities = $derived(academyTerritory.cities);
+  const academyLocationsCount = $derived(academyCities.reduce(
+    (count,city) => count + city.locations.length, 0));
   const academySeasons = $derived([...new Set(scopedGroups.map(group=>group.season).filter(Boolean))].slice(0,2));
   const academyAges = $derived([...new Set(scopedGroups.map(group=>group.age_range).filter(Boolean))].slice(0,3));
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
@@ -61,47 +58,72 @@
     <h2 id="academy-program-title"><span aria-hidden="true">//</span> ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
     <p>Ανάπτυξη με σεβασμό στο παιδί, την ηλικία και τις ανάγκες του κάθε αθλητή.</p>
     <div class="academy-program-facts">
-      <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length || '—'} δημοσιευμένες πόλεις</strong></span></div>
+      <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length
+            ? `${academyCities.length} ${academyCities.length === 1 ? 'πόλη' : 'πόλεις'} · ${academyLocationsCount} ${academyLocationsCount === 1 ? 'τοποθεσία' : 'τοποθεσίες'}`
+            : 'Καμία επιβεβαιωμένη τοποθεσία'}</strong></span></div>
       <div><PublicIcon name="users" size={27} /><span>ΗΛΙΚΙΕΣ <strong>{academyAges.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
       <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
     </div>
   </section>
+  {#snippet ageCard(group: PublicGroup)}
+<article class="academy-age-card">
+<PublicImage src={group.banner_url || publicImages.academy} alt="" />
+<div class="academy-age-caption">
+<h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
+<strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
+{#if group.season}<span>{group.season}</span>{/if}
+<a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
+</div>
+{#if group.description || group.training_schedule}
+<details class="academy-age-details">
+<summary>Περισσότερες πληροφορίες</summary>
+{#if group.description}<p>{group.description}</p>{/if}
+{#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
+</details>
+{/if}
+</article>
+  {/snippet}
   <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
     <div class="academy-age-heading">
       <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
       <a href="/academy/groups">ΔΕΙΤΕ ΟΛΑ ΤΑ ΤΜΗΜΑΤΑ <PublicIcon name="arrow" size={17}/></a>
     </div>
-    {#if academyCities.length}
-      {#each academyCities as city (city.city)}
-        <section class="academy-city-block" aria-label={city.city}>
-          <h3 class="academy-city-label">{city.city}</h3>
-          {#each city.locations as location (location.location)}
-            <div class="academy-location-block">
-              <h4>{location.location}</h4>
+    {#if academyCities.length || academyTerritory.unassigned.length}
+      {#if academyCities.length > 1}
+        <nav class="academy-landing-city-index" aria-label="Πόλεις Ακαδημίας" data-testid="academy-landing-city-navigation">
+          {#each academyCities as city (city.id)}
+            <a href={`#academy-landing-city-${city.slug}`}>{city.name}</a>
+          {/each}
+        </nav>
+      {/if}
+      {#each academyCities as city (city.id)}
+        <section class="academy-city-block" aria-labelledby={`academy-landing-city-${city.slug}`} data-testid="academy-landing-verified-city">
+          <div class="academy-city-heading"><h3 class="academy-city-label" id={`academy-landing-city-${city.slug}`}>{city.name}</h3>
+            <a href={`/academy/groups#academy-city-${city.slug}`}>ΤΜΗΜΑΤΑ ΠΟΛΗΣ <PublicIcon name="arrow" size={15} /></a>
+          </div>
+          {#each city.locations as location (location.id)}
+            <section class="academy-location-block" aria-labelledby={`academy-landing-location-${city.slug}-${location.slug}`} data-testid="academy-landing-verified-location">
+              <h4 id={`academy-landing-location-${city.slug}-${location.slug}`}>{location.name}</h4>
               <div class="academy-age-grid">
                 {#each location.groups as group (group.id)}
-                  <article class="academy-age-card">
-                    <PublicImage src={group.banner_url || publicImages.academy} alt="" />
-                    <div class="academy-age-caption">
-                      <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
-                      <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
-                      {#if group.season}<span>{group.season}</span>{/if}
-                      <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
-                    </div>
-                    {#if group.description || group.training_schedule}
-                      <details class="academy-age-details">
-                        <summary>Περισσότερες πληροφορίες</summary>
-                        {#if group.description}<p>{group.description}</p>{/if}
-                        {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
-                      </details>
-                    {/if}
-                  </article>
+                  {@render ageCard(group)}
                 {/each}
               </div>
-            </div>
+            </section>
           {/each}
         </section>
       {/each}
+      {#if academyTerritory.unassigned.length}
+        <section class="academy-unassigned-block" aria-labelledby="academy-landing-unassigned" data-testid="academy-landing-unassigned-groups">
+          <h3 id="academy-landing-unassigned">ΤΜΗΜΑΤΑ ΧΩΡΙΣ ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΤΟΠΟΘΕΣΙΑ</h3>
+          <p>Τα δημοσιευμένα τμήματα εμφανίζονται εδώ μέχρι να αντιστοιχιστούν από τη διοίκηση σε επίσημη πόλη και τοποθεσία.</p>
+          <div class="academy-age-grid">
+            {#each academyTerritory.unassigned as group (group.id)}
+              {@render ageCard(group)}
+            {/each}
+          </div>
+        </section>
+      {/if}
     {:else}
       <div class="academy-published-empty">
         <p>Τα ηλικιακά τμήματα και οι τοποθεσίες δεν έχουν δημοσιευτεί ακόμη.</p>
