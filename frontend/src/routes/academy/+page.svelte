@@ -12,7 +12,7 @@
   let { data }: { data: PublicSectionPageData } = $props();
   const academyBanner = $derived(
     data.site?.academy_groups.find(group=>group.organization_id==='lefteria_fc_academy'&&group.banner_url)?.banner_url
-    || publicImages.hero);
+    || publicImages.academy);
   const academyStats = $derived(data.sections?.academy_stats?.organization_id === 'lefteria_fc_academy' ? data.sections.academy_stats : null);
   // The public sections endpoint is already publication-allowlisted. Do not
   // fetch private CRM reviews, invent aggregate ratings, or borrow club reviews.
@@ -25,6 +25,20 @@
     ? new Intl.NumberFormat('el-GR',{maximumFractionDigits:1}).format(
         academyReviews.reduce((sum,row)=>sum+row.rating,0)/academyReviews.length)
     : null);
+  const scopedGroups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
+  // City catalog owns the published Academy opponents and fields; locations
+  // own their rosters and schedules. Never flatten these public groups into
+  // a single unscoped or First Team collection.
+  const academyCities = $derived([...new Set(scopedGroups.map(group => group.city?.trim() || 'Άλλη περιοχή'))]
+    .map(city => ({
+      city, locations:[...new Set(scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city)
+        .map(group => group.location_name?.trim() || 'Ακαδημία'))].map(location => ({
+          location, groups:scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city &&
+            (group.location_name?.trim() || 'Ακαδημία') === location)
+        }))
+    })));
+  const academySeasons = $derived([...new Set(scopedGroups.map(group=>group.season).filter(Boolean))].slice(0,2));
+  const academyAges = $derived([...new Set(scopedGroups.map(group=>group.age_range).filter(Boolean))].slice(0,3));
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
     { href: '/academy/groups', icon: 'users', title: 'ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ', description: 'Βρες το τμήμα που ταιριάζει στο παιδί σου και δες το πρόγραμμα προπονήσεών του.' },
@@ -39,10 +53,84 @@
     <div class="academy-intro-copy"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p><h1>ΑΚΑΔΗΜΙΑ</h1>
       <p class="academy-hero-motto">ΔΙΑΠΛΑΣΗ <span>·</span> ΑΝΑΠΤΥΞΗ <span>·</span> ΟΝΕΙΡΑ</p>
       <p class="academy-description">{data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.'}</p>
-      <div class="academy-actions"><a class="public-button" href="/academy/registration" data-testid="academy-hero-register">ΕΓΓΡΑΦΗ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/academy/groups" data-testid="academy-hero-groups">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
+      <div class="academy-actions"><a class="public-button" href="/academy/registration" data-testid="academy-hero-register">ΕΓΓΡΑΦΗ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/academy/groups" data-testid="academy-hero-groups">ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
     </div>
-    <nav class="public-subnav" aria-label="Ακαδημία"><a href="#explore">ΓΝΩΡΙΣΕ ΤΗΝ ΑΚΑΔΗΜΙΑ</a><a href="/academy/groups">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</a><a href="#academy-fixtures">ΑΓΩΝΕΣ</a><a href="/news?organization_id=lefteria_fc_academy">ΝΕΑ ΑΚΑΔΗΜΙΑΣ ↗</a></nav>
+
   </section>
+  <section class="academy-program-overview" aria-labelledby="academy-program-title">
+    <h2 id="academy-program-title"><span aria-hidden="true">//</span> ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
+    <p>Ανάπτυξη με σεβασμό στο παιδί, την ηλικία και τις ανάγκες του κάθε αθλητή.</p>
+    <div class="academy-program-facts">
+      <div><PublicIcon name="location" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length || '—'} δημοσιευμένες πόλεις</strong></span></div>
+      <div><PublicIcon name="users" size={27} /><span>ΗΛΙΚΙΕΣ <strong>{academyAges.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
+      <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
+    </div>
+  </section>
+  <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
+    <div class="academy-age-heading">
+      <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
+      <a href="/academy/groups">ΔΕΙΤΕ ΟΛΑ ΤΑ ΤΜΗΜΑΤΑ <PublicIcon name="arrow" size={17}/></a>
+    </div>
+    {#if academyCities.length}
+      {#each academyCities as city (city.city)}
+        <section class="academy-city-block" aria-label={city.city}>
+          <h3 class="academy-city-label">{city.city}</h3>
+          {#each city.locations as location (location.location)}
+            <div class="academy-location-block">
+              <h4>{location.location}</h4>
+              <div class="academy-age-grid">
+                {#each location.groups as group (group.id)}
+                  <article class="academy-age-card">
+                    <PublicImage src={group.banner_url || publicImages.academy} alt="" />
+                    <div class="academy-age-caption">
+                      <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
+                      <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
+                      {#if group.season}<span>{group.season}</span>{/if}
+                      <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
+                    </div>
+                    {#if group.description || group.training_schedule}
+                      <details class="academy-age-details">
+                        <summary>Περισσότερες πληροφορίες</summary>
+                        {#if group.description}<p>{group.description}</p>{/if}
+                        {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
+                      </details>
+                    {/if}
+                  </article>
+                {/each}
+              </div>
+            </div>
+          {/each}
+        </section>
+      {/each}
+    {:else}
+      <div class="academy-published-empty">
+        <p>Τα ηλικιακά τμήματα και οι τοποθεσίες δεν έχουν δημοσιευτεί ακόμη.</p>
+        <a href="/academy/groups" class="public-button public-button-outline">ΠΛΗΡΟΦΟΡΙΕΣ ΤΜΗΜΑΤΩΝ <PublicIcon name="arrow" size={17}/></a>
+      </div>
+    {/if}
+  </section>
+
+  <section class="academy-philosophy public-section" aria-labelledby="academy-philosophy-title" data-testid="academy-development-philosophy">
+    <div class="academy-philosophy-copy"><p class="public-eyebrow">ΦΙΛΟΣΟΦΙΑ ΑΝΑΠΤΥΞΗΣ</p>
+      <h2 id="academy-philosophy-title">ΜΕΓΑΛΩΝΟΥΜΕ ΜΑΖΙ.<br/><em>ΜΕΣΑ ΚΑΙ ΕΞΩ ΑΠΟ ΤΟ ΓΗΠΕΔΟ.</em></h2>
+      <p>Η ανάπτυξη κάθε παιδιού είναι πάνω από ένα αποτέλεσμα. Δίνουμε έμφαση στην τεχνική, την τακτική κατανόηση, τη συνεργασία και την ψυχολογία της ηλικίας του.</p>
+      <ul><li>Ατομική ανάπτυξη πάνω από τα αποτελέσματα στα νεανικά τμήματα.</li>
+        <li>Προπόνηση ανάλογα με την ηλικία και τις ανάγκες του κάθε παιδιού.</li>
+        <li>Ισορροπία εκπαίδευσης, αθλητισμού και ψυχικής ανθεκτικότητας.</li>
+        <li>Σταδιακή εξέλιξη και πορεία προς την πρώτη ομάδα.</li></ul>
+      <a class="public-button public-button-outline" href="/academy/philosophy">ΔΕΣ ΤΗ ΦΙΛΟΣΟΦΙΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a>
+    </div>
+    <div class="academy-philosophy-art"><PublicImage src={publicImages.pitch} alt="Ποδοσφαιρικό γήπεδο" /></div>
+  </section>
+  <section class="academy-reference-fees" aria-labelledby="academy-fees-heading">
+    <div class="academy-fees-art" aria-hidden="true"><PublicImage src={publicImages.academy} alt="" /></div>
+    <div class="academy-fees-copy"><h2 id="academy-fees-heading">ΓΙΝΕ ΜΕΛΟΣ<br/>ΤΗΣ ΑΚΑΔΗΜΙΑΣ ΜΑΣ</h2>
+      <p>Τα ισχύοντα τέλη εγγραφής και προπονήσεων επιβεβαιώνονται από την Ακαδημία κατά την αίτηση. Δεν πραγματοποιείται χρέωση σε αυτή τη σελίδα.</p>
+      <a class="academy-fees-action" href="/academy/registration">ΚΑΝΕ ΕΓΓΡΑΦΗ ΤΩΡΑ <PublicIcon name="arrow" size={19}/></a>
+    </div>
+  </section>
+
+  <nav class="public-subnav" aria-label="Ακαδημία"><a href="#explore">ΓΝΩΡΙΣΕ ΤΗΝ ΑΚΑΔΗΜΙΑ</a><a href="/academy/groups">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</a><a href="#academy-fixtures">ΑΓΩΝΕΣ</a><a href="/news?organization_id=lefteria_fc_academy">ΝΕΑ ΑΚΑΔΗΜΙΑΣ ↗</a></nav>
   <section class="public-section academy-explore" id="explore" aria-labelledby="explore-title"><div class="public-section-heading"><h2 id="explore-title">ΕΞΕΡΕΥΝΗΣΕ ΤΗΝ <em>ΑΚΑΔΗΜΙΑ</em></h2></div>
     <div class="academy-destinations">{#each destinations as item (item.href)}<a href={item.href} class="academy-destination"><PublicIcon name={item.icon} size={28} /><h3>{item.title}</h3><p>{item.description}</p><span>ΠΕΡΙΣΣΟΤΕΡΑ <PublicIcon name="arrow" size={18} /></span></a>{/each}</div>
   </section>
@@ -56,19 +144,7 @@
     </div>
     {#if !academyStats}<p class="public-empty">Τα επίσημα στατιστικά της Ακαδημίας δεν έχουν δημοσιευτεί ακόμη.</p>{/if}
   </section>
-  {#if !data.available}<Unavailable />{:else}<section class="public-section" id="groups" aria-labelledby="academy-groups-title"><div class="section-heading"><h2 id="academy-groups-title">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</h2></div><div class="public-group-grid">{#each data.site?.academy_groups ?? [] as group (group.id)}<article id={`group-${encodeURIComponent(group.id)}`} class="public-group-card">{#if group.banner_url}<PublicImage src={group.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{group.age_range || group.season || 'ΑΚΑΔΗΜΙΑ'}</p><h3><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h3>{#if group.description}<p>{group.description}</p>{/if}{#if group.city || group.location_name}<p class="group-location">{[group.city, group.location_name].filter(Boolean).join(' · ')}</p>{/if}{#if group.training_schedule}<h4>ΠΡΟΓΡΑΜΜΑ ΠΡΟΠΟΝΗΣΕΩΝ</h4><p class="preserve-lines">{group.training_schedule}</p>{/if}<a class="group-open" href={academyGroupLink(group)}>ΓΝΩΡΙΣΕ ΤΟ ΤΜΗΜΑ <span aria-hidden="true">↗</span></a></div></article>{:else}<p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>{/each}</div></section><section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
-  <section class="academy-philosophy public-section" aria-labelledby="academy-philosophy-title" data-testid="academy-development-philosophy">
-    <div class="academy-philosophy-copy"><p class="public-eyebrow">ΦΙΛΟΣΟΦΙΑ ΑΝΑΠΤΥΞΗΣ</p>
-      <h2 id="academy-philosophy-title">ΜΕΓΑΛΩΝΟΥΜΕ ΜΑΖΙ.<br/><em>ΜΕΣΑ ΚΑΙ ΕΞΩ ΑΠΟ ΤΟ ΓΗΠΕΔΟ.</em></h2>
-      <p>Η ανάπτυξη κάθε παιδιού είναι πάνω από ένα αποτέλεσμα. Δίνουμε έμφαση στην τεχνική, την τακτική κατανόηση, τη συνεργασία και την ψυχολογία της ηλικίας του.</p>
-      <ul><li>Ατομική ανάπτυξη πάνω από τα αποτελέσματα στα νεανικά τμήματα.</li>
-        <li>Προπόνηση ανάλογα με την ηλικία και τις ανάγκες του κάθε παιδιού.</li>
-        <li>Ισορροπία εκπαίδευσης, αθλητισμού και ψυχικής ανθεκτικότητας.</li>
-        <li>Σταδιακή εξέλιξη και πορεία προς την πρώτη ομάδα.</li></ul>
-      <a class="public-button public-button-outline" href="/academy/philosophy">ΔΕΣ ΤΗ ΦΙΛΟΣΟΦΙΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a>
-    </div>
-    <div class="academy-philosophy-art"><PublicImage src={publicImages.pitch} alt="Ποδοσφαιρικό γήπεδο" /></div>
-  </section>
+  {#if !data.available}<Unavailable />{:else}<section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
   <section class="academy-enquiry public-section" data-testid="academy-enquiry-section">
     <div><p class="public-eyebrow">ΕΝΔΙΑΦΕΡΕΣΑΙ;</p><h2>ΔΟΚΙΜΑΣΤΙΚΑ & ΕΓΓΡΑΦΕΣ</h2>
       <p>Γνώρισε από κοντά τη Λευτεριά FC Academy και το προπονητικό της περιβάλλον. Δες τις διαθέσιμες πληροφορίες εγγραφής ή επικοινώνησε με τον σύλλογο για το πρόγραμμα του παιδιού σου.</p>
@@ -217,4 +293,117 @@
   .academy-enquiry-actions{display:flex;flex-wrap:wrap;gap:15px;flex-shrink:0}
   @media(max-width:900px){.academy-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-philosophy{grid-template-columns:1fr}.academy-philosophy-art{max-height:330px}.academy-enquiry{flex-direction:column;align-items:start}}
   @media(max-width:500px){.academy-key-figures,.academy-philosophy,.academy-enquiry{padding:30px 18px}.academy-stats-grid{gap:9px}.academy-stats-grid>div{padding:17px 9px}.academy-stats-grid span{font-size:11px}.academy-enquiry-actions{width:100%;flex-direction:column}.academy-enquiry-actions>a{justify-content:center}}
+
+  /* Academy source-image composition: short visual hero, factual programme
+     strip, city→location age tiles, player development, membership banner.
+     Operational stats, fixtures, editorial destinations remain below. */
+  :global(.public-site[data-route="/academy"]) .academy-intro{
+    min-height:clamp(320px,21vw,385px);
+    padding:24px clamp(24px,3.5vw,54px) 0;
+    justify-content:flex-end;
+  }
+  :global(.public-site[data-route="/academy"]) .academy-intro-copy{
+    max-width:min(100%,540px);padding-bottom:22px;
+  }
+  :global(.public-site[data-route="/academy"]) .academy-intro .public-eyebrow{font-size:19px;margin-bottom:6px}
+  :global(.public-site[data-route="/academy"]) .academy-intro h1{
+    font-size:clamp(61px,5.6vw,89px);line-height:.93;letter-spacing:-.025em;
+  }
+  .academy-hero-motto{font-size:clamp(17px,1.75vw,25px);margin:10px 0}
+  :global(.public-site[data-route="/academy"]) .academy-description{
+    max-width:48ch;font-size:clamp(13px,1vw,15px);line-height:1.44;margin:10px 0 14px;
+  }
+  :global(.public-site[data-route="/academy"]) .academy-actions{gap:9px}
+  :global(.public-site[data-route="/academy"]) .academy-actions .public-button{min-height:40px;padding:10px 15px;font-size:13px}
+  .academy-program-overview{
+    display:grid;grid-template-columns:minmax(205px,.8fr) minmax(220px,1fr) minmax(0,2.2fr);
+    align-items:center;gap:20px;padding:15px clamp(24px,3vw,45px);
+    min-height:75px;background:#0c0d0d;border-block:1px solid #564524;
+  }
+  .academy-program-overview h2{
+    margin:0;white-space:nowrap;font:900 clamp(20px,1.8vw,28px)/1 'Fira Sans Extra Condensed',sans-serif;
+  }
+  .academy-program-overview h2>span{font-size:32px;color:#f6bb38;margin-right:8px}
+  .academy-program-overview>p{margin:0;max-width:53ch;font-size:12px;line-height:1.45;color:#ddd}
+  .academy-program-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
+  .academy-program-facts>div{
+    display:flex;align-items:center;gap:8px;padding:0 10px;
+    border-left:1px solid #777;font-family:'Fira Sans Extra Condensed',sans-serif;
+  }
+  .academy-program-facts :global(svg){color:#f6bb38;flex-shrink:0}
+  .academy-program-facts>div>span{font-size:12px;font-weight:800}
+  .academy-program-facts strong{display:block;font:400 11px/1.4 'Fira Sans',sans-serif;color:#ddd;overflow-wrap:anywhere}
+  .academy-age-groups{background:#101111;padding:18px clamp(20px,2.7vw,43px) 22px}
+  .academy-age-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #3c3429;padding-bottom:12px}
+  .academy-age-heading h2{font:900 clamp(21px,1.8vw,29px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
+  .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:#ffcb4a;font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
+  .academy-city-block{margin-top:12px}
+  .academy-city-label{font:800 14px 'Fira Sans Extra Condensed',sans-serif;color:#f5b835;margin:0 0 9px}
+  .academy-location-block{margin:0 0 10px}
+  .academy-location-block>h4{font-size:12px;margin:0 0 7px;color:#ececec}
+  .academy-age-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .academy-age-card{min-width:0;position:relative;overflow:hidden;border:1px solid #62605b;background:#121212;min-height:143px}
+  .academy-age-card>:global(img){position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.72)}
+  .academy-age-card::before{content:"";pointer-events:none;position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#050606f2,transparent 83%),linear-gradient(0deg,#0506069a,transparent 45%)}
+  .academy-age-caption{position:relative;z-index:2;min-height:143px;padding:12px 14px 9px;display:flex;flex-direction:column;align-items:flex-start}
+  .academy-age-caption h5{font:900 clamp(37px,3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 4px}
+  .academy-age-caption h5>a{color:#fff;text-decoration:none}
+  .academy-age-caption h5 span{font-size:16px;color:#ffca45}
+  .academy-age-caption strong{font:900 15px 'Fira Sans Extra Condensed',sans-serif;color:#ffbf3c}
+  .academy-age-caption>span{font:500 12px 'Fira Sans',sans-serif;color:#fff}
+  .academy-card-arrow{display:grid;place-items:center;margin-top:auto;width:34px;height:26px;border:1px solid #fff;color:#fff!important;text-decoration:none}
+  .academy-age-details{position:relative;z-index:2;padding:7px 14px;font-size:12px;background:#0b0b0bf5}
+  .academy-age-details summary{cursor:pointer;color:#ffca45}
+  .academy-age-details p{margin:6px 0;color:#ddd}
+  .academy-published-empty{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0}
+  .academy-published-empty p{color:#bbb;font-size:13px;margin:0}
+  :global(.public-site[data-route="/academy"]) .academy-philosophy{
+    min-height:218px;padding:0;background:#0b0c0c;gap:0;
+    grid-template-columns:minmax(0,1fr) minmax(0,.44fr);
+    border-top:1px solid #62552f;
+  }
+  .academy-philosophy-copy{padding:22px clamp(22px,3vw,42px)}
+  .academy-philosophy h2{font-size:clamp(22px,2.15vw,34px)}
+  .academy-philosophy-copy>p:not(.public-eyebrow){font-size:13px;line-height:1.5;margin:10px 0}
+  .academy-philosophy ul{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px 14px;margin:12px 0}
+  .academy-philosophy li{font-size:12px;padding-left:10px}
+  .academy-philosophy-art{min-height:200px;max-height:340px;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%)}
+  .academy-reference-fees{
+    display:grid;grid-template-columns:minmax(0,.42fr) minmax(0,1fr);
+    min-height:132px;margin:0;padding:0;border-top:1px solid #f6bb38;
+    background:linear-gradient(110deg,#ffb82d,#f5ae1e);color:#070707;
+  }
+  .academy-fees-art{position:relative;overflow:hidden;clip-path:polygon(0 0,100% 0,90% 100%,0 100%)}
+  .academy-fees-art :global(img){width:100%;height:100%;object-fit:cover;filter:saturate(.8)}
+  .academy-fees-copy{display:flex;align-items:center;justify-content:space-between;gap:26px;padding:22px 28px 22px 10px}
+  .academy-fees-copy h2{font:italic 900 clamp(28px,2.8vw,47px)/.97 'Fira Sans Extra Condensed',sans-serif;margin:0;flex-shrink:0}
+  .academy-fees-copy p{font-size:12px;line-height:1.4;max-width:34ch;margin:0}
+  .academy-fees-action{display:inline-flex;align-items:center;gap:10px;min-height:43px;white-space:nowrap;padding:10px 13px;background:#090909;color:#fff;text-decoration:none;font:800 15px 'Fira Sans Extra Condensed',sans-serif}
+  :global(.public-site[data-route="/academy"])>.public-content .public-subnav{padding-inline:clamp(20px,2.7vw,42px)}
+  @media(max-width:1200px){
+    .academy-program-overview{grid-template-columns:1fr;gap:12px}
+    .academy-program-facts{max-width:100%}
+    .academy-fees-copy{flex-wrap:wrap}
+    .academy-age-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+  @media(max-width:700px){
+    :global(.public-site[data-route="/academy"]) .academy-intro{min-height:430px;padding:23px 17px 0}
+    :global(.public-site[data-route="/academy"]) .academy-intro h1{font-size:64px}
+    .academy-program-overview{padding:20px 16px;gap:10px}
+    .academy-program-facts{grid-template-columns:1fr;gap:9px}
+    .academy-program-facts>div{padding:8px 0;border-left:0;border-top:1px solid #444}
+    .academy-age-groups{padding:20px 16px}
+    .academy-age-grid{grid-template-columns:1fr}
+    .academy-age-heading{align-items:flex-start;flex-direction:column}
+    .academy-age-card{min-height:170px}
+    .academy-age-caption{min-height:170px}
+    :global(.public-site[data-route="/academy"]) .academy-philosophy{grid-template-columns:1fr}
+    .academy-philosophy ul{grid-template-columns:1fr}
+    .academy-philosophy-art{clip-path:none;max-height:230px}
+    .academy-reference-fees{grid-template-columns:1fr}
+    .academy-fees-art{min-height:130px;max-height:180px;clip-path:none}
+    .academy-fees-copy{padding:20px;gap:18px}
+    .academy-published-empty{align-items:flex-start;flex-direction:column}
+  }
+
 </style>
