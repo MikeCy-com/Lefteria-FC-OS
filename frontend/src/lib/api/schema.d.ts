@@ -624,6 +624,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/football/academy-group-profiles/{groupId}/visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SetAdminAcademyGroupPublicity"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/football/assignments": {
         parameters: {
             query?: never;
@@ -2843,6 +2859,11 @@ export interface components {
         AcademyLeadFollowUpCommand: {
             expected_status: null | string;
             next_status: null | string;
+        };
+        AcademyGroupVisibilityCommand: {
+            /** Format: int64 */
+            expected_revision: number | string;
+            is_public: boolean;
         };
         AcademyTrainingFeeIssueCommand: {
             /** Format: int64 */
@@ -7283,6 +7304,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["ProfileWrite"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetAdminAcademyGroupPublicity: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                groupId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademyGroupVisibilityCommand"];
             };
         };
         responses: {
