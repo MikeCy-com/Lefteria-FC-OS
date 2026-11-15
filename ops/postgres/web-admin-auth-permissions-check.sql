@@ -120,6 +120,7 @@ BEGIN
                    'finance.assign_admin_academy_issue_site(text,text,text,uuid,uuid,text)'::regprocedure,
                    'finance.read_admin_academy_location_finance(text,text,date)'::regprocedure,
                    'finance.read_admin_academy_unallocated_issues(text,text,date)'::regprocedure,
+                    'finance.read_admin_accounting_overview(text,text,date)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
