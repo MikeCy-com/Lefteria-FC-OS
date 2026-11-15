@@ -1,5 +1,5 @@
 import type { PublicGroup, PublicArticle, PublicOrganization } from './types';
-import { articleLink } from './content.ts';
+import { articleLink, newsLink } from './content.ts';
 import { publicSlug } from './public-urls.ts';
 import type { PublicIconName } from './icon-types';
 
@@ -114,12 +114,67 @@ export function navigationLinkCurrent(path: string, location: NavigationLocation
   if (['/news', '/events', '/seasons'].includes(target.pathname) && within(current.pathname, target.pathname)) return 'location';
   return undefined;
 }
-export function publicSearch(query: string, groups: PublicGroup[], news: PublicArticle[]) {
-  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');
-  const links = publicNavigation.flatMap(item => item.items ? item.items.map(([id, label, path]) =>
-    ({ id: item.id + '-' + id, label, path })) : [{ id: item.id, label: item.label, path: item.path }]);
-  const all = [...links, ...groups.map(group => ({ id: group.id, label: 'Ακαδημία · ' + group.name, path: academyGroupLink(group) })),
-    ...news.map(article => ({ id: article.id, label: article.title, path: articleLink(article) }))];
+export type PublicSearchContext = {
+  organization: PublicOrganization;
+  navigation?: readonly PublicNavigationItem[];
+};
+
+/** Prevent cross-organization search results from opening the wrong hub.
+ * Keep shared club destinations, but never show the other organization's
+ * teams, trials, partners, sponsors, CMS pages, fixtures or groups. */
+function belongsToSearchOrganization(path: string, organization: PublicOrganization): boolean {
+  const url = new URL(path, 'https://public-search.invalid');
+  const pathname = url.pathname;
+  const scope = url.searchParams.get('scope');
+  const contentOwner = url.searchParams.get('organization_id');
+  const isAcademy = organization === 'lefteria_fc_academy';
+  if (scope && scope !== (isAcademy ? 'academy' : 'first_team') && scope !== 'all') return false;
+  if (pathname.startsWith('/pages/'))
+    return (contentOwner ?? 'lefteria_fc') === organization;
+  if (isAcademy) {
+    if (pathname === '/team' || pathname.startsWith('/team/') ||
+        pathname === '/trials' || pathname.startsWith('/trials/') ||
+        pathname === '/vote' || pathname.startsWith('/vote/') ||
+        pathname === '/sponsors/first-team' ||
+        pathname === '/match' || pathname.startsWith('/match/')) return false;
+  } else {
+    if (pathname === '/academy' || pathname.startsWith('/academy/') ||
+        pathname === '/sponsors/academy') return false;
+  }
+  return true;
+}
+
+export function publicSearch(
+  query: string, groups: PublicGroup[], news: PublicArticle[],
+  context?: PublicSearchContext
+) {
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('el-GR');
+  const organization = context?.organization;
+  const source = context?.navigation ?? publicNavigation;
+  const links = source.flatMap(item => {
+    if (organization &&
+        (organization === 'lefteria_fc_academy' ? ['team','matches'].includes(item.id) : item.id === 'academy'))
+      return [];
+    return item.items ? item.items.map(([id,label,path]) => ({
+      id: item.id + '-' + id, label, path
+    })) : [{id:item.id,label:item.label,path:item.path}];
+  }).filter(item => !organization || belongsToSearchOrganization(item.path, organization))
+    .map(item => item.path === '/news' && organization ?
+      {...item,path:newsLink(organization)} : item);
+  const groupResults = groups
+    .filter(group => !organization || (organization === 'lefteria_fc_academy' &&
+      group.organization_id === 'lefteria_fc_academy'))
+    .map(group => ({id:group.id,label:'Ακαδημία · ' + group.name,path:academyGroupLink(group)}));
+  const articles = news.filter(article => !organization || article.organization_id === organization)
+    .map(article => ({
+      id:article.id,label:article.title,
+      path:articleLink(article,organization ?? null)
+    }));
   const seen = new Set<string>();
-  return all.filter(item => { if (seen.has(item.path)) return false; seen.add(item.path); return normalize(item.label).includes(normalize(query)); }).slice(0, 16);
+  const normalized = normalize(query.trim());
+  return [...links,...groupResults,...articles].filter(item => {
+    if (seen.has(item.path)) return false;
+    seen.add(item.path);
+    return normalize(item.label).includes(normalized);
+  }).slice(0,16);
 }
