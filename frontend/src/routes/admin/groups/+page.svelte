@@ -424,7 +424,7 @@
                     {#key organization+':'+focusedGroup.id+':'+$auth.session.user.id}
                       <AdminGroupWorkspace group={focusedGroup} groups={directory.groups}
                         {organization} user={$auth.session.user}
-                        {canCreate} canReadAttendance={canSeeAcademyAttendance}
+                        canCreate={Boolean(canCreate)} canReadAttendance={canSeeAcademyAttendance}
                         onExpired={()=>auth.invalidateSession()}
                         onRevoked={()=>void auth.bootstrap()}
                         onChanged={()=>retry++}/>
