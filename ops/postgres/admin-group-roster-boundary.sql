@@ -7,7 +7,7 @@ DECLARE
   mobile_role text:=current_setting('lefteria.mobile_runtime_role');
 BEGIN
   SELECT * INTO STRICT f FROM pg_proc
-    WHERE oid='club.read_admin_group_roster(text,text,integer,integer)'::regprocedure;
+    WHERE oid='club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure;
   IF NOT f.prosecdef OR f.prorettype<>'jsonb'::regtype
     OR f.pronargs<>5 OR f.proargtypes<>'25 25 25 23 23'::oidvector
     OR f.provolatile<>'v' OR f.prokind<>'f'
