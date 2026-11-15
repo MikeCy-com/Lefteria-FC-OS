@@ -104,11 +104,11 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     await assert.rejects(detail(url('/sponsors/forged?scope=academy&list_scope=academy'),'sponsors',sponsor.id),error=>error.status===404);
     await assert.rejects(detail(url('/sponsors/forged?scope=first_team&list_scope=academy'),'sponsors',sponsor.id),error=>error.status===404);
     const academySponsorHtml=render(List,{props:{data:academySponsors}}).body;
-    assert.match(academySponsorHtml,/action="\\/sponsors\\/academy"/);
+    assert.ok(academySponsorHtml.includes('action="/sponsors/academy"'));
     assert.match(academySponsorHtml,/data-testid="catalog-locked-organization"/);
     assert.doesNotMatch(academySponsorHtml,/Recorded sponsor|<select name="scope"/);
     const firstTeamSponsorHtml=render(List,{props:{data:sponsors}}).body;
-    assert.match(firstTeamSponsorHtml,/action="\\/sponsors\\/first-team"/);
+    assert.ok(firstTeamSponsorHtml.includes('action="/sponsors/first-team"'));
     assert.doesNotMatch(firstTeamSponsorHtml,/academy-sponsor|<select name="scope"/);
     const seasonList=await list(url('/seasons'),'seasons');assert.equal(seasonList.cards.length,2);
     const season=await detail(url('/seasons/Archive--ID'),'seasons','Archive--ID');assert.equal(season.archives.length,2);
