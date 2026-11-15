@@ -8,6 +8,12 @@ const scopes=[
   {id:'city-a',organization_id:'lefteria_fc_academy',team_id:null,academy_city_id:'a'},
   {id:'city-b',organization_id:'lefteria_fc_academy',team_id:null,academy_city_id:'b'}
 ];
+const locations=[
+  {id:'north',city_id:'a',is_active:true},
+  {id:'south',city_id:'a',is_active:true},
+  {id:'east',city_id:'b',is_active:true},
+  {id:'inactive-north',city_id:'a',is_active:false}
+];
 const opponents=[
   {id:'club-opponent',scope_id:'club-main',organization_id:'lefteria_fc',name:'Club Opponent',is_active:true},
   {id:'a-opponent',scope_id:'city-a',organization_id:'lefteria_fc_academy',name:'Academy City A Opponent',is_active:true},
@@ -30,8 +36,8 @@ const bases=[
 test('two Academy locations in SAME city see identical city-level opponents and playing fields',()=>{
   const north={organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'north'};
   const south={organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'south'};
-  const first=scopedFootballMatchOptions(north,scopes,opponents,fields);
-  const second=scopedFootballMatchOptions(south,scopes,opponents,fields);
+  const first=scopedFootballMatchOptions(north,scopes,locations,opponents,fields);
+  const second=scopedFootballMatchOptions(south,scopes,locations,opponents,fields);
   assert.deepEqual(first,second);
   assert.deepEqual(first.opponents.map(item=>item.id),['a-opponent']);
   assert.deepEqual(first.playingFields.map(item=>item.id),['a-field']);
@@ -39,29 +45,40 @@ test('two Academy locations in SAME city see identical city-level opponents and 
 test('cities never see other cities or First Team catalogs',()=>{
   const b=scopedFootballMatchOptions(
     {organizationId:'lefteria_fc_academy',academyCityId:'b',academyLocationId:'east'},
-    scopes,opponents,fields);
+    scopes,locations,opponents,fields);
   assert.deepEqual(b.opponents.map(item=>item.id),['b-opponent']);
   assert.deepEqual(b.playingFields.map(item=>item.id),['b-field']);
   const club=scopedFootballMatchOptions(
-    {organizationId:'lefteria_fc',teamScopeId:'club-main'},scopes,opponents,fields);
+    {organizationId:'lefteria_fc',teamScopeId:'club-main'},scopes,locations,opponents,fields);
   assert.deepEqual(club.opponents.map(item=>item.id),['club-opponent']);
   assert.deepEqual(club.playingFields.map(item=>item.id),['club-field']);
   assert.deepEqual(scopedFootballMatchOptions(
     {organizationId:'lefteria_fc_academy',academyCityId:'missing',academyLocationId:'north'},
-    scopes,opponents,fields),{opponents:[],playingFields:[]});
+    scopes,locations,opponents,fields),{opponents:[],playingFields:[]});
   assert.deepEqual(scopedFootballMatchOptions(
-    {organizationId:'lefteria_fc',teamScopeId:'city-a'},scopes,opponents,fields),
+    {organizationId:'lefteria_fc',teamScopeId:'city-a'},scopes,locations,opponents,fields),
     {opponents:[],playingFields:[]});
+  assert.deepEqual(scopedFootballMatchOptions(
+    {organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'east'},
+    scopes,locations,opponents,fields),{opponents:[],playingFields:[]},
+    'Do not display City A catalogs when the chosen location actually belongs to City B');
+  assert.deepEqual(scopedFootballMatchOptions(
+    {organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'inactive-north'},
+    scopes,locations,opponents,fields),{opponents:[],playingFields:[]},
+    'Inactive locations cannot enumerate city catalogs');
 });
 test('Academy training base lists stay LOCATION-specific even when fields are shared',()=>{
   const north={organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'north'};
   const south={organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'south'};
-  assert.deepEqual(scopedFootballTrainingBases(north,scopes,bases).map(item=>item.id),['north-base']);
-  assert.deepEqual(scopedFootballTrainingBases(south,scopes,bases).map(item=>item.id),['south-base']);
+  assert.deepEqual(scopedFootballTrainingBases(north,scopes,locations,bases).map(item=>item.id),['north-base']);
+  assert.deepEqual(scopedFootballTrainingBases(south,scopes,locations,bases).map(item=>item.id),['south-base']);
   assert.deepEqual(scopedFootballTrainingBases(
-    {organizationId:'lefteria_fc_academy',academyCityId:'b',academyLocationId:'north'},scopes,bases),[]);
+    {organizationId:'lefteria_fc_academy',academyCityId:'b',academyLocationId:'north'},scopes,locations,bases),[]);
   assert.deepEqual(scopedFootballTrainingBases(
-    {organizationId:'lefteria_fc',teamScopeId:'club-main'},scopes,bases).map(item=>item.id),['club-base']);
+    {organizationId:'lefteria_fc',teamScopeId:'club-main'},scopes,locations,bases).map(item=>item.id),['club-base']);
+  assert.deepEqual(scopedFootballTrainingBases(
+    {organizationId:'lefteria_fc_academy',academyCityId:'a',academyLocationId:'east'},
+    scopes,locations,bases),[]);
 });
 test('SQL schema enforces Academy CITY catalogs, LOCATION group and training base membership',()=>{
   const migration=readFileSync(new URL(
