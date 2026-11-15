@@ -330,6 +330,12 @@ jobs:
       - name: Enforce production Compose least-privilege contract
         run: docker compose --profile tools --env-file .env.example config --format json | python3 -B deploy/production/verify-compose-security.py
       - run: docker compose --env-file .env.example build --pull
+      - name: Verify Npgsql native GSSAPI runtime in the API and roster-import images
+        run: |
+          set -euo pipefail
+          docker compose --env-file .env.example run --rm --no-deps --entrypoint /bin/sh api -ec 'find /usr/lib -name libgssapi_krb5.so.2 -print | grep -q .'
+          docker build --target roster-import --file backend/Dockerfile --tag lefteria-roster-import-gssapi:ci backend
+          docker run --rm --network none --entrypoint /bin/sh lefteria-roster-import-gssapi:ci -ec 'find /usr/lib -name libgssapi_krb5.so.2 -print | grep -q .'
       - name: Verify native avatar codec in the published API image
         run: docker compose --env-file .env.example run --rm --no-deps api --check-avatar-codec
       - run: docker compose --env-file .env.example run --rm --no-deps proxy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
