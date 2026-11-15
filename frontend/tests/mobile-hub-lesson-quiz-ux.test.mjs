@@ -40,3 +40,17 @@ test('personal lesson shows only next approved content and server-backed schedul
   assert.match(lessons,/result\.audience===viewerRole/);
   assert.doesNotMatch(lessons,/localStorage|sessionStorage|innerHTML|\{@html/);
 });
+
+test('weekly delivery inbox renders actual verified notifications without claiming read receipts',()=>{
+  assert.match(lessons,/const notifications=\$derived/);
+  assert.match(lessons,/\.sort\(/);
+  assert.match(lessons,/data-testid="hub-individual-learning-delivery"/);
+  assert.match(lessons,/data-testid="hub-lesson-delivery-item"/);
+  assert.match(lessons,/\{#each notifications as notification \(notification\.id\)\}/);
+  assert.match(lessons,/datetime=\{notification\.queued_at\}/);
+  assert.match(lessons,/notification\.content_id===page\.next\.id/);
+  assert.match(lessons,/href="#hub-next-approved-lesson"/);
+  assert.match(lessons,/DateTimeFormat\('el-CY'/);
+  assert.match(lessons,/timeZone:'Asia\/Nicosia'/);
+  assert.doesNotMatch(lessons,/mark.*read|read_at|localStorage|sessionStorage|\{@html/);
+});
