@@ -191,13 +191,17 @@ public static class AdminUserDirectoryEndpoints
             if(session.User.Role!="super_admin")
                 throw new WebAdminException(403,"not_authorized","Super administrator required.");
             if(request.Id is null || request.Id==Guid.Empty ||
-                request.Id==session.User.Id ||
-                request.ExpectedRole is not ("manager" or "editor" or "marketing"
-                  or "coach" or "matchday_editor" or "accountant") ||
-                request.Active is null || request.ExpectedActive is null ||
+                request.Id==session.User.Id)
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "Select an eligible account other than your own.");
+            if(request.ExpectedRole is not ("manager" or "editor" or "marketing"
+                  or "coach" or "matchday_editor" or "accountant"))
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "The expected role is not an eligible delegated role.");
+            if(request.Active is null || request.ExpectedActive is null ||
                 request.Active==request.ExpectedActive)
                 throw new WebAdminException(422,"managed_admin_status_invalid",
-                    "Check the selected account and expected state.");
+                    "Provide different current and next active states.");
 
             await using var connection=await connections.OpenAsync(token);
             // Defense in depth for privileged targets. The SECURITY DEFINER
