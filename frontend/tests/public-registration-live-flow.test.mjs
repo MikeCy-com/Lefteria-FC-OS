@@ -28,7 +28,7 @@ test('Svelte academy registration compiles and has all original five functional 
 
 test('public intake only creates pending Academy records with encrypted evidence and separate consent decisions',()=>{
   assert.match(program,/app\.MapAcademyRegistration\(\)/);
-  assert.match(migration,/organization_id.*lefteria_fc_academy/);
+  assert.match(migration,/VALUES\(_id,'lefteria_fc_academy'/);
   assert.match(migration,/INSERT INTO academy_intake\.registration_sealed_evidence/);
   assert.match(migration,/INSERT INTO academy_intake\.registration_consents/);
   assert.match(migration,/registration_rate_buckets/);
