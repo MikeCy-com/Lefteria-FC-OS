@@ -39,6 +39,7 @@ test('Academy group database bridge enforces restricted reader, retains original
   assert.match(privilege,/club\.read_public_academy_group_directory\(\)/);
   assert.match(privilege,/has_column_privilege\(current_user,'club\.academy_groups','name','SELECT'\)/);
   assert.match(checks,/v_ghost/);
+  assert.match(checks,/Canonical imported Academy group exposed without an admin-managed profile/);
   assert.match(checks,/Manager updated public profile/);
   assert.match(checks,/jsonb_object_keys\(v_group\)/);
   assert.match(checks,/ROLLBACK;/);
