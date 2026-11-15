@@ -54,11 +54,12 @@
     </form>
     <div class="catalog-results-heading"><p>{data.scope === 'academy' ? 'ΑΚΑΔΗΜΙΑ' : data.scope === 'first_team' ? 'ΠΡΩΤΗ ΟΜΑΔΑ' : 'ΟΛΟΣ Ο ΣΥΛΛΟΓΟΣ'}</p><span>{data.cards.length} {data.cards.length === 1 ? 'καταχώριση' : 'καταχωρίσεις'}</span></div>
     {#if data.cards.length}<div class="catalog-grid">{#each data.cards as item (`${item.organization}:${item.id}`)}<a class="catalog-card" class:catalog-sponsor={data.kind === 'sponsors'} class:catalog-season={data.kind === 'seasons'} href={item.href}>
-      <div class="catalog-card-image">{#if item.image}<PublicImage src={item.image} alt="" />{:else}<span>{data.kind === 'seasons' ? item.title : 'ΛΕΥΤΕΡΙΑ FC'}</span>{/if}<span class="catalog-card-scope">{item.scopeLabel || catalogScopeLabel(item.organization)}</span></div>
+      <div class="catalog-card-image">{#if item.image}<PublicImage src={item.image} alt="" />{:else}<span>{data.kind === 'seasons' ? item.title : 'ΛΕΥΤΕΡΙΑ FC'}</span>{/if}<span class="catalog-card-scope">{item.scopeLabel || catalogScopeLabel(item.organization)}</span>{#if item.event?.is_featured}<span class="catalog-card-featured" data-testid="published-featured-event">ΕΠΙΛΕΓΜΕΝΗ ΕΚΔΗΛΩΣΗ</span>{/if}</div>
       <div class="catalog-card-body"><p class="public-eyebrow">{data.kind === 'events' ? eventTypeLabel(item.label) : item.label}{item.meta && data.kind !== 'events' ? ` · ${greekDate(item.meta)}` : ''}</p><h2>{item.title}</h2>{#if item.summary}<p class="catalog-card-summary">{item.summary}</p>{/if}{#if item.event}<dl class="event-card-facts">
         {#if item.meta}<div><dt>Πότε</dt><dd><time datetime={item.meta}>{eventDateTime(item.meta)}</time> <small>Κύπρος</small></dd></div>{/if}
         {#if item.event.location}<div><dt>Τοποθεσία</dt><dd>{item.event.location}</dd></div>{/if}
         {#if item.event.price_eur !== null}<div><dt>Είσοδος</dt><dd>{eventPrice(item.event.price_eur)}</dd></div>{/if}
+        {#if item.event.capacity != null}<div data-testid="published-event-capacity"><dt>Θέσεις συνολικά</dt><dd>{item.event.capacity}</dd></div>{/if}
         {#if item.event.status === 'cancelled' || item.event.status === 'completed'}<div><dt>Κατάσταση</dt><dd>{item.event.status === 'cancelled' ? 'Ακυρώθηκε' : 'Ολοκληρώθηκε'}</dd></div>{/if}
       </dl>{/if}<span class="catalog-card-action">{data.kind === 'seasons' ? 'ΑΝΑΚΑΛΥΨΕ ΤΗ ΣΕΖΟΝ' : 'ΠΕΡΙΣΣΟΤΕΡΑ'} <span aria-hidden="true">↗</span></span></div>
     </a>{/each}</div>{:else}<div class="catalog-empty"><h2>ΔΕΝ ΥΠΑΡΧΟΥΝ ΚΑΤΑΧΩΡΙΣΕΙΣ</h2><p>{data.kind === 'events' ? 'Δεν έχουν δημοσιευτεί εκδηλώσεις για τα επιλεγμένα φίλτρα.' : 'Δεν έχουν δημοσιευτεί καταχωρίσεις σε αυτή την ενότητα.'}</p>{#if !data.fixedScope && (data.scope || data.kind === 'events')}<a href={`/${data.kind}${data.kind === 'events' ? '?when=all' : ''}`}>Προβολή όλων ↗</a>{/if}</div>{/if}
@@ -73,6 +74,11 @@
   .event-card-facts dd { margin:0; color:#eee; overflow-wrap:anywhere; }
   .event-card-facts small { color:#aaa; white-space:nowrap; }
 
+  .catalog-card-featured{position:absolute;inset:auto auto 12px 12px;max-width:calc(100% - 24px);
+    font:800 11px/1.3 'Fira Sans',sans-serif;letter-spacing:.04em;
+    color:#111;background:#f6bb38;padding:8px 11px;z-index:1;overflow-wrap:anywhere}
+  .event-card-facts>div{min-width:0}
+  .event-card-facts dd{overflow-wrap:anywhere}
   .event-chip-filters{display:grid;gap:15px;border-top:1px solid #4b3c21;border-bottom:1px solid #4b3c21;padding:20px clamp(12px,2vw,24px);background:#080808}
   .event-chip-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
   .event-chip-heading{min-width:88px;color:#a9a9a9;letter-spacing:.07em;font-weight:800;font-size:12px}
