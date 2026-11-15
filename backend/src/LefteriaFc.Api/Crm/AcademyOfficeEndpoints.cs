@@ -60,6 +60,10 @@ public static class AcademyOfficeEndpoints
     private static async Task<IResult> Execute(string operation, object payload, bool write,
         WebAdminService admin, WebAdminConnections db, IWebAdminSecrets secrets, HttpContext context, CancellationToken ct)
     {
+        // Academy applications contain private minor and guardian details.
+        // Never allow browsers or intermediaries to cache these responses.
+        context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.Pragma = "no-cache";
         var cookie = context.Request.Cookies[WebAdminServices.CookieName];
         var session = await admin.CurrentAsync(cookie, ct);
         if (session is null)

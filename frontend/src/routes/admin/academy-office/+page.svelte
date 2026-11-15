@@ -10,12 +10,10 @@
   type Player = { id: string; name: string };
   type Entry = { id: string; status: string; status_version: number; applicant_first_name: string;
     applicant_last_name: string; applicant_birth_date: string; guardian_name: string;
-    guardian_relationship: string; guardian_phone: string; guardian_email: string };
+    guardian_relationship: string; guardian_phone: string; guardian_email: string;
+    submission_source?: 'website' | 'staff'; onboarded_player_id?: string | null };
   type Order = { id: string; player_name: string; item: string; size: string | null; quantity: number; status: string };
-  type PublicIntake = { id:string; applicant_first_name:string; applicant_last_name:string;
-    applicant_birth_date:string; guardian_name:string; guardian_phone:string;
-    guardian_email:string; status:string; submitted_at:string };
-  type PublicIntakeResponse = { organization_id:string; applications:PublicIntake[]; offset:number };
+
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const access = $derived($auth.status === 'authenticated' && !!$auth.session &&
@@ -23,13 +21,6 @@
     $auth.session.user.organizations.some(org => org.id === 'lefteria_fc_academy') &&
     hasAdminPermission($auth.session.user.permissions, 'academy:read'));
   const api = '/api/admin/academy/office/';
-  // Unassigned public applications have a stricter audience than office
-  // records. The server+SQL re-check this independently of the UI.
-  const intakeAccess = $derived(access && $auth.session?.user.role === 'super_admin');
-  let intakeRows = $state<PublicIntake[]>([]);
-  let intakeLoading = $state(false);
-  let intakeError = $state('');
-  let intakeRevision = $state(0);
   let tab = $state<'registrations' | 'orders'>('registrations');
   let offset = $state(0);
   let revision = $state(0);
@@ -92,37 +83,6 @@
       })
       .catch(() => { if (!request.signal.aborted) error = 'Η λίστα δεν είναι διαθέσιμη.'; })
       .finally(() => { if (!request.signal.aborted) loading = false; });
-    return () => request.abort();
-  });
-
-  $effect(() => {
-    void intakeRevision;
-    const actor = $auth.session?.user.id;
-    const canRead = intakeAccess;
-    // Old requests must never repopulate this private queue after logout,
-    // account switch, or Academy-scope revocation.
-    intakeRows = [];
-    intakeError = '';
-    intakeLoading = false;
-    if (!canRead || !actor) return;
-    const request = new AbortController();
-    intakeLoading = true;
-    void fetch('/api/admin/academy/intake?limit=25&offset=0', {
-      signal:request.signal, cache:'no-store'
-    }).then(async response => {
-      if (!response.ok) throw new Error('intake_unavailable');
-      const result = await response.json() as PublicIntakeResponse;
-      if (result.organization_id !== 'lefteria_fc_academy' || !Array.isArray(result.applications))
-        throw new Error('invalid_intake_response');
-      if (!request.signal.aborted && intakeAccess && $auth.session?.user.id === actor)
-        intakeRows = result.applications;
-    }).catch(() => {
-      if (!request.signal.aborted && $auth.session?.user.id === actor)
-        intakeError = 'Η ασφαλής λίστα των ηλεκτρονικών αιτήσεων δεν είναι διαθέσιμη.';
-    }).finally(() => {
-      if (!request.signal.aborted && $auth.session?.user.id === actor)
-        intakeLoading = false;
-    });
     return () => request.abort();
   });
 
@@ -192,46 +152,16 @@
   }
 </script>
 
-<svelte:head><title>Γραμματεία Ακαδημίας | Λευτεριά FC</title></svelte:head>
+<svelte:head><title>Εγγραφές Ακαδημίας | Λευτεριά FC</title></svelte:head>
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="academy-office" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if access}
-      <h1>Γραμματεία Ακαδημίας</h1>
-      {#if intakeAccess}
-        <section class="admin-panel admin-public-intake" data-testid="academy-public-intake"
-          aria-labelledby="academy-public-intake-title">
-          <div class="intake-heading">
-            <div>
-              <p class="admin-eyebrow">ΑΙΤΗΣΕΙΣ ΑΠΟ ΤΗΝ ΙΣΤΟΣΕΛΙΔΑ · ΑΚΑΔΗΜΙΑ</p>
-              <h2 id="academy-public-intake-title">Ηλεκτρονικές αιτήσεις εγγραφής</h2>
-              <p class="admin-muted">Αιτήσεις προς επεξεργασία. Η υποβολή δεν δημιουργεί αυτόματα παίκτη, χρέωση ή εγγραφή σε τμήμα.</p>
-            </div>
-            <button type="button" class="admin-secondary" disabled={intakeLoading}
-              onclick={() => intakeRevision++} data-testid="academy-intake-refresh">Ανανέωση</button>
-          </div>
-          {#if intakeLoading}<p role="status">Φόρτωση ηλεκτρονικών αιτήσεων…</p>
-          {:else if intakeError}<p role="alert" class="admin-error">{intakeError}</p>
-          {:else if intakeRows.length === 0}<p class="admin-muted">Δεν υπάρχουν ηλεκτρονικές αιτήσεις προς προβολή.</p>
-          {:else}
-            <div class="intake-list">
-              {#each intakeRows as row (row.id)}
-                <article class="intake-application">
-                  <div><strong>{row.applicant_first_name} {row.applicant_last_name}</strong>
-                    <small>Αίτηση {row.id} · {labels[row.status] ?? row.status}</small></div>
-                  <p>Γονέας/κηδεμόνας: {row.guardian_name}</p>
-                  <p>Ημ. γέννησης: {row.applicant_birth_date}</p>
-                  <div class="intake-contacts">
-                    <a href={'tel:' + row.guardian_phone}>{row.guardian_phone}</a>
-                    <a href={'mailto:' + row.guardian_email}>{row.guardian_email}</a>
-                  </div>
-                </article>
-              {/each}
-            </div>
-          {/if}
-          <p class="intake-privacy-note">Για την ασφάλεια των παιδιών, οι ιατρικές πληροφορίες και οι υπογραφές δεν εμφανίζονται σε αυτή τη λίστα. Οι αιτήσεις δεν μεταφέρονται αυτόματα στις εσωτερικές εγγραφές.</p>
-        </section>
+      <h1>Εγγραφές Ακαδημίας</h1>
+      <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Δεν δημιουργείται παίκτης, λογαριασμός γονέα ή χρέωση μόνο από την υποβολή ή την έγκριση.</p>
+      {#if $auth.session.user.role !== 'super_admin'}
+        <p class="admin-muted">Οι διαχειριστές βλέπουν μόνο τις αιτήσεις που καταχώρισαν οι ίδιοι. Οι νέες δημόσιες αιτήσεις διατίθενται μόνο στον Super Admin μέχρι να ενεργοποιηθεί η ασφαλής ανάθεση ανά πόλη και τοποθεσία.</p>
       {/if}
-      <nav aria-label="Γραμματεία Ακαδημίας">
+      <nav aria-label="Εγγραφές Ακαδημίας">
         <button class="admin-secondary" aria-pressed={tab === 'registrations'} disabled={busy}
           onclick={() => { tab = 'registrations'; offset = 0; }}>Εγγραφές παικτών</button>
         <button class="admin-secondary" aria-pressed={tab === 'orders'} disabled={busy}
@@ -241,8 +171,9 @@
       {#if message}<p role="status">{message}</p>{/if}
       {#key $auth.session.user.id}
         {#if tab === 'registrations'}
-          <section class="admin-panel">
-            <h2>Νέα αίτηση εγγραφής</h2>
+          <details class="admin-panel manual-registration">
+            <summary>Χειροκίνητη καταχώριση αίτησης</summary>
+            <p class="admin-muted">Για αιτήσεις που παραλήφθηκαν εκτός της δημόσιας φόρμας. Δεν προστίθεται παίκτης στο ρόστερ.</p>
             <form onsubmit={create}>
               <fieldset disabled={busy}>
                 <legend>Στοιχεία παίκτη και κηδεμόνα</legend>
@@ -256,13 +187,17 @@
               </fieldset>
               <button class="admin-primary" disabled={busy}>Καταχώριση αίτησης</button>
             </form>
-          </section>
-          <h2>Αιτήσεις εγγραφής</h2>
-          <p>Η έγκριση αφορά την αίτηση. Η ένταξη στο ρόστερ ολοκληρώνεται χωριστά.</p>
+          </details>
+          <h2 data-testid="academy-registration-unified-inbox">Όλες οι αιτήσεις εγγραφής</h2>
+          <p>Ελέγξτε τα στοιχεία και την κατάσταση κάθε αίτησης. Η ένταξη σε συγκεκριμένο τμήμα απαιτεί ξεχωριστή επαληθευμένη διαδικασία στα <a href="/admin/groups">Ομάδες & τμήματα</a>· η απλή έγκριση δεν είναι προσθήκη στο ρόστερ.</p>
           {#each entries.slice(0, 25) as row (row.id)}
             <article class="admin-panel">
               <h3>{row.applicant_first_name} {row.applicant_last_name} · {labels[row.status] ?? row.status}</h3>
+              <p class="registration-source">{row.submission_source === 'website' ? 'Από τη δημόσια φόρμα' : row.submission_source === 'staff' ? 'Χειροκίνητη αίτηση' : 'Αίτηση Ακαδημίας'} · {row.id}</p>
               <p>{row.applicant_birth_date} · {row.guardian_name} ({row.guardian_relationship}) · {row.guardian_phone} · {row.guardian_email}</p>
+              {#if row.status === 'approved'}
+                <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
+              {/if}
               {#each transitions[row.status] ?? [] as status (status)}
                 <button class="admin-secondary" disabled={busy}
                   onclick={() => void save('registrations/review', {id: row.id, status, version: row.status_version})}>
@@ -326,18 +261,10 @@
   fieldset { width: 100%; border: 0; padding: 0; margin: 0; min-width: 0; }
   label { display: grid; gap: .3rem; min-width: min(100%, 15rem); }
   article p { overflow-wrap: anywhere; }
-  .admin-public-intake{margin-bottom:24px}
-  .intake-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
-  .intake-heading h2{font-size:clamp(22px,2.2vw,32px)}
-  .intake-heading .admin-muted{max-width:65ch;font-size:13px}
-  .intake-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,270px),1fr));gap:14px}
-  .intake-application{background:#111;border:1px solid #5b4a2d;padding:18px;min-width:0}
-  .intake-application strong{font-family:'Fira Sans Extra Condensed',sans-serif;font-size:22px}
-  .intake-application small{display:block;color:#b4b4b4;overflow-wrap:anywhere;font-size:11px}
-  .intake-application p{font-size:13px;color:#ddd}
-  .intake-contacts{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}
-  .intake-contacts a{font-size:13px;overflow-wrap:anywhere}
-  .intake-privacy-note{margin-top:14px;font-size:12px;color:#aaa}
-  @media(max-width:650px){.intake-heading{display:block}.intake-heading button{margin-top:12px}}
+  .registration-intro{max-width:75ch;margin:0 0 18px}
+  .manual-registration{margin:18px 0}
+  .manual-registration summary{cursor:pointer;font-weight:700;font-size:16px}
+  .manual-registration[open] summary{margin-bottom:12px}
+  .registration-source{font-size:12px;color:#aeb4b9;overflow-wrap:anywhere}
 
 </style>
