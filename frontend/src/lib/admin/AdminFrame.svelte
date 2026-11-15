@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { WebAdminSession } from './controller.ts';
+  import AdminProfilePhoto from './AdminProfilePhoto.svelte';
   import { canReadClub } from './club-controller.ts';
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
@@ -36,7 +37,7 @@
       <a class="admin-public-link" href="/app" aria-label="Εφαρμογή μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
       <details class="admin-profile-menu" data-testid="admin-profile-menu">
         <summary aria-label="Άνοιγμα προφίλ λογαριασμού" data-testid="admin-profile-menu-toggle">
-          <span class="admin-profile-avatar" aria-hidden="true">{initials}</span>
+          <AdminProfilePhoto actorId={user.id} {initials}/>
           <span class="admin-profile-menu-text"><strong>{user.name || user.username}</strong><small>{roleName}</small></span>
           <span aria-hidden="true">⌄</span>
         </summary>
