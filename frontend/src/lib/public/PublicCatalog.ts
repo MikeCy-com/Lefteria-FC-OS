@@ -1,4 +1,4 @@
-import { publicSlug } from './public-urls';
+import { publicSlug } from './public-urls.ts';
 export type CatalogKind = 'events' | 'partners' | 'sponsors' | 'seasons';
 export type CatalogScope = 'first_team' | 'academy' | null;
 export const catalogTitles: Record<CatalogKind, string> = { events: 'ΕΚΔΗΛΩΣΕΙΣ', partners: 'ΟΙ ΣΥΝΕΡΓΑΤΕΣ ΜΑΣ', sponsors: 'ΟΙ ΧΟΡΗΓΟΙ ΜΑΣ', seasons: 'ΠΑΛΑΙΟΤΕΡΕΣ ΣΕΖΟΝ' };
