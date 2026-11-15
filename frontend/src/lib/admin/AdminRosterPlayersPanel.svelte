@@ -7,13 +7,15 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
+  let {owner,actorId,groups,groupId='',allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];groupId?:string;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
   const pageSize = 20;
   let offset = $state(0);
+  let viewMode=$state<'members'|'add'>('members');
   let refresh = $state(0);
   let page = $state<Page|null>(null);
   let loading = $state(false);
@@ -141,6 +143,7 @@
     const actor=actorId;
     const currentOffset=offset;
     const generation=refresh;
+    const focusedGroup=groupId, mode=viewMode;
     void actor;void generation;
 
     page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;selectedGroups=[];saveError=null;
@@ -152,15 +155,30 @@
         const params=new URLSearchParams({
           organization_id:currentOwner,offset:String(currentOffset),limit:String(pageSize)
         });
-        const response=await fetch('/api/admin/football/players?'+params.toString(),{
-          method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
-        });
+        // Group-members is filtered and paginated in PostgreSQL. The separate
+        // add-member picker is authorized against the same organization, never
+        // presented as if it were the group's actual roster.
+        let response:Response;
+        if(focusedGroup && mode==='members'){
+          params.set('group_id',focusedGroup);
+          response=await fetch('/api/admin/football/group-players?'+params.toString(),{
+            method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
+          });
+        }else{
+          response=await fetch('/api/admin/football/players?'+params.toString(),{
+            method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
+          });
+        }
         if(controller.signal.aborted)return;
         if(response.status===401){onExpired();return;}
         if(response.status===403){onRevoked();return;}
         if(!response.ok)throw new Error('Roster directory unavailable.');
         const json:unknown=await response.json();
-        if(!verified(json,currentOwner,currentOffset))throw new Error('Invalid roster response.');
+        if(!verified(json,currentOwner,currentOffset) ||
+          (focusedGroup&&mode==='members' &&
+            ((json as Record<string,unknown>).group_id!==focusedGroup ||
+             json.players.some(player=>!currentGroups(player).includes(focusedGroup)))))
+          throw new Error('Invalid group roster response.');
         if(!controller.signal.aborted)page=json;
       }catch{
         if(!controller.signal.aborted)failed=true;
@@ -175,13 +193,23 @@
   <div class="admin-player-heading">
     <div>
       <p class="admin-eyebrow">ΕΞΟΥΣΙΟΔΟΤΗΜΕΝΟ ΡΟΣΤΕΡ · ΜΟΝΟ ΔΙΑΧΕΙΡΙΣΤΕΣ</p>
-      <h2 id="admin-private-player-heading">Παίκτες & αναθέσεις τμημάτων</h2>
-      <p class="admin-muted">Προβολή ενεργών παικτών για επαλήθευση ανάθεσης. Επιλέξτε παίκτη και αναθέστε τον σε επαληθευμένη ομάδα. Κάθε αλλαγή ελέγχεται και καταγράφεται.</p>
+      <h2 id="admin-private-player-heading">{groupId ? (viewMode==='members' ? 'Αθλητές του τμήματος' : 'Προσθήκη αθλητή στο τμήμα') : 'Παίκτες & αναθέσεις τμημάτων'}</h2>
+      <p class="admin-muted">{viewMode==='members' && groupId
+        ? 'Ακριβές, επαληθευμένο ρόστερ του επιλεγμένου τμήματος. Κάθε αθλητής έχει ατομικό φάκελο αξιολογήσεων και προστατευμένων εγγράφων.'
+        : 'Προσθέστε αθλητή από τον ίδιο οργανισμό. Η τρέχουσα ανάθεση θα επαληθευτεί ξανά πριν την αποθήκευση.'}</p>
     </div>
     <button type="button" class="admin-secondary" onclick={()=>refresh++} disabled={loading}>
       Ανανέωση παικτών
     </button>
   </div>
+  {#if groupId}
+    <nav class="admin-group-player-views" aria-label="Διαχείριση αθλητών τμήματος" data-testid="admin-group-player-view-switch">
+      <button type="button" class="admin-secondary" aria-pressed={viewMode==='members'} disabled={saving}
+        onclick={()=>{viewMode='members';offset=0;}} data-testid="admin-group-members-view">Μέλη τμήματος</button>
+      <button type="button" class="admin-secondary" aria-pressed={viewMode==='add'} disabled={saving}
+        onclick={()=>{viewMode='add';offset=0;}} data-testid="admin-group-add-player-view">Προσθήκη αθλητή</button>
+    </nav>
+  {/if}
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
   {:else if failed || !page}
@@ -191,7 +219,7 @@
     </div>
   {:else}
     <div class="admin-player-total" role="status">
-      <strong>{page.total}</strong><span>ενεργοί παίκτες στον επιλεγμένο οργανισμό</span>
+      <strong>{page.total}</strong><span>{groupId && viewMode==='members' ? 'ενεργοί αθλητές στο επιλεγμένο τμήμα' : 'επιλέξιμοι ενεργοί αθλητές στον οργανισμό'}</span>
     </div>
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
@@ -219,6 +247,14 @@
               {/if}
               {#if editing===player.id}
                 <div class="admin-player-editor" data-testid="admin-player-assignment-editor">
+                  {#if groupId}
+                    <label class="admin-group-membership-checkbox">
+                      <input type="checkbox" checked={selectedGroups.includes(groupId)}
+                        disabled={saving} onchange={event=>toggleGroup(groupId,event.currentTarget.checked)} />
+                      Συμμετοχή στο επιλεγμένο τμήμα
+                    </label>
+                    <p class="admin-muted">Οι συμμετοχές σε άλλα τμήματα της Ακαδημίας διατηρούνται. Για πρώτη ομάδα, η αλλαγή αντικαθιστά την προηγούμενη ανάθεση.</p>
+                  {:else}
                   {#if owner==='lefteria_fc'}
                     <label for={'admin-player-team-'+player.id}>Ομάδα</label>
                     <select id={'admin-player-team-'+player.id} value={selectedGroups[0]??''}
@@ -241,6 +277,7 @@
                       {/each}
                     </fieldset>
                   {/if}
+                  {/if}
                   <div class="admin-player-editor-buttons">
                     <button type="button" class="admin-secondary" disabled={saving}
                       onclick={()=>void saveAssignment(player)}>{saving?'Αποθήκευση…':'Αποθήκευση'}</button>
@@ -248,8 +285,14 @@
                   </div>
                 </div>
               {:else}
-                <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
-                  onclick={()=>startEditing(player)}>Αλλαγή ανάθεσης</button>
+                {#if !groupId || viewMode==='members' || !currentGroups(player).includes(groupId)}
+                  <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
+                    onclick={()=>startEditing(player)}>{groupId
+                      ? (viewMode==='members' ? 'Αφαίρεση / αλλαγή συμμετοχής' : 'Προσθήκη στο τμήμα')
+                      : 'Αλλαγή ανάθεσης'}</button>
+                {:else}
+                  <span class="admin-player-member-already">Ήδη μέλος τμήματος</span>
+                {/if}
               {/if}
             </div>
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
@@ -272,6 +315,10 @@
 
 <style>
   .admin-player-directory{margin:16px 0}
+  .admin-group-player-views{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0 10px}
+  .admin-group-player-views button[aria-pressed='true']{background:#f4b932;color:#0b0b0b;border-color:#ffc958}
+  .admin-group-membership-checkbox{display:flex;align-items:center;gap:10px;min-height:44px}
+  .admin-player-member-already{color:#a9d0b9;font-weight:700;font-size:12px}
   .admin-player-finance-link{display:inline-flex;align-items:center;min-height:44px;
     padding:9px 13px;border:1px solid #99702f;border-radius:7px;
     color:#ffca46;font-size:13px;font-weight:700}
