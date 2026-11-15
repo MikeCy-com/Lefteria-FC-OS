@@ -23,7 +23,17 @@ export async function loadTeamPage(url: URL): Promise<TeamPageData> {
   const data = await loadSectionPage(url, 'lefteria_fc');
   if (['roster', 'staff', 'gallery', 'venues', 'statistics'].includes(tab) && !data.sectionsAvailable)
     error(503, 'Το περιεχόμενο της ομάδας δεν είναι προσωρινά διαθέσιμο.');
-  return { ...data, tab };
+  const requestedTeam = url.searchParams.get('team_id');
+  // A team selector is a published club ID, never a free-form client scope.
+  // Default to the actual first-team entry; other club teams require an
+  // explicit selection and all downstream data must follow the chosen ID.
+  const teams = (data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc');
+  if (requestedTeam && !teams.some(team => team.id === requestedTeam))
+    error(404, 'Η ομάδα δεν βρέθηκε.');
+  const firstTeam = teams.find(team =>
+    /^(first team|first_team|a.? team|α.? ομάδα|πρώτη ομάδα)$/i.test(team.level?.trim() ?? ''))
+    ?? teams[0];
+  return { ...data, tab, selectedTeamId: requestedTeam ?? firstTeam?.id ?? null };
 }
 
 export function requirePublicId<T extends { id: string }>(rows: readonly T[], value: string): T {
