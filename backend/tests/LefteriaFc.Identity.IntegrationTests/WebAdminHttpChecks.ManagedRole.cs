@@ -82,18 +82,33 @@ internal sealed partial class WebAdminHttpChecks
             await database.ClearManagedRoleTerritoryAsync(target,territory);
         }
 
-        Console.WriteLine("CHECK managed roles: blocked by dormant POS cashier assignment");
-        var terminal=await database.SeedManagedRolePosAssignmentAsync(target);
+        Console.WriteLine("CHECK managed roles: active POS blocks, revoked POS history does not");
+        var cashier=await database.SeedAsync(role:"manager",organizations:["lefteria_fc"]);
+        var cashierRole=new {id=cashier.Id,expected_role="manager",
+            expected_active=true,next_role="coach"};
+        var terminal=await database.SeedManagedRolePosAssignmentAsync(cashier);
         try
         {
-            using(var blocked=await ChangeManagedRoleAsync(client,adminLogin.Cookie,change))
+            using(var blocked=await ChangeManagedRoleAsync(client,adminLogin.Cookie,cashierRole))
                 await ExpectJsonAsync(blocked,409,"managed_admin_role_assignments_exist");
-            Require(await database.CountManagedRoleAuditAsync(target)==0,
+            Require(await database.CountManagedRoleAuditAsync(cashier)==0,
                 "Blocked cashier-role mutation emitted a successful audit.");
+            await database.DeactivateManagedRolePosAssignmentAsync(cashier,terminal);
+            // The historical assignment remains for audit; the active
+            // permission has been explicitly revoked and cannot be revived
+            // without another separately authorized POS operation.
+            using(var allowed=await ChangeManagedRoleAsync(client,adminLogin.Cookie,cashierRole))
+            {
+                var json=await ExpectJsonAsync(allowed,200);
+                Require(json.GetProperty("role").GetString()=="coach",
+                    "Revoked POS assignment still blocked the safe role transition.");
+            }
+            Require(await database.CountManagedRoleAuditAsync(cashier)==1,
+                "The POS-revoked role transition was not audited exactly once.");
         }
         finally
         {
-            await database.ClearManagedRolePosAssignmentAsync(target,terminal);
+            await database.ClearManagedRolePosAssignmentAsync(cashier,terminal);
         }
 
         Console.WriteLine("CHECK managed roles: safe role change and session revocation");
