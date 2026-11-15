@@ -422,6 +422,8 @@ BEGIN
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
+                  'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
+                  'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                    'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
