@@ -33,7 +33,7 @@ test('POS controls retain real page and prevent planned checkout/tools being cli
   assert.ok(catalog.includes("id: 'products', name: 'Κατάλογος προϊόντων'"));
   assert.ok(catalog.includes("status: 'live', href: '/admin/pos'"));
   assert.match(catalog, /id: 'registers'[^\n]*status: 'live', href: '\/admin\/pos'/);
-  assert.match(catalog, /id: 'orders'[^\\n]*status: 'live'/);
+  assert.match(catalog, /id: 'orders'.*status: 'live'/);
   for (const name of ['AdminPosLocationsPanel','AdminPosCashierShiftsPanel']) assert.match(page, new RegExp('<' + name));
   assert.doesNotMatch(page, /\/api\/pos\/(checkout|sales)/);
 });
