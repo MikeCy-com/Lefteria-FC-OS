@@ -29,7 +29,7 @@ internal sealed partial class WebAdminHttpChecks
         var adminLogin=await LoginAsync(client,administrator);
         using var targetClient=Client();
         var targetLogin=await LoginAsync(targetClient,target);
-        var suspend=new {id=target.Id,expectedRole="manager",expectedActive=true,active=false};
+        var suspend=new {id=target.Id,expected_role="manager",expected_active=true,active=false};
 
         Console.WriteLine("CHECK managed status: deny anonymous");
         using(var anonymous=Client())
@@ -44,11 +44,11 @@ internal sealed partial class WebAdminHttpChecks
         }
         Console.WriteLine("CHECK managed status: deny self");
         using(var self=await ChangeStatusAsync(client,adminLogin.Cookie,
-            new {id=administrator.Id,expectedRole="manager",expectedActive=true,active=false}))
+            new {id=administrator.Id,expected_role="manager",expected_active=true,active=false}))
             await ExpectJsonAsync(self,422,"managed_admin_status_invalid");
         Console.WriteLine("CHECK managed status: deny other superadmin");
         using(var otherSuperAdmin=await ChangeStatusAsync(client,adminLogin.Cookie,
-            new {id=limitedAdmin.Id,expectedRole="manager",expectedActive=true,active=false}))
+            new {id=limitedAdmin.Id,expected_role="manager",expected_active=true,active=false}))
         {
             var responseBody=await otherSuperAdmin.Content.ReadAsStringAsync();
             var responseCode=System.Text.RegularExpressions.Regex.Match(responseBody,
@@ -67,11 +67,11 @@ internal sealed partial class WebAdminHttpChecks
         }
         Console.WriteLine("CHECK managed status: compare expected role");
         using(var wrongRole=await ChangeStatusAsync(client,adminLogin.Cookie,
-            new {id=target.Id,expectedRole="coach",expectedActive=true,active=false}))
+            new {id=target.Id,expected_role="coach",expected_active=true,active=false}))
             await ExpectJsonAsync(wrongRole,409,"managed_admin_status_conflict");
         Console.WriteLine("CHECK managed status: deny unknown");
         using(var unknown=await ChangeStatusAsync(client,adminLogin.Cookie,
-            new {id=Guid.NewGuid(),expectedRole="manager",expectedActive=true,active=false}))
+            new {id=Guid.NewGuid(),expected_role="manager",expected_active=true,active=false}))
             await ExpectJsonAsync(unknown,403,"managed_admin_status_denied");
 
         Console.WriteLine("CHECK managed status: suspend");
@@ -97,7 +97,7 @@ internal sealed partial class WebAdminHttpChecks
         // authenticate again using their existing, unchanged credential.
         Console.WriteLine("CHECK managed status: reactivate");
         using(var restored=await ChangeStatusAsync(client,adminLogin.Cookie,
-            new {id=target.Id,expectedRole="manager",expectedActive=false,active=true}))
+            new {id=target.Id,expected_role="manager",expected_active=false,active=true}))
         {
             var json=await ExpectJsonAsync(restored,200);
             Require(json.GetProperty("active").GetBoolean(),"Account was not restored.");

@@ -98,8 +98,8 @@
       const response=await fetch('/api/admin/access/users/status',{
         method:'POST',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({id:account.id,expectedRole:account.role,
-          expectedActive:account.active,active:next})
+        body:JSON.stringify({id:account.id,expected_role:account.role,
+          expected_active:account.active,active:next})
       });
       if(actor!==$auth.session?.user.id)return;
       if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}

@@ -18,8 +18,8 @@ test('Super Admin-only account controls verify request result before refreshing 
   assert.match(page,/data-testid="admin-account-status-toggle"/);
   assert.match(page,/window\.confirm/);
   assert.match(page,/fetch\('\/api\/admin\/access\/users\/status'/);
-  assert.match(page,/expectedRole:account\.role/);
-  assert.match(page,/expectedActive:account\.active/);
+  assert.match(page,/expected_role:account\.role/);
+  assert.match(page,/expected_active:account\.active/);
   assert.match(page,/statusPending/);
   assert.match(page,/account\.role!=='super_admin'/);
   assert.match(page,/account\.id!==\$auth\.session\.user\.id/);
