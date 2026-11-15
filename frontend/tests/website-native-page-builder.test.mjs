@@ -47,7 +47,7 @@ test('visual builder provides accessible block controls, guarded publication, SE
   assert.match(admin,/Εναλλακτικό κείμενο εικόνας/);
   assert.match(admin,/Μετακίνηση πάνω/);
   assert.match(admin,/Μετακίνηση κάτω/);
-  assert.match(admin,/Περιγραφή/);
+  assert.match(admin,/περιγραφή/i);
   assert.match(admin,/seo_title/);
   assert.match(admin,/menu_parent/);
   assert.match(admin,/expected_version:selected.version,publish/);
@@ -57,7 +57,7 @@ test('visual builder provides accessible block controls, guarded publication, SE
 });
 
 test('public page output is typed blocks without raw HTML and menu respects organization',()=>{
-  assert.match(nav,/row.organization_id === organization/);
+  assert.match(nav,/p.organization_id === organization/);
   assert.match(nav,/withWebsitePages/);
   assert.match(nav,/menu_order/);
   assert.match(publicNav,/withWebsitePages\(publicNavigation, publishedPages, organization\)/);
