@@ -2,13 +2,18 @@
   import PublicImage from './PublicImage.svelte';
   import PlayerStatistics from './PlayerStatistics.svelte';
   import type { PublicSections, SectionPlayer, SectionStaff } from './sections-types';
-  let { player, staff, gallery = [], season = null }: { player?: SectionPlayer; staff?: SectionStaff; gallery?: PublicSections['gallery']; season?: string | null } = $props();
+  let { player, staff, gallery = [], season = null, returnTeamId = null }: {
+    player?: SectionPlayer; staff?: SectionStaff; gallery?: PublicSections['gallery'];
+    season?: string | null; returnTeamId?: string | null
+  } = $props();
   const person = $derived(player ?? staff!);
   const isAcademyPlayer = $derived(player?.organization_id === 'lefteria_fc_academy');
+  const teamQuery = $derived(returnTeamId && player?.organization_id === 'lefteria_fc' &&
+    player.team_id === returnTeamId ? '&team_id=' + encodeURIComponent(returnTeamId) : '');
   const facts = $derived(player ? [['ΘΕΣΗ', player.position], ['ΗΛΙΚΙΑ', player.age], ['ΕΘΝΙΚΟΤΗΤΑ', player.nationality], ['ΥΨΟΣ', player.height], ['ΒΑΡΟΣ', player.weight], ['ΠΟΔΙ', player.preferred_foot]] : [['ΡΟΛΟΣ', staff?.role], ['ΕΘΝΙΚΟΤΗΤΑ', staff?.nationality]]);
 </script>
 <section class="person-hero">
-  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : 'ΠΡΩΤΗ ΟΜΑΔΑ') : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' : '/team?tab=staff')}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
+  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : 'ΠΡΩΤΗ ΟΜΑΔΑ') : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff')}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
   <div class="person-portrait"><PublicImage src={person.image_url} alt={person.name} eager /></div>
 </section>
 {#if player}
@@ -21,7 +26,7 @@
 {/if}
 <section id="player-overview" class="public-section person-content">
   <dl class="person-facts">{#if season}<div><dt>Σεζόν</dt><dd>{season}</dd></div>{/if}{#each facts as [label, value]}{#if value !== null && value !== undefined && value !== ''}<div><dt>{label}</dt><dd>{value}</dd></div>{/if}{/each}</dl>
-  {#if player}<section id="player-statistics"><h2>ΣΤΑΤΙΣΤΙΚΑ</h2><PlayerStatistics statistics={player.statistics} />{#if !isAcademyPlayer}<a href="/team?tab=statistics">Στατιστικά πρώτης ομάδας →</a>{/if}</section>{/if}
+  {#if player}<section id="player-statistics"><h2>ΣΤΑΤΙΣΤΙΚΑ</h2><PlayerStatistics statistics={player.statistics} />{#if !isAcademyPlayer}<a href={'/team?tab=statistics' + teamQuery}>Στατιστικά ομάδας →</a>{/if}</section>{/if}
   {#if person.bio}<section id={player ? 'player-biography' : undefined} class="person-story"><p class="public-eyebrow">ΤΟ ΠΡΟΦΙΛ</p><h2>ΓΝΩΡΙΣΕ ΤΟΝ {player ? 'ΠΑΙΚΤΗ' : 'ΑΝΘΡΩΠΟ'}</h2><p class="preserve-lines">{person.bio}</p></section>{/if}
   {#if player?.previous_clubs.length}<section id={player.bio ? undefined : 'player-biography'} class="person-story"><h2>ΠΡΟΗΓΟΥΜΕΝΕΣ ΟΜΑΔΕΣ</h2><ul>{#each player.previous_clubs as club}<li>{club.club_name}</li>{/each}</ul></section>{/if}
     {#if gallery.length}
