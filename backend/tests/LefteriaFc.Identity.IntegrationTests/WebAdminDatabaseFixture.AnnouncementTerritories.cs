@@ -109,7 +109,7 @@ internal sealed partial class WebAdminDatabaseFixture
               ON p.organization_id=g.organization_id AND p.group_id=g.id
             WHERE g.organization_id='lefteria_fc_academy' AND g.id=@id
               AND m.city_id=@city AND m.location_id=@location
-              AND p.revision=1
+              AND p.revision=1 AND NOT p.is_public
             """,con);
         cmd.Parameters.AddWithValue("id",groupId);
         cmd.Parameters.AddWithValue("city",city);
@@ -117,6 +117,12 @@ internal sealed partial class WebAdminDatabaseFixture
         if((int)(await cmd.ExecuteScalarAsync())! !=1)
             throw new InvalidOperationException(
               "Cohort, site assignment and original profile were not atomic.");
+        await using var publicView=new NpgsqlCommand(
+            "SELECT club.read_public_academy_group_directory()::text",con);
+        var json=(string?)await publicView.ExecuteScalarAsync() ?? "";
+        if(json.Contains(groupId,StringComparison.Ordinal))
+            throw new InvalidOperationException(
+              "A newly created unapproved Academy group reached the public directory.");
     }
 
     public async Task CleanupScopedAcademyGroupsAsync(Account actor,
