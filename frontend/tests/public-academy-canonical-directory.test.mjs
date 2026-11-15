@@ -18,7 +18,57 @@ test('Academy directory reads canonical groups rather than exposing disconnected
   assert.match(migration,/club\.roster_import_state WHERE id='initial'/);
   for(const key of ['id','name','age_range','city','location_name','training_schedule','description','banner_url','season','display_order'])
     assert.ok(migration.includes("'"+key+"'"),'Missing public group field '+key);
-  assert.doesNotMatch(migration,/player_phone|medical_notes|guardian|parent_contact|password_hash/);
+  const sqlProjection = migration.split('AS $public_academy
+});
+
+test('Academy group database bridge enforces restricted reader, retains original presentation and checks real PostgreSQL',()=>{
+  const migration=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115110000_CanonicalAcademyPublicDirectory.cs');
+  const grants=get('ops/postgres/identity-app-grants.sql');
+  const privilege=get('ops/postgres/identity-app-permissions-check.sql');
+  const checks=get('ops/postgres/public-academy-directory-checks.sql');
+  const ci=get('.github/workflows/rewrite-build.yml');
+  assert.match(migration,/LANGUAGE sql STABLE SECURITY DEFINER/);
+  assert.match(migration,/SET search_path=pg_catalog,pg_temp/);
+  assert.match(migration,/REVOKE ALL ON FUNCTION club\.read_public_academy_group_directory\(\)/);
+  assert.match(grants,/REVOKE ALL ON TABLE club\.academy_group_profiles FROM PUBLIC, :"app_role";/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_public_academy_group_directory\(\)/);
+  assert.match(grants,/prosecdef IS DISTINCT FROM true/);
+  assert.match(grants,/has_any_column_privilege/);
+  assert.match(privilege,/club\.read_public_academy_group_directory\(\)/);
+  assert.match(privilege,/has_column_privilege\(current_user,'club\.academy_groups','name','SELECT'\)/);
+  assert.match(checks,/v_ghost/);
+  assert.match(checks,/Manager updated public profile/);
+  assert.match(checks,/jsonb_object_keys\(v_group\)/);
+  assert.match(checks,/ROLLBACK;/);
+  assert.match(ci,/public-academy-directory-checks\.sql/);
+});
+)[1]?.split('$public_academy
+});
+
+test('Academy group database bridge enforces restricted reader, retains original presentation and checks real PostgreSQL',()=>{
+  const migration=get('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115110000_CanonicalAcademyPublicDirectory.cs');
+  const grants=get('ops/postgres/identity-app-grants.sql');
+  const privilege=get('ops/postgres/identity-app-permissions-check.sql');
+  const checks=get('ops/postgres/public-academy-directory-checks.sql');
+  const ci=get('.github/workflows/rewrite-build.yml');
+  assert.match(migration,/LANGUAGE sql STABLE SECURITY DEFINER/);
+  assert.match(migration,/SET search_path=pg_catalog,pg_temp/);
+  assert.match(migration,/REVOKE ALL ON FUNCTION club\.read_public_academy_group_directory\(\)/);
+  assert.match(grants,/REVOKE ALL ON TABLE club\.academy_group_profiles FROM PUBLIC, :"app_role";/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_public_academy_group_directory\(\)/);
+  assert.match(grants,/prosecdef IS DISTINCT FROM true/);
+  assert.match(grants,/has_any_column_privilege/);
+  assert.match(privilege,/club\.read_public_academy_group_directory\(\)/);
+  assert.match(privilege,/has_column_privilege\(current_user,'club\.academy_groups','name','SELECT'\)/);
+  assert.match(checks,/v_ghost/);
+  assert.match(checks,/Manager updated public profile/);
+  assert.match(checks,/jsonb_object_keys\(v_group\)/);
+  assert.match(checks,/ROLLBACK;/);
+  assert.match(ci,/public-academy-directory-checks\.sql/);
+});
+)[0] ?? '';
+  assert.ok(sqlProjection.length > 100,'Actual public SQL body must exist');
+  assert.doesNotMatch(sqlProjection,/player_phone|medical_notes|guardian|parent_contact|password_hash/);
 });
 
 test('Academy group database bridge enforces restricted reader, retains original presentation and checks real PostgreSQL',()=>{
