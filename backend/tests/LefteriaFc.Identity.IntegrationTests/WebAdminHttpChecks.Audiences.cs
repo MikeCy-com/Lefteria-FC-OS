@@ -140,6 +140,35 @@ internal sealed partial class WebAdminHttpChecks
                             listing.GetProperty("unassigned_players").GetInt32()==0,
                             "Revoked manager retained an old audience selector.");
                     }
+
+                // The city manager may see both Academy sites in their city,
+                // while a city grant does not confer First Team access.
+                await database.GrantAnnouncementCityAsync(scopedManager,territory);
+                using(var allowed=await GetAsync(managerClient,AcademyAudiencePath,scoped.Cookie))
+                {
+                    var listing=await ExpectJsonAsync(allowed,200);
+                    Require(listing.GetProperty("groups").GetArrayLength()==2 &&
+                        GetGroup(listing,fixture.Group1).GetProperty("active_players").GetInt32()==1 &&
+                        GetGroup(listing,fixture.Group2).GetProperty("active_players").GetInt32()==2 &&
+                        listing.GetProperty("unassigned_players").GetInt32()==0,
+                        "Academy city manager did not see both city locations.");
+                }
+                using(var fc=await GetAsync(managerClient,FcAudiencePath,scoped.Cookie))
+                    Require((await ExpectJsonAsync(fc,200))
+                        .GetProperty("groups").GetArrayLength()==0,
+                        "Academy city grant crossed the First Team trust boundary.");
+            }
+
+            // Editorial account roles have no explicit team/site grant model
+            // and must not use this broad selector as a private group finder.
+            var editor=await database.SeedAsync(role:"editor",
+                organizations:["lefteria_fc","lefteria_fc_academy"]);
+            using(var editorClient=Client())
+            {
+                var editorSession=await LoginAsync(editorClient,editor);
+                foreach(var path in new[]{FcAudiencePath,AcademyAudiencePath})
+                    using(var denied=await GetAsync(editorClient,path,editorSession.Cookie))
+                        await ExpectJsonAsync(denied,403,"not_authorized");
             }
 
             await database.RemoveAudienceMembershipAsync(fixture);
