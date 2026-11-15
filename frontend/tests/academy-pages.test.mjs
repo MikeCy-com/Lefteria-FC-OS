@@ -144,6 +144,11 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     // Legacy free-text city and location names are not verified geographic
     // assignments; retain the published group while labelling it unassigned.
     assert.match(landingHtml,/data-testid="academy-landing-unassigned-groups"/);
+    assert.match(landingHtml,/data-organization="lefteria_fc_academy"/);
+    assert.match(landingHtml,/ΚΑΘΕ ΠΟΛΗ/);
+    assert.match(landingHtml,/footer-nav-groups/);
+    assert.match(landingHtml,/footer-nav-sponsors/);
+    assert.doesNotMatch(landingHtml,/footer-nav-team/);
     assert.doesNotMatch(landingHtml,/data-testid="academy-landing-verified-city"/);
     assert.doesNotMatch(landingHtml,/Άλλη περιοχή/);
 
