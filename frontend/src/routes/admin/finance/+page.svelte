@@ -21,7 +21,8 @@
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const organizations = $derived(
     $auth.status === 'authenticated' && $auth.session &&
-    hasAdminPermission($auth.session.user.permissions, 'finance:read')
+    hasAdminPermission($auth.session.user.permissions, 'finance:read') &&
+    ['super_admin','accountant'].includes($auth.session.user.role)
       ? $auth.session.user.organizations.filter((org): org is typeof org & { id: Owner } =>
           org.id === 'lefteria_fc' || org.id === 'lefteria_fc_academy') : []
   );
@@ -289,7 +290,7 @@
         </section>
       {/if}
     {:else}
-      <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα ανάγνωσης οικονομικών για ενεργό οργανισμό.</section>
+      <section class="admin-panel" role="alert">Τα οικονομικά όλου του οργανισμού είναι διαθέσιμα μόνο σε Super Admin και Λογιστή με πρόσβαση στον οργανισμό. Οι διαχειριστές τοποθεσίας βλέπουν μόνο τα στοιχεία της θέσης τους στη διαχείριση Ακαδημίας και POS.</section>
     {/if}
   </AdminFrame>
 {/if}
