@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/media' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/media' | '/admin/sponsors' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -25,7 +25,7 @@ const catalog: readonly Section[] = [
     { id: 'pages', name: 'Σελίδες · Visual Builder', description: 'Δημιουργία σελίδων, οπτική προεπισκόπηση, διάταξη μενού και δημοσίευση με έγκριση ανά οργανισμό.', status: 'live', href: '/admin/website-pages', scope: 'any', anyPermission: ['news:read'] },
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
     { id: 'news', name: 'Άρθρα & νέα', description: 'Επεξεργασία δημοσιευμένων άρθρων και ιδιωτικά πρόχειρα ανά οργανισμό. Νέα δημοσίευση και έγκριση εκκρεμούν.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
-    { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
+    { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Επαληθευμένες εγγραφές με ιδιωτικά πρόχειρα, έγκριση, έκδοση και απομονωμένη δημοσίευση ανά οργανισμό. Προσθήκη νέων εγγραφών δεν είναι ακόμη ενεργή.', status: 'live', href: '/admin/sponsors', scope: 'any', anyPermission: ['sponsors:read'] },
     { id: 'media', name: 'Βιβλιοθήκη εικόνων', description: 'Πραγματικό αρχείο ήδη δημοσιευμένων εικόνων ανά οργανισμό και ασφαλής επιλογή στον Visual Builder. Μεταφορτώσεις και διαγραφές παραμένουν ανενεργές.', status: 'live', href: '/admin/media', scope: 'any', anyPermission: ['gallery:read'] },
     { id: 'social', name: 'Social Control Centre', description: 'Επίσημοι κοινωνικοί λογαριασμοί.', status: 'planned', scope: 'any', anyPermission: ['social:write'] }
   ] },
