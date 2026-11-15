@@ -1,3 +1,4 @@
+using LefteriaFc.Application.MobileAuth;
 using System.Data.Common;
 using System.Text.RegularExpressions;
 using LefteriaFc.Application.WebAdmin;
@@ -24,7 +25,15 @@ public static class WebAdminRequestGuards
                     await Reject(context, 403, "request_origin_denied", "The request origin is not allowed.");
                     return;
                 }
-                if (!context.Request.HasJsonContentType())
+                // A single private self-profile photo may be multipart. Every
+                // other admin write still requires JSON, and all writes still
+                // require the existing exact Origin + custom-header guard.
+                var ownPhotoUpload = HttpMethods.IsPost(context.Request.Method) &&
+                    context.Request.Path == "/api/admin/auth/profile/photo";
+                var approvedPhotoForm = ownPhotoUpload &&
+                    context.Request.ContentType?.StartsWith(
+                        "multipart/form-data;", StringComparison.OrdinalIgnoreCase) == true;
+                if (!context.Request.HasJsonContentType() && !approvedPhotoForm)
                 {
                     await Reject(context, 415, "json_required", "A JSON request is required.");
                     return;
@@ -41,7 +50,8 @@ public static class WebAdminRequestGuards
                     Regex.IsMatch(context.Request.Path.Value ?? "",
                       @"\A/api/admin/hub/editorial/[0-9a-fA-F-]{36}/images/quarantine\z",
                       RegexOptions.CultureInvariant);
-                var limit = hubImagePath ? 2 * 1024 * 1024 + 8192 :
+                var limit = ownPhotoUpload ? MobileAvatarLimits.RequestBytes :
+                    hubImagePath ? 2 * 1024 * 1024 + 8192 :
                     mediaPath ? 4 * 1024 * 1024 + 128 * 1024 :
                     HttpMethods.IsPut(context.Request.Method) && context.Request.Path == "/api/admin/club"
                     ? 1024 * 1024 :
