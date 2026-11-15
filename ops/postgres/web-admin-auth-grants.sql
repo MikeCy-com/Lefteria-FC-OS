@@ -266,6 +266,17 @@ GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_r
 -- the reviewed function. No SELECT/INSERT rights on club player/team tables.
 REVOKE ALL ON FUNCTION club.create_admin_group(text,text,text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_group(text,text,text,text) TO :"admin_auth_role";
+-- Original profiled First Team creation and the new exact Academy location
+-- transaction are separate reviewed functions. Both recheck the live
+-- session and current permissions before any canonical insert.
+REVOKE ALL ON FUNCTION club.create_admin_group_with_profile(
+  text,text,text,text,uuid,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_group_with_profile(
+  text,text,text,text,uuid,jsonb) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.create_admin_academy_location_group_with_profile(
+  text,text,text,uuid,jsonb,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_academy_location_group_with_profile(
+  text,text,text,uuid,jsonb,uuid) TO :"admin_auth_role";
 -- Only an audited, per-player version-checked membership transaction is callable.
 -- No raw roster or group table write privileges are granted.
 REVOKE ALL ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
