@@ -24,7 +24,7 @@ This is an inspection dashboard, NOT a subscriber directory, a finance reconcili
 
 ## Staging acceptance
 
-1. On **isolated, disposable PostgreSQL**, apply migration 20261115910000_HubFanAdminOverview, run web-admin grants and the new privilege check. Confirm rollback and reapply.
+1. On **isolated, disposable PostgreSQL**, apply migration 20261115920000_HubFanAdminOverview, run web-admin grants and the new privilege check. Confirm rollback and reapply.
 2. Confirm anonymous -> 401, accountant/editor/manager -> 403, valid Super Admin with wrong organization -> 403, revoked session/account/org grant -> denied; valid same-organization Super Admin -> 200 with only aggregate fields.
 3. Seed synthetic fan subscriptions for pending, paid captured, failed checkout, expired, role-swapped and signed refund/reversal; verify only captured unexpired unrefunded active fan records contribute to verified-active.
 4. Ensure Academy and First Team counts and plan prices never cross, and an active row without signed finance proof does not count verified.
@@ -33,3 +33,7 @@ This is an inspection dashboard, NOT a subscriber directory, a finance reconcili
 ## Follow-on work (not implemented here)
 
 A real subscription admin ledger with subscriber search, invoice access, manual refunds, renewal management, consent and data retention requires separate per-account entitlements and audited finance policy. Automatic recurring cards, webhook replay testing in isolated Payabl sandbox, notification delivery and provider security/privacy review must be separately approved before production readiness.
+
+## Parallel migration note
+
+The latest main branch contains two separate migrations with the timestamp 20261115910000 (CRM registration inbox and player-goal territory origin). This change deliberately uses 20261115920000 for the HUB migration to avoid adding a third collision. The pre-existing duplicate in main needs an independently coordinated migration-history correction before production readiness; do not silently rewrite migration history on an already deployed database.
