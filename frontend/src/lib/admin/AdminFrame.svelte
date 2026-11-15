@@ -92,7 +92,7 @@
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΟΙΚΟΝΟΜΙΚΑ & ΚΑΤΑΣΤΗΜΑ</p>
           {#if liveIds.has('payabl')}<a class="admin-nav-section" href="/admin/finance" aria-current={active==='finance'?'page':undefined} data-testid="admin-payabl-link">Οικονομικά</a>{/if}
-          {#if liveIds.has('products') || liveIds.has('registers')}<a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined} data-testid="admin-pos-link">{$auth?.role === 'cashier' ? 'Το ταμείο μου' : 'POS & προϊόντα'}</a>{/if}
+          {#if liveIds.has('products') || liveIds.has('registers')}<a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined} data-testid="admin-pos-link">{user.role === 'cashier' ? 'Το ταμείο μου' : 'POS & προϊόντα'}</a>{/if}
         </div>
       {/if}
       {#if hasOperations}
