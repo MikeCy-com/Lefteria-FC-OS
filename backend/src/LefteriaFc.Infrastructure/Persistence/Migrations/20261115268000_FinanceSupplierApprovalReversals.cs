@@ -1007,5 +1007,5 @@ public sealed class FinanceSupplierApprovalReversals : Migration
             text,text,uuid,text,uuid,text);
           DROP TABLE finance.supplier_review_reversal_decisions;
           DROP TABLE finance.supplier_review_reversal_requests;
-          """);
+      """);
 }
