@@ -87,7 +87,12 @@ export function validPlayerClassroomPage(value:unknown,expected:PlayerClassroomO
        !int(subject.completed_quizzes,520)||
        (subject.completed_quizzes as number)>(subject.published_quizzes as number)||
        !int(subject.correct_answers,10400)||!int(subject.total_answers,10400)||
-       (subject.correct_answers as number)>(subject.total_answers as number))
+       (subject.correct_answers as number)>(subject.total_answers as number)||
+       (subject.completed_quizzes===0&&
+         (subject.correct_answers!==0||subject.total_answers!==0))||
+       (subject.completed_quizzes as number)>0&&
+         ((subject.total_answers as number)<(subject.completed_quizzes as number)*3||
+          (subject.total_answers as number)>(subject.completed_quizzes as number)*20))
       return false;
     seen.add(String(subject.topic));
   }
