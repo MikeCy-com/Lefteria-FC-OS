@@ -1,5 +1,6 @@
 <script lang="ts">
   import PublicImage from './PublicImage.svelte';
+  import { catalogHref } from './PublicCatalog';
   import type { PublicSections } from './sections-types';
   import type { PublicOrganization } from './types';
 
@@ -25,7 +26,7 @@
     </div>
     <div class="organization-sponsor-grid">
       {#each matching as sponsor (`${sponsor.organization_id}:${sponsor.id}`)}
-        <a class="organization-sponsor" href={directory} aria-label={`Χορηγοί ${owner}: ${sponsor.name}`}
+        <a class="organization-sponsor" href={catalogHref('sponsors',sponsor,sponsor.name) + '&list_scope=' + (organization === 'lefteria_fc_academy' ? 'academy' : 'first_team')} aria-label={`Χορηγοί ${owner}: ${sponsor.name}`}
           data-testid="organization-sponsor-logo">
           {#if sponsor.logo_url}
             <PublicImage src={sponsor.logo_url} alt={sponsor.name}/>
