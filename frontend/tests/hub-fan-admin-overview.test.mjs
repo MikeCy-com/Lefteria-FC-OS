@@ -12,6 +12,7 @@ const app=read('frontend/src/routes/admin/hub/subscriptions/+page.svelte');
 const dto=read('frontend/src/lib/admin/hub-fan-overview.ts');
 const catalog=read('frontend/src/lib/admin/module-catalog.ts');
 const edge=read('deploy/preview/generate-edge.mjs');
+const frame=read('frontend/src/lib/admin/AdminFrame.svelte');
 
 test('fan overview SQL is Super Admin only, lock-verified and exact organization-scoped',()=>{
   assert.match(sql,/hub\.read_admin_fan_subscription_overview\(_digest text,_owner text\)/);
@@ -89,4 +90,7 @@ test('admin workspace is read-only, role-gated and rejects unverified summary pa
   assert.match(dto,/counts\.verified_active as number/);
   assert.match(catalog,/id === 'hub_subscriptions'\) return user\.role==='super_admin'/);
   assert.match(catalog,/status: 'live', href: '\/admin\/hub\/subscriptions'/);
+  assert.match(frame,/liveIds\.has\('hub_subscriptions'\)/);
+  assert.match(frame,/href="\/admin\/hub\/subscriptions"/);
+  assert.match(app,/active="hub-subscriptions"/);
 });
