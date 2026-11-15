@@ -96,6 +96,7 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Admin roster players are manager-only and reflect private scoped memberships", AdminRosterPlayerDirectoryAsync),
         ("Admin roster membership writes are scoped, audited and conflict-checked", AdminRosterAssignmentsAsync),
         ("Territory managers cannot enumerate mixed-site players or transfer children outside assigned sites", AdminRosterTerritoryManagerAsync),
+        ("Profile and visibility editing enforce exact team and active Academy site grants", AdminGroupProfileTerritoryBoundaryAsync),
         ("Academy location groups are created atomically with original profiles and exact territory grants", AdminAcademyLocationGroupCreationAsync),
         ("Admin coach directory preserves owner-scoped canonical staff relations", AdminCoachDirectoryAsync),
         ("Admin coach assignment writes are owner-scoped and preserve designated coach links", AdminCoachAssignmentsAsync),
