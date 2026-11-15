@@ -8,7 +8,7 @@
 
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches' | 'staff' | 'users' | 'territories'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches' | 'staff' | 'users' | 'territories' | 'profile'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -27,6 +27,7 @@
     <div class="admin-actions">
       <a class="admin-public-link" href="/" aria-label="Προβολή δημόσιας ιστοσελίδας">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
       <a class="admin-public-link" href="/app" aria-label="Άνοιγμα εφαρμογής μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
+      <a class="admin-profile-link" href="/admin/profile" aria-label="Το προφίλ μου" aria-current={active === 'profile' ? 'page' : undefined}><span class="admin-profile-avatar" aria-hidden="true">{(user.name || user.username).slice(0,1).toUpperCase()}</span> Το προφίλ μου</a>
       <button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
     </div>
   </header>
@@ -38,7 +39,7 @@
         <div class="admin-nav-group">
           <p class="admin-nav-label">{section.name}</p>
           <a class="admin-nav-section" href={'/admin#workspace-' + section.id}>{section.name} <span aria-hidden="true">›</span></a>
-          {#if section.id === 'website' && canReadClub(user)}
+          {#if section.id === 'operations' && canReadClub(user)}
             <a class="admin-nav-tool" href="/admin/club" aria-current={active === 'club' ? 'page' : undefined} data-testid="admin-club-link">Προφίλ συλλόγου</a>
           {/if}
           {#if section.id === 'website' && section.modules.some(item => item.id === 'news' && item.status === 'live')}
@@ -104,9 +105,9 @@
       {/each}
       <div class="admin-nav-group">
         <p class="admin-nav-label">ΛΟΓΑΡΙΑΣΜΟΣ</p>
-        <a href="/admin#account">Στοιχεία</a>
-        <a href="/admin#session">Σύνδεση</a>
-        <a href="/admin#access">Δικαιώματα πρόσβασης</a>
+        <a href="/admin/profile">Το προφίλ μου</a>
+        <a href="/admin/profile#session">Σύνδεση</a>
+        <a href="/admin/profile#access">Δικαιώματα πρόσβασης</a>
       </div>
       <div class="admin-sidebar-context">
         <span>ΣΥΝΔΕΔΕΜΕΝΟΣ ΩΣ</span><strong>{user.name || user.username}</strong><small>{roleName}</small>
