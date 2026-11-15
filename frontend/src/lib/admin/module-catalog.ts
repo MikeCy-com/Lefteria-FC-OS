@@ -40,7 +40,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
     { id: 'leads', name: 'Ενδιαφερόμενοι Ακαδημίας', description: 'Ιδιωτικός κατάλογος αιτημάτων και ελεγχόμενη καταχώριση επικοινωνίας (χωρίς αυτόματη εγγραφή ή αποστολή).', status: 'live', href: '/admin/leads', scope: 'academy', anyPermission: ['marketing:read'] },
-    { id: 'registrations', name: 'Γραμματεία Ακαδημίας', description: 'Αιτήσεις εγγραφής, έλεγχος στοιχείων κηδεμόνων και εσωτερικές παραγγελίες. Η ένταξη στο ρόστερ ολοκληρώνεται χωριστά.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
+    { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Ενιαία λίστα ηλεκτρονικών και χειροκίνητων αιτήσεων, έλεγχος κηδεμόνων και εσωτερικές παραγγελίες. Η εγκεκριμένη αίτηση δεν προσθέτει ακόμη τον παίκτη στο ρόστερ.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
