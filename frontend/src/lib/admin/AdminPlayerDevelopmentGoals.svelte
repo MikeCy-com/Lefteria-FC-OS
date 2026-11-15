@@ -24,9 +24,10 @@
   ];
   const steps=Array.from({length:11},(_,i)=>i*10);
 
-  let {owner,playerId,playerName,actorId,assessments=[],onExpired,onRevoked}:{
+  let {owner,playerId,playerName,actorId,assessments=[],readOnly=false,onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;
     assessments?:{id:string;summary:string|null;created_at:string}[];
+    readOnly?:boolean;
     onExpired:()=>void;onRevoked:()=>void
   }=$props();
   let goals=$state<Goal[]>([]),loading=$state(false),saving=$state(false);
@@ -78,6 +79,7 @@
 
   $effect(()=>{
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
+    const expectedReadOnly=readOnly;
     void refresh;
     goals=[];error='';notice='';editing=null;loading=false;
     if(!browser||!expectedActor||!validId(expectedPlayer))return;
@@ -91,13 +93,18 @@
         });
         if(controller.signal.aborted)return;
         if(response.status===401){onExpired();return;}
-        if(response.status===403){onRevoked();return;}
+        if(response.status===403){
+          if(expectedReadOnly){
+            error='Δεν επιτρέπεται η προβολή στόχων για την τρέχουσα τοποθεσία ή ομάδα.';
+          }else onRevoked();
+          return;
+        }
         if(!response.ok)throw Error('Οι στόχοι ανάπτυξης δεν είναι διαθέσιμοι.');
         const raw:unknown=await response.json();
         if(!validPage(raw,expectedOwner,expectedPlayer))
           throw Error('Μη επαληθευμένη απάντηση ανάπτυξης αθλητή.');
         if(!controller.signal.aborted&&owner===expectedOwner&&
-          playerId===expectedPlayer&&actorId===expectedActor)
+          playerId===expectedPlayer&&actorId===expectedActor&&readOnly===expectedReadOnly)
           goals=raw.goals;
       }catch{
         if(!controller.signal.aborted)error='Αποτυχία ανάκτησης ατομικών στόχων.';
@@ -107,7 +114,7 @@
   });
 
   async function createGoal(){
-    if(!browser||saving||loading||title!==title.trim()||
+    if(!browser||readOnly||saving||loading||title!==title.trim()||
       title.length<1||title.length>200||description.length>2000)return;
     if(!createRequest)createRequest=crypto.randomUUID();
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
@@ -138,12 +145,12 @@
   }
 
   function edit(goal:Goal){
-    if(goal.status==='archived'||saving)return;
+    if(readOnly||goal.status==='archived'||saving)return;
     editing=goal.id;editProgress=goal.progress;editNote='';
     archive=false;editRequest='';error='';notice='';
   }
   async function updateGoal(goal:Goal){
-    if(!browser||saving||loading||editing!==goal.id||
+    if(!browser||readOnly||saving||loading||editing!==goal.id||
       !steps.includes(editProgress)||editNote.length>500)return;
     if(!editRequest)editRequest=crypto.randomUUID();
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
@@ -174,17 +181,25 @@
 </script>
 
 <section class="development-goals" data-testid="admin-player-development-goals"
+  data-access-mode={readOnly?'read-only':'manage'}
   aria-label={'Ατομικοί στόχοι '+playerName}>
   <div class="goals-heading">
     <h4>Ατομικοί στόχοι ανάπτυξης ({goals.length})</h4>
-    <button type="button" class="admin-secondary" disabled={loading||saving}
-      onclick={()=>showCreate=!showCreate}>
-      {showCreate?'Κλείσιμο':'Νέος στόχος'}
-    </button>
+    {#if !readOnly}
+      <button type="button" class="admin-secondary" disabled={loading||saving}
+        onclick={()=>showCreate=!showCreate}>
+        {showCreate?'Κλείσιμο':'Νέος στόχος'}
+      </button>
+    {/if}
   </div>
   <p class="admin-muted">Συνδέονται με τον μόνιμο φάκελο του αθλητή, όχι με μία μόνο σεζόν.
     Οι ολοκληρωμένοι στόχοι παραμένουν στο ιστορικό.</p>
-  {#if showCreate}
+  {#if readOnly}
+    <p class="admin-muted">Προβολή μόνο: εμφανίζονται αποκλειστικά στόχοι που επαληθεύτηκαν
+      για την τρέχουσα τοποθεσία και την τοποθεσία καταχώρισής τους. Η επεξεργασία
+      και η πρόσβαση σε άλλους ιδιωτικούς φακέλους δεν επιτρέπονται.</p>
+  {/if}
+  {#if showCreate&&!readOnly}
     <form class="goal-form" onsubmit={e=>{e.preventDefault();void createGoal();}}>
       <label>Τίτλος στόχου
         <input required maxlength="200" bind:value={title} oninput={resetCreateRequest}/>
@@ -245,13 +260,13 @@
           <p class="admin-muted">Προβάλλονται οι 50 πιο πρόσφατες αλλαγές. Το πλήρες ιστορικό διατηρείται.</p>
         {/if}
       </details>
-      {#if goal.status!=='archived'}
+      {#if goal.status!=='archived'&&!readOnly}
         <button type="button" class="admin-secondary" disabled={saving}
           onclick={()=>editing===goal.id?editing=null:edit(goal)}>
           {editing===goal.id?'Ακύρωση':'Ενημέρωση προόδου'}
         </button>
       {/if}
-      {#if editing===goal.id}
+      {#if editing===goal.id&&!readOnly}
         <form class="goal-form" onsubmit={e=>{e.preventDefault();void updateGoal(goal);}}>
           <label>Πρόοδος
             <select bind:value={editProgress} onchange={resetEditRequest}>
