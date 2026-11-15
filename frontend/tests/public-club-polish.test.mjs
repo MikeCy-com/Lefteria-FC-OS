@@ -31,3 +31,14 @@ test('mobile accessibility and reduced motion remain first-class',()=>{
   assert.match(css,/focus-visible/);
   assert.match(css,/--public-gold/);
 });
+
+test('homepage organization boundaries are visible in the media and fixture selectors',()=>{
+  const hero = source('HomeHero.svelte');
+  const cards = source('HomeDestinations.svelte');
+  const spotlight = source('HomeAcademySpotlight.svelte');
+  assert.match(hero,/site\?\.fixtures\.filter\(row => row\.organization_id === 'lefteria_fc'\)/);
+  assert.match(cards,/firstTeamHeroBanner\(site\?\.teams\)/);
+  assert.match(cards,/group\.organization_id === 'lefteria_fc_academy'/);
+  assert.match(cards,/Πρόγραμμα & αποτελέσματα/);
+  assert.match(spotlight,/group\.organization_id === 'lefteria_fc_academy'/);
+});
