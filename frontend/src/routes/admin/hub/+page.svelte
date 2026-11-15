@@ -37,6 +37,8 @@
   let humanParent=$state(true),humanPlayer=$state(false);
   let humanAgeRestricted=$state(false),humanAgeMin=$state(6),humanAgeMax=$state(18);
   let statusFilter=$state<'all'|HubState>('all');
+  let revisionTitle=$state(''),revisionBody=$state('');
+  let imageAlt=$state(''),imageFile=$state<File|null>(null),imageInputKey=$state(0);
   const filteredItems=$derived(items.filter(item=>statusFilter==='all'||item.status===statusFilter));
   const statusLabels:Record<HubState,string>={
     ai_draft:'Πρόχειρο',review_required:'Για έλεγχο',approved:'Εγκεκριμένο',
@@ -59,6 +61,7 @@
     const owner=organization,actor=$auth.session?.user.id,generation=reload;
     void actor;void generation;
     items=[];detail=null;detailRequest++;inspected=[];showPreview=null;error=null;
+    revisionTitle='';revisionBody='';imageFile=null;imageAlt='';imageInputKey++;
     if(!browser||!owner||!permitted.includes(owner))return;
     const abort=new AbortController();
     loading=true;
@@ -84,6 +87,7 @@
     const owner=organization,actor=$auth.session?.user.id;
     if(!owner||item.organization_id!==owner||busy)return;
     const request=++detailRequest;detail=null;inspected=[];showPreview=null;
+    revisionTitle='';revisionBody='';imageFile=null;imageAlt='';imageInputKey++;
     error=null;success=null;
     try{
       const reply=await fetch('/api/admin/hub/editorial/'+encodeURIComponent(item.id)+
@@ -94,7 +98,7 @@
       const data:unknown=await reply.json();
       if(!validHubDetail(data,owner)||data.id!==item.id)throw new Error();
       if(request!==detailRequest||organization!==owner||$auth.session?.user.id!==actor)return;
-      detail=data;
+      detail=data;revisionTitle=data.title;revisionBody=data.body;
     }catch{
       if(request===detailRequest)error='Δεν επαληθεύτηκαν τα στοιχεία αυτού του άρθρου.';
     }
@@ -186,6 +190,128 @@
       humanTitle='';humanBody='';success='Το ανθρώπινο πρόχειρο αποθηκεύτηκε ιδιωτικά. Απαιτείται ξεχωριστός έλεγχος και δημοσίευση.';
       statusFilter='ai_draft';reload++;
     }catch{error='Η αποθήκευση του προχείρου δεν επιβεβαιώθηκε. Ελέγξτε τα στοιχεία και ανανεώστε.';}
+    finally{busy=false;}
+  }
+
+  function reviewInputValid(title:string,body:string):boolean{
+    return title.length>=1&&title.length<=180&&body.length>=1&&body.length<=20000&&
+      !Array.from(title+body).some(char=>/\p{Cc}/u.test(char));
+  }
+  async function reviseDraft(){
+    const source=detail,owner=organization,actor=$auth.session?.user.id;
+    if(!source||!owner||!canWrite||busy||source.status!=='ai_draft'||source.organization_id!==owner)return;
+    const title=revisionTitle.trim(),body=revisionBody.trim();
+    if(!reviewInputValid(title,body)){
+      error='Ο τίτλος ή το κείμενο είναι άκυρο. Το υπάρχον API δεν υποστηρίζει αλλαγές γραμμής.';return;
+    }
+    if(title===source.title&&body===source.body){error='Δεν υπάρχουν αλλαγές προς αποθήκευση.';return;}
+    busy=true;error=null;success=null;
+    try{
+      const response=await fetch('/api/admin/hub/editorial/'+encodeURIComponent(source.id)+
+        '/revise?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({version:source.version,title,body})
+      });
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error();
+      const result:unknown=await response.json();
+      if(!validHubTransition(result,owner,source.id,source.version,'ai_draft'))throw new Error();
+      if(organization!==owner||$auth.session?.user.id!==actor)return;
+      success='Η νέα έκδοση του προχείρου αποθηκεύτηκε και απαιτεί νέο έλεγχο.';
+      detail=null;inspected=[];showPreview=null;detailRequest++;reload++;
+    }catch{error='Η αναθεώρηση δεν επιβεβαιώθηκε. Ανακτήστε πρώτα τη νεότερη έκδοση.';}
+    finally{busy=false;}
+  }
+  async function quarantineImage(){
+    const source=detail,owner=organization,actor=$auth.session?.user.id;
+    if(!source||!owner||!canWrite||busy||source.status!=='ai_draft'||source.organization_id!==owner)return;
+    const file=imageFile,alt=imageAlt.trim();
+    if(!file||file.type!=='image/jpeg'||file.size<4||file.size>1048576||
+       !alt||alt.length>500||Array.from(alt).some(char=>/\p{Cc}/u.test(char))){
+      error='Απαιτείται εικόνα JPEG έως 1 MB και περιγραφή χωρίς χαρακτήρες ελέγχου.';return;
+    }
+    busy=true;error=null;success=null;
+    try{
+      const bytes=new Uint8Array(await file.arrayBuffer());
+      if(bytes.length!==file.size||bytes[0]!==255||bytes[1]!==216||
+         bytes[bytes.length-2]!==255||bytes[bytes.length-1]!==217)throw new Error();
+      const chunks:string[]=[];
+      for(let start=0;start<bytes.length;start+=8192)
+        chunks.push(String.fromCharCode(...bytes.subarray(start,start+8192)));
+      const response=await fetch('/api/admin/hub/editorial/'+encodeURIComponent(source.id)+
+        '/images/quarantine?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({version:source.version,base64:btoa(chunks.join('')),alt_text:alt})
+      });
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(response.status!==201)throw new Error();
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+         (result as Record<string,unknown>).content_id!==source.id||
+         (result as Record<string,unknown>).organization_id!==owner||
+         (result as Record<string,unknown>).status!=='quarantined')throw new Error();
+      if(organization!==owner||$auth.session?.user.id!==actor)return;
+      imageFile=null;imageAlt='';imageInputKey++;
+      success='Η εικόνα αποθηκεύτηκε σε καραντίνα. Απαιτείται ξεχωριστός πραγματικός έλεγχος.';
+      detail=null;inspected=[];showPreview=null;detailRequest++;reload++;
+    }catch{error='Η μεταφόρτωση δεν επιβεβαιώθηκε. Ελέγξτε το JPEG και την τρέχουσα έκδοση.';}
+    finally{busy=false;}
+  }
+  async function returnRejectedForRevision(){
+    const source=detail,owner=organization,actor=$auth.session?.user.id;
+    if(!source||!owner||!manager||busy||source.organization_id!==owner||
+       source.status!=='review_required'||
+       (source.text_review!=='rejected'&&source.visual_review!=='rejected'))return;
+    if(!confirm('Να επιστραφεί το απορριφθέν περιεχόμενο για διόρθωση;'))return;
+    busy=true;error=null;success=null;
+    try{
+      const response=await fetch('/api/admin/hub/editorial/'+encodeURIComponent(source.id)+
+        '/return-for-revision?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({version:source.version})
+      });
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error();
+      const result:unknown=await response.json();
+      if(!validHubTransition(result,owner,source.id,source.version,'ai_draft')||
+         (result as Record<string,unknown>).requires_revision!==true)throw new Error();
+      if(organization!==owner||$auth.session?.user.id!==actor)return;
+      success='Το άρθρο επιστράφηκε ως πρόχειρο για νέα επεξεργασία.';
+      detail=null;inspected=[];showPreview=null;detailRequest++;reload++;
+    }catch{error='Η επιστροφή για διόρθωση δεν επιβεβαιώθηκε.';}
+    finally{busy=false;}
+  }
+  async function rejectImage(mediaId:string){
+    const source=detail,owner=organization,actor=$auth.session?.user.id;
+    if(!source||!owner||!manager||busy||source.organization_id!==owner||
+       source.status!=='review_required'||
+       !source.visuals.some(media=>media.id===mediaId&&media.moderation==='quarantined'))return;
+    if(!confirm('Να απορριφθεί αυτή η εικόνα και να απαιτηθεί διόρθωση;'))return;
+    busy=true;error=null;success=null;
+    try{
+      const response=await fetch('/api/admin/hub/editorial/'+encodeURIComponent(source.id)+
+        '/images/'+encodeURIComponent(mediaId)+'/reject?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({version:source.version})
+      });
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(!response.ok)throw new Error();
+      const result:unknown=await response.json();
+      if(!validHubTransition(result,owner,source.id,source.version,'review_required')||
+         (result as Record<string,unknown>).media_id!==mediaId||
+         (result as Record<string,unknown>).visual_review!=='rejected')throw new Error();
+      if(organization!==owner||$auth.session?.user.id!==actor)return;
+      success='Η εικόνα απορρίφθηκε. Επιστρέψτε το άρθρο για διόρθωση.';
+      detail=null;inspected=[];showPreview=null;detailRequest++;reload++;
+    }catch{error='Δεν επιβεβαιώθηκε η απόρριψη εικόνας.';}
     finally{busy=false;}
   }
 </script>
@@ -297,6 +423,30 @@
               <h3>{detail.title}</h3>
               <p class="article-body">{detail.body}</p>
               <p>Κείμενο: <strong>{detail.text_review}</strong> · Εικόνες: <strong>{detail.visual_review}</strong></p>
+              {#if canWrite&&detail.status==='ai_draft'}
+                <section class="revision" aria-labelledby="hub-revision-title">
+                  <h3 id="hub-revision-title">Διόρθωση ιδιωτικού προχείρου</h3>
+                  <label>Τίτλος <input maxlength="180" bind:value={revisionTitle}/></label>
+                  <label>Κείμενο <textarea maxlength="20000" rows="6" bind:value={revisionBody}></textarea></label>
+                  <p class="hint">Κάθε αλλαγή δημιουργεί νέα έκδοση. Οι προηγούμενες εγκρίσεις δεν μεταφέρονται.</p>
+                  <button type="button" disabled={busy||!revisionTitle.trim()||!revisionBody.trim()}
+                    onclick={()=>void reviseDraft()}>Αποθήκευση νέας έκδοσης</button>
+                </section>
+                <section class="revision" aria-labelledby="hub-image-title">
+                  <h3 id="hub-image-title">Προσθήκη εικόνας για έλεγχο</h3>
+                  <p class="hint">JPEG έως 1 MB. Ο διακομιστής αφαιρεί μη ασφαλή μεταδεδομένα και κρατά την εικόνα σε καραντίνα μέχρι ανθρώπινη έγκριση.</p>
+                  {#key imageInputKey}
+                    <label>Εικόνα JPEG
+                      <input type="file" accept="image/jpeg" onchange={event=>imageFile=event.currentTarget.files?.[0]??null}/>
+                    </label>
+                  {/key}
+                  <label>Εναλλακτικό κείμενο
+                    <input maxlength="500" bind:value={imageAlt} placeholder="Περιγράψτε τι απεικονίζεται"/>
+                  </label>
+                  <button type="button" disabled={busy||!imageFile||!imageAlt.trim()}
+                    onclick={()=>void quarantineImage()}>Αποστολή για έλεγχο εικόνας</button>
+                </section>
+              {/if}
               {#if detail.visuals.length}
                 <h3>Εικαστικά προς έλεγχο</h3>
                 {#each detail.visuals as media (media.id)}
@@ -305,6 +455,9 @@
                     <p>{media.alt_text??'Χωρίς εναλλακτικό κείμενο'} · {media.moderation}</p>
                     {#if media.moderation==='quarantined'}
                       <button type="button" onclick={()=>{showPreview=proof;inspected=inspected.filter(id=>id!==proof);}}>Άνοιγμα πραγματικής εικόνας για έλεγχο</button>
+                      {#if manager&&detail.status==='review_required'}
+                        <button type="button" disabled={busy} onclick={()=>void rejectImage(media.id)}>Απόρριψη εικόνας</button>
+                      {/if}
                       {#if showPreview===proof}
                         <img alt={media.alt_text??'Εικαστικό προς έλεγχο'} loading="lazy"
                           src={'/api/admin/hub/editorial/'+detail.id+'/images/'+media.id+'/preview?organization_id='+detail.organization_id+'&revision_id='+detail.revision_id+'&version='+detail.version}
@@ -333,6 +486,10 @@
                 {#if detail.visual_review==='passed'&&detail.text_review==='passed'}
                   <button type="button" disabled={busy} onclick={()=>void runAction('final-approve','approved')}>Τελική ανθρώπινη έγκριση</button>
                 {/if}
+              {/if}
+              {#if manager&&detail.status==='review_required'&&
+                (detail.text_review==='rejected'||detail.visual_review==='rejected')}
+                <button type="button" disabled={busy} onclick={()=>void returnRejectedForRevision()}>Επιστροφή για διόρθωση</button>
               {/if}
               {#if manager&&detail.status==='approved'}
                 <button type="button" disabled={busy} onclick={()=>void runAction('publish','published')}>Δημοσίευση στην εφαρμογή</button>
@@ -372,6 +529,7 @@
   .check input{width:18px;height:18px;accent-color:#dbaa4f}
   .hint{font-size:12px;color:#bfc5c4}
   .fan-note{margin-top:18px}
+  .revision{border:1px solid #454d4d;padding:14px;border-radius:10px;margin:15px 0;display:grid;gap:10px}
   button{min-height:44px;padding:10px 14px;border:1px solid #83632d;border-radius:8px;background:#312817;color:#ffce74;font-weight:600;cursor:pointer;margin:3px}
   button:disabled{opacity:.45;cursor:default}
   button:focus-visible{outline:2px solid #ffd36d;outline-offset:3px}
