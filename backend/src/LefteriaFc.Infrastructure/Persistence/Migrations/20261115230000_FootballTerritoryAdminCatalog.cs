@@ -26,7 +26,11 @@ public sealed class FootballTerritoryAdminCatalog : Migration
         IF _digest IS NULL OR _digest !~ '^[a-f0-9]{64}$'
           OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
         THEN RAISE EXCEPTION 'football_admin_invalid_session' USING ERRCODE='42501'; END IF;
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'football_admin_access_denied' USING ERRCODE='42501';
+        END;
         RETURN QUERY
           SELECT a.id,a.role::text FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
@@ -116,7 +120,8 @@ public sealed class FootballTerritoryAdminCatalog : Migration
             SELECT coalesce(jsonb_agg(jsonb_build_object(
               'id',l.id,'city_id',l.city_id,'name',l.name,'slug',l.slug,
               'address',l.address,'google_maps_url',l.google_maps_url,
-              'is_active',l.is_active
+              'is_active',l.is_active,
+              'can_manage',club.admin_football_allowed(v_actor,v_role,_owner,s.id,l.id,true)
             ) ORDER BY l.name,l.id),'[]'::jsonb)
             FROM club.football_locations l
             JOIN club.football_operational_scopes s ON s.academy_city_id=l.city_id
@@ -127,7 +132,8 @@ public sealed class FootballTerritoryAdminCatalog : Migration
             SELECT coalesce(jsonb_agg(jsonb_build_object(
               'id',s.id,'organization_id',s.organization_id,
               'academy_city_id',s.academy_city_id,'team_id',s.team_id,
-              'team_name',t.name
+              'team_name',t.name,
+              'can_write_catalog',club.admin_football_allowed(v_actor,v_role,_owner,s.id,NULL,true)
             ) ORDER BY coalesce(t.name,c.name),s.id),'[]'::jsonb)
             FROM club.football_operational_scopes s
             LEFT JOIN club.teams t ON t.id=s.team_id AND t.organization_id='lefteria_fc'
@@ -153,6 +159,15 @@ public sealed class FootballTerritoryAdminCatalog : Migration
             WHERE g.organization_id='lefteria_fc_academy' AND NOT EXISTS (
               SELECT 1 FROM club.academy_group_location_assignments a
                 WHERE a.group_id=g.id AND a.organization_id=g.organization_id)
+          ) ELSE '[]'::jsonb END,
+          'unscoped_teams',CASE WHEN _owner='lefteria_fc'
+              AND v_role='super_admin' THEN (
+            SELECT coalesce(jsonb_agg(jsonb_build_object('id',t.id,'name',t.name)
+              ORDER BY t.name,t.id),'[]'::jsonb)
+            FROM club.teams t
+            WHERE t.organization_id='lefteria_fc'
+              AND NOT EXISTS(SELECT 1 FROM club.football_operational_scopes s
+                WHERE s.organization_id='lefteria_fc' AND s.team_id=t.id)
           ) ELSE '[]'::jsonb END,
           'opponents',(
             SELECT coalesce(jsonb_agg(jsonb_build_object(
