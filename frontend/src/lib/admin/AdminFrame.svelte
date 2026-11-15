@@ -8,7 +8,7 @@
 
   let {user,active='account',busy=false,onLogout,children}:{
     user:WebAdminSession['user'];
-    active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|
+    active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
       'schedule'|'hub'|'matches'|'staff'|'users'|'territories';
     busy?:boolean;onLogout:()=>void;children:Snippet;
@@ -69,10 +69,11 @@
           {#if canReadClub(user)}<a class="admin-nav-tool" href="/admin/settings#website-settings" aria-current={active==='club'?'page':undefined}>Ρυθμίσεις ιστοσελίδας</a>{/if}
         </div>
       {/if}
-      {#if liveIds.has('hub_editorial') || liveIds.has('announcements')}
+      {#if liveIds.has('hub_editorial') || liveIds.has('announcements') || liveIds.has('communications')}
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΕΦΑΡΜΟΓΗ ΜΕΛΩΝ</p>
-          {#if liveIds.has('announcements')}<a class="admin-nav-section" href="/admin/announcements" aria-current={active==='announcements'?'page':undefined} data-testid="admin-announcements-link">Ανακοινώσεις</a>{/if}
+          {#if liveIds.has('communications')}<a class="admin-nav-section" href="/admin/communications" aria-current={active==='communications'?'page':undefined} data-testid="admin-communications-link">Επικοινωνία εφαρμογής</a>{/if}
+          {#if liveIds.has('announcements')}<a class="admin-nav-tool" href="/admin/announcements" aria-current={active==='announcements'?'page':undefined} data-testid="admin-announcements-link">Ανακοινώσεις</a>{/if}
           {#if liveIds.has('hub_editorial')}<a class="admin-nav-tool" href="/admin/hub" aria-current={active==='hub'?'page':undefined} data-testid="admin-hub-link">HUB · Περιεχόμενο</a>{/if}
         </div>
       {/if}
