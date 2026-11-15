@@ -133,8 +133,8 @@ internal sealed partial class WebAdminDatabaseFixture
         await using var cmd=new NpgsqlCommand("""
             SELECT EXISTS(
               SELECT 1 FROM jsonb_array_elements(
-                club.read_public_academy_group_directory()) row
-              WHERE row->>'id'=@id
+                club.read_public_academy_group_directory()) AS item(value)
+              WHERE item.value->>'id'=@id
             )
             """,con);
         cmd.Parameters.AddWithValue("id",groupId);
