@@ -59,7 +59,7 @@ test('Only the admin auth role can invoke the explicitly reviewed status writer'
   assert.match(grants,/identity\.set_managed_admin_status\(text,uuid,text,boolean,boolean\)'::regprocedure/);
   assert.match(checks,/admin-managed-status-boundary\.sql/);
   assert.match(boundary,/has_function_privilege\(mobile_name,routine,'EXECUTE'\)/);
-  assert.match(boundary,/a\\.grantee=0 AND a\\.privilege_type='EXECUTE'/);
+  assert.ok(boundary.includes("a.grantee=0 AND a.privilege_type='EXECUTE'"));
   assert.match(boundary,/UPDATE identity\.admin_accounts SET is_active=false WHERE false/);
   assert.match(integration,/managed_admin_status_denied/);
   assert.match(integration,/managed_admin_status_conflict/);
