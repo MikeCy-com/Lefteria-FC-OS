@@ -13,9 +13,25 @@
     <p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ ΙΣΤΟΣΕΛΙΔΑΣ</p><h1>Προφίλ συλλόγου</h1>
     <p class="admin-muted">Δημόσια στοιχεία που εμφανίζονται στην ιστοσελίδα του επιλεγμένου οργανισμού.</p>
     <div class="club-selector">
-      <span class="admin-organization-context-label" data-testid="club-organization">
-        {$controller.organizations.find(org => org.id === $controller.organizationId)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}
-      </span>
+      {#if $controller.organizations.length > 1}
+        <label for="club-profile-target">ΔΗΜΟΣΙΟ ΠΡΟΦΙΛ ΓΙΑ
+          <select id="club-profile-target" data-testid="club-profile-target"
+            value={$controller.organizationId ?? ''} disabled={$controller.saving}
+            onchange={async e => {
+              const input = e.currentTarget;
+              const accepted = await controller.selectOrganization(input.value);
+              if (!accepted) input.value = $controller.organizationId ?? '';
+            }}>
+            {#each $controller.organizations as org (org.id)}
+              <option value={org.id}>{org.id === 'lefteria_fc' ? 'Λευτεριά FC' : 'Λευτεριά FC Academy'}</option>
+            {/each}
+          </select>
+        </label>
+      {:else}
+        <span class="admin-organization-context-label" data-testid="club-organization">
+          {$controller.organizations[0]?.name ?? 'Δεν υπάρχει πρόσβαση σε προφίλ'}
+        </span>
+      {/if}
     </div>
     {#if $controller.status === 'loading' || $controller.status === 'idle'}<p role="status">Φόρτωση στοιχείων συλλόγου…</p>
     {:else if $controller.status !== 'ready'}
