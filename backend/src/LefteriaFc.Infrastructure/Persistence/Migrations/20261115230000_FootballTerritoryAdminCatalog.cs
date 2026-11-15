@@ -222,7 +222,7 @@ public sealed class FootballTerritoryAdminCatalog : Migration
         IF _kind NOT IN ('city','location','team_scope','group_assignment',
           'opponent','playing_field','training_base','match_draft')
           OR _data IS NULL OR jsonb_typeof(_data)<>'object'
-          OR jsonb_object_length(_data)>12
+          OR (SELECT count(*) FROM jsonb_object_keys(_data))>12
         THEN RAISE EXCEPTION 'football_invalid_operation' USING ERRCODE='22023'; END IF;
 
         v_name:=_data->>'name';
@@ -248,6 +248,10 @@ public sealed class FootballTerritoryAdminCatalog : Migration
             v_slug IS NULL OR length(v_slug)>120 OR
             v_slug !~ '^[a-z0-9]+(-[a-z0-9]+)*$')
         THEN RAISE EXCEPTION 'football_invalid_slug' USING ERRCODE='22023'; END IF;
+
+        IF _kind='group_assignment' AND _owner<>'lefteria_fc_academy' THEN
+          RAISE EXCEPTION 'football_group_owner_denied' USING ERRCODE='42501';
+        END IF;
 
         IF _kind='city' THEN
           IF _owner<>'lefteria_fc_academy' OR v_role<>'super_admin'
