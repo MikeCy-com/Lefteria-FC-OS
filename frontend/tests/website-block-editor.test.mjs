@@ -40,7 +40,7 @@ test('duplication preserves block content independently and never exceeds the li
 test('editor exposes accessible drag, arrow and duplication controls with guarded permissions',()=>{
   const editor=readFileSync(new URL('../src/routes/admin/website-pages/+page.svelte',import.meta.url),'utf8');
   assert.match(editor,/on(dragstart|dragend|dragover|drop)=/);
-  assert.match(editor,/draggingBlock===null \|\| !canWrite \|\| saving \|\| isHero/);
+  assert.match(editor,/draggingBlock===null \|\| !canWrite \|\| saving \|\| isLockedRegion/);
   assert.match(editor,/Σύρετε το block για αναδιάταξη/);
   assert.match(editor,/Αντιγραφή block/);
   assert.match(editor,/Μετακίνηση πάνω/);

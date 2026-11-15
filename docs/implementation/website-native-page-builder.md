@@ -138,3 +138,22 @@ separate and fully audited by the existing CMS backend.
 This does not claim to implement uploads, media deletion, private asset ACLs,
 license clearance, resizing or a media-publishing pipeline. Those remain
 separately gated follow-up work.
+
+## Canonical Academy spotlight editing
+
+The existing Academy spotlight on the public homepage has a separate fixed
+CMS editorial record: `homepage-academy-spotlight`, owned only by
+`lefteria_fc_academy`. Academy-granted editors can create/edit a private,
+hidden draft with exactly two text blocks: a three-phrase headline (using
+the existing highlighted middle-dot separators) and a description.
+The server independently rejects wrong-owner, reordered, extra, oversized
+or differently positioned blocks. A manager/super-admin must separately
+approve publication through the existing audited CMS flow.
+
+Only approved, structurally valid copy replaces the current spotlight text.
+Without it, the exact legacy headline and description are rendered. The
+background image, actual Academy group count, layout, styles, link and
+destination remain owned by their original dynamic components. This fixed
+slot cannot be opened as a public /pages URL or indexed in the sitemap;
+it is excluded from navigation even if an older record is malformed.
+There are no new database tables, permissions or Hostinger deployments.

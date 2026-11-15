@@ -20,7 +20,7 @@ test('hero snapshots never enter public menus or public standalone page routes',
   const team=page('lefteria_fc');
   assert.ok(isHomeHeroSlug(team.slug));
   assert.deepEqual(withWebsitePages([],[{...team,page:{...team.page,menu_parent:'root'}}],'lefteria_fc'),[]);
-  assert.match(file('frontend/src/routes/pages/[slug]/+page.server.ts'),/isHomeHeroSlug\(params.slug\)/);
+  assert.match(file('frontend/src/routes/pages/[slug]/+page.server.ts'),/isHomepageEditorialSlug\(params.slug\)/);
 });
 test('backend allows only two fixed, hidden, owner-scoped hero text blocks',()=>{
   const api=file('backend/src/LefteriaFc.Api/PublicContent/WebsitePageEndpoints.cs');
@@ -42,5 +42,5 @@ test('original hero dynamic carousel and match components are preserved',()=>{
   assert.match(hero,/teamDescription/);
   assert.doesNotMatch(hero,/\{@html\}|innerHTML/);
   assert.match(admin,/openHomepageHero/);
-  assert.match(admin,/isHero \|\| index===0/);
+  assert.match(admin,/isLockedRegion \|\| index===0/);
 });

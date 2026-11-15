@@ -4,7 +4,7 @@ import { articleLink } from './content.ts';
 import { academyGroupLink } from './navigation.ts';
 import { catalogHref } from './PublicCatalog.ts';
 import { personPublicLink, fixturePublicLink } from './public-urls.ts';
-import { isHomeHeroSlug, isPublishedWebsitePage, websiteMenuParentAllowed, websitePagePath } from './website-pages.ts';
+import { isHomepageEditorialSlug, isPublishedWebsitePage, websiteMenuParentAllowed, websitePagePath } from './website-pages.ts';
 import type { PublishedWebsitePage } from './website-pages.ts';
 
 // Only the verified public host may advertise an indexable sitemap.
@@ -133,7 +133,7 @@ export function buildPublicSitemap(data: PublicSitemapData): string {
     const org = record.organization_id;
     if ((org !== 'lefteria_fc' && org !== 'lefteria_fc_academy')
       || !isPublishedWebsitePage(record, org)
-      || isHomeHeroSlug(record.slug)
+      || isHomepageEditorialSlug(record.slug)
       || record.page.menu_parent === 'hidden'
       || !websiteMenuParentAllowed(org, record.page.menu_parent)) continue;
     add(websitePagePath(record.slug, org), 'monthly', '0.6', validLastMod(record.published_at));

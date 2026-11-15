@@ -11,11 +11,12 @@
   import '../lib/public/home-reference.css';
   import type { PublicHomeData } from '../lib/public/types';
   import type { WebsiteNavigationData } from '../lib/public/website-pages';
-  import { homepageHeroPage } from '../lib/public/homepage-editorial';
+  import { homepageHeroPage, homepageAcademySpotlightPage } from '../lib/public/homepage-editorial';
   let { data }: { data: PublicHomeData } = $props();
   const websitePages = $derived((page.data as {websitePages?: WebsiteNavigationData} | undefined)?.websitePages);
   const academyEditorial = $derived(homepageHeroPage(websitePages?.lefteria_fc_academy ?? [], 'lefteria_fc_academy'));
   const teamEditorial = $derived(homepageHeroPage(websitePages?.lefteria_fc ?? [], 'lefteria_fc'));
+  const academySpotlight = $derived(homepageAcademySpotlightPage(websitePages?.lefteria_fc_academy ?? [], 'lefteria_fc_academy'));
 </script>
 <svelte:head><title>ΛΕΥΤΕΡΙΑ FC | Η ΕΠΙΣΗΜΗ ΙΣΤΟΣΕΛΙΔΑ</title><meta name="description" content={data.site?.club?.description || 'Η επίσημη ιστοσελίδα της Λευτεριάς FC. Πρώτη ομάδα, ακαδημία, αγώνες και νέα.'} /><meta property="og:title" content="ΛΕΥΤΕΡΙΑ FC" /><meta property="og:type" content="website" /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
@@ -32,7 +33,7 @@
     </section>
     {#if data.available}
       <section class="public-section section-dark"><div class="public-section-heading"><h2>ΑΓΩΝΕΣ & ΑΠΟΤΕΛΕΣΜΑΤΑ</h2><a href="/team?tab=schedule">ΤΟ ΠΡΟΓΡΑΜΜΑ ↗</a></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures.slice(0,4)} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες.</p>{/if}</section>
-      <HomeAcademySpotlight site={data.site} groups={data.navigationGroups} />
+      <HomeAcademySpotlight site={data.site} groups={data.navigationGroups} editorial={academySpotlight} />
       <SidelineBanner />
     {/if}
   </div>
