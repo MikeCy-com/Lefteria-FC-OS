@@ -12,8 +12,18 @@
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <section class="catalog" data-testid={`public-${data.kind}-catalog`}>
     <header class="catalog-heading"><p class="public-eyebrow">Η ΟΙΚΟΓΕΝΕΙΑ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p><h1>{title}</h1><p>{descriptions[data.kind]}</p></header>
-    <form method="GET" action={`/${data.kind}`} class="catalog-filters" aria-label="Φίλτρα ενότητας">
-      <label>Ενότητα<select name="scope" value={data.scope ?? 'all'}><option value="all">Όλος ο σύλλογος</option><option value="first_team">Πρώτη ομάδα</option><option value="academy">Ακαδημία</option></select></label>
+    <form method="GET"
+      action={data.kind === 'sponsors' && data.fixedScope === 'academy' ? '/sponsors/academy'
+        : data.kind === 'sponsors' && data.fixedScope === 'first_team' ? '/sponsors/first-team'
+        : `/${data.kind}`}
+      class="catalog-filters" aria-label="Φίλτρα ενότητας">
+      {#if data.fixedScope}
+        <p class="catalog-locked-scope" data-testid="catalog-locked-organization">
+          {data.fixedScope === 'academy' ? 'ΛΕΥΤΕΡΙΑ FC ΑΚΑΔΗΜΙΑ' : 'ΛΕΥΤΕΡΙΑ FC · ΠΡΩΤΗ ΟΜΑΔΑ'}
+        </p>
+      {:else}
+        <label>Ενότητα<select name="scope" value={data.scope ?? 'all'}><option value="all">Όλος ο σύλλογος</option><option value="first_team">Πρώτη ομάδα</option><option value="academy">Ακαδημία</option></select></label>
+      {/if}
       {#if data.kind === 'events'}<label>Πότε<select name="when" value={data.when}><option value="upcoming">Προσεχείς</option><option value="past">Παλαιότερες</option><option value="all">Όλες οι εκδηλώσεις</option></select></label><label>Τύπος<select name="type" value={data.eventType}><option value="all">Όλοι οι τύποι</option>{#each data.eventTypes as eventType}<option value={eventType}>{eventTypeLabel(eventType)}</option>{/each}</select></label>{/if}
       <button class="public-button" type="submit">ΠΡΟΒΟΛΗ ↗</button>
     </form>
@@ -26,11 +36,12 @@
         {#if item.event.price_eur !== null}<div><dt>Είσοδος</dt><dd>{eventPrice(item.event.price_eur)}</dd></div>{/if}
         {#if item.event.status === 'cancelled' || item.event.status === 'completed'}<div><dt>Κατάσταση</dt><dd>{item.event.status === 'cancelled' ? 'Ακυρώθηκε' : 'Ολοκληρώθηκε'}</dd></div>{/if}
       </dl>{/if}<span class="catalog-card-action">{data.kind === 'seasons' ? 'ΑΝΑΚΑΛΥΨΕ ΤΗ ΣΕΖΟΝ' : 'ΠΕΡΙΣΣΟΤΕΡΑ'} <span aria-hidden="true">↗</span></span></div>
-    </a>{/each}</div>{:else}<div class="catalog-empty"><h2>ΔΕΝ ΥΠΑΡΧΟΥΝ ΚΑΤΑΧΩΡΙΣΕΙΣ</h2><p>{data.kind === 'events' ? 'Δεν έχουν δημοσιευτεί εκδηλώσεις για τα επιλεγμένα φίλτρα.' : 'Δεν έχουν δημοσιευτεί καταχωρίσεις σε αυτή την ενότητα.'}</p>{#if data.scope || data.kind === 'events'}<a href={`/${data.kind}${data.kind === 'events' ? '?when=all' : ''}`}>Προβολή όλων ↗</a>{/if}</div>{/if}
+    </a>{/each}</div>{:else}<div class="catalog-empty"><h2>ΔΕΝ ΥΠΑΡΧΟΥΝ ΚΑΤΑΧΩΡΙΣΕΙΣ</h2><p>{data.kind === 'events' ? 'Δεν έχουν δημοσιευτεί εκδηλώσεις για τα επιλεγμένα φίλτρα.' : 'Δεν έχουν δημοσιευτεί καταχωρίσεις σε αυτή την ενότητα.'}</p>{#if !data.fixedScope && (data.scope || data.kind === 'events')}<a href={`/${data.kind}${data.kind === 'events' ? '?when=all' : ''}`}>Προβολή όλων ↗</a>{/if}</div>{/if}
   </section>
 </PublicShell>
 
 <style>
+  .catalog-locked-scope {padding:10px 14px;border:1px solid #a88935;color:#f6bb38;font-weight:800;min-height:44px;display:flex;align-items:center;}
   .event-card-facts { display:grid; gap:10px; margin:18px 0; padding:16px 0; border-block:1px solid #65522d; font-size:13px; }
   .event-card-facts>div { display:grid; grid-template-columns:80px minmax(0,1fr); gap:10px; }
   .event-card-facts dt { color:var(--public-gold); font-weight:600; }
