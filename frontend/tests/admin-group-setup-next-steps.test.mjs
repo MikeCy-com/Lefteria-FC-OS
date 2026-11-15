@@ -11,12 +11,14 @@ test('group and territory city/location wizard endpoints compile',()=>{
     assert.ok(compile(s,{filename:name,generate:'server'}).js.code.length>100,name);
 });
 
-test('new Academy group is only called assigned after second server-confirmed city/location write',()=>{
+test('new Academy group is assigned to a verified site in the same saved transaction',()=>{
   assert.match(group,/lastCreatedGroupId=value\.id/);
   assert.match(group,/value\.kind !==/);
+  assert.match(group,/value\.location_id!==selectedLocation\.id/);
   assert.match(group,/data-testid="admin-group-next-setup"/);
-  assert.match(group,/data-testid="admin-assign-group-location"/);
-  assert.match(group,/\/admin\/territories\?organization_id=lefteria_fc_academy&assign_group=/);
+  assert.match(group,/data-testid="admin-verified-group-location"/);
+  assert.match(group,/\/admin\/territories\?organization_id=lefteria_fc_academy&city_id=/);
+  assert.doesNotMatch(group,/data-testid="admin-assign-group-location"/);
   assert.match(group,/data-testid="admin-assign-team-scope"/);
   assert.match(group,/\/admin\/territories\?organization_id=lefteria_fc&team_id=/);
   assert.match(territory,/data-testid="territory-group-placement"/);
