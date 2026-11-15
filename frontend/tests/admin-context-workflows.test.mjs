@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
+
+const read=p=>readFileSync(new URL('../src/'+p,import.meta.url),'utf8');
+const frame=read('lib/admin/AdminFrame.svelte');
+const dashboard=read('lib/admin/AdminWorkspace.svelte');
+const groups=read('routes/admin/groups/+page.svelte');
+const users=read('routes/admin/users/+page.svelte');
+const territories=read('routes/admin/territories/+page.svelte');
+const workspace=read('lib/admin/AdminGroupWorkspace.svelte');
+const roster=read('lib/admin/AdminRosterPlayersPanel.svelte');
+const attendance=read('lib/admin/AdminGroupAttendancePanel.svelte');
+const profile=read('routes/admin/profile/+page.svelte');
+const settings=read('routes/admin/settings/+page.svelte');
+
+test('all shared admin routes and contextual player records compile in Svelte',()=>{
+  for(const [name,source] of Object.entries({frame,dashboard,groups,users,territories,workspace,roster,attendance,profile,settings}))
+    assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>100,name);
+});
+
+test('global navigation has no standalone player or match tools; profile and settings apply to every role',()=>{
+  for(const path of ['schedule','matches','attendance','evaluations','documents']){
+    assert.doesNotMatch(frame,new RegExp('href="/admin/'+path+'"'));
+    assert.doesNotMatch(dashboard,new RegExp('href="/admin/'+path+'"'));
+  }
+  assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
+  assert.match(frame,/href="\/admin\/profile"/);
+  assert.match(frame,/href="\/admin\/settings"/);
+  assert.match(frame,/data-testid="admin-settings-submenu"/);
+  assert.doesNotMatch(frame,/\{#if hasWebsite \|\| liveIds\.has\('territories'\) \|\| hasOperations\}/);
+  assert.match(profile,/data-testid="admin-self-password-form"/);
+  assert.match(settings,/id="website-settings"/);
+});
+
+test('dashboard starts authorized real create workflows, not service counters',()=>{
+  for(const path of [
+    '/admin/groups?organization_id=lefteria_fc&new=1',
+    '/admin/groups?organization_id=lefteria_fc_academy&new=1',
+    '/admin/territories?organization_id=lefteria_fc_academy#create-city',
+    '/admin/territories?organization_id=lefteria_fc_academy#create-location',
+    '/admin/users?new=1'
+  ]) assert.ok(dashboard.includes(path),path);
+  assert.match(dashboard,/hasAdminPermission\(user\.permissions,'academy:write'\)/);
+  assert.match(dashboard,/hasAdminPermission\(user\.permissions,'teams:write'\)/);
+  assert.match(dashboard,/user\.role==='super_admin'/);
+  assert.match(dashboard,/data-testid="admin-creation-actions"/);
+  assert.doesNotMatch(dashboard,/plannedCount|liveCount|Under Developments|admin-overview-stats/);
+  assert.match(groups,/page\.url\.searchParams\.get\('new'\)/);
+  assert.match(groups,/choices\.some\(item=>item\.id===requested\)/);
+  assert.match(groups,/if\(!browser\|\|openedRequestedCreate\|\|!wantsNew\|\|!loaded\|\|!canCreate\)return/);
+  assert.match(groups,/\/api\/admin\/football\/groups\/with-profile/);
+  assert.match(territories,/id="create-city"/);
+  assert.match(territories,/id="create-location"/);
+  assert.match(users,/routePage\.url\.searchParams\.get\('new'\)/);
+  assert.match(users,/permitted/);
+  assert.match(users,/\/api\/admin\/access\/users/);
+});
+
+test('athlete attendance is accessible only within Academy group player file',()=>{
+  assert.match(workspace,/canReadAttendance=\{canReadAttendance\}/);
+  assert.match(workspace,/canWriteAttendance=\{canAttendanceWrite\}/);
+  assert.match(roster,/owner==='lefteria_fc_academy' && canReadAttendance/);
+  assert.match(roster,/currentGroup && owner==='lefteria_fc_academy'/);
+  assert.match(roster,/playerId=\{player\.id\}/);
+  assert.match(roster,/data-testid="admin-player-attendance-history"/);
+  assert.match(roster,/AdminPlayerPrivateRecordsPanel/);
+  assert.match(attendance,/playerId=null,playerName=''/);
+  assert.match(attendance,/register\.players\.filter\(row=>/);
+  assert.match(attendance,/row\.player_id===playerId/);
+  assert.match(attendance,/\{#each visiblePlayers as player/);
+  assert.match(attendance,/\/api\/admin\/academy\/training/);
+  assert.match(attendance,/expected_version:version/);
+  assert.match(workspace,/AdminGroupMatchDraftPanel/);
+  assert.match(workspace,/AdminGroupPublishedFixtures/);
+});
