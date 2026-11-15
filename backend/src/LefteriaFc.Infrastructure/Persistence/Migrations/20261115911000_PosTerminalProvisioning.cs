@@ -127,26 +127,39 @@ public sealed class PosTerminalProvisioning : Migration
         IF v_location IS NULL
         THEN RAISE EXCEPTION 'pos_register_not_available' USING ERRCODE='42501'; END IF;
         PERFORM pos_cashier.authorize_site_finances(_digest,_owner,v_location);
-        SELECT a.role INTO v_subject_role
-          FROM identity.admin_accounts a
-          JOIN identity.admin_organization_grants g
-            ON g.admin_account_id=a.id AND g.organization_id=_owner
-          WHERE a.id=_subject AND a.is_active AND NOT a.invite_pending
-            AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL FOR SHARE OF a,g;
-        IF v_subject_role NOT IN ('manager','super_admin') OR v_subject_role IS NULL
-        THEN RAISE EXCEPTION 'pos_operator_account_unavailable' USING ERRCODE='42501'; END IF;
-        IF _owner='lefteria_fc_academy' THEN
-          SELECT link.academy_location_id,s.id
-            INTO v_academy_location,v_scope
-            FROM pos.academy_football_location_links link
-            JOIN club.football_operational_scopes s
-              ON s.academy_city_id=link.academy_city_id
-              AND s.organization_id=_owner
-            WHERE link.organization_id=_owner AND link.pos_location_id=v_location;
-          IF v_scope IS NULL OR NOT club.admin_football_allowed(
-            _subject,v_subject_role,_owner,v_scope,v_academy_location,true)
-          THEN RAISE EXCEPTION 'pos_operator_location_grant_required'
-             USING ERRCODE='42501'; END IF;
+        -- Grant must be current for activation. Revocation must remain
+        -- possible after a manager was deactivated or moved to another site.
+        IF _enabled THEN
+          SELECT a.role INTO v_subject_role
+            FROM identity.admin_accounts a
+            JOIN identity.admin_organization_grants g
+              ON g.admin_account_id=a.id AND g.organization_id=_owner
+            WHERE a.id=_subject AND a.is_active AND NOT a.invite_pending
+              AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL
+            FOR SHARE OF a,g;
+          IF v_subject_role NOT IN ('manager','super_admin')
+            OR v_subject_role IS NULL
+          THEN RAISE EXCEPTION 'pos_operator_account_unavailable'
+            USING ERRCODE='42501'; END IF;
+          IF _owner='lefteria_fc_academy' THEN
+            SELECT link.academy_location_id,s.id
+              INTO v_academy_location,v_scope
+              FROM pos.academy_football_location_links link
+              JOIN club.football_operational_scopes s
+                ON s.academy_city_id=link.academy_city_id
+                AND s.organization_id=_owner
+              WHERE link.organization_id=_owner AND link.pos_location_id=v_location;
+            IF v_scope IS NULL OR NOT club.admin_football_allowed(
+              _subject,v_subject_role,_owner,v_scope,v_academy_location,true)
+            THEN RAISE EXCEPTION 'pos_operator_location_grant_required'
+               USING ERRCODE='42501'; END IF;
+          END IF;
+        ELSIF NOT EXISTS (
+          SELECT 1 FROM pos_cashier.cashier_assignments ca
+          WHERE ca.organization_id=_owner AND ca.register_id=_register
+            AND ca.admin_account_id=_subject
+        ) THEN RAISE EXCEPTION 'pos_operator_assignment_not_found'
+          USING ERRCODE='42501';
         END IF;
         -- Never strand an open shift by revoking its active operator.
         -- Close and reconcile the assigned shift before withdrawing access.
