@@ -77,6 +77,7 @@ builder.Services.AddOpenApi(options =>
     options.AddOperationTransformer<AdminClubOperationTransformer>();
     options.AddOperationTransformer<FirstTeamTrialAdminOperationTransformer>();
     options.AddOperationTransformer<AdminNewsOperationTransformer>();
+    options.AddOperationTransformer<AdminNewsDraftOperationTransformer>();
     options.AddOperationTransformer<AdminPosCatalogOperationTransformer>();
     options.AddOperationTransformer<AdminAudienceOperationTransformer>();
 });
@@ -138,6 +139,7 @@ builder.Services.AddScoped<IMobileChatGroupReader, PostgresMobileChatGroupReader
 builder.Services.AddScoped<MobileChatDirectoryService>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminClubRepository, PostgresAdminClubRepository>();
 builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminNewsRepository, PostgresAdminNewsRepository>();
+builder.Services.AddScoped<LefteriaFc.Application.PublicContent.IAdminNewsDraftRepository, PostgresAdminNewsDraftRepository>();
 builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.SnakeCaseLower);
 
 var app = builder.Build();
@@ -188,6 +190,7 @@ app.MapPublicSections();
 app.MapPublicMedia();
 app.MapAdminClub();
 app.MapAdminNews();
+app.MapAdminNewsDrafts();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();

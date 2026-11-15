@@ -6,5 +6,5 @@ import { hasAdminPermission } from './permissions.ts';
 export function canViewFirstTeamTrials(user: WebAdminSession['user']): boolean {
   return user.organizations.some(org => org.id === 'lefteria_fc') &&
     (hasAdminPermission(user.permissions, 'settings:read') ||
-     hasAdminPermission(user.permissions, 'marketing:read'));
+     user.role === 'editor' && hasAdminPermission(user.permissions, 'marketing:read'));
 }

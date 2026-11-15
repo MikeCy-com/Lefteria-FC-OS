@@ -5,7 +5,6 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
-  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminAcademyTrainingPlans from '../../../lib/admin/AdminAcademyTrainingPlans.svelte';
   import {academyMonthWindow,isAcademyScheduleGroupList,isAcademyTrainingList,upcomingAcademySessions}
@@ -17,7 +16,7 @@
   const permitted=$derived($auth.status==='authenticated'&&!!$auth.session&&
     ['manager','super_admin'].includes($auth.session.user.role)&&
     $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy')&&
-    preferredAdminOrganization($auth.session.user)==='lefteria_fc_academy'&&
+    hasAdminPermission($auth.session.user.permissions,'attendance:read')&&
     hasAdminPermission($auth.session.user.permissions,'attendance:read'));
   const canWritePlans=$derived(permitted&&!!$auth.session&&
     hasAdminPermission($auth.session.user.permissions,'training:write'));

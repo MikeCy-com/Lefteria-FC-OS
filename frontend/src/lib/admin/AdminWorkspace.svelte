@@ -1,16 +1,23 @@
 <script lang="ts">
   import type { WebAdminSession } from './controller.ts';
-  import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole } from './permissions.ts';
+  import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole, hasAdminPermission } from './permissions.ts';
   import { adminSectionsFor } from './module-catalog.ts';
   import AdminFrame from './AdminFrame.svelte';
   import AdminClubMetrics from './AdminClubMetrics.svelte';
-  import { preferredAdminOrganization } from './admin-organization.ts';
+  import { adminOrganizationsFor } from './admin-organization.ts';
 
   let { session, busy = false, onLogout, onRefresh }: {
     session: WebAdminSession; busy?: boolean; onLogout: () => void; onRefresh: () => void;
   } = $props();
   const user = $derived(session.user);
-  const sections = $derived(adminSectionsFor(user, preferredAdminOrganization(user)));
+  const sections = $derived(adminSectionsFor(user));
+  const canSeeOverviewMetrics = $derived(
+    ['teams:read','academy:read','news:read'].some(permission =>
+      hasAdminPermission(user.permissions,permission)) ||
+    ['manager','super_admin'].includes(user.role) &&
+      hasAdminPermission(user.permissions,'marketing:read') &&
+      user.organizations.some(org => org.id==='lefteria_fc_academy')
+  );
   const liveCount = $derived(sections.reduce((n, group) => n + group.modules.filter(item => item.status === 'live').length, 0));
   const quickLinks = $derived(sections.flatMap(section => section.modules)
     .filter(module => module.status === 'live' && !!module.href)
@@ -37,7 +44,11 @@
     <div><span>Ο ρόλος σας</span><strong class="admin-stat-role">{roleName}</strong><small>Δικαιώματα σύνδεσης</small></div>
   </div>
 
-  <AdminClubMetrics {user} />
+  {#if canSeeOverviewMetrics}
+    {#each adminOrganizationsFor(user) as organization (organization)}
+      <AdminClubMetrics {user} {organization} />
+    {/each}
+  {/if}
 
   {#if quickLinks.length}
     <nav class="admin-panel admin-quick-navigation" aria-label="Γρήγορη πρόσβαση" data-testid="admin-quick-navigation">

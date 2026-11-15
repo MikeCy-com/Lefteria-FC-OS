@@ -13,8 +13,8 @@ test('admin differentiates public website from authenticated member app', () => 
   const admin = read('admin/AdminFrame.svelte');
   assert.match(admin, /href="\/" aria-label="Προβολή δημόσιας ιστοσελίδας"/);
   assert.match(admin, /href="\/app" aria-label="Άνοιγμα εφαρμογής μελών"/);
-  assert.match(admin, /adminSectionsFor\(user, selectedOrganization\)/);
-  assert.match(admin, /data-testid="admin-header-organization"/);
+  assert.match(admin, /adminSectionsFor\(user\)/);
+  assert.doesNotMatch(admin, /data-testid="admin-header-organization"/);
   assert.match(admin, /data-testid="admin-logout"/);
 });
 

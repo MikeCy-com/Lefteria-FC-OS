@@ -36,6 +36,12 @@ BEGIN
   END IF;
   PERFORM kind,organization_id,id,data_json FROM public_content.documents LIMIT 0;
   PERFORM kind,organization_id,id,data_json FROM public_content.edits LIMIT 0;
+  IF has_any_column_privilege(current_user,'public_content.news_drafts',
+        'SELECT,INSERT,UPDATE,REFERENCES')
+      OR has_table_privilege(current_user,'public_content.news_drafts',
+        'DELETE,TRUNCATE,TRIGGER') THEN
+    RAISE EXCEPTION 'Public/mobile runtime must never read or write unpublished news drafts';
+  END IF;
   IF has_column_privilege(current_user,'public_content.edits','version','SELECT')
       OR has_any_column_privilege(current_user,'public_content.edits','INSERT,UPDATE,REFERENCES')
       OR has_table_privilege(current_user,'public_content.edits','DELETE,TRUNCATE,TRIGGER')

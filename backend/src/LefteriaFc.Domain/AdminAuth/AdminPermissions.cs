@@ -16,7 +16,12 @@ public static class AdminPermissions
                     "finance:*", "shop:*", "facilities:*", "training:*", "marketing:*",
                     "staff:read", "staff:write", "staff:archive", "staff:compliance", "settings:read", "settings:write"),
                 ["editor"] = Permissions("news:*", "sponsors:*", "gallery:*", "marketing:read", "teams:read", "academy:read", "fixtures:read"),
-                ["marketing"] = Permissions("social:write"),
+                // Marketing manages website/editorial workflows across only
+                // organizations explicitly granted to that account.
+                ["marketing"] = Permissions("news:*", "sponsors:*", "gallery:*",
+                    "marketing:*", "social:write"),
+                // Accounting has no roster, messaging, CMS, or user privileges.
+                ["accountant"] = Permissions("finance:read", "finance:write"),
                 ["coach"] = Permissions("teams:read_assigned", "academy:read_assigned", "training:read_assigned",
                     "training:write_assigned", "attendance:read_assigned", "attendance:write_assigned", "messages:write_assigned", "fixtures:read"),
                 ["matchday_editor"] = Permissions("live_score:*", "match_reports:*", "fixtures:read", "teams:read")

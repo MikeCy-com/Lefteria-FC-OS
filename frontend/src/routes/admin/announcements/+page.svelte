@@ -385,7 +385,7 @@
       <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα δημιουργίας πρόχειρων ανακοινώσεων.</section>
     {:else}
       <section class="admin-panel">
-        <span class="admin-organization-context-label" data-testid="announcement-owner">{permitted.find(org=>org.id===organization)?.name??'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
+        <span class="admin-organization-context-label" data-testid="announcement-owner">{permitted.find(org=>org.id===organization)?.name??'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
         {#if loading}
           <p role="status">Φόρτωση…</p>
         {:else}

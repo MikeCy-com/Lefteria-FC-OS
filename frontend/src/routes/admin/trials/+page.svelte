@@ -6,12 +6,11 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { canViewFirstTeamTrials } from '../../../lib/admin/trials-access.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
-  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Settings = components['schemas']['FirstTeamTrialsSettings'];
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
-  const selectedClub = $derived($auth.session && preferredAdminOrganization($auth.session.user) === 'lefteria_fc');
+  const selectedClub = $derived(!!$auth.session && $auth.session.user.organizations.some(org => org.id === 'lefteria_fc') && canViewFirstTeamTrials($auth.session.user));
   let settings = $state<Settings | null>(null);
   let loading = $state(true);
   let unavailable = $state(false);

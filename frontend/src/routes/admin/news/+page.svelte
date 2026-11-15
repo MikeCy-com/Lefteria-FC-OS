@@ -9,6 +9,7 @@
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminNewsEditor from '../../../lib/admin/AdminNewsEditor.svelte';
+  import AdminNewsDraftWorkspace from '../../../lib/admin/AdminNewsDraftWorkspace.svelte';
 
   type Article = components['schemas']['PublicArticle'];
   type Result = { items: Article[]; total: number; offset: number; limit: number };
@@ -46,6 +47,20 @@
       editingId = null;
     }
   });
+
+  function changeContentTarget(event: Event) {
+    const input = event.currentTarget as HTMLSelectElement;
+    const next = input.value as Organization;
+    if (next === organization) return;
+    if (!allowedOrganizations.some(org => org.id === next) ||
+        !window.confirm('Αλλαγή προορισμού περιεχομένου. Μη αποθηκευμένα πρόχειρα ή αλλαγές άρθρου θα χαθούν. Συνέχεια;')) {
+      input.value = organization ?? '';
+      return;
+    }
+    editingId = null;
+    offset = 0;
+    organization = next;
+  }
 
   function verifiedResponse(value: unknown, owner: Organization, requestedOffset: number): value is Result {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -124,13 +139,29 @@
           <div>
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ · ΔΗΜΟΣΙΕΥΜΕΝΟ ΠΕΡΙΕΧΟΜΕΝΟ</p>
             <h1>Άρθρα & νέα</h1>
-            <p class="admin-muted">Προβολή πραγματικών δημοσιευμένων άρθρων. Με δικαίωμα επεξεργασίας μπορείτε να διορθώνετε υπάρχουσες δημοσιεύσεις με έλεγχο έκδοσης. Νέα άρθρα, πρόχειρα και προγραμματισμός δημοσιεύσεων δεν υποστηρίζονται ακόμη.</p>
+            <p class="admin-muted">Προβολή πραγματικών δημοσιευμένων άρθρων, διορθώσεις με έλεγχο έκδοσης και ιδιωτικά νέα πρόχειρα. Η δημοσίευση νέων άρθρων, οι εγκρίσεις και ο προγραμματισμός δεν έχουν ενεργοποιηθεί.</p>
           </div>
           <a class="admin-news-public" href="/news">Δημόσια νέα <span aria-hidden="true">↗</span></a>
         </header>
-        <section class="admin-panel" aria-label="Φίλτρα δημοσιευμένων άρθρων">
-          <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
+        <section class="admin-panel admin-news-target" aria-label="Προορισμός περιεχομένου">
+          {#if allowedOrganizations.length > 1}
+            <label for="news-content-target">ΠΡΟΟΡΙΣΜΟΣ ΑΡΘΡΩΝ ΚΑΙ ΠΡΟΧΕΙΡΩΝ
+              <select id="news-content-target" data-testid="admin-news-content-target"
+                aria-label="Επιλέξτε πού θα προορίζεται το περιεχόμενο"
+                value={organization ?? ''} onchange={changeContentTarget}>
+                {#each allowedOrganizations as org (org.id)}
+                  <option value={org.id}>{org.id === 'lefteria_fc' ? 'Λευτεριά FC · Πρώτη ομάδα' : 'Λευτεριά FC Academy'}</option>
+                {/each}
+              </select>
+            </label>
+            <p class="admin-muted">Ο προορισμός επιλέγεται μόνο εδώ, για το περιεχόμενο. Η δημοσίευση σε περισσότερους οργανισμούς θα χρειαστεί ξεχωριστή έγκριση.</p>
+          {:else}
+            <span class="admin-organization-context-label" data-testid="admin-news-organization">{allowedOrganizations[0]?.name ?? 'Δεν υπάρχει πρόσβαση σε περιεχόμενο'}</span>
+          {/if}
         </section>
+        {#if organization}
+          <AdminNewsDraftWorkspace owner={organization} {canWrite} />
+        {/if}
         {#if editingId && organization}
           <AdminNewsEditor owner={organization} articleId={editingId} {canWrite}
             onClose={() => editingId = null} onSaved={() => retry++} />
@@ -206,6 +237,10 @@
   .admin-news .admin-panel{margin:0 0 14px}
   .admin-news label{display:block;margin:0 0 7px;font-size:12px}
   .admin-news select{max-width:340px}
+  .admin-news-target{padding:14px 17px}
+  .admin-news-target label{display:flex;flex-direction:column;gap:8px;font-weight:700}
+  .admin-news-target select{min-height:44px;padding:9px 12px;background:#0d1011;color:#fff;border:1px solid #66501f;font:800 15px/1.2 'Fira Sans Extra Condensed',sans-serif}
+  .admin-news-target .admin-muted{margin:8px 0 0;font-size:12px}
   .admin-news-list-heading{display:flex;align-items:center;justify-content:space-between;gap:15px}
   .admin-news-list-heading h2{margin:0}
   .admin-news-list-heading span{color:#a7adb0;font-size:12px}

@@ -4,7 +4,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
-  import { preferredAdminOrganization, scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
+  import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type Row = {
@@ -40,8 +40,7 @@
   });
   const allowed=$derived($auth.status==='authenticated' && !!$auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
-    availableOrgs.includes(organization) &&
-    preferredAdminOrganization($auth.session.user)===organization);
+    availableOrgs.includes(organization));
   let playerId=$state('');
   let selected=$state('');
   let timeline=$state<Timeline|null>(null);

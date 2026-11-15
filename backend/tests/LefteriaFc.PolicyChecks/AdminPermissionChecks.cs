@@ -28,8 +28,28 @@ internal static class AdminPermissionChecks
         {
             Require(AdminPermissions.Has("editor", "news:write") && AdminPermissions.Has("editor", "marketing:read"));
             Require(!AdminPermissions.Has("editor", "marketing:write") && !AdminPermissions.Has("editor", "settings:write"));
-            Require(AdminPermissions.Has("marketing", "social:write") && !AdminPermissions.Has("marketing", "news:write"));
+            Require(AdminPermissions.Has("marketing", "social:write") &&
+                AdminPermissions.Has("marketing", "news:write") &&
+                AdminPermissions.Has("marketing", "sponsors:write") &&
+                AdminPermissions.Has("marketing", "gallery:read") &&
+                AdminPermissions.Has("marketing", "marketing:write"));
+            Require(!AdminPermissions.Has("marketing", "finance:read") &&
+                !AdminPermissions.Has("marketing", "academy:read") &&
+                !AdminPermissions.Has("marketing", "users:write"));
             Require(AdminPermissions.Has("matchday_editor", "match_reports:write") && !AdminPermissions.Has("matchday_editor", "teams:write"));
+        });
+        yield return ("Accountant is finance-only and never inherits organization or child access", () =>
+        {
+            Require(AdminPermissions.IsKnownRole("accountant"));
+            Require(AdminPermissions.Has("accountant", "finance:read"));
+            Require(AdminPermissions.Has("accountant", "finance:write"));
+            foreach (var capability in new[]
+            {
+                "news:read", "news:write", "academy:read", "academy:write",
+                "teams:read", "staff:read", "users:write", "marketing:read",
+                "shop:write", "messages:read", "training:write_assigned"
+            })
+                Require(!AdminPermissions.Has("accountant", capability));
         });
         yield return ("CMS permission projections cannot mutate the shared role matrix", () =>
         {

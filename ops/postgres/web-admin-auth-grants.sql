@@ -116,6 +116,10 @@ GRANT INSERT ON audit.security_events TO :"admin_auth_role";
 GRANT SELECT ON public_content.documents,public_content.import_state,public_content.edits TO :"admin_auth_role";
 GRANT INSERT ON public_content.edits TO :"admin_auth_role";
 GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
+-- Private unpublished CMS drafts: never grant to the public/mobile role.
+REVOKE ALL ON public_content.news_drafts FROM PUBLIC, :"app_role";
+GRANT SELECT, INSERT ON public_content.news_drafts TO :"admin_auth_role";
+GRANT UPDATE (data_json,version,updated_at) ON public_content.news_drafts TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
@@ -374,13 +378,15 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
-    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
-    can_insert := can_insert OR (target.nspname='public_content' AND target.relname='edits');
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts'));
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
-    can_update := can_update OR (target.nspname='public_content' AND target.relname='edits' AND target.attname IN ('data_json','version'));
+    can_update := can_update OR (target.nspname='public_content' AND
+      (target.relname='edits' AND target.attname IN ('data_json','version') OR
+       target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at')));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update

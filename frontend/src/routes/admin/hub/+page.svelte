@@ -153,7 +153,7 @@
       </header>
       {#if permitted.length}
         <div class="toolbar">
-          <span class="admin-organization-context-label" data-testid="admin-hub-organization">{organization==='lefteria_fc'?'Lefteria FC':organization==='lefteria_fc_academy'?'Lefteria FC Academy':'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
+          <span class="admin-organization-context-label" data-testid="admin-hub-organization">{organization==='lefteria_fc'?'Lefteria FC':organization==='lefteria_fc_academy'?'Lefteria FC Academy':'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
           <button type="button" disabled={busy||loading} onclick={()=>reload++}>Ανανέωση</button>
         </div>
         {#if canWrite}

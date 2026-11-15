@@ -5,31 +5,16 @@
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
   import { ADMIN_ROLE_NAMES, isAdminRole } from './permissions.ts';
-  import { chooseAdminOrganization, preferredAdminOrganization } from './admin-organization.ts';
+
 
   let { user, active = 'account', busy = false, onLogout, children }: {
     user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
-  const selectedOrganization = $derived(preferredAdminOrganization(user));
-  const allowedOrganizations = $derived(user.organizations.filter(org =>
-    org.id === 'lefteria_fc' || org.id === 'lefteria_fc_academy'));
-  const sections = $derived(adminSectionsFor(user, selectedOrganization));
-
-  function switchOrganization(event: Event) {
-    const input = event.currentTarget as HTMLSelectElement;
-    const next = input.value;
-    if (next === selectedOrganization) return;
-    // A full reload clears private page state and pending responses. Never
-    // silently discard form edits when changing the working organization.
-    if (!window.confirm('Η αλλαγή οργανισμού θα επαναφορτώσει τη διαχείριση. Αποθηκεύστε πρώτα τυχόν αλλαγές. Συνέχεια;') ||
-        !chooseAdminOrganization(user, next)) {
-      input.value = selectedOrganization ?? '';
-      return;
-    }
-    window.location.reload();
-  }
+  // All granted organizations contribute to navigation. The authenticated
+  // session and permissions determine visibility, not a global browser switch.
+  const sections = $derived(adminSectionsFor(user));
 </script>
 
 <div class="admin-workspace">
@@ -40,22 +25,6 @@
       <span>ΛΕΥΤΕΡΙΑ FC <small>ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</small></span>
     </a>
     <div class="admin-actions">
-      {#if allowedOrganizations.length > 1}
-        <label class="admin-header-organization" for="admin-header-organization">
-          <span>ΕΝΕΡΓΟΣ ΟΡΓΑΝΙΣΜΟΣ</span>
-          <select id="admin-header-organization" data-testid="admin-header-organization"
-            aria-label="Επιλογή οργανισμού διαχείρισης"
-            value={selectedOrganization ?? ''} disabled={busy} onchange={switchOrganization}>
-            {#each allowedOrganizations as organization (organization.id)}
-              <option value={organization.id}>{organization.id === 'lefteria_fc' ? 'ΣΥΛΛΟΓΟΣ / ΟΜΑΔΕΣ' : 'ΑΚΑΔΗΜΙΑ'}</option>
-            {/each}
-          </select>
-        </label>
-      {:else if selectedOrganization}
-        <span class="admin-header-organization-fixed" data-testid="admin-active-organization">
-          {selectedOrganization === 'lefteria_fc' ? 'ΣΥΛΛΟΓΟΣ / ΟΜΑΔΕΣ' : 'ΑΚΑΔΗΜΙΑ'}
-        </span>
-      {/if}
       <a class="admin-public-link" href="/" aria-label="Προβολή δημόσιας ιστοσελίδας">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
       <a class="admin-public-link" href="/app" aria-label="Άνοιγμα εφαρμογής μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
       <button type="button" class="admin-secondary" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
