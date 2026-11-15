@@ -70,7 +70,7 @@ export function scopedFootballTrainingBases(
   locations:readonly FootballCatalogLocation[],
   bases:readonly FootballTrainingBase[]
 ):FootballTrainingBase[] {
-  const scopeId=verifiedScope(selection,scopes);
+  const scopeId=verifiedScope(selection,scopes,locations);
   if (!scopeId) return [];
   return bases.filter(base =>
     base.is_active===true && base.scope_id===scopeId &&
