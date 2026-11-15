@@ -48,7 +48,7 @@ BEGIN
     (gen_random_uuid(),v_outsider_token,v_outsider,repeat('d',64),clock_timestamp(),clock_timestamp()+interval '1 day');
   INSERT INTO identity.mobile_identities(
     id,normalized_phone,role,display_name,is_active,platform,created_at)
-    VALUES(v_parent,'35799'||substr(replace(v_parent::text,'-',''),1,6),
+    VALUES(v_parent,'35799123456',
       'parent','CI Finance Parent',true,'mobile',clock_timestamp());
 
   INSERT INTO club.football_cities(id,name,slug) VALUES
