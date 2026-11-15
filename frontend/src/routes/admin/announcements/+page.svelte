@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext, tick } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -28,6 +29,7 @@
   let drafts=$state<Draft[]>([]);
   let published=$state<Published[]>([]);
   let groupId=$state('');
+  let originGroupId=$state('');
   let title=$state('');
   let body=$state('');
   let busy=$state(false);
@@ -110,7 +112,12 @@
   });
   $effect(()=>{
     const selected=scopedAdminOrganization($auth.session?.user??null,permitted.map(o=>o.id));
-    if(organization!==selected)organization=selected;
+    // A group deep link can choose only a currently granted organization.
+    // It never grants membership or bypasses the announcement API.
+    const requested=page.url.searchParams.get('organization_id');
+    const scoped=requested&&permitted.some(org=>org.id===requested)
+      ?requested as Organization:selected;
+    if(organization!==scoped)organization=scoped;
   });
   $effect(()=>{
     const owner=organization;
@@ -118,7 +125,7 @@
     const grants=permitted.map(o=>o.id).join('|');
     const generation=reload;
     void actor;void grants;void generation;
-    groups=[];drafts=[];published=[];groupId='';title='';body='';error=null;success=null;
+    groups=[];drafts=[];published=[];groupId='';originGroupId='';title='';body='';error=null;success=null;
     readerItem=null;readerRows=[];
     if(readerDialog?.open)readerDialog.close();
     loading=false;
@@ -145,6 +152,15 @@
           throw new Error('Μη επαληθευμένη λίστα.');
         if(!controller.signal.aborted){
           groups=groupRaw.groups;drafts=draftRaw.drafts;published=liveRaw.announcements;
+          // Never trust the URL's group ID by itself: it must be returned
+          // from the fresh organization-scoped canonical audience directory.
+          const requestedOwner=page.url.searchParams.get('organization_id');
+          const requestedGroup=page.url.searchParams.get('group_id');
+          if(requestedOwner===owner && requestedGroup &&
+            groupRaw.groups.some(g=>g.id===requestedGroup)){
+            groupId=requestedGroup;
+            originGroupId=requestedGroup;
+          }
         }
       }catch{
         if(!controller.signal.aborted)error='Δεν ήταν δυνατή η φόρτωση. Ελέγξτε τη σύνδεση.';
@@ -378,12 +394,24 @@
 <svelte:head><title>Πρόχειρες ανακοινώσεις | Λευτεριά FC</title></svelte:head>
 {#if $auth.status==='authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="announcements" busy={$auth.busy} onLogout={()=>void auth.logout()}>
-    <p class="admin-eyebrow">CRM & ΕΠΙΚΟΙΝΩΝΙΑ · ΑΝΑΚΟΙΝΩΣΕΙΣ</p>
+    <p class="admin-eyebrow">ΕΦΑΡΜΟΓΗ ΜΕΛΩΝ · ΕΠΙΚΟΙΝΩΝΙΑ · ΑΝΑΚΟΙΝΩΣΕΙΣ</p>
     <h1>Ανακοινώσεις</h1>
     <p class="admin-muted">Οι ανακοινώσεις δημιουργούνται ως πρόχειρα και δημοσιεύονται μόνο στην εφαρμογή της επιλεγμένης ομάδας. Η δημοσίευση απαιτεί ρητή επιβεβαίωση διαχειριστή. Δεν στέλνει SMS ή email.</p>
     {#if !permitted.length}
       <section class="admin-panel" role="alert">Δεν υπάρχει δικαίωμα δημιουργίας πρόχειρων ανακοινώσεων.</section>
     {:else}
+      {#if organization && originGroupId}
+        <a class="announcement-back-link"
+          data-testid="announcement-return-to-group"
+          href={'/admin/groups?organization_id='+encodeURIComponent(organization)+
+            '&group_id='+encodeURIComponent(originGroupId)}>
+          ← Επιστροφή στην ομάδα {groups.find(g=>g.id===originGroupId)?.name??''}
+        </a>
+        <p class="admin-muted" data-testid="announcement-verified-target">
+          Επιλέχθηκε επαληθευμένο τμήμα από τον κατάλογο του οργανισμού.
+          Μπορείτε να αλλάξετε παραλήπτες πριν αποθηκεύσετε νέο πρόχειρο.
+        </p>
+      {/if}
       <section class="admin-panel">
         <span class="admin-organization-context-label" data-testid="announcement-owner">{permitted.find(org=>org.id===organization)?.name??'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
         {#if loading}
@@ -489,6 +517,8 @@
     onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
+  .announcement-back-link{display:inline-block;margin:10px 0 14px;padding:9px 13px;color:#ffd26d;border:1px solid #7b683c;text-decoration:none;font-weight:700}
+  .announcement-back-link:focus-visible{outline:3px solid #ffd164;outline-offset:3px}
   .media-editor{display:grid;gap:9px;margin:14px 0;padding:12px;border:1px solid #444943;
     background:#131918;border-radius:11px}
   .media-editor label{display:grid;gap:6px;font-size:12px;color:#e2d9bd}
