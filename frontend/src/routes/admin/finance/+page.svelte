@@ -262,6 +262,7 @@
         {#if owner === 'lefteria_fc_academy'}
           <AdminTrainingFees {owner} configured={status.configured}
             canWrite={!!canWrite} sessionId={$auth.session.user.id}
+            role={$auth.session.user.role}
             focusPlayerId={page.url.searchParams.get('player_id') ?? ''} />
         {/if}
         <section class="admin-panel" data-testid="payabl-payment-ledger">
