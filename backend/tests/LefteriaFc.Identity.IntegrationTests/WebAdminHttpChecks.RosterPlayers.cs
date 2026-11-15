@@ -48,7 +48,7 @@ internal sealed partial class WebAdminHttpChecks
         using var anonymous=Client();
         using(var denied=await anonymous.GetAsync(FcPlayersPath))
             await ExpectJsonAsync(denied,401,"not_authenticated");
-        var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
+        var admin=await database.SeedAsync(role:"super_admin",organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,admin);
 
