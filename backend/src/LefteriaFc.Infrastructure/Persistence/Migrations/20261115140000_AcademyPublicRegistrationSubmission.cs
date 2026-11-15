@@ -137,6 +137,73 @@ public sealed class AcademyPublicRegistrationSubmission : Migration
       -- PostgreSQL would otherwise grant EXECUTE to PUBLIC by default.
       REVOKE ALL ON FUNCTION academy_intake.submit_public_registration(
         uuid,jsonb,bytea,text,text,text,text) FROM PUBLIC;
+      -- The intake queue is only visible to the Academy super administrator.
+      -- Location and city managers cannot see unassigned children's details.
+      CREATE FUNCTION academy_intake.read_admin_registration_queue(
+        _digest text,_limit integer,_offset integer
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $academy_intake_queue$
+      DECLARE v_role text; v_items jsonb;
+      BEGIN
+        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
+      -- give the isolated API runtime role only USAGE on schema + EXECUTE on
+      -- this single function after verifying policy/encryption/reverse proxy.
+    """);
+
+    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+      DO $guard$
+      BEGIN
+        IF EXISTS(SELECT 1 FROM academy_intake.registrations LIMIT 1) THEN
+          RAISE EXCEPTION 'cannot_drop_collected_registration_data'
+            USING ERRCODE='23505';
+        END IF;
+      END $guard$;
+      DROP FUNCTION academy_intake.read_admin_registration_queue(text,integer,integer);
+      DROP FUNCTION academy_intake.submit_public_registration(
+        uuid,jsonb,bytea,text,text,text,text);
+      DROP TABLE academy_intake.registration_rate_buckets;
+    """);
+}
+
+           OR _limit IS NULL OR _limit NOT BETWEEN 1 AND 50
+           OR _offset IS NULL OR _offset NOT BETWEEN 0 AND 20000
+        THEN RAISE EXCEPTION 'invalid_intake_filter' USING ERRCODE='22023'; END IF;
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,'lefteria_fc_academy');
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'intake_authority_revoked' USING ERRCODE='42501';
+        END;
+        SELECT a.role INTO v_role
+          FROM identity.admin_sessions s
+          JOIN identity.admin_accounts a ON a.id=s.admin_account_id
+          JOIN identity.admin_organization_grants g
+            ON g.admin_account_id=a.id AND g.organization_id='lefteria_fc_academy'
+          WHERE s.token_digest=_digest AND s.revoked_at IS NULL
+            AND s.expires_at>clock_timestamp()
+            AND a.is_active AND NOT a.invite_pending
+            AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL;
+        IF NOT FOUND OR v_role<>'super_admin' THEN
+          RAISE EXCEPTION 'intake_access_denied' USING ERRCODE='42501';
+        END IF;
+        SELECT coalesce(jsonb_agg(jsonb_build_object(
+          'id',r.id,'applicant_first_name',r.applicant_first_name,
+          'applicant_last_name',r.applicant_last_name,
+          'applicant_birth_date',r.applicant_birth_date,
+          'guardian_name',r.guardian_name,
+          'guardian_phone',r.guardian_phone,'guardian_email',r.guardian_email,
+          'status',r.status,'submitted_at',r.submitted_at)
+          ORDER BY r.submitted_at DESC,r.id),'[]'::jsonb) INTO v_items
+          FROM (SELECT id,applicant_first_name,applicant_last_name,
+            applicant_birth_date,guardian_name,guardian_phone,guardian_email,
+            status,submitted_at FROM academy_intake.registrations
+            WHERE organization_id='lefteria_fc_academy'
+            ORDER BY submitted_at DESC,id DESC LIMIT _limit OFFSET _offset) r;
+        RETURN jsonb_build_object('organization_id','lefteria_fc_academy',
+          'offset',_offset,'applications',v_items);
+      END $academy_intake_queue$;
+      REVOKE ALL ON FUNCTION academy_intake.read_admin_registration_queue(
+        text,integer,integer) FROM PUBLIC;
+
       -- DO NOT grant table access or EXECUTE automatically. An operator must
       -- give the isolated API runtime role only USAGE on schema + EXECUTE on
       -- this single function after verifying policy/encryption/reverse proxy.
