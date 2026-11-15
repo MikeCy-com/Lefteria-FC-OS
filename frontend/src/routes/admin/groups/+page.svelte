@@ -54,6 +54,9 @@
   let academyOrder = $state(0);
   let saving = $state(false);
   let createError = $state<string | null>(null);
+  let lastCreatedGroupId=$state('');
+  let lastCreatedOrganization=$state<Organization|null>(null);
+
   $effect(()=>{
     const requested=page.url.searchParams.get('group_id')??'';
     const available=directory?.groups ?? [];
@@ -140,6 +143,9 @@
             ? (value.profile as Record<string,unknown>).team_id !== value.id
             : (value.profile as Record<string,unknown>).group_id !== value.id))
         throw new Error('Μη επαληθευμένη πλήρης καταχώριση τμήματος.');
+      lastCreatedGroupId=value.id;
+      lastCreatedOrganization=selected;
+      focusedGroupId=value.id;
       showCreate = false;
       groupName = '';
       createRequestId='';
@@ -280,6 +286,27 @@
             <div><span>Ενεργές συμμετοχές</span><strong>{directory.groups.reduce((n,g) => n+g.active_players,0)}</strong></div>
             <div><span>Χωρίς τμήμα</span><strong>{directory.unassigned_players}</strong></div>
           </div>
+          {#if lastCreatedGroupId && lastCreatedOrganization===organization}
+            <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
+              <p class="admin-eyebrow">ΤΟ ΤΜΗΜΑ ΑΠΟΘΗΚΕΥΤΗΚΕ</p>
+              {#if organization==='lefteria_fc_academy'}
+                <h2>Ολοκλήρωση πόλης & τοποθεσίας</h2>
+                <p>Το τμήμα δημιουργήθηκε. Για να είναι πλήρως ενεργό στην Ακαδημία,
+                  αναθέστε το στην πόλη και τοποθεσία του. Οι αντίπαλοι και τα γήπεδα
+                  αγώνων είναι κοινοί για την πόλη, όχι για κάθε τοποθεσία.</p>
+                <a class="admin-group-next-link"
+                  href={`/admin/territories?organization_id=lefteria_fc_academy&assign_group=${encodeURIComponent(lastCreatedGroupId)}#group-placement`}
+                  data-testid="admin-assign-group-location">Ανάθεση πόλης & τοποθεσίας ↗</a>
+              {:else}
+                <h2>Οργάνωση ομάδας</h2>
+                <p>Η ομάδα δημιουργήθηκε. Μπορείτε να της αναθέσετε το δικό της
+                  αγωνιστικό πεδίο, αντιπάλους και γήπεδα χωρίς πρόσβαση στα στοιχεία Ακαδημίας.</p>
+                <a class="admin-group-next-link"
+                  href={`/admin/territories?organization_id=lefteria_fc&team_id=${encodeURIComponent(lastCreatedGroupId)}#team-heading`}
+                  data-testid="admin-assign-team-scope">Ρύθμιση γηπέδων & αντιπάλων ↗</a>
+              {/if}
+            </section>
+          {/if}
           {#if canCreate}
             <section class="admin-panel admin-group-create" data-testid="admin-group-create" aria-labelledby="admin-group-create-heading">
               <div class="admin-group-create-heading">
@@ -512,6 +539,13 @@
   .admin-group-tools>a:hover{border-color:#ffdc80;background:#312614}
   .admin-group-tools>a:focus-visible{outline:3px solid #ffcc63;outline-offset:2px}
   @media(max-width:700px){.admin-group-tools{grid-template-columns:1fr}}
+  .admin-group-create-next{padding:20px;border:1px solid #b78c38}
+  .admin-group-create-next h2{font-size:25px;margin:4px 0 10px}
+  .admin-group-create-next p{max-width:75ch;line-height:1.6}
+  .admin-group-next-link{display:inline-flex;margin-top:12px;align-items:center;min-height:44px;
+    padding:11px 16px;border:1px solid #b78c38;background:#241a0b;color:#ffd66e;
+    font-weight:800;text-decoration:none}
+  .admin-group-next-link:hover{background:#35220c}
   .admin-audiences-note{max-width:80ch;color:#b5babd;font-size:12px;margin-top:18px}
   @media(max-width:650px){.admin-audiences-stats{grid-template-columns:1fr}.admin-audiences-list li{align-items:start}.admin-audiences-count{flex-direction:column;align-items:flex-end;gap:2px}}
 </style>
