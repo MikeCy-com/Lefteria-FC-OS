@@ -76,7 +76,7 @@ public sealed class FootballTerritoryAccessAndMetrics : Migration
         SELECT actor_id,account_role INTO STRICT v_actor,v_role
           FROM club.authorize_admin_football(_digest,_owner);
         IF v_role<>'super_admin' OR _subject IS NULL
-          OR _scope IS NULL OR _enabled IS NULL
+          OR _scope IS NULL OR _enabled IS NULL OR _kind IS NULL OR _role IS NULL
           OR _kind NOT IN ('city','location','team')
           OR _subject=v_actor
         THEN
