@@ -497,14 +497,14 @@
 /* Reference next-match card stays visible in preview, without fictional
    opponent, result, venue, or countdown when publication is unavailable. */
 .public-site .home-reference .public-fixture-awaiting{
-  display:flex;flex-direction:column;gap:7px;text-align:center;
+  display:flex;flex-direction:column;gap:3px;text-align:center;
 }
 .public-site .home-reference .public-fixture-awaiting .public-fixture-competition{
   margin:9px 0 0;font-size:12px;color:#f6bb38;letter-spacing:.04em!important;
 }
 .public-site .home-reference .public-fixture-teams-awaiting{
   display:grid;grid-template-columns:minmax(0,1fr) 40px minmax(0,1fr);
-  align-items:center;gap:4px;min-height:107px;
+  align-items:center;gap:4px;min-height:82px;
   border-bottom:1px solid #7c745e;
 }
 .public-site .home-reference .public-fixture-teams-awaiting>div{
@@ -514,12 +514,12 @@
   font-size:clamp(12px,1vw,17px);line-height:1.05;margin:0;
 }
 .public-site .home-reference .public-unknown-opponent-crest{
-  width:68px;height:68px;display:grid;place-items:center;
+  width:56px;height:56px;display:grid;place-items:center;
   border-radius:50%;border:2px solid #9b9b9b;color:#dedede;
   background:linear-gradient(135deg,#33383b,#0b0d0e);font-size:33px;
 }
 .public-site .home-reference .public-fixture-awaiting-copy{
-  margin:4px 0;color:#dedede;font-size:12px;line-height:1.35;
+  margin:0;color:#dedede;font-size:12px;line-height:1.25;
 }
 .public-site .home-reference .public-countdown-unpublished{
   display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:2px 0 8px;
@@ -527,7 +527,7 @@
 .public-site .home-reference .public-countdown-unpublished>div{
   border:1px solid #bb8e29;background:#080909;
   display:flex;flex-direction:column;justify-content:center;align-items:center;
-  min-height:57px;
+  min-height:40px;
 }
 .public-site .home-reference .public-countdown-unpublished strong{font-size:26px;color:#dedede}
 .public-site .home-reference .public-countdown-unpublished span{font-size:9px;color:#d7d7d7}
