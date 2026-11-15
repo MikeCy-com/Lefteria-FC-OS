@@ -145,6 +145,11 @@ REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
   TO :"admin_auth_role";
+-- Only active Super Admins may change delegated roles; never allow raw UPDATE.
+REVOKE ALL ON FUNCTION identity.change_managed_admin_role(text,uuid,text,boolean,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.change_managed_admin_role(text,uuid,text,boolean,text)
+  TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
@@ -398,6 +403,7 @@ BEGIN
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.change_managed_admin_role(text,uuid,text,boolean,text)'::regprocedure,
                   'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
