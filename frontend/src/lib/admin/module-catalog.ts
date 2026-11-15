@@ -65,7 +65,7 @@ const catalog: readonly Section[] = [
     { id: 'territories', name: 'Πόλεις, γήπεδα & αγωνιστικοί κατάλογοι', description: 'Ασφαλείς κατάλογοι Ακαδημίας ανά πόλη/τοποθεσία και ανεξάρτητοι κατάλογοι πρώτης ομάδας, με πρόχειρους αγώνες.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
     { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Επαληθευμένη προβολή δημοσιευμένων αγώνων, αποτελεσμάτων και Κυπέλλου για τον επιλεγμένο οργανισμό. Η επεξεργασία σκορ και η βαθμολογία απαιτούν ξεχωριστό API.', status: 'live', href: '/admin/matches', scope: 'any', anyPermission: ['teams:read', 'academy:read'] }
   ] },
-  { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
+  { id: 'operations', name: 'Ρυθμίσεις συλλόγου', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
     { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένος κατάλογος προπονητών και ελεγχόμενες αναθέσεις σε ομάδες και τμήματα. Η δημιουργία προσωπικού παραμένει εκτός λειτουργίας.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Χώροι και πόροι.', status: 'planned', scope: 'any', anyPermission: ['facilities:read'] },
@@ -83,6 +83,8 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
   const assigned = organizations.some(id => id === 'lefteria_fc' || id === 'lefteria_fc_academy');
   return catalog.flatMap(section => {
     const modules = section.modules.filter(item => {
+      // Catalogue visibility only; destination APIs still authorize every request.
+      if (user.role === 'super_admin') return true;
       if (!assigned) return false;
       if (item.scope === 'academy' && !organizations.includes('lefteria_fc_academy')) return false;
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
