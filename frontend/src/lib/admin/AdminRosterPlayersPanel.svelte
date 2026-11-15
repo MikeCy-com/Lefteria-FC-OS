@@ -1,15 +1,17 @@
 <script lang="ts">
   import { browser } from '$app/env';
   import AdminPlayerPrivateRecordsPanel from './AdminPlayerPrivateRecordsPanel.svelte';
+  import AdminGroupAttendancePanel from './AdminGroupAttendancePanel.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = {id: string;name: string;kind: 'team'|'academy_group';active_players: number};
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,onExpired,onRevoked,onChanged}: {
+  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
     allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGoalManagement?:boolean;
+    canReadAttendance?:boolean;canWriteAttendance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
@@ -283,8 +285,18 @@
               {/if}
             </div>
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
-              <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
+              <div class="admin-player-individual-workspace" data-testid="admin-player-individual-workspace">
+                <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
+                  playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
+                {#if currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
+                  <details class="admin-player-attendance-details" data-testid="admin-player-attendance-history">
+                    <summary>Ατομικές παρουσίες προπονήσεων · {player.name}</summary>
+                    <AdminGroupAttendancePanel groupId={currentGroup} {actorId}
+                      canRead={canReadAttendance} canWrite={canWriteAttendance}
+                      playerId={player.id} playerName={player.name}/>
+                  </details>
+                {/if}
+              </div>
             {/if}
           </li>
         {/each}
@@ -302,6 +314,10 @@
 
 <style>
   .admin-player-directory{margin:16px 0}
+  .admin-player-individual-workspace{grid-column:1/-1;min-width:0;display:grid;gap:12px}
+  .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
+  .admin-player-attendance-details>summary{cursor:pointer;font-weight:800;color:#f8c95d;min-height:44px;display:flex;align-items:center}
+  .admin-player-attendance-details>summary:focus-visible{outline:3px solid #f8c95d;outline-offset:3px}
   .admin-player-finance-link{display:inline-flex;align-items:center;min-height:44px;
     padding:9px 13px;border:1px solid #99702f;border-radius:7px;
     color:#ffca46;font-size:13px;font-weight:700}

@@ -47,6 +47,12 @@ test('UI only shows validated expiry metadata and clears it on account change',(
   assert.match(page,/permitted=\$derived/);
   assert.match(page,/document\.expiry_date/);
   assert.doesNotMatch(page,/download|object\.blob|window\.open|href=\{document/);
-  assert.match(navigation,/item\.id === 'documents' \|\| item\.id === 'evaluations'/);
-  assert.match(navigation,/\['manager','super_admin'\]\.includes\(user\.role\)/);
+  assert.doesNotMatch(navigation,/id: 'documents'/);
+  assert.doesNotMatch(navigation,/id: 'evaluations'/);
+  const group=load('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
+  const player=load('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
+  assert.match(group,/AdminRosterPlayersPanel/);
+  assert.match(group,/\['manager','super_admin'\]\.includes\(user\.role\)/);
+  assert.match(player,/playerId/);
+  assert.match(player,/document\.title|doc\.title/);
 });
