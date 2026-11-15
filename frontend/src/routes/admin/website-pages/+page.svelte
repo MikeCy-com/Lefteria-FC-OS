@@ -10,7 +10,7 @@
   import { publishedMediaUrl, type PublishedMediaAsset } from '../../../lib/admin/published-media.ts';
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -60,6 +60,8 @@
   const dirty = $derived(creating || !!selected && JSON.stringify(draft)!==JSON.stringify(selected.draft));
   const editing = $derived(creating || !!selected);
   const isHero = $derived(organization !== null && slug === HOMEPAGE_HERO_SLUGS[organization]);
+  const isSpotlight = $derived(organization === 'lefteria_fc_academy' && slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
+  const isLockedRegion = $derived(isHero || isSpotlight);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -132,25 +134,39 @@
       ]};
     notice='';problem='';
   }
+  function openAcademySpotlight() {
+    if(organization!=='lefteria_fc_academy' || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;mediaPickerIndex=null;
+    draft={title:'Spotlight αρχικής · Ακαδημία',summary:'Εγκεκριμένο περιεχόμενο αρχικής Ακαδημίας',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:'ΑΝΑΠΤΥΞΗ · ΠΑΙΔΕΙΑ · ΟΝΕΙΡΑ',url:null},
+        {type:'paragraph',text:'Κάθε παιδί έχει τη δική του διαδρομή. Γνώρισε τα τμήματα, τους ανθρώπους και την ποδοσφαιρική φιλοσοφία της Ακαδημίας μας.',url:null}
+      ]};
+    notice='';problem='';
+  }
   function addBlock(type: WebsiteBlock['type']) {
-    if(!canWrite || saving || isHero || draft.blocks.length>=40)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40)return;
     mediaPickerIndex=null;
     draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
   }
   function removeBlock(index:number) {
-    if(!canWrite || saving || isHero || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
     draft.blocks=draft.blocks.filter((_,i)=>i!==index);
     mediaPickerIndex=null;
     blockMessage='Αφαιρέθηκε το block '+(index+1)+'.';
   }
   function moveBlock(index:number,direction:-1|1) {
-    if(!canWrite || saving || isHero || index+direction<0 || index+direction>=draft.blocks.length)return;
+    if(!canWrite || saving || isLockedRegion || index+direction<0 || index+direction>=draft.blocks.length)return;
     draft.blocks=moveWebsiteBlock(draft.blocks,index,index+direction);
     mediaPickerIndex=null;
     blockMessage='Το block '+(index+1)+' μετακινήθηκε στη θέση '+(index+direction+1)+'.';
   }
   function duplicateBlock(index:number) {
-    if(!canWrite || saving || isHero || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
     draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
     mediaPickerIndex=null;
     blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
@@ -159,7 +175,7 @@
     draggingBlock=null;dropTarget=null;
   }
   function blockDragStart(event:DragEvent,index:number) {
-    if(!canWrite || saving || isHero || index<0 || index>=draft.blocks.length){
+    if(!canWrite || saving || isLockedRegion || index<0 || index>=draft.blocks.length){
       event.preventDefault();return;
     }
     draggingBlock=index;dropTarget=null;
@@ -169,13 +185,13 @@
     }
   }
   function blockDragOver(event:DragEvent,index:number) {
-    if(draggingBlock===null || !canWrite || saving || isHero)return;
+    if(draggingBlock===null || !canWrite || saving || isLockedRegion)return;
     event.preventDefault();
     if(event.dataTransfer)event.dataTransfer.dropEffect='move';
     dropTarget=index;
   }
   function blockDrop(event:DragEvent,index:number) {
-    if(draggingBlock===null || !canWrite || saving || isHero)return;
+    if(draggingBlock===null || !canWrite || saving || isLockedRegion)return;
     event.preventDefault();
     const from=draggingBlock;
     draft.blocks=moveWebsiteBlock(draft.blocks,from,index);
@@ -185,7 +201,7 @@
   }
   function usePublishedImage(asset:PublishedMediaAsset) {
     const index=mediaPickerIndex;
-    if(!canWrite || saving || isHero || !organization || asset.organization_id!==organization ||
+    if(!canWrite || saving || isLockedRegion || !organization || asset.organization_id!==organization ||
        index===null || draft.blocks[index]?.type!=='image')return;
     const url=publishedMediaUrl(asset.url);
     if(!url)return;
@@ -195,6 +211,12 @@
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
+    if(isSpotlight && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
+      draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
+      draft.blocks[1].text.length>500 || /[\r\n]/.test(draft.blocks[0].text) ||
+      draft.blocks[0].text.split('·').length!==3 ||
+      draft.blocks[0].text.split('·').some(word=>!word.trim()||word.length>60)))return false;
     if(isHero && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
        draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
        draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
@@ -293,6 +315,11 @@
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
             {#if canWrite}<button type="button" class="admin-secondary" onclick={openHomepageHero} disabled={loading || saving}>Επεξεργασία Hero αρχικής · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</button>{/if}
+            {#if canWrite && organization==='lefteria_fc_academy'}
+              <button type="button" class="admin-secondary" onclick={openAcademySpotlight} disabled={loading || saving}>
+                Επεξεργασία Spotlight Ακαδημίας · αρχική σελίδα
+              </button>
+            {/if}
             {#if loading}<p role="status">Φόρτωση…</p>{/if}
             {#if !loading && records.length===0}<p class="admin-muted">Δεν έχουν δημιουργηθεί σελίδες.</p>{/if}
             <nav aria-label="Επεξεργασία σελίδας" class="cms-page-list">
@@ -320,19 +347,20 @@
                       disabled={!creating || !canWrite || saving}/></label>
                   </div>
                   {#if isHero}<p class="admin-muted">Η αλλαγή αφορά μόνο το κείμενο της κεντρικής εικόνας στην αρχική σελίδα. Καρουζέλ, εικόνες, επόμενος αγώνας και σύνδεσμοι μένουν δυναμικοί. Απαιτείται ξεχωριστή έγκριση και δημοσίευση.</p>{/if}
+                  {#if isSpotlight}<p class="admin-muted">Η αλλαγή αφορά μόνο τον τρίπτυχο τίτλο (τρεις λέξεις ή φράσεις χωρισμένες με ·) και την περιγραφή της προβολής Ακαδημίας στην αρχική σελίδα. Εικόνα, κουμπί και πραγματικός αριθμός τμημάτων διατηρούνται. Δημοσίευση μόνο μετά την έγκριση.</p>{/if}
                   <label>Σύντομη περιγραφή <textarea rows="2" maxlength="500" bind:value={draft.summary} disabled={!canWrite || saving}></textarea></label>
                   <div class="cms-field-grid">
-                    <label>Θέση στο μενού <select bind:value={draft.menu_parent} disabled={!canWrite || saving || isHero}>
+                    <label>Θέση στο μενού <select bind:value={draft.menu_parent} disabled={!canWrite || saving || isLockedRegion}>
                       {#each visibleParents as parent (parent.value)}<option value={parent.value}>{parent.label}</option>{/each}
                     </select></label>
-                    <label>Σειρά στο μενού (0 = πρώτη) <input type="number" min="0" max="1000" step="1" bind:value={draft.menu_order} disabled={!canWrite || saving || isHero}/></label>
+                    <label>Σειρά στο μενού (0 = πρώτη) <input type="number" min="0" max="1000" step="1" bind:value={draft.menu_order} disabled={!canWrite || saving || isLockedRegion}/></label>
                   </div>
-                  {#if !isHero}<details class="cms-seo"><summary>SEO · τίτλος και περιγραφή αναζήτησης</summary>
+                  {#if !isLockedRegion}<details class="cms-seo"><summary>SEO · τίτλος και περιγραφή αναζήτησης</summary>
                     <label>SEO τίτλος <input maxlength="180" bind:value={draft.seo_title} disabled={!canWrite || saving}/></label>
                     <label>Meta description <textarea rows="2" maxlength="300" bind:value={draft.seo_description} disabled={!canWrite || saving}></textarea></label>
                   </details>{/if}
                   <div class="cms-block-heading"><h3>Περιεχόμενο σελίδας</h3><span>{draft.blocks.length} / 40 blocks</span></div>
-                  {#if !isHero}<p class="admin-muted cms-drag-hint">Σύρετε ένα block από τη λαβή ⠿ για να αλλάξετε τη σειρά του ή χρησιμοποιήστε τα βέλη ↑ ↓ με πληκτρολόγιο ή κινητό. Η αντιγραφή διατηρεί το περιεχόμενο του block.</p>{/if}
+                  {#if !isLockedRegion}<p class="admin-muted cms-drag-hint">Σύρετε ένα block από τη λαβή ⠿ για να αλλάξετε τη σειρά του ή χρησιμοποιήστε τα βέλη ↑ ↓ με πληκτρολόγιο ή κινητό. Η αντιγραφή διατηρεί το περιεχόμενο του block.</p>{/if}
                   <p class="cms-block-status" role="status" aria-live="polite" aria-atomic="true">{blockMessage}</p>
                   <div class="cms-block-list">
                     {#each draft.blocks as block, index (block)}
@@ -344,20 +372,22 @@
                         <div class="cms-block-tools">
                           <strong>Block {index+1} · {block.type==='heading'?'Τίτλος':block.type==='paragraph'?'Κείμενο':block.type==='image'?'Εικόνα':'Κουμπί'}</strong>
                           <div>
-                            {#if !isHero}<button type="button" class="cms-drag-handle" draggable={canWrite && !saving}
+                            {#if !isLockedRegion}<button type="button" class="cms-drag-handle" draggable={canWrite && !saving}
                               aria-label="Σύρετε το block για αναδιάταξη" title="Σύρετε για μετακίνηση"
                               disabled={!canWrite || saving} ondragstart={e=>blockDragStart(e,index)} ondragend={clearBlockDrag}>⠿</button>{/if}
-                            <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isHero || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
-                            <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isHero || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
-                            {#if !isHero}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=40 || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
-                            <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isHero || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
+                            <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isLockedRegion || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
+                            <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isLockedRegion || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
+                            {#if !isLockedRegion}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=40 || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
+                            <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isLockedRegion || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
                           </div>
                         </div>
                         <label>{block.type==='image'?'Εναλλακτικό κείμενο εικόνας':block.type==='button'?'Ετικέτα κουμπιού':'Κείμενο'}
                           {#if block.type==='paragraph'}
-                            <textarea rows="4" maxlength={isHero?500:5000} value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
+                            <textarea rows="4" maxlength={isLockedRegion?500:5000} value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
                           {:else if isHero && block.type==='heading'}
                             <textarea rows="3" maxlength="180" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
+                          {:else if isSpotlight && block.type==='heading'}
+                            <input maxlength="180" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}/>
                           {:else}
                             <input maxlength="5000" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}/>
                           {/if}
@@ -368,7 +398,7 @@
                               oninput={e=>draft.blocks[index].url=e.currentTarget.value} disabled={!canWrite || saving}/>
                           </label>
                         {/if}
-                        {#if block.type==='image' && canWrite && !isHero}
+                        {#if block.type==='image' && canWrite && !isLockedRegion}
                           <button type="button" class="cms-media-open" disabled={saving}
                             aria-expanded={mediaPickerIndex===index} aria-controls="cms-published-media"
                             onclick={()=>mediaPickerIndex=mediaPickerIndex===index?null:index}>
@@ -378,7 +408,7 @@
                       </div>
                     {/each}
                   </div>
-                  {#if mediaPickerIndex!==null && organization && canWrite && !isHero &&
+                  {#if mediaPickerIndex!==null && organization && canWrite && !isLockedRegion &&
                     draft.blocks[mediaPickerIndex]?.type==='image'}
                     <section class="cms-media-chooser" id="cms-published-media" aria-label="Επιλογή δημοσιευμένης εικόνας">
                       <h3>Επιλογή δημόσιας εικόνας · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</h3>
@@ -386,7 +416,7 @@
                       <PublishedMediaBrowser {organization} onPick={usePublishedImage} embedded />
                     </section>
                   {/if}
-                  {#if canWrite && !isHero}<div class="cms-add-block" aria-label="Προσθήκη block">
+                  {#if canWrite && !isLockedRegion}<div class="cms-add-block" aria-label="Προσθήκη block">
                     <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=40}>+ Τίτλος</button>
                     <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=40}>+ Κείμενο</button>
                     <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=40}>+ Εικόνα</button>
@@ -419,6 +449,10 @@
                   {#if draft.summary}<p>{draft.summary}</p>{/if}
                   {#if isHero}
                     <p class="admin-muted">Προεπισκόπηση περιεχομένου Hero · η τελική γεωμετρία διατηρείται από την αρχική σελίδα.</p>
+                    <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
+                    <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
+                  {:else if isSpotlight}
+                    <p class="admin-muted">Προεπισκόπηση κειμένου Spotlight · η πραγματική εικόνα, τα τμήματα και το CTA διατηρούνται.</p>
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}<WebsitePageBlocks blocks={draft.blocks}/>{/if}
