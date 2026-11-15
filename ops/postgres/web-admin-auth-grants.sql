@@ -130,8 +130,9 @@ REVOKE ALL ON public_content.sponsorship_editorial FROM PUBLIC, :"app_role";
 GRANT SELECT,INSERT ON public_content.sponsorship_editorial TO :"admin_auth_role";
 GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
   ON public_content.sponsorship_editorial TO :"admin_auth_role";
-REVOKE ALL ON FUNCTION public_content.read_published_sponsorship(text),
-  public_content.current_sponsorship_exists(text,text,text)
+REVOKE ALL ON FUNCTION public_content.read_published_sponsorship(text)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
   FROM PUBLIC, :"admin_auth_role", :"app_role";
 GRANT EXECUTE ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
   TO :"admin_auth_role";

@@ -8,7 +8,7 @@ public sealed record SponsorshipEditorialCopy(
     public bool Valid()
     {
         return Name is { Length: > 0 and <= 160 } && !string.IsNullOrWhiteSpace(Name) &&
-            Clean(Name) && Description is null or { Length: <= 800 } &&
+            Clean(Name) && (Description is null or { Length: <= 800 }) &&
             (Description is null || Clean(Description)) &&
             (ImageUrl is null || SafeUrl(ImageUrl, allowLocal: true)) &&
             (WebsiteUrl is null || SafeUrl(WebsiteUrl, allowLocal: false)) &&
