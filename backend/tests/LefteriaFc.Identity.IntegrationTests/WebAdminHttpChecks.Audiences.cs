@@ -25,7 +25,7 @@ internal sealed partial class WebAdminHttpChecks
         using(var response=await anonymous.GetAsync(FcAudiencePath))
             await ExpectJsonAsync(response,401,"not_authenticated");
 
-        var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
+        var admin=await database.SeedAsync(role:"super_admin",organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,admin);
 
@@ -54,6 +54,9 @@ internal sealed partial class WebAdminHttpChecks
         }
 
         var fixture=await database.SeedAudienceAsync();
+        var scopedManager=await database.SeedAsync(role:"manager",
+            organizations:["lefteria_fc","lefteria_fc_academy"]);
+        var territory=await database.SeedAnnouncementTerritoriesAsync(fixture,scopedManager);
         try
         {
             using(var fc=await GetAsync(client,FcAudiencePath,login.Cookie))
@@ -85,6 +88,60 @@ internal sealed partial class WebAdminHttpChecks
                     !directory.GetRawText().Contains(fixture.Team1,StringComparison.Ordinal),
                     "Academy primary/plural membership union or tenant boundary invalid.");
             }
+            // A single tenant/organization grant does not permit discovery
+            // of another First Team squad or a sibling Academy location.
+            using(var managerClient=Client())
+            {
+                var scoped=await LoginAsync(managerClient,scopedManager);
+                using(var fc=await GetAsync(managerClient,FcAudiencePath,scoped.Cookie))
+                {
+                    var listing=await ExpectJsonAsync(fc,200);
+                    Require(listing.GetProperty("groups").GetArrayLength()==1 &&
+                        GetGroup(listing,fixture.Team1).GetProperty("active_players").GetInt32()==1 &&
+                        !listing.GetRawText().Contains(fixture.Team2,StringComparison.Ordinal) &&
+                        listing.GetProperty("unassigned_players").GetInt32()==0,
+                        "First Team manager received an unrelated squad or global unassigned totals.");
+                }
+                using(var academy=await GetAsync(managerClient,AcademyAudiencePath,scoped.Cookie))
+                {
+                    var listing=await ExpectJsonAsync(academy,200);
+                    Require(listing.GetProperty("groups").GetArrayLength()==1 &&
+                        GetGroup(listing,fixture.Group2).GetProperty("active_players").GetInt32()==2 &&
+                        !listing.GetRawText().Contains(fixture.Group1,StringComparison.Ordinal) &&
+                        listing.GetProperty("unassigned_players").GetInt32()==0,
+                        "Location manager discovered a sibling Academy site in the same city.");
+                }
+
+                // A distinct manager has an organization grant but no
+                // delegated team/city/location permissions.
+                var outsider=await database.SeedAsync(role:"manager",
+                    organizations:["lefteria_fc","lefteria_fc_academy"]);
+                using(var otherClient=Client())
+                {
+                    var other=await LoginAsync(otherClient,outsider);
+                    foreach(var path in new[]{FcAudiencePath,AcademyAudiencePath})
+                        using(var empty=await GetAsync(otherClient,path,other.Cookie))
+                        {
+                            var listing=await ExpectJsonAsync(empty,200);
+                            Require(listing.GetProperty("groups").GetArrayLength()==0 &&
+                                listing.GetProperty("unassigned_players").GetInt32()==0,
+                                "An unscoped manager enumerated private youth audience counts.");
+                        }
+                }
+
+                // Revocation of exact team/location grants must apply to
+                // the SAME still-valid browser cookie, not at next login.
+                await database.RevokeAnnouncementTerritoriesAsync(scopedManager,territory);
+                foreach(var path in new[]{FcAudiencePath,AcademyAudiencePath})
+                    using(var revoked=await GetAsync(managerClient,path,scoped.Cookie))
+                    {
+                        var listing=await ExpectJsonAsync(revoked,200);
+                        Require(listing.GetProperty("groups").GetArrayLength()==0 &&
+                            listing.GetProperty("unassigned_players").GetInt32()==0,
+                            "Revoked manager retained an old audience selector.");
+                    }
+            }
+
             await database.RemoveAudienceMembershipAsync(fixture);
             using(var changed=await GetAsync(client,AcademyAudiencePath,login.Cookie))
             {
@@ -115,7 +172,7 @@ internal sealed partial class WebAdminHttpChecks
                 using var denied=await GetAsync(coachClient,AcademyAudiencePath,coachLogin.Cookie);
                 await ExpectJsonAsync(denied,403,"not_authorized");
             }
-            var onlyAcademy=await database.SeedAsync(organizations:["lefteria_fc_academy"]);
+            var onlyAcademy=await database.SeedAsync(role:"super_admin",organizations:["lefteria_fc_academy"]);
             using(var academyClient=Client())
             {
                 var session=await LoginAsync(academyClient,onlyAcademy);
@@ -138,6 +195,7 @@ internal sealed partial class WebAdminHttpChecks
         }
         finally
         {
+            await database.CleanupAnnouncementTerritoriesAsync(scopedManager,territory);
             await database.CleanupAudienceAsync(fixture);
         }
     }
