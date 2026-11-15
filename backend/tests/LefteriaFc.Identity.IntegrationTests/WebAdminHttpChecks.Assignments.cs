@@ -31,7 +31,7 @@ internal sealed partial class WebAdminHttpChecks
             "no-such-player",[],[]))
             await ExpectJsonAsync(denied,401,"not_authenticated");
 
-        var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
+        var admin=await database.SeedAsync(role:"super_admin",organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,admin);
         Console.WriteLine("CHECK roster assignment stage: fixture");
