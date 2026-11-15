@@ -400,6 +400,22 @@ try {
             failures.push(route.path+' '+viewport.name+': measured original heading '+originalSize+'px vs '+publicFont.headlineSize+'px');
         }
       }
+      // Public footer navigation is contextual: Academy pages cannot inherit
+      // the First Team's single-city banner or links to its roster/results.
+      if(route.name === 'academy' || route.name === 'first-team'){
+        const footer = page.getByTestId('footer');
+        const footerScope = await footer.getAttribute('data-organization');
+        const bannerLabel = (await page.getByTestId('public-city-banner').locator('strong').innerText()).trim();
+        if(route.name === 'academy'){
+          if(footerScope !== 'lefteria_fc_academy' || bannerLabel !== 'ΑΚΑΔΗΜΙΑ' ||
+              await page.getByTestId('footer-nav-team').count() !== 0 ||
+              await page.getByTestId('footer-nav-groups').count() !== 1)
+            failures.push('Academy: footer must keep verified Academy city/link scope '+JSON.stringify({footerScope,bannerLabel}));
+        }else if(footerScope !== 'lefteria_fc' || bannerLabel !== 'ΛΕΜΕΣΟΣ' ||
+            await page.getByTestId('footer-nav-team').count() !== 1){
+          failures.push('First Team: footer must keep First Team navigation '+JSON.stringify({footerScope,bannerLabel}));
+        }
+      }
       const metrics = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         clientWidth:document.documentElement.clientWidth,
