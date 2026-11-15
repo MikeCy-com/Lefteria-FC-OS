@@ -9,7 +9,7 @@ type Event = components['schemas']['PublicSectionEvent'];
 type Partner = components['schemas']['PublicSectionPartner'];
 type Sponsor = components['schemas']['PublicSectionSponsor'];
 type Archive = components['schemas']['PublicSectionArchive'];
-export type CatalogCard = { id: string; organization: PublicOrganization; title: string; summary: string | null; image: string | null; label: string; meta: string | null; href: string; scopeLabel?: string; event?: Pick<Event, 'location' | 'price_eur' | 'status'> };
+export type CatalogCard = { id: string; organization: PublicOrganization; title: string; summary: string | null; image: string | null; label: string; meta: string | null; href: string; scopeLabel?: string; event?: Pick<Event, 'location' | 'price_eur' | 'status' | 'capacity' | 'is_featured'> };
 export type CatalogData = PublicPageData & {
   kind: CatalogKind; scope: CatalogScope; fixedScope: CatalogScope; cards: CatalogCard[]; when: 'upcoming' | 'past' | 'all'; eventType: string; eventTypes: string[];
 };
@@ -51,7 +51,7 @@ function rows(context: Sections[], kind: CatalogKind) {
 function card(kind: CatalogKind, row: Event | Partner | Sponsor | Archive): CatalogCard {
   if (kind === 'events') {
     const value = row as Event;
-    return { id: value.id, organization: value.organization_id as PublicOrganization, title: value.title, summary: value.description, image: value.cover_image_url, label: value.event_type, meta: value.start_at, href: catalogHref(kind, value, value.title), event: { location: value.location, price_eur: value.price_eur, status: value.status } };
+    return { id: value.id, organization: value.organization_id as PublicOrganization, title: value.title, summary: value.description, image: value.cover_image_url, label: value.event_type, meta: value.start_at, href: catalogHref(kind, value, value.title), event: { location: value.location, price_eur: value.price_eur, status: value.status, capacity: value.capacity, is_featured: value.is_featured } };
   }
   if (kind === 'partners') {
     const value = row as Partner;

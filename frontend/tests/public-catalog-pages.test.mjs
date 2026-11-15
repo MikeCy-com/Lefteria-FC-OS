@@ -119,6 +119,15 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     const {default:Detail}=await import('../src/lib/public/PublicCatalogDetail.svelte');
     const html=render(List,{props:{data:events}}).body;assert.match(html,/Recorded community day/);assert.match(html,/name="when"/);assert.match(html,/action="\/events"/);assert.doesNotMatch(html,/Recorded past event/);
     assert.match(html,/Recorded ground/);assert.match(html,/15:00/);assert.match(html,/Δωρεάν/);
+    assert.match(html,/published-event-capacity/);
+    assert.match(html,/Θέσεις συνολικά/);
+    assert.equal(events.cards[0].event.capacity,0,'Only the published total capacity is shown, never an invented remaining count.');
+    assert.equal(events.cards[0].event.is_featured,false);
+    const featured={...events,cards:events.cards.map(card=>({...card,event:{...card.event,is_featured:true}}))};
+    assert.match(render(List,{props:{data:featured}}).body,/published-featured-event/);
+    assert.match(render(List,{props:{data:featured}}).body,/ΕΠΙΛΕΓΜΕΝΗ ΕΚΔΗΛΩΣΗ/);
+    const undisclosedCapacity={...events,cards:events.cards.map(card=>({...card,event:{...card.event,capacity:null}}))};
+    assert.doesNotMatch(render(List,{props:{data:undisclosedCapacity}}).body,/Θέσεις συνολικά/);
     const pastHtml=render(List,{props:{data:pastList}}).body;
     assert.match(pastHtml,/Κοινωνική/);
     const returnedHtml=render(Detail,{props:{data:pastDetail}}).body;
@@ -126,6 +135,20 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     const unknownPrice={...events,cards:events.cards.map(item=>({...item,event:{...item.event,price_eur:null}}))};
     assert.doesNotMatch(render(List,{props:{data:unknownPrice}}).body,/Δωρεάν/);
     const eventHtml=render(Detail,{props:{data:await detail(url('/events/detail'),'events',event.id)}}).body;
+    const recordedEventData=await detail(url('/events/detail'),'events',event.id);
+    const noRsvp={...recordedEventData,event:{...recordedEventData.event,registration_url:null}};
+    const noRsvpHtml=render(Detail,{props:{data:noRsvp}}).body;
+    assert.match(noRsvpHtml,/data-testid="event-no-rsvp-backend"/);
+    assert.match(noRsvpHtml,/\/contact\?organization_id=lefteria_fc/);
+    assert.doesNotMatch(noRsvpHtml,/event-external-registration|href="https:\/\/example.test\/event"/);
+    assert.doesNotMatch(eventHtml,/event-no-rsvp-backend/);
+    const academyInquiry=render(Detail,{props:{data:{
+      ...noRsvp,event:{...noRsvp.event,organization_id:'lefteria_fc_academy'}
+    }}}).body;
+    assert.match(academyInquiry,/\/contact\?organization_id=lefteria_fc_academy/);
+    const cancelled=render(Detail,{props:{data:{...noRsvp,event:{...noRsvp.event,status:'cancelled'}}}}).body;
+    assert.doesNotMatch(cancelled,/event-contact-inquiry/);
+    assert.match(cancelled,/Ακυρώθηκε/);
     assert.match(eventHtml,/15:00/);assert.match(eventHtml,/Asia\/Nicosia/);assert.match(eventHtml,/Δωρεάν/);assert.match(eventHtml,/&lt;script>/);assert.doesNotMatch(eventHtml,/<script>unsafe/);
     const partnerHtml=render(Detail,{props:{data:await detail(url('/partners/real-partner'),'partners','real-partner')}}).body;
     assert.match(partnerHtml,/Public colleague/);assert.match(partnerHtml,/Recorded benefit/);assert.match(partnerHtml,/href="https:\/\/example.test\/contact"/);assert.doesNotMatch(partnerHtml,/href="javascript:|Unsafe CTA/);
