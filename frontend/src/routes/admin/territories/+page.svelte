@@ -140,7 +140,7 @@
     const actor=$auth.session?.user.id;
     const allowedNow=allowed;
     void revision;
-    directory=null; loading=false; message=''; error='';
+    directory=null; loading=false; error='';
     if(!browser || !allowedNow || !actor) return;
     const abort=new AbortController();
     loading=true;
@@ -273,7 +273,8 @@
             <h2 id="city-heading">1. Πόλη Ακαδημίας</h2>
             <div class="territory-row">
               <label>Πόλη
-                <select bind:value={cityId} data-testid="territory-city">
+                <select bind:value={cityId} data-testid="territory-city"
+                  onchange={()=>{locationId='';selectedGroup='';opponentId='';fieldId='';playingFieldId='';}}>
                   {#each cities as city (city.id)}
                     <option value={city.id}>{city.name}{city.is_active?'':' (ανενεργή)'}</option>
                   {/each}
@@ -298,7 +299,8 @@
             <section class="admin-panel" aria-labelledby="location-heading">
               <h2 id="location-heading">2. Τοποθεσία στην πόλη</h2>
               <label>Τοποθεσία
-                <select bind:value={locationId} data-testid="territory-location">
+                <select bind:value={locationId} data-testid="territory-location"
+                  onchange={()=>{selectedGroup='';playingFieldId='';}}>
                   {#each locations as location (location.id)}
                     <option value={location.id}>{location.name}{location.is_active?'':' (ανενεργή)'}</option>
                   {/each}
@@ -347,7 +349,8 @@
           <section class="admin-panel" aria-labelledby="team-heading">
             <h2 id="team-heading">Ομάδα συλλόγου</h2>
             <label>Επιλογή ομάδας
-              <select bind:value={scopeId} data-testid="territory-team">
+              <select bind:value={scopeId} data-testid="territory-team"
+                onchange={()=>{opponentId='';fieldId='';playingFieldId='';}}>
                 {#each directory.scopes as scope (scope.id)}
                   <option value={scope.id}>{scope.team_name ?? scope.team_id}</option>
                 {/each}
