@@ -185,6 +185,7 @@ app.MapWebAdmin();
 app.MapAdminUserDirectory();
 app.MapPayabl();
 app.MapAcademyFees();
+app.MapAdminFinanceOverview();
 app.MapAcademyInvoices();
 app.MapPublicContentEndpoints();
 app.MapFirstTeamTrialPublic();
