@@ -73,6 +73,8 @@ BEGIN
       OR EXISTS(
         SELECT 1 FROM pg_proc p WHERE p.oid IN (
           'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
           'identity.write_admin_own_password(text,text,text)'::regprocedure
         ) AND (NOT p.prosecdef OR
           EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
