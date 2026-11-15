@@ -63,6 +63,17 @@
       </div>
       {#if countdown}<div class="public-countdown" data-testid="public-hero-countdown">{#each countdown as value,index}<div><strong>{String(value).padStart(2,'0')}</strong><span>{['ΗΜΕΡΕΣ','ΩΡΕΣ','ΛΕΠΤΑ','ΔΕΥΤ.'][index]}</span></div>{/each}</div>{/if}
       <a href={fixturePublicLink(fixture)} class="public-button public-fixture-details" data-testid="hero-fixture-details">ΛΕΠΤΟΜΕΡΕΙΕΣ ΑΓΩΝΑ <Icon name="arrow" size={18} /></a>
+    </aside>{:else}<aside class="public-hero-fixture public-hero-fixture-empty"
+      data-testid="public-hero-fixture" data-state="unavailable" aria-label="Πρόγραμμα πρώτης ομάδας">
+      <div class="public-fixture-heading"><span><Icon name="calendar" size={22} />ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</span>
+        <a href="/team?tab=schedule" aria-label="Πρόγραμμα πρώτης ομάδας"><Icon name="external" size={18} /></a>
+      </div>
+      <div class="public-fixture-empty-copy" role="status">
+        <Icon name="calendar" size={30} />
+        <strong>{site ? 'ΔΕΝ ΕΧΕΙ ΔΗΜΟΣΙΕΥΤΕΙ ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ' : 'ΤΟ ΠΡΟΓΡΑΜΜΑ ΔΕΝ ΕΙΝΑΙ ΔΙΑΘΕΣΙΜΟ'}</strong>
+        <p>{site ? 'Παρακολούθησε το επίσημο πρόγραμμα για τον επόμενο αγώνα της πρώτης ομάδας.' : 'Δεν ήταν δυνατή η φόρτωση του επίσημου προγράμματος αυτή τη στιγμή.'}</p>
+      </div>
+      <a href="/team?tab=schedule" class="public-button public-fixture-details" data-testid="hero-fixture-schedule">ΔΕΣ ΤΟ ΠΡΟΓΡΑΜΜΑ <Icon name="arrow" size={18} /></a>
     </aside>{/if}
     <div class="public-hero-bottom"><p class="public-hero-motto">{club?.motto || 'ΜΙΑ ΟΜΑΔΑ. ΕΝΑ ΟΝΕΙΡΟ.'}</p>
       <div class="public-hero-controls" role="group" aria-label="Εναλλαγή κεντρικών εικόνων" data-testid="hero-slide-controls">
