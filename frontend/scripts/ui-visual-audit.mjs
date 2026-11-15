@@ -469,7 +469,7 @@ try {
             if(motto.y<tiles.bottom-2||motto.y>tiles.bottom+12)
               failures.push('home: reference black motto interval is not after the four image tiles');
             if(fixture.x<1050||fixture.y<70||fixture.y>160||fixture.bottom>470)
-              failures.push('home: no reference-position match panel in the right hero column');
+              failures.push('home: no reference-position match panel in the right hero column '+JSON.stringify(fixture));
             if(news.y<900)
               failures.push('home: preserve actual CMS news below the reference fold, not above the 941px screenshot');
             if(Math.abs(top.x-rail.width)>2)
