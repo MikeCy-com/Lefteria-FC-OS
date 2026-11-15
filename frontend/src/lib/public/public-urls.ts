@@ -30,6 +30,10 @@ export function fixturePublicLink(fixture: { id: string; home_team: string; away
 export function publicCanonicalHref(path: string): string {
   if (!path.startsWith('/') || path.startsWith('//')) return 'https://lefteriafc.cy/';
   const url = new URL(path, 'https://lefteriafc.cy');
-  // Canonical only the path, not context/filters/search/caller parameters.
-  return 'https://lefteriafc.cy' + url.pathname;
+  // Canonical only verified public owner scope, never return filters,
+  // guardian/child context, arbitrary query, tokens or caller parameters.
+  const isPublicCatalogDetail = /^\\/(?:events|partners|sponsors|seasons)\\/[^/]+$/.test(url.pathname);
+  const scope = url.searchParams.get('scope');
+  const owner = isPublicCatalogDetail && (scope === 'academy' || scope === 'first_team') ? '?scope=' + scope : '';
+  return 'https://lefteriafc.cy' + url.pathname + owner;
 }
