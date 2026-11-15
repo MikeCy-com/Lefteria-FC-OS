@@ -1,6 +1,26 @@
 {
   "components": {
     "schemas": {
+      "AcademyGroupVisibilityCommand": {
+        "properties": {
+          "expected_revision": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "is_public": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expected_revision",
+          "is_public"
+        ],
+        "type": "object"
+      },
       "AcademyLeadFollowUpCommand": {
         "properties": {
           "expected_status": {
@@ -12487,6 +12507,51 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/ProfileWrite"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy administration"
+        ]
+      }
+    },
+    "/api/admin/football/academy-group-profiles/{groupId}/visibility": {
+      "put": {
+        "operationId": "SetAdminAcademyGroupPublicity",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "groupId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyGroupVisibilityCommand"
               }
             }
           },

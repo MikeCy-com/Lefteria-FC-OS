@@ -80,6 +80,20 @@ BEGIN
       'location_name','training_schedule','description','banner_url',
       'season','display_order')
   ) THEN RAISE EXCEPTION 'Private Academy fields leaked into public directory'; END IF;
+  -- Private admin suppression must remove every public index/detail link
+  -- without destroying canonical group, roster memberships or history.
+  UPDATE club.academy_group_profiles SET is_public=false
+    WHERE organization_id='lefteria_fc_academy' AND group_id=v_id;
+  IF EXISTS(
+    SELECT 1 FROM jsonb_array_elements(club.read_public_academy_group_directory()) x(item)
+    WHERE item->>'id'=v_id
+  ) THEN RAISE EXCEPTION 'Manager-unpublished Academy group still appears in public directory'; END IF;
+  UPDATE club.academy_group_profiles SET is_public=true
+    WHERE organization_id='lefteria_fc_academy' AND group_id=v_id;
+  IF NOT EXISTS(
+    SELECT 1 FROM jsonb_array_elements(club.read_public_academy_group_directory()) x(item)
+    WHERE item->>'id'=v_id
+  ) THEN RAISE EXCEPTION 'Republished Academy group did not return to public directory'; END IF;
 END
 $canonical_directory_checks$;
 ROLLBACK;

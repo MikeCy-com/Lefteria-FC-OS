@@ -63,6 +63,12 @@ BEGIN
      jsonb_typeof(club.read_public_academy_group_directory()) <> 'array' THEN
     RAISE EXCEPTION 'Academy directory did not return a bounded public array';
   END IF;
+  IF has_function_privilege(current_user,
+        'club.read_admin_academy_group_publicity(text,text)','EXECUTE')
+      OR has_function_privilege(current_user,
+        'club.set_admin_academy_group_publicity(text,text,bigint,boolean)','EXECUTE') THEN
+    RAISE EXCEPTION 'Public/mobile runtime can access manager Academy publication controls';
+  END IF;
   -- The only authorized trial settings permission is the fixed,
   -- source-backed, closed-only function; never the private settings table.
   IF NOT has_function_privilege(current_user,

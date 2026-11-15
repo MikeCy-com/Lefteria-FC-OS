@@ -23,7 +23,9 @@ BEGIN
     WHERE p.oid IN (
       'club.authorize_admin_academy_profile(text)'::regprocedure,
       'club.read_admin_academy_group_profile(text,text)'::regprocedure,
-      'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure)
+      'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure,
+      'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
+      'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure)
       AND acl.grantee=0 AND acl.privilege_type='EXECUTE'
   ) THEN RAISE EXCEPTION 'academy_profile_public_function_detected'; END IF;
 END $guard$;
@@ -32,6 +34,10 @@ GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_profile(text,text)
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.write_admin_academy_group_profile(text,text,bigint,jsonb)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_publicity(text,text)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.set_admin_academy_group_publicity(text,text,bigint,boolean)
+  TO :"admin_auth_role";
 DO $verify$
 DECLARE app text:=current_setting('lefteria.academy_profile_role');
 BEGIN
@@ -39,6 +45,10 @@ BEGIN
       'club.read_admin_academy_group_profile(text,text)','EXECUTE')
      OR NOT has_function_privilege(app,
       'club.write_admin_academy_group_profile(text,text,bigint,jsonb)','EXECUTE')
+     OR NOT has_function_privilege(app,
+      'club.read_admin_academy_group_publicity(text,text)','EXECUTE')
+     OR NOT has_function_privilege(app,
+      'club.set_admin_academy_group_publicity(text,text,bigint,boolean)','EXECUTE')
      OR has_function_privilege(app,
       'club.authorize_admin_academy_profile(text)','EXECUTE')
      OR has_table_privilege(app,'club.academy_group_profiles',

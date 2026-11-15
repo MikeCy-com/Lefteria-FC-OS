@@ -15,7 +15,9 @@ BEGIN
   FOREACH f IN ARRAY ARRAY[
     'club.authorize_admin_academy_profile(text)'::regprocedure::oid,
     'club.read_admin_academy_group_profile(text,text)'::regprocedure::oid,
-    'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure::oid
+    'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure::oid,
+    'club.read_admin_academy_group_publicity(text,text)'::regprocedure::oid,
+    'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc
       WHERE oid=f AND prosecdef)
@@ -25,7 +27,7 @@ BEGIN
     THEN RAISE EXCEPTION 'academy_profile_function_exposed'; END IF;
   END LOOP;
   IF EXISTS(SELECT 1 FROM club.academy_group_profiles
-    WHERE revision<1 OR max_players NOT BETWEEN 1 AND 200)
+    WHERE revision<1 OR max_players NOT BETWEEN 1 AND 200 OR is_public IS NULL)
   THEN RAISE EXCEPTION 'academy_profile_invalid_persisted'; END IF;
 END $checks$;
 DO $negative$
@@ -38,6 +40,11 @@ BEGIN
   BEGIN
     PERFORM club.write_admin_academy_group_profile('invalid','unknown',0,'{}'::jsonb);
     RAISE EXCEPTION 'academy_profile_unauthorized_write_was_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+  BEGIN
+    PERFORM club.set_admin_academy_group_publicity('invalid','unknown',1,false);
+    RAISE EXCEPTION 'academy_visibility_unauthorized_publication_was_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
 END $negative$;
