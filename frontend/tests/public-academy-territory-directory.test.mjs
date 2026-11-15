@@ -33,7 +33,7 @@ test('Partial IDs, malformed slugs and First Team content never become Academy h
   const firstTeam={...full,id:'first-team',organization_id:'lefteria_fc'};
   const result=buildAcademyTerritoryDirectory([partiallyAssigned,badSlug,firstTeam]);
   assert.deepEqual(result.cities,[]);
-  assert.deepEqual(result.unassigned.map(g=>g.id),['partial','bad','first-team']);
+  assert.deepEqual(result.unassigned.map(g=>g.id),['partial','bad']);
   assert.deepEqual(buildAcademyTerritoryDirectory([]),{cities:[],unassigned:[]});
 });
 
