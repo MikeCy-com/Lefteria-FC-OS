@@ -46,7 +46,12 @@ public sealed class PosAcademySiteFinancialBoundary : Migration
           OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy') THEN
           RAISE EXCEPTION 'pos_location_scope_invalid' USING ERRCODE='22023';
         END IF;
-        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        BEGIN
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        EXCEPTION WHEN raise_exception THEN
+          RAISE EXCEPTION 'pos_all_locations_super_admin_only'
+            USING ERRCODE='42501';
+        END;
         SELECT a.id,s.id,a.role INTO actor_id,session_id,v_role
           FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
