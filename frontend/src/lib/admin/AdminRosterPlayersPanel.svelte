@@ -5,15 +5,18 @@
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = {id: string;name: string;kind: 'team'|'academy_group';active_players: number};
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
-  type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
+  type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
+  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
   const pageSize = 20;
   let offset = $state(0);
+  let rosterMode=$state<'group'|'assign'>('group');
+  const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
   let refresh = $state(0);
   let page = $state<Page|null>(null);
   let loading = $state(false);
@@ -104,10 +107,12 @@
     } finally { saving=false; }
   }
 
-  function verified(raw:unknown,expected:Owner,wantedOffset:number):raw is Page {
+  function verified(raw:unknown,expected:Owner,wantedOffset:number,group:string|null):raw is Page {
     if(!raw || typeof raw!=='object' || Array.isArray(raw))return false;
     const response=raw as Record<string,unknown>;
-    if(response.organization_id!==expected || response.ready!==true ||
+    if(response.organization_id!==expected ||
+      (group!==null && response.group_id!==group) ||
+      (group===null && response.group_id!=null) || response.ready!==true ||
       response.offset!==wantedOffset || response.limit!==pageSize ||
       !Number.isSafeInteger(response.total) || (response.total as number)<0 ||
       (response.total as number)>25000 || !Array.isArray(response.players) ||
@@ -122,7 +127,9 @@
         !Array.isArray(p.academy_group_ids) || p.academy_group_ids.length>150 ||
         !p.academy_group_ids.every((id:unknown)=>typeof id==='string' && id.length>0 && id.length<=128) ||
         (expected==='lefteria_fc' && p.academy_group_ids.length>0) ||
-        (expected==='lefteria_fc_academy' && p.team_id!==null))return false;
+        (expected==='lefteria_fc_academy' && p.team_id!==null) ||
+        (group!==null && (expected==='lefteria_fc' ? p.team_id!==group :
+          !(p.academy_group_ids as string[]).includes(group))))return false;
       ids.add(p.id);
       return true;
     });
@@ -140,6 +147,7 @@
     const currentOwner=owner;
     const actor=actorId;
     const currentOffset=offset;
+    const group=currentGroup;
     const generation=refresh;
     void actor;void generation;
 
@@ -152,7 +160,9 @@
         const params=new URLSearchParams({
           organization_id:currentOwner,offset:String(currentOffset),limit:String(pageSize)
         });
-        const response=await fetch('/api/admin/football/players?'+params.toString(),{
+        if(group)params.set('group_id',group);
+        const source=group?'/api/admin/football/group-players?':'/api/admin/football/players?';
+        const response=await fetch(source+params.toString(),{
           method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
         });
         if(controller.signal.aborted)return;
@@ -160,7 +170,7 @@
         if(response.status===403){onRevoked();return;}
         if(!response.ok)throw new Error('Roster directory unavailable.');
         const json:unknown=await response.json();
-        if(!verified(json,currentOwner,currentOffset))throw new Error('Invalid roster response.');
+        if(!verified(json,currentOwner,currentOffset,group))throw new Error('Invalid roster response.');
         if(!controller.signal.aborted)page=json;
       }catch{
         if(!controller.signal.aborted)failed=true;
@@ -182,6 +192,20 @@
       Ανανέωση παικτών
     </button>
   </div>
+  {#if focusGroupId}
+    <div class="admin-player-group-scope" role="group" aria-label="Επιλογή ρόστερ" data-testid="group-player-scope">
+      <button type="button" aria-pressed={rosterMode==='group'} disabled={saving}
+        onclick={()=>{rosterMode='group';offset=0;}} data-testid="group-current-player-filter">
+        Αθλητές τμήματος</button>
+      <button type="button" aria-pressed={rosterMode==='assign'} disabled={saving}
+        onclick={()=>{rosterMode='assign';offset=0;}} data-testid="group-assign-player-filter">
+        Εύρεση αθλητή για ανάθεση</button>
+    </div>
+    {#if rosterMode==='assign'}
+      <p class="admin-muted">Η εύρεση χρησιμοποιεί τον εξουσιοδοτημένο κατάλογο του οργανισμού
+        για να προσθέσετε αθλητή στο τμήμα. Η ανάθεση ελέγχεται από το API.</p>
+    {/if}
+  {/if}
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
   {:else if failed || !page}
@@ -191,12 +215,12 @@
     </div>
   {:else}
     <div class="admin-player-total" role="status">
-      <strong>{page.total}</strong><span>ενεργοί παίκτες στον επιλεγμένο οργανισμό</span>
+      <strong>{page.total}</strong><span>{currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
     </div>
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
     {#if page.players.length===0}
-      <p class="admin-muted" data-testid="admin-players-empty">Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.</p>
+      <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
       <ul class="admin-player-list" data-testid="admin-players-list">
         {#each page.players as player (player.id)}
@@ -298,4 +322,12 @@
   .admin-player-paging{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:15px}
   .admin-player-paging span{font-size:12px;color:#b9bcbe;margin-right:auto}
   @media(max-width:600px){.admin-player-list li{grid-template-columns:1fr}.admin-player-heading{display:grid}.admin-player-paging span{width:100%}}
+
+  .admin-player-group-scope{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 8px}
+  .admin-player-group-scope button{min-height:44px;padding:10px 14px;border:1px solid #777;
+    border-radius:5px;background:#171a1c;color:#eee;cursor:pointer;
+    font:800 14px 'Fira Sans Extra Condensed',sans-serif}
+  .admin-player-group-scope button[aria-pressed=true]{background:#f6bb38;color:#080808;border-color:#f6bb38}
+  .admin-player-group-scope button:focus-visible{outline:3px solid #ffd164;outline-offset:2px}
+  .admin-player-group-scope button:disabled{opacity:.6;cursor:not-allowed}
 </style>
