@@ -33,9 +33,19 @@ internal sealed partial class WebAdminHttpChecks
         using var client=Client();
         var login=await LoginAsync(client,admin);
         var roster=await database.SeedAudienceAsync();
+        var territory=await database.SeedAnnouncementTerritoriesAsync(roster,admin);
         string fcDraftId="",academyDraftId="";
         try
         {
+            Console.WriteLine("CHECK announcements stage: exact location/team denial");
+            // An Academy location manager must never reach another location
+            // in the SAME city. A First Team manager must never cross squads.
+            using(var denied=await CreateDraft(client,login.Cookie,FcDraftsPath,
+                new{group_id=roster.Team2,title="Other squad",body="Not authorized."}))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var denied=await CreateDraft(client,login.Cookie,AcademyDraftsPath,
+                new{group_id=roster.Group1,title="Other site",body="Not authorized."}))
+                await ExpectJsonAsync(denied,403,"not_authorized");
             Console.WriteLine("CHECK announcements stage: draft creation");
             using(var saved=await CreateDraft(client,login.Cookie,FcDraftsPath,
                 new{group_id=roster.Team1,title="Fixture FC announcement",body="Private draft only."}))
@@ -176,10 +186,12 @@ internal sealed partial class WebAdminHttpChecks
             var academyMedia="/api/admin/communications/announcement-drafts/"+academyDraftId+
                 "/media?organization_id=lefteria_fc_academy";
             var pdf=Encoding.ASCII.GetBytes("%PDF-1.4\n1 0 obj<<>>endobj\n%%EOF");
+            Console.WriteLine("CHECK announcements stage: media invalid framing");
             using(var invalid=await CreateDraft(client,login.Cookie,fcMedia,
                 new{version=1,kind="attachment",file_name="guide.pdf",
                     content_type="application/pdf",base64=Convert.ToBase64String(Encoding.UTF8.GetBytes("not a PDF"))}))
                 await ExpectJsonAsync(invalid,422,"invalid_announcement_media");
+            Console.WriteLine("CHECK announcements stage: media first saved");
             using(var saved=await CreateDraft(client,login.Cookie,fcMedia,
                 new{version=1,kind="attachment",file_name="guide.pdf",
                     content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
@@ -191,16 +203,19 @@ internal sealed partial class WebAdminHttpChecks
                     result.GetProperty("media")[0].GetProperty("kind").GetString()=="attachment",
                     "Manager draft PDF was not saved with version and metadata.");
             }
+            Console.WriteLine("CHECK announcements stage: media stale version");
             using(var stale=await CreateDraft(client,login.Cookie,fcMedia,
                 new{version=1,kind="attachment",file_name="guide.pdf",
                     content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
                 await ExpectJsonAsync(stale,409,"app_announcement_conflict");
+            Console.WriteLine("CHECK announcements stage: media foreign org");
             using(var cross=await CreateDraft(client,login.Cookie,
                 "/api/admin/communications/announcement-drafts/"+fcDraftId+
                     "/media?organization_id=lefteria_fc_academy",
                 new{version=2,kind="attachment",file_name="guide.pdf",
                     content_type="application/pdf",base64=Convert.ToBase64String(pdf)}))
                 await ExpectJsonAsync(cross,403,"not_authorized");
+            Console.WriteLine("CHECK announcements stage: academy banner");
             using(var bmp=new SKBitmap(20,12))
             {
                 bmp.Erase(SKColors.Gold);
@@ -214,6 +229,7 @@ internal sealed partial class WebAdminHttpChecks
                     result.GetProperty("media")[0].GetProperty("content_type").GetString()=="image/jpeg",
                     "Banner was not sanitized to a bounded JPEG.");
             }
+            Console.WriteLine("CHECK announcements stage: media metadata reload");
             using(var activeDraft=await GetAsync(client,FcDraftsPath,login.Cookie))
             {
                 var row=(await ExpectJsonAsync(activeDraft,200)).GetProperty("drafts")
@@ -221,6 +237,22 @@ internal sealed partial class WebAdminHttpChecks
                 Require(row.GetProperty("version").GetInt64()==2&&
                     row.GetProperty("media").GetArrayLength()==1,
                     "Draft reload lost private media metadata or current version.");
+            }
+            Console.WriteLine("CHECK announcements stage: unrelated manager cannot list drafts");
+            var unrelated=await database.SeedAsync(role:"manager",
+                organizations:["lefteria_fc","lefteria_fc_academy"]);
+            using(var outsiderClient=Client())
+            {
+                var outsider=await LoginAsync(outsiderClient,unrelated);
+                using(var emptyFc=await GetAsync(outsiderClient,FcDraftsPath,outsider.Cookie))
+                    Require((await ExpectJsonAsync(emptyFc,200)).GetProperty("drafts")
+                        .GetArrayLength()==0,"Another squad manager read private FC drafts.");
+                using(var emptyAcademy=await GetAsync(outsiderClient,AcademyDraftsPath,outsider.Cookie))
+                    Require((await ExpectJsonAsync(emptyAcademy,200)).GetProperty("drafts")
+                        .GetArrayLength()==0,"Another location manager read Academy drafts.");
+                using(var denied=await CreateDraft(outsiderClient,outsider.Cookie,FcDraftsPath,
+                    new{group_id=roster.Team1,title="Unauthorized",body="No."}))
+                    await ExpectJsonAsync(denied,403,"not_authorized");
             }
             Console.WriteLine("CHECK announcements stage: successful publish");
             using(var published=await CreateDraft(client,login.Cookie,fcPublish,new{version=2}))
@@ -332,6 +364,19 @@ internal sealed partial class WebAdminHttpChecks
                 Require((await ExpectJsonAsync(removedList,200)).GetProperty("announcements").GetArrayLength()==0,
                     "Admin removal did not remove the published notice from the official feed.");
 
+            Console.WriteLine("CHECK announcements stage: territory revocation");
+            await database.RevokeAnnouncementTerritoriesAsync(admin,territory);
+            using(var fc=await GetAsync(client,FcDraftsPath,login.Cookie))
+                Require((await ExpectJsonAsync(fc,200)).GetProperty("drafts")
+                    .GetArrayLength()==0,"Revoked team manager still sees drafts.");
+            using(var academy=await GetAsync(client,academyPublishedList,login.Cookie))
+                Require((await ExpectJsonAsync(academy,200)).GetProperty("announcements")
+                    .GetArrayLength()==0,"Revoked location manager still sees a published notice.");
+            using(var denied=await GetAsync(client,academyReaders,login.Cookie))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var denied=await CreateDraft(client,login.Cookie,AcademyDraftsPath,
+                new{group_id=roster.Group2,title="After revocation",body="Denied."}))
+                await ExpectJsonAsync(denied,403,"not_authorized");
             Console.WriteLine("CHECK announcements stage: permissions and revoked role");
             var coach=await database.SeedAsync(role:"coach",organizations:["lefteria_fc_academy"]);
             using(var coachClient=Client())
@@ -366,7 +411,11 @@ internal sealed partial class WebAdminHttpChecks
         {
             Console.WriteLine("CHECK announcements stage: fixture cleanup");
             await database.CleanupAnnouncementDraftsAsync(admin);
+            Console.WriteLine("CHECK announcements stage: draft cleanup finished");
+            await database.CleanupAnnouncementTerritoriesAsync(admin,territory);
+            Console.WriteLine("CHECK announcements stage: territory cleanup finished");
             await database.CleanupAudienceAsync(roster);
+            Console.WriteLine("CHECK announcements stage: audience cleanup finished");
         }
     }
 }
