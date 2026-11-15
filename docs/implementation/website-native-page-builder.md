@@ -117,3 +117,24 @@ respecting the 40-block content limit; all changes remain private drafts until
 separately saved and approved. Editor movement and duplication are pure,
 nonmutating operations with automated boundary tests. No untrusted HTML,
 plugins, or media uploads are introduced by this improvement.
+
+## Published media browser and image block picker
+
+The dedicated /admin/media page is an **owner-scoped, read-only browser** of
+already publicly visible image URLs from gallery, sponsors, partners and events.
+It uses only the anonymous public-sections DTO, never sensitive player records,
+families, original import evidence or document storage. Users must be signed in
+with gallery:read and a current grant for the selected organization. Every
+record is re-filtered by that owner, and only safe local or HTTPS image URLs are
+accepted. A failed/uninitialized publication is shown as an error, not as an
+invented empty library.
+
+In the native Visual Builder, an image block can open the same browser and
+populate its URL (plus optional alt text) without introducing a second upload
+store. The editor can still use a manually entered safe URL. Image selection
+changes **only the local private draft**; saving and manager publication stay
+separate and fully audited by the existing CMS backend.
+
+This does not claim to implement uploads, media deletion, private asset ACLs,
+license clearance, resizing or a media-publishing pipeline. Those remain
+separately gated follow-up work.
