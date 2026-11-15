@@ -189,10 +189,10 @@ public static class AdminProfilePhotoEndpoints
                 throw InvalidForm();
             return(output.ToArray(),section.ContentType);
         }
-        catch(InvalidDataException) {throw InvalidForm();}
-        catch(IOException) {throw InvalidForm();}
         catch(BadHttpRequestException error) when(error.StatusCode==StatusCodes.Status413PayloadTooLarge)
         {throw new WebAdminException(413,"admin_photo_too_large","Photo exceeds 5 MiB.");}
+        catch(InvalidDataException) {throw InvalidForm();}
+        catch(IOException) {throw InvalidForm();}
     }
 
     private static WebAdminException InvalidForm()=>
