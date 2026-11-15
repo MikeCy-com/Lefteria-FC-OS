@@ -100,8 +100,7 @@ public sealed class AcademyLocationFinanceAttribution : Migration
         LEFT JOIN club.football_cities c
           ON c.id=a.city_id AND c.is_active
         WHERE pag.organization_id='lefteria_fc_academy'
-          AND pag.player_id=NEW.player_id
-          ;
+          AND pag.player_id=NEW.player_id;
 
         -- A group with an inactive assigned site must not be silently
         -- dropped from the denominator. Check all memberships separately.
