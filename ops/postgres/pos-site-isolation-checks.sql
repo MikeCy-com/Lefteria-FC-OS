@@ -1,8 +1,9 @@
 \set ON_ERROR_STOP on
 \set ECHO none
 -- Synthetic acceptance for Academy POS site/terminal/finance authority.
--- Run ONLY against disposable migrated PostgreSQL. No sale, payment, refund,
--- receipt, stock posting, Payabl request or real person is created.
+-- Run ONLY against disposable migrated PostgreSQL. One unpaid synthetic
+-- sale is inserted and deleted to prove recovery denial; all changes ROLLBACK.
+-- No verified payment, refund, receipt, Payabl request or real person exists.
 BEGIN;
 DO $site_scope$
 DECLARE
