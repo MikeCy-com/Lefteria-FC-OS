@@ -9,6 +9,7 @@ const home=read('lib/admin/AdminWorkspace.svelte');
 const settings=read('routes/admin/settings/+page.svelte');
 const profile=read('routes/admin/profile/+page.svelte');
 const groups=read('routes/admin/groups/+page.svelte');
+const groupWorkspace=read('lib/admin/AdminGroupWorkspace.svelte');
 const matches=read('routes/admin/matches/+page.svelte');
 
 test('new sidebar, action dashboard, settings and private profile compile as genuine Svelte routes',()=>{
@@ -42,7 +43,7 @@ test('five group-only tools disappear from both global navigation and dashboard'
   assert.match(groups,/group\.id===focusedGroupId|focusedGroupId===group\.id/);
   for(const marker of ['admin-group-training-link','admin-group-attendance-link','admin-group-matches-link',
     'admin-group-players-link','AdminRosterPlayersPanel','AdminAcademyGroupProfilePanel','AdminFirstTeamProfilePanel'])
-    assert.ok(groups.includes(marker),marker);
+    assert.ok((groups+groupWorkspace).includes(marker),marker);
   assert.match(matches,/requestedOrganization/);
   assert.match(matches,/requestedGroup/);
   assert.match(matches,/choices\.some\(item=>item\.id===requestedGroup\)/);
