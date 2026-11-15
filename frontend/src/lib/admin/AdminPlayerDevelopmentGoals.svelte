@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import {buildPlayerDevelopmentTimeline} from './player-development-timeline.ts';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Category='general'|'physical'|'technical'|'tactical'|'mental'|'social';
@@ -30,6 +31,7 @@
     onExpired:()=>void;onRevoked:()=>void
   }=$props();
   let goals=$state<Goal[]>([]),loading=$state(false),saving=$state(false);
+  const timeline=$derived(buildPlayerDevelopmentTimeline(assessments,goals));
   let error=$state(''),notice=$state(''),refresh=$state(0);
   let showCreate=$state(false),title=$state(''),description=$state('');
   let category=$state<Category>('technical'),targetDate=$state('');
@@ -184,6 +186,35 @@
   </div>
   <p class="admin-muted">Συνδέονται με τον μόνιμο φάκελο του αθλητή, όχι με μία μόνο σεζόν.
     Οι ολοκληρωμένοι στόχοι παραμένουν στο ιστορικό.</p>
+  {#if !loading&&!error}
+    <details class="development-timeline" data-testid="admin-player-development-timeline">
+      <summary>Χρονολόγιο αξιολογήσεων και στόχων ({timeline.loadedCount})</summary>
+      <p class="admin-muted">Ιδιωτικό χρονολόγιο: μόνο καταχωρισμένες αξιολογήσεις και
+        αλλαγές στόχων. Δεν περιλαμβάνει ακόμη παρουσίες, αγώνες ή βίντεο.</p>
+      {#if timeline.events.length===0}
+        <p>Δεν υπάρχουν ακόμη καταχωρίσεις με επαληθευμένη ημερομηνία.</p>
+      {:else}
+        <ol class="timeline-entries">
+          {#each timeline.events as entry (entry.key)}
+            <li>
+              <time datetime={entry.at}>{new Date(entry.at).toLocaleString('el-CY')}</time>
+              <a href={'#'+entry.targetId}>{entry.title}</a>
+              <span>{entry.kind==='assessment'?'Αξιολόγηση':'Στόχος'} · {entry.description}</span>
+            </li>
+          {/each}
+        </ol>
+      {/if}
+      {#if timeline.hiddenOlderCount>0}
+        <p class="admin-muted">Προβάλλονται οι 40 πιο πρόσφατες από {timeline.loadedCount}
+          καταχωρίσεις. Οι υπόλοιπες είναι διαθέσιμες στους αντίστοιχους φακέλους.</p>
+      {/if}
+      {#if timeline.unreturnedGoalEvents>0}
+        <p class="admin-muted">Άλλες {timeline.unreturnedGoalEvents}
+          παλαιότερες αλλαγές στόχων υπάρχουν στο διατηρημένο ιστορικό,
+          αλλά δεν έχουν φορτωθεί σε αυτή την προβολή.</p>
+      {/if}
+    </details>
+  {/if}
   {#if showCreate}
     <form class="goal-form" onsubmit={e=>{e.preventDefault();void createGoal();}}>
       <label>Τίτλος στόχου
@@ -221,7 +252,7 @@
   {#if notice}<p role="status">{notice}</p>{/if}
   {#if !loading&&!error&&goals.length===0}<p>Δεν υπάρχουν ακόμη στόχοι.</p>{/if}
   {#each goals as goal (goal.id)}
-    <article class="goal-row">
+    <article class="goal-row" id={'development-goal-'+goal.id}>
       <div class="goal-title">
         <strong>{goal.title}</strong>
         <span>{categories.find(c=>c.id===goal.category)?.label} ·
@@ -276,6 +307,14 @@
 </section>
 <style>
   .development-goals{display:grid;gap:12px;border:1px solid #66512e;border-radius:10px;padding:14px;background:#151819}
+  .development-timeline{border:1px solid #504634;border-radius:8px;padding:10px 12px}
+  .development-timeline summary{cursor:pointer;min-height:28px;font-weight:750;color:#f6c95f}
+  .timeline-entries{display:grid;gap:12px;list-style:none;padding:0;margin:12px 0}
+  .timeline-entries li{display:grid;gap:3px;padding:9px 10px;border-left:3px solid #ba9b52;background:#1f2424}
+  .timeline-entries time{font-size:12px;color:#c9bc9e}
+  .timeline-entries a{color:#f2c365;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+  .timeline-entries a:focus-visible{outline:3px solid #ffcc45;outline-offset:2px}
+  .timeline-entries span{font-size:13px;overflow-wrap:anywhere}
   .goals-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
   .goals-heading h4{margin:0;color:#ffca46}
   .goal-form{display:grid;gap:10px;border:1px solid #49453d;border-radius:8px;padding:12px}

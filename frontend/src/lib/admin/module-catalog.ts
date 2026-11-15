@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -33,6 +33,7 @@ const catalog: readonly Section[] = [
     { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
+    { id: 'communications', name: 'Κέντρο επικοινωνίας εφαρμογής', description: 'Ενοποιημένη εικόνα ανακοινώσεων, ιδιωτικών συνομιλιών, ειδοποιήσεων και συνημμένων με πραγματικές καταστάσεις υλοποίησης.', status: 'live', href: '/admin/communications', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'announcements', name: 'Ανακοινώσεις εφαρμογής', description: 'Πρόχειρα, εικόνες και PDF, δημοσίευση ανά ομάδα, αναγνώστες και απόσυρση από την εφαρμογή.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'messages', name: 'Μηνύματα εφαρμογής', description: 'Ιδιωτικές συνομιλίες, ομαδικά μηνύματα, αντιδράσεις και επιβεβαιώσεις ανάγνωσης· σε υλοποίηση.', status: 'planned', scope: 'any', anyPermission: ['messages:read'] },
     { id: 'app_notifications', name: 'Ειδοποιήσεις εφαρμογής', description: 'Ειδοποιήσεις προς τρέχοντα και επιτρεπόμενα μέλη, με απόπειρες και επαναλήψεις.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] },
@@ -108,7 +109,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'leads') return (['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy') &&
         hasAdminPermission(user.permissions,'marketing:read'));
-      if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
+      if (item.id === 'announcements' || item.id === 'communications') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
       if (item.id === 'groups' || item.id === 'fixtures' || item.id === 'territories') return (
