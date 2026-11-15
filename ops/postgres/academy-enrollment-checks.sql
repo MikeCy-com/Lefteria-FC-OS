@@ -18,6 +18,10 @@ DECLARE
   proof_request uuid:=gen_random_uuid();
   otp_challenge uuid:=gen_random_uuid();
   original_parent_id uuid:=gen_random_uuid();
+  second_guardian_id uuid:=gen_random_uuid();
+  root_guardian_grant uuid:=gen_random_uuid();
+  nested_guardian_grant uuid:=gen_random_uuid();
+  renewed_guardian_grant uuid:=gen_random_uuid();
   unrelated_parent_id uuid:=gen_random_uuid();
   fee_for_child uuid:=gen_random_uuid();
   fee_for_other_child uuid:=gen_random_uuid();
@@ -314,17 +318,91 @@ BEGIN
     RAISE EXCEPTION 'Other parent received original guardian invoice';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
-  -- New guardians cannot create a fake canonical lineage root. Delegated
-  -- second-parent support needs a separate lineage/consent integration.
+  -- A new original guardian can now share ONE explicitly verified child
+  -- with a second adult by phone; the phone alone is not a login.
+  -- Existing OTP sign-in is required separately before Parent creation.
+  IF identity.has_current_guardian_phone_grant('35799123459') THEN
+    RAISE EXCEPTION 'Unissued second-guardian phone already had child access'; END IF;
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',root_guardian_grant);
+  IF result->>'status'<>'granted' OR result->>'id'<>root_guardian_grant::text
+    OR result->>'organization_id'<>'lefteria_fc_academy'
+    OR NOT identity.has_current_guardian_phone_grant('35799123459')
+  THEN RAISE EXCEPTION 'Verified Academy original guardian could not grant second parent'; END IF;
+  IF (SELECT source_permission_id FROM identity.family_guardian_permissions
+      WHERE id=root_guardian_grant) IS NOT NULL THEN
+    RAISE EXCEPTION 'Original guardian shared through an invented ancestor'; END IF;
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',root_guardian_grant);
+  IF result->>'replay'<>'true'
+    OR (SELECT count(*) FROM identity.family_guardian_permissions
+       WHERE id=root_guardian_grant)<>1 THEN
+    RAISE EXCEPTION 'Original guardian grant replay is not idempotent'; END IF;
+  IF EXISTS(
+    SELECT 1 FROM identity.current_phone_granted_children(
+      gen_random_uuid(),'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'An unverified phone became a logged-in parent'; END IF;
+  INSERT INTO identity.mobile_identities(
+    id,normalized_phone,role,display_name,is_active,platform,created_at,
+    guardian_derived_parent)
+  VALUES(second_guardian_id,'35799123459','parent','Second verified guardian',
+    true,'ios',clock_timestamp(),true);
+  IF (SELECT count(*) FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour')
+      WHERE player_id=fixture_player_id AND organization_id='lefteria_fc_academy')<>1
+  THEN RAISE EXCEPTION 'Second verified parent not linked to exact child'; END IF;
+
+  -- A phone-delegated parent must reference their own permission ID. No
+  -- caller, even the DB owner, may silently manufacture another root.
   BEGIN
-    PERFORM identity.issue_guardian_permission(original_parent_id,
-      '35799123456','parent',clock_timestamp()+interval '1 hour',
-      gen_random_uuid(),fixture_player_id,'35799123459',gen_random_uuid());
-    RAISE EXCEPTION 'Original guardian created unanchored downstream grant';
+    INSERT INTO identity.family_guardian_permissions(
+      id,organization_id,player_id,issuer_identity_id,
+      source_permission_id,target_phone,status)
+    VALUES(gen_random_uuid(),'lefteria_fc_academy',fixture_player_id,
+      second_guardian_id,NULL,'35799123461','granted');
+    RAISE EXCEPTION 'Delegated guardian fabricated an unanchored root';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=identity.issue_guardian_permission(second_guardian_id,'35799123459',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123460',nested_guardian_grant);
+  IF result->>'status'<>'granted'
+    OR (SELECT source_permission_id FROM identity.family_guardian_permissions
+      WHERE id=nested_guardian_grant)<>root_guardian_grant
+    OR NOT identity.has_current_guardian_phone_grant('35799123460')
+  THEN RAISE EXCEPTION 'Nested second guardian lost revocation lineage'; END IF;
+
+  -- Parent can remove only a grant they issued; removal cascades through
+  -- all descendants for this child, never across unrelated family scopes.
+  IF NOT identity.revoke_issued_guardian_permission(original_parent_id,
+      '35799123456','parent',clock_timestamp()+interval '1 hour',
+      gen_random_uuid(),root_guardian_grant) THEN
+    RAISE EXCEPTION 'Original guardian failed to revoke second parent'; END IF;
   IF EXISTS(SELECT 1 FROM identity.family_guardian_permissions
-      WHERE issuer_identity_id=original_parent_id)
-  THEN RAISE EXCEPTION 'Rejected guardian delegation had a side effect'; END IF;
+      WHERE id IN (root_guardian_grant,nested_guardian_grant)
+        AND status='granted')
+    OR identity.has_current_guardian_phone_grant('35799123459')
+    OR identity.has_current_guardian_phone_grant('35799123460')
+    OR EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'Revoked second-guardian lineage remained authorized'; END IF;
+  -- A deliberate regrant produces a NEW auditable lineage, not a replay
+  -- of the old revoked grant. This one must die with the original proof.
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',renewed_guardian_grant);
+  IF result->>'status'<>'granted'
+    OR NOT identity.has_current_guardian_phone_grant('35799123459') THEN
+    RAISE EXCEPTION 'Explicit second-guardian regrant failed'; END IF;
+  IF EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour')
+      WHERE player_id=unrelated_player_id)
+  THEN RAISE EXCEPTION 'Second guardian gained a child outside this claim'; END IF;
 
   result:=identity.admin_academy_guardian_proof(admin_digest,'revoke',
     jsonb_build_object('registration_id',application,'version',1));
@@ -345,6 +423,22 @@ BEGIN
       clock_timestamp()+interval '1 hour'))
     OR identity.has_current_guardian_phone_grant('35799123456')
   THEN RAISE EXCEPTION 'Revoked original guardian retained child scope'; END IF;
+  -- Original proof revocation also kills a freshly reissued grant:
+  -- no stale mobile token or surviving delegated Parent identity can revive it.
+  IF identity.has_current_guardian_phone_grant('35799123459')
+    OR EXISTS(SELECT 1 FROM identity.valid_guardian_phone_grants()
+      WHERE permission_id=renewed_guardian_grant)
+    OR EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'Original proof revoked but second guardian retained access'; END IF;
+  BEGIN
+    PERFORM identity.issue_guardian_permission(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+      fixture_player_id,'35799123458',gen_random_uuid());
+    RAISE EXCEPTION 'Revoked original guardian could issue a new grant';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   IF (SELECT count(*) FROM identity.academy_guardian_otp_claims
       WHERE registration_id=application)<>1 THEN
     RAISE EXCEPTION 'Revocation erased immutable OTP proof'; END IF;
