@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate();
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate();
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -295,6 +295,24 @@ public static class WebsitePageEndpoints
         }
         else if (value.ValueKind == JsonValueKind.Array)
             foreach (var element in value.EnumerateArray()) Unique(element);
+    }
+    // Protected native homepage regions can only edit their own owner's copy.
+    // Their block order and hidden-menu status are fixed; they never replace
+    // the fixture carousel, navigation, roster or other dynamic homepage data.
+    private static void ValidateHomeHero(string owner, string slug, WebsitePageContent content)
+    {
+        var requiredOwner = slug switch {
+            "homepage-hero-academy" => "lefteria_fc_academy",
+            "homepage-hero-first-team" => "lefteria_fc",
+            _ => null
+        };
+        if (requiredOwner is null) return;
+        if (owner != requiredOwner || content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 2 || content.Blocks[0].Type != "heading" ||
+            content.Blocks[1].Type != "paragraph" ||
+            content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
+            content.Blocks[0].Text.Split('\n').Length > 3)
+            throw Invalid();
     }
     private static string Owner(string? org) =>
         org is "lefteria_fc" or "lefteria_fc_academy" ? org :

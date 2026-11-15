@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { page } from '$app/state';
   import PublicShell from '../lib/public/PublicShell.svelte';
   import HomeHero from '../lib/public/HomeHero.svelte';
   import HomeDestinations from '../lib/public/HomeDestinations.svelte';
@@ -9,11 +10,16 @@
   import Unavailable from '../lib/public/Unavailable.svelte';
   import '../lib/public/home-reference.css';
   import type { PublicHomeData } from '../lib/public/types';
+  import type { WebsiteNavigationData } from '../lib/public/website-pages';
+  import { homepageHeroPage } from '../lib/public/homepage-editorial';
   let { data }: { data: PublicHomeData } = $props();
+  const websitePages = $derived((page.data as {websitePages?: WebsiteNavigationData} | undefined)?.websitePages);
+  const academyEditorial = $derived(homepageHeroPage(websitePages?.lefteria_fc_academy ?? [], 'lefteria_fc_academy'));
+  const teamEditorial = $derived(homepageHeroPage(websitePages?.lefteria_fc ?? [], 'lefteria_fc'));
 </script>
 <svelte:head><title>ΛΕΥΤΕΡΙΑ FC | Η ΕΠΙΣΗΜΗ ΙΣΤΟΣΕΛΙΔΑ</title><meta name="description" content={data.site?.club?.description || 'Η επίσημη ιστοσελίδα της Λευτεριάς FC. Πρώτη ομάδα, ακαδημία, αγώνες και νέα.'} /><meta property="og:title" content="ΛΕΥΤΕΡΙΑ FC" /><meta property="og:type" content="website" /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
-  <div class="home-reference" data-testid="home-page"><HomeHero site={data.site} navigationGroups={data.navigationGroups} />
+  <div class="home-reference" data-testid="home-page"><HomeHero site={data.site} navigationGroups={data.navigationGroups} {academyEditorial} {teamEditorial} />
     <HomeDestinations site={data.site} groups={data.navigationGroups} />
     <section class="home-brand-interval" aria-label="Μία ομάδα, ένα όνειρο" data-testid="home-brand-interval">
       <div class="home-brand-bottom">

@@ -60,3 +60,23 @@ dynamic sports/registration elements; build a dedicated scoped media library
 and sponsor/partner CRUD; add navigation hierarchy depth, reusable templates,
 revision diff/restore, workflow approvals, responsive layout block properties,
 and reviewed social account integrations. None is implied to be live here.
+
+## Homepage hero editorial integration
+
+The follow-on slice adds two **fixed, owner-scoped native CMS records**:
+`homepage-hero-first-team` (`lefteria_fc`) and `homepage-hero-academy`
+(`lefteria_fc_academy`). Admin → Website → Pages has a dedicated starter action
+per granted organization. Each record contains exactly one line-break-aware
+heading block and one paragraph block, and is restricted to a hidden menu entry.
+Edits are private until the existing audited, manager-approved publication.
+
+The existing homepage (`/`) uses approved text only for the matching slide.
+No approved snapshot means precisely the former hero text and markup remain.
+The carousel, first-team banner, match card, countdown, buttons, Academy links,
+styles, and sport data are never CMS-replaced. Hero snapshot slugs are not
+standalone `/pages/` routes or user-selectable menu destinations, preventing
+SEO duplicates. No browser auth/session data is used to read these snapshots.
+
+This does **not** enable editing every existing static section, nor does it
+allow arbitrary HTML or plugin hooks. More canonical homepage and site regions
+still need individually verified slot contracts to preserve live features.
