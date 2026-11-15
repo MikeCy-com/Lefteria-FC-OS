@@ -12,6 +12,11 @@
     verified_refunds_cents:number;receipted_net_after_refunds_cents:number;
     paid_without_receipt:number;finance_posting_active:false;
   };
+  type Sale={sale_id:string;register_id:string;register_label:string;
+    status:'awaiting_payment'|'partially_paid'|'paid'|'voided';
+    total_cents:number;created_at:string;paid_at:string|null;
+    receipt_number:number|null;receipt_id:string|null};
+  type History={organization_id:Owner;pos_location_id:string;limit:50;sales:Sale[]};
   type Terminal={id:string;label:string;location_id:string;location_name:string;
     active:boolean;operators:{admin_account_id:string;name:string;active:boolean}[]};
   type Account={id:string;name:string;role:string};
@@ -32,9 +37,12 @@
   let terminalId=$state('');
   let accountId=$state('');
   let finances=$state<SiteFinances|null>(null);
+  let history=$state<History|null>(null);
   let loading=$state(false);
   let setupLoading=$state(false);
   let reportLoading=$state(false);
+  let historyLoading=$state(false);
+  let historyError=$state('');
   let writing=$state(false);
   let error=$state('');
   let setupError=$state('');
@@ -42,6 +50,12 @@
   let notice=$state('');
   let refresh=$state(0);
   const selectedSite=$derived(sites?.sites.find(s=>s.pos_location_id===siteId));
+  const formatDate=(value:string)=>new Intl.DateTimeFormat('el-CY',{
+    dateStyle:'short',timeStyle:'short'}).format(new Date(value));
+  const statusLabel=(value:Sale['status'])=>({
+    awaiting_payment:'Αναμονή πληρωμής',partially_paid:'Μερική πληρωμή',
+    paid:'Εξοφλημένη',voided:'Ακυρωμένη'
+  }[value]);
   const selectedTerminal=$derived(setup?.terminals.find(t=>t.id===terminalId));
   const selectedAccount=$derived(selectedTerminal?.operators.find(o=>o.admin_account_id===accountId));
   const euro=(cents:number)=>new Intl.NumberFormat('el-CY',{
@@ -74,6 +88,24 @@
       Number.isSafeInteger(v.receipted_net_after_refunds_cents)&&
       v.receipted_net_after_refunds_cents===
         (v.receipted_gross_cents as number)-(v.verified_refunds_cents as number);
+  };
+  const validHistory=(raw:unknown,expected:Owner,site:string):raw is History=>{
+    if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
+    const v=raw as Record<string,unknown>;
+    return v.organization_id===expected&&v.pos_location_id===site&&v.limit===50&&
+      Array.isArray(v.sales)&&v.sales.length<=50&&v.sales.every((row:unknown)=>{
+        if(!row||typeof row!=='object'||Array.isArray(row))return false;
+        const x=row as Record<string,unknown>;
+        return uuid(x.sale_id)&&validId(x.register_id)&&
+          typeof x.register_label==='string'&&
+          ['awaiting_payment','partially_paid','paid','voided'].includes(String(x.status))&&
+          Number.isSafeInteger(x.total_cents)&&(x.total_cents as number)>0&&
+          typeof x.created_at==='string'&&!Number.isNaN(Date.parse(x.created_at))&&
+          (x.paid_at===null||(typeof x.paid_at==='string'&&!Number.isNaN(Date.parse(x.paid_at))))&&
+          (x.receipt_number===null||(Number.isSafeInteger(x.receipt_number)&&
+            (x.receipt_number as number)>0))&&
+          (x.receipt_id===null||uuid(x.receipt_id));
+      });
   };
   const validSetup=(raw:unknown,expected:Owner):raw is Setup=>{
     if(!raw||typeof raw!=='object'||Array.isArray(raw))return false;
@@ -113,7 +145,7 @@
   $effect(()=>{
     const selectedOwner=owner,selectedActor=actorId;
     void refresh;
-    sites=null;finances=null;error='';notice='';reportError='';loading=false;
+    sites=null;finances=null;history=null;error='';notice='';reportError='';historyError='';loading=false;
     if(!browser||!selectedActor)return;
     const abort=new AbortController();
     loading=true;
@@ -188,6 +220,26 @@
     }finally{reportLoading=false;}
   }
 
+  async function viewSales(){
+    if(!browser||!selectedSite||historyLoading)return;
+    const expectedOwner=owner,expectedActor=actorId,expectedSite=selectedSite.pos_location_id;
+    historyLoading=true;history=null;historyError='';
+    try{
+      const response=await fetch('/api/admin/pos/sites/'+encodeURIComponent(expectedSite)+
+        '/sales?'+query(expectedOwner),{credentials:'same-origin',cache:'no-store'});
+      if(owner!==expectedOwner||actorId!==expectedActor||siteId!==expectedSite)return;
+      if(responseScope(response.status))return;
+      if(!response.ok)throw Error('Το ιστορικό συναλλαγών δεν είναι διαθέσιμο.');
+      const raw:unknown=await response.json();
+      if(!validHistory(raw,expectedOwner,expectedSite))
+        throw Error('Μη επαληθευμένο ιστορικό πωλήσεων.');
+      history=raw;
+    }catch(e){
+      if(owner===expectedOwner&&actorId===expectedActor)
+        historyError=e instanceof Error?e.message:'Σφάλμα ιστορικού.';
+    }finally{historyLoading=false;}
+  }
+
   async function write(kind:'site'|'terminal'|'operator',enabled=true){
     if(!browser||!canProvision||!setup||writing)return;
     const expectedOwner=owner,expectedActor=actorId;
@@ -250,7 +302,7 @@
     {#if sites.sites.length}
       <div class="pos-site-actions">
         <label>Πόλη και τοποθεσία
-          <select bind:value={siteId} onchange={()=>{finances=null;reportError='';}}>
+          <select bind:value={siteId} onchange={()=>{finances=null;reportError='';history=null;historyError='';}}>
             {#each sites.sites as site (site.pos_location_id)}
               <option value={site.pos_location_id}>{site.city_name} · {site.name}</option>
             {/each}
@@ -258,6 +310,8 @@
         </label>
         <button class="admin-secondary" type="button" disabled={reportLoading||!selectedSite}
           onclick={()=>void viewFinance()}>{reportLoading?'Ανάκτηση…':'Προβολή οικονομικών'}</button>
+        <button class="admin-secondary" type="button" disabled={historyLoading||!selectedSite}
+          onclick={()=>void viewSales()}>{historyLoading?'Ανάκτηση…':'Πωλήσεις & παραγγελίες'}</button>
       </div>
     {:else}
       <p class="admin-muted">Δεν έχετε ανατεθειμένη τοποθεσία POS. Η διαχείριση πρόσβασης γίνεται από τον Super Admin.</p>
@@ -279,6 +333,33 @@
       <p role="alert">Απαιτείται έλεγχος: {finances.paid_without_receipt} εξοφλημένες συναλλαγές χωρίς απόδειξη.</p>
     {/if}
     <p class="admin-muted">Οι αναφορές POS δεν επιβεβαιώνουν καταχώριση στο γενικό λογιστικό.</p>
+  {/if}
+  {#if historyError}<p role="alert">{historyError}</p>{/if}
+  {#if history}
+    <div class="pos-sales-history" data-testid="admin-pos-site-sales-history">
+      <h3>Πωλήσεις & παραγγελίες · έως 50 πρόσφατες</h3>
+      {#if history.sales.length}
+        <div class="pos-sales-scroll">
+          <table>
+            <thead><tr><th>Ημερομηνία</th><th>Ταμείο</th><th>Κατάσταση</th><th>Απόδειξη</th><th>Ποσό</th></tr></thead>
+            <tbody>
+              {#each history.sales as sale (sale.sale_id)}
+                <tr>
+                  <td>{formatDate(sale.created_at)}</td>
+                  <td>{sale.register_label}</td>
+                  <td>{statusLabel(sale.status)}</td>
+                  <td>{sale.receipt_number??'—'}</td>
+                  <td>{euro(sale.total_cents)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {:else}
+        <p class="admin-muted">Δεν υπάρχουν πραγματικές συναλλαγές για αυτό το σημείο.</p>
+      {/if}
+      <p class="admin-muted">Η εμφάνιση εκκρεμούς συναλλαγής δεν σημαίνει επιβεβαιωμένη πληρωμή.</p>
+    </div>
   {/if}
 </section>
 
@@ -380,5 +461,10 @@
   .pos-finance-grid strong{font-size:1.4rem;font-variant-numeric:tabular-nums}
   .pos-config-block{display:grid;justify-items:start;gap:12px;padding:16px;border:1px solid #444;border-radius:12px}
   .pos-config-buttons{display:flex;gap:8px;flex-wrap:wrap}
+  .pos-sales-history{display:grid;gap:10px}
+  .pos-sales-scroll{overflow-x:auto;max-width:100%}
+  .pos-sales-scroll table{width:100%;border-collapse:collapse;font-size:.87rem}
+  .pos-sales-scroll th,.pos-sales-scroll td{text-align:left;padding:10px;border-bottom:1px solid #46413a;white-space:nowrap}
+  .pos-sales-scroll th{color:#dfcc9d}
   @media(max-width:600px){.pos-site-actions,.pos-site-actions label{width:100%}.pos-site-panel select,.pos-site-panel input{max-width:100%}}
 </style>
