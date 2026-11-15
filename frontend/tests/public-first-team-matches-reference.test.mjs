@@ -19,7 +19,7 @@ test('matches reference hero, four action tabs and compact fixtures compile and 
   assert.ok(team.indexOf('matches-reference-banner') < team.indexOf('team-section'));
   assert.match(team,/data\.tab === 'schedule' \|\| data\.tab === 'results'/);
   assert.match(team,/withTeam\('\/team\?tab=results'\)/);
-  assert.match(team,/href=\{withTeam\('\/team#standings'\)\}/);
+  assert.match(team,/encodeURIComponent\(data\.selectedTeamId\)\+'#standings'/);
   assert.match(team,/organization_id === 'lefteria_fc'/);
   assert.doesNotMatch(team,/organization="lefteria_fc_academy"/);
 });
