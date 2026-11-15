@@ -25,10 +25,16 @@ BEGIN
     OR position('p.team_id=_group' in pg_get_functiondef(f.oid))=0
     OR position('m.academy_group_id=_group' in pg_get_functiondef(f.oid))=0
     OR position('identity.lock_admin_club_authority(_digest,_owner)' in pg_get_functiondef(f.oid))=0
+    OR position('club.admin_football_allowed(' in pg_get_functiondef(f.oid))=0
+    OR position('v_actor,v_role,_owner,v_scope,v_location,false' in pg_get_functiondef(f.oid))=0
+    OR position('club.academy_group_location_assignments' in pg_get_functiondef(f.oid))=0
+    OR position('club.football_operational_scopes' in pg_get_functiondef(f.oid))=0
+    OR position('jsonb_build_array(_group)' in pg_get_functiondef(f.oid))=0
     OR EXISTS (
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
       WHERE n.nspname='club' AND c.relname IN (
-        'teams','academy_groups','players','player_academy_groups','roster_import_state')
+        'teams','academy_groups','academy_group_location_assignments','football_operational_scopes',
+        'football_locations','players','player_academy_groups','roster_import_state')
       AND (
         has_any_column_privilege(admin_role,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
         OR has_table_privilege(admin_role,c.oid,'DELETE,TRUNCATE,TRIGGER')
