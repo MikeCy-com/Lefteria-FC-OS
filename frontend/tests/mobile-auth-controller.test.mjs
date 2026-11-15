@@ -1050,3 +1050,39 @@ test('picker 401 invalidates pending own writes and organization requests before
     });
   }
 });
+
+test('delayed private notification JSON never crosses a logout boundary', async () => {
+  const beganParsing=Promise.withResolvers();
+  const body=Promise.withResolvers();
+  // Auth routes use a Request object; private chat routes call fetch(url,init).
+  // Exercise both forms here instead of setup(), which only accepts Request.
+  const values=new Map([['mobile_token','parent-token']]);
+  const storage=createMobileSessionStorage({
+    getItem:key=>values.get(key)??null,
+    setItem:(key,value)=>values.set(key,value),
+    removeItem:key=>values.delete(key)
+  });
+  const controller=createMobileAuthController({
+    baseUrl:'https://club.example',storage,now:()=>1000,
+    fetch:async(input)=>{
+      const path=new URL(typeof input==='string'?input:input.url).pathname;
+      if(path==='/api/mobile/auth/me')return Response.json(identity('parent'));
+      if(path==='/api/mobile/app/notifications'){
+        return {ok:true,status:200,json:()=>{
+          beganParsing.resolve();
+          return body.promise;
+        }};
+      }
+      throw new Error('Unexpected request: '+path);
+    }
+  });
+  assert.equal(await controller.bootstrap(),true);
+  const pending=controller.getAppNotificationInbox(0);
+  await beganParsing.promise;
+  controller.logout();
+  body.resolve({previous_user_private_data:true});
+  await assert.rejects(pending,error=>
+    error?.status===401&&/Η συνεδρία άλλαξε/.test(error.message));
+  assert.equal(controller.getState().status,'anonymous');
+  assert.equal(controller.getState().user,null);
+});

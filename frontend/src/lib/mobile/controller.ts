@@ -320,18 +320,27 @@ export function createMobileAuthController(options: {
       headers:{...authorization(),...(content===undefined?{}:{'Content-Type':'application/json'})},
       ...(content===undefined?{}:{body:JSON.stringify(content)})
     });
-    if(revision!==opRevision || token!==sessionToken ||
-       state.user?.id!==current.id || state.user?.role!==current.role ||
-       !state.user?.current_role_available)
-      throw new ApiFailure(401,'Η συνεδρία άλλαξε. Ανανέωσε τα μηνύματα.');
+    // The network request and JSON stream can each resolve after a role,
+    // account or token change. Check again *after* parsing; otherwise a
+    // previously authorized payload could enter the new user's UI.
+    const verifyActor=()=>{
+      if(revision!==opRevision || token!==sessionToken ||
+         state.user?.id!==current.id || state.user?.role!==current.role ||
+         !state.user?.current_role_available)
+        throw new ApiFailure(401,'Η συνεδρία άλλαξε. Ανανέωσε τα μηνύματα.');
+    };
+    verifyActor();
     if(!reply.ok){
-      if(reply.status===401)endSession('Η συνεδρία έληξε.');
       const payload:unknown=await reply.json().catch(()=>null);
+      verifyActor();
+      if(reply.status===401)endSession('Η συνεδρία έληξε.');
       const detail=payload&&typeof payload==='object'&&'detail' in payload&&
         typeof payload.detail==='string'?payload.detail:'Η υπηρεσία μηνυμάτων δεν είναι διαθέσιμη.';
       throw new ApiFailure(reply.status,detail);
     }
-    return reply.json();
+    const payload:unknown=await reply.json();
+    verifyActor();
+    return payload;
   }
   function chatRoomPath(room:GroupChatRoom):string {
     if(!validRoom(room))throw new Error('Invalid chat room.');
