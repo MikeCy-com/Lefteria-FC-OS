@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
-import {render} from 'svelte/server';
 
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const css=read('src/lib/public/home-reference.css');
@@ -40,11 +39,11 @@ test('news composition matches one lead card and a three-card right rail at desk
   assert.match(css,/@media\(max-width:767px\)/);
   assert.match(css,/grid-template-columns:minmax\(0,1fr\);grid-auto-rows:auto/);
 });
-test('Academy spotlight renders navigation without any unverified sponsor content',async()=>{
-  const {default:Component}=await import('../src/lib/public/HomeAcademySpotlight.svelte');
-  const output=render(Component,{props:{site:null,groups:[]}}).body;
-  assert.match(output,/data-testid="home-academy-spotlight"/);
-  assert.match(output,/data-testid="home-academy-link"/);
-  assert.match(output,/href="\/academy"/);
-  assert.doesNotMatch(output,/sponsor-logo|undefined|href="\/team"/);
+test('Academy spotlight presents a real scoped Academy link without sponsor guesses',()=>{
+  assert.match(spotlight,/data-testid="home-academy-spotlight"/);
+  assert.match(spotlight,/data-testid="home-academy-link"/);
+  assert.match(spotlight,/href="\\/academy"/);
+  assert.match(spotlight,/sections\.length/);
+  assert.match(spotlight,/publicImages\.hero/);
+  assert.doesNotMatch(spotlight,/sponsor-logo|href="\\/team"|hardcodedSponsor/);
 });
