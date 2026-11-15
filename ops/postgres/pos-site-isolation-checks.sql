@@ -16,6 +16,7 @@ DECLARE
   v_cashier_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_cashier_shift uuid;
   v_recovery_request uuid:=gen_random_uuid();
+  v_pending_sale uuid:=gen_random_uuid();
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_local_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -257,6 +258,22 @@ BEGIN
       AND t->'open_shift'->>'id'=v_cashier_shift::text
       AND (t->'open_shift'->>'cashier_active')::boolean=false
   ) THEN RAISE EXCEPTION 'supervisor_missing_suspended_shift_preview'; END IF;
+  -- A real unpaid sale blocks emergency closure. It is synthetic and
+  -- deleted inside the disposable test transaction before the positive path.
+  INSERT INTO pos_cashier.sales(
+    id,organization_id,register_id,shift_id,cashier_id,
+    request_id,subtotal_cents,total_cents)
+  VALUES(v_pending_sale,'lefteria_fc_academy',v_register_a1,
+    v_cashier_shift,v_cashier,gen_random_uuid(),100,100);
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_recovered_shift_with_pending_sale';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+  DELETE FROM pos_cashier.sales
+    WHERE organization_id='lefteria_fc_academy' AND id=v_pending_sale;
+
   BEGIN
     PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
       v_cashier_token,'lefteria_fc_academy',v_cashier_shift,
