@@ -20,17 +20,17 @@
     <p class="admin-eyebrow">ΟΡΓΑΝΩΣΗ · ΒΗΜΑ ΠΡΟΣ ΒΗΜΑ</p>
     <h1>Ξεκινώντας με το Lefteria FC OS</h1>
     <p class="admin-muted">Ο οδηγός προσαρμόζεται στον ενεργό ρόλο και τα δικαιώματα του λογαριασμού σας. Η ολοκλήρωση ελέγχεται με πραγματικά δεδομένα όπου υποστηρίζεται και δεν ξεκλειδώνει πρόσθετα δικαιώματα.</p>
-    {#key $auth.session.user.id+':'+$auth.session.user.role}
+    {#key $auth.session.user.id+':'+$auth.session.user.role+':'+$auth.session.user.organizations.map(o=>o.id).join(',')+':'+$auth.session.user.permissions.join(',')}
       <GuidedSetup
         steps={adminGuide($auth.session.user)}
-        scope={'admin:'+$auth.session.user.id+':'+$auth.session.user.role}
+        scope={'admin:'+$auth.session.user.id+':'+$auth.session.user.role+':'+$auth.session.user.organizations.map(o=>o.id).join(',')}
         title="Ο προσωπικός σου οδηγός"
         onNavigate={async href=>{await goto(href);}}/>
     {/key}
     <section class="admin-panel">
       <h2>Ολοκλήρωση προφίλ διαχειριστή</h2>
-      <p class="admin-muted">Το όνομα και ο ρόλος ελέγχονται στην επισκόπηση λογαριασμού. Η αλλαγή του προφίλ διαχειριστή δεν παρέχεται ακόμη από το ασφαλές backend, γι' αυτό δεν εμφανίζουμε μη λειτουργική αποθήκευση.</p>
-      <a href="/admin#account">Έλεγχος λογαριασμού</a>
+      <p class="admin-muted">Μπορείτε να αλλάξετε το εμφανιζόμενο όνομα και τον κωδικό σας από το προστατευμένο προσωπικό προφίλ. Το email επικοινωνίας αποθηκεύεται χωρίς επαλήθευση και δεν χρησιμοποιείται για σύνδεση ή ανάκτηση κωδικού.</p>
+      <a href="/admin/profile">Άνοιγμα προσωπικού προφίλ</a>
     </section>
   </AdminFrame>
 {:else}
