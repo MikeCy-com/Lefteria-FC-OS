@@ -96,6 +96,23 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     assert.match(listHtml,/ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ|ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ/);
     assert.ok(listHtml.includes(academyGroupLink(group)));
     assert.match(listHtml,/Καταχωρισμένο γήπεδο/);
+    assert.equal(list.sectionsAvailable,true);
+    assert.match(listHtml,/academy-groups-philosophy/);
+    assert.match(listHtml,/academy-groups-registration/);
+    assert.match(listHtml,/academy-registration-cta-btn/);
+    assert.match(listHtml,/Δευτέρα 17:00–18:00/);
+    assert.match(listHtml,/Verified Academy Coach/);
+    assert.match(listHtml,/data-testid="academy-published-player"/);
+    assert.match(listHtml,/Ανδρέας Πα\./);
+    assert.match(listHtml,/\/player\/andreas-pa--academy-public-player/);
+    assert.doesNotMatch(listHtml,/Different group sentinel|Club player sentinel|sentinel-private/);
+    const directoryNoProjection=render(ListPage,{props:{data:{...list,
+      sections:null,sectionsAvailable:false}}}).body;
+    assert.match(directoryNoProjection,/Τα δημοσιευμένα στοιχεία αθλητών δεν είναι προσωρινά διαθέσιμα/);
+    assert.doesNotMatch(directoryNoProjection,/Verified Academy Coach|Ανδρέας Πα\.|academy-published-player/);
+    assert.ok(directoryNoProjection.includes(academyGroupLink(group)),
+      'Approved group directory must survive public roster service downtime');
+
     assert.doesNotMatch(listHtml,/sentinel-private|<script>unsafe/);
     const path=academyGroupLink(group);
     const detail=await detailLoad({url:new URL('https://fixture.test'+path),params:{slug:decodeURIComponent(path.slice('/academy/'.length))}});
