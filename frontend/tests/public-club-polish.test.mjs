@@ -49,3 +49,11 @@ test('catalog, legal and journey templates receive the same restrained club fini
     assert.ok(css.includes('.public-site '+selector),'missing shared polish '+selector);
   assert.match(css,/\[data-testid="push-toggle"\] \{display:none;\}/);
 });
+
+test('club history layout retains its content while reducing empty desktop gaps',()=>{
+  assert.match(css,/public-site\[data-route="\/about"\] \.source-about section \{/);
+  assert.match(css,/padding-block:clamp\(36px,4vw,64px\)/);
+  assert.match(css,/\.source-about section:nth-child\(2\) \.relative/);
+  assert.match(css,/\.source-about \.aspect-video/);
+  assert.match(css,/@media\(max-width:767px\)/);
+});
