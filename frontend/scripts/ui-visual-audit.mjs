@@ -441,6 +441,7 @@ try {
             hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
             publicRail:rect('.public-rail'),
             publicTopbar:rect('.public-header'),
+            homeFixture:rect('[data-testid="public-hero-fixture"]'),
             homeTiles:rect('[data-testid="public-destinations"]'),
             homeMotto:rect('[data-testid="home-brand-interval"]'),
             homeNews:rect('[data-testid="public-home-news"]')
@@ -464,7 +465,7 @@ try {
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
             if(!fixture || fixture.width<300 || fixture.height<200)
-              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition');
+              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition '+JSON.stringify(fixture));
             if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
               failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
             if(motto.y<news.bottom-2||motto.y>news.bottom+32)
