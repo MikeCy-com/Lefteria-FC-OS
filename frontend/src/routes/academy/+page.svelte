@@ -30,6 +30,11 @@
   const scopedGroups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
   // One verified, shared hierarchy for both Academy landing and directory.
   // Imported legacy text is unassigned until an administrator verifies IDs.
+  const publishedGroupIds = $derived(new Set(scopedGroups.map(group => group.id)));
+  const academyFixtures = $derived((data.site?.fixtures ?? []).filter(fixture =>
+    fixture.organization_id === 'lefteria_fc_academy' &&
+    typeof fixture.academy_group_id === 'string' &&
+    publishedGroupIds.has(fixture.academy_group_id)));
   const academyTerritory = $derived(buildAcademyTerritoryDirectory(scopedGroups));
   const academyCities = $derived(academyTerritory.cities);
   const academyLocationsCount = $derived(academyCities.reduce(
@@ -168,7 +173,7 @@
     </div>
     {#if !academyStats}<p class="public-empty">Τα επίσημα στατιστικά της Ακαδημίας δεν έχουν δημοσιευτεί ακόμη.</p>{/if}
   </section>
-  {#if !data.available}<Unavailable />{:else}<section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
+  {#if !data.available}<Unavailable />{:else}<section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if academyFixtures.length}<Fixtures fixtures={academyFixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
   <section class="academy-enquiry public-section" data-testid="academy-enquiry-section">
     <div><p class="public-eyebrow">ΕΝΔΙΑΦΕΡΕΣΑΙ;</p><h2>ΔΟΚΙΜΑΣΤΙΚΑ & ΕΓΓΡΑΦΕΣ</h2>
       <p>Γνώρισε από κοντά τη Λευτεριά FC Academy και το προπονητικό της περιβάλλον. Δες τις διαθέσιμες πληροφορίες εγγραφής ή επικοινώνησε με τον σύλλογο για το πρόγραμμα του παιδιού σου.</p>
