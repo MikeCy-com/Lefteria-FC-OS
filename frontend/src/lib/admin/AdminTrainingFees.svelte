@@ -8,12 +8,15 @@
     payment_request_id:string|null;payment_status:string;checkout_url:string|null;
     sms_status:'reserved'|'accepted'|'unknown'|null;
   };
-  let { owner,configured,canWrite,sessionId,focusPlayerId='' }:{
-    owner:string|null;configured:boolean;canWrite:boolean;sessionId:string;focusPlayerId?:string
+  let { owner,configured,canWrite,sessionId,focusPlayerId='',role='manager' }:{
+    owner:string|null;configured:boolean;canWrite:boolean;sessionId:string;
+    focusPlayerId?:string;role?:string
   }=$props();
   type RosterPlayer={id:string;name:string};
   let rosterPlayers=$state<RosterPlayer[]>([]);
   let rosterError=$state(false);
+  let rosterQuery=$state('');
+  let selectedRosterQuery=$state('');
   let fees=$state<Fee[]>([]);
   // URL selection never fetches extra data or grants access. Filter only
   // server-verified fees already authorized for the Academy finance reader.
@@ -64,13 +67,18 @@
   }
   $effect(()=>{
     const selected=owner;const user=sessionId;const allowed=canWrite;
-    void user;rosterPlayers=[];rosterError=false;
+    const selectedRole=role,search=selectedRosterQuery;
+    void user;void search;rosterPlayers=[];rosterError=false;
     if(selected!=='lefteria_fc_academy'||!allowed)return;
     let active=true;
     untrack(()=>{void(async()=>{
       try{
-        const response=await fetch('/api/admin/football/players?organization_id='+
-          encodeURIComponent(selected)+'&offset=0&limit=50',
+        const endpoint=selectedRole==='accountant'
+          ? '/api/admin/finance/billable-academy-players?organization_id='+
+            encodeURIComponent(selected)+'&search='+encodeURIComponent(search)
+          : '/api/admin/football/players?organization_id='+
+            encodeURIComponent(selected)+'&offset=0&limit=50';
+        const response=await fetch(endpoint,
           {credentials:'same-origin',cache:'no-store'});
         if(!response.ok)throw new Error('Roster unavailable');
         const result:unknown=await response.json();
@@ -277,6 +285,16 @@
       Κάθε μήνας αντιστοιχίζεται στον επαληθευμένο γονέα και στο συγκεκριμένο παιδί.</p>
     {#if canWrite}
       <form class="fee-form" onsubmit={issue}>
+        {#if role==='accountant'}
+          <label for="academy-fee-search">Εύρεση παιδιού για χρέωση (μόνο επαληθευμένοι κηδεμόνες)</label>
+          <div class="fee-finance-search">
+            <input id="academy-fee-search" type="search" bind:value={rosterQuery} maxlength="100"
+              placeholder="Αναζήτηση ονόματος αθλητή"/>
+            <button type="button" class="admin-secondary" onclick={()=>{
+              if(!/[\\x00-\\x1f\\x7f]/.test(rosterQuery))selectedRosterQuery=rosterQuery.trim();
+            }}>Αναζήτηση</button>
+          </div>
+        {/if}
         <label for="academy-fee-player">ID παιδιού από το Ρόστερ Ακαδημίας</label>
         <input id="academy-fee-player" bind:value={playerId} maxlength="128" required
           list="academy-fee-player-options" placeholder="Επιλογή παιδιού από το ρόστερ"/>
