@@ -232,6 +232,11 @@ GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO 
 -- The web-admin role still cannot SELECT club.players directly.
 REVOKE ALL ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) TO :"admin_auth_role";
+-- Dedicated member-list read for a verified team/Academy group.
+REVOKE ALL ON FUNCTION club.read_admin_group_players(text,text,text,integer,integer)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_group_players(text,text,text,integer,integer)
+  TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
