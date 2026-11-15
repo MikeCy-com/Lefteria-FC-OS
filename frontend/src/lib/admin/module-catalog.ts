@@ -67,9 +67,9 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
-    { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένος κατάλογος προπονητών και ελεγχόμενες αναθέσεις σε ομάδες και τμήματα. Η δημιουργία προσωπικού παραμένει εκτός λειτουργίας.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
-    { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Χώροι και πόροι.', status: 'planned', scope: 'any', anyPermission: ['facilities:read'] },
-    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: επαληθευμένος κατάλογος λογαριασμών, ρόλων και οργανισμών, χωρίς αλλαγή δικαιωμάτων.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
+    { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένοι προπονητές και προστατευμένες αναθέσεις τμημάτων. Η δημιουργία λογαριασμού Coach γίνεται χωριστά από τον Super Admin· δεν δημιουργεί αυτόματα εγγραφή προσωπικού.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
+    { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Πραγματικοί κατάλογοι γηπέδων και βάσεων προπόνησης, μέσα από τη διαχείριση πόλεων και τοποθεσιών. Γήπεδα Ακαδημίας ανά πόλη, βάσεις ανά τοποθεσία· πρώτη ομάδα ανεξάρτητα.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
+    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Μεταβολή υφιστάμενων δικαιωμάτων και ανάκληση εκκρεμούν.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
     { id: 'organization', name: 'Ρυθμίσεις οργανισμών', description: 'Ρυθμίσεις εκτός δημόσιου προφίλ.', status: 'planned', scope: 'any', anyPermission: ['settings:read'] }
   ] }
 ];
@@ -94,6 +94,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
+      if (item.id === 'facilities') return ['manager','super_admin'].includes(user.role) && (
+        (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
+        (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
       if (item.id === 'staff') return ['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write')));

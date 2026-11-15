@@ -11,8 +11,8 @@ test('public header button matches live: tickets label linking to the real shop 
 
 test('admin differentiates public website from authenticated member app', () => {
   const admin = read('admin/AdminFrame.svelte');
-  assert.match(admin, /href="\/" aria-label="Προβολή δημόσιας ιστοσελίδας"/);
-  assert.match(admin, /href="\/app" aria-label="Άνοιγμα εφαρμογής μελών"/);
+  assert.match(admin, /href="\/" aria-label="Δημόσια ιστοσελίδα"/);
+  assert.match(admin, /href="\/app" aria-label="Εφαρμογή μελών"/);
   assert.match(admin, /adminSectionsFor\(user\)/);
   assert.doesNotMatch(admin, /data-testid="admin-header-organization"/);
   assert.match(admin, /data-testid="admin-logout"/);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {ONBOARDING_VERSION,mobileGuide,adminGuide} from '../src/lib/onboarding/guides.ts';
+import {ONBOARDING_VERSION,ADMIN_ONBOARDING_VERSION,mobileGuide,adminGuide} from '../src/lib/onboarding/guides.ts';
 import {normalizeTab} from '../src/lib/mobile/navigation.ts';
 
 const source = file => readFileSync(new URL(file,import.meta.url),'utf8');
@@ -35,13 +35,28 @@ test('actual profile fields are required before a completed profile is shown',()
 
 test('admin walkthrough is owner-scoped and never invents publication or checkout',()=>{
   const manager=adminGuide({role:'manager',name:'Manager',organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['teams:*','shop:read']});
-  assert.deepEqual(manager.map(s=>s.id),['account','organizations','groups','drafts','pos']);
+  assert.deepEqual(manager.map(s=>s.id),['account','organizations','groups','facilities','staff','drafts','pos']);
+  assert.equal(manager[0].destination,'/admin/profile');
+  assert.equal(manager[1].destination,'/admin/settings');
+  assert.equal(manager.find(s=>s.id==='facilities')?.destination,'/admin/territories');
   assert.equal(manager.find(s=>s.id==='drafts')?.destination,'/admin/announcements');
   const coach=adminGuide({role:'coach',name:'Coach',organizations:[{id:'lefteria_fc_academy',name:'Academy'}],permissions:['academy:read_assigned']});
   assert.ok(!coach.some(s=>s.id==='drafts'));
   assert.ok(coach.some(s=>s.state==='planned'));
   assert.equal(adminGuide({role:'editor',name:'Editor',organizations:[],permissions:['news:read']})
     .find(s=>s.id==='organizations')?.state,'ready');
+  const superAdmin=adminGuide({role:'super_admin',name:'Admin',
+    organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['users:read']});
+  assert.equal(superAdmin.find(s=>s.id==='users')?.destination,'/admin/users');
+  assert.equal(superAdmin.some(s=>s.id==='facilities'),false);
+  assert.ok(!adminGuide({role:'manager',name:'Scoped manager',
+    organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['academy:read']})
+    .some(s=>s.id==='groups'||s.id==='facilities'));
+  assert.equal(adminGuide({role:'accountant',name:'Finance',
+    organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['finance:read']})
+    .some(s=>s.id==='users'||s.id==='staff'||s.id==='facilities'),false);
+  assert.match(ADMIN_ONBOARDING_VERSION,/^20\d\d\.\d\d\.\d\d\.\d+$/);
+  assert.notEqual(ONBOARDING_VERSION,ADMIN_ONBOARDING_VERSION);
 });
 
 test('mobile onboarding is integrated with real current-role profile, and web onboarding is separate',()=>{
@@ -55,6 +70,7 @@ test('mobile onboarding is integrated with real current-role profile, and web on
   assert.match(profile,/\{#if user\.role === 'fan'\}/);
   assert.match(profile,/data-testid="mobile-own-profile"/);
   assert.match(guided,/localStorage\.setItem/);
+  assert.match(guided,/scope\.startsWith\('admin:'\)\?ADMIN_ONBOARDING_VERSION:ONBOARDING_VERSION/);
   assert.match(guided,/step\.state!=='ready' \|\| id==='profile'/);
   assert.match(admin,/adminGuide\(\$auth\.session\.user\)/);
   assert.doesNotMatch(admin,/method:'POST'|fetch\(|\/api\/admin\/profile/);

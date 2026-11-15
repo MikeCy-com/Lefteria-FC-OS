@@ -1,186 +1,97 @@
 <script lang="ts">
-  import type { WebAdminSession } from './controller.ts';
-  import { ADMIN_ROLE_NAMES, adminCapabilityName, isAdminRole, hasAdminPermission } from './permissions.ts';
-  import { adminSectionsFor } from './module-catalog.ts';
+  import type {WebAdminSession} from './controller.ts';
+  import {adminSectionsFor} from './module-catalog.ts';
+  import {hasAdminPermission} from './permissions.ts';
   import AdminFrame from './AdminFrame.svelte';
   import AdminClubMetrics from './AdminClubMetrics.svelte';
-  import { adminOrganizationsFor } from './admin-organization.ts';
+  import {adminOrganizationsFor} from './admin-organization.ts';
 
-  let { session, busy = false, onLogout, onRefresh }: {
-    session: WebAdminSession; busy?: boolean; onLogout: () => void; onRefresh: () => void;
-  } = $props();
-  const user = $derived(session.user);
-  const sections = $derived(adminSectionsFor(user));
-  const canSeeOverviewMetrics = $derived(
-    ['teams:read','academy:read','news:read'].some(permission =>
-      hasAdminPermission(user.permissions,permission)) ||
-    ['manager','super_admin'].includes(user.role) &&
-      hasAdminPermission(user.permissions,'marketing:read') &&
-      user.organizations.some(org => org.id==='lefteria_fc_academy')
+  let {session,busy=false,onLogout,onRefresh}:{
+    session:WebAdminSession;busy?:boolean;onLogout:()=>void;onRefresh:()=>void;
+  }=$props();
+  const user=$derived(session.user);
+  const sections=$derived(adminSectionsFor(user));
+  // Dashboard only surfaces actions that work. Roadmap counts, placeholder
+  // modules and the signed-in profile belong outside the working area.
+  const modules=$derived(sections.flatMap(section=>section.modules)
+    .filter(item=>item.status==='live'&&item.href));
+  const has=(id:string)=>modules.some(module=>module.id===id);
+  const actions=$derived([
+    {id:'groups',label:'Ομάδες & τμήματα',description:'Δημιουργία, ρόστερ, προπονήσεις, αγώνες και ενέργειες αθλητών',href:'/admin/groups'},
+    {id:'territories',label:'Πόλεις & τοποθεσίες',description:'Οργάνωση Ακαδημίας, βάσεις, αγωνιστικοί κατάλογοι ανά πόλη',href:'/admin/territories'},
+    {id:'announcements',label:'Ανακοινώσεις εφαρμογής',description:'Δημοσίευση ανά ομάδα και παρακολούθηση ανάγνωσης',href:'/admin/announcements'},
+    {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
+    {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
+    {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
+    {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
+    {id:'staff',label:'Προσωπικό & προπονητές',description:'Αναθέσεις σε πραγματικές ομάδες',href:'/admin/staff'},
+    {id:'users',label:'Χρήστες & δικαιώματα',description:'Προβολή επαληθευμένων λογαριασμών',href:'/admin/users'},
+    {id:'products',label:'POS & κατάστημα',description:'Κατάλογος και σημεία πώλησης',href:'/admin/pos'},
+    {id:'leads',label:'CRM · Ενδιαφερόμενοι',description:'Επαληθευμένες εγγραφές ενδιαφέροντος',href:'/admin/leads'},
+    {id:'club',label:'Ρυθμίσεις ιστοσελίδας',description:'Ταυτότητα και δημόσια στοιχεία του οργανισμού',href:'/admin/settings'}
+  ].filter(item=>has(item.id)));
+  const canSeeOverviewMetrics=$derived(
+    ['teams:read','academy:read','news:read'].some(permission=>
+      hasAdminPermission(user.permissions,permission))||
+    ['manager','super_admin'].includes(user.role)&&
+      hasAdminPermission(user.permissions,'marketing:read')&&
+      user.organizations.some(org=>org.id==='lefteria_fc_academy')
   );
-  const liveCount = $derived(sections.reduce((n, group) => n + group.modules.filter(item => item.status === 'live').length, 0));
-  const quickLinks = $derived(sections.flatMap(section => section.modules)
-    .filter(module => module.status === 'live' && !!module.href)
-    .slice(0, 8)
-    .map(module => ({ id: module.id, href: module.href!, name: module.name })));
-  const plannedCount = $derived(sections.reduce((n, group) => n + group.modules.filter(item => item.status === 'planned').length, 0));
-  const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
-  const expiry = $derived(new Intl.DateTimeFormat('el-GR', {
-    dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Nicosia'
-  }).format(new Date(session.expires_at)));
 </script>
 
 <AdminFrame {user} {busy} {onLogout}>
-  <div class="admin-workspace-intro">
-    <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC · ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</p>
-    <h1>Καλώς ήρθατε,<br />{user.name || user.username}</h1>
-    <p class="admin-muted">Όλες οι ενότητες του συλλόγου, οργανωμένες ανά λειτουργία. Οι διαθέσιμες επιλογές εξαρτώνται από τα επαληθευμένα δικαιώματά σας.</p>
+  <div class="admin-workspace-intro" data-testid="admin-dashboard-heading">
+    <p class="admin-eyebrow">ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ · ΛΕΥΤΕΡΙΑ FC</p>
+    <h1>Πίνακας εργασιών</h1>
+    <p class="admin-muted">Επιλέξτε πού θέλετε να εργαστείτε. Οι ομάδες συγκεντρώνουν
+      το πρόγραμμα, τους αγώνες, τους αθλητές και τις καταχωρίσεις τους.</p>
   </div>
 
-  <div class="admin-overview-stats" aria-label="Επισκόπηση διαθέσιμων εργαλείων" data-testid="admin-overview">
-    <div><span>Ενεργά εργαλεία</span><strong>{liveCount}</strong><small>Επαληθευμένες υπηρεσίες</small></div>
-    <div><span>Υπό υλοποίηση</span><strong>{plannedCount}</strong><small>Δεν δέχονται ακόμη ενέργειες</small></div>
-    <div><span>Οργανισμοί</span><strong>{user.organizations.length}</strong><small>Τρέχουσες αναθέσεις</small></div>
-    <div><span>Ο ρόλος σας</span><strong class="admin-stat-role">{roleName}</strong><small>Δικαιώματα σύνδεσης</small></div>
-  </div>
-
-  {#if canSeeOverviewMetrics}
-    {#each adminOrganizationsFor(user) as organization (organization)}
-      <AdminClubMetrics {user} {organization} />
-    {/each}
-  {/if}
-
-  {#if quickLinks.length}
-    <nav class="admin-panel admin-quick-navigation" aria-label="Γρήγορη πρόσβαση" data-testid="admin-quick-navigation">
-      <h2>Γρήγορη πρόσβαση</h2>
-      <div class="admin-quick-navigation-grid">
-        {#each quickLinks as link (link.id)}
-          <a href={link.href}>{link.name}<span aria-hidden="true">↗</span></a>
+  {#if actions.length}
+    <nav class="admin-panel admin-action-dashboard" aria-label="Εργασίες διαχείρισης" data-testid="admin-quick-navigation">
+      <div class="admin-action-heading">
+        <h2>Οι εργασίες μου</h2>
+        <button type="button" class="admin-secondary" disabled={busy} onclick={onRefresh}>Ανανέωση</button>
+      </div>
+      <div class="admin-action-grid">
+        {#each actions as item (item.id)}
+          <a href={item.href} class="admin-action-card" data-testid={'admin-dashboard-'+item.id}>
+            <strong>{item.label}</strong><small>{item.description}</small>
+            <span aria-hidden="true">↗</span>
+          </a>
         {/each}
       </div>
     </nav>
-  {/if}
-
-  {#if sections.length}
-    <div class="admin-hub-grid" data-testid="admin-module-sections">
-      {#each sections as section, index (section.id)}
-        <section class="admin-panel admin-hub-section" id={'workspace-' + section.id}
-          aria-labelledby={'workspace-heading-' + section.id} data-testid={'admin-section-' + section.id}>
-          <header class="admin-hub-heading">
-            <span class="admin-section-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-            <div>
-              <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ · {section.name}</p>
-              <h2 id={'workspace-heading-' + section.id}>{section.name}</h2>
-              <p class="admin-muted">{section.description}</p>
-            </div>
-          </header>
-          <ul class="admin-module-list">
-            {#each section.modules as module (module.id)}
-              <li>
-                {#if module.status === 'live' && module.id === 'club'}
-                  <a class="admin-tool admin-tool-live" href="/admin/club">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'news'}
-                  <a class="admin-tool admin-tool-live" href="/admin/news" data-testid="admin-news-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'products'}
-                  <a class="admin-tool admin-tool-live" href="/admin/pos" data-testid="admin-pos-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'payabl'}
-                  <a class="admin-tool admin-tool-live" href="/admin/finance" data-testid="admin-payabl-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'onboarding'}
-                  <a class="admin-tool admin-tool-live" href="/admin/onboarding" data-testid="admin-onboarding-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'hub_editorial'}
-                  <a class="admin-tool admin-tool-live" href="/admin/hub" data-testid="admin-hub-editorial-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'announcements'}
-                  <a class="admin-tool admin-tool-live" href="/admin/announcements" data-testid="admin-announcements-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'territories'}
-                  <a class="admin-tool admin-tool-live" href="/admin/territories" data-testid="admin-territories-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'groups'}
-                  <a class="admin-tool admin-tool-live" href="/admin/groups" data-testid="admin-groups-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.id === 'trials'}
-                  <a class="admin-tool admin-tool-live" href="/admin/trials" data-testid="admin-trials-module">
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else if module.status === 'live' && module.href}
-                  <a class="admin-tool admin-tool-live" href={module.href} data-testid={'admin-' + module.id + '-module'}>
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
-                  </a>
-                {:else}
-                  <div class="admin-tool admin-tool-planned" data-testid={'admin-pending-' + module.id}>
-                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
-                    <span class="admin-development">Under Developments</span>
-                  </div>
-                {/if}
-              </li>
-            {/each}
-          </ul>
-        </section>
-      {/each}
-    </div>
   {:else}
     <section class="admin-panel" data-testid="admin-no-modules">
-      <h2>Δεν υπάρχουν διαθέσιμες ενότητες</h2>
-      <p class="admin-muted">Ο λογαριασμός σας δεν έχει ενεργή ανάθεση διαχείρισης. Μπορείτε να δείτε την πρόσβασή σας παρακάτω.</p>
+      <h2>Δεν υπάρχουν διαθέσιμες εργασίες</h2>
+      <p class="admin-muted">Δεν έχει επαληθευτεί ενεργή ανάθεση για αυτή τη σύνδεση.</p>
     </section>
   {/if}
 
-  <div class="admin-account-grid">
-    <section class="admin-panel" id="account" aria-labelledby="account-title">
-      <p class="admin-eyebrow">Ο ΛΟΓΑΡΙΑΣΜΟΣ ΣΑΣ</p>
-      <h2 id="account-title">Στοιχεία λογαριασμού</h2>
-      <dl class="admin-details">
-        <div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div>
-        <div><dt>Όνομα χρήστη</dt><dd>{user.username}</dd></div>
-        <div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div>
-      </dl>
+  {#if canSeeOverviewMetrics}
+    <section class="admin-dashboard-metrics" aria-label="Επιβεβαιωμένα στοιχεία οργανισμών">
+      <div class="admin-action-heading"><h2>Η εικόνα του συλλόγου</h2></div>
+      {#each adminOrganizationsFor(user) as organization (organization)}
+        <AdminClubMetrics {user} {organization}/>
+      {/each}
     </section>
-    <section class="admin-panel" id="session" aria-labelledby="session-title">
-      <p class="admin-eyebrow">ΑΣΦΑΛΕΙΑ</p>
-      <h2 id="session-title">Τρέχουσα σύνδεση</h2>
-      <p class="admin-muted">Η σύνδεση λήγει στις <time datetime={session.expires_at}>{expiry}</time> (ώρα Κύπρου).</p>
-      <button type="button" class="admin-secondary" disabled={busy} onclick={onRefresh}>Ανανέωση στοιχείων πρόσβασης</button>
-    </section>
-  </div>
-  <section class="admin-panel" id="access" aria-labelledby="access-title">
-    <p class="admin-eyebrow">ΠΡΟΣΒΑΣΗ</p><h2 id="access-title">Δικαιώματα & οργανισμοί</h2>
-    {#if user.organizations.length}
-      <ul class="admin-tags" data-testid="admin-organizations">
-        {#each user.organizations as organization (organization.id)}<li>{organization.name}</li>{/each}
-      </ul>
-      <p class="admin-muted">Η πρόσβαση ελέγχεται ξανά από το API για κάθε προστατευμένη ενέργεια.</p>
-    {:else}
-      <p class="admin-muted">Δεν έχει ανατεθεί οργανισμός σε αυτόν τον λογαριασμό.</p>
-    {/if}
-    <h3>Δυνατότητες ρόλου</h3>
-    <ul class="admin-permissions" data-testid="admin-permissions">
-      {#each user.permissions as permission}<li>{adminCapabilityName(permission)}</li>{/each}
-    </ul>
-  </section>
+  {/if}
 </AdminFrame>
+<style>
+  .admin-action-dashboard{margin:16px 0 24px}
+  .admin-action-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 18px}
+  .admin-action-heading h2{margin:0;font-style:italic;text-transform:uppercase}
+  .admin-action-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  .admin-action-card{position:relative;display:flex;flex-direction:column;gap:9px;min-height:118px;
+    padding:17px 34px 17px 18px;border:1px solid #5b503a;text-decoration:none;color:#f0f0ef;
+    background:linear-gradient(140deg,#202018,#111415)}
+  .admin-action-card strong{font:800 clamp(19px,1.6vw,27px)/1.1 'Fira Sans Extra Condensed',sans-serif}
+  .admin-action-card small{color:#c5c8c9;font-size:12px;line-height:1.4}
+  .admin-action-card>span{position:absolute;top:12px;right:14px;color:#ffd05d;font-size:23px}
+  .admin-action-card:hover{border-color:#ffcf61;background:linear-gradient(140deg,#362817,#111415)}
+  .admin-action-card:focus-visible{outline:3px solid #ffca60;outline-offset:3px}
+  .admin-dashboard-metrics{margin-top:23px}
+  @media(max-width:1170px){.admin-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:700px){.admin-action-grid{grid-template-columns:1fr}}
+</style>

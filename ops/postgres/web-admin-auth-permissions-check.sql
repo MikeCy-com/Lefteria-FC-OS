@@ -19,12 +19,15 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
        set_config('lefteria.mobile_runtime_role', :'app_role', true) AS mobile_runtime_role_setting
 \gset
 \ir admin-club-lock-boundary.sql
+\ir admin-self-profile-boundary.sql
+\ir admin-contact-email-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-group-roster-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
@@ -65,6 +68,22 @@ BEGIN
                   AND has_schema_privilege(current_user,n.oid,'CREATE')) THEN
     RAISE EXCEPTION 'Admin-auth role has DDL or migration privileges';
   END IF;
+  IF has_function_privilege(mobile_name,'identity.write_admin_own_name(text,text,text)','EXECUTE')
+      OR has_function_privilege(mobile_name,'identity.write_admin_own_password(text,text,text)','EXECUTE')
+      OR NOT has_function_privilege(current_user,'identity.write_admin_own_name(text,text,text)','EXECUTE')
+      OR NOT has_function_privilege(current_user,'identity.write_admin_own_password(text,text,text)','EXECUTE')
+      OR EXISTS(
+        SELECT 1 FROM pg_proc p WHERE p.oid IN (
+          'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
+          'identity.write_admin_own_password(text,text,text)'::regprocedure
+        ) AND (NOT p.prosecdef OR
+          EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+            WHERE a.grantee=0 AND a.privilege_type='EXECUTE'))
+      ) THEN
+    RAISE EXCEPTION 'Self-profile function grants or SECURITY DEFINER boundary invalid';
+  END IF;
   IF has_column_privilege(mobile_name,'identity.admin_accounts','password_hash','SELECT')
       OR has_any_column_privilege(mobile_name,'identity.admin_sessions','SELECT,INSERT,UPDATE,REFERENCES')
       OR has_any_column_privilege(mobile_name,'identity.admin_auth_rate_buckets','SELECT,INSERT,UPDATE,REFERENCES')
@@ -82,6 +101,11 @@ BEGIN
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
+                  'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                  'identity.write_admin_own_password(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
@@ -93,9 +117,16 @@ BEGIN
                    'club.read_admin_football_access(text,text)'::regprocedure,
                    'club.write_admin_football_access(text,text,uuid,text,uuid,text,boolean)'::regprocedure,
                    'club.read_admin_football_location_metrics(text,text)'::regprocedure,
+                   'finance.assign_admin_academy_issue_site(text,text,text,uuid,uuid,text)'::regprocedure,
+                   'finance.read_admin_academy_location_finance(text,text,date)'::regprocedure,
+                   'finance.read_admin_academy_unallocated_issues(text,text,date)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
+                  'club.read_admin_player_development_goals(text,text,text)'::regprocedure,
+                  'club.create_admin_player_development_goal(text,text,text,uuid,text,text,text,date,uuid)'::regprocedure,
+                  'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,

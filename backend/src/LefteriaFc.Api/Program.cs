@@ -220,6 +220,7 @@ app.MapMobilePlayerWeeklyQuiz();
 app.MapMobileFanPayabl();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
+app.MapAdminPlayerDevelopmentGoals();
 app.MapAdminAcademyDocuments();
 app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
@@ -228,6 +229,7 @@ app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
 app.MapAdminFootballTerritories();
 app.MapAdminFootballTerritoryAccess();
+app.MapAdminAcademyLocationFinance();
 
 if (app.Environment.IsDevelopment())
 {

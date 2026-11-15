@@ -29,6 +29,8 @@ public static class WebAdminEndpoints
             return TypedResults.NoContent();
         }).WithName("LogoutWebAdmin").Produces(204));
         endpoints.MapFoundingAdminSetup();
+        endpoints.MapAdminSelfService();
+        endpoints.MapAdminContactEmail();
         return endpoints;
     }
 

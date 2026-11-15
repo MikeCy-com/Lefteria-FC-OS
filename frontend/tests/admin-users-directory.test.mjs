@@ -11,7 +11,7 @@ const ui=read('frontend/src/routes/admin/users/+page.svelte');
 const frame=read('frontend/src/lib/admin/AdminFrame.svelte');
 const catalog=read('frontend/src/lib/admin/module-catalog.ts');
 
-test('read-only admin directory compiles and only shows role, status and organization grants',()=>{
+test('read-only directory projections remain isolated from Super Admin-only credential provisioning',()=>{
   assert.ok(compile(ui,{filename:'admin-users/+page.svelte',generate:'server'}).js.code.length>100);
   assert.match(ui,/data-testid="admin-users-directory"/);
   assert.match(ui,/data-testid="admin-users-list"/);
@@ -20,7 +20,10 @@ test('read-only admin directory compiles and only shows role, status and organiz
   assert.match(ui,/controller\.abort\(\)/);
   assert.match(ui,/\$auth\.session\?\.user\.role==='super_admin'/);
   assert.match(ui,/isValid\(raw,wantedOffset\)/);
-  assert.doesNotMatch(ui,/type="password"|phone|password_hash|method:'POST'|method:'PUT'|localStorage|{@html|innerHTML/);
+  assert.match(ui,/data-testid="admin-managed-user-creation"/);
+  assert.match(ui,/method:'POST'/);
+  assert.match(ui,/type="password"/);
+  assert.doesNotMatch(ui,/phone|password_hash|method:'PUT'|localStorage|{@html|innerHTML/);
 });
 
 test('super admin server guard executes before any account SQL',()=>{
@@ -37,7 +40,11 @@ test('super admin server guard executes before any account SQL',()=>{
   assert.match(api,/FROM identity\.admin_accounts a/);
   assert.match(api,/identity\.admin_organization_grants g/);
   assert.match(grants,/GRANT SELECT \(id,username,display_name,role,is_active,invite_pending,otp2fa_enabled,password_hash\)/);
-  assert.doesNotMatch(api,/password_hash|normalized_phone|otp2fa_enabled|username|UPDATE identity|DELETE FROM|INSERT INTO/);
+  const getOnly=api.slice(api.indexOf('endpoints.MapGet('),api.indexOf('endpoints.MapPost('));
+  assert.doesNotMatch(getOnly,/password_hash|normalized_phone|otp2fa_enabled|username,|UPDATE identity|DELETE FROM|INSERT INTO/);
+  assert.match(api,/identity.create_managed_admin/);
+  assert.match(api,/BCrypt.Net.BCrypt.HashPassword/);
+  assert.doesNotMatch(api,/UPDATE identity.admin_accounts|DELETE FROM identity.admin_accounts|INSERT INTO identity.admin_accounts/);
 });
 test('staff and account directory navigation are independent role-first sections',()=>{
   assert.match(catalog,/id === 'users'.*super_admin/);

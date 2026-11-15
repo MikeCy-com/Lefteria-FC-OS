@@ -18,8 +18,8 @@ test('admin first-team trials panel remains inside authenticated FC scope',()=>{
   assert.ok(access.includes("'settings:read'"));
   assert.ok(access.includes("'marketing:read'"));
   assert.ok(frame.includes('data-testid="admin-trials-link"'));
-  assert.ok(workspace.includes('data-testid="admin-trials-module"'));
-  assert.ok(frame.includes("active === 'trials'"));
+  assert.ok(workspace.includes("id:'groups'") && !workspace.includes('Under Developments'));
+  assert.ok(frame.includes("active==='trials'"));
 });
 
 test('admin first-team trial status uses session-bound private GET and never collects applicant data',()=>{
