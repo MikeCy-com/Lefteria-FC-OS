@@ -168,6 +168,17 @@ GRANT EXECUTE ON FUNCTION identity.read_admin_own_contact_email(text),
   identity.write_admin_own_contact_email(text,text,text)
   TO :"admin_auth_role";
 
+-- Only self-scoped sanitized JPEG functions are callable from the web admin
+-- runtime: no direct SELECT/INSERT/DELETE on identity.admin_profile_photos.
+REVOKE ALL ON TABLE identity.admin_profile_photos FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.read_admin_own_profile_photo(text),
+  identity.write_admin_own_profile_photo(text,bytea)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.read_admin_own_profile_photo(text),
+  identity.write_admin_own_profile_photo(text,bytea)
+  TO :"admin_auth_role";
+
+
 
 
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
@@ -392,6 +403,8 @@ BEGIN
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
                    'identity.read_admin_own_contact_email(text)'::regprocedure,
                    'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
+                   'identity.read_admin_own_profile_photo(text)'::regprocedure,
+                   'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,

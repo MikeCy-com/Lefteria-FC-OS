@@ -12,7 +12,7 @@ const checks=read('ops/postgres/web-admin-auth-permissions-check.sql');
 const boundary=read('ops/postgres/admin-self-profile-boundary.sql');
 const guard=read('backend/src/LefteriaFc.Api/WebAdmin/WebAdminRequestGuards.cs');
 
-test('real profile edit compiles and retains full user/role visibility without invented email or photo uploads',()=>{
+test('real profile edit compiles and retains full user/role visibility with verified private photo API and unverified email disclosure',()=>{
   assert.ok(compile(ui,{filename:'admin/profile/+page.svelte',generate:'server'}).js.code.length>100);
   assert.match(ui,/data-testid="admin-self-name-form"/);
   assert.match(ui,/data-testid="admin-self-password-form"/);
@@ -23,7 +23,10 @@ test('real profile edit compiles and retains full user/role visibility without i
   assert.match(ui,/roleName/);
   assert.match(ui,/user\.organizations/);
   assert.match(ui,/Η αλλαγή email απαιτεί επαλήθευση/);
-  assert.match(ui,/Η φωτογραφία προφίλ απαιτεί προστατευμένο/);
+  assert.match(ui,/data-testid="admin-self-photo-form"/);
+  assert.match(ui,/uploadOwnPhoto/);
+  assert.match(ui,/removeOwnPhoto/);
+  assert.match(ui,/adminPhotoRevision\.update/);
   assert.doesNotMatch(ui,/localStorage|sessionStorage|Math\.random|@html|innerHTML/);
 });
 test('self-service API only accepts authenticated self updates proven with old password',()=>{

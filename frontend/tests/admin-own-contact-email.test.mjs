@@ -51,6 +51,7 @@ test('real admin Profile form displays only verified server state, labels unveri
   assert.match(ui,/raw\.updated!==true/);
   assert.match(ui,/current_password:secret/);
   assert.match(ui,/μη επαληθευμένο στοιχείο προφίλ/);
-  assert.match(ui,/δεν έχει ενεργοποιηθεί/);
+  assert.match(ui,/data-testid="admin-self-photo-form"/);
+  assert.match(ui,/η εικόνα είναι ιδιωτική|Η φωτογραφία είναι ιδιωτική/);
   assert.doesNotMatch(ui,/@html|innerHTML|localStorage|sessionStorage/);
 });
