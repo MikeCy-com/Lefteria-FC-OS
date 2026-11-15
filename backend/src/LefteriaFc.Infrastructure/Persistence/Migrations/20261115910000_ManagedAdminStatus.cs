@@ -11,6 +11,26 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 public sealed class ManagedAdminStatus : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+        -- Only the admin-auth connection may use this lock oracle. The SQL
+        -- account writer still owns all real state changes and direct UPDATE
+        -- rights remain absent for the runtime.
+        CREATE FUNCTION identity.lock_admin_login_account(
+          _subject uuid,_hash text,_role text
+        ) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+        SET search_path=pg_catalog,pg_temp AS $login_lock$
+        DECLARE v_accepted boolean:=false;
+        BEGIN
+          IF _subject IS NULL OR _hash IS NULL OR _role IS NULL
+          THEN RETURN false; END IF;
+          SELECT true INTO v_accepted FROM identity.admin_accounts a
+            WHERE a.id=_subject AND a.password_hash=_hash AND a.role=_role
+              AND a.is_active AND NOT a.invite_pending AND NOT a.otp2fa_enabled
+            FOR SHARE;
+          RETURN COALESCE(v_accepted,false);
+        END $login_lock$;
+        REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+          FROM PUBLIC;
+
         CREATE FUNCTION identity.set_managed_admin_status(
           _digest text,_subject uuid,_expected_role text,
           _expected_active boolean,_active boolean
@@ -101,5 +121,6 @@ public sealed class ManagedAdminStatus : Migration
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
         DROP FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean);
+        DROP FUNCTION identity.lock_admin_login_account(uuid,text,text);
         """);
 }
