@@ -53,7 +53,8 @@
       <p class="public-hero-description hero-copy-stack" data-testid="public-hero-description"><span aria-hidden={!academySlide}>{club?.description || 'Χτίζουμε πρωταθλητές μέσα από το πάθος, την πειθαρχία και την ομαδικότητα. Ελάτε μαζί μας στο ταξίδι προς την κορυφή.'}</span><span aria-hidden={academySlide}>Στο πλευρό της ομάδας μας, σε κάθε αγώνα.</span></p>
       <div class="public-hero-actions">{#if academySlide}<a href="/academy" class="public-button" data-testid="hero-join-academy">ΔΕΣ ΤΗΝ ΑΚΑΔΗΜΙΑ <Icon name="arrow" size={18} /></a><a href="/team" class="public-button public-button-outline" data-testid="hero-view-team">Η ΠΡΩΤΗ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a>{:else}<a href="/team" class="public-button" data-testid="hero-first-team-link">ΓΝΩΡΙΣΕ ΤΗΝ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a><a href="/team?tab=schedule" class="public-button public-button-outline" data-testid="hero-first-team-schedule">ΠΡΟΓΡΑΜΜΑ ΑΓΩΝΩΝ <Icon name="arrow" size={18} /></a>{/if}</div>
     </div>
-    {#if fixture}<aside class="public-hero-fixture" data-testid="public-hero-fixture">
+    <aside class="public-hero-fixture" data-testid="public-hero-fixture">
+      {#if fixture}
       <div class="public-fixture-heading"><span><Icon name="calendar" size={22} />ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</span><a href="/team?tab=schedule" aria-label="Όλοι οι αγώνες" title="Όλοι οι αγώνες"><Icon name="external" size={18} /></a></div>
       <p class="public-fixture-competition">{fixture.competition}</p>
       <a href={fixturePublicLink(fixture)} class="public-fixture-teams"><div><TeamCrest name={fixture.home_team} logo={fixture.home_team_logo} clubName={club?.name} clubLogo={club?.logo_url} /><strong>{fixture.home_team}</strong></div><span class="fixture-versus" aria-label="εναντίον">VS</span><div><TeamCrest name={fixture.away_team} logo={fixture.away_team_logo} clubName={club?.name} clubLogo={club?.logo_url} /><strong>{fixture.away_team}</strong></div></a>
@@ -63,7 +64,25 @@
       </div>
       {#if countdown}<div class="public-countdown" data-testid="public-hero-countdown">{#each countdown as value,index}<div><strong>{String(value).padStart(2,'0')}</strong><span>{['ΗΜΕΡΕΣ','ΩΡΕΣ','ΛΕΠΤΑ','ΔΕΥΤ.'][index]}</span></div>{/each}</div>{/if}
       <a href={fixturePublicLink(fixture)} class="public-button public-fixture-details" data-testid="hero-fixture-details">ΛΕΠΤΟΜΕΡΕΙΕΣ ΑΓΩΝΑ <Icon name="arrow" size={18} /></a>
-    </aside>{/if}
+          {:else}
+        <div class="public-fixture-heading"><span><Icon name="calendar" size={22} /> ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</span><Icon name="external" size={18}/></div>
+        <div class="public-fixture-awaiting" role="status" data-testid="hero-fixture-unpublished">
+          <p class="public-fixture-competition">ΕΠΙΣΗΜΟ ΠΡΟΓΡΑΜΜΑ</p>
+          <div class="public-fixture-teams public-fixture-teams-awaiting">
+            <div><TeamCrest name={club?.name || 'ΛΕΥΤΕΡΙΑ FC'} logo={club?.logo_url} clubName={club?.name} clubLogo={club?.logo_url}/><strong>{club?.name || 'ΛΕΥΤΕΡΙΑ FC'}</strong></div>
+            <span class="fixture-versus" aria-label="αντίπαλος δεν έχει δημοσιευτεί">VS</span>
+            <div class="public-unknown-opponent"><span class="public-unknown-opponent-crest" aria-hidden="true">—</span><strong>ΑΝΑΜΕΝΕΤΑΙ</strong></div>
+          </div>
+          <p class="public-fixture-awaiting-copy">Δεν έχει δημοσιευτεί επιβεβαιωμένος επόμενος αγώνας.</p>
+          <div class="public-countdown public-countdown-unpublished" aria-label="Η αντίστροφη μέτρηση δεν είναι διαθέσιμη">
+            {#each ['ΗΜΕΡΕΣ','ΩΡΕΣ','ΛΕΠΤΑ','ΔΕΥΤ.'] as label}
+              <div><strong>—</strong><span>{label}</span></div>
+            {/each}
+          </div>
+          <a href="/team?tab=schedule" class="public-button public-fixture-details" data-testid="hero-fixture-schedule">ΔΕΙΤΕ ΤΟ ΠΡΟΓΡΑΜΜΑ <Icon name="arrow" size={18}/></a>
+        </div>
+      {/if}
+    </aside>
     <div class="public-hero-bottom"><p class="public-hero-motto">{club?.motto || 'ΜΙΑ ΟΜΑΔΑ. ΕΝΑ ΟΝΕΙΡΟ.'}</p>
       <div class="public-hero-controls" role="group" aria-label="Εναλλαγή κεντρικών εικόνων" data-testid="hero-slide-controls">
         <button type="button" onclick={() => select(index - 1)} aria-label="Προηγούμενη εικόνα" title="Προηγούμενη εικόνα" data-testid="hero-slide-previous"><Icon name="back" size={19} /></button>

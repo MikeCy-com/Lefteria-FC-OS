@@ -429,6 +429,8 @@ try {
             adminPanel:rect('.admin-signin-grid>.admin-panel'),
             adminAction:rect('[data-testid="admin-login-submit"]'),
             adminFooter:rect('.admin-access-footer'),
+            adminCrest:rect('.admin-signin-grid .admin-crest'),
+            adminSecurity:rect('[data-testid="admin-login-security-note"]'),
             memberSidebar:rect('.login-sidebar'),
             memberTopbar:rect('.login-topbar'),
             memberWelcome:rect('.login-welcome'),
@@ -439,6 +441,7 @@ try {
             registrationSteps:rect('[data-testid="step-indicator"]'),
             registrationCard:rect('[data-testid="form-card"]'),
             hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
+            homeFixture:rect('[data-testid="public-hero-fixture"]'),
             publicRail:rect('.public-rail'),
             publicTopbar:rect('.public-header'),
             homeTiles:rect('[data-testid="public-destinations"]'),
@@ -450,9 +453,9 @@ try {
           return result;
         },route.name);
         if (route.name==='home') {
-          const {hero,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
             homeMotto:motto,homeNews:news}=referenceLayout;
-          if(!hero||!rail||!top||!tiles||!motto||!news){
+          if(!hero||!fixture||!rail||!top||!tiles||!motto||!news){
             failures.push('home 1672×941: one or more reference sections are missing');
           }else{
             if(rail.width<150||rail.width>160)
@@ -465,6 +468,8 @@ try {
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
             if(motto.y<tiles.bottom-2||motto.y>tiles.bottom+12)
               failures.push('home: reference black motto interval is not after the four image tiles');
+            if(fixture.x<1050||fixture.y<70||fixture.y>160||fixture.bottom>470)
+              failures.push('home: no reference-position match panel in the right hero column '+JSON.stringify(fixture));
             if(news.y<900)
               failures.push('home: preserve actual CMS news below the reference fold, not above the 941px screenshot');
             if(Math.abs(top.x-rail.width)>2)
@@ -472,8 +477,9 @@ try {
           }
         }
         if (route.name==='admin-login') {
-          const {adminHeader:header,adminPanel:panel,adminAction:action,adminFooter:footer,documentHeight} = referenceLayout;
-          if (!header||!panel||!action||!footer)
+          const {adminHeader:header,adminPanel:panel,adminAction:action,adminFooter:footer,
+            adminCrest:crest,adminSecurity:security,documentHeight} = referenceLayout;
+          if (!header||!panel||!action||!footer||!crest||!security)
             failures.push('admin login 1672×941: missing reference sections');
           else {
             if (header.height<50||header.height>85)
@@ -482,6 +488,12 @@ try {
               failures.push('admin login: right login panel is not in the reference column');
             if (panel.y>150 || panel.bottom>875)
               failures.push('admin login: panel obscured below the reference viewport');
+            if (crest.width<155||crest.height<155||crest.y>175)
+              failures.push('admin login: crest is not the reference-size hero emblem');
+            if (panel.y<75||panel.y>125||panel.bottom>860)
+              failures.push('admin login: right panel outline is outside the club screenshot region');
+            if (security.bottom>865)
+              failures.push('admin login: security message falls beyond the visible login panel');
             if (action.bottom>890)
               failures.push('admin login: submit action requires the user to scroll');
             if (footer.y>910)
@@ -496,12 +508,18 @@ try {
           if(!rail||!top||!welcome||!panel||!roles||!action||!benefits)
             failures.push('member login: missing photographic/role or benefits reference sections');
           else {
-            if(rail.width<140||rail.width>160)
+            if(rail.width<150||rail.width>160)
               failures.push('member login: reference vertical club navigation is not ~154px');
             if(top.height<50||top.height>85)
               failures.push('member login: top header height is not the reference size');
             if(panel.x<800||panel.width<570||panel.right>1672)
               failures.push('member login: role/OTP form outside the reference right column');
+            if(welcome.y>80||welcome.bottom<780||welcome.bottom>860)
+              failures.push('member login: full-bleed welcome image does not fill the reference left region');
+            if(panel.y<80||panel.y>125||panel.bottom>850)
+              failures.push('member login: access card is not aligned to the screenshot’s 92px top edge');
+            if(benefits.y<770||benefits.y>850)
+              failures.push('member login: feature strip is not placed on screenshot’s lower edge');
             if(panel.y>180||roles.y>410)
               failures.push('member login: role choices not visible at top of form');
             if(roleButtons!==3)
