@@ -10,6 +10,16 @@ BEGIN
     WHERE n.nspname='identity' AND c.relname='family_guardian_permissions'
       AND c.relrowsecurity
   ) THEN RAISE EXCEPTION 'guardian_permissions_rls_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM information_schema.role_table_grants
+      WHERE table_schema='identity'
+        AND table_name='academy_guardian_otp_claims'
+        AND grantee='PUBLIC') THEN
+    RAISE EXCEPTION 'academy_guardian_otp_claims_public_grant'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n
+      ON n.oid=c.relnamespace WHERE n.nspname='identity'
+      AND c.relname='academy_guardian_otp_claims'
+      AND c.relrowsecurity) THEN
+    RAISE EXCEPTION 'academy_guardian_otp_claims_rls_missing'; END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes WHERE schemaname='identity'
       AND indexname='uq_family_guardian_live_recipient'
@@ -19,6 +29,10 @@ BEGIN
     'identity.issue_many_guardian_permissions(uuid,text,text,timestamptz,uuid,text,jsonb)'::regprocedure,
     'identity.read_issued_guardian_permissions(uuid,text,text,timestamptz)'::regprocedure,
     'identity.revoke_issued_guardian_permission(uuid,text,text,timestamptz,uuid,uuid)'::regprocedure,
+    'identity.has_pending_academy_guardian_proof(text,uuid)'::regprocedure,
+    'identity.confirm_academy_guardian_otp(text,uuid,bytea)'::regprocedure,
+    'identity.current_academy_guardian_claims(text)'::regprocedure,
+    'identity.require_canonical_guardian_delegation_root()'::regprocedure,
     'identity.valid_guardian_phone_grants()'::regprocedure,
     'identity.has_current_guardian_phone_grant(text)'::regprocedure,
     'identity.current_phone_granted_children(uuid,text,text,timestamptz)'::regprocedure
