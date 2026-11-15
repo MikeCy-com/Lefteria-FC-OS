@@ -82,6 +82,20 @@ internal sealed partial class WebAdminHttpChecks
             await database.ClearManagedRoleTerritoryAsync(target,territory);
         }
 
+        Console.WriteLine("CHECK managed roles: blocked by dormant POS cashier assignment");
+        var terminal=await database.SeedManagedRolePosAssignmentAsync(target);
+        try
+        {
+            using(var blocked=await ChangeManagedRoleAsync(client,adminLogin.Cookie,change))
+                await ExpectJsonAsync(blocked,409,"managed_admin_role_assignments_exist");
+            Require(await database.CountManagedRoleAuditAsync(target)==0,
+                "Blocked cashier-role mutation emitted a successful audit.");
+        }
+        finally
+        {
+            await database.ClearManagedRolePosAssignmentAsync(target,terminal);
+        }
+
         Console.WriteLine("CHECK managed roles: safe role change and session revocation");
         using(var changed=await ChangeManagedRoleAsync(client,adminLogin.Cookie,change))
         {
