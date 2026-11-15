@@ -11,7 +11,7 @@ type Sponsor = components['schemas']['PublicSectionSponsor'];
 type Archive = components['schemas']['PublicSectionArchive'];
 export type CatalogCard = { id: string; organization: PublicOrganization; title: string; summary: string | null; image: string | null; label: string; meta: string | null; href: string; scopeLabel?: string; event?: Pick<Event, 'location' | 'price_eur' | 'status'> };
 export type CatalogData = PublicPageData & {
-  kind: CatalogKind; scope: CatalogScope; cards: CatalogCard[]; when: 'upcoming' | 'past' | 'all'; eventType: string; eventTypes: string[];
+  kind: CatalogKind; scope: CatalogScope; fixedScope: CatalogScope; cards: CatalogCard[]; when: 'upcoming' | 'past' | 'all'; eventType: string; eventTypes: string[];
 };
 export type CatalogDetailData = PublicPageData & {
   kind: CatalogKind; scope: CatalogScope; event: Event | null; partner: Partner | null; sponsor: Sponsor | null; archives: Archive[]; title: string; backHref?: string;
@@ -86,10 +86,13 @@ export async function loadPublicCatalog(url: URL, kind: CatalogKind, fixedScope?
     const first = new Set(rows([loaded.sections[0]], kind).map(row => row.id));
     for (const row of rows([loaded.sections[1]], kind)) if (first.has(row.id)) shared.add(row.id);
   }
-  return { ...loaded.site, kind, scope: loaded.scope, cards: records.map(row => {
+  return { ...loaded.site, kind, scope: loaded.scope, fixedScope: fixedScope ?? null, cards: records.map(row => {
     const item = card(kind, row);
     const detailUrl = new URL(item.href, url.origin);
     // Keep list context distinct from the record's organization scope.
+    // Carry the record's organization into detail navigation. list_scope
+    // controls only the return destination, NEVER the visible data authority.
+    detailUrl.searchParams.set('scope', item.organization === academy ? 'academy' : 'first_team');
     detailUrl.searchParams.set('list_scope', loaded.scope ?? 'all');
     if (kind === 'events') {
       detailUrl.searchParams.set('when', when);
@@ -107,8 +110,15 @@ export async function loadPublicCatalogDetail(url: URL, kind: CatalogKind, id: s
   const when = url.searchParams.get('when') ?? 'all';
   const eventType = url.searchParams.get('type') ?? 'all';
   if (kind === 'events' && (!['upcoming', 'past', 'all'].includes(when) || eventType.length > 64 || /[\u0000-\u001f\u007f]/.test(eventType))) error(400, 'Μη έγκυρα φίλτρα.');
-  const backHref = catalogListHref(kind, returnScope, when as 'upcoming' | 'past' | 'all', eventType);
+  const backHref = kind === 'sponsors' && returnScope === 'academy'
+    ? '/sponsors/academy'
+    : kind === 'sponsors' && returnScope === 'first_team'
+    ? '/sponsors/first-team'
+    : catalogListHref(kind, returnScope, when as 'upcoming' | 'past' | 'all', eventType);
   const loaded = await context(url);
+  // A detail opened from a scoped list cannot change owner by injecting
+  // another scope query or by guessing a different organization's record ID.
+  if (returnScope !== null && loaded.scope !== returnScope) error(404, 'Η σελίδα δεν βρέθηκε.');
   const source = rows(loaded.sections, kind);
   let matches = source.filter(row => row.id === id);
   if (!matches.length && kind === 'partners') matches = (source as Partner[]).filter(row => row.slug === id);
