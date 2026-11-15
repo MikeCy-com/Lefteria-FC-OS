@@ -31,6 +31,9 @@ const entryOperations = [
   ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
+  // Explicit API-contract operation with its own cookie/role/grant checks;
+  // exact method and path only, no broad Academy route publication.
+  ['post', '/api/admin/academy/office/registrations/enroll', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
