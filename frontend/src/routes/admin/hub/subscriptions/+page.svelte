@@ -67,7 +67,7 @@
 
 <svelte:head><title>Συνδρομές HUB · Lefteria FC</title></svelte:head>
 {#if $auth.status==='authenticated'&&$auth.session}
-  <AdminFrame active="hub" user={$auth.session.user} busy={$auth.busy||loading}
+  <AdminFrame active="hub-subscriptions" user={$auth.session.user} busy={$auth.busy||loading}
     onLogout={()=>void auth.logout()}>
     <main class="fan-admin" data-testid="hub-fan-overview-workspace">
       <header>
