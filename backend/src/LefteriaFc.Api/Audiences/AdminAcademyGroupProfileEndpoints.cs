@@ -7,6 +7,7 @@ using LefteriaFc.Domain.AdminAuth;
 using LefteriaFc.Infrastructure.WebAdmin;
 using Npgsql;
 using NpgsqlTypes;
+using System.Buffers;
 
 namespace LefteriaFc.Api.Audiences;
 
@@ -42,7 +43,8 @@ public static class AdminAcademyGroupProfileEndpoints
                 400,"academy_profile_invalid","Select a valid Academy group.");
             await using var conn=await connections.OpenAsync(ct);
             await using var cmd=new NpgsqlCommand(
-                "SELECT club.read_admin_academy_group_profile(@digest,@id)::text",conn);
+                "SELECT (club.read_admin_academy_group_profile(@digest,@id) " +
+                "|| club.read_admin_academy_group_publicity(@digest,@id))::text",conn);
             cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
             cmd.Parameters.AddWithValue("id",groupId);
             return await Execute(cmd,ct);
@@ -75,14 +77,85 @@ public static class AdminAcademyGroupProfileEndpoints
             });
             await using var conn=await connections.OpenAsync(ct);
             await using var cmd=new NpgsqlCommand(
-                "SELECT club.write_admin_academy_group_profile(@digest,@id,@revision,@data)::text",conn);
+                "SELECT (club.write_admin_academy_group_profile(@digest,@id,@revision,@data) " +
+                "|| club.read_admin_academy_group_publicity(@digest,@id))::text",conn);
             cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
             cmd.Parameters.AddWithValue("id",groupId);
             cmd.Parameters.AddWithValue("revision",data.ExpectedRevision);
             cmd.Parameters.AddWithValue("data",NpgsqlDbType.Jsonb,body);
             return await Execute(cmd,ct);
         }).WithName("WriteAdminAcademyGroupProfile");
+
+        group.MapPut("/{groupId}/visibility", async (
+            string groupId, string? organization_id,
+            WebAdminService admin, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var cookie=await VerifyAdmin(admin,organization_id,context,ct);
+            if (!ValidGroup(groupId))
+                throw new WebAdminException(400,"academy_visibility_invalid",
+                    "Select a valid Academy group.");
+            var body=await ReadVisibilityAsync(context,ct);
+            await using var conn=await connections.OpenAsync(ct);
+            await using var cmd=new NpgsqlCommand(
+                "SELECT club.set_admin_academy_group_publicity(@digest,@id,@revision,@public)::text",conn);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            cmd.Parameters.AddWithValue("id",groupId);
+            cmd.Parameters.AddWithValue("revision",body.ExpectedRevision);
+            cmd.Parameters.AddWithValue("public",NpgsqlDbType.Boolean,body.IsPublic);
+            return await Execute(cmd,ct);
+        }).WithName("SetAdminAcademyGroupPublicity");
+
         return app;
+    }
+
+    private sealed record VisibilityWrite(long ExpectedRevision,bool IsPublic);
+    private static async Task<VisibilityWrite> ReadVisibilityAsync(
+        HttpContext context,CancellationToken ct)
+    {
+        if (!context.Request.HasJsonContentType())
+            throw new WebAdminException(415,"academy_visibility_json_required","Submit JSON.");
+        const int maxLength=1024;
+        if (context.Request.ContentLength is > maxLength)
+            throw new WebAdminException(413,"academy_visibility_too_large","Visibility request is too large.");
+        var bytes=ArrayPool<byte>.Shared.Rent(maxLength+1);
+        try
+        {
+            var used=0;
+            while (used<maxLength+1)
+            {
+                var read=await context.Request.Body.ReadAsync(
+                    bytes.AsMemory(used,maxLength+1-used),ct);
+                if(read==0)break;
+                used+=read;
+            }
+            if(used>maxLength)
+                throw new WebAdminException(413,"academy_visibility_too_large","Visibility request is too large.");
+            try
+            {
+                using var document=JsonDocument.Parse(bytes.AsMemory(0,used),
+                    new JsonDocumentOptions { MaxDepth=3 });
+                if(document.RootElement.ValueKind!=JsonValueKind.Object)
+                    throw new JsonException();
+                var properties=document.RootElement.EnumerateObject().ToArray();
+                if(properties.Length!=2||
+                   properties.Select(x=>x.Name).Distinct(StringComparer.Ordinal).Count()!=2||
+                   properties.Any(x=>x.Name is not ("expected_revision" or "is_public"))||
+                   !document.RootElement.TryGetProperty("expected_revision",out var revision)||
+                   revision.ValueKind!=JsonValueKind.Number||
+                   !revision.TryGetInt64(out var value) || value is <1 or >1000000000 ||
+                   !document.RootElement.TryGetProperty("is_public",out var visibility) ||
+                   visibility.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
+                    throw new JsonException();
+                return new VisibilityWrite(value,visibility.GetBoolean());
+            }
+            catch(JsonException)
+            {
+                throw new WebAdminException(422,"academy_visibility_invalid",
+                    "Confirm the exact current revision and a valid public visibility choice.");
+            }
+        }
+        finally { ArrayPool<byte>.Shared.Return(bytes,clearArray:true); }
     }
 
     private static bool ValidGroup(string? id) => id is {Length:>=1 and <=128} &&
