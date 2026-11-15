@@ -112,7 +112,7 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     const academySponsorHtml=render(List,{props:{data:academySponsors}}).body;
     assert.ok(academySponsorHtml.includes('action="/sponsors/academy"'));
     assert.match(academySponsorHtml,/data-testid="catalog-locked-organization"/);
-    assert.doesNotMatch(academySponsorHtml,/Recorded sponsor|<select name="scope"/);
+    assert.doesNotMatch(academySponsorHtml,/Sponsor%2FID|<select name="scope"/);
     const firstTeamSponsorHtml=render(List,{props:{data:sponsors}}).body;
     assert.ok(firstTeamSponsorHtml.includes('action="/sponsors/first-team"'));
     assert.doesNotMatch(firstTeamSponsorHtml,/academy-sponsor|<select name="scope"/);
