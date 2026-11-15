@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
+  import {browser} from '$app/env';
 
   type Owner='lefteria_fc_academy'|'lefteria_fc';
   type Kind='city'|'location'|'team';
