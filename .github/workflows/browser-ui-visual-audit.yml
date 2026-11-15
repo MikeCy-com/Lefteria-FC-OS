@@ -40,6 +40,11 @@ jobs:
         env:
           LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
         run: node scripts/ui-visual-audit.mjs
+      - name: Capture five isolated role component layouts
+        working-directory: frontend
+        env:
+          LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
+        run: node scripts/ui-role-visual-audit.mjs
       - name: Upload screenshots and width measurements
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
