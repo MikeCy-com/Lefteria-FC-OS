@@ -2,6 +2,7 @@
   import PublicShell from '../../lib/public/PublicShell.svelte';
   import PublicImage from '../../lib/public/PublicImage.svelte';
   import Fixtures from '../../lib/public/Fixtures.svelte';
+  import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import { safePublicHref } from '../../lib/public/content';
   import type { TeamPageData, TeamTab } from '../../lib/public/sections-types';
@@ -43,4 +44,5 @@
       <div class="section-heading"><h2>ΤΑ ΓΗΠΕΔΑ ΜΑΣ</h2></div><div class="venue-grid">{#each data.sections?.venues ?? [] as venue (venue.id)}<article class="venue-card">{#if venue.image_url}<PublicImage src={venue.image_url} alt={venue.name} />{/if}<div><p class="public-eyebrow">{venue.is_home_ground ? 'Η ΕΔΡΑ ΜΑΣ' : 'ΓΗΠΕΔΟ'}</p><h3>{venue.name}</h3>{#if venue.address || venue.city}<p>{[venue.address,venue.city,venue.country].filter(Boolean).join(', ')}</p>{/if}<dl>{#if venue.surface}<div><dt>ΕΠΙΦΑΝΕΙΑ</dt><dd>{venue.surface}</dd></div>{/if}{#if venue.capacity !== null}<div><dt>ΧΩΡΗΤΙΚΟΤΗΤΑ</dt><dd>{venue.capacity}</dd></div>{/if}</dl>{#if mapHref(venue.map_url)}<a class="public-button public-button-outline" href={mapHref(venue.map_url)!} target="_blank" rel="noreferrer">ΧΑΡΤΗΣ ↗</a>{/if}</div></article>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί γήπεδα.</p>{/each}</div>
     {/if}
   </section>{/if}
+  <OrganizationSponsorStrip organization="lefteria_fc" sponsors={data.sections?.sponsors ?? []} />
 </PublicShell>
