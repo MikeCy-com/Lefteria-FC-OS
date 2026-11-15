@@ -72,6 +72,18 @@ test('published CMS return destinations lead back to the correct organization or
   assert.deepEqual(websitePageParentLink(academy,'academy'),{href:'/academy',label:'ΑΚΑΔΗΜΙΑ'});
   assert.deepEqual(websitePageParentLink(team,'matches'),{href:'/team?tab=results',label:'ΑΓΩΝΕΣ'});
   assert.deepEqual(websitePageParentLink(team,'club'),{href:'/about',label:'Ο ΣΥΛΛΟΓΟΣ'});
+  assert.deepEqual(websitePageParentLink(academy,'club'),{
+    href:'/about?organization_id=lefteria_fc_academy',label:'Ο ΣΥΛΛΟΓΟΣ'
+  });
+  assert.deepEqual(websitePageParentLink(academy,'events'),{
+    href:'/events?organization_id=lefteria_fc_academy',label:'ΕΚΔΗΛΩΣΕΙΣ'
+  });
+  assert.deepEqual(websitePageParentLink(academy,'contact'),{
+    href:'/contact?organization_id=lefteria_fc_academy',label:'ΕΠΙΚΟΙΝΩΝΙΑ'
+  });
+  assert.deepEqual(websitePageParentLink(academy,'shop'),{
+    href:'/shop?organization_id=lefteria_fc_academy',label:'ΚΑΤΑΣΤΗΜΑ'
+  });
   assert.deepEqual(websitePageParentLink(team,'contact'),{href:'/contact',label:'ΕΠΙΚΟΙΝΩΝΙΑ'});
 });
 
