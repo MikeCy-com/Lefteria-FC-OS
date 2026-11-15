@@ -19,7 +19,9 @@
     : []);
   const manager=$derived($auth.status==='authenticated'&&
     ($auth.session?.user.role==='manager'||$auth.session?.user.role==='super_admin'));
-  const canWrite=$derived(manager||$auth.session?.user.role==='editor');
+  const canWrite=$derived(permitted.length>0&&
+    hasAdminPermission($auth.session?.user.permissions??[],'news:write')&&
+    (manager||$auth.session?.user.role==='editor'));
   let organization=$state<HubOrganization|null>(null);
   let items=$state<HubEditorialItem[]>([]);
   let detail=$state<HubEditorialDetail|null>(null);
@@ -30,6 +32,16 @@
   let topic=$state('support');
   let language=$state<'el'|'en'>('el');
   let ageMin=$state(6),ageMax=$state(12);
+  let humanKind=$state<'article'|'drill'|'video'|'visual'|'course'>('article');
+  let humanTitle=$state(''),humanBody=$state('');
+  let humanParent=$state(true),humanPlayer=$state(false);
+  let humanAgeRestricted=$state(false),humanAgeMin=$state(6),humanAgeMax=$state(18);
+  let statusFilter=$state<'all'|HubState>('all');
+  const filteredItems=$derived(items.filter(item=>statusFilter==='all'||item.status===statusFilter));
+  const statusLabels:Record<HubState,string>={
+    ai_draft:'Πρόχειρο',review_required:'Για έλεγχο',approved:'Εγκεκριμένο',
+    published:'Δημοσιευμένο',rejected:'Απορρίφθηκε'
+  };
   // Inspection proofs are bound to a single revision, not a reusable media ID.
   let inspected=$state<string[]>([]);
   const inspectionKey=(source:HubEditorialDetail,mediaId:string)=>
@@ -139,6 +151,43 @@
     }catch{error='Η εντολή δεν καταχωρίστηκε ή δεν επιβεβαιώθηκε.';}
     finally{busy=false;}
   }
+
+  async function createHumanDraft(){
+    const owner=organization,actor=$auth.session?.user.id;
+    if(!owner||!canWrite||busy)return;
+    const title=humanTitle.trim(),body=humanBody.trim();
+    const unsafe=(value:string)=>Array.from(value).some(char=>/\\p{Cc}/u.test(char));
+    if(!title||title.length>180||unsafe(title)||!body||body.length>20000||unsafe(body)||
+       !(humanParent||humanPlayer)||
+       (humanAgeRestricted&&(!Number.isInteger(humanAgeMin)||!Number.isInteger(humanAgeMax)||
+         humanAgeMin<4||humanAgeMax>99||humanAgeMin>humanAgeMax))){
+      error='Συμπληρώστε τίτλο και κείμενο χωρίς χαρακτήρες ελέγχου ή αλλαγές γραμμής, επιλέξτε κοινό και ελέγξτε τυχόν όρια ηλικίας.';
+      return;
+    }
+    busy=true;error=null;success=null;
+    try{
+      const response=await fetch('/api/admin/hub/editorial?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({
+          kind:humanKind,title,body,audience_parent:humanParent,audience_player:humanPlayer,
+          age_min:humanAgeRestricted?humanAgeMin:null,age_max:humanAgeRestricted?humanAgeMax:null
+        })
+      });
+      if(response.status===401){auth.invalidateSession();return;}
+      if(response.status===403){void auth.bootstrap();return;}
+      if(response.status!==201)throw new Error();
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+         (result as Record<string,unknown>).organization_id!==owner||
+         (result as Record<string,unknown>).status!=='ai_draft'||
+         (result as Record<string,unknown>).kind!==humanKind)throw new Error();
+      if(organization!==owner||$auth.session?.user.id!==actor)return;
+      humanTitle='';humanBody='';success='Το ανθρώπινο πρόχειρο αποθηκεύτηκε ιδιωτικά. Απαιτείται ξεχωριστός έλεγχος και δημοσίευση.';
+      statusFilter='ai_draft';reload++;
+    }catch{error='Η αποθήκευση του προχείρου δεν επιβεβαιώθηκε. Ελέγξτε τα στοιχεία και ανανεώστε.';}
+    finally{busy=false;}
+  }
 </script>
 <svelte:head><title>HUB · Έλεγχος περιεχομένου | Lefteria FC</title></svelte:head>
 {#if $auth.status==='authenticated'&&$auth.session}
@@ -156,6 +205,43 @@
           <span class="admin-organization-context-label" data-testid="admin-hub-organization">{organization==='lefteria_fc'?'Lefteria FC':organization==='lefteria_fc_academy'?'Lefteria FC Academy':'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
           <button type="button" disabled={busy||loading} onclick={()=>reload++}>Ανανέωση</button>
         </div>
+
+        {#if canWrite}
+          <section class="panel" aria-labelledby="human-draft-title">
+            <h2 id="human-draft-title">Νέο ανθρώπινο πρόχειρο</h2>
+            <p>Δημιουργία κειμένου στο επιλεγμένο τμήμα. Αποθηκεύεται ιδιωτικά και δεν φτάνει σε μέλη χωρίς έλεγχο, έγκριση και δημοσίευση.</p>
+            <div class="fields">
+              <label>Τύπος περιεχομένου
+                <select bind:value={humanKind}>
+                  <option value="article">Άρθρο</option>
+                  <option value="drill">Άσκηση</option>
+                  <option value="course">Μάθημα</option>
+                  <option value="video">Βίντεο · κείμενο</option>
+                  <option value="visual">Εικαστικό · περιγραφή</option>
+                </select>
+              </label>
+              <label><span>Τίτλος (μέχρι 180 χαρακτήρες)</span>
+                <input bind:value={humanTitle} maxlength="180" placeholder="Τίτλος μαθήματος"/>
+              </label>
+            </div>
+            <label>Περιεχόμενο (μέχρι 20.000 χαρακτήρες)
+              <textarea bind:value={humanBody} maxlength="20000" rows="5" placeholder="Κείμενο προς ανθρώπινο έλεγχο"></textarea>
+            </label>
+            <p class="hint">Προς το παρόν το API δέχεται μόνο απλό κείμενο χωρίς αλλαγές γραμμής. Η μορφοποίηση και τα πολυμέσα ελέγχονται ξεχωριστά.</p>
+            <div class="fields">
+              <label class="check"><input type="checkbox" bind:checked={humanParent}/> Θεματολογία γονέων</label>
+              <label class="check"><input type="checkbox" bind:checked={humanPlayer}/> Θεματολογία αθλητών</label>
+              <label class="check"><input type="checkbox" bind:checked={humanAgeRestricted}/> Ειδικό ηλικιακό εύρος</label>
+              {#if humanAgeRestricted}
+                <label>Από <input type="number" min="4" max="99" bind:value={humanAgeMin}/></label>
+                <label>Έως <input type="number" min="4" max="99" bind:value={humanAgeMax}/></label>
+              {/if}
+            </div>
+            <p class="hint">Χωρίς ηλικιακό περιορισμό το εγκεκριμένο άρθρο μπορεί να εξεταστεί για το αντίστοιχο HUB συνδρομητών. Η επιλογή κοινού δεν παρέχει κανέναν ρόλο ή πρόσβαση σε παιδιά.</p>
+            <button type="button" disabled={busy||loading||!humanTitle.trim()||!humanBody.trim()||!(humanParent||humanPlayer)}
+              onclick={()=>void createHumanDraft()}>Αποθήκευση ιδιωτικού προχείρου</button>
+          </section>
+        {/if}
         {#if canWrite}
           <section class="panel">
             <h2>Δημιουργία εκπαιδευτικής εντολής AI</h2>
@@ -181,14 +267,24 @@
         <div class="layout">
           <section class="panel" aria-labelledby="editor-list-title">
             <h2 id="editor-list-title">Πρόχειρα & δημοσιεύσεις</h2>
+            <p class="hint">Τελευταίες έως 100 εγγραφές του επιλεγμένου οργανισμού · ο έλεγχος εκτελείται στον εξυπηρετητή.</p>
+            <label>Φίλτρο κατάστασης
+              <select bind:value={statusFilter}>
+                <option value="all">Όλες ({items.length})</option>
+                {#each Object.entries(statusLabels) as [key,value]}
+                  <option value={key}>{value} ({items.filter(item=>item.status===key).length})</option>
+                {/each}
+              </select>
+            </label>
             {#if loading}<p role="status">Ανάκτηση εγγραφών…</p>
-            {:else if items.length===0}<p>Δεν υπάρχουν καταχωρίσεις.</p>{/if}
+            {:else if items.length===0}<p>Δεν υπάρχουν καταχωρίσεις.</p>
+            {:else if filteredItems.length===0}<p>Δεν υπάρχουν εγγραφές με αυτή την κατάσταση.</p>{/if}
             <ul class="drafts">
-              {#each items as item (item.id)}
+              {#each filteredItems as item (item.id)}
                 <li>
                   <button type="button" disabled={busy} onclick={()=>void selectItem(item)}>
                     <strong>{item.title}</strong>
-                    <span>{item.status} · v{item.version} · {item.audience_parent?'Γονείς ':''}{item.audience_player?'Αθλητές':''}</span>
+                    <span>{statusLabels[item.status]} · v{item.version} · {item.audience_parent?'Γονείς ':''}{item.audience_player?'Αθλητές':''}</span>
                   </button>
                 </li>
               {/each}
@@ -246,6 +342,12 @@
             {/if}
           </section>
         </div>
+        <section class="panel fan-note" aria-labelledby="fan-title">
+          <h2 id="fan-title">Συνδρομές HUB φιλάθλων</h2>
+          <p>Η επιλογή θεματολογίας γονέα / αθλητή είναι συνδρομή περιεχομένου, <strong>όχι αλλαγή ρόλου ή εξουσιοδότηση κηδεμόνα.</strong>
+            Υπάρχει μόνο δοκιμαστική ροή Payabl με επιβεβαίωση πληρωμής από τον πάροχο και ξεχωριστή πρόοδο μαθημάτων για κάθε νέο συνδρομητή.</p>
+          <p class="hint">Δεν υπάρχει ακόμη διαχειριστική λίστα συνδρομών ή ενεργοποίηση πραγματικών επαναλαμβανόμενων χρεώσεων από αυτή τη σελίδα. Μην θεωρείτε εκκρεμείς ή μη επαληθευμένες συναλλαγές ενεργές.</p>
+        </section>
         {#if success}<p class="success" role="status">{success}</p>{/if}
         {#if error}<p class="error" role="alert">{error}</p>{/if}
       {:else}
@@ -264,7 +366,12 @@
   .eyebrow{font-size:11px;letter-spacing:.12em;color:#dbaa4f;font-weight:700}
   .toolbar,.fields{display:flex;gap:14px;flex-wrap:wrap;align-items:end;margin:16px 0}
   label{display:grid;gap:7px;font-size:13px}
-  select,input{min-height:44px;min-width:145px;padding:9px;background:#232728;color:#fff;border:1px solid #565b5c;border-radius:8px}
+  select,input:not([type="checkbox"]),textarea{min-height:44px;min-width:145px;padding:9px;background:#232728;color:#fff;border:1px solid #565b5c;border-radius:8px}
+  textarea{width:100%;max-width:100%;resize:vertical;font:inherit;line-height:1.55}
+  .check{display:flex;align-items:center;gap:9px}
+  .check input{width:18px;height:18px;accent-color:#dbaa4f}
+  .hint{font-size:12px;color:#bfc5c4}
+  .fan-note{margin-top:18px}
   button{min-height:44px;padding:10px 14px;border:1px solid #83632d;border-radius:8px;background:#312817;color:#ffce74;font-weight:600;cursor:pointer;margin:3px}
   button:disabled{opacity:.45;cursor:default}
   button:focus-visible{outline:2px solid #ffd36d;outline-offset:3px}
