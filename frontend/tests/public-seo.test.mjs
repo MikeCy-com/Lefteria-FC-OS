@@ -63,7 +63,7 @@ test('published sitemap includes actual public routes, global news and eligible 
 
   const xml = buildPublicSitemap({ articles, groups, sites, sections: [fc, academy] });
   for (const item of ['/', '/academy', '/academy/philosophy', '/news', '/team', '/events',
-    '/player/first-team-adult', '/staff/public-coach', '/match/first-team-game',
+    '/player/senior-a--first-team-adult', '/staff/public-coach', '/match/first-team-game',
     '/match/academy-game', '/events/', '/partners/partner-one', '/sponsors/', '/seasons/']) {
     assert.ok(xml.includes(CANONICAL_PUBLIC_ORIGIN + item), item);
   }
