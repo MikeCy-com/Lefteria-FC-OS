@@ -5,6 +5,7 @@ DO $managed_status_boundary$
 DECLARE
   mobile_name text:=current_setting('lefteria.mobile_runtime_role');
   routine regprocedure:='identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure;
+  login_routine regprocedure:='identity.lock_admin_login_account(uuid,text,text)'::regprocedure;
   protected boolean;
   denied boolean;
 BEGIN
