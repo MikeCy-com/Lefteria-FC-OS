@@ -80,6 +80,7 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Super Admin account POST audits direct credentials, allowed role and organizations without granting table writes", ManagedAdminCredentialsAsync),
         ("Super Admin account directory cannot reveal foreign, dual-owner or ownerless identities and counts", ManagedDirectoryOrganizationScopeAsync),
         ("Super Admin suspends and restores scoped accounts with audit and revoked sessions", ManagedAccountStatusAsync),
+        ("Super Admin changes delegated role only after territorial unlinking, auditing and revocation", ManagedAccountRoleChangeAsync),
         ("Web-admin copied cookies lose authority after logout and account/session changes", CookieInvalidationAsync),
         ("Web-admin cookie and mobile bearer realms remain independent", RealmIsolationAsync),
         ("Web-admin durable client and username throttle dimensions are independent", DurableThrottlesAsync),
