@@ -61,7 +61,7 @@
     <h2 id="academy-program-title"><span aria-hidden="true">//</span> ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
     <p>Ανάπτυξη με σεβασμό στο παιδί, την ηλικία και τις ανάγκες του κάθε αθλητή.</p>
     <div class="academy-program-facts">
-      <div><PublicIcon name="location" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length || '—'} δημοσιευμένες πόλεις</strong></span></div>
+      <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length || '—'} δημοσιευμένες πόλεις</strong></span></div>
       <div><PublicIcon name="users" size={27} /><span>ΗΛΙΚΙΕΣ <strong>{academyAges.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
       <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
     </div>
