@@ -367,43 +367,7 @@ public sealed class PosLeastPrivilegeCashierRole : Migration
             SET search_path=pg_catalog,pg_temp AS $scoped_registers$
             DECLARE v_actor uuid;v_role text;v_rows jsonb;
             BEGIN
-              IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-              SELECT coalesce(jsonb_agg(jsonb_build_object(
-                'id',r.id,'label',r.label,'location_id',r.location_id,
-                'location_name',l.name,'shift_id',sh.id,
-                'opened_at',sh.opened_at,'opening_cash_cents',sh.opening_cash_cents)
-                ORDER BY r.id),'[]'::jsonb) INTO v_rows
-              FROM pos_cashier.registers r
-              JOIN pos.locations l ON l.organization_id=r.organization_id
-                AND l.id=r.location_id AND l.active
-              JOIN pos_cashier.cashier_assignments ca
-                ON ca.organization_id=r.organization_id
-                AND ca.register_id=r.id AND ca.admin_account_id=v_actor AND ca.is_active
-              LEFT JOIN pos_cashier.shifts sh
-                ON sh.organization_id=r.organization_id
-                AND sh.register_id=r.id AND sh.closed_at IS NULL
-                AND (v_role<>'cashier' OR sh.cashier_id=v_actor)
-              LEFT JOIN pos.academy_football_location_links link
-                ON link.organization_id=r.organization_id
-                AND link.pos_location_id=r.location_id
-              LEFT JOIN club.football_operational_scopes scope
-                ON scope.academy_city_id=link.academy_city_id
-                AND scope.organization_id=r.organization_id
-              WHERE r.organization_id=_owner AND r.is_active
-                AND (_owner<>'lefteria_fc_academy' OR
-                   (link.academy_location_id IS NOT NULL AND scope.id IS NOT NULL
-                    AND EXISTS (SELECT 1 FROM club.football_locations fl
-                      JOIN club.football_cities fc ON fc.id=fl.city_id
-                      WHERE fl.id=link.academy_location_id
-                        AND fl.city_id=link.academy_city_id
-                        AND fl.is_active AND fc.is_active)
-                    AND (v_role='cashier' OR club.admin_football_allowed(v_actor,v_role,_owner,
-                      scope.id,link.academy_location_id,false))));
-              IF jsonb_array_length(v_rows)>100
-              THEN RAISE EXCEPTION 'cashier_registers_too_many' USING ERRCODE='54000'; END IF;
-              RETURN jsonb_build_object('organization_id',_owner,
-                'registers',v_rows,'total',jsonb_array_length(v_rows));
-            END $scoped_registers$;
+              IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
                 OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
               THEN RAISE EXCEPTION 'cashier_registers_invalid' USING ERRCODE='22023'; END IF;
               BEGIN
@@ -438,6 +402,7 @@ public sealed class PosLeastPrivilegeCashierRole : Migration
               LEFT JOIN pos_cashier.shifts sh
                 ON sh.organization_id=r.organization_id
                 AND sh.register_id=r.id AND sh.closed_at IS NULL
+                AND (v_role<>'cashier' OR sh.cashier_id=v_actor)
               LEFT JOIN pos.academy_football_location_links link
                 ON link.organization_id=r.organization_id
                 AND link.pos_location_id=r.location_id
@@ -447,8 +412,13 @@ public sealed class PosLeastPrivilegeCashierRole : Migration
               WHERE r.organization_id=_owner AND r.is_active
                 AND (_owner<>'lefteria_fc_academy' OR
                    (link.academy_location_id IS NOT NULL AND scope.id IS NOT NULL
-                    AND club.admin_football_allowed(v_actor,v_role,_owner,
-                      scope.id,link.academy_location_id,false)));
+                    AND EXISTS (SELECT 1 FROM club.football_locations fl
+                      JOIN club.football_cities fc ON fc.id=fl.city_id
+                      WHERE fl.id=link.academy_location_id
+                        AND fl.city_id=link.academy_city_id
+                        AND fl.is_active AND fc.is_active)
+                    AND (v_role='cashier' OR club.admin_football_allowed(
+                      v_actor,v_role,_owner,scope.id,link.academy_location_id,false))));
               IF jsonb_array_length(v_rows)>100
               THEN RAISE EXCEPTION 'cashier_registers_too_many' USING ERRCODE='54000'; END IF;
               RETURN jsonb_build_object('organization_id',_owner,
