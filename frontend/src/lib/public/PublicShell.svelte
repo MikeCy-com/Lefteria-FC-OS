@@ -9,6 +9,7 @@
   import { isIndexablePublicOrigin } from './seo';
   import './fonts';
   import './public.css';
+  import './club-polish.css';
   let { site, branding, organization = 'lefteria_fc', navigationGroups = [], canonicalPath, children }: { site: PublicSite | null; branding?: PublicClub | null; organization?: PublicOrganization; navigationGroups?: PublicGroup[]; canonicalPath?: string; children: Snippet } = $props();
   const club = $derived(branding === undefined ? site?.club ?? null : branding);
 </script>
