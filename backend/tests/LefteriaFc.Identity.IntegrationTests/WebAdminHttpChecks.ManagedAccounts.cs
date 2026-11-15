@@ -86,7 +86,7 @@ internal sealed partial class WebAdminHttpChecks
             await using var reader=await select.ExecuteReaderAsync();
             Require(await reader.ReadAsync() &&
                 reader.GetString(0)=="manager" && reader.GetBoolean(1) &&
-                !reader.GetBoolean(2) && reader.GetString(3).StartsWith("$2b$12$",StringComparison.Ordinal) &&
+                !reader.GetBoolean(2) && System.Text.RegularExpressions.Regex.IsMatch(reader.GetString(3),@"\A\$2[aby]\$12\$[./A-Za-z0-9]{53}\z") &&
                 reader.GetFieldValue<string[]>(4).SequenceEqual(
                     new[]{"lefteria_fc","lefteria_fc_academy"}) &&
                 !await reader.ReadAsync(),
