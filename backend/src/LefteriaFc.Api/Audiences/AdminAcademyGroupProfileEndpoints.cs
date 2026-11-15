@@ -104,13 +104,16 @@ public static class AdminAcademyGroupProfileEndpoints
             cmd.Parameters.AddWithValue("revision",body.ExpectedRevision);
             cmd.Parameters.AddWithValue("public",NpgsqlDbType.Boolean,body.IsPublic);
             return await Execute(cmd,ct);
-        }).WithName("SetAdminAcademyGroupPublicity");
+        }).WithName("SetAdminAcademyGroupPublicity")
+          .Accepts<AcademyGroupVisibilityCommand>("application/json");
 
         return app;
     }
 
-    private sealed record VisibilityWrite(long ExpectedRevision,bool IsPublic);
-    private static async Task<VisibilityWrite> ReadVisibilityAsync(
+    public sealed record AcademyGroupVisibilityCommand(
+        [property: JsonPropertyName("expected_revision")] long ExpectedRevision,
+        [property: JsonPropertyName("is_public")] bool IsPublic);
+    private static async Task<AcademyGroupVisibilityCommand> ReadVisibilityAsync(
         HttpContext context,CancellationToken ct)
     {
         if (!context.Request.HasJsonContentType())
@@ -147,7 +150,7 @@ public static class AdminAcademyGroupProfileEndpoints
                    !document.RootElement.TryGetProperty("is_public",out var visibility) ||
                    visibility.ValueKind is not (JsonValueKind.True or JsonValueKind.False))
                     throw new JsonException();
-                return new VisibilityWrite(value,visibility.GetBoolean());
+                return new AcademyGroupVisibilityCommand(value,visibility.GetBoolean());
             }
             catch(JsonException)
             {
