@@ -5935,6 +5935,18 @@
               "string"
             ]
           },
+          "city_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "city_slug": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "description": {
             "type": [
               "null",
@@ -5952,7 +5964,19 @@
           "id": {
             "type": "string"
           },
+          "location_id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "location_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "location_slug": {
             "type": [
               "null",
               "string"
