@@ -125,6 +125,22 @@ internal sealed partial class WebAdminDatabaseFixture
               "A newly created unapproved Academy group reached the public directory.");
     }
 
+    public async Task<bool> AcademyGroupVisiblePubliclyAsync(string groupId)
+    {
+        if(!System.Text.RegularExpressions.Regex.IsMatch(groupId,"^grp_[0-9a-f]{32}$"))
+            throw new InvalidOperationException("Refusing unverified Academy public fixture ID.");
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            SELECT EXISTS(
+              SELECT 1 FROM jsonb_array_elements(
+                club.read_public_academy_group_directory()) row
+              WHERE row->>'id'=@id
+            )
+            """,con);
+        cmd.Parameters.AddWithValue("id",groupId);
+        return (bool)(await cmd.ExecuteScalarAsync())!;
+    }
+
     public async Task CleanupScopedAcademyGroupsAsync(Account actor,
         IReadOnlyCollection<string> ids)
     {
