@@ -3,17 +3,18 @@
   import type { PublicGroup, PublicSite } from './types';
   import { CLUB_TIME_ZONE, nextPublicFixture, fixtureCountdown, snapshotInstant } from './fixture-clock';
   import { publicImages } from './images';
+  import { firstTeamHeroBanner } from './first-team-hero';
   import Icon from './PublicIcon.svelte';
   import TeamCrest from './TeamCrest.svelte';
   let { site, navigationGroups = [] }: { site: PublicSite | null; navigationGroups?: PublicGroup[] } = $props();
   let index = $state(0); let paused = $state(false); let visible = $state(true); let reduced = $state(false);
   let hovered = $state(false); let focused = $state(false); let hidden = $state(false); let region: HTMLElement;
-  const club = $derived(site?.club); const firstTeam = $derived(site?.teams.find(team => team.banner_url) || site?.teams[0]);
+  const club = $derived(site?.club); const firstTeamBanner = $derived(firstTeamHeroBanner(site?.teams));
   const academySlide = $derived(index === 0);
   // The academy hero uses the original club editorial artwork rather than
   // borrowing a specific age group's banner (which can wrongly change the
   // homepage to a team/group promotion when CMS groups are edited).
-  const backgrounds = $derived([publicImages.hero, firstTeam?.banner_url || club?.stadium_image_url || publicImages.pitch]);
+  const backgrounds = $derived([publicImages.hero, firstTeamBanner || club?.stadium_image_url || publicImages.pitch]);
   const running = $derived(!paused && !hovered && !focused && visible && !hidden && !reduced);
   let clock = $state<number | null>(null);
   // SSR and initial hydration share the server snapshot. The mounted clock then
