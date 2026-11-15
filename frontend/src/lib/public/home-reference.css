@@ -432,7 +432,7 @@
   }
   .public-site .home-reference .public-hero-fixture{
     width:clamp(345px,29vw,540px);flex:0 0 clamp(345px,29vw,540px);
-    align-self:center;margin:0;padding:clamp(13px,1.1vw,22px);
+    align-self:center;margin:0 0 0 auto;padding:clamp(13px,1.1vw,22px);
     border:1px solid #b3b4ae;border-radius:2px;
     background:linear-gradient(115deg,#131617eb,#090b0bec 70%,#252218c7);
   }
