@@ -106,9 +106,7 @@ internal sealed partial class WebAdminHttpChecks
         // Prove the account's credentials can actually authenticate as the
         // bounded manager with *only* the two explicitly granted organizations.
         using(var managedClient=Client())
-        using(var request=Mutation(LoginPath,JsonContent.Create(
-            new {username,password,rememberDays=(int?)null})))
-        using(var response=await managedClient.SendAsync(request))
+        using(var response=await AttemptAsync(managedClient,username,password))
         {
             var authorized=await ExpectJsonAsync(response,200);
             var user=authorized.GetProperty("user");
