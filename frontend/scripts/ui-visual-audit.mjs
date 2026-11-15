@@ -411,7 +411,7 @@ try {
       // that bounds alone establish photographic/pixel parity.
       let referenceLayout = null;
       if (viewport.name === 'reference' &&
-          ['admin-login','app-login','academy-registration','home','contact'].includes(route.name)) {
+          ['admin-login','app-login','academy-registration','home','contact','first-team'].includes(route.name)) {
         referenceLayout = await page.evaluate(kind => {
           const rect = selector => {
             const element = document.querySelector(selector);
@@ -444,7 +444,10 @@ try {
             homeFixture:rect('[data-testid="public-hero-fixture"]'),
             homeTiles:rect('[data-testid="public-destinations"]'),
             homeMotto:rect('[data-testid="home-brand-interval"]'),
-            homeNews:rect('[data-testid="public-home-news"]')
+            homeNews:rect('[data-testid="public-home-news"]'),
+            teamHeading:rect('.team-heading:not(.matches-reference-heading)'),
+            teamCover:rect('[data-testid="team-heading-photo"]'),
+            teamTabs:rect('.team-heading .team-tabs')
           };
           if (kind === 'app-login') result.roleButtons =
             document.querySelectorAll('.login-audience-grid button').length;
@@ -474,6 +477,17 @@ try {
               failures.push('home: CMS news must be visible above the desktop reference fold');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
+          }
+        }
+        if (route.name==='first-team') {
+          const {teamHeading,teamCover,teamTabs}=referenceLayout;
+          if(!teamHeading||!teamCover||!teamTabs ||
+            teamHeading.height<320 ||
+            teamCover.height<teamHeading.height-2 ||
+            teamCover.width<teamHeading.width-2 ||
+            teamTabs.height<44 ||
+            teamTabs.bottom>teamHeading.bottom+4) {
+            failures.push('first-team: photographic club hero and working tabs are not aligned '+JSON.stringify({teamHeading,teamCover,teamTabs}));
           }
         }
         if (route.name==='admin-login') {
