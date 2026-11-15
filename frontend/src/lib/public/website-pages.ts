@@ -38,7 +38,9 @@ export function websitePagePath(slug: string, org: PublicOrganization): string {
 export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization): value is PublishedWebsitePage {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const row = value as Partial<PublishedWebsitePage>;
-  if (row.organization_id !== owner || typeof row.slug !== 'string' ||
+  if (row.organization_id !== owner || typeof row.published_at !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(row.published_at) ||
+      !Number.isFinite(Date.parse(row.published_at)) || typeof row.slug !== 'string' ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug) ||
       !row.page || typeof row.page !== 'object' ||
       typeof row.page.title !== 'string' || !Array.isArray(row.page.blocks) ||

@@ -28,7 +28,7 @@ const publicWebsiteStub = [
   '    page: {title:"Approved",summary:"",seo_title:"",seo_description:"",menu_parent:owner === "lefteria_fc" ? "club" : "academy",',
   '      menu_order:0,blocks:[{type:"paragraph",text:"Safe public content",url:null}]} }];',
   '}'
-].join('\\n');
+].join('\n');
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
@@ -81,6 +81,6 @@ test('published sitemap endpoint renders actual anonymous projections; preview n
   assert.match(xml, /\/news\/[^<]+--public-news/);
   assert.match(xml, /\/academy\/[^<]+--academy-group/);
   assert.match(xml, /\/pages\/club-history<\/loc>/);
-  assert.match(xml, /\/pages\/academy-values\\?organization_id=lefteria_fc_academy<\/loc>/);
+  assert.match(xml, /\/pages\/academy-values\?organization_id=lefteria_fc_academy<\/loc>/);
   assert.doesNotMatch(xml, /\/admin\/|\/app\/|private-user|medical_notes/);
 });
