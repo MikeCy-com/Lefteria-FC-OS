@@ -62,7 +62,7 @@
   $effect(()=>{
     const owner=organization,actor=actorId,id=groupId;
     void revision;
-    directory=null;loading=false;error='';message='';formOpen=false;
+    directory=null;loading=false;error='';formOpen=false;
     if(!browser||!actor||!id)return;
     const controller=new AbortController();
     loading=true;
@@ -85,6 +85,9 @@
     })());
     return()=>controller.abort();
   });
+
+  // Do not carry a confirmation into another group's protected workspace.
+  $effect(()=>{void groupId;void actorId;void organization;message='';});
 
   async function submitDraft(){
     if(!browser||saving||!mayWrite||!scope||!directory)return;
