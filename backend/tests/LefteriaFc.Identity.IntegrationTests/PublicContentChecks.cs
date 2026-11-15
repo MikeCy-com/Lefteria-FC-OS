@@ -65,11 +65,12 @@ internal sealed partial class IdentityHttpChecks
                 throw new InvalidOperationException("The public clock must expose the server snapshot and exact scoped Cyprus kickoff.");
             if (site.RootElement.GetProperty("teams").GetArrayLength() != 1 || site.RootElement.GetProperty("academy_groups").GetArrayLength() != 0 ||
                 site.RootElement.GetProperty("news").GetArrayLength() != 2) throw new InvalidOperationException("FC public content scope is wrong.");
+            // Public import alone cannot advertise a group that is absent from
+            // the canonical admin-managed roster. The canonical roster is
+            // intentionally imported later in this integration suite.
             var academy = await client.GetAsync("/api/public/site?organization_id=lefteria_fc_academy");
-            using var academySite = JsonDocument.Parse(await academy.Content.ReadAsStringAsync());
-            if (academy.StatusCode != HttpStatusCode.OK || academySite.RootElement.GetProperty("teams").GetArrayLength() != 0 ||
-                academySite.RootElement.GetProperty("academy_groups").GetArrayLength() != 1 || academySite.RootElement.GetProperty("news").GetArrayLength() != 2)
-                throw new InvalidOperationException("Academy public content scope is wrong.");
+            if (academy.StatusCode != HttpStatusCode.ServiceUnavailable)
+                throw new InvalidOperationException("Imported-only Academy groups must not become published or return a false-empty 200.");
             var globalResponse = await client.GetAsync("/api/public/news");
             var globalText = await globalResponse.Content.ReadAsStringAsync();
             using var globalNews = JsonDocument.Parse(globalText);
