@@ -200,6 +200,18 @@ public static class AdminUserDirectoryEndpoints
                     "Check the selected account and expected state.");
 
             await using var connection=await connections.OpenAsync(token);
+            // Defense in depth for privileged targets. The SECURITY DEFINER
+            // routine repeats this under row locks, so a concurrent role edit
+            // cannot turn this preflight into authority.
+            await using(var targetRoleQuery=new NpgsqlCommand(
+                "SELECT role FROM identity.admin_accounts WHERE id=@id",connection))
+            {
+                targetRoleQuery.Parameters.AddWithValue("id",request.Id.Value);
+                if(await targetRoleQuery.ExecuteScalarAsync(token) is string targetRole &&
+                    targetRole=="super_admin")
+                    throw new WebAdminException(403,"managed_admin_status_denied",
+                        "Other super administrator accounts cannot be changed.");
+            }
             await using var cmd=new NpgsqlCommand(
                 "SELECT identity.set_managed_admin_status(@digest,@subject,@role,@expected,@active)",
                 connection);
