@@ -89,7 +89,7 @@ public sealed class AcademyLocationFinanceAttribution : Migration
         THEN RETURN NEW; END IF;
 
         SELECT count(*),count(a.location_id),count(DISTINCT a.location_id),
-          min(a.city_id),min(a.location_id)
+          min(a.city_id::text)::uuid,min(a.location_id::text)::uuid
         INTO v_all,v_verified,v_sites,v_city,v_location
         FROM club.player_academy_groups pag
         LEFT JOIN club.academy_group_location_assignments a
