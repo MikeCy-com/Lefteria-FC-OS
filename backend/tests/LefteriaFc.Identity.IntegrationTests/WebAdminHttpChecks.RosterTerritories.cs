@@ -195,6 +195,10 @@ internal sealed partial class WebAdminHttpChecks
             "?organization_id=lefteria_fc_academy";
         var siteOther="/api/admin/football/academy-group-profiles/"+audience.Group1+
             "?organization_id=lefteria_fc_academy";
+        var ownVisibility="/api/admin/football/academy-group-profiles/"+
+            audience.Group2+"/visibility?organization_id=lefteria_fc_academy";
+        var otherVisibility="/api/admin/football/academy-group-profiles/"+
+            audience.Group1+"/visibility?organization_id=lefteria_fc_academy";
         static object Team(long revision)=>new {
             expected_revision=revision,level="First Team",
             description="Verified own-squad profile",banner_url=""
@@ -231,7 +235,7 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
             Console.WriteLine("CHECK profile scope: PUT forbidden sibling visibility");
             using(var denied=await Put(client,session.Cookie,
-                siteOther+"/visibility",new{expected_revision=1,is_public=false}))
+                otherVisibility,new{expected_revision=1,is_public=false}))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
 
             Console.WriteLine("CHECK profile scope: authorized reads and writes");
@@ -254,7 +258,7 @@ internal sealed partial class WebAdminHttpChecks
                     "Academy profile writer did not honor exact assigned location.");
 
             using(var visibility=await Put(client,session.Cookie,
-                siteOwn+"/visibility",new{expected_revision=1,is_public=false}))
+                ownVisibility,new{expected_revision=1,is_public=false}))
             {
                 var data=await ExpectJsonAsync(visibility,200);
                 Require(data.GetProperty("revision").GetInt64()==2 &&
@@ -262,7 +266,7 @@ internal sealed partial class WebAdminHttpChecks
                     "Location manager could not control their own group publication.");
             }
             using(var stale=await Put(client,session.Cookie,
-                siteOwn+"/visibility",new{expected_revision=1,is_public=true}))
+                ownVisibility,new{expected_revision=1,is_public=true}))
                 await ExpectJsonAsync(stale,409,"academy_profile_conflict");
             using(var confirmed=await GetAsync(client,siteOwn,session.Cookie))
             {
@@ -292,7 +296,7 @@ internal sealed partial class WebAdminHttpChecks
                 Academy(2,"After revocation")))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
             using(var denied=await Put(client,session.Cookie,
-                siteOwn+"/visibility",new{expected_revision=2,is_public=true}))
+                ownVisibility,new{expected_revision=2,is_public=true}))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
 
             Console.WriteLine("CHECK profile scope: city manager sees same-city sites only");
