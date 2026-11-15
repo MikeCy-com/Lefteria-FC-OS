@@ -94,3 +94,22 @@ test('admin workspace is read-only, role-gated and rejects unverified summary pa
   assert.match(frame,/href="\/admin\/hub\/subscriptions"/);
   assert.match(app,/active="hub-subscriptions"/);
 });
+
+
+test('real disposable PostgreSQL fan subscription overview verification is part of both CI and workspace suites',()=>{
+  const fixture=read('ops/postgres/hub-fan-overview-checks.sql');
+  const workflow=read('.github/workflows/rewrite-build.yml');
+  const local=read('scripts/workspace/run-integration-tests.sh');
+  assert.match(workflow,/hub-fan-overview-checks\.sql/);
+  assert.match(local,/hub-fan-overview-checks\.sql/);
+  assert.match(fixture,/BEGIN;[\s\S]*ROLLBACK;/);
+  assert.match(fixture,/finance\.apply_payabl_notification/);
+  assert.match(fixture,/hub\.read_admin_fan_subscription_overview/);
+  assert.match(fixture,/delegated manager accessed organization-wide fan financial totals/);
+  assert.match(fixture,/ungranted Super Admin accessed Academy fan financial totals/);
+  assert.match(fixture,/revoked Super Admin session granted fan totals/);
+  assert.match(fixture,/refund/);
+  assert.match(fixture,/recorded_active/);
+  assert.match(fixture,/verified_active/);
+  assert.doesNotMatch(fixture,/https:\/\/(sandbox\.payabl|pay4\.sandbox\.payabl)/);
+});

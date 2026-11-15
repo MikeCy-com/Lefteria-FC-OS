@@ -35,7 +35,7 @@ sql() { PGPASSWORD="$POSTGRES_PASSWORD" "$PGBIN/psql" -X -q -h 127.0.0.1 -p "$LE
   -v ON_ERROR_STOP=1 -v app_role="$LEFTERIA_APP_ROLE" -v admin_auth_role="$LEFTERIA_ADMIN_AUTH_ROLE" -f "$REPO/ops/postgres/$1" >/dev/null; }
 
 for f in founding-admin-checks.sql academy-private-evaluation-guards-checks.sql private-document-quarantine-checks.sql \
-  pos-location-ledger-checks.sql pos-cashier-ledger-checks.sql hub-recipient-learning-checks.sql academy-attendance-checks.sql \
+  pos-location-ledger-checks.sql pos-cashier-ledger-checks.sql hub-recipient-learning-checks.sql hub-fan-overview-checks.sql academy-attendance-checks.sql \
   academy-attendance-lifecycle-checks.sql academy-training-plans-checks.sql academy-training-plans-lifecycle-checks.sql \
   player-birthday-lifecycle-checks.sql academy-crm-inbox-checks.sql academy-registration-intake-security-checks.sql \
   academy-office-checks.sql academy-enrollment-checks.sql payabl-callback-state-checks.sql payabl-training-fee-checks.sql general-charge-private-ledger-checks.sql \
