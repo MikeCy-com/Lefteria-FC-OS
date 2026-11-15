@@ -450,7 +450,7 @@ try {
           return result;
         },route.name);
         if (route.name==='home') {
-          const {hero,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
             homeMotto:motto,homeNews:news}=referenceLayout;
           if(!hero||!rail||!top||!tiles||!motto||!news){
             failures.push('home 1672×941: one or more reference sections are missing');
@@ -463,6 +463,8 @@ try {
               failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
+            if(!fixture || fixture.width<300 || fixture.height<200)
+              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition');
             if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
               failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
             if(motto.y<news.bottom-2||motto.y>news.bottom+32)
