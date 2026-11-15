@@ -78,7 +78,17 @@ export function navigationOwner(location: NavigationLocation, organization: Publ
   return null;
 }
 export function navigationActive(item: PublicNavigationItem, location: NavigationLocation, organization: PublicOrganization = 'lefteria_fc'): boolean {
-  return navigationOwner(location, organization) === item.id;
+  const url = navigationLocation(location);
+  // Published CMS pages may sit at root or beneath a category; their route
+  // has no fixed navigationOwner. Derive the active section from the actual
+  // organization-scoped published URL projected into this menu instead.
+  if (within(url.pathname, '/pages')) {
+    if (item.path && item.id.startsWith('page-'))
+      return navigationLinkCurrent(item.path, url) === 'page';
+    return item.items?.some(([id, , path]) =>
+      id.startsWith('page-') && navigationLinkCurrent(path, url) === 'page') ?? false;
+  }
+  return navigationOwner(url, organization) === item.id;
 }
 function academyIdentity(pathname: string, groups: readonly PublicGroup[]): string | null {
   if (!pathname.startsWith('/academy/')) return null;
@@ -92,6 +102,18 @@ function academyIdentity(pathname: string, groups: readonly PublicGroup[]): stri
 export function navigationLinkCurrent(path: string, location: NavigationLocation, groups: readonly PublicGroup[] = []): 'page' | 'location' | undefined {
   if (!path.startsWith('/') || path.startsWith('//')) return undefined;
   const target = navigationLocation(path); const current = navigationLocation(location);
+  if (within(target.pathname, '/pages') && within(current.pathname, '/pages')) {
+    // Two organizations can publish the same slug. In that case pathname
+    // equality does NOT mean the menu link belongs to the displayed page.
+    // The canonical first-team URL omits organization_id; Academy requires it.
+    const allowed = ['lefteria_fc','lefteria_fc_academy'];
+    const targetOrg = target.searchParams.get('organization_id') ?? 'lefteria_fc';
+    const currentOrg = current.searchParams.get('organization_id') ?? 'lefteria_fc';
+    if (!allowed.includes(targetOrg) || !allowed.includes(currentOrg) ||
+        targetOrg !== currentOrg || target.pathname !== current.pathname ||
+        (target.hash && target.hash !== current.hash)) return undefined;
+    return 'page';
+  }
   if (target.pathname === '/team' && current.pathname === '/team') {
     const targetTab = teamTab(target);
     const currentTab = teamTab(current);
