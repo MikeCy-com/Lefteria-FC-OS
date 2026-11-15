@@ -1,6 +1,8 @@
 import type { MobileRole, MobileTab } from '../mobile/navigation.ts';
 
 export const ONBOARDING_VERSION = '2026.11.08.1';
+// Admin walkthrough revisions must not erase parents'/players' saved mobile progress.
+export const ADMIN_ONBOARDING_VERSION = '2026.11.15.1';
 
 export type WalkthroughStep = {
   id: string;
@@ -90,22 +92,40 @@ export function adminGuide(user:AdminIdentity):WalkthroughStep[] {
   const all=permissions.has('*:*');
   const has=(name:string)=>all || permissions.has(name) ||
     permissions.has(name.split(':')[0]+':*');
-  const profile:WalkthroughStep=adminStep('account','Επιβεβαίωσε τον λογαριασμό σου',
-    'Δες το όνομα, τον ρόλο και τις τρέχουσες δυνατότητές σου. Η επεξεργασία στοιχείων admin δεν είναι ακόμη διαθέσιμη.',
-    '/admin#account',user.name.trim()?'ready':'planned');
+  const profile:WalkthroughStep=adminStep('account','Έλεγξε το προφίλ και την ασφάλεια',
+    'Άνοιξε το προσωπικό σου προφίλ για επεξεργασία ονόματος, αλλαγή κωδικού και email επικοινωνίας (χωρίς επαλήθευση email).',
+    '/admin/profile');
   const organization:WalkthroughStep=adminStep('organizations','Έλεγχος οργανισμών και δικαιωμάτων',
     'Έλεγξε ότι εμφανίζονται μόνο οι οργανισμοί που σου έχουν ανατεθεί. Η πρόσβαση επιβεβαιώνεται ξανά στον διακομιστή.',
-    '/admin#access',organizations.length?'verified':'ready');
+    '/admin/settings',organizations.length?'verified':'ready');
   const result=[profile,organization];
-  if(has('teams:read') || has('academy:read'))
+  const canManage = user.role==='manager' || user.role==='super_admin';
+  const canReadFootball = organizations.some(o=>
+    o.id==='lefteria_fc' && has('teams:read') ||
+    o.id==='lefteria_fc_academy' && has('academy:read'));
+  const canWriteFootball = organizations.some(o=>
+    o.id==='lefteria_fc' && has('teams:write') ||
+    o.id==='lefteria_fc_academy' && has('academy:write'));
+  if(canReadFootball)
     result.push(adminStep('groups','Ομάδες, παίκτες & προπονητές',
       'Διάβασε το τρέχον ρόστερ. Οι αλλαγές μελών και προπονητών απαιτούν δικαιώματα εγγραφής.',
       '/admin/groups'));
-  if((user.role==='manager' || user.role==='super_admin') &&
-      (has('teams:write') || has('academy:write')))
-    result.push(adminStep('drafts','Πρόχειρες ανακοινώσεις εφαρμογής',
-      'Σύνταξε ένα πρόχειρο για αληθινό τμήμα. Η αποστολή και δημοσίευση δεν έχουν ενεργοποιηθεί.',
+  if(canManage && canReadFootball)
+    result.push(adminStep('facilities','Γήπεδα και βάσεις προπόνησης',
+      'Διαχειρίσου τις πραγματικές υποδομές ανά οργανισμό: γήπεδα/αντίπαλοι Ακαδημίας ανά πόλη και βάσεις προπόνησης ανά τοποθεσία.',
+      '/admin/territories'));
+  if(canManage && canWriteFootball){
+    result.push(adminStep('staff','Αναθέσεις προπονητών',
+      'Δες τους επαληθευμένους προπονητές και ανάθεσέ τους τμήματα στον επιτρεπόμενο οργανισμό.',
+      '/admin/staff'));
+    result.push(adminStep('drafts','Ανακοινώσεις εφαρμογής',
+      'Διαχειρίσου πρόχειρα και δημοσιεύσεις προς πραγματικά τμήματα μέσω των προστατευμένων εργαλείων.',
       '/admin/announcements'));
+  }
+  if(user.role==='super_admin' && has('users:read') && organizations.length)
+    result.push(adminStep('users','Δημιουργία λογαριασμών και αρχικών ρόλων',
+      'Δημιούργησε λογαριασμό Coach, Manager ή Accountant με ισχυρό αρχικό κωδικό και οργανισμό. Απενεργοποίηση και επανενεργοποίηση είναι διαθέσιμες, αλλά η αλλαγή ρόλου δεν υποστηρίζεται ακόμη.',
+      '/admin/users'));
   if(has('shop:read'))
     result.push(adminStep('pos','Κατάλογος POS','Δες τις κατηγορίες και τα προϊόντα. Δεν υπάρχει ενεργό checkout.',
       '/admin/pos'));

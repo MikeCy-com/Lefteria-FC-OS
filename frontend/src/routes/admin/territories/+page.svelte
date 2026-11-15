@@ -1,9 +1,12 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import FootballLocationMetrics from '../../../lib/admin/FootballLocationMetrics.svelte';
+  import AcademyLocationFinancePanel from '../../../lib/admin/AcademyLocationFinancePanel.svelte';
+  import AcademySupplierSiteTotals from '../../../lib/admin/AcademySupplierSiteTotals.svelte';
   import FootballTerritoryAccessPanel from '../../../lib/admin/FootballTerritoryAccessPanel.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -44,6 +47,12 @@
       .filter((id):id is Owner=>id==='lefteria_fc' || id==='lefteria_fc_academy')
   );
   let organization = $state<Owner>('lefteria_fc_academy');
+  let appliedRouteScope=false;
+  let appliedRouteGroup=false;
+  let placedGroupId=$state('');
+  const requestedGroup=$derived(page.url.searchParams.get('assign_group')??'');
+  const requestedTeam=$derived(page.url.searchParams.get('team_id')??'');
+
   const allowed = $derived(
     $auth.status==='authenticated' && $auth.session?.user.role
       && ['manager','super_admin'].includes($auth.session.user.role)
@@ -135,6 +144,15 @@
     if($auth.status==='anonymous') void goto('/admin/login',{replace:true});
   });
   $effect(()=>{
+    // Only apply a deep link once. A later manual organization selection must
+    // never be overridden by stale URL parameters.
+    if(!browser||appliedRouteScope||owners.length===0)return;
+    const requested=page.url.searchParams.get('organization_id');
+    if((requested==='lefteria_fc'||requested==='lefteria_fc_academy')&&owners.includes(requested))
+      organization=requested;
+    appliedRouteScope=true;
+  });
+  $effect(()=>{
     if(!owners.includes(organization) && owners.length>0) organization=owners[0];
   });
   $effect(()=>{
@@ -166,6 +184,20 @@
       }finally{if(!abort.signal.aborted) loading=false;}
     })();
     return ()=>abort.abort();
+  });
+  $effect(()=>{
+    if(!directory||appliedRouteGroup)return;
+    if(organization==='lefteria_fc_academy' && requestedGroup &&
+      directory.unassigned_groups.some(item=>item.id===requestedGroup)){
+      selectedGroup=requestedGroup;
+      appliedRouteGroup=true;
+    }else if(organization==='lefteria_fc' && requestedTeam) {
+      const matching=directory.scopes.find(item=>item.team_id===requestedTeam);
+      if(matching){scopeId=matching.id;appliedRouteGroup=true;}
+      else if(directory.unscoped_teams.some(item=>item.id===requestedTeam)){
+        unscopedTeam=requestedTeam;appliedRouteGroup=true;
+      }
+    }
   });
   $effect(()=>{
     if(organization==='lefteria_fc_academy'){
@@ -201,7 +233,10 @@
         typeof (result as Record<string,unknown>).id!=='string')
         throw new Error('Μη επαληθευμένη αποθήκευση.');
       name='';slug='';address='';googleMapsUrl='';competition='';
-      message='Η καταχώριση αποθηκεύτηκε. Εμφανίζεται μόνο σε εξουσιοδοτημένους διαχειριστές.';
+      if(action==='group_assignment' && typeof data.group_id==='string')placedGroupId=data.group_id;
+      message=action==='group_assignment'
+        ? 'Το τμήμα συνδέθηκε επιτυχώς με την πόλη και τοποθεσία.'
+        : 'Η καταχώριση αποθηκεύτηκε. Εμφανίζεται μόνο σε εξουσιοδοτημένους διαχειριστές.';
       revision++;
     }catch(e){error=e instanceof Error?e.message:'Αποτυχία αποθήκευσης.';}
     finally{saving=false;}
@@ -251,6 +286,21 @@
           Οι βάσεις προπονήσεων, τα τμήματα και οι αγώνες ανήκουν στην τοποθεσία.
           Η πρώτη ομάδα έχει απολύτως ανεξάρτητους καταλόγους.</p>
       </header>
+      {#if requestedGroup && organization==='lefteria_fc_academy'}
+        <section class="admin-panel territory-setup-callout" data-testid="territory-complete-group-setup">
+          <h2>Ολοκλήρωση νέου τμήματος</h2>
+          <p>Επιλέξτε ή δημιουργήστε πόλη, έπειτα τοποθεσία και τέλος
+            αναθέστε το νέο τμήμα. Αντίπαλοι και γήπεδα αγώνων ανήκουν στην <strong>πόλη</strong>,
+            ενώ βάσεις προπόνησης, προπονητές και τμήματα στην <strong>τοποθεσία</strong>.</p>
+          <p class="admin-muted">Το τμήμα παραμένει μη ανατεθειμένο μέχρι ο διακομιστής να επιβεβαιώσει την ανάθεση.</p>
+        </section>
+      {:else if requestedTeam && organization==='lefteria_fc'}
+        <section class="admin-panel territory-setup-callout" data-testid="territory-complete-team-setup">
+          <h2>Υποδομές νέας ομάδας</h2>
+          <p>Δημιουργήστε αγωνιστικό πεδίο για την ομάδα και καταχωρίστε
+            τους δικούς της αντιπάλους, γήπεδα αγώνων και βάσεις προπόνησης.</p>
+        </section>
+      {/if}
       <section class="admin-panel" aria-label="Οργανισμός και ανανέωση">
         <div class="territory-row">
           <label>Οργανισμός
@@ -285,7 +335,7 @@
               <p class="admin-muted">Αντίπαλοι και γήπεδα αγώνων κοινοί για όλες τις τοποθεσίες αυτής της πόλης.</p>
             </div>
             {#if canWrite && $auth.session.user.role==='super_admin'}
-              <form class="territory-form" onsubmit={e=>{
+              <form class="territory-form" id="create-city" data-testid="admin-create-city" onsubmit={e=>{
                 e.preventDefault(); void createResource('city',{name,slug});
               }}>
                 <h3>Νέα πόλη</h3>
@@ -311,7 +361,7 @@
               <p class="admin-muted">Οι προπονήσεις, τα τμήματα και οι βάσεις της κάθε τοποθεσίας
                 δεν εμφανίζονται σε άλλη τοποθεσία.</p>
               {#if mayManageCatalog}
-                <form class="territory-form" onsubmit={e=>{e.preventDefault();submitLocation();}}>
+                <form class="territory-form" id="create-location" data-testid="admin-create-location" onsubmit={e=>{e.preventDefault();submitLocation();}}>
                   <h3>Νέα τοποθεσία</h3>
                   <label>Όνομα <input bind:value={name} required maxlength="120" /></label>
                   <label>URL slug <input bind:value={slug} required maxlength="120"
@@ -326,11 +376,18 @@
                   cityId={cityId} locationId={locationId}
                   actorId={$auth.session.user.id} revision={revision}
                   canManageCity={Boolean(selectedScope?.can_write_catalog)} />
+                <AcademyLocationFinancePanel
+                  actorId={$auth.session.user.id} {cityId} {locationId}
+                  locations={directory.locations}
+                  superAdmin={$auth.session.user.role==='super_admin'}
+                  revision={revision}/>
+                <AcademySupplierSiteTotals actorId={$auth.session.user.id}
+                  {cityId} {locationId}/>
                 <h3>Τμήματα τοποθεσίας</h3>
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
                 {#if mayManageLocation && directory.unassigned_groups.length>0}
-                  <form class="territory-form" onsubmit={e=>{
+                  <form class="territory-form" id="group-placement" data-testid="territory-group-placement" onsubmit={e=>{
                     e.preventDefault();
                     if(selectedScope && selectedGroup) void createResource('group_assignment',{
                       scope_id:selectedScope.id,location_id:locationId,group_id:selectedGroup
@@ -499,18 +556,35 @@
         <section class="admin-panel">Δεν υπάρχουν ακόμη επιβεβαιωμένες αναθέσεις.</section>
       {/if}
       {#if directory && $auth.session.user.role==='super_admin' && canWrite}
-        <FootballTerritoryAccessPanel {organization}
-          actorId={$auth.session.user.id} cities={directory.cities}
-          locations={directory.locations} scopes={directory.scopes}
-          revision={revision}/>
+        <div id="delegated-access" class="territory-delegation-anchor"
+          data-testid="territory-role-permissions">
+          <FootballTerritoryAccessPanel {organization}
+            actorId={$auth.session.user.id} cities={directory.cities}
+            locations={directory.locations} scopes={directory.scopes}
+            focusAccountId={page.url.searchParams.get('account_id')??''}
+            revision={revision}/>
+        </div>
       {/if}
       {#if error}<p class="territory-error" role="alert">{error}</p>{/if}
       {#if message}<p class="territory-success" role="status">{message}</p>{/if}
+      {#if placedGroupId && organization==='lefteria_fc_academy'}
+        <a class="territory-setup-return"
+          href={`/admin/groups?group_id=${encodeURIComponent(placedGroupId)}`}
+          data-testid="territory-return-to-created-group">Άνοιγμα τμήματος & εργασιών ↗</a>
+      {/if}
     </div>
   </AdminFrame>
 {/if}
 
 <style>
+  .territory-setup-callout{background:linear-gradient(110deg,#2c2312,#0e1213);
+    border:1px solid #bc9147;padding:20px}
+  .territory-setup-callout h2{margin:0 0 9px;font-size:25px}
+  .territory-setup-callout p{line-height:1.5;max-width:85ch}
+  .territory-setup-return{display:inline-flex;align-items:center;min-height:44px;
+    color:#ffd16b;background:#171a18;border:1px solid #ad863a;padding:10px 16px;
+    text-decoration:none;font-weight:800}
+  #group-placement{scroll-margin-top:90px}
   .territory-page{display:grid;gap:1.3rem;max-width:1240px}
   .territory-page h1{font-size:clamp(1.65rem,3vw,2.75rem);letter-spacing:-.045em;margin:.4rem 0}
   .territory-page h1 span{color:#bd9763}
@@ -527,6 +601,7 @@
     outline:3px solid #bd9763;outline-offset:3px}
   .territory-page button{min-height:44px;cursor:pointer}
   .territory-page button:disabled{opacity:.55;cursor:not-allowed}
+  #create-city,#create-location,#delegated-access{scroll-margin-top:100px}
   .territory-form{display:grid;gap:1rem;padding:1.2rem 0;margin-top:1rem;
     border-top:1px solid rgba(160,140,100,.35)}
   .territory-form button{justify-self:start}

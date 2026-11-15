@@ -6,14 +6,17 @@ import {compile} from 'svelte/compiler';
 const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
 const finance=read('frontend/src/routes/admin/finance/+page.svelte');
 const groups=read('frontend/src/routes/admin/groups/+page.svelte');
+const workspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const roster=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
 const fees=read('frontend/src/lib/admin/AdminTrainingFees.svelte');
 
 test('per-player Academy billing links are restricted to finance readers and exact owner scope',()=>{
   for(const [name,source] of [['finance',finance],['groups',groups],['roster',roster],['fees',fees]])
     assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>100);
-  assert.match(groups,/allowFinance=\{organization === 'lefteria_fc_academy' &&/);
-  assert.match(groups,/hasAdminPermission\(\$auth\.session\.user\.permissions,'finance:read'\)/);
+  assert.match(groups,/AdminGroupWorkspace/);
+  assert.match(workspace,/allowFinance=\{canFinance\}/);
+  assert.match(workspace,/organization==='lefteria_fc_academy'&&/);
+  assert.match(workspace,/hasAdminPermission\(user\.permissions,'finance:read'\)/);
   assert.match(roster,/allowFinance && owner === 'lefteria_fc_academy'/);
   assert.match(roster,/data-testid="admin-player-billing-link"/);
   assert.match(roster,/encodeURIComponent\(player\.id\)/);

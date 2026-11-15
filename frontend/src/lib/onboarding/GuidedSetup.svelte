@@ -1,6 +1,6 @@
 <script lang="ts">
   import { browser } from '$app/env';
-  import { ONBOARDING_VERSION, type WalkthroughStep } from './guides.ts';
+  import { ONBOARDING_VERSION, ADMIN_ONBOARDING_VERSION, type WalkthroughStep } from './guides.ts';
 
   let {steps,scope,title='Οδηγός πρώτης χρήσης',onNavigate}:{
     steps:WalkthroughStep[];
@@ -19,7 +19,8 @@
   const complete=$derived(available>0 && done===available);
   const progress=$derived(available?Math.round(done/available*100):0);
 
-  const key=(value:string)=>'lefteria-onboarding:'+ONBOARDING_VERSION+':'+value;
+  const version=$derived(scope.startsWith('admin:')?ADMIN_ONBOARDING_VERSION:ONBOARDING_VERSION);
+  const key=(value:string)=>'lefteria-onboarding:'+version+':'+value;
   $effect(()=>{
     const identity=scope;
     active=0;
@@ -51,7 +52,7 @@
   }
 </script>
 
-<section class="setup" aria-label={title} data-testid="role-onboarding" data-onboarding-version={ONBOARDING_VERSION}>
+<section class="setup" aria-label={title} data-testid="role-onboarding" data-onboarding-version={version}>
   <div class="setup-head">
     <div><p class="setup-eyebrow">ΛΕΥΤΕΡΙΑ FC · ΠΡΩΤΑ ΒΗΜΑΤΑ</p>
       <h2>{title}</h2><p class="setup-desc">Βήμα προς βήμα, σύμφωνα με τον ρόλο και τα πραγματικά διαθέσιμα εργαλεία σου.</p></div>

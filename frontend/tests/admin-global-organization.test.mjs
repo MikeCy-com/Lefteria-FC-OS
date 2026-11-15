@@ -34,14 +34,18 @@ test('all authorized organizations are visible with no browser-persisted global 
 test('Super Admin sees all granted areas while Academy Manager sees Academy-only features', () => {
   const all = adminSectionsFor(admin).flatMap(section => section.modules.map(m => m.id));
   assert.ok(all.includes('trials'));
-  assert.ok(all.includes('academy_schedule'));
+  assert.ok(!all.includes('academy_schedule'));
+  assert.ok(!all.includes('fixtures'));
+  assert.ok(!all.includes('evaluations'));
+  assert.ok(!all.includes('documents'));
   assert.ok(all.includes('groups'));
   assert.ok(all.includes('registrations'));
   const academyManager = {...admin,role:'manager',
     organizations:[{id:academy,name:'Academy'}],
     permissions:['academy:*','attendance:*','marketing:*','finance:*','news:*']};
   const modules=adminSectionsFor(academyManager).flatMap(section=>section.modules.map(m=>m.id));
-  assert.ok(modules.includes('academy_schedule'));
+  assert.ok(modules.includes('groups'));
+  assert.ok(!modules.includes('academy_schedule'));
   assert.ok(modules.includes('registrations'));
   assert.ok(!modules.includes('trials'));
 });

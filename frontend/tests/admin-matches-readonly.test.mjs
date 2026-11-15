@@ -32,9 +32,15 @@ test('Club and Academy groups are filtered by the organization set once in the a
   assert.match(source,/fixture\.status === 'Scheduled'/);
   assert.match(source,/fixtureStatus\(fixture\)/);
   assert.match(source,/href=\{'\/match\/' \+ encodeURIComponent\(fixture\.id\)\}/);
-  assert.match(frame,/href="\/admin\/matches"/);
-  assert.match(frame,/active === 'matches'/);
-  assert.match(catalog,/id: 'fixtures'[^\n]*status: 'live', href: '\/admin\/matches'/);
+  assert.doesNotMatch(frame,/href="\/admin\/matches"/);
+  const groupPage=readFileSync(new URL('../src/routes/admin/groups/+page.svelte', import.meta.url),'utf8');
+  const groupWorkspace=readFileSync(new URL('../src/lib/admin/AdminGroupWorkspace.svelte',import.meta.url),'utf8');
+  assert.match(groupPage,/AdminGroupWorkspace/);
+  assert.match(groupWorkspace,/admin-group-matches-link/);
+  assert.match(source,/requestedOrganization/);
+  assert.match(source,/requestedGroup/);
+  assert.match(frame,/includes\(active\)/);
+  assert.doesNotMatch(catalog,/id: 'fixtures'/);
 });
 
 test('Match page clearly labels its API limitations and does not claim live standings editing', () => {

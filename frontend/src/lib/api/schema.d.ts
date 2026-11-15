@@ -64,6 +64,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/office/registrations/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["EnrollAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/registrations/review": {
         parameters: {
             query?: never;
@@ -1488,6 +1504,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/website/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListAdminWebsitePages"];
+        put?: never;
+        post: operations["CreateAdminWebsitePage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/pages/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateAdminWebsitePage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/pages/{slug}/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PublishAdminWebsitePage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/live": {
         parameters: {
             query?: never;
@@ -2740,6 +2804,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/public/academy/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitPublicAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/public/news": {
         parameters: {
             query?: never;
@@ -2796,6 +2876,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["GetPublicSite"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/public/website/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetPublishedWebsitePages"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2864,6 +2960,40 @@ export interface components {
         AcademyLeadFollowUpCommand: {
             expected_status: null | string;
             next_status: null | string;
+        };
+        AcademyRegistrationRequest: {
+            allergies_details?: string;
+            comm_email?: boolean;
+            comm_sms?: boolean;
+            conditions_details?: string;
+            consent_communications?: boolean;
+            consent_financial?: boolean;
+            consent_gdpr?: boolean;
+            consent_liability?: boolean;
+            consent_media?: string;
+            consent_medical_auth?: boolean;
+            consent_participation?: boolean;
+            emergency_name?: string;
+            emergency_phone?: string;
+            emergency_relationship?: string;
+            has_allergies?: boolean;
+            has_conditions?: boolean;
+            has_medication?: boolean;
+            medication_details?: string;
+            parent_email?: string;
+            parent_name?: string;
+            parent_phone?: string;
+            parent_relationship?: string;
+            payment_method?: string;
+            player_address?: string;
+            player_city?: string;
+            player_dob?: string;
+            player_first_name?: string;
+            player_gender?: string;
+            player_last_name?: string;
+            player_postal_code?: string;
+            signature_data?: string;
+            signature_date?: string;
         };
         AcademyTrainingFeeIssueCommand: {
             /** Format: int64 */
@@ -3371,6 +3501,22 @@ export interface components {
             /** Format: uuid */
             id: string;
             status: null | string;
+            /** Format: int32 */
+            version: number | string;
+        };
+        Enrollment: {
+            /** Format: uuid */
+            city_id: string;
+            group_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            location_id: string;
+            /** Format: int32 */
+            number: number | string;
+            position: string;
+            /** Format: uuid */
+            request_id: string;
             /** Format: int32 */
             version: number | string;
         };
@@ -4909,6 +5055,47 @@ export interface components {
             expires_at: string;
             user: components["schemas"]["WebAdminIdentityDto"];
         };
+        WebsiteBlock: {
+            text: string;
+            type: string;
+            url: null | string;
+        };
+        WebsitePageContent: {
+            blocks: components["schemas"]["WebsiteBlock"][];
+            /** Format: int32 */
+            menu_order: number | string;
+            menu_parent: string;
+            seo_description: string;
+            seo_title: string;
+            summary: string;
+            title: string;
+        };
+        WebsitePageCreate: {
+            page: components["schemas"]["WebsitePageContent"];
+            slug: string;
+        };
+        WebsitePagePublication: {
+            /** Format: int64 */
+            expected_version: number | string;
+            publish: boolean;
+        };
+        WebsitePageRecord: {
+            draft: components["schemas"]["WebsitePageContent"];
+            organization_id: string;
+            published: null | components["schemas"]["WebsitePageContent"];
+            /** Format: date-time */
+            published_at: null | string;
+            slug: string;
+            /** Format: date-time */
+            updated_at: string;
+            /** Format: int64 */
+            version: number | string;
+        };
+        WebsitePageRevision: {
+            /** Format: int64 */
+            expected_version: number | string;
+            page: components["schemas"]["WebsitePageContent"];
+        };
     };
     responses: never;
     parameters: never;
@@ -4995,6 +5182,28 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Registration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnrollAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Enrollment"];
             };
         };
         responses: {
@@ -11062,6 +11271,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    ListAdminWebsitePages: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePageRecord"][];
+                };
+            };
+        };
+    };
+    CreateAdminWebsitePage: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePageCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePageRecord"];
+                };
+            };
+        };
+    };
+    UpdateAdminWebsitePage: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePageRevision"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePageRecord"];
+                };
+            };
+        };
+    };
+    PublishAdminWebsitePage: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebsitePagePublication"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebsitePageRecord"];
                 };
             };
         };
@@ -18012,6 +18325,70 @@ export interface operations {
             };
         };
     };
+    SubmitPublicAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcademyRegistrationRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetPublicNews: {
         parameters: {
             query?: {
@@ -18183,6 +18560,27 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PublicContentError"];
                 };
+            };
+        };
+    };
+    GetPublishedWebsitePages: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+                slug?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

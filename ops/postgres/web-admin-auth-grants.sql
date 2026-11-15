@@ -120,12 +120,67 @@ GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
 REVOKE ALL ON public_content.news_drafts FROM PUBLIC, :"app_role";
 GRANT SELECT, INSERT ON public_content.news_drafts TO :"admin_auth_role";
 GRANT UPDATE (data_json,version,updated_at) ON public_content.news_drafts TO :"admin_auth_role";
+-- Native website page drafts and approved snapshots; public runtime has no table access.
+REVOKE ALL ON public_content.website_pages FROM PUBLIC, :"app_role";
+GRANT SELECT, INSERT ON public_content.website_pages TO :"admin_auth_role";
+GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
+  ON public_content.website_pages TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO :"admin_auth_role";
+-- Super Admin creates scoped credentials only through an audited,
+-- role-checking, owner-qualified SECURITY DEFINER function.
+REVOKE ALL ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
+  TO :"admin_auth_role";
+-- Suspensions and restorations cannot bypass the Super Admin role or any
+-- target organization; never expose direct account status UPDATE.
+REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  TO :"admin_auth_role";
+-- The verified current admin account may change only its own display name
+-- or rotate its own password through audited account/session-locked routines.
+-- Raw UPDATE of identity.admin_accounts is prohibited for both runtimes.
+REVOKE ALL ON FUNCTION identity.write_admin_own_name(text,text,text),
+  identity.write_admin_own_password(text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.write_admin_own_name(text,text,text),
+  identity.write_admin_own_password(text,text,text)
+  TO :"admin_auth_role";
+
+-- Self-only non-verified contact details: no direct raw column read/write.
+-- These values must never participate in login, invitations or recovery.
+REVOKE ALL ON FUNCTION identity.read_admin_own_contact_email(text),
+  identity.write_admin_own_contact_email(text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.read_admin_own_contact_email(text),
+  identity.write_admin_own_contact_email(text,text,text)
+  TO :"admin_auth_role";
+
+-- Only self-scoped sanitized JPEG functions are callable from the web admin
+-- runtime: no direct SELECT/INSERT/DELETE on identity.admin_profile_photos.
+REVOKE ALL ON TABLE identity.admin_profile_photos FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.read_admin_own_profile_photo(text),
+  identity.write_admin_own_profile_photo(text,bytea)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.read_admin_own_profile_photo(text),
+  identity.write_admin_own_profile_photo(text,bytea)
+  TO :"admin_auth_role";
+
+
+
+
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
 -- The only new POS entitlement is a session/owner-checking read function.
 -- Raw products, variants, categories and sales are NEVER granted.
@@ -225,6 +280,11 @@ GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO 
 -- The web-admin role still cannot SELECT club.players directly.
 REVOKE ALL ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) TO :"admin_auth_role";
+-- A separate manager-only projection reads ONLY the verified chosen group.
+REVOKE ALL ON FUNCTION club.read_admin_group_roster(text,text,text,integer,integer)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_group_roster(text,text,text,integer,integer)
+  TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
@@ -232,6 +292,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-group-roster-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
@@ -300,6 +361,12 @@ REVOKE ALL ON FUNCTION hub.approve_admin_hub_visual(text,text,uuid,bigint) FROM 
 GRANT EXECUTE ON FUNCTION hub.approve_admin_hub_visual(text,text,uuid,bigint) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION hub.review_admin_text(text,text,uuid,bigint,text) TO :"admin_auth_role";
+-- Private aggregate-only HUB fan overview.
+REVOKE ALL ON FUNCTION hub.read_admin_fan_subscription_overview(text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.read_admin_fan_subscription_overview(text,text)
+  TO :"admin_auth_role";
+\ir admin-hub-fan-overview-boundary.sql
 \ir admin-hub-editorial-boundary.sql
 \ir admin-hub-quiz-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
@@ -327,7 +394,17 @@ BEGIN
                 AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
+                  'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
+                  'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
+                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
+                   'identity.read_admin_own_contact_email(text)'::regprocedure,
+                   'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
+                   'identity.read_admin_own_profile_photo(text)'::regprocedure,
+                   'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
@@ -335,10 +412,12 @@ BEGIN
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
+                  'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
                   'hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)'::regprocedure,
                   'hub.submit_admin_draft_review(text,text,uuid,bigint)'::regprocedure,
                   'hub.read_admin_editorial_detail(text,text,uuid)'::regprocedure,
@@ -378,15 +457,16 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
-    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
-    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts'));
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages'));
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
     can_update := can_update OR (target.nspname='public_content' AND
       (target.relname='edits' AND target.attname IN ('data_json','version') OR
-       target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at')));
+       target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at') OR
+       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update

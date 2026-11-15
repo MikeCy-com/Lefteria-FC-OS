@@ -6,6 +6,7 @@
   import {fixturePublicLink} from './public-urls';
   import Icon from './PublicIcon.svelte';
   import TeamCrest from './TeamCrest.svelte';
+  import { publicImages } from './images';
 
   let {fixtures=[],standings=[],teamId=null,clubLogo=null,clubName='ΛΕΥΤΕΡΙΑ FC'}:{
     fixtures:PublicFixture[];
@@ -38,7 +39,7 @@
     <a class="view-all" href={moreHref}>ΟΛΟ ΤΟ ΠΡΟΓΡΑΜΜΑ <Icon name="arrow" size={17}/></a>
   </header>
   <div class="match-overview-grid">
-    <article class="match-panel next-match" data-testid="team-featured-next-match">
+    <article class="match-panel next-match" data-testid="team-featured-next-match" style:background-image={`linear-gradient(125deg,#0b0d0de8,#0e1111e0 76%),url("${publicImages.pitch}")`}>
       <h3><Icon name="calendar" size={20}/> ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</h3>
       {#if next}
         <p class="competition">{next.competition||'ΑΓΩΝΑΣ'}</p>
@@ -80,25 +81,29 @@
         <p class="empty">Δεν υπάρχουν προγραμματισμένοι αγώνες.</p>
       {/if}
     </article>
-    {#if table.length}
-      <article class="match-panel league-table" data-testid="team-first-team-standings">
+    <article class="match-panel league-table" data-testid="team-first-team-standings">
         <h3><Icon name="trophy" size={20}/> ΒΑΘΜΟΛΟΓΙΑ</h3>
         {#if competition}<p class="competition">{competition}</p>{/if}
-        <div class="standings-scroll">
-          <table>
-            <caption class="sr-only">Δημοσιευμένη βαθμολογία {competition||'ομάδας'}</caption>
-            <thead><tr><th scope="col">ΟΜΑΔΑ</th><th scope="col">ΑΓ</th><th scope="col">Β</th></tr></thead>
-            <tbody>
-              {#each table as row (row.id)}
-                <tr><th scope="row">{row.team_name}</th>
-                  <td>{row.played}</td><td class="points">{row.points}</td></tr>
-              {/each}
-            </tbody>
-          </table>
-        </div>
+        {#if table.length}
+          <div class="standings-scroll">
+            <table>
+              <caption class="sr-only">Δημοσιευμένη βαθμολογία {competition||'ομάδας'}</caption>
+              <thead><tr><th scope="col">ΟΜΑΔΑ</th><th scope="col">ΑΓ</th><th scope="col">Ν</th><th scope="col">Ι</th><th scope="col">Η</th><th scope="col">ΔΓ</th><th scope="col">Β</th></tr></thead>
+              <tbody>
+                {#each table as row (row.id)}
+                  <tr><th scope="row">{row.team_name}</th>
+                    <td>{row.played}</td><td>{row.won}</td><td>{row.drawn}</td><td>{row.lost}</td>
+                    <td>{Number(row.goals_for)-Number(row.goals_against)>0?'+':''}{Number(row.goals_for)-Number(row.goals_against)}</td>
+                    <td class="points">{row.points}</td></tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}
+          <p class="empty">Δεν έχει δημοσιευτεί επιβεβαιωμένη βαθμολογία για αυτή την ομάδα.</p>
+        {/if}
         <a class="view-all bottom" href={standingsHref}>ΠΛΗΡΗΣ ΒΑΘΜΟΛΟΓΙΑ <Icon name="arrow" size={16}/></a>
       </article>
-    {/if}
   </div>
 </section>
 
@@ -115,6 +120,7 @@
     background:linear-gradient(130deg,#1b1e1e,#090b0b 72%,#32200b);padding:16px;box-shadow:inset 0 1px #ffffff23}
   .match-panel::before{content:"";position:absolute;pointer-events:none;left:0;right:0;top:0;height:2px;
     background:linear-gradient(90deg,transparent,#ffc754,#ffbf3660,transparent);box-shadow:0 0 10px #ffb82a6b}
+  .next-match{background-size:cover;background-position:center;}
   .match-panel h3{font:800 clamp(19px,1.5vw,25px)/1.1 'Fira Sans Extra Condensed',sans-serif;
     font-style:italic;display:flex;align-items:center;gap:9px;
     padding:0 0 12px;margin:0;border-bottom:1px solid #ffffff27}
@@ -147,8 +153,8 @@
   .upcoming-matches li a :global(svg){color:#ffc548}
   .standings-scroll{overflow-x:auto}
   table{width:100%;border-collapse:collapse;text-align:left;margin-top:13px;font-size:12px}
-  th,td{border-bottom:1px solid #ffffff24;padding:8px 5px}
-  thead th{color:#f8c34b;font-weight:850;font-size:11px}
+  th,td{border-bottom:1px solid #ffffff24;padding:8px 3px}
+  thead th{color:#f8c34b;font-weight:850;font-size:10px}
   tbody th{font-weight:700;overflow-wrap:anywhere}
   td{text-align:center}
   td.points{color:#f6bb38;font-weight:800}

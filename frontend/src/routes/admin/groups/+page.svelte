@@ -1,16 +1,14 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
-  import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
-  import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
-  import AdminAcademyGroupProfilePanel from '../../../lib/admin/AdminAcademyGroupProfilePanel.svelte';
-  import AdminFirstTeamProfilePanel from '../../../lib/admin/AdminFirstTeamProfilePanel.svelte';
+  import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -27,6 +25,12 @@
 
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
+  let focusedGroupId = $state('');
+  const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
+  const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
+    ['manager','super_admin'].includes($auth.session.user.role) &&
+    organization==='lefteria_fc_academy' &&
+    hasAdminPermission($auth.session.user.permissions,'attendance:read')));
   let loading = $state(false);
   let unavailable = $state(false);
   let retry = $state(0);
@@ -46,6 +50,26 @@
   let academyOrder = $state(0);
   let saving = $state(false);
   let createError = $state<string | null>(null);
+  let lastCreatedGroupId=$state('');
+  let lastCreatedOrganization=$state<Organization|null>(null);
+
+  $effect(()=>{
+    const requested=page.url.searchParams.get('group_id')??'';
+    const available=directory?.groups ?? [];
+    if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
+    if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
+  });
+  let appliedInitialOrganization=false;
+  let openedRequestedCreate=false;
+  $effect(()=>{
+    const choices=assignments;
+    if(!browser||appliedInitialOrganization||$auth.status!=='authenticated'||!choices.length)return;
+    appliedInitialOrganization=true;
+    const requested=page.url.searchParams.get('organization_id');
+    if((requested==='lefteria_fc'||requested==='lefteria_fc_academy')&&
+      choices.some(item=>item.id===requested))organization=requested;
+  });
+
   const canCreate = $derived(
     $auth.status === 'authenticated' && $auth.session && !!organization &&
     assignments.some(org => org.id === organization) &&
@@ -126,6 +150,9 @@
             ? (value.profile as Record<string,unknown>).team_id !== value.id
             : (value.profile as Record<string,unknown>).group_id !== value.id))
         throw new Error('Μη επαληθευμένη πλήρης καταχώριση τμήματος.');
+      lastCreatedGroupId=value.id;
+      lastCreatedOrganization=selected;
+      focusedGroupId=value.id;
       showCreate = false;
       groupName = '';
       createRequestId='';
@@ -173,6 +200,16 @@
     academyBanner='';academyOrder=0;
     createError = null;
   });
+  // Deep links from the work dashboard open the *real* creation form.
+  // These never grant permission: the API rechecks every write.
+  $effect(()=>{
+    const selected=organization,loaded=directory?.organization_id===selected;
+    const wantsNew=page.url.searchParams.get('new')==='1';
+    if(!browser||openedRequestedCreate||!wantsNew||!loaded||!canCreate)return;
+    openedRequestedCreate=true;
+    showCreate=true;
+  });
+
   $effect(() => {
     // An owner revoked by the server may never remain selected in the UI.
     if (!assignments.some(org => org.id === organization))
@@ -266,6 +303,27 @@
             <div><span>Ενεργές συμμετοχές</span><strong>{directory.groups.reduce((n,g) => n+g.active_players,0)}</strong></div>
             <div><span>Χωρίς τμήμα</span><strong>{directory.unassigned_players}</strong></div>
           </div>
+          {#if lastCreatedGroupId && lastCreatedOrganization===organization}
+            <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
+              <p class="admin-eyebrow">ΤΟ ΤΜΗΜΑ ΑΠΟΘΗΚΕΥΤΗΚΕ</p>
+              {#if organization==='lefteria_fc_academy'}
+                <h2>Ολοκλήρωση πόλης & τοποθεσίας</h2>
+                <p>Το τμήμα δημιουργήθηκε. Για να είναι πλήρως ενεργό στην Ακαδημία,
+                  αναθέστε το στην πόλη και τοποθεσία του. Οι αντίπαλοι και τα γήπεδα
+                  αγώνων είναι κοινοί για την πόλη, όχι για κάθε τοποθεσία.</p>
+                <a class="admin-group-next-link"
+                  href={`/admin/territories?organization_id=lefteria_fc_academy&assign_group=${encodeURIComponent(lastCreatedGroupId)}#group-placement`}
+                  data-testid="admin-assign-group-location">Ανάθεση πόλης & τοποθεσίας ↗</a>
+              {:else}
+                <h2>Οργάνωση ομάδας</h2>
+                <p>Η ομάδα δημιουργήθηκε. Μπορείτε να της αναθέσετε το δικό της
+                  αγωνιστικό πεδίο, αντιπάλους και γήπεδα χωρίς πρόσβαση στα στοιχεία Ακαδημίας.</p>
+                <a class="admin-group-next-link"
+                  href={`/admin/territories?organization_id=lefteria_fc&team_id=${encodeURIComponent(lastCreatedGroupId)}#team-heading`}
+                  data-testid="admin-assign-team-scope">Ρύθμιση γηπέδων & αντιπάλων ↗</a>
+              {/if}
+            </section>
+          {/if}
           {#if canCreate}
             <section class="admin-panel admin-group-create" data-testid="admin-group-create" aria-labelledby="admin-group-create-heading">
               <div class="admin-group-create-heading">
@@ -361,56 +419,42 @@
             </div>
             {#if directory.groups.length === 0}
               <p class="admin-muted" data-testid="admin-audiences-empty">Δεν υπάρχουν τμήματα στο επαληθευμένο ρόστερ αυτού του οργανισμού.</p>
+              {#if canCreate}<button type="button" class="admin-secondary" onclick={()=>{showCreate=true;}} data-testid="admin-first-group-button">Δημιουργία πρώτου τμήματος</button>{/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
                 {#each directory.groups as group (group.id)}
                   <li>
                     <div><span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span><strong>{group.name}</strong></div>
                     <div class="admin-audiences-count"><strong>{group.active_players}</strong><span>ενεργοί παίκτες</span></div>
-                    {#if organization === 'lefteria_fc_academy'}
-                      <nav class="admin-audience-actions" aria-label={`Ενέργειες τμήματος ${group.name}`}>
-                        <a href={`/admin/schedule?group_id=${encodeURIComponent(group.id)}`}
-                           data-testid="admin-group-training-link">Πρόγραμμα ›</a>
-                        <a href={`/admin/attendance?group_id=${encodeURIComponent(group.id)}`}
-                           data-testid="admin-group-attendance-link">Παρουσίες ›</a>
-                      </nav>
-                    {/if}
+                    <button type="button" class="admin-secondary"
+                      aria-expanded={focusedGroupId===group.id}
+                      aria-controls="admin-group-workspace"
+                      onclick={()=>focusedGroupId=focusedGroupId===group.id?'':group.id}
+                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Άνοιγμα τμήματος'}</button>
                   </li>
                 {/each}
               </ul>
+              {#if focusedGroup}
+                <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
+                  data-testid="admin-group-workspace">
+                  <header><p class="admin-eyebrow">ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</p>
+                    <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
+                    <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                  </header>
+                  {#if organization && $auth.session}
+                    {#key organization+':'+focusedGroup.id+':'+$auth.session.user.id}
+                      <AdminGroupWorkspace group={focusedGroup} groups={directory.groups}
+                        {organization} user={$auth.session.user}
+                        canCreate={Boolean(canCreate)} canReadAttendance={canSeeAcademyAttendance}
+                        onExpired={()=>auth.invalidateSession()}
+                        onRevoked={()=>void auth.bootstrap()}
+                        onChanged={()=>retry++}/>
+                    {/key}
+                  {/if}
+                </section>
+              {/if}
             {/if}
           </section>
-          {#if canCreate && organization && $auth.session}
-            {#key organization + ':' + $auth.session.user.id + ':' + $auth.session.user.role + ':' + $auth.session.user.permissions.join('|')}
-              <AdminRosterPlayersPanel owner={organization as Organization}
-                actorId={$auth.session.user.id} groups={directory.groups}
-                allowPrivate={['manager','super_admin'].includes($auth.session.user.role)}
-                allowFinance={organization === 'lefteria_fc_academy' &&
-                  hasAdminPermission($auth.session.user.permissions,'finance:read')}
-                allowEvaluationWrite={['manager','super_admin'].includes($auth.session.user.role)&&
-                  hasAdminPermission($auth.session.user.permissions,
-                    organization==='lefteria_fc'?'teams:write':'academy:write')}
-                onExpired={() => auth.invalidateSession()}
-                onRevoked={() => void auth.bootstrap()}
-                onChanged={() => retry++}/>
-              {#if organization === 'lefteria_fc'}
-                <AdminFirstTeamProfilePanel actorId={$auth.session.user.id}
-                  groups={directory.groups}
-                  onExpired={() => auth.invalidateSession()}
-                  onRevoked={() => void auth.bootstrap()}/>
-              {/if}
-              {#if organization === 'lefteria_fc_academy'}
-                <AdminAcademyGroupProfilePanel actorId={$auth.session.user.id}
-                  groups={directory.groups}
-                  onExpired={() => auth.invalidateSession()}
-                  onRevoked={() => void auth.bootstrap()}/>
-              {/if}
-              <AdminCoachDirectoryPanel owner={organization as Organization}
-                actorId={$auth.session.user.id} groups={directory.groups}
-                onExpired={() => auth.invalidateSession()}
-                onRevoked={() => void auth.bootstrap()}/>
-            {/key}
-          {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
       </div>
@@ -461,6 +505,22 @@
   .admin-audience-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;color:#ffca46;border:1px solid #70572a;border-radius:7px;font-size:14px}
   .admin-audience-actions a:hover{background:#f6bb3820;border-color:#ffca46}
   .admin-audience-actions a:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
+  .admin-group-workspace{margin-top:22px;padding:18px;border:1px solid #9e7834;background:linear-gradient(130deg,#242017,#101212);scroll-margin-top:100px}
+  .admin-group-workspace header h3{font:italic 900 clamp(26px,2.4vw,39px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 9px;color:#fff}
+  .admin-group-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:19px 0}
+  .admin-group-tools>a{display:flex;align-items:center;min-height:48px;padding:12px 15px;
+    color:#ffcf61;background:#181a1a;border:1px solid #8e723e;text-decoration:none;
+    font-size:14px;font-weight:750}
+  .admin-group-tools>a:hover{border-color:#ffdc80;background:#312614}
+  .admin-group-tools>a:focus-visible{outline:3px solid #ffcc63;outline-offset:2px}
+  @media(max-width:700px){.admin-group-tools{grid-template-columns:1fr}}
+  .admin-group-create-next{padding:20px;border:1px solid #b78c38}
+  .admin-group-create-next h2{font-size:25px;margin:4px 0 10px}
+  .admin-group-create-next p{max-width:75ch;line-height:1.6}
+  .admin-group-next-link{display:inline-flex;margin-top:12px;align-items:center;min-height:44px;
+    padding:11px 16px;border:1px solid #b78c38;background:#241a0b;color:#ffd66e;
+    font-weight:800;text-decoration:none}
+  .admin-group-next-link:hover{background:#35220c}
   .admin-audiences-note{max-width:80ch;color:#b5babd;font-size:12px;margin-top:18px}
   @media(max-width:650px){.admin-audiences-stats{grid-template-columns:1fr}.admin-audiences-list li{align-items:start}.admin-audiences-count{flex-direction:column;align-items:flex-end;gap:2px}}
 </style>

@@ -150,6 +150,9 @@ jobs:
       - name: Verify late-registration learning journeys (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/hub-recipient-learning-checks.sql
+      - name: Verify sandbox HUB fan subscriber totals and Payabl entitlement isolation (disposable PostgreSQL)
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/hub-fan-overview-checks.sql
       - name: Provision and check restricted runtime role
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql
@@ -161,6 +164,16 @@ jobs:
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/football-territory-admin-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/football-territory-delegation-admin-grants.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/football-territory-delegation-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-location-finance-admin-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-location-finance-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-accounting-overview-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-accounting-overview-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-bill-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-bill-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-payments-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-payments-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-credits-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-credits-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-attendance-admin-grants.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-lifecycle-checks.sql
@@ -169,11 +182,17 @@ jobs:
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-training-plans-lifecycle-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/player-birthday-admin-grants.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/player-birthday-lifecycle-checks.sql
+          # Goals stay private to Super Admin pending verified city/location grants.
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/player-development-goals-admin-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/player-development-goals-checks.sql
+          # Validate immutable creation-time team/city/location provenance; no production data.
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/player-goal-origin-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/academy-crm-admin-grants.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-crm-inbox-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-registration-intake-security-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-office-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-enrollment-checks.sql
       - name: Verify Payabl finance schema, segregated grants and no raw ledger access
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \

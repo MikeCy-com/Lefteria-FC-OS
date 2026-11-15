@@ -12,7 +12,8 @@
 
 <svelte:head><title>Διαχείριση | Λευτεριά FC</title></svelte:head>
 {#if $controller.status === 'authenticated' && $controller.session}
-  <AdminWorkspace session={$controller.session} busy={$controller.busy} onLogout={() => void controller.logout()} />
+  <AdminWorkspace session={$controller.session} busy={$controller.busy} onLogout={() => void controller.logout()}
+    onRefresh={() => void controller.bootstrap()} />
 {:else}
   <AdminSessionStatus unavailable={$controller.status === 'unavailable'} busy={$controller.busy} error={$controller.error}
     onRetry={() => void controller.bootstrap()} onLogout={() => void controller.logout()} />

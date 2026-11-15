@@ -17,6 +17,8 @@ public static class AcademyOfficeEndpoints
         string? GuardianName, string? GuardianRelationship, string? GuardianPhone, string? GuardianEmail);
     public sealed record Order(Guid Id, string? PlayerId, string? Item, string? Size, int Quantity);
     public sealed record Decision(Guid Id, string? Status, int Version);
+    public sealed record Enrollment(Guid Id, int Version, Guid RequestId,
+        Guid CityId, Guid LocationId, string GroupId, string Position, int Number);
 
     public static void MapAcademyOffice(this IEndpointRouteBuilder app)
     {
@@ -43,6 +45,23 @@ public static class AcademyOfficeEndpoints
             Execute("review", body, true, admin, db, secrets, context, ct))
             .WithName("ReviewAcademyRegistration");
 
+        // Verified public guardian-consent records only. Review + roster
+        // creation + location placement run in one PostgreSQL transaction.
+        group.MapPost("/registrations/enroll", (Enrollment body,
+            WebAdminService admin, WebAdminConnections db, IWebAdminSecrets secrets,
+            HttpContext context, CancellationToken ct) =>
+        {
+            if (body.Id == Guid.Empty || body.RequestId == Guid.Empty ||
+                body.CityId == Guid.Empty || body.LocationId == Guid.Empty ||
+                body.Version < 1 || body.Version > 100000 ||
+                body.GroupId is null || body.GroupId.Length is < 1 or > 128 ||
+                body.Position is not ("Goalkeeper" or "Defender" or "Midfielder" or "Forward") ||
+                body.Number is < 1 or > 99)
+                throw new WebAdminException(422, "invalid_enrollment",
+                    "Select one exact Academy group and the real player details.");
+            return Execute("enroll", body, true, admin, db, secrets, context, ct);
+        }).WithName("EnrollAcademyRegistration");
+
         group.MapPost("/orders", (Order body, WebAdminService admin,
             WebAdminConnections db, IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
             Execute("order", body, true, admin, db, secrets, context, ct))
@@ -60,6 +79,10 @@ public static class AcademyOfficeEndpoints
     private static async Task<IResult> Execute(string operation, object payload, bool write,
         WebAdminService admin, WebAdminConnections db, IWebAdminSecrets secrets, HttpContext context, CancellationToken ct)
     {
+        // Academy applications contain private minor and guardian details.
+        // Never allow browsers or intermediaries to cache these responses.
+        context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.Pragma = "no-cache";
         var cookie = context.Request.Cookies[WebAdminServices.CookieName];
         var session = await admin.CurrentAsync(cookie, ct);
         if (session is null)
@@ -70,18 +93,22 @@ public static class AcademyOfficeEndpoints
             throw new WebAdminException(403, "not_authorized", "Academy manager access required.");
 
         await using var connection = await db.OpenAsync(ct);
-        await using var cmd = new NpgsqlCommand("SELECT identity.admin_academy_office(@digest,@operation,@body)::text", connection);
+        await using var cmd = new NpgsqlCommand(
+            operation == "enroll"
+                ? "SELECT identity.enroll_admin_academy_registration(@digest,@body)::text"
+                : "SELECT identity.admin_academy_office(@digest,@operation,@body)::text", connection);
         cmd.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
-        cmd.Parameters.AddWithValue("operation", operation);
+        if (operation != "enroll")
+            cmd.Parameters.AddWithValue("operation", operation);
         cmd.Parameters.AddWithValue("body", NpgsqlDbType.Jsonb, JsonSerializer.Serialize(payload, JsonOptions));
         try
         {
             var json = await cmd.ExecuteScalarAsync(ct) as string;
             return json is null ? Results.Problem(statusCode: 503) : Results.Content(json, "application/json");
         }
-        catch (PostgresException error) when (error.SqlState is "42501" or "23505" or "23502" or "23514" or "22001" or "22023" or "22007" or "22008" or "22P02")
+        catch (PostgresException error) when (error.SqlState is "42501" or "23505" or "23503" or "23502" or "23514" or "22001" or "22023" or "22007" or "22008" or "22P02" or "55000" or "40001")
         {
-            throw new WebAdminException(error.SqlState switch { "42501" => 403, "23505" => 409, _ => 422 },
+            throw new WebAdminException(error.SqlState switch { "42501" => 403, "23505" or "23503" or "40001" => 409, "55000" => 503, _ => 422 },
                 "academy_office_request_rejected", "The Academy office request could not be applied.");
         }
     }

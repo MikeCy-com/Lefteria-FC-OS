@@ -23,6 +23,7 @@ const routes = [
   { name:'academy-philosophy', path:'/academy/philosophy', expectedStatus:200 },
   { name:'about', path:'/about', expectedStatus:200 },
   { name:'contact', path:'/contact', expectedStatus:200 },
+  { name:'academy-registration', path:'/academy/registration', expectedStatus:200 },
   { name:'privacy', path:'/privacy', expectedStatus:200 },
   { name:'web-app-access', path:'/login', expectedStatus:200 },
   { name:'app-login', path:'/app/login', expectedStatus:200 },
@@ -32,6 +33,8 @@ const viewports = [
   { name:'phone', width:390, height:844 },
   { name:'tablet', width:768, height:1024 },
   { name:'desktop', width:1440, height:900 },
+  // Actual reference compositions supplied by the club (desktop 1672×941).
+  { name:'reference', width:1672, height:941 },
   { name:'4k', width:3840, height:2160 }
 ];
 
@@ -363,6 +366,7 @@ try {
       const response = await page.goto(url, { waitUntil:'domcontentloaded', timeout:30000 });
       await page.locator('body').waitFor();
       if (route.name === 'admin-login') await page.getByTestId('admin-login-username').waitFor();
+      if (route.name === 'app-login') await page.getByTestId('phone-step').waitFor();
       await page.evaluate(() => document.fonts.ready);
       const typography = await page.evaluate(async () => {
         const faces = await document.fonts.load('italic 800 32px "Fira Sans Extra Condensed"', 'ΛΕΥΤΕΡΙΑ');
@@ -396,16 +400,158 @@ try {
             failures.push(route.path+' '+viewport.name+': measured original heading '+originalSize+'px vs '+publicFont.headlineSize+'px');
         }
       }
+      // Public footer navigation is contextual: Academy pages cannot inherit
+      // the First Team's single-city banner or links to its roster/results.
+      if(route.name === 'academy' || route.name === 'first-team'){
+        const footer = page.getByTestId('footer');
+        const footerScope = await footer.getAttribute('data-organization');
+        const bannerLabel = (await page.getByTestId('public-city-banner').locator('strong').innerText()).trim();
+        if(route.name === 'academy'){
+          if(footerScope !== 'lefteria_fc_academy' || bannerLabel !== 'ΑΚΑΔΗΜΙΑ' ||
+              await page.getByTestId('footer-nav-team').count() !== 0 ||
+              await page.getByTestId('footer-nav-groups').count() !== 1)
+            failures.push('Academy: footer must keep verified Academy city/link scope '+JSON.stringify({footerScope,bannerLabel}));
+        }else if(footerScope !== 'lefteria_fc' || bannerLabel !== 'ΛΕΜΕΣΟΣ' ||
+            await page.getByTestId('footer-nav-team').count() !== 1){
+          failures.push('First Team: footer must keep First Team navigation '+JSON.stringify({footerScope,bannerLabel}));
+        }
+      }
       const metrics = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         clientWidth:document.documentElement.clientWidth,
         title:document.title,
         main:document.querySelectorAll('main').length
       }));
+      // Source reference pictures are 1672×941. Measure actual browser
+      // geometry against their major visible regions without pretending
+      // that bounds alone establish photographic/pixel parity.
+      let referenceLayout = null;
+      if (viewport.name === 'reference' &&
+          ['admin-login','app-login','academy-registration','home','contact','first-team'].includes(route.name)) {
+        referenceLayout = await page.evaluate(kind => {
+          const rect = selector => {
+            const element = document.querySelector(selector);
+            if (!element) return null;
+            const r = element.getBoundingClientRect();
+            return {x:Math.round(r.x),y:Math.round(r.y),
+              width:Math.round(r.width),height:Math.round(r.height),
+              bottom:Math.round(r.bottom),right:Math.round(r.right)};
+          };
+          const result = {
+            viewport:{width:innerWidth,height:innerHeight},
+            documentHeight:document.documentElement.scrollHeight,
+            adminHeader:rect('.admin-access-header'),
+            adminStory:rect('.admin-signin-story'),
+            adminPanel:rect('.admin-signin-grid>.admin-panel'),
+            adminAction:rect('[data-testid="admin-login-submit"]'),
+            adminFooter:rect('.admin-access-footer'),
+            memberSidebar:rect('.login-sidebar'),
+            memberTopbar:rect('.login-topbar'),
+            memberWelcome:rect('.login-welcome'),
+            memberPanel:rect('.login-form-panel'),
+            memberRoles:rect('.login-audience-grid'),
+            memberAction:rect('[data-testid="request-otp-btn"]'),
+            memberBenefits:rect('.login-benefits'),
+            registrationSteps:rect('[data-testid="step-indicator"]'),
+            registrationCard:rect('[data-testid="form-card"]'),
+            hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
+            publicRail:rect('.public-rail'),
+            publicTopbar:rect('.public-header'),
+            homeFixture:rect('[data-testid="public-hero-fixture"]'),
+            homeTiles:rect('[data-testid="public-destinations"]'),
+            homeMotto:rect('[data-testid="home-brand-interval"]'),
+            homeNews:rect('[data-testid="public-home-news"]'),
+            teamHeading:rect('.team-heading:not(.matches-reference-heading)'),
+            teamCover:rect('[data-testid="team-heading-photo"]'),
+            teamTabs:rect('.team-heading .team-tabs')
+          };
+          if (kind === 'app-login') result.roleButtons =
+            document.querySelectorAll('.login-audience-grid button').length;
+          return result;
+        },route.name);
+        if (route.name==='home') {
+          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+            homeMotto:motto,homeNews:news}=referenceLayout;
+          if(!hero||!rail||!top||!tiles||!motto||!news){
+            failures.push('home 1672×941: one or more reference sections are missing');
+          }else{
+            if(rail.width<150||rail.width>160)
+              failures.push('home: club rail should be 154px wide (actual '+rail.width+')');
+            if(top.height<60||top.height>68)
+              failures.push('home: reference topbar should be 64px tall (actual '+top.height+')');
+            if(hero.y<59||hero.y>70||hero.height<400||hero.height>440)
+              failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
+            if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
+              failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
+            if(!fixture || fixture.width<300 || fixture.height<200)
+              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition '+JSON.stringify(fixture));
+            if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
+              failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
+            if(motto.y<news.bottom-2||motto.y>news.bottom+32)
+              failures.push('home: compact club motto should immediately follow CMS news');
+            if(news.y>900)
+              failures.push('home: CMS news must be visible above the desktop reference fold');
+            if(Math.abs(top.x-rail.width)>2)
+              failures.push('home: topbar should begin at the rail boundary');
+          }
+        }
+        if (route.name==='first-team') {
+          const {teamHeading,teamCover,teamTabs}=referenceLayout;
+          if(!teamHeading||!teamCover||!teamTabs ||
+            teamHeading.height<320 ||
+            teamCover.height<teamHeading.height-2 ||
+            teamCover.width<teamHeading.width-2 ||
+            teamTabs.height<44 ||
+            teamTabs.bottom>teamHeading.bottom+4) {
+            failures.push('first-team: photographic club hero and working tabs are not aligned '+JSON.stringify({teamHeading,teamCover,teamTabs}));
+          }
+        }
+        if (route.name==='admin-login') {
+          const {adminHeader:header,adminPanel:panel,adminAction:action,adminFooter:footer,documentHeight} = referenceLayout;
+          if (!header||!panel||!action||!footer)
+            failures.push('admin login 1672×941: missing reference sections');
+          else {
+            if (header.height<50||header.height>85)
+              failures.push('admin login: reference topbar differs sharply in height');
+            if (panel.x<825 || panel.width<560 || panel.x+panel.width>1680)
+              failures.push('admin login: right login panel is not in the reference column');
+            if (panel.y>150 || panel.bottom>875)
+              failures.push('admin login: panel obscured below the reference viewport');
+            if (action.bottom>890)
+              failures.push('admin login: submit action requires the user to scroll');
+            if (footer.y>910)
+              failures.push('admin login: bottom support/footer strip is below the viewport');
+            if (documentHeight>viewport.height+3)
+              failures.push('admin login: page scrolls in reference desktop viewport ('+documentHeight+' > '+viewport.height+')');
+          }
+        }
+        if (route.name==='app-login') {
+          const {memberSidebar:rail,memberTopbar:top,memberWelcome:welcome,
+            memberPanel:panel,memberRoles:roles,memberAction:action,memberBenefits:benefits,roleButtons} = referenceLayout;
+          if(!rail||!top||!welcome||!panel||!roles||!action||!benefits)
+            failures.push('member login: missing photographic/role or benefits reference sections');
+          else {
+            if(rail.width<140||rail.width>160)
+              failures.push('member login: reference vertical club navigation is not ~154px');
+            if(top.height<50||top.height>85)
+              failures.push('member login: top header height is not the reference size');
+            if(panel.x<800||panel.width<570||panel.right>1672)
+              failures.push('member login: role/OTP form outside the reference right column');
+            if(panel.y>180||roles.y>410)
+              failures.push('member login: role choices not visible at top of form');
+            if(roleButtons!==3)
+              failures.push('member login: missing one of the three photographic audience cards');
+            if(action.bottom>850)
+              failures.push('member login: OTP request is below first reference viewport');
+            if(benefits.y>960)
+              failures.push('member login: reference app benefits section pushed below the fold');
+          }
+        }
+      }
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,referenceLayout,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);

@@ -8,6 +8,7 @@ const grants=read('ops/postgres/academy-evaluation-admin-grants.sql');
 const panel=read('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
 const roster=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
 const groups=read('frontend/src/routes/admin/groups/+page.svelte');
+const workspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 
 test('evaluation creation is idempotent and bound to a current assigned player',()=>{
   assert.match(sql,/PRIMARY KEY \(organization_id,request_id\)/);
@@ -52,7 +53,8 @@ test('player-panel creation follows roster and exact manager write permissions',
   assert.match(panel,/allowCreate/);
   assert.match(roster,/AdminPlayerPrivateRecordsPanel/);
   assert.match(roster,/currentGroups\(player\)\.length>0/);
-  assert.match(groups,/allowEvaluationWrite=/);
-  assert.match(groups,/teams:write/);
-  assert.match(groups,/academy:write/);
+  assert.match(groups,/AdminGroupWorkspace/);
+  assert.match(workspace,/allowEvaluationWrite=/);
+  assert.match(workspace,/teams:write/);
+  assert.match(workspace,/academy:write/);
 });

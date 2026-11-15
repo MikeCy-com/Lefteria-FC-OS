@@ -356,3 +356,140 @@
   }
   .public-site .home-reference [data-testid="public-home-news"] .public-news-card:not(:first-child) .public-news-body p {display:none;}
 }
+
+/* Club-supplied 1672×941 HOME screenshot: topbar 64px, 410px cinema,
+   105px photographic tiles, and deliberate black motto section. This
+   corrects page geometry, not verified original photo pixels. */
+.public-site .home-reference .home-brand-interval{
+  position:relative;min-height:clamp(70px,6vw,108px);
+  background:linear-gradient(180deg,#080909,#070909 76%,#0d0e0d);
+  display:flex;flex-direction:column;justify-content:flex-end;
+  overflow:hidden;padding:18px clamp(24px,3vw,50px) 20px;
+  isolation:isolate;
+}
+.public-site .home-reference .home-brand-interval::before,
+.public-site .home-reference .home-brand-interval::after{
+  content:"";position:absolute;pointer-events:none;
+  bottom:0;width:70px;height:72px;
+  background:linear-gradient(115deg,transparent 12%,#333 12% 32%,transparent 32% 42%,
+    #dda122 42% 73%,#ffcc4f 73% 80%,transparent 80%);
+  transform:skew(-23deg);
+  opacity:.94;z-index:-1;
+}
+.public-site .home-reference .home-brand-interval::before{left:10px}
+.public-site .home-reference .home-brand-interval::after{right:10px;transform:skew(-23deg) scaleX(-1)}
+.public-site .home-reference .home-brand-bottom{
+  width:100%;max-width:1110px;margin:0 auto;
+  display:flex;gap:clamp(14px,1.8vw,30px);align-items:center;
+}
+.public-site .home-reference .home-brand-motto{
+  flex:none;white-space:nowrap;color:#fff;
+  font:italic 900 clamp(22px,2.25vw,36px)/1 'Fira Sans Extra Condensed',sans-serif;
+  text-align:center;text-shadow:0 2px 14px #000;
+}
+.public-site .home-reference .home-brand-motto>span{color:#f6bb38;font-size:.82em;padding-inline:8px}
+.public-site .home-reference .home-brand-stripe{
+  display:block;flex:1;min-width:18px;height:2px;
+  background:linear-gradient(90deg,transparent,#ffcc51 25%,#f3b424);
+  box-shadow:0 0 8px #f6bb3866;
+}
+.public-site .home-reference .home-brand-stripe:last-child{
+  transform:scaleX(-1);
+}
+@media(min-width:1200px){
+  .public-site .home-reference .public-hero-stage{
+    min-height:408px;height:clamp(408px,24.5vw,860px);
+    padding:clamp(18px,1.5vw,52px) clamp(27px,4vw,90px) clamp(31px,2.8vw,72px);
+    align-items:center;gap:clamp(15px,2vw,34px);
+  }
+  .public-site .home-reference .public-hero-stage::after{
+    content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
+    background:linear-gradient(113deg,transparent 7%,#b679100c 7% 10%,
+      #d8991c30 10% 11%,transparent 12% 60%,#ffdb6b14 61% 62%,transparent 65%);
+  }
+  .public-site .home-reference .public-hero-copy{
+    width:min(53%,650px);max-width:700px;flex:1 1 auto;
+    margin-top:0;padding-bottom:0;min-width:0;
+  }
+  .public-site .home-reference .public-hero-copy h1{
+    font-size:clamp(58px,4.0vw,142px);
+    line-height:.9;min-height:2.72em;max-width:900px;
+    margin:0 0 clamp(10px,.9vw,25px);
+    text-shadow:0 4px 18px #000e;
+  }
+  .public-site .home-reference .public-hero-copy .public-eyebrow{
+    font-size:clamp(18px,1.5vw,36px);margin:0 0 8px;
+  }
+  .public-site .home-reference .public-hero-description{
+    min-height:0;font-size:clamp(13px,.92vw,20px);
+    line-height:1.28;margin:0 0 clamp(9px,1vw,24px);
+    max-width:46ch;
+  }
+  .public-site .home-reference .public-hero-actions{gap:12px}
+  .public-site .home-reference .public-hero-actions .public-button{
+    min-height:42px;padding:10px 18px;
+    font-size:clamp(13px,1vw,20px);
+  }
+  .public-site .home-reference .public-hero-fixture{
+    width:clamp(345px,29vw,540px);flex:0 0 clamp(345px,29vw,540px);
+    align-self:center;margin:0;padding:clamp(13px,1.1vw,22px);
+    border:1px solid #b3b4ae;border-radius:2px;
+    background:linear-gradient(115deg,#131617eb,#090b0bec 70%,#252218c7);
+  }
+  .public-site .home-reference .public-fixture-heading{font-size:clamp(18px,1.6vw,29px);padding-bottom:8px}
+  .public-site .home-reference .public-fixture-competition{margin:6px 0 1px}
+  .public-site .home-reference .public-fixture-teams{padding:3px 0 8px}
+  .public-site .home-reference .public-fixture-teams>div>div{width:clamp(60px,4.8vw,100px);height:clamp(60px,4.8vw,100px)}
+  .public-site .home-reference .public-fixture-teams strong{font-size:clamp(15px,1.15vw,24px);margin-top:5px}
+  .public-site .home-reference .public-fixture-meta{padding:8px 0}
+  .public-site .home-reference .public-countdown{margin:4px 0 11px;gap:9px}
+  .public-site .home-reference .public-countdown>div{padding:5px 3px}
+  .public-site .home-reference .public-countdown strong{font-size:clamp(25px,1.65vw,40px)}
+  .public-site .home-reference .public-fixture-details{min-height:41px;font-size:clamp(14px,1vw,20px);padding:8px 12px}
+  .public-site .home-reference .public-hero-bottom{
+    left:clamp(27px,4vw,90px);right:clamp(27px,4vw,90px);
+    bottom:9px;justify-content:flex-end;
+  }
+  .public-site .home-reference .public-hero-bottom .public-hero-motto{display:none}
+  .public-site .home-reference .public-destinations{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:7px;padding:0 8px 0;margin:0;
+    background:#080909;align-items:stretch;
+  }
+  .public-site .home-reference .public-destination{
+    min-height:105px;height:105px;aspect-ratio:auto;
+    padding:10px 35px 8px 47%;border-radius:3px;
+    clip-path:polygon(8% 0,100% 0,92% 100%,0 100%);
+    border:1px solid #60605f;
+  }
+  .public-site .home-reference .public-destination>div{
+    max-width:100%;width:100%;padding:0;
+  }
+  .public-site .home-reference .public-destination img{
+    width:55%;max-height:100%;object-fit:cover;
+  }
+  .public-site .home-reference .public-destination::before{
+    background:linear-gradient(100deg,transparent 17%,#0a0b0b85 39%,#0a0b0b 53%);
+  }
+  .public-site .home-reference .public-destination h2{
+    font-size:clamp(19px,1.55vw,31px);margin:0;
+    line-height:1.02;text-wrap:nowrap;
+  }
+  .public-site .home-reference .public-destination p{font-size:11px;line-height:1.25;margin:4px 0 0}
+  .public-site .home-reference .destination-category-icon{margin:0 0 3px}
+  .public-site .home-reference .destination-category-icon :is(svg){width:22px;height:22px}
+}
+@media(min-width:1200px) and (max-width:1450px){
+  .public-site .home-reference .public-hero-copy h1{font-size:56px}
+  .public-site .home-reference .public-hero-fixture{flex-basis:335px;width:335px}
+  .public-site .home-reference .public-destination{padding-left:43%}
+  .public-site .home-reference .public-destination h2{font-size:18px}
+}
+@media(max-width:767px){
+  .public-site .home-reference .home-brand-interval{
+    min-height:76px;padding:17px 17px;
+  }
+  .public-site .home-reference .home-brand-motto{font-size:20px}
+  .public-site .home-reference .home-brand-interval::before,
+  .public-site .home-reference .home-brand-interval::after{width:25px;height:35px}
+}

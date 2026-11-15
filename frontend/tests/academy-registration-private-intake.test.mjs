@@ -20,14 +20,15 @@ test('privacy: explicit refusal and sealed sensitive evidence',()=>{
   assert.match(migration,/registration_sealed_evidence ENABLE ROW LEVEL SECURITY/);
   assert.doesNotMatch(migration,/allergies_details|signature_data varchar|signature_data text/i);
 });
-test('new database surfaces are default-deny, with no public intake claim',()=>{
+test('private evidence stays default-deny and public workflow has guarded submission',()=>{
   for(const name of ['registrations','registration_consents','registration_sealed_evidence','registration_review_events'])
     assert.ok(migration.includes('academy_intake.'+name+' ENABLE ROW LEVEL SECURITY'),name);
   assert.match(migration,/REVOKE ALL ON ALL TABLES IN SCHEMA academy_intake FROM PUBLIC/);
   assert.doesNotMatch(migration,/GRANT (?:SELECT|INSERT|UPDATE|DELETE|EXECUTE)|CREATE POLICY/i);
-  assert.match(publicRoute, /<fieldset disabled/);
-  assert.doesNotMatch(publicRoute, /<form|type="submit"|fetch\(/);
-  assert.match(publicRoute, /https:\/\/lefteriafc\.cy\/academy\/registration/);
+  assert.match(publicRoute,/data-testid="step-5"/);
+  assert.match(publicRoute,/data-testid="submit-btn"/);
+  assert.match(publicRoute,/fetch\('/);
+  assert.doesNotMatch(publicRoute,/<fieldset disabled(?:\s|>)/);
 });
 test('review and source imports have structural replay barriers',()=>{
   assert.match(migration,/CREATE UNIQUE INDEX uq_academy_registration_legacy/);

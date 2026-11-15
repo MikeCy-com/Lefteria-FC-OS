@@ -4,15 +4,15 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL('../src/lib/' + path, import.meta.url), 'utf8');
 
-test('public header button matches live: tickets label linking to the real shop page', () => {
+test('public header button matches its actual shop destination', () => {
   const navigation = read('public/PublicNavigation.svelte');
-  assert.match(navigation, /href="\/shop"[^\n]*data-testid="public-tickets-link">ΕΙΣΙΤΗΡΙΑ/);
+  assert.match(navigation, /href="\/shop"[^\n]*data-testid="public-tickets-link">ΚΑΤΑΣΤΗΜΑ/);
 });
 
 test('admin differentiates public website from authenticated member app', () => {
   const admin = read('admin/AdminFrame.svelte');
-  assert.match(admin, /href="\/" aria-label="Προβολή δημόσιας ιστοσελίδας"/);
-  assert.match(admin, /href="\/app" aria-label="Άνοιγμα εφαρμογής μελών"/);
+  assert.match(admin, /href="\/" aria-label="Δημόσια ιστοσελίδα"/);
+  assert.match(admin, /href="\/app" aria-label="Εφαρμογή μελών"/);
   assert.match(admin, /adminSectionsFor\(user\)/);
   assert.doesNotMatch(admin, /data-testid="admin-header-organization"/);
   assert.match(admin, /data-testid="admin-logout"/);

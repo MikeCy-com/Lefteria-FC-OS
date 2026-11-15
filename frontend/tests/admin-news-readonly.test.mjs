@@ -40,11 +40,11 @@ test('website news appears only for an assigned news reader in the admin menu', 
     organizations:organizations.map(id => ({id,name:id}))
   });
   const get = user => adminSectionsFor(user).flatMap(group => group.modules);
-  assert.equal(get(session(['news:*'], ['lefteria_fc']))[0]?.href, '/admin/news');
-  assert.equal(get(session(['news:*'], ['lefteria_fc_academy']))[0]?.href, '/admin/news');
+  assert.equal(get(session(['news:*'], ['lefteria_fc'])).find(x=>x.id==='news')?.href, '/admin/news');
+  assert.equal(get(session(['news:*'], ['lefteria_fc_academy'])).find(x=>x.id==='news')?.href, '/admin/news');
   assert.ok(!get(session(['news:*'], [])).length);
   assert.ok(!get(session(['gallery:*'], ['lefteria_fc'])).some(x=>x.id==='news'));
   assert.ok(!get(session(['settings:read'], ['lefteria_fc'])).some(x=>x.id==='news'));
   assert.ok(read('lib/admin/AdminFrame.svelte').includes('href="/admin/news"'));
-  assert.ok(read('lib/admin/AdminWorkspace.svelte').includes('href="/admin/news"'));
+  assert.ok(read('lib/admin/AdminWorkspace.svelte').includes("href:'/admin/news'"));
 });

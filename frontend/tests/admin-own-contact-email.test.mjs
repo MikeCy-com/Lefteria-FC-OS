@@ -1,0 +1,57 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
+const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
+const ui=read('frontend/src/routes/admin/profile/+page.svelte');
+const api=read('backend/src/LefteriaFc.Api/WebAdmin/AdminContactEmailEndpoints.cs');
+const auth=read('backend/src/LefteriaFc.Api/WebAdmin/WebAdminEndpoints.cs');
+const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115280000_AdminContactEmail.cs');
+const grants=read('ops/postgres/web-admin-auth-grants.sql');
+const policy=read('ops/postgres/web-admin-auth-permissions-check.sql');
+const boundary=read('ops/postgres/admin-contact-email-boundary.sql');
+
+test('admin contact email is a separate self-only API and never an auth/recovery address',()=>{
+  assert.match(auth,/MapAdminContactEmail\(\)/);
+  assert.match(api,/MapGet\("\/api\/admin\/auth\/profile\/contact-email"/);
+  assert.match(api,/MapPost\("\/api\/admin\/auth\/profile\/contact-email"/);
+  assert.equal((api.match(/RequireAuthorization\(WebAdminServices\.Policy\)/g)||[]).length,2);
+  assert.match(api,/service\.CurrentAsync\(cookie,token\)/);
+  assert.match(api,/account\.Id!=session\.User\.Id/);
+  assert.match(api,/verifier\.VerifyAsync\(request\.CurrentPassword,account\.PasswordHash,token\)/);
+  assert.match(api,/secrets\.TokenDigest\(cookie\)/);
+  assert.match(api,/new \{email,verified=false\}/);
+  assert.match(api,/new \{updated=true,email,verified=false\}/);
+  assert.doesNotMatch(api,/MapDelete|user_id|organization_id|password_reset|recovery_email|TokenIssuer|SendEmail|SMTP|MailKit/);
+  assert.match(sql,/unverified_contact_email/);
+  assert.doesNotMatch(sql,/login_email|password_reset_email|email_verified_at|email_verified=true/);
+});
+test('contact email DB update requires current account/session/password hash and is audited',()=>{
+  assert.match(sql,/LANGUAGE plpgsql VOLATILE SECURITY DEFINER/);
+  assert.match(sql,/SET search_path=pg_catalog,pg_temp/);
+  assert.match(sql,/WHERE a\.id=v_account FOR UPDATE/);
+  assert.match(sql,/s\.revoked_at IS NULL AND s\.expires_at>clock_timestamp\(\) FOR UPDATE/);
+  assert.match(sql,/v_hash<>_expected_hash/);
+  assert.match(sql,/UPDATE identity\.admin_accounts/);
+  assert.match(sql,/admin\.profile\.contact_email/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION identity\.read_admin_own_contact_email/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION identity\.read_admin_own_contact_email/);
+  assert.match(policy,/identity\.write_admin_own_contact_email\(text,text,text\)/);
+  assert.match(policy,/\\ir admin-contact-email-boundary\.sql/);
+  assert.match(boundary,/has_column_privilege\(current_user,'identity\.admin_accounts'/);
+  assert.match(boundary,/read accepted non-existent session/);
+  assert.match(boundary,/mutation accepted non-existent session/);
+});
+test('real admin Profile form displays only verified server state, labels unverified addresses',()=>{
+  assert.ok(compile(ui,{filename:'routes/admin/profile/+page.svelte',generate:'server'}).js.code.length>100);
+  assert.match(ui,/data-testid="admin-self-contact-email-form"/);
+  assert.match(ui,/fetch\('\/api\/admin\/auth\/profile\/contact-email'/);
+  assert.match(ui,/emailLoaded=false/);
+  assert.match(ui,/raw\.verified!==false/);
+  assert.match(ui,/raw\.updated!==true/);
+  assert.match(ui,/current_password:secret/);
+  assert.match(ui,/μη επαληθευμένο στοιχείο προφίλ/);
+  assert.match(ui,/data-testid="admin-self-photo-form"/);
+  assert.match(ui,/η εικόνα είναι ιδιωτική|Η φωτογραφία είναι ιδιωτική/);
+  assert.doesNotMatch(ui,/@html|innerHTML|localStorage|sessionStorage/);
+});

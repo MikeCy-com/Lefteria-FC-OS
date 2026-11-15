@@ -28,6 +28,8 @@ using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Api.Crm;
 using LefteriaFc.Api.Payabl;
 using LefteriaFc.Api.Football;
+using LefteriaFc.Api.Finance;
+using LefteriaFc.Api.Marketing;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -190,9 +192,12 @@ app.MapFirstTeamTrialPublic();
 app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapPublicMedia();
+app.MapAcademyRegistration();
+app.MapAcademyIntakeAdmin();
 app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminNewsDrafts();
+app.MapWebsitePages();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
@@ -217,6 +222,7 @@ app.MapMobilePlayerWeeklyQuiz();
 app.MapMobileFanPayabl();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
+app.MapAdminPlayerDevelopmentGoals();
 app.MapAdminAcademyDocuments();
 app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
@@ -225,6 +231,11 @@ app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
 app.MapAdminFootballTerritories();
 app.MapAdminFootballTerritoryAccess();
+app.MapAdminAcademyLocationFinance();
+app.MapAdminFinanceOverview();
+app.MapAdminSupplierBills();
+app.MapAdminSupplierPayments();
+app.MapAdminSupplierCredits();
 
 if (app.Environment.IsDevelopment())
 {

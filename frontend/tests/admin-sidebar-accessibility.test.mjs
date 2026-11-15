@@ -34,7 +34,7 @@ test('admin navigation retains keyboard focus, selected page contrast and permis
   const frame = read('AdminFrame.svelte');
   assert.match(frame, /aria-label="Διαχείριση συλλόγου"/);
   assert.match(frame, /href="#admin-main"/);
-  assert.match(frame, /aria-current=\{active === 'account'/);
+  assert.match(frame, /aria-current=\{active==='account'/);
   assert.match(frame, /adminSectionsFor\(user\)/);
   assert.match(frame, /canReadClub\(user\)/);
   assert.match(frame, /canViewFirstTeamTrials\(user\)/);

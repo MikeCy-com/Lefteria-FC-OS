@@ -140,6 +140,40 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     const landingHtml=render(Landing,{props:{data:list}}).body;
     assert.ok(landingHtml.includes(academyGroupLink(group)));
     assert.match(landingHtml,/href="\/academy\/groups"/);
+
+    // Legacy free-text city and location names are not verified geographic
+    // assignments; retain the published group while labelling it unassigned.
+    assert.match(landingHtml,/data-testid="academy-landing-unassigned-groups"/);
+    assert.match(landingHtml,/data-organization="lefteria_fc_academy"/);
+    assert.match(landingHtml,/ΚΑΘΕ ΠΟΛΗ/);
+    assert.match(landingHtml,/footer-nav-groups/);
+    assert.match(landingHtml,/footer-nav-sponsors/);
+    assert.doesNotMatch(landingHtml,/footer-nav-team/);
+    assert.doesNotMatch(landingHtml,/data-testid="academy-landing-verified-city"/);
+    assert.doesNotMatch(landingHtml,/Άλλη περιοχή/);
+    assert.doesNotMatch(landingHtml,/Other group sentinel|Unassigned fixture sentinel|First-team fixture sentinel/);
+
+    const cityGroup={...group,id:'verified-lemesos',name:'U10 Λεμεσός',
+      city_id:'verified-city-lemesos',city:'Λεμεσός',city_slug:'lemesos',
+      location_id:'verified-location-limassol',location_name:'Πολεμίδια',location_slug:'polemidia'};
+    const secondCityGroup={...group,id:'verified-pafos',name:'U14 Πάφος',
+      city_id:'verified-city-pafos',city:'Πάφος',city_slug:'pafos',
+      location_id:'verified-location-pafos',location_name:'Κέντρο Πάφου',location_slug:'kentron'};
+    const legacyUnassigned={...group,id:'legacy-pafos',name:'Legacy Pafos U12',
+      city:'Πάφος',location_name:'Κέντρο Πάφου'};
+    const mixedHtml=render(Landing,{props:{data:{...list,
+      site:{...list.site,academy_groups:[cityGroup,secondCityGroup,legacyUnassigned]}}}}).body;
+    assert.equal((mixedHtml.match(/data-testid="academy-landing-verified-city"/g)??[]).length,2);
+    assert.equal((mixedHtml.match(/data-testid="academy-landing-verified-location"/g)??[]).length,2);
+    assert.match(mixedHtml,/href="#academy-landing-city-lemesos"/);
+    assert.match(mixedHtml,/href="#academy-landing-city-pafos"/);
+    assert.match(mixedHtml,/href="\/academy\/groups#academy-city-lemesos"/);
+    assert.match(mixedHtml,/id="academy-landing-location-lemesos-polemidia"/);
+    assert.match(mixedHtml,/Legacy Pafos U12/);
+    assert.match(mixedHtml,/data-testid="academy-landing-unassigned-groups"/);
+    assert.match(mixedHtml,/2 πόλεις · 2 τοποθεσίες/);
+    assert.doesNotMatch(mixedHtml,/Άλλη περιοχή|Other group sentinel|Unassigned fixture sentinel|First-team fixture sentinel/);
+
     const {load:landingLoad}=await import('../src/routes/academy/+page.server.ts');
     const withStats=await landingLoad({url:new URL('https://fixture.test/academy')});
     const withStatsHtml=render(Landing,{props:{data:withStats}}).body;
