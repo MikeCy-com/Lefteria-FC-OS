@@ -583,7 +583,7 @@ try {
           if(!contextText.includes('Ακαδημία'))
             failures.push('Academy search context is not Academy-scoped on '+viewport.name);
           await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
-          if(await page.getByTestId('public-search-result-matches-results').count()!==0)
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==0)
             failures.push('Academy search exposed First Team results on '+viewport.name);
           await input.fill('Ηλικιακά τμήματα');
           if(await page.getByTestId('public-search-result-academy-groups').count()!==1)
@@ -592,7 +592,7 @@ try {
           if(!contextText.includes('Πρώτη ομάδα'))
             failures.push('First Team search context is not club-scoped on '+viewport.name);
           await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
-          if(await page.getByTestId('public-search-result-matches-results').count()!==1)
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==1)
             failures.push('First Team search lost verified match results link on '+viewport.name);
           await input.fill('Ηλικιακά τμήματα');
           if(await page.getByTestId('public-search-result-academy-groups').count()!==0)
