@@ -19,6 +19,6 @@
 </svelte:head>
 <div class="public-site" lang="el" data-organization={organization} data-route={page.route?.id ?? page.url?.pathname} data-testid="public-site">
   <PublicNavigation {club} {organization} groups={navigationGroups} />
-  <div class="public-content"><main id="public-main" class="public-main" tabindex="-1" data-testid="public-main">{@render children()}</main><PublicFooter {club} /></div>
+  <div class="public-content"><main id="public-main" class="public-main" tabindex="-1" data-testid="public-main">{@render children()}</main><PublicFooter {club} {organization} /></div>
 </div>
 <CookieConsent />
