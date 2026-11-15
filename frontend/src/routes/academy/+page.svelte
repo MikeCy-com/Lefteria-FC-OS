@@ -67,24 +67,24 @@
   </section>
   
   <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
-  {#snippet ageCard(group: PublicGroup)}
-    <article class="academy-age-card">
-      <PublicImage src={group.banner_url || publicImages.academy} alt="" />
-      <div class="academy-age-caption">
-        <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
-        <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
-        {#if group.season}<span>{group.season}</span>{/if}
-        <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
-      </div>
-      {#if group.description || group.training_schedule}
-      <details class="academy-age-details">
-        <summary>Περισσότερες πληροφορίες</summary>
-      {#if group.description}<p>{group.description}</p>{/if}
-        {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
-      </details>
-      {/if}
-    </article>
-          {/snippet}
+    {#snippet ageCard(group: PublicGroup)}
+      <article class="academy-age-card">
+        <PublicImage src={group.banner_url || publicImages.academy} alt="" />
+        <div class="academy-age-caption">
+          <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
+          <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
+          {#if group.season}<span>{group.season}</span>{/if}
+          <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
+        </div>
+        {#if group.description || group.training_schedule}
+          <details class="academy-age-details">
+            <summary>Περισσότερες πληροφορίες</summary>
+            {#if group.description}<p>{group.description}</p>{/if}
+            {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
+          </details>
+        {/if}
+      </article>
+    {/snippet}
     <div class="academy-age-heading">
       <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
       <a href="/academy/groups">ΔΕΙΤΕ ΟΛΑ ΤΑ ΤΜΗΜΑΤΑ <PublicIcon name="arrow" size={17}/></a>
@@ -118,6 +118,7 @@
         <section class="academy-unassigned-block" aria-labelledby="academy-landing-unassigned" data-testid="academy-landing-unassigned-groups">
           <h3 id="academy-landing-unassigned">ΤΜΗΜΑΤΑ ΧΩΡΙΣ ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΤΟΠΟΘΕΣΙΑ</h3>
           <p>Τα δημοσιευμένα τμήματα εμφανίζονται εδώ μέχρι να αντιστοιχιστούν από τη διοίκηση σε επίσημη πόλη και τοποθεσία.</p>
+          <h4 class="sr-only">Δημοσιευμένα τμήματα χωρίς τοποθεσία</h4>
           <div class="academy-age-grid">
             {#each academyTerritory.unassigned as group (group.id)}
               {@render ageCard(group)}
