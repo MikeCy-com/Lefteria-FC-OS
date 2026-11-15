@@ -64,6 +64,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/office/registrations/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["EnrollAcademyRegistration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/registrations/review": {
         parameters: {
             query?: never;
@@ -3424,6 +3440,22 @@ export interface components {
             /** Format: int32 */
             version: number | string;
         };
+        Enrollment: {
+            /** Format: uuid */
+            city_id: string;
+            group_id: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            location_id: string;
+            /** Format: int32 */
+            number: number | string;
+            position: string;
+            /** Format: uuid */
+            request_id: string;
+            /** Format: int32 */
+            version: number | string;
+        };
         FamilyChildDto: {
             academy_group_ids: string[];
             id: string;
@@ -5045,6 +5077,28 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["Registration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    EnrollAcademyRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Enrollment"];
             };
         };
         responses: {
