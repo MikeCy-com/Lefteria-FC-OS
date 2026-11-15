@@ -1,10 +1,35 @@
+import { publicSlug } from './public-urls';
 export type CatalogKind = 'events' | 'partners' | 'sponsors' | 'seasons';
 export type CatalogScope = 'first_team' | 'academy' | null;
 export const catalogTitles: Record<CatalogKind, string> = { events: 'ΕΚΔΗΛΩΣΕΙΣ', partners: 'ΟΙ ΣΥΝΕΡΓΑΤΕΣ ΜΑΣ', sponsors: 'ΟΙ ΧΟΡΗΓΟΙ ΜΑΣ', seasons: 'ΠΑΛΑΙΟΤΕΡΕΣ ΣΕΖΟΝ' };
 export function catalogScopeLabel(value: string) { return value === 'lefteria_fc_academy' ? 'ΑΚΑΔΗΜΙΑ' : 'ΠΡΩΤΗ ΟΜΑΔΑ'; }
 export function catalogHref(kind: CatalogKind, row: { id: string; organization_id: string }, title: string) {
-  const slug = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR').replace(/[^a-z0-9α-ω]+/g, '-').slice(0, 70).replace(/^-+|-+$/g, '');
+  const slug = publicSlug(title).slice(0,70).replace(/-+$/g, '');
   return `/${kind}/${slug ? slug + '--' : ''}${encodeURIComponent(row.id)}?scope=${row.organization_id === 'lefteria_fc_academy' ? 'academy' : 'first_team'}`;
+}
+
+
+/** The canonical detail identity always comes from a published API DTO. */
+export function catalogCanonicalDetailLink(kind: CatalogKind, row: {id:string; organization_id:string}, title: string, partnerSlug?: string|null): string {
+  if(kind === 'partners' && partnerSlug && /^[a-z0-9][a-z0-9-]{0,95}$/.test(partnerSlug))
+    return '/partners/' + encodeURIComponent(partnerSlug)
+      + '?scope=' + (row.organization_id === 'lefteria_fc_academy' ? 'academy' : 'first_team');
+  return catalogHref(kind,row,title);
+}
+
+/** Only forward validated list-navigation context, never secrets or arbitrary queries. */
+export function catalogCanonicalRedirect(source: URL, canonical: string): string | null {
+  const target = new URL(canonical,source.origin);
+  if(source.pathname === target.pathname) return null;
+  for(const key of ['list_scope','when','type'] as const) {
+    const value = source.searchParams.get(key);
+    if(value === null) continue;
+    if(key === 'list_scope' && !['academy','first_team','all'].includes(value)) continue;
+    if(key === 'when' && !['upcoming','past','all'].includes(value)) continue;
+    if(key === 'type' && (value.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(value))) continue;
+    target.searchParams.set(key,value);
+  }
+  return target.pathname + target.search;
 }
 
 export function catalogListHref(kind: CatalogKind, scope: CatalogScope, when: 'upcoming' | 'past' | 'all' = 'all', eventType = 'all') {
