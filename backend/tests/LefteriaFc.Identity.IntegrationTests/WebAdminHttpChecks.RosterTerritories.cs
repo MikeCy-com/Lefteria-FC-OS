@@ -179,4 +179,144 @@ internal sealed partial class WebAdminHttpChecks
         }
     }
 
+    private async Task AdminGroupProfileTerritoryBoundaryAsync()
+    {
+        var manager=await database.SeedAsync(role:"manager",
+            organizations:["lefteria_fc","lefteria_fc_academy"]);
+        using var client=Client();
+        var session=await LoginAsync(client,manager);
+        var audience=await database.SeedAudienceAsync();
+        var sites=await database.SeedAnnouncementTerritoriesAsync(audience,manager);
+        var fcOwn="/api/admin/football/first-team-profiles/"+audience.Team1+
+            "?organization_id=lefteria_fc";
+        var fcOther="/api/admin/football/first-team-profiles/"+audience.Team2+
+            "?organization_id=lefteria_fc";
+        var siteOwn="/api/admin/football/academy-group-profiles/"+audience.Group2+
+            "?organization_id=lefteria_fc_academy";
+        var siteOther="/api/admin/football/academy-group-profiles/"+audience.Group1+
+            "?organization_id=lefteria_fc_academy";
+        static object Team(long revision)=>new {
+            expected_revision=revision,level="First Team",
+            description="Verified own-squad profile",banner_url=""
+        };
+        static object Academy(long revision,string description)=>new {
+            expected_revision=revision,age_range="U10",coach_name="",
+            training_schedule="Wednesday",description,
+            max_players=100,season="2026-27",banner_url="",display_order=0
+        };
+        static async Task<HttpResponseMessage> Put(HttpClient http,
+            string cookie,string path,object body)
+        {
+            using var request=Mutation(path,JsonContent.Create(body));
+            request.Method=HttpMethod.Put;
+            request.Headers.Add("Cookie",cookie);
+            return await http.SendAsync(request);
+        }
+
+        try
+        {
+            Console.WriteLine("CHECK profile scope: sibling site and different squad");
+            using(var denied=await GetAsync(client,fcOther,session.Cookie))
+                await ExpectJsonAsync(denied,403,"team_profile_denied");
+            using(var denied=await GetAsync(client,siteOther,session.Cookie))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            using(var denied=await Put(client,session.Cookie,fcOther,Team(0)))
+                await ExpectJsonAsync(denied,403,"team_profile_denied");
+            using(var denied=await Put(client,session.Cookie,siteOther,
+                Academy(0,"Unauthorized write")))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            using(var denied=await Put(client,session.Cookie,
+                siteOther+"/visibility",new{expected_revision=1,is_public=false}))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+
+            Console.WriteLine("CHECK profile scope: authorized reads and writes");
+            using(var own=await GetAsync(client,fcOwn,session.Cookie))
+                Require((await ExpectJsonAsync(own,200))
+                    .GetProperty("revision").GetInt64()==0,
+                    "A manager cannot read their own First Team profile.");
+            using(var own=await GetAsync(client,siteOwn,session.Cookie))
+                Require((await ExpectJsonAsync(own,200))
+                    .GetProperty("revision").GetInt64()==0,
+                    "A location manager cannot read their assigned Academy group.");
+            using(var saved=await Put(client,session.Cookie,fcOwn,Team(0)))
+                Require((await ExpectJsonAsync(saved,200))
+                    .GetProperty("revision").GetInt64()==1,
+                    "First Team profile write did not honor an exact team grant.");
+            using(var saved=await Put(client,session.Cookie,siteOwn,
+                Academy(0,"Authorized site edit")))
+                Require((await ExpectJsonAsync(saved,200))
+                    .GetProperty("revision").GetInt64()==1,
+                    "Academy profile writer did not honor exact assigned location.");
+
+            using(var visibility=await Put(client,session.Cookie,
+                siteOwn+"/visibility",new{expected_revision=1,is_public=false}))
+            {
+                var data=await ExpectJsonAsync(visibility,200);
+                Require(data.GetProperty("revision").GetInt64()==2 &&
+                    !data.GetProperty("is_public").GetBoolean(),
+                    "Location manager could not control their own group publication.");
+            }
+            using(var stale=await Put(client,session.Cookie,
+                siteOwn+"/visibility",new{expected_revision=1,is_public=true}))
+                await ExpectJsonAsync(stale,409,"academy_profile_conflict");
+            using(var confirmed=await GetAsync(client,siteOwn,session.Cookie))
+            {
+                var data=await ExpectJsonAsync(confirmed,200);
+                Require(data.GetProperty("revision").GetInt64()==2 &&
+                    !data.GetProperty("is_public").GetBoolean(),
+                    "Academy group public visibility changed after stale revision.");
+            }
+            var outsider=await database.SeedAsync(role:"manager",
+                organizations:["lefteria_fc","lefteria_fc_academy"]);
+            using(var otherClient=Client())
+            {
+                var other=await LoginAsync(otherClient,outsider);
+                using(var denied=await GetAsync(otherClient,fcOwn,other.Cookie))
+                    await ExpectJsonAsync(denied,403,"team_profile_denied");
+                using(var denied=await GetAsync(otherClient,siteOwn,other.Cookie))
+                    await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            }
+
+            Console.WriteLine("CHECK profile scope: active-session revocation");
+            await database.RevokeAnnouncementTerritoriesAsync(manager,sites);
+            using(var denied=await GetAsync(client,fcOwn,session.Cookie))
+                await ExpectJsonAsync(denied,403,"team_profile_denied");
+            using(var denied=await GetAsync(client,siteOwn,session.Cookie))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            using(var denied=await Put(client,session.Cookie,siteOwn,
+                Academy(2,"After revocation")))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            using(var denied=await Put(client,session.Cookie,
+                siteOwn+"/visibility",new{expected_revision=2,is_public=true}))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+
+            Console.WriteLine("CHECK profile scope: city manager sees same-city sites only");
+            await database.GrantAnnouncementCityAsync(manager,sites);
+            using(var site1=await GetAsync(client,siteOther,session.Cookie))
+                Require((await ExpectJsonAsync(site1,200))
+                    .GetProperty("group_id").GetString()==audience.Group1,
+                    "City manager cannot view another group inside their city.");
+            using(var site2=await GetAsync(client,siteOwn,session.Cookie))
+                await ExpectJsonAsync(site2,200);
+            using(var denied=await GetAsync(client,fcOwn,session.Cookie))
+                await ExpectJsonAsync(denied,403,"team_profile_denied");
+
+            Console.WriteLine("CHECK profile scope: inactive Academy location denied");
+            await database.SetAnnouncementSiteActiveAsync(sites.SecondLocation,false);
+            using(var denied=await GetAsync(client,siteOwn,session.Cookie))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            using(var denied=await Put(client,session.Cookie,siteOwn,
+                Academy(2,"Inactive site edit")))
+                await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            await database.SetAnnouncementSiteActiveAsync(sites.SecondLocation,true);
+        }
+        finally
+        {
+            await database.SetAnnouncementSiteActiveAsync(sites.SecondLocation,true);
+            await database.CleanupTerritoryProfileFixturesAsync(audience);
+            await database.CleanupAnnouncementTerritoriesAsync(manager,sites);
+            await database.CleanupAudienceAsync(audience);
+        }
+    }
+
 }
