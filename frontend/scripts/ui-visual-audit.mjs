@@ -558,6 +558,59 @@ try {
       if (metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`${route.path} ${viewport.name}: horizontal overflow ${metrics.scrollWidth} > ${metrics.clientWidth}`);
       if (metrics.main < 1 && route.name !== 'app-login') failures.push(`${route.path} ${viewport.name}: missing main landmark`);
       if (!metrics.title.trim()) failures.push(`${route.path} ${viewport.name}: empty document title`);
+      // Real Chromium search check at phone + reference desktop widths.
+      // Search remains organization-specific even when the news API is absent.
+      if (['academy','first-team'].includes(route.name) &&
+          ['phone','reference'].includes(viewport.name)) {
+        // The audit navigates with DOMContentLoaded for screenshot speed.
+        // Wait for client hydration before exercising a real event handler,
+        // then retry a few times instead of mistaking SSR markup for a click.
+        await page.waitForLoadState('load',{timeout:12000}).catch(()=>{});
+        const trigger=page.getByTestId('public-search-open');
+        const dialog=page.getByTestId('public-search-dialog');
+        let opened=false;
+        for(let attempt=0;attempt<3 && !opened;attempt++){
+          await trigger.click();
+          try {await dialog.waitFor({state:'visible',timeout:2000});opened=true;}
+          catch { /* allow client hydration to complete */ }
+        }
+        if(!opened) {
+          failures.push(route.name+' '+viewport.name+': search did not open after client hydration');
+        }else{
+        const contextText=await page.getByTestId('public-search-context').innerText();
+        const input=page.getByTestId('public-search-input');
+        if(route.name==='academy'){
+          if(!contextText.includes('Ακαδημία'))
+            failures.push('Academy search context is not Academy-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==0)
+            failures.push('Academy search exposed First Team results on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==1)
+            failures.push('Academy search lost its age-group directory on '+viewport.name);
+        }else{
+          if(!contextText.includes('Πρώτη ομάδα'))
+            failures.push('First Team search context is not club-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==1)
+            failures.push('First Team search lost verified match results link on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==0)
+            failures.push('First Team search exposed Academy groups on '+viewport.name);
+        }
+        const countText=await page.getByTestId('public-search-count').innerText();
+        if(!/(?:αποτέλεσμα|αποτελέσματα)/u.test(countText))
+          failures.push('Search live result counter is absent on '+viewport.name);
+        // Preserve a real, inspectable screenshot of the open search surface.
+        await input.fill(route.name==='academy' ? 'Ηλικιακά τμήματα' : 'ΑΠΟΤΕΛΕΣΜΑΤΑ');
+        await page.screenshot({
+          path:path.join(artifacts,route.name+'-search-'+viewport.name+'.png'),
+          animations:'disabled',timeout:30000
+        });
+        await page.keyboard.press('Escape');
+        await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
+        }
+      }
       await page.close();
     }
     await context.close();
