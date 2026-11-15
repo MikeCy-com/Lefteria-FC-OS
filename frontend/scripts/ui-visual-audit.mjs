@@ -558,6 +558,39 @@ try {
       if (metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`${route.path} ${viewport.name}: horizontal overflow ${metrics.scrollWidth} > ${metrics.clientWidth}`);
       if (metrics.main < 1 && route.name !== 'app-login') failures.push(`${route.path} ${viewport.name}: missing main landmark`);
       if (!metrics.title.trim()) failures.push(`${route.path} ${viewport.name}: empty document title`);
+      // Real Chromium search check at phone + reference desktop widths.
+      // Search remains organization-specific even when the news API is absent.
+      if (['academy','first-team'].includes(route.name) &&
+          ['phone','reference'].includes(viewport.name)) {
+        await page.getByTestId('public-search-open').click();
+        await page.getByTestId('public-search-dialog').waitFor({state:'visible'});
+        const contextText=await page.getByTestId('public-search-context').innerText();
+        const input=page.getByTestId('public-search-input');
+        if(route.name==='academy'){
+          if(!contextText.includes('Ακαδημία'))
+            failures.push('Academy search context is not Academy-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-result-matches-results').count()!==0)
+            failures.push('Academy search exposed First Team results on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==1)
+            failures.push('Academy search lost its age-group directory on '+viewport.name);
+        }else{
+          if(!contextText.includes('Πρώτη ομάδα'))
+            failures.push('First Team search context is not club-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-result-matches-results').count()!==1)
+            failures.push('First Team search lost verified match results link on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==0)
+            failures.push('First Team search exposed Academy groups on '+viewport.name);
+        }
+        const countText=await page.getByTestId('public-search-count').innerText();
+        if(!countText.includes('αποτέλεσμα'))
+          failures.push('Search live result counter is absent on '+viewport.name);
+        await page.keyboard.press('Escape');
+        await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
+      }
       await page.close();
     }
     await context.close();
