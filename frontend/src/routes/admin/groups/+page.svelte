@@ -374,7 +374,7 @@
                         <a href={`/admin/attendance?group_id=${encodeURIComponent(group.id)}`}
                            data-testid="admin-group-attendance-link">Παρουσίες ›</a>
                       </nav>
-                    {/if>
+                    {/if}
                   </li>
                 {/each}
               </ul>
