@@ -34,7 +34,7 @@ public static class AdminUserDirectoryEndpoints
                 SELECT a.id,a.display_name,a.role,a.is_active,a.invite_pending,
                     COALESCE(array_agg(g.organization_id ORDER BY g.organization_id)
                       FILTER (WHERE g.organization_id IN ('lefteria_fc','lefteria_fc_academy')),ARRAY[]::text[]) AS organizations,
-                    count(*) OVER () AS total
+                    (count(*) OVER ())::integer AS total
                 FROM identity.admin_accounts a
                 LEFT JOIN identity.admin_organization_grants g ON g.admin_account_id=a.id
                 GROUP BY a.id,a.display_name,a.role,a.is_active,a.invite_pending
