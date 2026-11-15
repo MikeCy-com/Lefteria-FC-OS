@@ -25,12 +25,10 @@ internal sealed partial class WebAdminHttpChecks
             username,name="Disposable Manager",role="manager",password,
             organizations=new[]{"lefteria_fc","lefteria_fc_academy"}
         };
-        Console.WriteLine("Managed-credentials stage: anonymous");
         using(var anonymous=Client())
         using(var denied=await CreateManagedAsync(anonymous,null,body))
             await ExpectJsonAsync(denied,401,"not_authenticated");
 
-        Console.WriteLine("Managed-credentials stage: forbidden role");
         var editor=await database.SeedAsync(role:"editor",organizations:["lefteria_fc"]);
         using(var editorClient=Client())
         {
@@ -39,7 +37,6 @@ internal sealed partial class WebAdminHttpChecks
             await ExpectJsonAsync(denied,403,"not_authorized");
         }
 
-        Console.WriteLine("Managed-credentials stage: administrator login");
         var administrator=await database.SeedAsync(role:"super_admin",
             organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
@@ -48,7 +45,6 @@ internal sealed partial class WebAdminHttpChecks
         Guid createdId;
         using(var created=await CreateManagedAsync(client,login.Cookie,body))
         {
-            Console.WriteLine("Managed-credentials create status: "+(int)created.StatusCode);
             var json=await ExpectJsonAsync(created,201);
             createdId=json.GetProperty("id").GetGuid();
             database.TrackManagedAccount(createdId,username);
@@ -60,7 +56,6 @@ internal sealed partial class WebAdminHttpChecks
                 "Managed account creation returned invalid or sensitive data.");
         }
 
-        Console.WriteLine("Managed-credentials stage: database checks");
         using(var scope=factory.Services.CreateScope())
         await using(var connection=await scope.ServiceProvider.GetRequiredService<WebAdminConnections>()
             .OpenAsync(CancellationToken.None))
@@ -93,10 +88,8 @@ internal sealed partial class WebAdminHttpChecks
                 "Managed credential or organizations were not saved atomically.");
         }
 
-        Console.WriteLine("Managed-credentials stage: duplicate username");
         using(var duplicate=await CreateManagedAsync(client,login.Cookie,body))
             await ExpectJsonAsync(duplicate,409,"managed_admin_username_exists");
-        Console.WriteLine("Managed-credentials stage: invalid grants");
         foreach(var invalid in new object[]{
             new {username="invalid-new-admin",name="No elevation",role="super_admin",password,
                 organizations=new[]{"lefteria_fc"}},
@@ -112,7 +105,6 @@ internal sealed partial class WebAdminHttpChecks
 
         // Prove the account's credentials can actually authenticate as the
         // bounded manager with *only* the two explicitly granted organizations.
-        Console.WriteLine("Managed-credentials stage: new account login");
         using(var managedClient=Client())
         using(var response=await AttemptAsync(managedClient,username,password))
         {
@@ -123,7 +115,6 @@ internal sealed partial class WebAdminHttpChecks
                 "Created manager cannot authenticate with verified scoped role.");
         }
 
-        Console.WriteLine("Managed-credentials stage: revoked role");
         await database.SetStateAsync(administrator,role:"manager");
         using(var denied=await CreateManagedAsync(client,login.Cookie,new{
             username="denied-after-downgrade",name="Denied",role="coach",password,
