@@ -3,12 +3,12 @@
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import type { PublicPageData } from '../../lib/public/types';
+  import { safeContactEmail, contactEmailDraftHref } from '../../lib/public/contact-email';
 
   let { data }: { data: PublicPageData } = $props();
   const club = $derived(data.site?.club);
   const owner = $derived(data.organization === 'lefteria_fc_academy' ? 'ΑΚΑΔΗΜΙΑ' : 'ΛΕΥΤΕΡΙΑ FC');
-  const validEmail = $derived(typeof club?.email === 'string'
-    && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(club.email) ? club.email : null);
+  const validEmail = $derived(safeContactEmail(club?.email));
   let senderName = $state('');
   let senderEmail = $state('');
   let subject = $state('');
@@ -21,17 +21,12 @@
   function openEmailDraft(event: SubmitEvent) {
     event.preventDefault();
     mailClientOpened = false;
-    if (!validEmail) return;
-    const topic = subject.trim() || 'Γενική Ερώτηση';
-    const body = [
-      'Ονοματεπώνυμο: ' + senderName.trim(),
-      'Email απάντησης: ' + senderEmail.trim(),
-      'Ενότητα: ' + owner, '',
-      message.trim()
-    ].join('\n');
-    window.location.href = 'mailto:' + validEmail + '?subject='
-      + encodeURIComponent(topic + ' · ' + owner)
-      + '&body=' + encodeURIComponent(body);
+    const href = contactEmailDraftHref(validEmail,{
+      name:senderName,replyEmail:senderEmail,
+      organizationLabel:owner,subject,message
+    });
+    if (!href) return;
+    window.location.href = href;
     mailClientOpened = true;
   }
 </script>
