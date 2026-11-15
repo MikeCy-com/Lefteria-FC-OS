@@ -13,6 +13,73 @@
   const roleName=$derived(user&&isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
   const initials=$derived(user?(user.name||user.username).trim().split(/\s+/u)
     .slice(0,2).map(value=>value.slice(0,1).toLocaleUpperCase('el-GR')).join(''):'FC');
+
+  let profileActor=$state('');
+  let displayName=$state('');
+  let namePassword=$state(''),currentPassword=$state(''),nextPassword=$state(''),confirmPassword=$state('');
+  let savingName=$state(false),savingPassword=$state(false);
+  let nameError=$state(''),nameSuccess=$state(''),passwordError=$state('');
+  $effect(()=>{
+    const actor=user?.id??'';
+    if(actor!==profileActor){
+      profileActor=actor;displayName=user?.name??'';
+      namePassword='';currentPassword='';nextPassword='';confirmPassword='';
+      nameError='';nameSuccess='';passwordError='';
+    }
+  });
+  async function saveName(event:SubmitEvent){
+    event.preventDefault();
+    if(!browser||savingName||savingPassword||!user)return;
+    const actor=user.id,choice=displayName,secret=namePassword;
+    if(choice!==choice.trim()||choice.length<1||choice.length>200||
+      !secret||secret.length>4096){
+      nameError='Ελέγξτε το όνομα και πληκτρολογήστε τον τρέχοντα κωδικό σας.';return;
+    }
+    nameError='';nameSuccess='';savingName=true;
+    try{
+      const response=await fetch('/api/admin/auth/profile/name',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','Accept':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({name:choice,current_password:secret})
+      });
+      if(user.id!==actor)return;
+      if(response.status===401||response.status===403){auth.invalidateSession();throw Error('Η σύνδεσή σας άλλαξε. Συνδεθείτε ξανά.');}
+      if(response.status===409){void auth.bootstrap();throw Error('Τα στοιχεία άλλαξαν από άλλη συσκευή. Συνδεθείτε ξανά.');}
+      if(!response.ok)throw Error('Δεν αποθηκεύτηκε το όνομα. Ελέγξτε τον τρέχοντα κωδικό.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||!('updated' in raw)||
+        raw.updated!==true||!('name' in raw)||raw.name!==choice)
+        throw Error('Δεν επιβεβαιώθηκε η ενημέρωση ονόματος.');
+      namePassword='';
+      nameSuccess='Το όνομά σας ενημερώθηκε και επαληθεύτηκε.';
+      await auth.bootstrap();
+    }catch(e){if(user?.id===actor)nameError=e instanceof Error?e.message:'Η αλλαγή απέτυχε.';}
+    finally{savingName=false;namePassword='';}
+  }
+  async function savePassword(event:SubmitEvent){
+    event.preventDefault();
+    if(!browser||savingName||savingPassword||!user)return;
+    const actor=user.id,old=currentPassword,next=nextPassword;
+    if(next!==confirmPassword||next===old||next.length<12||next.length>72||!old){
+      passwordError='Ο νέος κωδικός πρέπει να είναι διαφορετικός, από 12 έως 72 χαρακτήρες και να συμφωνεί με την επιβεβαίωση.';return;
+    }
+    passwordError='';savingPassword=true;
+    try{
+      const response=await fetch('/api/admin/auth/profile/password',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({current_password:old,next_password:next})
+      });
+      if(user.id!==actor)return;
+      if(response.status===401||response.status===403){auth.invalidateSession();throw Error('Η σύνδεσή σας άλλαξε. Συνδεθείτε ξανά.');}
+      if(response.status===409){auth.invalidateSession();throw Error('Ο κωδικός άλλαξε από άλλη συσκευή. Συνδεθείτε ξανά.');}
+      if(response.status!==204)throw Error('Η αλλαγή κωδικού δεν επιβεβαιώθηκε. Ελέγξτε τον τρέχοντα κωδικό.');
+      currentPassword='';nextPassword='';confirmPassword='';
+      auth.invalidateSession();
+      await goto('/admin/login',{replace:true});
+    }catch(e){if(user?.id===actor)passwordError=e instanceof Error?e.message:'Η αλλαγή κωδικού απέτυχε.';}
+    finally{savingPassword=false;currentPassword='';nextPassword='';confirmPassword='';}
+  }
   const expiry=$derived($auth.session?
     new Intl.DateTimeFormat('el-GR',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Nicosia'})
       .format(new Date($auth.session.expires_at)):'');
@@ -45,12 +112,44 @@
             <div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div>
             <div><dt>Email</dt><dd>Δεν παρέχεται από τον επαληθευμένο λογαριασμό</dd></div>
           </dl>
-          <p class="admin-profile-unavailable" role="status">Η επεξεργασία ονόματος, email και φωτογραφίας χρειάζεται ξεχωριστό προστατευμένο API και δεν εκτελείται μέσω αυτής της προβολής.</p>
+          <form class="admin-self-form" onsubmit={saveName} data-testid="admin-self-name-form">
+            <h3>Αλλαγή ονόματος</h3>
+            <label for="admin-my-display-name">Όνομα εμφάνισης</label>
+            <input id="admin-my-display-name" type="text" bind:value={displayName} required
+              minlength="1" maxlength="200" autocomplete="name" disabled={savingName||savingPassword}/>
+            <label for="admin-name-current-password">Τρέχων κωδικός για επιβεβαίωση</label>
+            <input id="admin-name-current-password" type="password" bind:value={namePassword}
+              required autocomplete="current-password" disabled={savingName||savingPassword}/>
+            <button type="submit" class="admin-primary" disabled={savingName||savingPassword}>
+              {savingName?'Αποθήκευση…':'ΑΠΟΘΗΚΕΥΣΗ ΟΝΟΜΑΤΟΣ'}
+            </button>
+            {#if nameError}<p role="alert" class="admin-self-error">{nameError}</p>{/if}
+            {#if nameSuccess}<p role="status" class="admin-self-success">{nameSuccess}</p>{/if}
+          </form>
+          <p class="admin-profile-unavailable">Η αλλαγή email απαιτεί επαλήθευση νέας διεύθυνσης.
+            Η φωτογραφία προφίλ απαιτεί προστατευμένο αποθηκευτικό χώρο. Αυτές οι επιλογές
+            παραμένουν ανενεργές και δεν εμφανίζονται ως αποθηκευμένες.</p>
         </section>
         <section class="admin-panel" id="security" aria-labelledby="my-profile-security-heading">
           <h2 id="my-profile-security-heading">Ασφάλεια & σύνδεση</h2>
           <p>Η τρέχουσα σύνδεση λήγει <time datetime={$auth.session.expires_at}>{expiry}</time> (ώρα Κύπρου).</p>
-          <p class="admin-profile-unavailable">Η αλλαγή κωδικού απαιτεί επαλήθευση του τρέχοντος κωδικού και ασφαλή ακύρωση προηγούμενων συνεδριών. Δεν είναι ακόμη διαθέσιμη.</p>
+          <p class="admin-muted">Η αλλαγή κωδικού απαιτεί τον τρέχοντα κωδικό.
+            Μετά την επιβεβαίωση αποσυνδέονται όλες οι συσκευές.</p>
+          <form class="admin-self-form" onsubmit={savePassword} data-testid="admin-self-password-form">
+            <label for="admin-password-current">Τρέχων κωδικός</label>
+            <input type="password" id="admin-password-current" required autocomplete="current-password"
+              bind:value={currentPassword} disabled={savingPassword||savingName}/>
+            <label for="admin-password-next">Νέος κωδικός</label>
+            <input type="password" id="admin-password-next" required minlength="12" maxlength="72"
+              autocomplete="new-password" bind:value={nextPassword} disabled={savingPassword||savingName}/>
+            <label for="admin-password-confirm">Επιβεβαίωση νέου κωδικού</label>
+            <input type="password" id="admin-password-confirm" required minlength="12" maxlength="72"
+              autocomplete="new-password" bind:value={confirmPassword} disabled={savingPassword||savingName}/>
+            <button type="submit" class="admin-primary" disabled={savingPassword||savingName}>
+              {savingPassword?'Ενημέρωση…':'ΑΛΛΑΓΗ ΚΩΔΙΚΟΥ'}
+            </button>
+            {#if passwordError}<p role="alert" class="admin-self-error">{passwordError}</p>{/if}
+          </form>
           <button class="admin-secondary" type="button" disabled={$auth.busy}
             onclick={()=>void auth.logout()}>Αποσύνδεση από αυτή τη συσκευή</button>
         </section>
@@ -97,4 +196,15 @@
   .admin-profile-permissions{margin-top:12px;color:#ddd}
   .admin-profile-permissions summary{cursor:pointer;color:#ffcb59}
   @media(max-width:750px){.admin-profile-columns{grid-template-columns:1fr}.admin-profile-identity{align-items:flex-start}}
+
+  .admin-self-form{display:flex;flex-direction:column;gap:9px;
+    margin-top:18px;padding-top:16px;border-top:1px solid #555}
+  .admin-self-form h3{font-size:21px;margin:0 0 4px}
+  .admin-self-form label{font-size:13px;font-weight:700;color:#e8ddc4}
+  .admin-self-form :is(input){width:100%;min-width:0;min-height:45px;background:#0a0b0c;
+    border:1px solid #777;color:#fff;padding:10px 12px;border-radius:5px}
+  .admin-self-form input:focus-visible{outline:3px solid #f6bb38;outline-offset:2px}
+  .admin-self-form .admin-primary{min-height:46px;margin-top:6px}
+  .admin-self-error{color:#ffac9a;font-size:13px}
+  .admin-self-success{color:#b8f0bf;font-size:13px}
 </style>

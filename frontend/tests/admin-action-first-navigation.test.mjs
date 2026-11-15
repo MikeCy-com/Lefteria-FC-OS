@@ -49,13 +49,18 @@ test('five group-only tools disappear from both global navigation and dashboard'
   assert.match(matches,/choices\.some\(item=>item\.id===requestedGroup\)/);
 });
 
-test('settings are capability-scoped, and unimplemented profile edits never claim success',()=>{
+test('settings are capability-scoped and profile writes require verified self-service API',()=>{
   assert.match(settings,/hasAdminPermission\(\$auth\.session\.user\.permissions/);
   assert.match(settings,/data-testid="admin-settings-home"/);
   assert.match(settings,/data-testid="admin-settings-club"/);
   assert.match(settings,/data-testid="admin-settings-territories"/);
   assert.match(settings,/canStaff \|\| canUsers/);
-  assert.match(profile,/δεν υπάρχει επαληθευμένο API/);
+  assert.match(profile,/data-testid="admin-self-name-form"/);
+  assert.match(profile,/data-testid="admin-self-password-form"/);
   assert.match(profile,/Η αλλαγή κωδικού απαιτεί/);
-  assert.doesNotMatch(profile,/method:'POST'|method:"POST"|oninput=.*fetch/);
+  assert.match(profile,/method:'POST',credentials:'same-origin',cache:'no-store'/);
+  assert.match(profile,/response\.status!==204/);
+  assert.match(profile,/auth\.invalidateSession\(\)/);
+  assert.match(profile,/email απαιτεί επαλήθευση/);
+  assert.doesNotMatch(profile,/localStorage|sessionStorage|oninput=.*fetch/);
 });

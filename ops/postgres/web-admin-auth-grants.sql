@@ -132,6 +132,16 @@ REVOKE ALL ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,te
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
   TO :"admin_auth_role";
+-- The verified current admin account may change only its own display name
+-- or rotate its own password through audited account/session-locked routines.
+-- Raw UPDATE of identity.admin_accounts is prohibited for both runtimes.
+REVOKE ALL ON FUNCTION identity.write_admin_own_name(text,text,text),
+  identity.write_admin_own_password(text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.write_admin_own_name(text,text,text),
+  identity.write_admin_own_password(text,text,text)
+  TO :"admin_auth_role";
+
 
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
 -- The only new POS entitlement is a session/owner-checking read function.
@@ -336,6 +346,8 @@ BEGIN
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
