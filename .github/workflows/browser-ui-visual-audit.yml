@@ -50,6 +50,11 @@ jobs:
         env:
           LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
         run: node scripts/ui-mobile-auth-denial-audit.mjs
+      - name: Exercise real mobile routes with isolated synthetic authenticated role responses
+        working-directory: frontend
+        env:
+          LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
+        run: node scripts/ui-mobile-authenticated-audit.mjs
       - name: Verify native PNG pixel comparator against a known one-pixel change
         working-directory: frontend
         run: node scripts/compare-reference-screenshots.mjs --self-test

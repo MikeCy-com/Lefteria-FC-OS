@@ -1,0 +1,187 @@
+/**
+ * Actual /app routes and actual mobile auth controller, exercised with isolated
+ * loopback-only mocked GET /api/mobile/auth/me. Unlike disconnected component
+ * snapshots, hydration/bootstrap/route/navigation here are real. Unlike staging
+ * authentication, identities, grants and API responses are synthetic: never
+ * describe this as real credential or end-to-end backend verification.
+ */
+import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {createServer} from 'node:net';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {setTimeout as delay} from 'node:timers/promises';
+import {chromium} from 'playwright';
+import {primaryTabs,allowedTabs} from '../src/lib/mobile/navigation.ts';
+
+const frontend=fileURLToPath(new URL('../',import.meta.url));
+const artifacts=process.env.LEFTERIA_UI_ARTIFACTS;
+assert.ok(artifacts,'An isolated screenshot artifact directory is required');
+const roles=['parent','player','coach','fan','management'];
+const viewports=[
+  {name:'phone',width:390,height:844},
+  {name:'desktop',width:1440,height:900}
+];
+const roleTab={parent:'children',player:'hub',coach:'squad',fan:'gamehub',management:'teams'};
+const results=[],failures=[];
+let server,browser,logs='';
+try {
+  await mkdir(artifacts,{recursive:true});
+  const portProbe=createServer();
+  portProbe.listen(0,'127.0.0.1');
+  await once(portProbe,'listening');
+  const port=portProbe.address().port;
+  await new Promise((resolve,reject)=>portProbe.close(error=>error?reject(error):resolve()));
+  const origin='http://127.0.0.1:'+port;
+  server=spawn(process.execPath,
+    ['node_modules/vite/bin/vite.js','--host','127.0.0.1','--port',String(port),'--strictPort'],{
+      cwd:frontend,stdio:['ignore','pipe','pipe'],windowsHide:true,
+      env:{...process.env,INTERNAL_API_ORIGIN:'http://127.0.0.1:1',HOST:'127.0.0.1'}
+    });
+  server.on('error',error=>{logs+=String(error);});
+  for(const stream of [server.stdout,server.stderr])
+    stream.on('data',chunk=>{logs=(logs+chunk.toString()).slice(-6000);});
+  let ready=false;
+  for(let attempt=0;attempt<120;attempt++){
+    assert.equal(server.exitCode,null,'Isolated Vite server stopped: '+logs);
+    try{
+      const r=await fetch(origin+'/app/login',{signal:AbortSignal.timeout(1200)});
+      if(r.ok){ready=true;break;}
+    }catch{}
+    await delay(250);
+  }
+  assert.ok(ready,'Isolated app routes did not start: '+logs);
+  browser=await chromium.launch({headless:true});
+  for(const viewport of viewports){
+    for(const role of roles){
+      const context=await browser.newContext({
+        viewport:{width:viewport.width,height:viewport.height},
+        deviceScaleFactor:1,locale:'el-GR',colorScheme:'dark',reducedMotion:'reduce'
+      });
+      const identity={
+        id:'11111111-1111-4111-8111-111111111111',phone:'+35799123456',
+        role,name:'Verified synthetic '+role,platform:'Web/PWA',
+        created_at:'2026-01-01T00:00:00Z',last_login:'2026-11-10T00:00:00Z',
+        available_roles:[role],current_role_available:true,
+        avatar_url:null,team_id:null,academy_group_ids:[],linked_player_ids:[]
+      };
+      let meChecks=0,unexpected=0;
+      const bearer='Bearer mock-isolated-'+role;
+      try{
+        await context.addInitScript(({role})=>{
+          localStorage.setItem('mobile_token','mock-isolated-'+role);
+          // The cached roles are deliberately overbroad; the real auth
+          // controller must replace them using only the verified /me reply.
+          localStorage.setItem('mobile_available_roles',
+            JSON.stringify(['parent','player','coach','fan','management']));
+        },{role});
+        await context.route('**/api/mobile/**',async route=>{
+          const request=route.request();
+          const apiPath=new URL(request.url()).pathname;
+          const response={status:503,contentType:'application/json',
+            headers:{'Cache-Control':'no-store'},
+            body:JSON.stringify({code:'isolated_private_api_unavailable',
+              detail:'No private fixture was supplied'})};
+          if(request.headers()['authorization']!==bearer){
+            await route.fulfill({...response,status:401,
+              body:JSON.stringify({code:'invalid_bearer'})});
+            return;
+          }
+          if(apiPath==='/api/mobile/auth/me' && request.method()==='GET'){
+            meChecks++;
+            await route.fulfill({...response,status:200,body:JSON.stringify(identity)});
+          }else if(apiPath==='/api/mobile/management/organization' && role==='management'){
+            await route.fulfill({...response,status:200,
+              body:JSON.stringify({available_organizations:[],organization_id:null,
+                organization_name:null,requires_organization_selection:true})});
+          }else{
+            unexpected++;
+            await route.fulfill(response);
+          }
+        });
+        const page=await context.newPage();
+        const response=await page.goto(origin+'/app?tab=home',{
+          waitUntil:'domcontentloaded',timeout:30000
+        });
+        assert.equal(response?.status(),200);
+        const shell=page.getByTestId('mobile-app');
+        await shell.waitFor({state:'visible',timeout:25000});
+        await page.getByTestId(role==='parent'
+          ? 'parent-dashboard-home' : role+'-dashboard-home').waitFor({
+          state:'visible',timeout:25000
+        });
+        await page.evaluate(()=>document.fonts.ready);
+        const snapshot=await page.evaluate(()=>({
+          pathname:location.pathname,
+          tab:new URLSearchParams(location.search).get('tab'),
+          role:document.querySelector('[data-testid="mobile-app"]')?.getAttribute('data-mobile-role'),
+          userName:document.querySelector('[data-testid="mobile-app"]')?.textContent?.slice(0,1200) ?? '',
+          scrollWidth:document.documentElement.scrollWidth,
+          clientWidth:document.documentElement.clientWidth,
+          tabs:[...document.querySelectorAll('[data-testid^="bottom-tab-"]')]
+            .map(el=>el.getAttribute('data-testid')?.slice('bottom-tab-'.length)),
+          mainLandmarks:document.querySelectorAll('main').length,
+          privateChildren:document.querySelectorAll('[data-testid="parent-home-child"]').length,
+          cachedRoles:localStorage.getItem('mobile_available_roles')
+        }));
+        assert.equal(snapshot.pathname,'/app','Real protected route must stay at /app');
+        assert.equal(snapshot.role,role,'Signed-in role must come from /me');
+        assert.equal(meChecks,1,'Bootstrap should validate synthetic /me exactly once');
+        assert.deepEqual(snapshot.tabs,primaryTabs(role),
+          'Actual /app bottom tabs must reflect only verified role');
+        assert.equal(snapshot.mainLandmarks,1);
+        assert.ok(snapshot.scrollWidth<=snapshot.clientWidth+2,
+          viewport.name+'/'+role+' : authenticated mobile screen overflows horizontally');
+        assert.equal(snapshot.cachedRoles,JSON.stringify([role]),
+          'Forged cached role hints were not replaced with verified role');
+        assert.equal(snapshot.privateChildren,0,
+          'No synthetic parent/guardian relationships may appear without family data');
+        assert.ok(!snapshot.userName.includes('Verification private sibling sentinel'),
+          'Unprovided personal data must not render');
+        const switcher=page.getByTestId('role-switcher');
+        await switcher.focus();
+        await page.keyboard.press('Enter');
+        const choices=page.locator('[data-testid^="switch-role-"]');
+        await page.getByTestId('switch-role-'+role).waitFor({state:'visible'});
+        assert.equal(await choices.count(),1,'Forged role hints unlocked extra choices');
+        await page.keyboard.press('Escape');
+        assert.equal(await switcher.getAttribute('aria-expanded'),'false');
+        const screenshot='authenticated-app-'+role+'-'+viewport.name+'.png';
+        await page.screenshot({path:path.join(artifacts,screenshot),
+          fullPage:true,animations:'disabled',timeout:30000});
+        const secondary=roleTab[role];
+        assert.ok(allowedTabs(role).includes(secondary));
+        await page.goto(origin+'/app?tab='+secondary,
+          {waitUntil:'domcontentloaded',timeout:30000});
+        await page.getByTestId('mobile-app').waitFor({state:'visible',timeout:25000});
+        assert.equal(await page.getByTestId('mobile-app').getAttribute('data-mobile-role'),role,
+          'Role was changed by tab navigation');
+        assert.equal(await page.locator('[data-testid^="switch-role-"]').count(),0,
+          'A role-choice dialog must not remain open on deep links');
+        const secondaryScreenshot='authenticated-app-'+role+'-'+viewport.name+'-'+secondary+'.png';
+        await page.screenshot({path:path.join(artifacts,secondaryScreenshot),
+          fullPage:true,animations:'disabled',timeout:30000});
+        results.push({role,viewport:viewport.name,status:200,
+          screenshot,secondaryScreenshot,secondary,kind:'synthetic-me-real-protected-route',
+          meChecks,unavailablePrivateRequests:unexpected,
+          width:snapshot.clientWidth,scrollWidth:snapshot.scrollWidth});
+        await page.close();
+      }catch(error){
+        failures.push(role+'/'+viewport.name+': '+(error.stack||error.message));
+      }finally{await context.close();}
+    }
+  }
+  await writeFile(path.join(artifacts,'authenticated-role-results.json'),
+    JSON.stringify({kind:'real-app-controller-with-synthetic-identity-not-real-backend-auth',
+      results,failures},null,2)+'\n');
+  console.log(JSON.stringify({actualProtectedRoleRouteCases:results.length,failures}));
+  assert.equal(failures.length,0,'Authenticated synthetic /app route parity check failed');
+}finally{
+  await browser?.close();
+  if(server && server.exitCode===null){
+    const stopped=once(server,'exit');server.kill('SIGTERM');
+    await Promise.race([stopped,delay(3000).then(()=>server.kill('SIGKILL'))]);
+  }
+}

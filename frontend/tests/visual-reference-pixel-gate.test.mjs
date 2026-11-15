@@ -33,7 +33,9 @@ test('Chromium performs real decoded full-page pixel sampling, not compression/O
 });
 
 test('All CI captures are inventoried, including authenticated sidebar mocks and role-component layout evidence',()=>{
-  assert.match(pixelTool,/\['results\.json','role-results\.json'\]/);
+  assert.match(pixelTool,/\['results\.json','role-results\.json','authenticated-role-results\.json'\]/);
+  assert.match(pixelTool,/secondaryScreenshot/);
+  assert.match(pixelTool,/mocked-mobile-auth/);
   assert.match(pixelTool,/adminNavigation/);
   assert.match(pixelTool,/mocked-auth-admin/);
   assert.match(pixelTool,/isolated-role-component/);
