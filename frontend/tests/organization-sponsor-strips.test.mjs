@@ -20,5 +20,7 @@ test('academy and Club sponsor strips use only matching record organizations',()
   assert.match(academyLoader,/loadSectionPage\(url, 'lefteria_fc_academy'\)/);
   assert.match(academy,/organization="lefteria_fc_academy" sponsors=\{data\.sections\?\.sponsors \?\? \[\]\}/);
   assert.match(team,/organization="lefteria_fc" sponsors=\{data\.sections\?\.sponsors \?\? \[\]\}/);
-  assert.match(team,/data\.selectedTeamId && data\.selectedTeamId ===/);
+  assert.match(team,/\{#if isSelectedFirstTeam\}/);
+  assert.match(team,/selectedTeam\.organization_id === 'lefteria_fc'/);
+  assert.doesNotMatch(team,/data\.site\?\.teams\[0\]\?\.id/);
 });
