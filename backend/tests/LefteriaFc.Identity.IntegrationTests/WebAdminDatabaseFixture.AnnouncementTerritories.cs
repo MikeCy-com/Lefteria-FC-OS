@@ -162,6 +162,48 @@ internal sealed partial class WebAdminDatabaseFixture
         await tx.CommitAsync();
     }
 
+    public async Task DiagnoseFixtureFirstTeamProfileScopeAsync(
+        Account manager,string teamId,Guid teamScope)
+    {
+        RequireOwned(manager);
+        await using var con=await OwnerAsync();
+        await using var session=new NpgsqlCommand("""
+            SELECT token_digest FROM identity.admin_sessions
+            WHERE admin_account_id=@actor AND revoked_at IS NULL
+              AND expires_at>clock_timestamp()
+            ORDER BY expires_at DESC LIMIT 1
+            """,con);
+        session.Parameters.AddWithValue("actor",manager.Id);
+        var digest=await session.ExecuteScalarAsync() as string
+            ?? throw new InvalidOperationException("Synthetic manager session missing.");
+        await using(var allowed=new NpgsqlCommand("""
+            SELECT club.admin_football_allowed(
+              @actor,'manager','lefteria_fc',@scope,NULL,false)
+            """,con))
+        {
+            allowed.Parameters.AddWithValue("actor",manager.Id);
+            allowed.Parameters.AddWithValue("scope",teamScope);
+            Console.WriteLine("CHECK profile scope: direct team manager grant="+
+              (await allowed.ExecuteScalarAsync()));
+        }
+        await using(var guard=new NpgsqlCommand("""
+            SELECT club.require_admin_group_profile_scope(
+              @digest,'lefteria_fc',@team,false)
+            """,con))
+        {
+            guard.Parameters.AddWithValue("digest",digest);
+            guard.Parameters.AddWithValue("team",teamId);
+            try{
+                var result=await guard.ExecuteScalarAsync();
+                Console.WriteLine("CHECK profile scope: owner-direct guard authorized="+
+                    (result is Guid));
+            }catch(PostgresException e){
+                Console.WriteLine("CHECK profile scope: owner-direct guard SQLSTATE="+
+                    e.SqlState+" message="+e.MessageText);
+            }
+        }
+    }
+
     public async Task CleanupTerritoryProfileFixturesAsync(AudienceFixture audience)
     {
         await using var con=await OwnerAsync();
