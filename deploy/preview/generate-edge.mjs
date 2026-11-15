@@ -158,6 +158,7 @@ export const reviewedAdminEntries = [
 // inventory. Each one has an explicit WebAdmin authorization guard in source,
 // and the preview routing review test pins that source policy. No wildcards.
 export const reviewedHiddenAdminEntries = [
+  ['get','/api/admin/hub/fan-subscriptions/overview'],
   ['get','/api/admin/football/territories'],
   ['post','/api/admin/football/territories'],
   ['get','/api/admin/football/territories/access'],

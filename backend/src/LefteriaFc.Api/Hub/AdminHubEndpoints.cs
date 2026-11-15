@@ -104,6 +104,72 @@ public static class AdminHubEndpoints
             .Produces<WebAdminError>(422)
             .Produces<WebAdminError>(503);
 
+
+        // Private read-only fan plan and subscription totals. This is an
+        // organization-wide finance summary, so location managers, coaches,
+        // editors, accountants and other delegated roles are NOT eligible.
+        // It is deliberately excluded from the frozen public API contract.
+        endpoints.MapGet("/api/admin/hub/fan-subscriptions/overview",
+            async (string? organization_id, WebAdminService admin,
+                   WebAdminConnections connections, IWebAdminSecrets secrets,
+                   HttpContext context, CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl = "private, no-store";
+                context.Response.Headers.Pragma = "no-cache";
+                if (organization_id is null ||
+                    context.Request.Query["organization_id"].Count != 1 ||
+                    !PublicContentService.IsOrganization(organization_id))
+                    return Failure(400, "invalid_organization");
+                var cookie = context.Request.Cookies[WebAdminServices.CookieName];
+                var session = await admin.CurrentAsync(cookie, token);
+                if (session is null || !secrets.IsToken(cookie))
+                    return Failure(401, "not_authenticated");
+                if (session.User.Role != "super_admin" ||
+                    !AdminPermissions.Has(session.User.Role, "finance:read") ||
+                    !session.User.Organizations.Any(org => org.Id == organization_id))
+                    return Failure(403, "not_authorized");
+                try
+                {
+                    await using var connection = await connections.OpenAsync(token);
+                    await using var command = new NpgsqlCommand(
+                        "SELECT hub.read_admin_fan_subscription_overview(@digest,@owner)::text", connection);
+                    command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie!));
+                    command.Parameters.AddWithValue("owner", organization_id);
+                    var raw = await command.ExecuteScalarAsync(token) as string;
+                    if (raw is null) return Failure(503, "hub_unavailable");
+                    using var parsed = JsonDocument.Parse(raw);
+                    var result = parsed.RootElement;
+                    if (result.ValueKind != JsonValueKind.Object ||
+                        !result.TryGetProperty("organization_id", out var owner) ||
+                        owner.GetString() != organization_id ||
+                        !result.TryGetProperty("as_of", out var asOf) ||
+                        asOf.ValueKind != JsonValueKind.String ||
+                        !DateTimeOffset.TryParse(asOf.GetString(), out _) ||
+                        !result.TryGetProperty("counts", out var counts) ||
+                        counts.ValueKind != JsonValueKind.Object ||
+                        !result.TryGetProperty("plans", out var plans) ||
+                        plans.ValueKind != JsonValueKind.Array ||
+                        plans.GetArrayLength() > 3)
+                        return Failure(503, "hub_unavailable");
+                    foreach (var key in new[] { "total_records", "pending", "recorded_active",
+                             "verified_active", "past_due", "cancelled", "expired" })
+                    {
+                        if (!counts.TryGetProperty(key, out var number) ||
+                            !number.TryGetInt64(out var value) || value < 0)
+                            return Failure(503, "hub_unavailable");
+                    }
+                    return Results.Content(raw, "application/json");
+                }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                catch (PostgresException ex) when (ex.SqlState == "42501")
+                { return Failure(403, "not_authorized"); }
+                catch (Exception) { return Failure(503, "hub_unavailable"); }
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("HUB administration")
+            .WithName("GetAdminFanHubOverview")
+            .ExcludeFromDescription();
+
         endpoints.MapGet("/api/admin/hub/editorial",
             async (string? organization_id, WebAdminService admin, WebAdminConnections connections,
                    IWebAdminSecrets secrets, HttpContext context, CancellationToken token) =>
