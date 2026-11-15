@@ -13,10 +13,11 @@
   const academyBanner = $derived(
     data.site?.academy_groups.find(group=>group.organization_id==='lefteria_fc_academy'&&group.banner_url)?.banner_url
     || publicImages.hero);
+  const academyStats = $derived(data.sections?.academy_stats?.organization_id === 'lefteria_fc_academy' ? data.sections.academy_stats : null);
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
     { href: '/academy/groups', icon: 'users', title: 'ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ', description: 'Βρες το τμήμα που ταιριάζει στο παιδί σου και δες το πρόγραμμα προπονήσεών του.' },
-    { href: '#academy-fixtures', icon: 'trophy', title: 'ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ', description: 'Δες το αγωνιστικό πρόγραμμα των τμημάτων της Ακαδημίας μας.' },
+    { href: '/academy/registration', icon: 'trophy', title: 'ΕΓΓΡΑΦΕΣ', description: 'Δες πώς μπορείς να εγγράψεις έναν αθλητή στην Ακαδημία μας.' },
     { href: '/partners?scope=academy', icon: 'shield', title: 'ΟΙ ΣΥΝΕΡΓΑΤΕΣ ΜΑΣ', description: 'Οι άνθρωποι και οι οργανισμοί που στηρίζουν την ακαδημία μας.' }
   ];
 </script>
@@ -27,14 +28,43 @@
     <div class="academy-intro-copy"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p><h1>ΑΚΑΔΗΜΙΑ</h1>
       <p class="academy-hero-motto">ΔΙΑΠΛΑΣΗ <span>·</span> ΑΝΑΠΤΥΞΗ <span>·</span> ΟΝΕΙΡΑ</p>
       <p class="academy-description">{data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.'}</p>
-      <div class="academy-actions"><a class="public-button" href="/academy/groups">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
+      <div class="academy-actions"><a class="public-button" href="/academy/registration" data-testid="academy-hero-register">ΕΓΓΡΑΦΗ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/academy/groups" data-testid="academy-hero-groups">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
     </div>
     <nav class="public-subnav" aria-label="Ακαδημία"><a href="#explore">ΓΝΩΡΙΣΕ ΤΗΝ ΑΚΑΔΗΜΙΑ</a><a href="/academy/groups">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</a><a href="#academy-fixtures">ΑΓΩΝΕΣ</a><a href="/news?organization_id=lefteria_fc_academy">ΝΕΑ ΑΚΑΔΗΜΙΑΣ ↗</a></nav>
   </section>
   <section class="public-section academy-explore" id="explore" aria-labelledby="explore-title"><div class="public-section-heading"><h2 id="explore-title">ΕΞΕΡΕΥΝΗΣΕ ΤΗΝ <em>ΑΚΑΔΗΜΙΑ</em></h2></div>
     <div class="academy-destinations">{#each destinations as item (item.href)}<a href={item.href} class="academy-destination"><PublicIcon name={item.icon} size={28} /><h3>{item.title}</h3><p>{item.description}</p><span>ΠΕΡΙΣΣΟΤΕΡΑ <PublicIcon name="arrow" size={18} /></span></a>{/each}</div>
   </section>
+  <section class="academy-key-figures public-section" aria-labelledby="academy-figures-heading" data-testid="academy-stats">
+    <div class="section-heading"><h2 id="academy-figures-heading">Η ΑΚΑΔΗΜΙΑ ΣΕ ΑΡΙΘΜΟΥΣ</h2></div>
+    <div class="academy-stats-grid">
+      <div><strong>{academyStats ? String(academyStats.age_groups) : '—'}</strong><span>ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</span></div>
+      <div><strong>{academyStats ? String(academyStats.athletes) : '—'}</strong><span>ΑΘΛΗΤΕΣ</span></div>
+      <div><strong>{academyStats?.trainings_per_week ?? '—'}</strong><span>ΠΡΟΠΟΝΗΣΕΙΣ / ΕΒΔΟΜΑΔΑ</span></div>
+      <div><strong>{academyStats?.dedication_pct != null ? academyStats.dedication_pct + '%' : '—'}</strong><span>ΑΦΟΣΙΩΣΗ</span></div>
+    </div>
+    {#if !academyStats}<p class="public-empty">Τα επίσημα στατιστικά της Ακαδημίας δεν έχουν δημοσιευτεί ακόμη.</p>{/if}
+  </section>
   {#if !data.available}<Unavailable />{:else}<section class="public-section" id="groups" aria-labelledby="academy-groups-title"><div class="section-heading"><h2 id="academy-groups-title">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</h2></div><div class="public-group-grid">{#each data.site?.academy_groups ?? [] as group (group.id)}<article id={`group-${encodeURIComponent(group.id)}`} class="public-group-card">{#if group.banner_url}<PublicImage src={group.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{group.age_range || group.season || 'ΑΚΑΔΗΜΙΑ'}</p><h3><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h3>{#if group.description}<p>{group.description}</p>{/if}{#if group.city || group.location_name}<p class="group-location">{[group.city, group.location_name].filter(Boolean).join(' · ')}</p>{/if}{#if group.training_schedule}<h4>ΠΡΟΓΡΑΜΜΑ ΠΡΟΠΟΝΗΣΕΩΝ</h4><p class="preserve-lines">{group.training_schedule}</p>{/if}<a class="group-open" href={academyGroupLink(group)}>ΓΝΩΡΙΣΕ ΤΟ ΤΜΗΜΑ <span aria-hidden="true">↗</span></a></div></article>{:else}<p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>{/each}</div></section><section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
+  <section class="academy-philosophy public-section" aria-labelledby="academy-philosophy-title" data-testid="academy-development-philosophy">
+    <div class="academy-philosophy-copy"><p class="public-eyebrow">ΦΙΛΟΣΟΦΙΑ ΑΝΑΠΤΥΞΗΣ</p>
+      <h2 id="academy-philosophy-title">ΜΕΓΑΛΩΝΟΥΜΕ ΜΑΖΙ.<br/><em>ΜΕΣΑ ΚΑΙ ΕΞΩ ΑΠΟ ΤΟ ΓΗΠΕΔΟ.</em></h2>
+      <p>Η ανάπτυξη κάθε παιδιού είναι πάνω από ένα αποτέλεσμα. Δίνουμε έμφαση στην τεχνική, την τακτική κατανόηση, τη συνεργασία και την ψυχολογία της ηλικίας του.</p>
+      <ul><li>Ατομική ανάπτυξη πάνω από τα αποτελέσματα στα νεανικά τμήματα.</li>
+        <li>Προπόνηση ανάλογα με την ηλικία και τις ανάγκες του κάθε παιδιού.</li>
+        <li>Ισορροπία εκπαίδευσης, αθλητισμού και ψυχικής ανθεκτικότητας.</li>
+        <li>Σταδιακή εξέλιξη και πορεία προς την πρώτη ομάδα.</li></ul>
+      <a class="public-button public-button-outline" href="/academy/philosophy">ΔΕΣ ΤΗ ΦΙΛΟΣΟΦΙΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a>
+    </div>
+    <div class="academy-philosophy-art"><PublicImage src={publicImages.pitch} alt="Ποδοσφαιρικό γήπεδο" /></div>
+  </section>
+  <section class="academy-enquiry public-section" data-testid="academy-enquiry-section">
+    <div><p class="public-eyebrow">ΕΝΔΙΑΦΕΡΕΣΑΙ;</p><h2>ΔΟΚΙΜΑΣΤΙΚΑ & ΕΓΓΡΑΦΕΣ</h2>
+      <p>Γνώρισε από κοντά τη Λευτεριά FC Academy και το προπονητικό της περιβάλλον. Δες τις διαθέσιμες πληροφορίες εγγραφής ή επικοινώνησε με τον σύλλογο για το πρόγραμμα του παιδιού σου.</p>
+    </div>
+    <div class="academy-enquiry-actions"><a class="public-button" href="/academy/registration" data-testid="academy-registration-cta-btn">ΕΓΓΡΑΦΗ ΑΘΛΗΤΗ <PublicIcon name="arrow" size={18} /></a>
+      <a class="public-button public-button-outline" href="/contact">ΡΩΤΗΣΕ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
+  </section>
   <OrganizationSponsorStrip organization="lefteria_fc_academy" sponsors={data.sections?.sponsors ?? []} />
 </PublicShell>
 
@@ -111,4 +141,22 @@
     }
     :global(.public-site[data-route="/academy"]) .academy-intro-copy{padding-bottom:25px;}
   }
+
+  .academy-key-figures{background:#090a0b;border-block:1px solid #3c3528}
+  .academy-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
+  .academy-stats-grid>div{padding:25px 15px;border-left:2px solid #c99732;background:#151515;display:flex;flex-direction:column;gap:7px}
+  .academy-stats-grid strong{color:#f6bb38;font:900 clamp(38px,4vw,65px)/1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-stats-grid span{color:#d2d2d2;font-size:13px;font-weight:700}
+  .academy-philosophy{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:45px;align-items:center;background:#101111}
+  .academy-philosophy h2,.academy-enquiry h2{font:900 clamp(32px,3.5vw,58px)/1.1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-philosophy em{color:#f6bb38}
+  .academy-philosophy-copy>p:not(.public-eyebrow),.academy-enquiry p:not(.public-eyebrow){line-height:1.7;color:#d0d0d0;max-width:67ch;margin:20px 0}
+  .academy-philosophy ul{padding:0;list-style:none;display:grid;gap:14px;margin:24px 0}
+  .academy-philosophy li{border-left:3px solid #e7b341;padding-left:15px;font-size:15px;line-height:1.5;color:#e7e7e7}
+  .academy-philosophy-art{overflow:hidden;min-height:300px;align-self:stretch}
+  .academy-philosophy-art :global(img){width:100%;height:100%;object-fit:cover}
+  .academy-enquiry{background:linear-gradient(130deg,#12110d,#080808);border-block:1px solid #80662b;display:flex;justify-content:space-between;align-items:center;gap:30px}
+  .academy-enquiry-actions{display:flex;flex-wrap:wrap;gap:15px;flex-shrink:0}
+  @media(max-width:900px){.academy-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.academy-philosophy{grid-template-columns:1fr}.academy-philosophy-art{max-height:330px}.academy-enquiry{flex-direction:column;align-items:start}}
+  @media(max-width:500px){.academy-key-figures,.academy-philosophy,.academy-enquiry{padding:30px 18px}.academy-stats-grid{gap:9px}.academy-stats-grid>div{padding:17px 9px}.academy-stats-grid span{font-size:11px}.academy-enquiry-actions{width:100%;flex-direction:column}.academy-enquiry-actions>a{justify-content:center}}
 </style>
