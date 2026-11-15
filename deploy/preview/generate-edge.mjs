@@ -54,7 +54,7 @@ const entryOperations = [
 ];
 
 // A fixed reviewed snapshot, not automatic publication of all future APIs.
-// These 90 existing WebAdmin-only operations were absent from the old preview
+// This explicit, reviewed WebAdmin-only inventory includes the new sponsorship APIs;
 // edge list, so even healthy APIs failed with an edge 404. Every entry's exact
 // method, path, mandatory parameters and WebAdmin security is rechecked
 // against the immutable contract; new routes must be explicitly reviewed.
@@ -148,6 +148,10 @@ export const reviewedAdminEntries = [
   ['post','/api/admin/website/pages'],
   ['put','/api/admin/website/pages/{slug}'],
   ['post','/api/admin/website/pages/{slug}/publication'],
+  // Exact sponsor/partner draft and manager-publication APIs. Never wildcard.
+  ['get','/api/admin/website/sponsorships'],
+  ['post','/api/admin/website/sponsorships/draft'],
+  ['post','/api/admin/website/sponsorships/publication'],
   ['get','/api/admin/website/news'],
   ['get','/api/admin/website/news-drafts'],
   ['post','/api/admin/website/news-drafts'],
