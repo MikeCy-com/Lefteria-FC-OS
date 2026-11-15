@@ -18,7 +18,7 @@ public static class AdminFootballTerritoryAccessEndpoints
         [property: JsonPropertyName("scope_id")] Guid ScopeId,
         [property: JsonPropertyName("kind")] string? Kind,
         [property: JsonPropertyName("role")] string? Role,
-        [property: JsonPropertyName("enabled")] bool Enabled);
+        [property: JsonPropertyName("enabled")] bool? Enabled);
 
     public static IEndpointRouteBuilder MapAdminFootballTerritoryAccess(
         this IEndpointRouteBuilder endpoints)
@@ -50,6 +50,7 @@ public static class AdminFootballTerritoryAccessEndpoints
             var cookie = await AdminFootballTerritoryEndpoints.Verify(
                 auth, organization_id, context, true, ct);
             if (input.AdminAccountId == Guid.Empty || input.ScopeId == Guid.Empty ||
+                !input.Enabled.HasValue ||
                 input.Kind is not ("city" or "location" or "team") ||
                 input.Role is not ("city_manager" or "location_manager" or
                     "team_manager" or "coach" or "staff"))
@@ -66,7 +67,7 @@ public static class AdminFootballTerritoryAccessEndpoints
             command.Parameters.AddWithValue("kind", input.Kind);
             command.Parameters.AddWithValue("scope", input.ScopeId);
             command.Parameters.AddWithValue("role", input.Role);
-            command.Parameters.AddWithValue("enabled", input.Enabled);
+            command.Parameters.AddWithValue("enabled", input.Enabled.Value);
             return await AdminFootballTerritoryEndpoints.Execute(command,ct);
         }).WithName("WriteAdminFootballTerritoryAccess")
           .Accepts<GrantCommand>("application/json")
