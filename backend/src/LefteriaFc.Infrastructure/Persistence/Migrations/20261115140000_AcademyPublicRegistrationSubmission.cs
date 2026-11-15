@@ -137,34 +137,15 @@ public sealed class AcademyPublicRegistrationSubmission : Migration
       -- PostgreSQL would otherwise grant EXECUTE to PUBLIC by default.
       REVOKE ALL ON FUNCTION academy_intake.submit_public_registration(
         uuid,jsonb,bytea,text,text,text,text) FROM PUBLIC;
-      -- The intake queue is only visible to the Academy super administrator.
-      -- Location and city managers cannot see unassigned children's details.
+      -- Unassigned Academy applications: no medical, signature or raw consent
+      -- fields exposed. Defense in depth: verified super admin and Academy grant.
       CREATE FUNCTION academy_intake.read_admin_registration_queue(
         _digest text,_limit integer,_offset integer
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $academy_intake_queue$
       DECLARE v_role text; v_items jsonb;
       BEGIN
-        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-      -- give the isolated API runtime role only USAGE on schema + EXECUTE on
-      -- this single function after verifying policy/encryption/reverse proxy.
-    """);
-
-    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DO $guard$
-      BEGIN
-        IF EXISTS(SELECT 1 FROM academy_intake.registrations LIMIT 1) THEN
-          RAISE EXCEPTION 'cannot_drop_collected_registration_data'
-            USING ERRCODE='23505';
-        END IF;
-      END $guard$;
-      DROP FUNCTION academy_intake.read_admin_registration_queue(text,integer,integer);
-      DROP FUNCTION academy_intake.submit_public_registration(
-        uuid,jsonb,bytea,text,text,text,text);
-      DROP TABLE academy_intake.registration_rate_buckets;
-    """);
-}
-
+        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
            OR _limit IS NULL OR _limit NOT BETWEEN 1 AND 50
            OR _offset IS NULL OR _offset NOT BETWEEN 0 AND 20000
         THEN RAISE EXCEPTION 'invalid_intake_filter' USING ERRCODE='22023'; END IF;
@@ -193,7 +174,7 @@ public sealed class AcademyPublicRegistrationSubmission : Migration
           'guardian_phone',r.guardian_phone,'guardian_email',r.guardian_email,
           'status',r.status,'submitted_at',r.submitted_at)
           ORDER BY r.submitted_at DESC,r.id),'[]'::jsonb) INTO v_items
-          FROM (SELECT id,applicant_first_name,applicant_last_name,
+        FROM (SELECT id,applicant_first_name,applicant_last_name,
             applicant_birth_date,guardian_name,guardian_phone,guardian_email,
             status,submitted_at FROM academy_intake.registrations
             WHERE organization_id='lefteria_fc_academy'
@@ -203,10 +184,7 @@ public sealed class AcademyPublicRegistrationSubmission : Migration
       END $academy_intake_queue$;
       REVOKE ALL ON FUNCTION academy_intake.read_admin_registration_queue(
         text,integer,integer) FROM PUBLIC;
-
-      -- DO NOT grant table access or EXECUTE automatically. An operator must
-      -- give the isolated API runtime role only USAGE on schema + EXECUTE on
-      -- this single function after verifying policy/encryption/reverse proxy.
+      -- No runtime EXECUTE grants are made in this migration.
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -217,6 +195,7 @@ public sealed class AcademyPublicRegistrationSubmission : Migration
             USING ERRCODE='23505';
         END IF;
       END $guard$;
+      DROP FUNCTION academy_intake.read_admin_registration_queue(text,integer,integer);
       DROP FUNCTION academy_intake.submit_public_registration(
         uuid,jsonb,bytea,text,text,text,text);
       DROP TABLE academy_intake.registration_rate_buckets;
