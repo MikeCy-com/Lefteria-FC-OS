@@ -13,7 +13,8 @@ test('all legacy finance SQL functions are Super Admin only and rollback cannot 
   assert.equal((up.match(/v_role<>'super_admin'/g)||[]).length,10);
   assert.doesNotMatch(up,/v_role NOT IN \('accountant','super_admin'\)|v_role NOT IN \('manager','super_admin'\)/);
   for(const name of fn)assert.match(up,new RegExp('CREATE OR REPLACE FUNCTION finance\\.'+name+'\\('),name);
-  assert.match(src,/throw new NotSupportedException\("finance_global_role_requires_reviewed_forward_recovery"\)/);
+  assert.match(src,/migrationBuilder\.Sql\("SELECT 1; -- finance_global_role_requires_reviewed_forward_recovery"\)/);
+  assert.doesNotMatch(src,/Down\([\s\S]*v_role NOT IN \('manager','super_admin'\)/);
   const sql=read('ops/postgres/finance-global-role-checks.sql');
   assert.match(sql,/pg_get_functiondef/);
   assert.match(sql,/v_role<>''super_admin''/);
