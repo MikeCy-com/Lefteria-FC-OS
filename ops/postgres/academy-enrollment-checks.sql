@@ -11,11 +11,11 @@ DECLARE
   city uuid:=gen_random_uuid();
   location uuid:=gen_random_uuid();
   scope uuid:=gen_random_uuid();
-  group_id text:='grp_'||replace(gen_random_uuid()::text,'-','');
+  fixture_group_id text:='grp_'||replace(gen_random_uuid()::text,'-','');
   application uuid:=gen_random_uuid();
   request_id uuid:=gen_random_uuid();
   alternate_request uuid:=gen_random_uuid();
-  player_id text:='ply_'||replace(request_id::text,'-','');
+  fixture_player_id text:='ply_'||replace(request_id::text,'-','');
   payload jsonb;
   result jsonb;
 BEGIN
@@ -43,10 +43,10 @@ BEGIN
   INSERT INTO club.football_operational_scopes(id,organization_id,academy_city_id)
     VALUES(scope,'lefteria_fc_academy',city);
   INSERT INTO club.academy_groups(id,organization_id,name)
-    VALUES(group_id,'lefteria_fc_academy','Fixture U12');
+    VALUES(fixture_group_id,'lefteria_fc_academy','Fixture U12');
   INSERT INTO club.academy_group_location_assignments(
     organization_id,group_id,city_id,location_id,scope_id)
-    VALUES('lefteria_fc_academy',group_id,city,location,scope);
+    VALUES('lefteria_fc_academy',fixture_group_id,city,location,scope);
   INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role)
     VALUES(manager_id,location,'location_manager');
 
@@ -82,7 +82,7 @@ BEGIN
 
   payload:=jsonb_build_object('id',application,'version',2,
     'request_id',request_id,'city_id',city,'location_id',location,
-    'group_id',group_id,'position','Defender','number',14);
+    'group_id',fixture_group_id,'position','Defender','number',14);
 
   -- Manager is scoped to the correct location but not the unassigned public
   -- application's guardian data. The SQL function must still deny enrollment.
@@ -97,31 +97,31 @@ BEGIN
       jsonb_set(payload,'{location_id}',to_jsonb(gen_random_uuid()::text)));
     RAISE EXCEPTION 'Foreign location accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
-  IF EXISTS(SELECT 1 FROM club.players WHERE id=player_id) THEN
+  IF EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id) THEN
     RAISE EXCEPTION 'Failed enrollment created player'; END IF;
 
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   SET CONSTRAINTS ALL IMMEDIATE;
-  IF result->>'player_id'<>player_id OR result->>'group_id'<>group_id
+  IF result->>'player_id'<>fixture_player_id OR result->>'group_id'<>fixture_group_id
       OR result->>'status'<>'approved'
-      OR NOT EXISTS(SELECT 1 FROM club.players p WHERE p.id=player_id
-        AND p.primary_academy_group_id=group_id AND p.position='Defender'
+      OR NOT EXISTS(SELECT 1 FROM club.players p WHERE p.id=fixture_player_id
+        AND p.primary_academy_group_id=fixture_group_id AND p.position='Defender'
         AND p.number=14)
       OR NOT EXISTS(SELECT 1 FROM club.player_academy_groups m
-        WHERE m.player_id=player_id AND m.academy_group_id=group_id)
+        WHERE m.player_id=fixture_player_id AND m.academy_group_id=fixture_group_id)
       OR NOT EXISTS(SELECT 1 FROM academy_intake.registration_placements rp
         WHERE rp.registration_id=application AND rp.city_id=city
-          AND rp.location_id=location AND rp.group_id=group_id
-          AND rp.player_id=player_id)
+          AND rp.location_id=location AND rp.group_id=fixture_group_id
+          AND rp.player_id=fixture_player_id)
       OR NOT EXISTS(SELECT 1 FROM academy_intake.registrations a
         WHERE a.id=application AND a.status='approved'
-          AND a.status_version=3 AND a.onboarded_player_id=player_id)
+          AND a.status_version=3 AND a.onboarded_player_id=fixture_player_id)
   THEN RAISE EXCEPTION 'Atomic approval and roster placement failed'; END IF;
 
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
-  IF result->>'player_id'<>player_id OR (SELECT count(*) FROM club.players
-      WHERE id=player_id)<>1 THEN
+  IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
+      WHERE id=fixture_player_id)<>1 THEN
     RAISE EXCEPTION 'Enrollment replay was not idempotent'; END IF;
   BEGIN
     PERFORM identity.enroll_admin_academy_registration(admin_digest,
