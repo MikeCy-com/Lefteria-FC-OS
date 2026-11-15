@@ -39,3 +39,8 @@ BEGIN
 END $columns$;
 GRANT SELECT(version,documents_count,base_public_digest,exported_at) ON public_sections.snapshots TO :"app_role";
 GRANT SELECT ON public_sections.current,public_sections.documents TO :"app_role";
+
+-- Only the approved projection, never raw draft/published tables.
+REVOKE ALL ON TABLE public_content.sponsorship_editorial FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION public_content.read_published_sponsorship(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public_content.read_published_sponsorship(text) TO :"app_role";
