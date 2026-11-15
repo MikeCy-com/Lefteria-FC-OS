@@ -65,7 +65,9 @@
       <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
     </div>
   </section>
-    {#snippet ageCard(group: PublicGroup)}
+  
+  <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
+  {#snippet ageCard(group: PublicGroup)}
     <article class="academy-age-card">
       <PublicImage src={group.banner_url || publicImages.academy} alt="" />
       <div class="academy-age-caption">
@@ -83,7 +85,6 @@
       {/if}
     </article>
           {/snippet}
-  <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
     <div class="academy-age-heading">
       <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
       <a href="/academy/groups">ΔΕΙΤΕ ΟΛΑ ΤΑ ΤΜΗΜΑΤΑ <PublicIcon name="arrow" size={17}/></a>
