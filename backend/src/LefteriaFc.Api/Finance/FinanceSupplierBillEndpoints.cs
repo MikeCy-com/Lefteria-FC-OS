@@ -29,7 +29,7 @@ public static class FinanceSupplierBillEndpoints
         "staff_services","administration","other"
     ];
 
-    private static DateOnly Month(string? input)
+    internal static DateOnly Month(string? input)
     {
         if (input is null ||
             !Regex.IsMatch(input, @"^(20[2-9][0-9]|2100)-(0[1-9]|1[0-2])$") ||
@@ -44,7 +44,7 @@ public static class FinanceSupplierBillEndpoints
         input is not null && input.Length >= min && input.Length <= max
         && input == input.Trim() && !input.Any(char.IsControl);
 
-    private static async Task<string> Verify(
+    internal static async Task<string> Verify(
         string? owner, WebAdminService auth, HttpContext context,
         bool write, CancellationToken ct)
     {
@@ -64,7 +64,7 @@ public static class FinanceSupplierBillEndpoints
         return cookie!;
     }
 
-    private static async Task<IResult> Run(
+    internal static async Task<IResult> Run(
         NpgsqlCommand command, CancellationToken ct)
     {
         try
