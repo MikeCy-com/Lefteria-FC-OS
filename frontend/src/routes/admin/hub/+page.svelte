@@ -156,7 +156,7 @@
     const owner=organization,actor=$auth.session?.user.id;
     if(!owner||!canWrite||busy)return;
     const title=humanTitle.trim(),body=humanBody.trim();
-    const unsafe=(value:string)=>Array.from(value).some(char=>/\\p{Cc}/u.test(char));
+    const unsafe=(value:string)=>Array.from(value).some(char=>/\p{Cc}/u.test(char));
     if(!title||title.length>180||unsafe(title)||!body||body.length>20000||unsafe(body)||
        !(humanParent||humanPlayer)||
        (humanAgeRestricted&&(!Number.isInteger(humanAgeMin)||!Number.isInteger(humanAgeMax)||
