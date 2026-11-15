@@ -3,6 +3,7 @@
   import type {PublicSections} from './sections-types';
   import {greekDate} from './content';
   import {fixtureStatus} from './content';
+  import {fixturePublicLink} from './public-urls';
   import Icon from './PublicIcon.svelte';
   import TeamCrest from './TeamCrest.svelte';
 
@@ -41,7 +42,7 @@
       <h3><Icon name="calendar" size={20}/> ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</h3>
       {#if next}
         <p class="competition">{next.competition||'ΑΓΩΝΑΣ'}</p>
-        <a class="match-pair" href={'/match/'+encodeURIComponent(next.id)}
+        <a class="match-pair" href={fixturePublicLink(next)}
           data-testid="team-next-match-detail">
           <div><TeamCrest name={next.home_team} logo={next.home_team_logo}
             {clubName} {clubLogo}/><strong>{next.home_team}</strong></div>
@@ -54,7 +55,7 @@
           {#if next.match_time}<p><Icon name="clock" size={17}/>{next.match_time}</p>{/if}
           {#if next.venue}<p><Icon name="pin" size={17}/>{next.venue}</p>{/if}
         </div>
-        <a href={'/match/'+encodeURIComponent(next.id)} class="match-detail">
+        <a href={fixturePublicLink(next)} class="match-detail">
           ΛΕΠΤΟΜΕΡΕΙΕΣ ΑΓΩΝΑ <Icon name="arrow" size={18}/>
         </a>
       {:else}
@@ -66,7 +67,7 @@
       {#if nearest.length}
         <ol>
           {#each nearest as match (match.id)}
-            <li><a href={'/match/'+encodeURIComponent(match.id)}>
+            <li><a href={fixturePublicLink(match)}>
               <span class="match-day"><strong>{greekDate(match.match_date)}</strong>
                 {#if match.match_time}<small>{match.match_time}</small>{/if}</span>
               <span class="match-name"><strong>{match.home_team} – {match.away_team}</strong>
