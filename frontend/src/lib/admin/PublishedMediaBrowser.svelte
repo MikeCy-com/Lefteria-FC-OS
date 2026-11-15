@@ -73,7 +73,7 @@
               <h3>{asset.label}</h3>
               <div class="published-media-actions">
                 {#if onPick}<button type="button" class="media-select"
-                  onclick={()=>{if(asset.organization_id===organization)onPick(asset);}}>Χρήση εικόνας</button>{/if}
+                  onclick={()=>{if(asset.organization_id===organization)onPick?.(asset);}}>Χρήση εικόνας</button>{/if}
                 <button type="button" onclick={()=>void copyUrl(asset)}>Αντιγραφή URL</button>
               </div>
             </div>
