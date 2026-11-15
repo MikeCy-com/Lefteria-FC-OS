@@ -321,7 +321,7 @@
         <p class="admin-muted">Προβάλλονται τα 200 νεότερα αιτήματα της περιόδου.</p>
       {/if}
     {/if}
-    <AdminSupplierCredits {owner} sessionId={sessionId} {canWrite} {canReview}
+    <AdminSupplierCredits owner={owner ?? ''} sessionId={sessionId} {canWrite} {canReview}
       bills={data.bills} credits={data.credit_notes} onSaved={()=>refresh++}/>
     {#if canReview&&canWrite}
       <h3>Ανεξάρτητη απόφαση Super Admin</h3>
