@@ -81,6 +81,18 @@ internal sealed partial class WebAdminHttpChecks
             return await http.SendAsync(request);
         }
 
+        static async Task<HttpResponseMessage> SetVisibility(
+            HttpClient http,string cookie,string groupId,long revision,bool visible)
+        {
+            var path="/api/admin/football/academy-group-profiles/"+
+                groupId+"/visibility?organization_id=lefteria_fc_academy";
+            using var request=Mutation(path,JsonContent.Create(
+                new{expected_revision=revision,is_public=visible}));
+            request.Method=HttpMethod.Put;
+            request.Headers.Add("Cookie",cookie);
+            return await http.SendAsync(request);
+        }
+
         try
         {
             var id=Guid.NewGuid();
@@ -133,6 +145,27 @@ internal sealed partial class WebAdminHttpChecks
             }
             Console.WriteLine("CHECK scoped create: persisted canonical assignment");
             await database.AssertScopedAcademyGroupAsync(groupId!,site.City,site.SecondLocation);
+            Require(!await database.AcademyGroupVisiblePubliclyAsync(groupId!),
+                "Unapproved new Academy group was published by default.");
+            Console.WriteLine("CHECK scoped create: deliberate public approval");
+            using(var approved=await SetVisibility(client,login.Cookie,groupId!,1,true))
+            {
+                var body=await ExpectJsonAsync(approved,200);
+                Require(body.GetProperty("revision").GetInt64()==2 &&
+                    body.GetProperty("is_public").GetBoolean(),
+                    "Verified manager could not approve Academy publication.");
+            }
+            Require(await database.AcademyGroupVisiblePubliclyAsync(groupId!),
+                "Explicit publication approval did not reach the public directory.");
+            using(var withdrawn=await SetVisibility(client,login.Cookie,groupId!,2,false))
+            {
+                var body=await ExpectJsonAsync(withdrawn,200);
+                Require(body.GetProperty("revision").GetInt64()==3 &&
+                    !body.GetProperty("is_public").GetBoolean(),
+                    "Withdrawn Academy group remained published.");
+            }
+            Require(!await database.AcademyGroupVisiblePubliclyAsync(groupId!),
+                "Withdrawn Academy group leaked through public listing.");
             Console.WriteLine("CHECK scoped create: idempotent replay");
             using(var replay=await Post(client,login.Cookie,path,payload))
             {
