@@ -123,6 +123,8 @@ GRANT UPDATE (data_json,version,updated_at) ON public_content.news_drafts TO :"a
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO :"admin_auth_role";
