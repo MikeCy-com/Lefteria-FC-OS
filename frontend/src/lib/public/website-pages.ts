@@ -41,6 +41,9 @@ export function websitePageParentLink(
   organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
 ): {href: string; label: string} {
   const isAcademy = organization === 'lefteria_fc_academy';
+  // About and Contact accept organization_id; Events accepts scope instead.
+  // The current Shop is a shared first-team surface and must not pretend
+  // that an ignored organization_id parameter filters its catalog.
   // Shared public routes support an explicit organization_id. Preserve the
   // Academy context rather than silently falling back to the First Team.
   const shared = (path: string) => isAcademy ? path + '?organization_id=lefteria_fc_academy' : path;
@@ -52,8 +55,8 @@ export function websitePageParentLink(
     case 'academy': return {href:'/academy',label:'ΑΚΑΔΗΜΙΑ'};
     case 'matches': return {href:'/team?tab=results',label:'ΑΓΩΝΕΣ'};
     case 'news': return {href:isAcademy ? '/news?organization_id=lefteria_fc_academy' : '/news?organization_id=lefteria_fc',label:isAcademy ? 'ΝΕΑ ΑΚΑΔΗΜΙΑΣ' : 'ΝΕΑ ΠΡΩΤΗΣ ΟΜΑΔΑΣ'};
-    case 'events': return {href:shared('/events'),label:'ΕΚΔΗΛΩΣΕΙΣ'};
-    case 'shop': return {href:shared('/shop'),label:'ΚΑΤΑΣΤΗΜΑ'};
+    case 'events': return {href:isAcademy ? '/events?scope=academy' : '/events?scope=first_team',label:'ΕΚΔΗΛΩΣΕΙΣ'};
+    case 'shop': return {href:'/shop',label:'ΚΑΤΑΣΤΗΜΑ'};
     case 'contact': return {href:shared('/contact'),label:'ΕΠΙΚΟΙΝΩΝΙΑ'};
     case 'root':
     case 'hidden':
