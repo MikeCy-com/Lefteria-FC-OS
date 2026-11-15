@@ -13,6 +13,7 @@
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
   type Directory = {organization_id: Organization; ready: true; unassigned_players: number; groups: Audience[]};
+  type CreationLocation = {id:string;city_id:string;label:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
   const assignments = $derived(
@@ -52,6 +53,11 @@
   let createError = $state<string | null>(null);
   let lastCreatedGroupId=$state('');
   let lastCreatedOrganization=$state<Organization|null>(null);
+  let lastCreatedLocation=$state<CreationLocation|null>(null);
+  let creationLocations=$state<CreationLocation[]>([]);
+  let creationLocationId=$state('');
+  let creationLocationsLoading=$state(false);
+  let creationLocationsError=$state('');
 
   $effect(()=>{
     const requested=page.url.searchParams.get('group_id')??'';
@@ -74,8 +80,68 @@
     $auth.status === 'authenticated' && $auth.session && !!organization &&
     assignments.some(org => org.id === organization) &&
     hasAdminPermission($auth.session.user.permissions,
-      organization === 'lefteria_fc' ? 'teams:write' : 'academy:write')
+      organization === 'lefteria_fc' ? 'teams:write' : 'academy:write') &&
+    (organization !== 'lefteria_fc' || $auth.session.user.role==='super_admin')
   );
+
+  // The server returns only currently authorized Academy locations. This
+  // selector does not infer city/site authority from any editable text or URL.
+  $effect(() => {
+    const owner=organization,active=showCreate,actor=$auth.session?.user.id;
+    creationLocations=[];creationLocationId='';creationLocationsError='';
+    creationLocationsLoading=false;
+    if(!browser || !active || owner!=='lefteria_fc_academy' || !canCreate)return;
+    const controller=new AbortController();
+    creationLocationsLoading=true;
+    void (async()=>{
+      try{
+        const response=await fetch('/api/admin/football/territories?organization_id=lefteria_fc_academy',{
+          credentials:'same-origin',cache:'no-store',signal:controller.signal
+        });
+        if(response.status===401){auth.invalidateSession();return;}
+        if(response.status===403){void auth.bootstrap();throw new Error('Τα δικαιώματα τοποθεσίας άλλαξαν.');}
+        if(!response.ok)throw new Error('Οι τοποθεσίες δεν είναι διαθέσιμες.');
+        const value:unknown=await response.json();
+        if(!value || typeof value!=='object' || Array.isArray(value))
+          throw new Error('Μη επαληθευμένη απάντηση τοποθεσιών.');
+        const data=value as Record<string,unknown>;
+        if(data.organization_id!=='lefteria_fc_academy' ||
+          !Array.isArray(data.cities)||!Array.isArray(data.locations)||
+          !Array.isArray(data.scopes)||data.locations.length>3000)
+          throw new Error('Μη επαληθευμένος κατάλογος τοποθεσιών.');
+        const cities=new Map<string,string>();
+        for(const row of data.cities as Record<string,unknown>[]){
+          if(typeof row.id==='string' && typeof row.name==='string' &&
+            row.is_active===true)cities.set(row.id,row.name);
+        }
+        const scopedCities=new Set((data.scopes as Record<string,unknown>[])
+          .filter(s=>s.organization_id==='lefteria_fc_academy' &&
+            typeof s.academy_city_id==='string')
+          .map(s=>s.academy_city_id as string));
+        const options:CreationLocation[]=[];
+        for(const row of data.locations as Record<string,unknown>[]){
+          if(typeof row.id!=='string' || !/^[0-9a-f-]{36}$/i.test(row.id) ||
+            typeof row.city_id!=='string' || typeof row.name!=='string' ||
+            row.is_active!==true || row.can_manage!==true ||
+            !cities.has(row.city_id) || !scopedCities.has(row.city_id))continue;
+          options.push({id:row.id,city_id:row.city_id,
+            label:cities.get(row.city_id)+' · '+row.name});
+        }
+        if(controller.signal.aborted || organization!==owner ||
+          $auth.session?.user.id!==actor)return;
+        creationLocations=options;
+        const requested=page.url.searchParams.get('location_id');
+        creationLocationId=options.find(l=>l.id===requested)?.id ??
+          (options.length===1?options[0].id:'');
+        if(!options.length)creationLocationsError=
+          'Δεν υπάρχουν ενεργές τοποθεσίες στις οποίες έχετε δικαίωμα δημιουργίας.';
+      }catch{
+        if(!controller.signal.aborted)creationLocationsError=
+          'Δεν επιβεβαιώθηκαν οι εξουσιοδοτημένες τοποθεσίες. Ανανέωση και νέα προσπάθεια.';
+      }finally{if(!controller.signal.aborted)creationLocationsLoading=false;}
+    })();
+    return ()=>controller.abort();
+  });
 
   async function createGroup() {
     if (!browser || !canCreate || !organization || !directory || loading ||
@@ -88,6 +154,12 @@
     }
     const selected = organization;
     const actor = $auth.session?.user.id;
+    const selectedLocation=selected==='lefteria_fc_academy'
+      ?creationLocations.find(item=>item.id===creationLocationId)??null:null;
+    if(selected==='lefteria_fc_academy' && (!selectedLocation || creationLocationsLoading)){
+      createError='Επιλέξτε μία επαληθευμένη πόλη και τοποθεσία πριν από τη δημιουργία.';
+      return;
+    }
     const safeText = (value:string,max:number)=>
       value.length<=max && !/[\x00-\x1f\x7f]/.test(value);
     const bannerValid = (value:string)=>!value ||
@@ -120,7 +192,8 @@
       const response = await fetch('/api/admin/football/groups/with-profile?' + query.toString(), {
         method:'POST', credentials:'same-origin', cache:'no-store',
         headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({name,request_id:requestId,...profile})
+        body:JSON.stringify({name,request_id:requestId,...profile,
+          ...(selectedLocation?{location_id:selectedLocation.id}:{})})
       });
       if (organization !== selected || $auth.session?.user.id !== actor || !canCreate) return;
       if (response.status === 401 || response.status === 403) {
@@ -148,10 +221,13 @@
            ((value.profile as Record<string,unknown>).revision as number) < 1) ||
           (selected === 'lefteria_fc'
             ? (value.profile as Record<string,unknown>).team_id !== value.id
-            : (value.profile as Record<string,unknown>).group_id !== value.id))
+            : (value.profile as Record<string,unknown>).group_id !== value.id) ||
+          (selectedLocation && (value.location_id!==selectedLocation.id ||
+            value.city_id!==selectedLocation.city_id)))
         throw new Error('Μη επαληθευμένη πλήρης καταχώριση τμήματος.');
       lastCreatedGroupId=value.id;
       lastCreatedOrganization=selected;
+      lastCreatedLocation=selectedLocation;
       focusedGroupId=value.id;
       showCreate = false;
       groupName = '';
@@ -311,13 +387,13 @@
             <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
               <p class="admin-eyebrow">ΤΟ ΤΜΗΜΑ ΑΠΟΘΗΚΕΥΤΗΚΕ</p>
               {#if organization==='lefteria_fc_academy'}
-                <h2>Ολοκλήρωση πόλης & τοποθεσίας</h2>
-                <p>Το τμήμα δημιουργήθηκε. Για να είναι πλήρως ενεργό στην Ακαδημία,
-                  αναθέστε το στην πόλη και τοποθεσία του. Οι αντίπαλοι και τα γήπεδα
-                  αγώνων είναι κοινοί για την πόλη, όχι για κάθε τοποθεσία.</p>
+                <h2>Τμήμα ενεργό στη σωστή τοποθεσία</h2>
+                <p>Η δημιουργία και η ανάθεση στην τοποθεσία {lastCreatedLocation?.label ?? ''}
+                  ολοκληρώθηκαν με την ίδια επιβεβαιωμένη συναλλαγή. Οι αντίπαλοι
+                  και τα γήπεδα αγώνων παραμένουν κοινά ανά πόλη.</p>
                 <a class="admin-group-next-link"
-                  href={`/admin/territories?organization_id=lefteria_fc_academy&assign_group=${encodeURIComponent(lastCreatedGroupId)}#group-placement`}
-                  data-testid="admin-assign-group-location">Ανάθεση πόλης & τοποθεσίας ↗</a>
+                  href={`/admin/territories?organization_id=lefteria_fc_academy&city_id=${encodeURIComponent(lastCreatedLocation?.city_id??'')}&location_id=${encodeURIComponent(lastCreatedLocation?.id??'')}#group-placement`}
+                  data-testid="admin-verified-group-location">Διαχείριση τοποθεσίας ↗</a>
               {:else}
                 <h2>Οργάνωση ομάδας</h2>
                 <p>Η ομάδα δημιουργήθηκε. Μπορείτε να της αναθέσετε το δικό της
@@ -368,6 +444,21 @@
                         oninput={() => createRequestId=''}/>
                     </label>
                   {:else}
+                    <label>Πόλη · τοποθεσία Ακαδημίας (υποχρεωτική)
+                      <select bind:value={creationLocationId} disabled={saving || creationLocationsLoading}
+                        required data-testid="admin-group-verified-location"
+                        onchange={() => createRequestId=''}>
+                        <option value="">Επιλέξτε εξουσιοδοτημένη τοποθεσία</option>
+                        {#each creationLocations as site (site.id)}
+                          <option value={site.id}>{site.label}</option>
+                        {/each}
+                      </select>
+                    </label>
+                    {#if creationLocationsLoading}
+                      <p role="status" class="admin-muted">Επαλήθευση τοποθεσιών…</p>
+                    {:else if creationLocationsError}
+                      <p role="alert" class="admin-group-error">{creationLocationsError}</p>
+                    {/if}
                     <label>Ηλικιακή ομάδα
                       <input type="text" maxlength="80" bind:value={academyAge}
                         disabled={saving} oninput={() => createRequestId=''}/>
@@ -405,7 +496,10 @@
                     </label>
                   {/if}
                   <div class="admin-group-create-actions">
-                    <button type="submit" class="admin-secondary" disabled={saving}>{saving ? 'Δημιουργία…' : 'Δημιουργία'}</button>
+                    <button type="submit" class="admin-secondary"
+                      disabled={saving || (organization==='lefteria_fc_academy' &&
+                        (!creationLocationId || creationLocationsLoading || !!creationLocationsError))}>
+                      {saving ? 'Δημιουργία…' : 'Δημιουργία'}</button>
                     <button type="button" class="admin-secondary" disabled={saving}
                       onclick={() => {showCreate=false;createError=null;}}>Ακύρωση</button>
                   </div>

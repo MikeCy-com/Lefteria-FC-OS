@@ -94,6 +94,74 @@ internal sealed partial class WebAdminDatabaseFixture
         await cmd.ExecuteNonQueryAsync();
     }
 
+    public async Task AssertScopedAcademyGroupAsync(
+        string groupId,Guid city,Guid location)
+    {
+        if(!System.Text.RegularExpressions.Regex.IsMatch(groupId,"^grp_[0-9a-f]{32}$"))
+            throw new InvalidOperationException("Unsafe synthetic group ID.");
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            SELECT count(*)::integer
+            FROM club.academy_groups g
+            JOIN club.academy_group_location_assignments m
+              ON m.organization_id=g.organization_id AND m.group_id=g.id
+            JOIN club.academy_group_profiles p
+              ON p.organization_id=g.organization_id AND p.group_id=g.id
+            WHERE g.organization_id='lefteria_fc_academy' AND g.id=@id
+              AND m.city_id=@city AND m.location_id=@location
+              AND p.revision=1
+            """,con);
+        cmd.Parameters.AddWithValue("id",groupId);
+        cmd.Parameters.AddWithValue("city",city);
+        cmd.Parameters.AddWithValue("location",location);
+        if((int)(await cmd.ExecuteScalarAsync())! !=1)
+            throw new InvalidOperationException(
+              "Cohort, site assignment and original profile were not atomic.");
+    }
+
+    public async Task CleanupScopedAcademyGroupsAsync(Account actor,
+        IReadOnlyCollection<string> ids)
+    {
+        RequireOwned(actor);
+        if(ids.Count==0)return;
+        if(ids.Any(id=>!System.Text.RegularExpressions.Regex.IsMatch(
+            id,"^grp_[0-9a-f]{32}$")))
+            throw new InvalidOperationException("Refusing unrelated cohort cleanup.");
+        await using var con=await OwnerAsync();
+        await using var tx=await con.BeginTransactionAsync();
+        await using var cmd=new NpgsqlCommand("""
+            DELETE FROM club.admin_group_create_requests
+              WHERE organization_id='lefteria_fc_academy'
+                AND actor_id=@actor AND group_id=ANY(@ids);
+            DELETE FROM club.academy_group_location_assignments
+              WHERE organization_id='lefteria_fc_academy' AND group_id=ANY(@ids);
+            DELETE FROM club.academy_group_profiles
+              WHERE organization_id='lefteria_fc_academy' AND group_id=ANY(@ids);
+            DELETE FROM club.academy_groups
+              WHERE organization_id='lefteria_fc_academy' AND id=ANY(@ids);
+            """,con,tx);
+        cmd.Parameters.AddWithValue("actor",actor.Id);
+        cmd.Parameters.AddWithValue("ids",ids.ToArray());
+        int affected;
+        try { affected=await cmd.ExecuteNonQueryAsync(); }
+        catch(PostgresException e)
+        {
+            // Disposable CI fixture only: no player, administrator or
+            // credential values. Identify the exact FK/check preventing
+            // synthetic group teardown.
+            Console.WriteLine("CHECK scoped create: cleanup SQLSTATE="+e.SqlState+
+                " constraint="+e.ConstraintName+" message="+e.MessageText);
+            throw;
+        }
+        // Exactly one retry row, one canonical site assignment, one
+        // profile and one Academy group per fixture ID. Npgsql returns the
+        // total affected count from all four DELETE statements.
+        if(affected!=ids.Count*4)
+            throw new InvalidOperationException(
+              "Scoped cohort cleanup did not remove all four exact owned rows.");
+        await tx.CommitAsync();
+    }
+
     public async Task RevokeAnnouncementTerritoriesAsync(Account manager,
         AnnouncementTerritoryFixture topology)
     {

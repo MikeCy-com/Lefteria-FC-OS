@@ -24,11 +24,17 @@ END $check$;
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_group_with_profile(
     text,text,text,text,uuid,jsonb) TO :"admin_auth_role";
+-- New site-specific creation checks current location/city authorization in SQL;
+-- never grant direct roster, geographic assignment or request-table access.
+GRANT EXECUTE ON FUNCTION club.create_admin_academy_location_group_with_profile(
+    text,text,text,uuid,jsonb,uuid) TO :"admin_auth_role";
 DO $verify$
 DECLARE a text:=current_setting('lefteria.profiled_group_auth_role');
 BEGIN
   IF NOT has_function_privilege(a,
       'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)','EXECUTE')
+    OR NOT has_function_privilege(a,
+      'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)','EXECUTE')
     OR has_table_privilege(a,'club.admin_group_create_requests','SELECT,INSERT,UPDATE,DELETE')
   THEN RAISE EXCEPTION 'profiled_group_grant_scope_invalid'; END IF;
 END $verify$;
