@@ -55,6 +55,8 @@ public static class WebAdminRequestGuards
                      Regex.IsMatch(context.Request.Path.Value ?? "",
                         @"\A/api/admin/website/news-drafts/draft_[0-9a-f]{32}\z",
                         RegexOptions.CultureInvariant))
+                    ? 256 * 1024 :
+                    (context.Request.Path.StartsWithSegments("/api/admin/website/pages", StringComparison.OrdinalIgnoreCase))
                     ? 256 * 1024 : 16 * 1024;
                 if (context.Request.ContentLength > limit)
                 {
