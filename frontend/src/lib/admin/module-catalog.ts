@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -30,7 +30,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'hub', name: 'HUB · Περιεχόμενο & συνδρομές', description: 'Ασφαλές εκπαιδευτικό περιεχόμενο για γονείς και αθλητές, με προαιρετική συνδρομή φιλάθλων και υποχρεωτική ανθρώπινη έγκριση.', modules: [
     { id: 'hub_editorial', name: 'AI πρόχειρα & έγκριση περιεχομένου', description: 'Πραγματική λίστα, κείμενα, έλεγχος εικόνων, ανθρώπινη έγκριση και δημοσίευση. Η παραγωγή AI ενεργοποιείται ξεχωριστά μόνο σε απομονωμένη δοκιμή.', status: 'live', href: '/admin/hub', scope: 'any', anyPermission: ['news:read'] },
-    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
+    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Μόνο Super Admin: πραγματική συγκεντρωτική εικόνα ενεργών επαληθευμένων συνδρομών και sandbox τιμοκαταλόγου ανά οργανισμό. Χωρίς στοιχεία συνδρομητών, επαναλαμβανόμενες χρεώσεις ή μεταβολές.', status: 'live', href: '/admin/hub/subscriptions', scope: 'any', anyPermission: ['finance:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
     { id: 'communications', name: 'Κέντρο επικοινωνίας εφαρμογής', description: 'Ενοποιημένη εικόνα ανακοινώσεων, ιδιωτικών συνομιλιών, ειδοποιήσεων και συνημμένων με πραγματικές καταστάσεις υλοποίησης.', status: 'live', href: '/admin/communications', scope: 'any', anyPermission: ['teams:write','academy:write'] },
@@ -95,6 +95,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
+      if (item.id === 'hub_subscriptions') return user.role==='super_admin' && hasAdminPermission(user.permissions,'finance:read');
       if (item.id === 'facilities') return ['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
