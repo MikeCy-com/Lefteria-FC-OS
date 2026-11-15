@@ -12,7 +12,7 @@
   let menu: HTMLDialogElement; let title: HTMLHeadingElement;
   let menuOpen = $state(false); let selectedCategory = $state<string | null>(null);
   let unlockScroll: (() => void) | null = null;
-  const publishedPages = $derived(((page.data as {websitePages?: WebsiteNavigationData}).websitePages ??
+  const publishedPages = $derived(((page.data as {websitePages?: WebsiteNavigationData} | undefined)?.websitePages ??
     {lefteria_fc:[],lefteria_fc_academy:[]})[organization] ?? []);
   const websiteNavigation = $derived(withWebsitePages(publicNavigation, publishedPages, organization));
   const category = $derived(websiteNavigation.find(item => item.id === selectedCategory));
