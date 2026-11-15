@@ -47,7 +47,8 @@ test('Status mutation is independently gated in API and locked inside PostgreSQL
   assert.match(migration,/UPDATE identity\.admin_sessions/);
   assert.match(migration,/admin\.account\.suspend/);
   assert.match(migration,/admin\.account\.reactivate/);
-  assert.match(accountAuth,/AND a\.role=@role\s+FOR SHARE OF a\s+RETURNING id/);
+  assert.match(accountAuth,/identity\.lock_admin_login_account/);
+  assert.doesNotMatch(accountAuth,/FOR SHARE OF a/);
   assert.doesNotMatch(route,/UPDATE identity\.admin_accounts|DELETE FROM identity\.admin_accounts/);
 });
 
