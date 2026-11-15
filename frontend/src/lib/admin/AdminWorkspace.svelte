@@ -20,7 +20,7 @@
     {id:'groups',label:'Ομάδες & τμήματα',description:'Δημιουργία, ρόστερ, προπονήσεις, αγώνες και ενέργειες αθλητών',href:'/admin/groups'},
     {id:'territories',label:'Πόλεις & τοποθεσίες',description:'Οργάνωση Ακαδημίας, βάσεις, αγωνιστικοί κατάλογοι ανά πόλη',href:'/admin/territories'},
     {id:'announcements',label:'Ανακοινώσεις εφαρμογής',description:'Δημοσίευση ανά ομάδα και παρακολούθηση ανάγνωσης',href:'/admin/announcements'},
-    {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
+    {id:'registrations',label:'Εγγραφές Ακαδημίας',description:'Ενιαία λίστα ηλεκτρονικών και χειροκίνητων αιτήσεων',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
