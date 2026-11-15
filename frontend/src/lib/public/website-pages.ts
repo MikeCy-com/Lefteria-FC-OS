@@ -23,6 +23,11 @@ export const HOMEPAGE_HERO_SLUGS = {
   lefteria_fc: 'homepage-hero-first-team',
   lefteria_fc_academy: 'homepage-hero-academy'
 } as const satisfies Record<PublicOrganization, string>;
+// Shared CMS menu policy. Used by the admin selector and by the public
+// menu projection, which must reject legacy or malformed owner placements.
+export function websiteMenuParentAllowed(organization: PublicOrganization, parent: WebsitePageContent['menu_parent']): boolean {
+  return organization === 'lefteria_fc_academy' ? parent !== 'team' && parent !== 'matches' : parent !== 'academy';
+}
 export const isHomeHeroSlug = (slug: string) =>
   slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
 
@@ -52,7 +57,8 @@ export function withWebsitePages(
   const result = navigation.map(item => item.items ?
     {...item, items: [...item.items]} as PublicNavigationItem : {...item} as PublicNavigationItem);
   for (const row of [...pages].filter(p => p.organization_id === organization &&
-      isPublishedWebsitePage(p, organization) && !isHomeHeroSlug(p.slug) && p.page.menu_parent !== 'hidden')
+      isPublishedWebsitePage(p, organization) && !isHomeHeroSlug(p.slug) &&
+      p.page.menu_parent !== 'hidden' && websiteMenuParentAllowed(organization, p.page.menu_parent))
       .sort((a,b) => a.page.menu_order-b.page.menu_order || a.slug.localeCompare(b.slug))) {
     const path = websitePagePath(row.slug, organization);
     const label = row.page.title.slice(0, 80);

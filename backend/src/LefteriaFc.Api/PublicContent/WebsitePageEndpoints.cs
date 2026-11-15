@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -296,6 +296,16 @@ public static class WebsitePageEndpoints
         else if (value.ValueKind == JsonValueKind.Array)
             foreach (var element in value.EnumerateArray()) Unique(element);
     }
+    // A public First Team submenu must never become the destination for an
+    // Academy-owned CMS page, and Academy pages must never appear under the
+    // First Team fixture menu. Verify at write time even for forged requests.
+    private static void ValidateMenuPlacement(string owner, WebsitePageContent content)
+    {
+        if (owner == "lefteria_fc_academy" && content.MenuParent is "team" or "matches" ||
+            owner == "lefteria_fc" && content.MenuParent == "academy")
+            throw Invalid();
+    }
+
     // Protected native homepage regions can only edit their own owner's copy.
     // Their block order and hidden-menu status are fixed; they never replace
     // the fixture carousel, navigation, roster or other dynamic homepage data.

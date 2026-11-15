@@ -7,7 +7,7 @@
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
-  import { websitePagePath, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -28,6 +28,8 @@
     {value:'shop',label:'Κατάστημα'},
     {value:'contact',label:'Επικοινωνία'}
   ] as const;
+
+  const visibleParents = $derived(organization ? parents.filter(parent => websiteMenuParentAllowed(organization, parent.value)) : parents);
 
   const permitted = $derived($auth.status==='authenticated' && !!$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'news:read') ?
@@ -146,7 +148,7 @@
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length<2 || slug.length>80 ||
        !draft.title.trim() || draft.title.length>180 || draft.summary.length>500 ||
        draft.seo_title.length>180 || draft.seo_description.length>300 ||
-       !parents.some(p=>p.value===draft.menu_parent) ||
+       !visibleParents.some(p=>p.value===draft.menu_parent) ||
        !Number.isSafeInteger(draft.menu_order) || draft.menu_order<0 || draft.menu_order>1000 ||
        draft.blocks.length<1 || draft.blocks.length>40 ||
        draft.blocks.some(b=>!b.text.trim() || b.text.length>5000 ||
@@ -229,7 +231,7 @@
               {/each}
             </select>
           </label>
-          <p class="admin-muted">Κάθε σελίδα, θέση μενού και δημοσίευση ανήκει αποκλειστικά στον επιλεγμένο οργανισμό.</p>
+          <p class="admin-muted">Κάθε σελίδα, θέση μενού και δημοσίευση ανήκει αποκλειστικά στον επιλεγμένο οργανισμό. Οι ενότητες Πρώτης Ομάδας και Ακαδημίας δεν μπορούν να αναμειχθούν.</p>
         </section>
         <div class="cms-grid">
           <aside class="admin-panel cms-library" aria-label="Σελίδες οργανισμού">
@@ -267,7 +269,7 @@
                   <label>Σύντομη περιγραφή <textarea rows="2" maxlength="500" bind:value={draft.summary} disabled={!canWrite || saving}></textarea></label>
                   <div class="cms-field-grid">
                     <label>Θέση στο μενού <select bind:value={draft.menu_parent} disabled={!canWrite || saving || isHero}>
-                      {#each parents as parent (parent.value)}<option value={parent.value}>{parent.label}</option>{/each}
+                      {#each visibleParents as parent (parent.value)}<option value={parent.value}>{parent.label}</option>{/each}
                     </select></label>
                     <label>Σειρά στο μενού (0 = πρώτη) <input type="number" min="0" max="1000" step="1" bind:value={draft.menu_order} disabled={!canWrite || saving || isHero}/></label>
                   </div>

@@ -80,3 +80,14 @@ SEO duplicates. No browser auth/session data is used to read these snapshots.
 This does **not** enable editing every existing static section, nor does it
 allow arbitrary HTML or plugin hooks. More canonical homepage and site regions
 still need individually verified slot contracts to preserve live features.
+
+## Navigation owner policy
+
+CMS menu parents are validated by the API (including forged requests), filtered
+in the admin editor, and checked again in the public navigation projection.
+The Academy may not attach its pages to the First Team `team` or `matches`
+menus; First Team pages may not attach to the Academy `academy` menu.
+Shared root, club/news/events/shop/contact slots retain their existing
+organization-specific pages. Incompatible pre-existing snapshots remain
+available through their direct scoped URL but cannot appear in the wrong
+organization's public menu until corrected and republished.
