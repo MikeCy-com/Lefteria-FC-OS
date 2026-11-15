@@ -257,20 +257,20 @@ public sealed class FinanceSupplierCreditNotes : Migration
         WHERE c.organization_id=_owner AND b.bill_date>=_month
           AND b.bill_date<(_month+interval '1 month')::date;
         SELECT coalesce(jsonb_agg(
-          row.value||jsonb_build_object(
+          item.value||jsonb_build_object(
             'approved_credit_cents',totals.approved,
-            'net_payable_cents',(row.value->>'gross_amount_cents')::bigint-totals.approved,
-            'remaining_cents',(row.value->>'remaining_cents')::bigint-totals.approved)
-          ORDER BY row.ordinality),'[]'::jsonb)
+            'net_payable_cents',(item.value->>'gross_amount_cents')::bigint-totals.approved,
+            'remaining_cents',(item.value->>'remaining_cents')::bigint-totals.approved)
+          ORDER BY item.ordinality),'[]'::jsonb)
           INTO v_bills
         FROM jsonb_array_elements(v_report->'bills')
-          WITH ORDINALITY AS row(value,ordinality)
+          WITH ORDINALITY AS item(value,ordinality)
         CROSS JOIN LATERAL (
           SELECT coalesce(sum(c.amount_cents),0)::bigint AS approved
           FROM finance.supplier_credit_requests c
           JOIN finance.supplier_credit_decisions d
             ON d.request_id=c.id AND d.decision='approved_manual'
-          WHERE c.bill_id=(row.value->>'id')::uuid
+          WHERE c.bill_id=(item.value->>'id')::uuid
             AND c.organization_id=_owner
         ) totals;
         SELECT coalesce(jsonb_agg(to_jsonb(rows)
