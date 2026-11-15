@@ -27,9 +27,11 @@ export function buildAcademyTerritoryDirectory(
   const seenLocations = new Map<string, AcademyDirectoryLocation>();
 
   for (const group of groups) {
+    // Defence in depth: a mixed public response never appears in Academy UI,
+    // not even in the unassigned legacy section.
+    if (group.organization_id !== 'lefteria_fc_academy') continue;
     const cityId = group.city_id, locationId = group.location_id;
-    if (group.organization_id !== 'lefteria_fc_academy' ||
-        typeof cityId !== 'string' || !cityId ||
+    if (typeof cityId !== 'string' || !cityId ||
         typeof locationId !== 'string' || !locationId ||
         !validSlug(group.city_slug) || !validSlug(group.location_slug) ||
         typeof group.city !== 'string' || !group.city.trim() ||
