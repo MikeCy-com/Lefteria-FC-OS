@@ -72,6 +72,14 @@ BEGIN
   -- Super Admin can move public application to "under review".
   PERFORM identity.admin_academy_office(admin_digest,'review',
     jsonb_build_object('id',application,'status','under_review','version',1));
+  -- The old status-only endpoint is not allowed to approve a public
+  -- application without a verified roster placement.
+  BEGIN
+    PERFORM identity.admin_academy_office(admin_digest,'review',
+      jsonb_build_object('id',application,'status','approved','version',2));
+    RAISE EXCEPTION 'Status-only public approval bypassed roster enrollment';
+  EXCEPTION WHEN check_violation THEN NULL; END;
+
   payload:=jsonb_build_object('id',application,'version',2,
     'request_id',request_id,'city_id',city,'location_id',location,
     'group_id',group_id,'position','Defender','number',14);
