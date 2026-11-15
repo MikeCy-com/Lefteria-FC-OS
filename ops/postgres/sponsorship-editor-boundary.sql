@@ -10,6 +10,7 @@
 \else
   DO $required$ BEGIN RAISE EXCEPTION 'admin_auth_role_required'; END $required$;
 \endif
+BEGIN;
 SELECT set_config('lefteria.sponsor_app_role',:'app_role',true),
        set_config('lefteria.sponsor_admin_role',:'admin_auth_role',true);
 DO $audit$
@@ -33,3 +34,4 @@ BEGIN
      OR public_content.current_sponsorship_exists('unknown_organization','sponsor','one')
   THEN RAISE EXCEPTION 'sponsorship_unknown_owner_must_fail_closed'; END IF;
 END $audit$;
+ROLLBACK;
