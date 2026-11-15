@@ -553,10 +553,14 @@
         <section class="admin-panel">Δεν υπάρχουν ακόμη επιβεβαιωμένες αναθέσεις.</section>
       {/if}
       {#if directory && $auth.session.user.role==='super_admin' && canWrite}
-        <FootballTerritoryAccessPanel {organization}
-          actorId={$auth.session.user.id} cities={directory.cities}
-          locations={directory.locations} scopes={directory.scopes}
-          revision={revision}/>
+        <div id="delegated-access" class="territory-delegation-anchor"
+          data-testid="territory-role-permissions">
+          <FootballTerritoryAccessPanel {organization}
+            actorId={$auth.session.user.id} cities={directory.cities}
+            locations={directory.locations} scopes={directory.scopes}
+            focusAccountId={page.url.searchParams.get('account_id')??''}
+            revision={revision}/>
+        </div>
       {/if}
       {#if error}<p class="territory-error" role="alert">{error}</p>{/if}
       {#if message}<p class="territory-success" role="status">{message}</p>{/if}
@@ -594,7 +598,7 @@
     outline:3px solid #bd9763;outline-offset:3px}
   .territory-page button{min-height:44px;cursor:pointer}
   .territory-page button:disabled{opacity:.55;cursor:not-allowed}
-  #create-city,#create-location{scroll-margin-top:100px}
+  #create-city,#create-location,#delegated-access{scroll-margin-top:100px}
   .territory-form{display:grid;gap:1rem;padding:1.2rem 0;margin-top:1rem;
     border-top:1px solid rgba(160,140,100,.35)}
   .territory-form button{justify-self:start}
