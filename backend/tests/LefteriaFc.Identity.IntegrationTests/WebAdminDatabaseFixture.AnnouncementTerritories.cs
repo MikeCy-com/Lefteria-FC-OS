@@ -153,8 +153,12 @@ internal sealed partial class WebAdminDatabaseFixture
                 " constraint="+e.ConstraintName+" message="+e.MessageText);
             throw;
         }
-        if(affected!=ids.Count)
-            throw new InvalidOperationException("Scoped cohort cleanup was not exact.");
+        // Exactly one retry row, one canonical site assignment, one
+        // profile and one Academy group per fixture ID. Npgsql returns the
+        // total affected count from all four DELETE statements.
+        if(affected!=ids.Count*4)
+            throw new InvalidOperationException(
+              "Scoped cohort cleanup did not remove all four exact owned rows.");
         await tx.CommitAsync();
     }
 
