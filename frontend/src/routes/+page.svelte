@@ -4,6 +4,7 @@
   import HomeDestinations from '../lib/public/HomeDestinations.svelte';
   import HomeNews from '../lib/public/HomeNews.svelte';
   import SidelineBanner from '../lib/public/SidelineBanner.svelte';
+  import HomeAcademySpotlight from '../lib/public/HomeAcademySpotlight.svelte';
   import Fixtures from '../lib/public/Fixtures.svelte';
   import Unavailable from '../lib/public/Unavailable.svelte';
   import '../lib/public/home-reference.css';
@@ -17,6 +18,7 @@
     <HomeNews articles={data.news?.items ?? []} available={data.newsAvailable} />
     {#if data.available}
       <section class="public-section section-dark"><div class="public-section-heading"><h2>ΑΓΩΝΕΣ & ΑΠΟΤΕΛΕΣΜΑΤΑ</h2><a href="/team?tab=schedule">ΤΟ ΠΡΟΓΡΑΜΜΑ ↗</a></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures.slice(0,4)} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες.</p>{/if}</section>
+      <HomeAcademySpotlight site={data.site} groups={data.navigationGroups} />
       <SidelineBanner />
     {/if}
   </div>
