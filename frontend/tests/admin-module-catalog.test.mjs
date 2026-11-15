@@ -18,7 +18,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['territories', '/admin/territories'], ['fixtures', '/admin/matches'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['users', '/admin/users']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['territories', '/admin/territories'], ['fixtures', '/admin/matches'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
@@ -43,6 +43,19 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['campaigns']);
   assert.ok(!legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
   assert.equal(legacyIds(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
+});
+
+test('facilities reuses verified territory management and stays closed to unrelated roles',()=>{
+  const manager=user(['academy:read'],['lefteria_fc_academy'],'manager');
+  const facilities=modules(manager).find(item=>item.id==='facilities');
+  assert.equal(facilities?.status,'live');
+  assert.equal(facilities?.href,'/admin/territories');
+  assert.ok(!ids(user(['academy:read'],['lefteria_fc'],'manager')).includes('facilities'));
+  assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'],'manager')).includes('facilities'));
+  assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('facilities'));
+  assert.ok(!ids(user(['facilities:read'],['lefteria_fc'],'editor')).includes('facilities'));
+  assert.ok(!ids(user(['finance:read'],['lefteria_fc'],'accountant')).includes('facilities'));
+  assert.ok(!ids(user(['academy:read'],['lefteria_fc_academy'],'coach')).includes('facilities'));
 });
 
 test('admin navigation exposes real operational destinations without five orphan global links',()=>{

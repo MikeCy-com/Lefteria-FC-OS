@@ -93,7 +93,11 @@
       <h1>Προσωπικό & προπονητές</h1>
       <p class="admin-muted">Επαληθευμένος κατάλογος προπονητών και αναθέσεων στον επιλεγμένο οργανισμό.
         Οι αλλαγές τμημάτων αποθηκεύονται μόνο μέσω των προστατευμένων API με έλεγχο σύγκρουσης.
-        Η δημιουργία προσωπικού, οι συμβάσεις και τα στοιχεία επικοινωνίας δεν υποστηρίζονται ακόμη.</p>
+        Η δημιουργία εγγραφής προσωπικού, οι συμβάσεις και τα στοιχεία επικοινωνίας δεν υποστηρίζονται ακόμη.
+        Η δημιουργία λογαριασμού χρήστη Coach δεν δημιουργεί αυτόματα εγγραφή προπονητή.</p>
+      {#if $auth.session.user.role==='super_admin' && hasAdminPermission($auth.session.user.permissions,'users:read')}
+        <p><a href="/admin/users" data-testid="admin-staff-account-creation">Δημιουργία νέου λογαριασμού Coach / προσωπικού</a></p>
+      {/if}
       {#if permitted && authorizedOwners.length > 1}
         <label class="staff-owner-selector">Οργανισμός αναθέσεων
           <select value={owner??''} data-testid="admin-staff-organization"
