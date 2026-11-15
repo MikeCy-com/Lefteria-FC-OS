@@ -75,7 +75,8 @@ test('Admin UI separates RSVP from presence, shows provenance and verifies write
   assert.match(page,/data-testid="attendance-denied"/);
   assert.doesNotMatch(page,/@html|innerHTML|localStorage\./);
   assert.match(catalog,/href: '\/admin\/attendance'/);
-  assert.match(frame,/href="\/admin\/attendance"/);
+  assert.doesNotMatch(frame,/href="\/admin\/attendance"/);
+  assert.match(read('frontend/src/routes/admin/groups/+page.svelte'),/admin-group-attendance-link/);
   assert.match(program,/app\.MapAdminAcademyAttendance\(\)/);
 });
 
