@@ -19,14 +19,94 @@
   let namePassword=$state(''),currentPassword=$state(''),nextPassword=$state(''),confirmPassword=$state('');
   let savingName=$state(false),savingPassword=$state(false);
   let nameError=$state(''),nameSuccess=$state(''),passwordError=$state('');
+  let emailValue=$state(''),emailPassword=$state('');
+  let emailReading=$state(false),emailSaving=$state(false),emailRevision=$state(0);
+  let emailError=$state(''),emailSuccess=$state('');
+  let emailLoaded=$state(false);
+
   $effect(()=>{
     const actor=user?.id??'';
     if(actor!==profileActor){
       profileActor=actor;displayName=user?.name??'';
       namePassword='';currentPassword='';nextPassword='';confirmPassword='';
       nameError='';nameSuccess='';passwordError='';
+      emailValue='';emailPassword='';emailError='';emailSuccess='';emailLoaded=false;
     }
   });
+
+  $effect(()=>{
+    const actor=user?.id,revision=emailRevision;
+    void revision;
+    emailLoaded=false;emailError='';emailValue='';
+    if(!browser||!actor||$auth.status!=='authenticated')return;
+    const controller=new AbortController();
+    emailReading=true;
+    void(async()=>{
+      try{
+        const response=await fetch('/api/admin/auth/profile/contact-email',{
+          method:'GET',credentials:'same-origin',cache:'no-store',
+          headers:{'Accept':'application/json'},signal:controller.signal
+        });
+        if(controller.signal.aborted||user?.id!==actor)return;
+        if(response.status===401||response.status===403){
+          auth.invalidateSession();return;
+        }
+        if(!response.ok)throw Error('Το email επικοινωνίας δεν είναι διαθέσιμο σε αυτή την εγκατάσταση.');
+        const raw:unknown=await response.json();
+        if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+          !('email' in raw)||!('verified' in raw)||
+          raw.verified!==false||!(raw.email===null||
+            typeof raw.email==='string'&&raw.email.length<=254))
+          throw Error('Η απάντηση στοιχείων email δεν επαληθεύτηκε.');
+        if(!controller.signal.aborted&&user?.id===actor){
+          emailValue=raw.email??'';
+          emailLoaded=true;
+        }
+      }catch(e){
+        if(!controller.signal.aborted&&user?.id===actor)
+          emailError=e instanceof Error?e.message:'Το email επικοινωνίας δεν ανακτήθηκε.';
+      }finally{
+        if(!controller.signal.aborted&&user?.id===actor)emailReading=false;
+      }
+    })();
+    return()=>controller.abort();
+  });
+  async function saveContactEmail(event:SubmitEvent){
+    event.preventDefault();
+    if(!browser||!user||!emailLoaded||emailSaving||savingName||savingPassword)return;
+    const actor=user.id,email=emailValue.trim().toLowerCase(),secret=emailPassword;
+    if(!/^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,63}$/.test(email)||
+      email.length>254||email.includes('..')||
+      !secret||secret.length>4096){
+      emailError='Πληκτρολογήστε έγκυρο email και τον τρέχοντα κωδικό σας.';
+      return;
+    }
+    emailSaving=true;emailError='';emailSuccess='';
+    try{
+      const response=await fetch('/api/admin/auth/profile/contact-email',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','Accept':'application/json',
+          'X-Lefteria-Admin':'1'},
+        body:JSON.stringify({email,current_password:secret})
+      });
+      if(user?.id!==actor)return;
+      if(response.status===401||response.status===403){
+        auth.invalidateSession();throw Error('Η συνεδρία ή η πρόσβασή σας άλλαξε.');
+      }
+      if(response.status===409){auth.invalidateSession();throw Error('Ο λογαριασμός άλλαξε από άλλη συσκευή.');}
+      if(!response.ok)throw Error('Δεν αποθηκεύτηκε το email επικοινωνίας.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw)||
+        !('updated' in raw)||raw.updated!==true||
+        !('email' in raw)||raw.email!==email||
+        !('verified' in raw)||raw.verified!==false)
+        throw Error('Η αποθήκευση του email δεν επαληθεύτηκε.');
+      emailValue=email;
+      emailSuccess='Το email επικοινωνίας αποθηκεύτηκε χωρίς επαλήθευση ιδιοκτησίας. Δεν χρησιμοποιείται για σύνδεση ή ανάκτηση κωδικού.';
+      emailRevision++;
+    }catch(e){if(user?.id===actor)emailError=e instanceof Error?e.message:'Η αλλαγή απέτυχε.';}
+    finally{emailSaving=false;emailPassword='';}
+  }
   async function saveName(event:SubmitEvent){
     event.preventDefault();
     if(!browser||savingName||savingPassword||!user)return;
@@ -110,7 +190,7 @@
             <div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div>
             <div><dt>Όνομα χρήστη</dt><dd>{user.username}</dd></div>
             <div><dt>Ρόλος</dt><dd data-testid="admin-role">{roleName}</dd></div>
-            <div><dt>Email</dt><dd>Δεν παρέχεται από τον επαληθευμένο λογαριασμό</dd></div>
+            <div><dt>Email επικοινωνίας</dt><dd>{emailLoaded ? (emailValue || 'Δεν έχει οριστεί') : 'Δεν έχει ανακτηθεί'} · Μη επαληθευμένο</dd></div>
           </dl>
           <form class="admin-self-form" onsubmit={saveName} data-testid="admin-self-name-form">
             <h3>Αλλαγή ονόματος</h3>
@@ -126,9 +206,28 @@
             {#if nameError}<p role="alert" class="admin-self-error">{nameError}</p>{/if}
             {#if nameSuccess}<p role="status" class="admin-self-success">{nameSuccess}</p>{/if}
           </form>
-          <p class="admin-profile-unavailable">Η αλλαγή email απαιτεί επαλήθευση νέας διεύθυνσης.
-            Η φωτογραφία προφίλ απαιτεί προστατευμένο αποθηκευτικό χώρο. Αυτές οι επιλογές
-            παραμένουν ανενεργές και δεν εμφανίζονται ως αποθηκευμένες.</p>
+          <form class="admin-self-form" onsubmit={saveContactEmail} data-testid="admin-self-contact-email-form">
+            <h3>Email επικοινωνίας</h3>
+            <p class="admin-profile-unavailable">Η αλλαγή email απαιτεί επαλήθευση της νέας διεύθυνσης πριν
+              χρησιμοποιηθεί για ειδοποιήσεις, προσκλήσεις ή ανάκτηση κωδικού.
+              Προς το παρόν αποθηκεύεται μόνο ως <strong>μη επαληθευμένο στοιχείο προφίλ</strong>.</p>
+            <label for="admin-own-contact-email">Νέα διεύθυνση email</label>
+            <input type="email" id="admin-own-contact-email" autocomplete="email" required maxlength="254"
+              bind:value={emailValue} disabled={!emailLoaded||emailReading||emailSaving||savingName||savingPassword}
+              placeholder="you@example.com"/>
+            <label for="admin-own-contact-secret">Τρέχων κωδικός για επιβεβαίωση</label>
+            <input type="password" id="admin-own-contact-secret" autocomplete="current-password"
+              required bind:value={emailPassword} disabled={!emailLoaded||emailSaving||savingName||savingPassword}/>
+            <button class="admin-primary" type="submit"
+              disabled={!emailLoaded||emailReading||emailSaving||savingName||savingPassword}>
+              {emailSaving ? 'Αποθήκευση…' : 'ΑΠΟΘΗΚΕΥΣΗ EMAIL ΕΠΙΚΟΙΝΩΝΙΑΣ'}
+            </button>
+            {#if emailReading}<p role="status">Φόρτωση email…</p>{/if}
+            {#if emailError}<p role="alert" class="admin-self-error">{emailError}</p>{/if}
+            {#if emailSuccess}<p role="status" class="admin-self-success">{emailSuccess}</p>{/if}
+          </form>
+          <p class="admin-profile-unavailable">Η φωτογραφία προφίλ απαιτεί προστατευμένο αποθηκευτικό χώρο.
+            Η μεταφόρτωσή της δεν έχει ενεργοποιηθεί.</p>
         </section>
         <section class="admin-panel" id="security" aria-labelledby="my-profile-security-heading">
           <h2 id="my-profile-security-heading">Ασφάλεια & σύνδεση</h2>
