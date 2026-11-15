@@ -44,19 +44,17 @@ BEGIN
   IF v_directory @> jsonb_build_array(jsonb_build_object('id',v_ghost)) THEN
     RAISE EXCEPTION 'Imported-only Academy group appeared without canonical creation';
   END IF;
-  SELECT item INTO v_group
-    FROM jsonb_array_elements(v_directory) AS x(item)
-    WHERE item->>'id'=v_id;
-  IF v_group IS NULL OR v_group->>'name'!='Verified U12'
-     OR v_group->>'description'!='Old snapshot'
-     OR v_group->>'location_name'!='Verified legacy field'
-     OR v_group->>'age_range'!='10–12' THEN
-    RAISE EXCEPTION 'Canonical group and original public presentation were not merged';
-  END IF;
+  -- Even an imported CANONICAL group is not public until an authorized
+  -- admin has created/edited its public profile. Canonical alone is not approval.
+  IF EXISTS(
+    SELECT 1 FROM jsonb_array_elements(v_directory) AS x(item)
+    WHERE item->>'id'=v_id
+  ) THEN RAISE EXCEPTION 'Canonical imported Academy group exposed without an admin-managed profile'; END IF;
 
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active)
     VALUES(v_actor,'disposable-public-academy-'||v_actor::text,
       'Disposable preview manager','manager',true);
+  -- Creating an admin profile is the publishing eligibility transition.
   INSERT INTO club.academy_group_profiles(
     organization_id,group_id,age_range,description,training_schedule,
     max_players,season,banner_url,display_order,revision,updated_by
