@@ -438,12 +438,39 @@ try {
             memberBenefits:rect('.login-benefits'),
             registrationSteps:rect('[data-testid="step-indicator"]'),
             registrationCard:rect('[data-testid="form-card"]'),
-            hero:rect('.home-hero,.hero,.public-hero')
+            hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
+            publicRail:rect('.public-rail'),
+            publicTopbar:rect('.public-header'),
+            homeTiles:rect('[data-testid="public-destinations"]'),
+            homeMotto:rect('[data-testid="home-brand-interval"]'),
+            homeNews:rect('[data-testid="public-home-news"]')
           };
           if (kind === 'app-login') result.roleButtons =
             document.querySelectorAll('.login-audience-grid button').length;
           return result;
         },route.name);
+        if (route.name==='home') {
+          const {hero,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+            homeMotto:motto,homeNews:news}=referenceLayout;
+          if(!hero||!rail||!top||!tiles||!motto||!news){
+            failures.push('home 1672×941: one or more reference sections are missing');
+          }else{
+            if(rail.width<150||rail.width>160)
+              failures.push('home: club rail should be 154px wide (actual '+rail.width+')');
+            if(top.height<60||top.height>68)
+              failures.push('home: reference topbar should be 64px tall (actual '+top.height+')');
+            if(hero.y<59||hero.y>70||hero.height<400||hero.height>440)
+              failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
+            if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
+              failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
+            if(motto.y<tiles.bottom-2||motto.y>tiles.bottom+12)
+              failures.push('home: reference black motto interval is not after the four image tiles');
+            if(news.y<900)
+              failures.push('home: preserve actual CMS news below the reference fold, not above the 941px screenshot');
+            if(Math.abs(top.x-rail.width)>2)
+              failures.push('home: topbar should begin at the rail boundary');
+          }
+        }
         if (route.name==='admin-login') {
           const {adminHeader:header,adminPanel:panel,adminAction:action,adminFooter:footer,documentHeight} = referenceLayout;
           if (!header||!panel||!action||!footer)
