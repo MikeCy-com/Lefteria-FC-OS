@@ -230,7 +230,7 @@ BEGIN
       v_super_token,'lefteria_fc_academy',v_credit_reversal,true,
       'Original credit reviewer attempting own reversal');
     RAISE EXCEPTION 'credit_original_reviewer_cannot_reverse';
-  EXCEPTION WHEN insufficient_privilege THEN NULL; END IF;
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   PERFORM finance.review_admin_supplier_approval_reversal(
     v_reviewer_token,'lefteria_fc_academy',v_credit_reversal,true,
     'Independent supplier credit reversal examined');
