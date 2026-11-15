@@ -69,10 +69,6 @@
         {busy ? 'Σύνδεση…' : 'ΕΙΣΟΔΟΣ ΣΤΗ ΔΙΑΧΕΙΡΙΣΗ'} <PublicIcon name="arrow" size={22} />
       </button>
     </form>
-    <div class="admin-login-security-note" data-testid="admin-login-security-note">
-      <PublicIcon name="shield" size={24} />
-      <span><strong>Πρόσβαση με έλεγχο ταυτότητας</strong><small>Τα δικαιώματα καθορίζονται από τον επαληθευμένο λογαριασμό.</small></span>
-    </div>
   </section>
   </div>
   <footer class="admin-access-footer"><span>ΛΕΥΤΕΡΙΑ FC · Σύστημα Διαχείρισης Συλλόγου</span><a href="/privacy">Πολιτική απορρήτου</a><a href="/contact">Επικοινωνήστε με τον σύλλογο <PublicIcon name="arrow" size={18} /></a></footer>

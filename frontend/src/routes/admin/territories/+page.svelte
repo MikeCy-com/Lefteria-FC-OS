@@ -334,7 +334,7 @@
               <p class="admin-muted">Αντίπαλοι και γήπεδα αγώνων κοινοί για όλες τις τοποθεσίες αυτής της πόλης.</p>
             </div>
             {#if canWrite && $auth.session.user.role==='super_admin'}
-              <form class="territory-form" onsubmit={e=>{
+              <form class="territory-form" id="create-city" data-testid="admin-create-city" onsubmit={e=>{
                 e.preventDefault(); void createResource('city',{name,slug});
               }}>
                 <h3>Νέα πόλη</h3>
@@ -360,7 +360,7 @@
               <p class="admin-muted">Οι προπονήσεις, τα τμήματα και οι βάσεις της κάθε τοποθεσίας
                 δεν εμφανίζονται σε άλλη τοποθεσία.</p>
               {#if mayManageCatalog}
-                <form class="territory-form" onsubmit={e=>{e.preventDefault();submitLocation();}}>
+                <form class="territory-form" id="create-location" data-testid="admin-create-location" onsubmit={e=>{e.preventDefault();submitLocation();}}>
                   <h3>Νέα τοποθεσία</h3>
                   <label>Όνομα <input bind:value={name} required maxlength="120" /></label>
                   <label>URL slug <input bind:value={slug} required maxlength="120"
@@ -553,10 +553,14 @@
         <section class="admin-panel">Δεν υπάρχουν ακόμη επιβεβαιωμένες αναθέσεις.</section>
       {/if}
       {#if directory && $auth.session.user.role==='super_admin' && canWrite}
-        <FootballTerritoryAccessPanel {organization}
-          actorId={$auth.session.user.id} cities={directory.cities}
-          locations={directory.locations} scopes={directory.scopes}
-          revision={revision}/>
+        <div id="delegated-access" class="territory-delegation-anchor"
+          data-testid="territory-role-permissions">
+          <FootballTerritoryAccessPanel {organization}
+            actorId={$auth.session.user.id} cities={directory.cities}
+            locations={directory.locations} scopes={directory.scopes}
+            focusAccountId={page.url.searchParams.get('account_id')??''}
+            revision={revision}/>
+        </div>
       {/if}
       {#if error}<p class="territory-error" role="alert">{error}</p>{/if}
       {#if message}<p class="territory-success" role="status">{message}</p>{/if}
@@ -594,6 +598,7 @@
     outline:3px solid #bd9763;outline-offset:3px}
   .territory-page button{min-height:44px;cursor:pointer}
   .territory-page button:disabled{opacity:.55;cursor:not-allowed}
+  #create-city,#create-location,#delegated-access{scroll-margin-top:100px}
   .territory-form{display:grid;gap:1rem;padding:1.2rem 0;margin-top:1rem;
     border-top:1px solid rgba(160,140,100,.35)}
   .territory-form button{justify-self:start}
