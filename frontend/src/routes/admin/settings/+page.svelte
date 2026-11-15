@@ -9,6 +9,7 @@
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   const granted=$derived($auth.session?.user.organizations ?? []);
+  const organizations=$derived(granted.filter(o=>o.id==='lefteria_fc'||o.id==='lefteria_fc_academy'));
   const canClub=$derived(Boolean($auth.session && hasAdminPermission($auth.session.user.permissions,'settings:read') && granted.length));
   const canTerritories=$derived(Boolean($auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
     (hasAdminPermission($auth.session.user.permissions,'academy:read') && granted.some(x=>x.id==='lefteria_fc_academy') ||
@@ -30,6 +31,19 @@
           Οι σύνδεσμοι ανοίγουν τα πραγματικά, προστατευμένα εργαλεία.</p>
       </header>
       <div class="admin-settings-grid">
+        {#if organizations.length}
+          <section class="admin-panel" id="organization-settings" data-testid="admin-organization-settings">
+            <p class="admin-eyebrow">ΟΡΓΑΝΙΣΜΟΙ · ΠΡΟΣΒΑΣΗ</p>
+            <h2>Οι οργανισμοί μου</h2>
+            <p>Οι παρακάτω οργανισμοί προέρχονται από την ενεργή, επαληθευμένη συνεδρία. Δεν είναι επιλογές για αλλαγή πρόσβασης.</p>
+            <ul class="admin-organization-list" aria-label="Οργανισμοί με εξουσιοδοτημένη πρόσβαση">
+              {#each organizations as org (org.id)}
+                <li><strong>{org.name}</strong><small>{org.id==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</small></li>
+              {/each}
+            </ul>
+            <p class="admin-settings-note">Εσωτερικές παράμετροι ανά οργανισμό (πολιτικές, κύκλοι, πρότυπα) δεν υποστηρίζουν ακόμη αποθήκευση. Δεν επηρεάζονται οι υφιστάμενες ρυθμίσεις.</p>
+          </section>
+        {/if}
         {#if canClub}
           <section class="admin-panel" id="website-settings">
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ</p>
@@ -42,10 +56,11 @@
         {#if canTerritories}
           <section class="admin-panel" id="football-settings">
             <p class="admin-eyebrow">ΟΡΓΑΝΩΣΗ ΑΚΑΔΗΜΙΑΣ</p>
-            <h2>Πόλεις & τοποθεσίες</h2>
-            <p>Πόλεις, τοποθεσίες, βάσεις προπονήσεων, αντίπαλοι και γήπεδα.
-              Οι αντίπαλοι και τα γήπεδα αγώνων της Ακαδημίας είναι κοινά <strong>ανά πόλη</strong>, όχι ανά τοποθεσία.</p>
-            <a class="admin-settings-link" href="/admin/territories" data-testid="admin-settings-territories">Διαχείριση πόλεων & υποδομών <span aria-hidden="true">↗</span></a>
+            <h2>Πόλεις, τοποθεσίες & εγκαταστάσεις</h2>
+            <p>Πραγματικές βάσεις προπόνησης, γήπεδα αγώνων και αντίπαλοι στον επιλεγμένο οργανισμό.
+              Στην Ακαδημία αντίπαλοι και γήπεδα είναι κοινά <strong>ανά πόλη</strong>,
+              ενώ οι βάσεις προπόνησης αφορούν συγκεκριμένη τοποθεσία. Η πρώτη ομάδα διαθέτει ανεξάρτητους καταλόγους.</p>
+            <a class="admin-settings-link" href="/admin/territories" data-testid="admin-settings-territories">Άνοιγμα διαχείρισης υποδομών <span aria-hidden="true">↗</span></a>
             <a class="admin-settings-link" href="/admin/groups">Ομάδες & τμήματα <span aria-hidden="true">↗</span></a>
           </section>
         {/if}
@@ -54,7 +69,8 @@
             <p class="admin-eyebrow">ΡΟΛΟΙ & ΠΡΟΣΒΑΣΗ</p><h2>Χρήστες & αναθέσεις</h2>
             <p>Πρόσβαση σε οργανισμούς, πόλεις, τοποθεσίες και ομάδες με επαληθευμένο δικαίωμα.</p>
             {#if canStaff}<a class="admin-settings-link" href="/admin/staff">Προσωπικό & προπονητές <span aria-hidden="true">↗</span></a>{/if}
-            {#if canUsers}<a class="admin-settings-link" href="/admin/users">Λογαριασμοί & δικαιώματα <span aria-hidden="true">↗</span></a>{/if}
+            {#if canUsers}<a class="admin-settings-link" href="/admin/users">Δημιουργία λογαριασμών & προβολή δικαιωμάτων <span aria-hidden="true">↗</span></a>{/if}
+            <p class="admin-settings-note">Η αλλαγή ρόλου ή απενεργοποίηση υπάρχοντος χρήστη δεν υποστηρίζεται ακόμη. Οι αναθέσεις ομάδας και περιοχής γίνονται από τα αντίστοιχα προστατευμένα εργαλεία.</p>
           </section>
         {/if}
         <section class="admin-panel" id="personal-settings">
@@ -83,5 +99,10 @@
   .admin-settings-link:focus-visible{outline:3px solid #ffcf60;outline-offset:2px}
   .admin-settings-link:hover{border-color:#ffcf60;background:#2b2315}
   .admin-settings-note{font-size:12px!important;color:#b7b8b6!important}
+  .admin-organization-list{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+  .admin-organization-list li{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:12px;border:1px solid #4d452f;background:#161816}
+  .admin-organization-list strong{font-weight:750}
+  .admin-organization-list small{color:#eac168;font-size:12px}
   @media(max-width:800px){.admin-settings-grid{grid-template-columns:1fr}}
 </style>
