@@ -307,11 +307,22 @@ public sealed class CoachTerritoryBoundary : Migration
         """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      -- This is a security boundary. Reverting it without restoring an
-      -- equally restrictive policy is unsafe; use a forward fix instead.
-      DO $no_unsafe_downgrade$
+      -- A rollback must not re-enable the previously permissive manager
+      -- directory/writer. Keep the same function signatures but fail closed
+      -- for all roles until this migration or an audited successor is applied.
+      CREATE OR REPLACE FUNCTION club.read_admin_coaches(
+        text,text,integer,integer
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $rollback_coaches$
       BEGIN
-        RAISE EXCEPTION 'coach_territory_boundary_forward_recovery_required';
-      END $no_unsafe_downgrade$;
+        RAISE EXCEPTION 'coach_directory_upgrade_required' USING ERRCODE='42501';
+      END $rollback_coaches$;
+      CREATE OR REPLACE FUNCTION club.write_admin_coach_assignment(
+        text,text,text,jsonb,jsonb
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $rollback_assignment$
+      BEGIN
+        RAISE EXCEPTION 'coach_assignment_upgrade_required' USING ERRCODE='42501';
+      END $rollback_assignment$;
       """);
 }
