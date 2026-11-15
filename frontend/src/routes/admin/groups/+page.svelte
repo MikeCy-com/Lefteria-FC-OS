@@ -232,7 +232,7 @@
         <h1>Ομάδες & τμήματα</h1>
         <p class="admin-muted">Ζωντανή εικόνα των ομάδων και των τμημάτων από το επαληθευμένο ρόστερ, όχι διπλές στατικές καταχωρίσεις. Οι αριθμοί περιλαμβάνουν μόνο ενεργούς παίκτες χωρίς αρχειοθέτηση ή μεταγραφή.</p>
         <section class="admin-panel admin-audiences-select" aria-label="Οργανισμός ομάδων">
-          <span class="admin-organization-context-label" data-testid="admin-audience-owner">{assignments.find(org => org.id === organization)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
+          <span class="admin-organization-context-label" data-testid="admin-audience-owner">{assignments.find(org => org.id === organization)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
           <button type="button" class="admin-secondary" onclick={() => retry++} disabled={loading}>Ανανέωση</button>
         </section>
 
