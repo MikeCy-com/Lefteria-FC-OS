@@ -18,6 +18,13 @@ BEGIN
        WHERE p.oid=routine AND a.grantee=0 AND a.privilege_type='EXECUTE')
   THEN RAISE EXCEPTION 'Managed admin status function EXECUTE boundary is unsafe'; END IF;
 
+  IF NOT has_function_privilege(current_user,login_routine,'EXECUTE')
+    OR has_function_privilege(mobile_name,login_routine,'EXECUTE')
+    OR EXISTS(SELECT 1 FROM pg_proc p,
+       LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+       WHERE p.oid=login_routine AND a.grantee=0 AND a.privilege_type='EXECUTE')
+    OR NOT (SELECT p.prosecdef FROM pg_proc p WHERE p.oid=login_routine)
+  THEN RAISE EXCEPTION 'Admin login row-lock function boundary is unsafe'; END IF;
   denied:=false;
   BEGIN
     UPDATE identity.admin_accounts SET is_active=false WHERE false;
