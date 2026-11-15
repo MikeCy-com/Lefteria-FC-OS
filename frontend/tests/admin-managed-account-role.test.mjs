@@ -67,7 +67,7 @@ test('role writers are non-public and blocked to mobile, with isolated integrati
   assert.match(integration,/CountManagedRoleAuditAsync/);
   assert.match(integration,/SeedManagedRolePosAssignmentAsync/);
   assert.match(integration,/DeactivateManagedRolePosAssignmentAsync/);
-  assert.match(migration,/cashier_assignments[\\s\\S]*?AND is_active/);
+  assert.ok(migration.includes('WHERE admin_account_id=_subject AND is_active'));
   assert.match(integration,/not_authenticated/);
   assert.match(integration,/revoked/);
 });
