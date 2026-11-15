@@ -22,6 +22,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     modules:[],fixtures:[],academy_groups:[],seasons:[],sponsors:[],partners:[],events:[],products:[],tickets:[],archived_seasons:[],reviews:[],academy_stats:null,trial_settings:null,branding:null };
   const academyPlayers = [{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}];
   let unavailable = false; let firstTeamUnavailable = false; let wrongScope = false;
+  let publishedTeams = [];
   const requests = [];
   const server = createServer((request,response) => {
     const url = new URL(request.url,'http://fixture.test'); requests.push({url,cookie:request.headers.cookie,authorization:request.headers.authorization});
@@ -31,7 +32,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
       else if(url.searchParams.get('organization_id')==='lefteria_fc_academy') response.end(JSON.stringify({...sections,organization_id:'lefteria_fc_academy',
         players:academyPlayers}));
       else response.end(JSON.stringify(wrongScope ? {...sections,organization_id:'lefteria_fc_academy'} : sections));
-    } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:[],academy_groups:[],fixtures:[],news:[]}));
+    } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:publishedTeams,academy_groups:[],fixtures:[],news:[]}));
     else {response.statusCode=404;response.end('{}');}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -103,6 +104,34 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
       if(tab==='statistics')assert.match(html,/>0<\/td>/);
     }
     assert.equal((await loadTeamPage(new URL('https://preview.test/team?tab=unknown'))).tab,'overview');
+    // Two published Club teams: all roster links and profiles must preserve
+    // their independently authorized team identity without cross-team data.
+    publishedTeams = [
+      {id:'first-team-id',name:'First Team',organization_id:'lefteria_fc',level:'First Team',description:null,banner_url:null},
+      {id:'women-id',name:'Women Team',organization_id:'lefteria_fc',level:'Women',description:null,banner_url:null}
+    ];
+    sections.players = [
+      {...player,team_id:'first-team-id'},
+      {...player,id:'women-player',name:'Recorded Women Player',team_id:'women-id',team_type:'Women'}
+    ];
+    const womenPage=await loadTeamPage(new URL('https://preview.test/team?tab=roster&team_id=women-id'));
+    assert.equal(womenPage.selectedTeamId,'women-id');
+    const womenHtml=render(Team,{props:{data:womenPage}}).body;
+    assert.match(womenHtml,/Recorded Women Player/);
+    assert.doesNotMatch(womenHtml,/Recorded Player&lt;\/script>|href="\/player\/Case--ID"/);
+    assert.match(womenHtml,/\/player\/women-player\?team_id=women-id/);
+    await assert.rejects(loadTeamPage(new URL('https://preview.test/team?team_id=not-published')),error=>error.status===404);
+    const womenProfile=await loadPlayerPage(new URL('https://preview.test/player/women-player?team_id=women-id'),'women-player');
+    assert.equal(womenProfile.returnTeamId,'women-id');
+    const womenProfileHtml=render(Profile,{props:{player:womenProfile.player,returnTeamId:womenProfile.returnTeamId}}).body;
+    assert.match(womenProfileHtml,/\/team\?tab=roster&amp;team_id=women-id/);
+    assert.match(womenProfileHtml,/\/team\?tab=statistics&amp;team_id=women-id/);
+    const forgedProfile=await loadPlayerPage(new URL('https://preview.test/player/women-player?team_id=first-team-id'),'women-player');
+    assert.equal(forgedProfile.returnTeamId,null);
+    const academyForged=await loadPlayerPage(new URL('https://preview.test/player/academy-child?team_id=women-id'),'academy-child');
+    assert.equal(academyForged.returnTeamId,null);
+    sections.players = originalPlayers;
+    publishedTeams = [];
     firstTeamUnavailable=true;
     const academyWithoutFirstTeam=await loadPlayerPage(url,'academy-child');
     assert.equal(academyWithoutFirstTeam.organization,'lefteria_fc_academy');
