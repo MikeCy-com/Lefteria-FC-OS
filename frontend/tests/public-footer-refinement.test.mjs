@@ -44,3 +44,16 @@ test('shared footer styling supports focus, phone layout and PWA install CTA',()
   assert.match(css,/\.public-footer-follow > \.public-back-top/);
   assert.match(css,/min-height:48px/);
 });
+
+test('Academy footer remains inside Academy scope across cities and links',()=>{
+  assert.match(footer,/organization = 'lefteria_fc'/);
+  assert.match(footer,/const isAcademy = \$derived\(organization === 'lefteria_fc_academy'\)/);
+  assert.match(footer,/const links = \$derived\(isAcademy \? academyLinks : clubLinks\)/);
+  assert.match(footer,/\['groups','Ηλικιακά τμήματα','\/academy\/groups'\]/);
+  assert.match(footer,/\['partners','Συνεργάτες Ακαδημίας','\/partners\?scope=academy'\]/);
+  assert.match(footer,/\['sponsors','Χορηγοί Ακαδημίας','\/sponsors\/academy'\]/);
+  assert.match(footer,/data-organization=\{organization\}/);
+  assert.match(footer,/isAcademy \? publicImages\.academy : publicImages\.city/);
+  assert.match(footer,/ΚΑΘΕ ΠΟΛΗ/);
+  assert.match(shell,/<PublicFooter \{club\} \{organization\} \/>/);
+});
