@@ -49,6 +49,9 @@ test('admin walkthrough is owner-scoped and never invents publication or checkou
     organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['users:read']});
   assert.equal(superAdmin.find(s=>s.id==='users')?.destination,'/admin/users');
   assert.equal(superAdmin.some(s=>s.id==='facilities'),false);
+  assert.ok(!adminGuide({role:'manager',name:'Scoped manager',
+    organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['academy:read']})
+    .some(s=>s.id==='groups'||s.id==='facilities'));
   assert.equal(adminGuide({role:'accountant',name:'Finance',
     organizations:[{id:'lefteria_fc',name:'FC'}],permissions:['finance:read']})
     .some(s=>s.id==='users'||s.id==='staff'||s.id==='facilities'),false);
