@@ -22,7 +22,7 @@
   // advances every second for the real countdown and refreshes on focus.
   const snapshot = $derived(site?.generated_at && site.time_zone ? { generated_at: site.generated_at, time_zone: site.time_zone } : null);
   const now = $derived(snapshotInstant(snapshot) === null ? null : clock ?? snapshotInstant(snapshot));
-  const fixtureRows = $derived(site?.fixtures.map(row => ({ ...row,
+  const fixtureRows = $derived(site?.fixtures.filter(row => row.organization_id === 'lefteria_fc').map(row => ({ ...row,
     kickoff_at: site.fixture_clock?.find(instant => instant.id === row.id)?.kickoff_at ?? null })) ?? []);
   const fixture = $derived(nextPublicFixture(fixtureRows, now));
   const countdown = $derived(fixture && now !== null ? fixtureCountdown(fixture,now) : null);
