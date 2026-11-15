@@ -137,8 +137,8 @@ test('Academy office discovery matches its existing manager and organization pol
     assert.ok(ids(user([],['lefteria_fc_academy'],role)).includes('registrations'));
   for(const role of ['coach','editor','marketing','staff'])
     assert.ok(!ids(user(['*:*'],['lefteria_fc_academy'],role)).includes('registrations'),role);
-  assert.ok(!ids(user(['*:*'],['lefteria_fc'],'super_admin')).includes('registrations'));
-  assert.ok(!ids(user(['*:*'],[],'super_admin')).includes('registrations'));
+  assert.ok(ids(user(['*:*'],['lefteria_fc'],'super_admin')).includes('registrations'));
+  assert.ok(ids(user(['*:*'],[],'super_admin')).includes('registrations'));
 });
 
 
@@ -182,5 +182,10 @@ test('account directory is discoverable only for verified super admins',()=>{
   assert.equal(get('editor',['users:read']),undefined);
   assert.equal(get('accountant',['*:*']),undefined);
   assert.equal(get('coach',['*:*']),undefined);
-  assert.equal(get('super_admin',['*:*'],[]),undefined);
+  assert.equal(get('super_admin',['*:*'],[])?.href,'/admin/users');
+});
+
+test('Super Admin discovers the complete catalogue independently of record grants',()=>{
+  assert.deepEqual(ids(user([],[],'super_admin')),ids(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin')));
+  assert.deepEqual(ids(user([],[],'manager')),[]);
 });
