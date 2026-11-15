@@ -56,6 +56,7 @@ public sealed class PostgresWebAdminRepository(WebAdminConnections connections) 
             SELECT @id,@token,a.id,@credential,statement_timestamp(),statement_timestamp()+@lifetime
             FROM identity.admin_accounts a WHERE a.id=@admin AND a.password_hash=@hash AND a.is_active
               AND NOT a.invite_pending AND NOT a.otp2fa_enabled AND a.role=@role
+            FOR SHARE OF a
             RETURNING id
             """;
         command.Parameters.AddWithValue("id", id);
