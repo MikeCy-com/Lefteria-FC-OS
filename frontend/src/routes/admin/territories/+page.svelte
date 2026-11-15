@@ -6,6 +6,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import FootballLocationMetrics from '../../../lib/admin/FootballLocationMetrics.svelte';
   import AcademyLocationFinancePanel from '../../../lib/admin/AcademyLocationFinancePanel.svelte';
+  import AcademySupplierSiteTotals from '../../../lib/admin/AcademySupplierSiteTotals.svelte';
   import FootballTerritoryAccessPanel from '../../../lib/admin/FootballTerritoryAccessPanel.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -380,6 +381,8 @@
                   locations={directory.locations}
                   superAdmin={$auth.session.user.role==='super_admin'}
                   revision={revision}/>
+                <AcademySupplierSiteTotals actorId={$auth.session.user.id}
+                  {cityId} {locationId}/>
                 <h3>Τμήματα τοποθεσίας</h3>
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
