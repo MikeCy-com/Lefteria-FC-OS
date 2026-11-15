@@ -67,7 +67,7 @@ internal sealed partial class WebAdminDatabaseFixture
               VALUES('lefteria_fc',@id,@id,'Disposable role POS register');
             INSERT INTO pos_cashier.cashier_assignments(
               organization_id,register_id,admin_account_id,is_active)
-              VALUES('lefteria_fc',@id,@account,false);
+              VALUES('lefteria_fc',@id,@account,true);
             """,connection,transaction))
         {
             cmd.Parameters.AddWithValue("id",id);
@@ -77,6 +77,22 @@ internal sealed partial class WebAdminDatabaseFixture
         }
         await transaction.CommitAsync();
         return id;
+    }
+
+    public async Task DeactivateManagedRolePosAssignmentAsync(Account account,string id)
+    {
+        RequireOwned(account);
+        await using var connection=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            UPDATE pos_cashier.cashier_assignments SET is_active=false
+              WHERE organization_id='lefteria_fc'
+                AND register_id=@id AND admin_account_id=@account
+                AND is_active
+            """,connection);
+        cmd.Parameters.AddWithValue("id",id);
+        cmd.Parameters.AddWithValue("account",account.Id);
+        if(await cmd.ExecuteNonQueryAsync()!=1)
+            throw new InvalidOperationException("POS role fixture did not revoke exactly one active cashier assignment.");
     }
 
     public async Task ClearManagedRolePosAssignmentAsync(Account account,string id)
