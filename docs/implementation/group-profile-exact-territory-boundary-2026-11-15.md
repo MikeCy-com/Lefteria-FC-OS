@@ -37,9 +37,14 @@ versions and audited write contract:
 `read_admin_academy_group_publicity`,
 `set_admin_academy_group_publicity`.
 
-There are no new web-admin runtime grants, table rights or background
-notification side effects. All unauthorized calls fail with SQLSTATE 42501,
-mapped to an HTTP 403; optimistic revision conflicts remain HTTP 409.
+The reviewed `web-admin-auth-grants.sql` now grants the six exact
+profile/publicity SQL functions to the restricted admin login role. Previously
+those grants were only in optional operator scripts, causing even authorized
+HTTP calls to fail with 403. Both main security allowlists enumerate these
+exact functions. The new internal territory helper stays private; **no
+direct table privileges** or background notification rights are granted.
+Unauthorized calls fail with SQLSTATE 42501, mapped to HTTP 403;
+optimistic revision conflicts remain HTTP 409.
 
 ## Regression evidence
 
