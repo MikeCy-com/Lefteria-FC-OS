@@ -125,15 +125,24 @@ try {
   } else {
     await mkdir(artifacts,{recursive:true});
     const reportPath=path.join(artifacts,'visual-pixel-comparison.json');
-    const manifests=['results.json','role-results.json'];
+    const manifests=['results.json','role-results.json','authenticated-role-results.json'];
     const captures=[];
     for(const name of manifests){
       try {
         const manifest=JSON.parse(await readFile(path.join(artifacts,name),'utf8'));
         for(const row of manifest.results??[]) {
           if(typeof row.screenshot==='string' && /^[a-z0-9-]+\.png$/.test(row.screenshot))
-            captures.push({name:row.screenshot,route:row.route ?? null,viewport:row.viewport,
-              kind:name==='role-results.json'?'isolated-role-component':'public-browser'});
+            captures.push({name:row.screenshot,
+              route:row.route ?? (name==='authenticated-role-results.json'?'/app?tab=home':null),
+              viewport:row.viewport,
+              kind:name==='role-results.json'?'isolated-role-component':
+                name==='authenticated-role-results.json'?'mocked-mobile-auth':'public-browser'});
+          if(name==='authenticated-role-results.json' &&
+             typeof row.secondaryScreenshot==='string' &&
+             /^[a-z0-9-]+\.png$/.test(row.secondaryScreenshot))
+            captures.push({name:row.secondaryScreenshot,
+              route:'/app?tab='+row.secondary,viewport:row.viewport,
+              kind:'mocked-mobile-auth'});
         }
         if(name==='results.json')
           for(const row of manifest.adminNavigation??[]) if(typeof row.screenshot==='string' &&
