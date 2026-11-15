@@ -16,6 +16,11 @@ DECLARE
   request_id uuid:=gen_random_uuid();
   alternate_request uuid:=gen_random_uuid();
   proof_request uuid:=gen_random_uuid();
+  otp_challenge uuid:=gen_random_uuid();
+  original_parent_id uuid:=gen_random_uuid();
+  otp_digest bytea:=decode(repeat('a',64),'hex');
+  confirmed int;
+  children_count int;
   proof_body jsonb;
   fixture_player_id text:='ply_'||replace(request_id::text,'-','');
   payload jsonb;
@@ -193,6 +198,69 @@ BEGIN
      OR identity.has_current_guardian_phone_grant('35799123456')
   THEN RAISE EXCEPTION 'Proof review exposed guardian data or app rights'; END IF;
 
+  -- Public-form guardian phone and human proof alone grant no role.
+  -- The OTP must have been issued after that human proof and must be
+  -- cryptographically verified (not merely marked consumed by a caller).
+  INSERT INTO identity.otp_challenges(
+    id,normalized_phone,code_digest,created_at,expires_at,
+    verification_calls,is_consumed)
+  VALUES(otp_challenge,'35799123456',otp_digest,clock_timestamp(),
+    clock_timestamp()+interval '5 minutes',0,false);
+  IF NOT identity.has_pending_academy_guardian_proof('35799123456',otp_challenge)
+  THEN RAISE EXCEPTION 'Reviewed Academy guardian not eligible for OTP'; END IF;
+  IF identity.has_pending_academy_guardian_proof('35799123457',otp_challenge)
+  THEN RAISE EXCEPTION 'Different guardian phone accepted original OTP'; END IF;
+  BEGIN
+    PERFORM identity.confirm_academy_guardian_otp('35799123456',otp_challenge,
+      decode(repeat('b',64),'hex'));
+    RAISE EXCEPTION 'Invalid OTP HMAC created guardian claim';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM identity.academy_guardian_otp_claims
+      WHERE registration_id=application)
+    OR identity.has_current_guardian_phone_grant('35799123456')
+  THEN RAISE EXCEPTION 'Unverified OTP created family access'; END IF;
+
+  confirmed:=identity.confirm_academy_guardian_otp(
+    '35799123456',otp_challenge,otp_digest);
+  IF confirmed<>1
+    OR NOT identity.has_current_guardian_phone_grant('35799123456')
+  THEN RAISE EXCEPTION 'Correct OTP did not establish one scoped original guardian'; END IF;
+  confirmed:=identity.confirm_academy_guardian_otp(
+    '35799123456',otp_challenge,otp_digest);
+  IF confirmed<>0 OR (SELECT count(*) FROM identity.academy_guardian_otp_claims
+      WHERE registration_id=application)<>1
+  THEN RAISE EXCEPTION 'OTP replay duplicated guardian claim'; END IF;
+
+  INSERT INTO identity.mobile_identities(
+    id,normalized_phone,role,display_name,is_active,platform,created_at,
+    guardian_derived_parent)
+  VALUES(original_parent_id,'35799123456','parent','Verified Parent',true,
+    'ios',clock_timestamp(),true);
+  SELECT count(*) INTO children_count
+    FROM identity.current_phone_granted_children(
+      original_parent_id,'35799123456','parent',
+      clock_timestamp()+interval '1 hour')
+    WHERE player_id=fixture_player_id
+      AND organization_id='lefteria_fc_academy';
+  IF children_count<>1 THEN
+    RAISE EXCEPTION 'New original Parent cannot see exact authorized child'; END IF;
+  IF EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      original_parent_id,'35799123457','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'Guardian could change signed phone to steal children'; END IF;
+
+  -- New guardians cannot create a fake canonical lineage root. Delegated
+  -- second-parent support needs a separate lineage/consent integration.
+  BEGIN
+    PERFORM identity.issue_guardian_permission(original_parent_id,
+      '35799123456','parent',clock_timestamp()+interval '1 hour',
+      gen_random_uuid(),fixture_player_id,'35799123459',gen_random_uuid());
+    RAISE EXCEPTION 'Original guardian created unanchored downstream grant';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM identity.family_guardian_permissions
+      WHERE issuer_identity_id=original_parent_id)
+  THEN RAISE EXCEPTION 'Rejected guardian delegation had a side effect'; END IF;
+
   result:=identity.admin_academy_guardian_proof(admin_digest,'revoke',
     jsonb_build_object('registration_id',application,'version',1));
   IF result->>'status'<>'revoked' OR result->>'version'<>'2'
@@ -204,6 +272,17 @@ BEGIN
     PERFORM identity.admin_academy_guardian_proof(admin_digest,'verify',proof_body);
     RAISE EXCEPTION 'Revoked guardian proof was silently reopened';
   EXCEPTION WHEN unique_violation THEN NULL; END;
+
+  -- Revoking the human attestation immediately removes the OTP claim's
+  -- effective scope, without relying on login expiry or an app token.
+  IF EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      original_parent_id,'35799123456','parent',
+      clock_timestamp()+interval '1 hour'))
+    OR identity.has_current_guardian_phone_grant('35799123456')
+  THEN RAISE EXCEPTION 'Revoked original guardian retained child scope'; END IF;
+  IF (SELECT count(*) FROM identity.academy_guardian_otp_claims
+      WHERE registration_id=application)<>1 THEN
+    RAISE EXCEPTION 'Revocation erased immutable OTP proof'; END IF;
 
   -- Loss of Academy grant after success prevents idempotent response replay.
   DELETE FROM identity.admin_organization_grants WHERE admin_account_id=admin_id;
