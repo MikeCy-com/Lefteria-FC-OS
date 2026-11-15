@@ -40,7 +40,7 @@ test('Club and Academy groups are filtered by the organization set once in the a
   assert.match(source,/requestedOrganization/);
   assert.match(source,/requestedGroup/);
   assert.match(frame,/includes\(active\)/);
-  assert.match(catalog,/id: 'fixtures'[^\n]*status: 'live', href: '\/admin\/matches'/);
+  assert.doesNotMatch(catalog,/id: 'fixtures'/);
 });
 
 test('Match page clearly labels its API limitations and does not claim live standings editing', () => {
