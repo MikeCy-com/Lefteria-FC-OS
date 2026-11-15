@@ -7,9 +7,9 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
+  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
-    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGoalManagement?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
@@ -284,7 +284,7 @@
             </div>
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
               <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {onExpired} {onRevoked}/>
+                playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
             {/if}
           </li>
         {/each}

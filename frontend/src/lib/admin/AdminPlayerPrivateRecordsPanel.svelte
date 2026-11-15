@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/env';
   import AdminPlayerBirthdayPreferences from './AdminPlayerBirthdayPreferences.svelte';
+  import AdminPlayerDevelopmentGoals from './AdminPlayerDevelopmentGoals.svelte';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type ScoreSection='technical'|'tactical'|'physical'|'character';
@@ -9,8 +10,9 @@
     physical:Record<string,number>;character:Record<string,number>;overall:Record<string,unknown>};
   type Document={id:string;document_type:string;title:string;
     expiry_date:string|null;status:string};
-  let {owner,playerId,playerName,actorId,allowCreate,onExpired,onRevoked}:{
+  let {owner,playerId,playerName,actorId,allowCreate,allowGoalManagement=false,onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;allowCreate:boolean;
+    allowGoalManagement?:boolean;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -294,6 +296,11 @@
         </button>
       </form>
     {/if}
+  {/if}
+  {#if allowGoalManagement}
+    <AdminPlayerDevelopmentGoals {owner} {playerId} {playerName} {actorId}
+      assessments={evaluations.map(e=>({id:e.id,summary:e.summary,created_at:e.created_at}))}
+      {onExpired} {onRevoked}/>
   {/if}
   <AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>
   {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}

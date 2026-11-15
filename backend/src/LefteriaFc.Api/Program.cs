@@ -220,6 +220,7 @@ app.MapMobilePlayerWeeklyQuiz();
 app.MapMobileFanPayabl();
 app.MapMobileChatGroupDirectory();
 app.MapAdminAcademyEvaluations();
+app.MapAdminPlayerDevelopmentGoals();
 app.MapAdminAcademyDocuments();
 app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
