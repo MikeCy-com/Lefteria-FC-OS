@@ -135,7 +135,9 @@ public sealed class FinanceSupplierPaymentReview : Migration
             encode(sha256(convert_to(_owner||'|'||v_id::text,'UTF8')),'hex'));
         END IF;
         RETURN jsonb_build_object('id',v_id,'organization_id',_owner,
-          'bill_id',_bill,'status','pending','replay',v_replay,
+          'bill_id',_bill,'status',coalesce((SELECT d.decision
+            FROM finance.supplier_payment_decisions d
+            WHERE d.request_id=v_id),'pending'),'replay',v_replay,
           'bank_verified',false,'posted_to_general_ledger',false);
       END $create$;
       REVOKE ALL ON FUNCTION finance.create_admin_supplier_payment_request(
