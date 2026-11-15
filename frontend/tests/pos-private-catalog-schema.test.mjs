@@ -35,6 +35,6 @@ test('POS catalog and authorized cashier/location tools are live, unverified sal
   assert.match(catalog,/id: 'pos', name: 'POS & κατάστημα'/);
   assert.match(catalog,/id: 'registers'[^\n]*status: 'live', href: '\/admin\/pos'/);
   assert.match(catalog,/id: 'products'[^\n]*status: 'live', href: '\/admin\/pos'/);
-  assert.match(catalog,/id: 'orders'[^\n]*status: 'planned'/);
+  assert.match(catalog,/id: 'orders'.*status: 'live'/);
   assert.doesNotMatch(program,/MapPosCheckout\(/);
 });

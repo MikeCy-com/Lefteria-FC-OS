@@ -252,6 +252,7 @@
       </div>
     </div>
     {#if canWrite}
+      {#if owner==='lefteria_fc'}
       <div class="pos-location-tools">
         <button type="button" class="admin-secondary" disabled={saving}
           onclick={()=>showCity=!showCity}>Νέα πόλη</button>
@@ -277,6 +278,9 @@
           <label>Μοναδικός κωδικός <input bind:value={locationCode} maxlength="64" pattern={'[a-z0-9][a-z0-9-]{1,63}'} required/></label>
           <button class="admin-secondary" type="submit" disabled={saving}>Δημιουργία σημείου</button>
         </form>
+      {/if}
+      {:else}
+        <p class="admin-muted">Οι πόλεις και οι τοποθεσίες της Ακαδημίας καταχωρίζονται στις Ομάδες & Ακαδημία. Το POS συνδέεται μόνο με υπάρχουσες τοποθεσίες από τη ρύθμιση τερματικών.</p>
       {/if}
 
     {#if canWrite&&directory.locations.some(l=>l.active)&&activeProducts.length}

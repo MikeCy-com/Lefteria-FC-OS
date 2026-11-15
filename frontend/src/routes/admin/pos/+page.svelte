@@ -10,6 +10,7 @@
   import AdminPosBasketPreview from '../../../lib/admin/AdminPosBasketPreview.svelte';
   import AdminPosLocationsPanel from '../../../lib/admin/AdminPosLocationsPanel.svelte';
   import AdminPosCashierShiftsPanel from '../../../lib/admin/AdminPosCashierShiftsPanel.svelte';
+  import AdminPosSitesPanel from '../../../lib/admin/AdminPosSitesPanel.svelte';
   import AdminPosFinanceHandoffPanel from '../../../lib/admin/AdminPosFinanceHandoffPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
@@ -367,14 +368,14 @@
   });
 </script>
 
-<svelte:head><title>Κατάλογος POS | Διαχείριση Λευτεριά FC</title></svelte:head>
+<svelte:head><title>POS & κατάστημα | Διαχείριση Λευτεριά FC</title></svelte:head>
 
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="pos" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if assignments.length}
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
-        <h1>Προϊόντα & κατηγορίες</h1>
+        <h1>POS & κατάστημα</h1>
         <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Οι διαθέσιμες λειτουργίες σημείων πώλησης και βαρδιών εμφανίζονται παρακάτω με έλεγχο δικαιωμάτων. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
@@ -392,11 +393,18 @@
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
             <div><span>Παραλλαγές</span><strong>{catalog.products.reduce((count, p) => count + p.variants.length, 0)}</strong></div>
           </div>
+          {#if owner && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
+            hasAdminPermission($auth.session.user.permissions,'finance:read')}
+            <AdminPosSitesPanel owner={owner as Organization}
+              actorId={$auth.session.user.id}
+              canProvision={$auth.session.user.role==='super_admin'}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+          {/if}
           {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
             <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
               onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
           {/if}
-          {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
+          {#if canEdit && $auth.session && $auth.session.user.role==='super_admin' &&
             hasAdminPermission($auth.session.user.permissions,'finance:read') && owner}
             <AdminPosFinanceHandoffPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
@@ -563,7 +571,7 @@
               {/if}
             </section>
           </div>
-          {#if owner && $auth.session}
+          {#if owner && $auth.session && $auth.session.user.role==='super_admin'}
             <AdminPosLocationsPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
               products={catalog.products}

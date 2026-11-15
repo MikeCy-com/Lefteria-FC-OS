@@ -44,6 +44,9 @@ public static class AdminPosLocationEndpoints
             HttpContext context,CancellationToken ct)=>
         {
             var cookie=await Authorize(auth,organization_id,context,true,ct);
+            if(organization_id=="lefteria_fc_academy")
+                throw new WebAdminException(403,"pos_academy_canonical_site_required",
+                    "Choose an existing Academy city and location in POS terminal setup.");
             ValidateName(body.Name);
             await using var connection=await connections.OpenAsync(ct);
             await using var command=new NpgsqlCommand(
@@ -61,6 +64,9 @@ public static class AdminPosLocationEndpoints
             HttpContext context,CancellationToken ct)=>
         {
             var cookie=await Authorize(auth,organization_id,context,true,ct);
+            if(organization_id=="lefteria_fc_academy")
+                throw new WebAdminException(403,"pos_academy_canonical_site_required",
+                    "Choose an existing Academy city and location in POS terminal setup.");
             ValidateName(body.Name);
             if(body.CityId is null || !System.Text.RegularExpressions.Regex.IsMatch(
                  body.CityId,@"\A[A-Za-z0-9_-]{1,80}\z") ||

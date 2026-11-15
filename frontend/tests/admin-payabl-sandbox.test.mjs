@@ -112,7 +112,7 @@ test('only manually selected academy months are billed, never implicit twelve mo
   assert.match(feeMigration,/identity\.canonical_contact_bindings b/);
   assert.match(monthTests,/Training-fee issue generated unrequested months/);
   assert.match(monthTests,/Card capture changed independently paid cash invoice/);
-  assert.match(monthTests,/Manager cash receipt was not recorded/);
+  assert.match(monthTests,/Super Admin cash receipt was not recorded/);
   assert.match(monthTests,/Duplicate cash receipt created/);
   assert.match(feeAdmin,/type="month"/);
   assert.doesNotMatch(feeMigration,/generate_series|interval '12 months'|recurring_invoice_batch/i);
