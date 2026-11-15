@@ -420,12 +420,24 @@ public sealed class PosAcademySiteFinancialBoundary : Migration
       REVOKE ALL ON FUNCTION pos_cashier.read_admin_pos_site_finances(text,text,text) FROM PUBLIC;
     """);
 
-    // Security migrations deliberately require forward recovery. Dropping
-    // canonical links would invalidate persistent cashier authority functions
-    // and could re-expose an organization-wide manager reader.
+    // A disposal-only rollback is allowed when no POS site, terminal, sale,
+    // or site link exists. A populated estate must use reviewed forward
+    // recovery: removing canonical links would invalidate cashier authority.
+    // The legacy readers remain super-admin-only (or fail closed) until
+    // their own earlier migrations are removed by a full rollback.
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DO $security_recovery$ BEGIN
-        RAISE EXCEPTION 'pos_site_security_requires_reviewed_forward_recovery';
-      END $security_recovery$;
+      DO $guard$ BEGIN
+        IF EXISTS(SELECT 1 FROM pos.academy_football_location_links)
+          OR EXISTS(SELECT 1 FROM pos.locations)
+          OR EXISTS(SELECT 1 FROM pos_cashier.registers)
+          OR EXISTS(SELECT 1 FROM pos_cashier.sales)
+        THEN RAISE EXCEPTION 'pos_site_security_requires_reviewed_forward_recovery'
+          USING ERRCODE='23514'; END IF;
+      END $guard$;
+      DROP FUNCTION pos_cashier.read_admin_pos_site_finances(text,text,text);
+      DROP FUNCTION pos_cashier.read_admin_pos_sites(text,text);
+      DROP FUNCTION pos_cashier.ensure_admin_academy_pos_site(text,uuid);
+      DROP FUNCTION pos_cashier.authorize_site_finances(text,text,text);
+      DROP TABLE pos.academy_football_location_links;
     """);
 }
