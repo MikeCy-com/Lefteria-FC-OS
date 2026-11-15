@@ -6,6 +6,8 @@ const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115960000_GroupProfileExactTerritoryBoundary.cs');
 const academyApi=read('backend/src/LefteriaFc.Api/Audiences/AdminAcademyGroupProfileEndpoints.cs');
 const teamApi=read('backend/src/LefteriaFc.Api/Audiences/AdminFirstTeamProfileEndpoints.cs');
+const runtimeGrants=read('ops/postgres/web-admin-auth-grants.sql');
+const runtimeChecks=read('ops/postgres/web-admin-auth-permissions-check.sql');
 
 test('all six group profile and publicity functions enforce current scoped authority',()=>{
   assert.match(migration,/CREATE FUNCTION club\.require_admin_group_profile_scope\(/);
@@ -49,4 +51,25 @@ test('admin Academy and First Team profile APIs still reject forbidden DB writes
   assert.match(teamApi,/when\(ex\.SqlState is "42501"\)/);
   assert.match(teamApi,/403,"team_profile_denied"/);
   assert.match(academyApi,/club\.set_admin_academy_group_publicity/);
+});
+
+
+test('six scoped profile operations are explicitly executable, without direct tables or unscoped helper access',()=>{
+  const list=[
+    'read_admin_first_team_profile(text,text)',
+    'write_admin_first_team_profile(text,text,bigint,jsonb)',
+    'read_admin_academy_group_profile(text,text)',
+    'write_admin_academy_group_profile(text,text,bigint,jsonb)',
+    'read_admin_academy_group_publicity(text,text)',
+    'set_admin_academy_group_publicity(text,text,bigint,boolean)'
+  ];
+  for(const name of list){
+    assert.ok(runtimeGrants.includes('GRANT EXECUTE ON FUNCTION club.'+name),
+      'Missing runtime profile grant '+name);
+    assert.ok(runtimeChecks.includes("'club."+name+"'::regprocedure"),
+      'Missing restricted role grant review '+name);
+    assert.ok(runtimeGrants.includes("'club."+name+"'::regprocedure"),
+      'Missing runtime internal function allowlist '+name);
+  }
+  assert.doesNotMatch(runtimeGrants,/GRANT EXECUTE ON FUNCTION club\.require_admin_group_profile_scope/);
 });
