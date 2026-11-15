@@ -42,6 +42,107 @@
         ],
         "type": "object"
       },
+      "AcademyRegistrationRequest": {
+        "properties": {
+          "allergies_details": {
+            "type": "string"
+          },
+          "comm_email": {
+            "type": "boolean"
+          },
+          "comm_sms": {
+            "type": "boolean"
+          },
+          "conditions_details": {
+            "type": "string"
+          },
+          "consent_communications": {
+            "type": "boolean"
+          },
+          "consent_financial": {
+            "type": "boolean"
+          },
+          "consent_gdpr": {
+            "type": "boolean"
+          },
+          "consent_liability": {
+            "type": "boolean"
+          },
+          "consent_media": {
+            "type": "string"
+          },
+          "consent_medical_auth": {
+            "type": "boolean"
+          },
+          "consent_participation": {
+            "type": "boolean"
+          },
+          "emergency_name": {
+            "type": "string"
+          },
+          "emergency_phone": {
+            "type": "string"
+          },
+          "emergency_relationship": {
+            "type": "string"
+          },
+          "has_allergies": {
+            "type": "boolean"
+          },
+          "has_conditions": {
+            "type": "boolean"
+          },
+          "has_medication": {
+            "type": "boolean"
+          },
+          "medication_details": {
+            "type": "string"
+          },
+          "parent_email": {
+            "type": "string"
+          },
+          "parent_name": {
+            "type": "string"
+          },
+          "parent_phone": {
+            "type": "string"
+          },
+          "parent_relationship": {
+            "type": "string"
+          },
+          "payment_method": {
+            "type": "string"
+          },
+          "player_address": {
+            "type": "string"
+          },
+          "player_city": {
+            "type": "string"
+          },
+          "player_dob": {
+            "type": "string"
+          },
+          "player_first_name": {
+            "type": "string"
+          },
+          "player_gender": {
+            "type": "string"
+          },
+          "player_last_name": {
+            "type": "string"
+          },
+          "player_postal_code": {
+            "type": "string"
+          },
+          "signature_data": {
+            "type": "string"
+          },
+          "signature_date": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AcademyTrainingFeeIssueCommand": {
         "properties": {
           "amount_cents": {
@@ -26370,6 +26471,47 @@
         ]
       }
     },
+    "/api/public/academy/registration": {
+      "post": {
+        "operationId": "SubmitPublicAcademyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcademyRegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "413": {
+            "description": "Payload Too Large"
+          },
+          "422": {
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "description": "Service Unavailable"
+          }
+        },
+        "tags": [
+          "Academy registration"
+        ]
+      }
+    },
     "/api/public/news": {
       "get": {
         "operationId": "GetPublicNews",
@@ -26803,6 +26945,9 @@
     },
     {
       "name": "Public website"
+    },
+    {
+      "name": "Academy registration"
     },
     {
       "name": "Website administration"
