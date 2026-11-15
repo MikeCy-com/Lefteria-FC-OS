@@ -21,6 +21,16 @@ test('reference hero uses canonical editorial asset independent of academy group
   assert.match(reference,/\.public-site \.home-reference \.public-destination\s*\{\s*clip-path:polygon/);
   assert.match(reference,/\.public-site \.home-reference \.public-news-card:hover/);
 });
+test('homepage still shows an honest next-match panel when future fixtures are unavailable',()=>{
+  assert.match(hero, /\{:else\}<aside class="public-hero-fixture public-hero-fixture-empty"/);
+  assert.match(hero, /data-state="unavailable"/);
+  assert.match(hero, /site \? 'ΔΕΝ ΕΧΕΙ ΔΗΜΟΣΙΕΥΤΕΙ ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ'/);
+  assert.match(hero, /'ΤΟ ΠΡΟΓΡΑΜΜΑ ΔΕΝ ΕΙΝΑΙ ΔΙΑΘΕΣΙΜΟ'/);
+  assert.match(hero, /data-testid="hero-fixture-schedule"/);
+  assert.match(hero, /href="\/team\?tab=schedule"/);
+  assert.ok(compile(hero,{filename:'HomeHero.svelte',generate:'server'}).js.code.length>100);
+});
+
 test('desktop rail suppresses duplicate hamburger, collapsed header restores it',()=>{
   assert.match(styles,/@media \(min-width:768px\)\s*\{\s*\.public-site \.public-header > \[data-testid="public-menu-open"\]\s*\{\s*display:none/);
   assert.match(styles,/@media \(max-width:767px\)\s*\{\s*\.public-site \.public-header > \[data-testid="public-menu-open"\]\s*\{\s*display:inline-flex/);
