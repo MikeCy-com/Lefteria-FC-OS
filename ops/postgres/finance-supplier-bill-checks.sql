@@ -61,6 +61,15 @@ BEGIN
     admin_account_id,location_id,role)
   VALUES(v_manager,v_site_a,'location_manager');
 
+  BEGIN
+    UPDATE finance.supplier_bills SET gross_amount_cents=1 WHERE id=v_id;
+    RAISE EXCEPTION 'supplier_bill_updated_in_place';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    DELETE FROM finance.supplier_bills WHERE id=v_id;
+    RAISE EXCEPTION 'supplier_bill_deleted_in_place';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   v_bill:=finance.create_admin_supplier_bill(
     v_acc_token,'lefteria_fc_academy',v_request,'CI Vendor North',
     'AC-N-'||substr(md5(v_request::text),1,8),'equipment','Training cones',
