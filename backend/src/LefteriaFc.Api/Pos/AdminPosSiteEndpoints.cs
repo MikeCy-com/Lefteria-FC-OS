@@ -37,7 +37,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
             return await Query(command,ct);
-        }).WithName("ReadAdminPosAuthorizedSites");
+        }).WithName("ReadAdminPosAuthorizedSites").ExcludeFromDescription();
 
         routes.MapGet("/{locationId}/finance", async (
             string locationId, string? organization_id, WebAdminService auth,
@@ -55,7 +55,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("owner", owner);
             command.Parameters.AddWithValue("location", locationId);
             return await Query(command,ct);
-        }).WithName("ReadAdminPosExactSiteFinances");
+        }).WithName("ReadAdminPosExactSiteFinances").ExcludeFromDescription();
 
         routes.MapGet("/{locationId}/sales", async (
             string locationId, string? organization_id, WebAdminService auth,
@@ -73,7 +73,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("owner", owner);
             command.Parameters.AddWithValue("location", locationId);
             return await Query(command,ct);
-        }).WithName("ReadAdminPosExactSiteSaleHistory");
+        }).WithName("ReadAdminPosExactSiteSaleHistory").ExcludeFromDescription();
 
         routes.MapPost("/academy-locations", async (
             string? organization_id, EnsureAcademySite input,
@@ -92,7 +92,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("location", input.AcademyLocationId);
             return await Query(command,ct);
-        }).WithName("EnsureAdminCanonicalAcademyPosSite");
+        }).WithName("EnsureAdminCanonicalAcademyPosSite").ExcludeFromDescription();
 
         routes.MapGet("/terminal-setup", async (
             string? organization_id, WebAdminService auth,
@@ -108,7 +108,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             command.Parameters.AddWithValue("owner", owner);
             return await Query(command,ct);
-        }).WithName("ReadAdminPosTerminalSetup");
+        }).WithName("ReadAdminPosTerminalSetup").ExcludeFromDescription();
 
         routes.MapPost("/terminals", async (
             string? organization_id, CreateTerminal input,
@@ -131,7 +131,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("location", input.LocationId!);
             command.Parameters.AddWithValue("label", input.Label);
             return await Query(command,ct);
-        }).WithName("CreateAdminPosSiteTerminal");
+        }).WithName("CreateAdminPosSiteTerminal").ExcludeFromDescription();
 
         routes.MapPut("/terminals/{registerId}/operators", async (
             string registerId, string? organization_id, AssignOperator input,
@@ -154,7 +154,7 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("subject", input.AdminAccountId);
             command.Parameters.AddWithValue("enabled", input.Enabled);
             return await Query(command,ct);
-        }).WithName("AssignAdminPosTerminalOperator");
+        }).WithName("AssignAdminPosTerminalOperator").ExcludeFromDescription();
 
         return endpoints;
     }
