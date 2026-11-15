@@ -36,7 +36,7 @@ test('public navigation keeps admin access private and preserves legacy redirect
     const {default:Navigation}=await import('../src/lib/public/PublicNavigation.svelte');
     const navigation=render(Navigation,{props:{club:null,groups:[]}}).body;
     assert.doesNotMatch(navigation,/href="\/admin\/login"|public-menu-admin/);
-    assert.match(navigation,/href="\/login"/);
+    assert.match(navigation,/href="\\/app\\/login"[^>]*target="_blank"/);
     const {default:Footer}=await import('../src/lib/public/PublicFooter.svelte');
     const footer=render(Footer,{props:{club:null}}).body;
     assert.doesNotMatch(footer,/data-testid="footer-admin-link"|href="\/admin\/login"/);
