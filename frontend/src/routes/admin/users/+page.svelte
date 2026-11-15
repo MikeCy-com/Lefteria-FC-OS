@@ -25,6 +25,7 @@
   let username=$state(''),displayName=$state(''),password=$state(''),confirmPassword=$state('');
   let accountRole=$state('coach'),selectedOwners=$state<string[]>([]);
   let createError=$state(''),createNotice=$state('');
+  let provisionedAccountId=$state(''),provisionedOwner=$state(''),provisionedRole=$state('');
   const availableOwners=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
   const roleChoices=[['manager','Manager'],['coach','Coach'],['editor','Editor'],
@@ -47,6 +48,7 @@
     const actor=$auth.session?.user.id;
     const body={username:normalized,name,role:accountRole,password,organizations:selectedOwners};
     creating=true;createError='';createNotice='';
+    provisionedAccountId='';provisionedOwner='';provisionedRole='';
     try{
       const response=await fetch('/api/admin/access/users',{
         method:'POST',credentials:'same-origin',cache:'no-store',
@@ -69,6 +71,12 @@
         !selectedOwners.every(owner=>(saved.organizations as string[]).includes(owner)))
         throw Error('Ο λογαριασμός δεν επιβεβαιώθηκε.');
       createNotice='Ο λογαριασμός δημιουργήθηκε με τον επιλεγμένο ρόλο. Μεταδώστε τον αρχικό κωδικό στον χρήστη μέσω ασφαλούς καναλιού.';
+      // A role plus organization does not automatically grant access to a
+      // particular city, location or team. Send the Super Admin to the
+      // existing independently authorized scope assignment operation.
+      provisionedAccountId=saved.id as string;
+      provisionedOwner=selectedOwners[0];
+      provisionedRole=accountRole;
       username='';displayName='';selectedOwners=[];showCreate=false;offset=0;revision++;
     }catch(e){createError=e instanceof Error?e.message:'Ο λογαριασμός δεν δημιουργήθηκε.';}
     finally{password='';confirmPassword='';creating=false;}
@@ -164,6 +172,14 @@
             </button>
           </div>
           {#if createNotice}<p class="access-create-success" role="status" data-testid="admin-created-account">{createNotice}</p>{/if}
+          {#if provisionedAccountId &&
+            ['manager','coach','editor','matchday_editor'].includes(provisionedRole)}
+            <a class="admin-provision-follow-up"
+              href={`/admin/territories?organization_id=${encodeURIComponent(provisionedOwner)}&account_id=${encodeURIComponent(provisionedAccountId)}#delegated-access`}
+              data-testid="admin-new-account-scope-link">
+              Επόμενο βήμα · ανάθεση πόλης, τοποθεσίας ή ομάδας ↗
+            </a>
+          {/if}
           {#if createError}<p role="alert" class="access-create-error">{createError}</p>{/if}
           {#if showCreate}
             <form class="access-create-form" data-testid="admin-create-account-form"
@@ -258,6 +274,8 @@
     error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
+  .admin-provision-follow-up{display:inline-flex;align-items:center;min-height:44px;padding:10px 15px;margin:5px 0 14px;border:1px solid #c69b41;background:#30240e;color:#ffd271;font-weight:800;text-decoration:none}
+  .admin-provision-follow-up:focus-visible{outline:3px solid #ffd271;outline-offset:3px}
   .access-directory{width:min(100%,1100px);margin:0 auto}
   .access-directory h1{margin:8px 0 13px}
   .access-directory>.admin-muted{max-width:85ch;line-height:1.65}
