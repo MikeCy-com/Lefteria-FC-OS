@@ -69,7 +69,8 @@ test('server-authorized Academy queue can show only minimal public intake data t
   assert.match(migration,/v_role<>'super_admin'/);
   assert.match(migration,/REVOKE ALL ON FUNCTION academy_intake\.read_admin_registration_queue/);
   assert.match(office,/data-testid="academy-public-intake"/);
-  assert.match(office,/intakeAccess && \$auth\.session\?\.user\.role === 'super_admin'/);
+  assert.match(office,/const intakeAccess = \$derived\(access &&/);
+  assert.match(office,/role === 'super_admin'/);
   assert.match(office,/request\.abort\(\)/);
   assert.doesNotMatch(endpoint,/evidence_ciphertext|signature_data|allergies_details/);
   assert.doesNotMatch(migration,/jsonb_build_object\([^)]*evidence_ciphertext/);
