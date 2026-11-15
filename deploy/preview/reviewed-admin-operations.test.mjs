@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {entryRouteGroups,generateEdge,reviewedAdminEntries,
+  reviewedHiddenAdminEntries} from './generate-edge.mjs';
+
+const contract=JSON.parse(await readFile(
+  new URL('../../contracts/openapi.json',import.meta.url),'utf8'));
+const repoFile=async path=>readFile(new URL('../../'+path,import.meta.url),'utf8');
+const permitted=(method,path,doc=contract)=>entryRouteGroups(doc)
+  .some(group=>group.method===method&&new RegExp(group.expression).test(path));
+
+test('fixed WebAdmin contract inventory is reviewed exactly by path, method and security',()=>{
+  const guarded=Object.entries(contract.paths).flatMap(([path,operations])=>
+    Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
+      JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
+      .map(([method])=>[method,path]));
+  assert.equal(guarded.length,106);
+  const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
+  assert.equal(reviewed.size,90);
+  for(const [method,path] of reviewedAdminEntries){
+    assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
+    assert.equal(permitted(method.toUpperCase(),
+      path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
+      true,method+' '+path);
+  }
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,106);
+  assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
+    /handle @entry_get/);
+});
+test('club administration operations are reached but never wrong verbs, trailing paths or unknown APIs',()=>{
+  for(const [method,path] of [
+    ['GET','/api/admin/football/audiences'],
+    ['POST','/api/admin/football/groups'],
+    ['POST','/api/admin/football/groups/with-profile'],
+    ['GET','/api/admin/football/players'],
+    ['GET','/api/admin/football/group-players'],
+    ['PUT','/api/admin/football/assignments'],
+    ['GET','/api/admin/football/territories'],
+    ['POST','/api/admin/football/territories'],
+    ['GET','/api/admin/football/territories/access'],
+    ['PUT','/api/admin/football/territories/access'],
+    ['GET','/api/admin/football/territories/metrics'],
+    ['GET','/api/admin/access/users'],
+    ['POST','/api/admin/access/users'],
+    ['GET','/api/admin/academy/training/plans'],
+    ['POST','/api/admin/academy/training/plans'],
+    ['POST','/api/admin/auth/profile/name'],
+    ['POST','/api/admin/auth/profile/password'],
+    ['GET','/api/admin/auth/profile/contact-email'],
+    ['POST','/api/admin/auth/profile/contact-email']
+  ]){
+    assert.equal(permitted(method,path),true,method+' '+path);
+    assert.equal(permitted(method,path+'/extra'),false,method+' '+path+'/extra');
+    assert.equal(permitted(method==='GET'?'DELETE':'GET',path),false,'wrong method '+path);
+  }
+  for(const method of ['GET','POST','PUT','PATCH','DELETE','OPTIONS']){
+    for(const path of ['/api/admin/future','/api/admin/football/unknown',
+      '/api/admin/football/territories/unknown','/api/admin/football/group-players/extra',
+      '/api/admin/access/users/delete','/api/health/live','/api/openapi/v1.json'])
+      assert.equal(permitted(method,path),false,method+' '+path);
+  }
+  assert.equal(reviewedHiddenAdminEntries.length,13);
+});
+test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
+  const future=structuredClone(contract);
+  future.paths['/api/admin/forgotten-unreviewed']={get:{security:[{WebAdmin:[]}]}};
+  assert.throws(()=>generateEdge(future,'srv1649602.hstgr.cloud','a'.repeat(64)),
+    /Unreviewed admin API/);
+  const wrong=structuredClone(contract);
+  wrong.paths['/api/admin/football/groups'].post.security=[];
+  assert.throws(()=>generateEdge(wrong,'srv1649602.hstgr.cloud','a'.repeat(64)),
+    /entry security|Unreviewed/);
+});
+test('hidden admin routes are pinned to independently authorized source instead of broad prefixes',async()=>{
+  const files=[
+    'backend/src/LefteriaFc.Api/Football/AdminFootballTerritoryEndpoints.cs',
+    'backend/src/LefteriaFc.Api/Football/AdminFootballTerritoryAccessEndpoints.cs',
+    'backend/src/LefteriaFc.Api/Audiences/AdminRosterPlayerEndpoints.cs',
+    'backend/src/LefteriaFc.Api/WebAdmin/AdminUserDirectoryEndpoints.cs',
+    'backend/src/LefteriaFc.Api/Marketing/AcademyIntakeAdminEndpoints.cs',
+    'backend/src/LefteriaFc.Api/WebAdmin/AdminSelfServiceEndpoints.cs'
+  ];
+  const sources=await Promise.all(files.map(repoFile));
+  for(const source of sources)assert.match(source,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  for(const route of ['/api/admin/football/territories','/api/admin/football/group-players',
+    '/api/admin/access/users','/api/admin/academy/intake',
+    '/api/admin/auth/profile/name','/api/admin/auth/profile/password'])
+    assert.ok(sources.some(source=>source.includes(route)),'No secured source path '+route);
+  const generator=await repoFile('deploy/preview/generate-edge.mjs');
+  assert.doesNotMatch(generator,/path_regexp entry_.*\^\/api\/admin\/\[\^\/\]/);
+  assert.match(generator,/Unreviewed admin API requires explicit preview route approval/);
+  assert.match(generator,/Reviewed application entry security changed/);
+});
