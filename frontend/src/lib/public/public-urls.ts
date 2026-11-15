@@ -38,5 +38,10 @@ export function publicCanonicalHref(path: string): string {
     && routeParts[2].length > 0;
   const scope = url.searchParams.get('scope');
   const owner = isPublicCatalogDetail && (scope === 'academy' || scope === 'first_team') ? '?scope=' + scope : '';
-  return 'https://lefteriafc.cy' + url.pathname + owner;
+  const newsOwner = url.searchParams.get('organization_id');
+  const isNewsDetail = routeParts.length === 3 && routeParts[1] === 'news' && routeParts[2].length > 0;
+  const newsOrganization = isNewsDetail &&
+    (newsOwner === 'lefteria_fc' || newsOwner === 'lefteria_fc_academy')
+    ? '?organization_id=' + newsOwner : '';
+  return 'https://lefteriafc.cy' + url.pathname + owner + newsOrganization;
 }
