@@ -227,6 +227,74 @@ BEGIN
     organization_id,player_id,academy_group_id)
   VALUES('lefteria_fc_academy',v_player_a1,v_group_a1);
 
+  -- Private evaluation data: same-location manager can create/read only the
+  -- verified location's records; city manager can see their two sites but
+  -- never a different city or older history after transfer.
+  v_data:=academy_private.create_admin_player_evaluation(
+    v_token_local,'lefteria_fc_academy',v_player_a1,gen_random_uuid(),
+    'CI North assessment','','{}','{}','{}','{}','{}');
+  IF v_data->>'player_id'<>v_player_a1 THEN
+    RAISE EXCEPTION 'evaluation_manager_create_unverified'; END IF;
+  v_data:=academy_private.read_admin_player_evaluations(
+    v_token_local,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>1 OR
+    v_data->'evaluations'->0->>'summary'<>'CI North assessment'
+  THEN RAISE EXCEPTION 'evaluation_manager_own_site_not_readable'; END IF;
+  BEGIN
+    PERFORM academy_private.create_admin_player_evaluation(
+      v_token_local,'lefteria_fc_academy',v_player_a2,gen_random_uuid(),
+      'Unauthorized South','','{}','{}','{}','{}','{}');
+    RAISE EXCEPTION 'manager_wrote_sibling_evaluation';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM academy_private.read_admin_player_evaluations(
+      v_token_local,'lefteria_fc_academy',v_player_a2);
+    RAISE EXCEPTION 'manager_read_sibling_evaluation';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_data:=academy_private.create_admin_player_evaluation(
+    v_token_manager,'lefteria_fc_academy',v_player_a2,gen_random_uuid(),
+    'CI South assessment','','{}','{}','{}','{}','{}');
+  v_data:=academy_private.read_admin_player_evaluations(
+    v_token_manager,'lefteria_fc_academy',v_player_a2);
+  IF (v_data->>'total')::int<>1 THEN
+    RAISE EXCEPTION 'city_manager_cannot_read_own_assessment'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM academy_private.evaluations e
+    WHERE e.organization_id='lefteria_fc_academy'
+      AND e.player_id=v_player_a1 AND e.origin_city_id=v_city_a
+      AND e.origin_location_id=v_loc_a1 AND e.origin_scope_id=v_scope_a
+      AND e.origin_recorded_at IS NOT NULL)
+  THEN RAISE EXCEPTION 'evaluation_origin_not_captured'; END IF;
+  BEGIN
+    UPDATE academy_private.evaluations e
+      SET origin_location_id=v_loc_a2
+      WHERE e.player_id=v_player_a1 AND e.organization_id='lefteria_fc_academy';
+    RAISE EXCEPTION 'evaluation_origin_overwritten';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_a1;
+  INSERT INTO club.player_academy_groups(organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_b);
+  BEGIN
+    PERFORM academy_private.read_admin_player_evaluations(
+      v_token_manager,'lefteria_fc_academy',v_player_a1);
+    RAISE EXCEPTION 'old_city_manager_read_transferred_assessment';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',true);
+  v_data:=academy_private.read_admin_player_evaluations(
+    v_token_manager,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>0 OR jsonb_array_length(v_data->'evaluations')<>0
+  THEN RAISE EXCEPTION 'new_city_manager_inherited_old_assessment'; END IF;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',false);
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_b;
+  INSERT INTO club.player_academy_groups(organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_a1);
+
   v_data:=club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
     v_local,'location',v_loc_a1,'location_manager',false);
   IF (v_data->>'changed')::boolean IS NOT TRUE THEN
