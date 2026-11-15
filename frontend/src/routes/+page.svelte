@@ -15,6 +15,13 @@
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <div class="home-reference" data-testid="home-page"><HomeHero site={data.site} navigationGroups={data.navigationGroups} />
     {#if !data.available}<Unavailable />{:else}<HomeDestinations site={data.site} groups={data.navigationGroups} />{/if}
+    <section class="home-brand-interval" aria-label="Μία ομάδα, ένα όνειρο" data-testid="home-brand-interval">
+      <div class="home-brand-bottom">
+        <span class="home-brand-stripe" aria-hidden="true"></span>
+        <span class="home-brand-motto">ONE TEAM <span aria-hidden="true">●</span> ONE DREAM</span>
+        <span class="home-brand-stripe" aria-hidden="true"></span>
+      </div>
+    </section>
     <HomeNews articles={data.news?.items ?? []} available={data.newsAvailable} />
     {#if data.available}
       <section class="public-section section-dark"><div class="public-section-heading"><h2>ΑΓΩΝΕΣ & ΑΠΟΤΕΛΕΣΜΑΤΑ</h2><a href="/team?tab=schedule">ΤΟ ΠΡΟΓΡΑΜΜΑ ↗</a></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures.slice(0,4)} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες.</p>{/if}</section>
