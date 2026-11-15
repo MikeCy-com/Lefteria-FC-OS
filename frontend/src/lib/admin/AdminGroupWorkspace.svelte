@@ -30,6 +30,7 @@
   const canEvaluate=$derived(['manager','super_admin'].includes(user.role)&&
     hasAdminPermission(user.permissions,organization==='lefteria_fc'?'teams:write':'academy:write'));
   const canPrivate=$derived(['manager','super_admin'].includes(user.role));
+  const canAnnounce=$derived(canCreate&&canEvaluate);
   const canFinance=$derived(organization==='lefteria_fc_academy'&&
     hasAdminPermission(user.permissions,'finance:read'));
   $effect(()=>{
@@ -54,6 +55,13 @@
     {/if}
     <button type="button" aria-pressed={tab==='matches'} onclick={()=>tab='matches'}
       data-testid="admin-group-matches-link">Αγώνες & αποτελέσματα</button>
+    {#if canAnnounce}
+      <a class="group-notice-link" data-testid="admin-group-app-announcements-link"
+        href={'/admin/announcements?organization_id='+encodeURIComponent(organization)+
+          '&group_id='+encodeURIComponent(group.id)}>
+        Ανακοινώσεις εφαρμογής <span aria-hidden="true">↗</span>
+      </a>
+    {/if}
     {#if canCreate}
       <button type="button" aria-pressed={tab==='settings'} onclick={()=>tab='settings'}
         data-testid="admin-group-settings-link">Ρυθμίσεις τμήματος</button>
@@ -108,14 +116,16 @@
 <style>
   .group-operating-space{min-width:0;max-width:100%}
   .group-operation-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:17px 0;padding-bottom:10px;border-bottom:1px solid #98712b}
-  .group-operation-tabs button{display:inline-flex;align-items:center;justify-content:center;
+  .group-operation-tabs button,.group-operation-tabs a{display:inline-flex;align-items:center;justify-content:center;
     min-height:44px;padding:10px 13px;color:#eee;background:#111517;border:1px solid #6a5b39;
     cursor:pointer;font:800 15px/1.15 'Fira Sans Extra Condensed',sans-serif}
   .group-operation-tabs button[aria-pressed='true']{background:#f6bb38;color:#080909;border-color:#f6bb38}
-  .group-operation-tabs button:focus-visible{outline:3px solid #ffd164;outline-offset:3px}
+  .group-operation-tabs button:focus-visible,.group-operation-tabs a:focus-visible{outline:3px solid #ffd164;outline-offset:3px}
+  .group-operation-tabs a{text-decoration:none;border-style:dashed;gap:8px}
+  .group-operation-tabs a:hover{border-color:#ffcc65;background:#27271e}
   .group-operation-content{display:grid;gap:15px;min-width:0}
   .group-operation-content>.admin-muted{margin:0}
   .group-month{display:grid;gap:6px;justify-self:start;font-size:12px;color:#ead099}
   .group-month input{min-width:180px;min-height:43px}
-  @media(max-width:650px){.group-operation-tabs button{flex:1;font-size:13px}}
+  @media(max-width:650px){.group-operation-tabs button,.group-operation-tabs a{flex:1;font-size:13px}}
 </style>
