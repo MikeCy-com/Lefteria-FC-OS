@@ -253,7 +253,7 @@ public static class AcademyFeeEndpoints
         var cookie=context.Request.Cookies[WebAdminServices.CookieName];
         var session=await service.CurrentAsync(cookie,ct);
         if(session is null)throw new WebAdminException(401,"not_authenticated","Sign in again.");
-        if(!AdminPermissions.Has(session.User.Role,write ? "finance:write" : "finance:read") ||
+        if(session.User.Role != "super_admin" || !AdminPermissions.Has(session.User.Role,write ? "finance:write" : "finance:read") ||
            !session.User.Organizations.Any(org=>org.Id==owner))
             throw new WebAdminException(403,"not_authorized","Finance permission denied.");
         return cookie!;
