@@ -138,6 +138,10 @@ REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
   TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  TO :"admin_auth_role";
 -- The verified current admin account may change only its own display name
 -- or rotate its own password through audited account/session-locked routines.
 -- Raw UPDATE of identity.admin_accounts is prohibited for both runtimes.
