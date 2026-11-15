@@ -250,7 +250,10 @@
                   {#if groupId}
                     <label class="admin-group-membership-checkbox">
                       <input type="checkbox" checked={selectedGroups.includes(groupId)}
-                        disabled={saving} onchange={event=>toggleGroup(groupId,event.currentTarget.checked)} />
+                        disabled={saving} onchange={event=>{
+                          if(owner==='lefteria_fc')selectedGroups=event.currentTarget.checked?[groupId]:[];
+                          else toggleGroup(groupId,event.currentTarget.checked);
+                        }} />
                       Συμμετοχή στο επιλεγμένο τμήμα
                     </label>
                     <p class="admin-muted">Οι συμμετοχές σε άλλα τμήματα της Ακαδημίας διατηρούνται. Για πρώτη ομάδα, η αλλαγή αντικαθιστά την προηγούμενη ανάθεση.</p>
