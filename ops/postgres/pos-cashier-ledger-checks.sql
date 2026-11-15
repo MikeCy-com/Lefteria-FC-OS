@@ -158,5 +158,29 @@ BEGIN
     OR NOT EXISTS (SELECT 1 FROM pg_indexes
     WHERE schemaname='pos_cashier' AND indexname='uq_pos_shift_close_request')
   THEN RAISE EXCEPTION 'pos_cashier_idempotency_index_missing'; END IF;
+  -- Canonical Academy POS locations and manager-specific financial report
+  -- are isolated from the mobile role and raw payment ledger.
+  IF NOT EXISTS(SELECT 1 FROM pg_class c
+    WHERE c.oid='pos.academy_football_location_links'::regclass
+      AND c.relrowsecurity)
+  THEN RAISE EXCEPTION 'pos_canonical_location_rls_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos_cashier.authorize_site_finances(text,text,text)'::regprocedure,
+      'pos_cashier.ensure_admin_academy_pos_site(text,uuid)'::regprocedure,
+      'pos_cashier.read_admin_pos_sites(text,text)'::regprocedure,
+      'pos_cashier.read_admin_pos_site_finances(text,text,text)'::regprocedure,
+      'pos_cashier.read_admin_pos_site_sales(text,text,text)'::regprocedure,
+      'pos_cashier.read_admin_terminal_setup(text,text)'::regprocedure,
+      'pos_cashier.create_admin_terminal(text,text,text,text)'::regprocedure,
+      'pos_cashier.set_admin_terminal_operator(text,text,text,uuid,boolean)'::regprocedure
+    ) AND (NOT p.prosecdef OR EXISTS (
+       SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+       WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_site_boundary_exposed'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_constraint
+    WHERE conrelid='pos.academy_football_location_links'::regclass
+      AND contype='f')
+  THEN RAISE EXCEPTION 'pos_canonical_site_fk_missing'; END IF;
 END $checks$;
 ROLLBACK;
