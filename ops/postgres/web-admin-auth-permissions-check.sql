@@ -20,6 +20,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \gset
 \ir admin-club-lock-boundary.sql
 \ir admin-self-profile-boundary.sql
+\ir admin-contact-email-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
@@ -74,6 +75,8 @@ BEGIN
       OR EXISTS(
         SELECT 1 FROM pg_proc p WHERE p.oid IN (
           'identity.write_admin_own_name(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
           'identity.write_admin_own_password(text,text,text)'::regprocedure
         ) AND (NOT p.prosecdef OR
           EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
@@ -101,6 +104,8 @@ BEGIN
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
