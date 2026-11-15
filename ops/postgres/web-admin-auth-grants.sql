@@ -142,6 +142,16 @@ GRANT EXECUTE ON FUNCTION identity.write_admin_own_name(text,text,text),
   identity.write_admin_own_password(text,text,text)
   TO :"admin_auth_role";
 
+-- Self-only non-verified contact details: no direct raw column read/write.
+-- These values must never participate in login, invitations or recovery.
+REVOKE ALL ON FUNCTION identity.read_admin_own_contact_email(text),
+  identity.write_admin_own_contact_email(text,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.read_admin_own_contact_email(text),
+  identity.write_admin_own_contact_email(text,text,text)
+  TO :"admin_auth_role";
+
+
 
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
 -- The only new POS entitlement is a session/owner-checking read function.
