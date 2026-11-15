@@ -42,9 +42,18 @@ test('rendered CMS login and session panels expose no token, signup or simulated
       user: { id: '11111111-1111-4111-8111-111111111111', username: 'cms-fixture', name: '<script>fixture</script>', role: 'editor',
         permissions: ['news:*', 'gallery:*'], organizations: [{ id: 'lefteria_fc_academy', name: 'Lefteria FC Academy' }] },
       expires_at: '2026-11-01T20:00:00Z' }, onLogout() {}, onRefresh() {} } }).body;
-    assert.match(workspace, /Lefteria FC Academy/);
+    assert.match(workspace, /\/admin\/profile/);
     assert.match(workspace, /Editor/);
-    assert.match(workspace, /Νέα — διαχείριση/);
+    const { default: Profile } = await import('../src/lib/admin/AdminProfile.svelte');
+    const profile = render(Profile, { props: { session: {
+      user: { id:'fixture', username:'fixture', name:'<script>fixture</script>', role:'editor',
+        permissions:['news:*'], organizations:[{id:'lefteria_fc_academy',name:'Lefteria FC Academy'}] },
+      expires_at:'2026-11-01T20:00:00Z'
+    }, onLogout(){}, onRefresh(){} } }).body;
+    assert.match(profile,/Lefteria FC Academy/);
+    assert.match(profile,/Νέα — διαχείριση/);
+    assert.doesNotMatch(profile,/<script>fixture<\/script>/);
+    assert.doesNotMatch(workspace, /admin-account-grid|admin-overview-stats/);
     assert.doesNotMatch(workspace, /news:\*/);
     assert.match(workspace, /Under Developments/);
     assert.doesNotMatch(workspace, /<script>fixture<\/script>/);
