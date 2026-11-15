@@ -117,12 +117,19 @@ public sealed class PosSuspendedCashierShiftRecovery : Migration
           OR _reason IS NULL
         THEN RAISE EXCEPTION 'pos_shift_recovery_invalid' USING ERRCODE='22023'; END IF;
       
-        SELECT actor_id,account_role,session_id
-          INTO STRICT v_actor,v_role,v_session
+        SELECT actor_id,account_role INTO STRICT v_actor,v_role
           FROM club.authorize_admin_football(_digest,_owner);
         IF v_role<>'super_admin'
         THEN RAISE EXCEPTION 'pos_shift_recovery_super_admin_required'
           USING ERRCODE='42501'; END IF;
+        -- Territory authority exposes only actor and role; independently
+        -- bind the same live administrator session for the audit event.
+        SELECT s.id INTO v_session FROM identity.admin_sessions s
+          WHERE s.token_digest=_digest AND s.admin_account_id=v_actor
+            AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp();
+        IF v_session IS NULL THEN
+          RAISE EXCEPTION 'pos_shift_recovery_session_revoked'
+            USING ERRCODE='42501'; END IF;
       
         -- Never permit a shift id from another organization to disclose a site.
         SELECT sh.cashier_id,sh.register_id,r.location_id
