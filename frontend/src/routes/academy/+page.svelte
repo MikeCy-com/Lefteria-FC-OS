@@ -12,7 +12,7 @@
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
     { href: '/academy/groups', icon: 'users', title: 'ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ', description: 'Βρες το τμήμα που ταιριάζει στο παιδί σου και δες το πρόγραμμα προπονήσεών του.' },
-    { href: '/team', icon: 'trophy', title: 'Η ΠΡΩΤΗ ΟΜΑΔΑ', description: 'Γνώρισε τους παίκτες μας και τον επόμενο σταθμό στο ποδοσφαιρικό ταξίδι.' },
+    { href: '#academy-fixtures', icon: 'trophy', title: 'ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ', description: 'Δες το αγωνιστικό πρόγραμμα των τμημάτων της Ακαδημίας μας.' },
     { href: '/partners?scope=academy', icon: 'shield', title: 'ΟΙ ΣΥΝΕΡΓΑΤΕΣ ΜΑΣ', description: 'Οι άνθρωποι και οι οργανισμοί που στηρίζουν την ακαδημία μας.' }
   ];
 </script>
