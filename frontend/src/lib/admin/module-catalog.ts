@@ -30,7 +30,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'hub', name: 'HUB · Περιεχόμενο & συνδρομές', description: 'Ασφαλές εκπαιδευτικό περιεχόμενο για γονείς και αθλητές, με προαιρετική συνδρομή φιλάθλων και υποχρεωτική ανθρώπινη έγκριση.', modules: [
     { id: 'hub_editorial', name: 'AI πρόχειρα & έγκριση περιεχομένου', description: 'Πραγματική λίστα, κείμενα, έλεγχος εικόνων, ανθρώπινη έγκριση και δημοσίευση. Η παραγωγή AI ενεργοποιείται ξεχωριστά μόνο σε απομονωμένη δοκιμή.', status: 'live', href: '/admin/hub', scope: 'any', anyPermission: ['news:read'] },
-    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['finance:read','marketing:read'] }
+    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
     { id: 'announcements', name: 'Ανακοινώσεις εφαρμογής', description: 'Πρόχειρα, εικόνες και PDF, δημοσίευση ανά ομάδα, αναγνώστες και απόσυρση από την εφαρμογή.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
