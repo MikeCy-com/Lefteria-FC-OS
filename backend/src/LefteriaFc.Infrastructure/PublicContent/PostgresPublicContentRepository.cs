@@ -4,6 +4,7 @@ using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Domain.PublicContent;
 using LefteriaFc.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LefteriaFc.Infrastructure.PublicContent;
@@ -42,8 +43,35 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
                 ? JsonSerializer.Deserialize<PublicArticle>(edited, Options) ??
                     throw new InvalidOperationException("Invalid edited public article.") : row)
             .OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray();
+
+        // Academy navigation must reflect the actual group records managed in
+        // the authenticated admin backend. Imported public group documents can
+        // provide original presentation fields ONLY for the same canonical ID;
+        // they cannot invent a website group by existing in the import alone.
+        // The fixed SECURITY DEFINER reader returns an allowlisted JSON array:
+        // no parent, child contact, staff, attendance or private table access.
+        PublicAcademyGroup[] academyGroups = [];
+        if (organizationId == "lefteria_fc_academy")
+        {
+            string? approvedJson;
+            try
+            {
+                approvedJson = await database.Database.SqlQueryRaw<string>(
+                    "SELECT club.read_public_academy_group_directory()::text AS \\"Value\\"")
+                    .SingleOrDefaultAsync(token);
+            }
+            catch (PostgresException ex) when (ex.SqlState is "42883" or "42501" or "3F000")
+            {
+                // Missing migration/explicit runtime grant is unavailable
+                // rather than a misleading "no Academy groups" success.
+                return null;
+            }
+            if (approvedJson is null) return null; // canonical roster not initialized
+            academyGroups = JsonSerializer.Deserialize<PublicAcademyGroup[]>(approvedJson, Options)
+                ?? throw new InvalidOperationException("Invalid canonical Academy projection.");
+        }
         var result = new PublicSiteResult(organizationId, club,
-            Read<PublicTeam>(PublicContentKinds.Team), Read<PublicAcademyGroup>(PublicContentKinds.AcademyGroup),
+            Read<PublicTeam>(PublicContentKinds.Team), academyGroups,
             news, Read<PublicFixture>(PublicContentKinds.Fixture)
                 .OrderBy(row => row.MatchDate).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray());
         await transaction.CommitAsync(token);
