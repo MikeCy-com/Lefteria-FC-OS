@@ -588,3 +588,9 @@
   .admin-app .admin-sidebar-context span { color:#fff; }
   .admin-app .admin-sidebar a[aria-current='page'] { color:#090909; }
 }
+
+/* Authenticated Chromium audit: section headers must remain distinguishable
+   from 16px tools even when the navigation becomes a horizontal mobile rail. */
+@media (max-width:720px) {
+  .admin-app .admin-sidebar .admin-nav-section {font-size:17px; font-weight:800}
+}

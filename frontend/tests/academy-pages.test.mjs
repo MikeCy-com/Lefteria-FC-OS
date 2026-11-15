@@ -23,12 +23,36 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     { ...match,id:'no-group',academy_group_id:null,away_team:'Unassigned fixture sentinel' },
     { ...match,id:'wrong-org',organization_id:'lefteria_fc',away_team:'First-team fixture sentinel' }
   ] };
+  const sections = {
+    organization_id:'lefteria_fc_academy',academy_stats:{
+      id:'academy',organization_id:'lefteria_fc_academy',age_groups:1,athletes:2,trainings_per_week:3,dedication_pct:95
+    },
+    players:[
+      {id:'academy-public-player',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',
+        academy_group_ids:[group.id],number:7,position:'Defender',image_url:null,
+        statistics:{appearances:3,goals:0,assists:1,minutes_played:120},medical_notes:'sentinel-private'},
+      {id:'wrong-group-player',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Different group sentinel',
+        academy_group_ids:['other'],number:8,position:'Forward',image_url:null},
+      {id:'wrong-org-player',organization_id:'lefteria_fc',team_type:'First Team',name:'Club player sentinel',
+        academy_group_ids:[group.id],number:10,position:'Forward',image_url:null}
+    ],
+    staff:[{id:'academy-coach',organization_id:'lefteria_fc_academy',name:'Verified Academy Coach',academy_group_ids:[group.id]}],
+    gallery:[
+      {id:'group-gallery',organization_id:'lefteria_fc_academy',academy_group_id:group.id,
+        title:'Επιβεβαιωμένη φωτογραφία',image_url:'https://example.test/academy.jpg'},
+      {id:'foreign-gallery',organization_id:'lefteria_fc_academy',academy_group_id:'other',
+        title:'Unrelated photo sentinel',image_url:'https://example.test/other.jpg'}
+    ],fixtures:[],sponsors:[],modules:[],events:[],partners:[],seasons:[],reviews:[],venues:[]
+  };
   let unavailable = false;
   const requests=[];
   const server=createServer((request,response)=>{
     const url=new URL(request.url,'http://fixture.test');
     requests.push({url,cookie:request.headers.cookie,authorization:request.headers.authorization});
     response.setHeader('content-type','application/json');
+    if(url.pathname==='/api/public/sections'){
+      response.end(JSON.stringify(sections));return;
+    }
     if(url.pathname!=='/api/public/site'){response.statusCode=404;response.end('{}');return;}
     if(url.searchParams.get('organization_id')==='lefteria_fc_academy') {
       response.statusCode=unavailable?503:200; response.end(JSON.stringify(unavailable?{}:academy));
@@ -67,6 +91,10 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     const detail=await detailLoad({url:new URL('https://fixture.test'+path),params:{slug:decodeURIComponent(path.slice('/academy/'.length))}});
     assert.equal(detail.group.id,group.id);
     assert.deepEqual(detail.groupFixtures.map(item=>item.id),['completed','earlier','match']);
+    assert.equal(detail.groupSectionsAvailable,true);
+    assert.deepEqual(detail.groupPlayers.map(item=>item.id),['academy-public-player']);
+    assert.deepEqual(detail.groupGallery.map(item=>item.id),['group-gallery']);
+    assert.deepEqual(detail.groupCoaches.map(item=>item.id),['academy-coach']);
     await assert.rejects(
       detailLoad({url:new URL('https://fixture.test/academy/'+group.id),params:{slug:group.id}}),
       error => error.status === 308 && error.location === path,
@@ -76,12 +104,22 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     for(const actual of ['Δευτέρα 17:00–18:00','Πέμπτη 17:00–18:00','Καταχωρισμένο γήπεδο','Πραγματικός αντίπαλος','2 : 1','10–12 ετών']) assert.ok(detailHtml.includes(actual),actual);
     assert.doesNotMatch(detailHtml,/sentinel-private|Other group sentinel|Unassigned fixture sentinel|First-team fixture sentinel|<script>unsafe/);
     assert.match(detailHtml,/&lt;script>unsafe/);
+    for(const actual of ['Ανδρέας Πα.','Verified Academy Coach','Επιβεβαιωμένη φωτογραφία','ΡΟΣΤΕΡ','ΣΤΑΤΙΣΤΙΚΑ','ΓΚΑΛΕΡΙ'])
+      assert.ok(detailHtml.includes(actual),actual);
+    assert.doesNotMatch(detailHtml,/Different group sentinel|Club player sentinel|Unrelated photo sentinel|sentinel-private/);
     for(const slug of ['missing','group--legacy','u12--group--legacy'])
       await assert.rejects(detailLoad({url:new URL('https://fixture.test/academy/'+slug),params:{slug}}),error=>error.status===404);
     const {default:Landing}=await import('../src/routes/academy/+page.svelte');
     const landingHtml=render(Landing,{props:{data:list}}).body;
     assert.ok(landingHtml.includes(academyGroupLink(group)));
     assert.match(landingHtml,/href="\/academy\/groups"/);
+    const {load:landingLoad}=await import('../src/routes/academy/+page.server.ts');
+    const withStats=await landingLoad({url:new URL('https://fixture.test/academy')});
+    const withStatsHtml=render(Landing,{props:{data:withStats}}).body;
+    assert.match(withStatsHtml,/Η ΑΚΑΔΗΜΙΑ ΣΕ ΑΡΙΘΜΟΥΣ/);
+    assert.match(withStatsHtml,/>95%<\/strong>/);
+    assert.match(withStatsHtml,/academy-development-philosophy/);
+    assert.match(withStatsHtml,/academy-registration-cta-btn/);
     assert.ok(requests.every(row=>row.cookie===undefined&&row.authorization===undefined));
     assert.ok(requests.every(row=>['lefteria_fc_academy','lefteria_fc'].includes(row.url.searchParams.get('organization_id'))));
     unavailable=true;

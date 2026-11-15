@@ -188,6 +188,130 @@ async function verifyAppInstall(browser, base, artifacts) {
   return checks;
 }
 
+
+function colorLuminance(cssColor) {
+  const numbers = cssColor.match(/[0-9.]+/g)?.slice(0,3).map(Number) ?? [];
+  if (numbers.length !== 3) throw new Error('Cannot measure CSS color ' + cssColor);
+  const channels = numbers.map(value => {
+    const channel = value / 255;
+    return channel <= .04045 ? channel / 12.92 : ((channel + .055) / 1.055) ** 2.4;
+  });
+  return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+}
+
+function textContrast(foreground, background) {
+  const a = colorLuminance(foreground), b = colorLuminance(background);
+  return (Math.max(a,b) + .05) / (Math.min(a,b) + .05);
+}
+
+// The real admin layout + auth controller run in a browser against an isolated
+// Vite server. A synthetic authorized /auth/me response exercises the actual
+// authenticated rendering path, without credentials or production API access.
+// This does not substitute for a real staging auth/session penetration test.
+async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
+  const measurements = [];
+  const session = {
+    user:{
+      id:'11111111-1111-4111-8111-111111111111',username:'visual-admin',name:'Visual Audit',
+      role:'super_admin',permissions:['*:*'],
+      organizations:[
+        {id:'lefteria_fc',name:'Lefteria FC'},
+        {id:'lefteria_fc_academy',name:'Lefteria FC Academy'}
+      ]
+    },
+    expires_at:'2090-01-01T00:00:00Z'
+  };
+  for (const viewport of [
+    {name:'phone',width:390,height:844},
+    {name:'tablet',width:768,height:1024},
+    {name:'desktop',width:1440,height:900},
+    {name:'4k',width:3840,height:2160}
+  ]) {
+    const context = await browser.newContext({
+      viewport:{width:viewport.width,height:viewport.height},
+      locale:'el-GR',colorScheme:'dark',reducedMotion:'reduce'
+    });
+    try {
+      const page = await context.newPage();
+      await page.route('**/api/admin/**',route => {
+        const pathname = new URL(route.request().url()).pathname;
+        if (pathname === '/api/admin/auth/me') {
+          return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(session)});
+        }
+        return route.fulfill({status:503,contentType:'application/json',body:'{"code":"isolated_backend_unavailable"}'});
+      });
+      const response = await page.goto(base+'/admin',{waitUntil:'domcontentloaded',timeout:30000});
+      assert.equal(response?.status(),200);
+      const sidebar = page.getByTestId('admin-structured-navigation');
+      await sidebar.waitFor({state:'visible',timeout:20000});
+      await page.getByTestId('admin-news-link').waitFor({state:'visible'});
+      await page.evaluate(() => document.fonts.ready);
+      const values = await sidebar.evaluate(nav => {
+        const tool = nav.querySelector('[data-testid="admin-news-link"]');
+        const section = nav.querySelector('.admin-nav-section');
+        const label = nav.querySelector('.admin-nav-label');
+        if (!tool || !section || !label) throw new Error('Missing authorized navigation elements');
+        const linkCss = getComputedStyle(tool), navCss = getComputedStyle(nav);
+        const navRect = nav.getBoundingClientRect();
+        return {
+          fontSize:parseFloat(linkCss.fontSize),
+          sectionSize:parseFloat(getComputedStyle(section).fontSize),
+          labelSize:parseFloat(getComputedStyle(label).fontSize),
+          linkHeight:tool.getBoundingClientRect().height,
+          linkColor:linkCss.color,navColor:navCss.backgroundColor,
+          sidebarWidth:navRect.width,
+          sidebarScrollWidth:nav.scrollWidth, sidebarClientWidth:nav.clientWidth,
+          pageWidth:document.documentElement.scrollWidth,viewportWidth:document.documentElement.clientWidth,
+          linkCount:nav.querySelectorAll('a').length
+        };
+      });
+      assert.ok(values.fontSize >= 16,viewport.name + ' nav tool font is too small');
+      assert.ok(values.sectionSize >= 17,viewport.name + ' nav section heading is too small');
+      if (viewport.width > 720) assert.ok(values.labelSize >= 13,viewport.name + ' nav label is too small');
+      assert.ok(values.linkHeight >= 44,viewport.name + ' link target must reach 44px');
+      assert.ok(values.linkCount >= 12,'All granted admin modules should remain reachable');
+      assert.ok(textContrast(values.linkColor,values.navColor) >= 4.5,viewport.name + ' navigation contrast below WCAG AA');
+      assert.ok(values.pageWidth <= values.viewportWidth + 2,viewport.name + ' authenticated admin overflows document');
+      if (viewport.width <= 720) assert.ok(values.sidebarScrollWidth > values.sidebarClientWidth,
+        'Mobile navigation must scroll horizontally to reveal all granted links');
+      else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
+      const news = page.getByTestId('admin-news-link');
+      await news.focus();
+      const focus = await news.evaluate(link => {
+        const css = getComputedStyle(link);
+        return {focused:document.activeElement === link, outlineWidth:parseFloat(css.outlineWidth),outlineStyle:css.outlineStyle};
+      });
+      assert.ok(focus.focused && focus.outlineWidth >= 3 && focus.outlineStyle !== 'none',
+        viewport.name + ' nav keyboard focus is not visible');
+      await page.keyboard.press('Tab');
+      assert.equal(await page.evaluate(() => document.activeElement?.tagName), 'A',
+        'Keyboard Tab should move to the next accessible navigation link');
+      const screenshot = 'admin-auth-sidebar-' + viewport.name + '.png';
+      await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
+      measurements.push({viewport:viewport.name,screenshot,...values,contrast:Math.round(textContrast(values.linkColor,values.navColor)*100)/100});
+    } finally {await context.close();}
+  }
+  // The same controller must not expose unrelated modules to an Academy editor
+  // without the finance/club/football grants.
+  const context = await browser.newContext({viewport:{width:1440,height:900}});
+  try {
+    const page = await context.newPage();
+    const editor = {...session,user:{...session.user,role:'editor',permissions:['news:read'],
+      organizations:[{id:'lefteria_fc_academy',name:'Lefteria FC Academy'}]}};
+    await page.route('**/api/admin/**',route => route.fulfill({
+      status:new URL(route.request().url()).pathname==='/api/admin/auth/me'?200:503,
+      contentType:'application/json',body:JSON.stringify(new URL(route.request().url()).pathname==='/api/admin/auth/me'?editor:{code:'unavailable'})
+    }));
+    await page.goto(base+'/admin',{waitUntil:'domcontentloaded'});
+    await page.getByTestId('admin-news-link').waitFor({state:'visible'});
+    assert.equal(await page.getByTestId('admin-payabl-link').count(),0,'Editor must not see finance');
+    assert.equal(await page.getByTestId('admin-groups-link').count(),0,'Editor must not see Academy groups without grants');
+    assert.equal(await page.getByTestId('admin-club-link').count(),0,'Editor must not see club settings without grants');
+    measurements.push({viewport:'restricted-academy-editor',permissionGates:'verified'});
+  } finally {await context.close();}
+  return measurements;
+}
+
 let server;
 let browser;
 let ownArtifacts = !process.env.LEFTERIA_UI_ARTIFACTS;
@@ -273,7 +397,10 @@ try {
   let installation = [];
   try { installation = await verifyAppInstall(browser, base, artifacts); }
   catch (error) { failures.push('App installation: ' + (error.stack ?? error.message)); }
-  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, installation, failures }, null, 2) + '\n');
+  let adminNavigation=[];
+  try { adminNavigation=await verifyAuthenticatedAdminNavigation(browser,base,artifacts); }
+  catch(error) { failures.push('Authenticated admin sidebar visual check: '+(error.stack ?? error.message)); }
+  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, installation, adminNavigation, failures }, null, 2) + '\n');
   console.log(JSON.stringify({results:results.length,installation,failures},null,2));
   assert.equal(failures.length,0,'UI viewport smoke detected regressions; inspect results.json and screenshots');
 } finally {
