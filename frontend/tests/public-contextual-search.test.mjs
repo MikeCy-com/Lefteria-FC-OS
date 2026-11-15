@@ -30,6 +30,14 @@ test('contextual search shows only its organization hubs and scope-specific spon
     .some(row=>row.path==='/sponsors/academy'));
   assert.equal(publicSearch('Συνεργάτες ομάδας',[],[],{organization:academy}).length,0);
   assert.equal(publicSearch('Συνεργάτες ακαδημίας',[],[],{organization:team}).length,0);
+  assert.ok(publicSearch('Συνεργάτες',[],[],{organization:academy})
+    .some(row=>row.path==='/partners?scope=academy'));
+  assert.ok(publicSearch('Συνεργάτες',[],[],{organization:team})
+    .some(row=>row.path==='/partners?scope=first_team'));
+  assert.ok(publicSearch('Προϊόντα συλλόγου',[],[],{organization:team})
+    .some(row=>row.path==='/shop'));
+  assert.equal(publicSearch('Εισιτήρια',[],[],{organization:team}).length,0,
+    'The shop cannot claim to be a ticket-booking route');
 });
 
 test('search includes only published CMS pages from the current organization',()=>{
