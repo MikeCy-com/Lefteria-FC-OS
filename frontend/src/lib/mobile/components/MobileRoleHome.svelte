@@ -6,6 +6,7 @@
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
   import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext,trustedRoleHomeCancelledEvents} from '../role-home.ts';
   import './mobile-theme.css';
+  import { publicImages } from '../../public/images.ts';
 
   type HomeRole=Exclude<MobileRole,'parent'>;
   interface Props {
@@ -41,9 +42,13 @@
   });
 </script>
 <section class="role-home" data-testid={role+'-dashboard-home'} data-home-role={role} aria-labelledby={id+'-title'}>
-  <header class="hero">
+  <header class="hero" class:hero-photographic={role==='player'||role==='coach'}
+    data-testid="mobile-role-photo-hero"
+    style:background-image={role==='player'||role==='coach'
+      ? `linear-gradient(90deg,#08090aef 0%,#08090abc 38%,#08090a36 100%),linear-gradient(0deg,#08090ad9,transparent 65%),url("${publicImages.hero}")`
+      : undefined}>
     <p class="eyebrow">ΛΕΥΤΕΡΙΑ FC · {ROLE_NAMES[role]}</p>
-    <h1 id={id+'-title'}>Καλώς ήρθες, {userName}</h1>
+    <h1 id={id+'-title'}>Καλώς ήρθες, <span>{userName}</span></h1>
     <p class="intro">
       {#if role==='player'}Το ποδόσφαιρό μου · πρόγραμμα και ενημερώσεις της ομάδας μου.
       {:else if role==='coach'}Οι προπονήσεις, οι αθλητές μου και η επικοινωνία με την ομάδα.
@@ -149,6 +154,20 @@
   .role-home{padding:12px 14px 96px;color:var(--lf-text);display:grid;gap:16px}
   .hero{position:relative;overflow:hidden;background:linear-gradient(135deg,#221907,#101112 65%);border:1px solid #685022;border-radius:14px;padding:22px 18px;box-shadow:inset 0 1px #bf903740}
   .hero:after{content:'✦';position:absolute;right:-10px;top:-20px;color:#f6bb3820;font-size:160px;pointer-events:none}
+  .hero.hero-photographic{isolation:isolate;min-height:clamp(235px,32vw,330px);
+    display:flex;flex-direction:column;justify-content:flex-end;
+    padding:clamp(22px,4vw,38px);
+    background-size:cover;background-position:60% 38%;
+    border:1px solid #aa8135;border-radius:10px;
+    box-shadow:inset 0 1px #ffffff34,0 10px 30px #0008}
+  .hero.hero-photographic:after{content:none}
+  .hero.hero-photographic h1{
+    max-width:650px;font-family:'Fira Sans Extra Condensed',sans-serif;
+    font-size:clamp(32px,6.5vw,55px);line-height:1.04;
+    font-style:italic;text-shadow:0 4px 15px #000b}
+  .hero.hero-photographic h1 span{color:#ffca46}
+  .hero.hero-photographic .intro{font-size:clamp(13px,2.5vw,16px);
+    color:#f0ede8;text-shadow:0 3px 10px #000b;line-height:1.45}
   .eyebrow{font-size:13px;letter-spacing:.13em;color:var(--lf-gold-light);font-weight:700}
   h1{font-size:clamp(25px,7vw,34px);line-height:1.15;margin:10px 0;font-weight:800}
   .intro{color:#ddd5c6;font-size:15px;line-height:1.6;max-width:38rem}
@@ -193,6 +212,9 @@
   .match-rsvp button{font-size:14px}
   .panel>p{font-size:15px;line-height:1.65}
   @media(max-width:430px){
+    .hero.hero-photographic{min-height:285px;background-position:64% center;padding:20px}
+    .hero.hero-photographic h1{font-size:clamp(32px,9vw,43px)}
+
     .role-home{padding:10px 0 96px}
     .panel-heading{align-items:flex-start;flex-wrap:wrap}
     .panel-heading button{flex:0 1 auto}
