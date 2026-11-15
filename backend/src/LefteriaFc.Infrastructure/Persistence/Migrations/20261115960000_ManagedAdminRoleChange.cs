@@ -76,6 +76,9 @@ public sealed class ManagedAdminRoleChange : Migration
           OR EXISTS(SELECT 1 FROM club.football_location_admin_grants WHERE admin_account_id=_subject)
           OR EXISTS(SELECT 1 FROM club.football_team_admin_grants WHERE admin_account_id=_subject)
           OR EXISTS(SELECT 1 FROM identity.admin_staff_links WHERE admin_account_id=_subject)
+          -- Inactive POS assignments may be restored later. They must be
+          -- unlinked explicitly too; changing role must never revive access.
+          OR EXISTS(SELECT 1 FROM pos_cashier.cashier_assignments WHERE admin_account_id=_subject)
         THEN RAISE EXCEPTION 'managed_role_assignments_exist' USING ERRCODE='23514'; END IF;
 
         UPDATE identity.admin_accounts SET role=_next_role WHERE id=_subject;
