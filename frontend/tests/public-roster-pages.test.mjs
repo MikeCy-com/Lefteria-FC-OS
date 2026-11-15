@@ -130,6 +130,24 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal(forgedProfile.returnTeamId,null);
     const academyForged=await loadPlayerPage(new URL('https://preview.test/player/academy-child?team_id=women-id'),'academy-child');
     assert.equal(academyForged.returnTeamId,null);
+    // Staff backlinks are also scoped to actual assignments and published
+    // teams. Never let a forged team_id redirect a Women's coach to the First Team.
+    const originalStaff=sections.staff;
+    sections.staff=[
+      {...staff,team_ids:['first-team-id']},
+      {...staff,id:'women-coach',name:'Recorded Women Coach',team_type:'Women',team_ids:['women-id']}
+    ];
+    const womenStaffPage=await loadTeamPage(new URL('https://preview.test/team?tab=staff&team_id=women-id'));
+    const womenStaffHtml=render(Team,{props:{data:womenStaffPage}}).body;
+    assert.match(womenStaffHtml,/\/staff\/women-coach\?team_id=women-id/);
+    assert.doesNotMatch(womenStaffHtml,/href="\/staff\/staff-ID"/);
+    const womenCoach=await loadStaffPage(new URL('https://preview.test/staff/women-coach?team_id=women-id'),'women-coach');
+    assert.equal(womenCoach.returnTeamId,'women-id');
+    const womenCoachHtml=render(Profile,{props:{staff:womenCoach.staff,returnTeamId:womenCoach.returnTeamId}}).body;
+    assert.match(womenCoachHtml,/\/team\?tab=staff&amp;team_id=women-id/);
+    const forgedCoach=await loadStaffPage(new URL('https://preview.test/staff/women-coach?team_id=first-team-id'),'women-coach');
+    assert.equal(forgedCoach.returnTeamId,null);
+    sections.staff=originalStaff;
     sections.players = originalPlayers;
     publishedTeams = [];
     firstTeamUnavailable=true;

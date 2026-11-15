@@ -101,6 +101,12 @@ export async function loadStaffPage(url: URL, id: string): Promise<StaffPageData
   // A coach can be explicitly assigned to both organizations. The public
   // organization projection, rather than their primary team_type, owns scope.
   const staff = requirePublicId(data.sections!.staff.filter(row => row.organization_id === 'lefteria_fc'), id);
+  // Navigation context only: never accept an unrelated team_id as a return
+  // destination. The staff member must be assigned to that published Club team.
+  const requestedTeam = url.searchParams.get('team_id');
+  const returnTeamId = requestedTeam && staff.team_ids.includes(requestedTeam) &&
+    data.site?.teams.some(team => team.id === requestedTeam && team.organization_id === 'lefteria_fc')
+      ? requestedTeam : null;
   return { site: data.site, available: data.available, organization: data.organization,
-    branding: data.branding, navigationGroups: data.navigationGroups, staff };
+    branding: data.branding, navigationGroups: data.navigationGroups, staff, returnTeamId };
 }

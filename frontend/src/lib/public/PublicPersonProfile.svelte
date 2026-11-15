@@ -14,12 +14,14 @@
       : player?.team_type === 'Selected' ? 'ΕΠΙΛΕΓΜΕΝΗ ΟΜΑΔΑ'
       : player?.team_type || 'ΟΜΑΔΑ'
   );
-  const teamQuery = $derived(returnTeamId && player?.organization_id === 'lefteria_fc' &&
-    player.team_id === returnTeamId ? '&team_id=' + encodeURIComponent(returnTeamId) : '');
+  const teamQuery = $derived(returnTeamId &&
+    (player?.organization_id === 'lefteria_fc' && player.team_id === returnTeamId ||
+      staff?.organization_id === 'lefteria_fc' && staff.team_ids.includes(returnTeamId))
+      ? '&team_id=' + encodeURIComponent(returnTeamId) : '');
   const facts = $derived(player ? [['ΘΕΣΗ', player.position], ['ΗΛΙΚΙΑ', player.age], ['ΕΘΝΙΚΟΤΗΤΑ', player.nationality], ['ΥΨΟΣ', player.height], ['ΒΑΡΟΣ', player.weight], ['ΠΟΔΙ', player.preferred_foot]] : [['ΡΟΛΟΣ', staff?.role], ['ΕΘΝΙΚΟΤΗΤΑ', staff?.nationality]]);
 </script>
 <section class="person-hero">
-  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : clubTeamLabel) : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff')}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
+  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : clubTeamLabel) : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff' + teamQuery)}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
   <div class="person-portrait"><PublicImage src={person.image_url} alt={person.name} eager /></div>
 </section>
 {#if player}
