@@ -206,7 +206,7 @@
     </div>
     {#if organizations.length}
       <section class="admin-panel">
-        <span class="admin-organization-context-label" data-testid="payabl-owner">{organizations.find(org => org.id === owner)?.name ?? 'Επιλέξτε οργανισμό από την κεφαλίδα'}</span>
+        <span class="admin-organization-context-label" data-testid="payabl-owner">{organizations.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
       </section>
       {#if loading}
         <section class="admin-panel" role="status">Ανάκτηση ασφαλών στοιχείων πληρωμών…</section>
