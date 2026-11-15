@@ -155,6 +155,11 @@ public static class AdminProfiledGroupCreateEndpoints
                     throw new WebAdminException(422,"invalid_group_profile",
                         "The group details are invalid.");
                 }
+                catch(PostgresException ex) when(ex.SqlState is "P0001" or "57014" or "55P03")
+                {
+                    throw new WebAdminException(503,"group_creation_unavailable",
+                        "Group creation was rolled back or temporarily unavailable.");
+                }
                 catch(PostgresException ex) when(ex.SqlState is "42883" or "3F000" or "55000" or "54000")
                 {
                     throw new WebAdminException(503,"group_creation_unavailable",
