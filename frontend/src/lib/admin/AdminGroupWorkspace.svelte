@@ -30,6 +30,7 @@
   const canEvaluate=$derived(['manager','super_admin'].includes(user.role)&&
     hasAdminPermission(user.permissions,organization==='lefteria_fc'?'teams:write':'academy:write'));
   const canPrivate=$derived(['manager','super_admin'].includes(user.role));
+  const canAnnounce=$derived(canCreate&&canEvaluate);
   const canFinance=$derived(organization==='lefteria_fc_academy'&&
     hasAdminPermission(user.permissions,'finance:read'));
   $effect(()=>{
@@ -54,12 +55,14 @@
     {/if}
     <button type="button" aria-pressed={tab==='matches'} onclick={()=>tab='matches'}
       data-testid="admin-group-matches-link">Αγώνες & αποτελέσματα</button>
-    {#if canCreate}
+    {#if canAnnounce}
       <a class="group-notice-link" data-testid="admin-group-app-announcements-link"
         href={'/admin/announcements?organization_id='+encodeURIComponent(organization)+
           '&group_id='+encodeURIComponent(group.id)}>
         Ανακοινώσεις εφαρμογής <span aria-hidden="true">↗</span>
       </a>
+    {/if}
+    {#if canCreate}
       <button type="button" aria-pressed={tab==='settings'} onclick={()=>tab='settings'}
         data-testid="admin-group-settings-link">Ρυθμίσεις τμήματος</button>
     {/if}
