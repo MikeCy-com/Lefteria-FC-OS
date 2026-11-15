@@ -42,3 +42,10 @@ test('homepage organization boundaries are visible in the media and fixture sele
   assert.match(cards,/Πρόγραμμα & αποτελέσματα/);
   assert.match(spotlight,/group\.organization_id === 'lefteria_fc_academy'/);
 });
+
+test('catalog, legal and journey templates receive the same restrained club finish',()=>{
+  for(const selector of ['.catalog-heading','.catalog-card','.catalog-detail-image',
+    '.source-legal-document','.source-journey','.source-about','.public-news-list'])
+    assert.ok(css.includes('.public-site '+selector),'missing shared polish '+selector);
+  assert.match(css,/\[data-testid="push-toggle"\] \{display:none;\}/);
+});
