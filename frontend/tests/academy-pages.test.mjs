@@ -67,8 +67,10 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     const detail=await detailLoad({url:new URL('https://fixture.test'+path),params:{slug:decodeURIComponent(path.slice('/academy/'.length))}});
     assert.equal(detail.group.id,group.id);
     assert.deepEqual(detail.groupFixtures.map(item=>item.id),['completed','earlier','match']);
-    const exact=await detailLoad({url:new URL('https://fixture.test/academy/'+group.id),params:{slug:group.id}});
-    assert.equal(exact.group.id,group.id,'Original opaque-ID links must remain supported, including IDs containing --.');
+    await assert.rejects(
+      detailLoad({url:new URL('https://fixture.test/academy/'+group.id),params:{slug:group.id}}),
+      error => error.status === 308 && error.location === path,
+      'Original opaque-ID links must redirect permanently to the verified readable group URL.');
     const {default:DetailPage}=await import('../src/routes/academy/[slug]/+page.svelte');
     const detailHtml=render(DetailPage,{props:{data:detail}}).body;
     for(const actual of ['Δευτέρα 17:00–18:00','Πέμπτη 17:00–18:00','Καταχωρισμένο γήπεδο','Πραγματικός αντίπαλος','2 : 1','10–12 ετών']) assert.ok(detailHtml.includes(actual),actual);
