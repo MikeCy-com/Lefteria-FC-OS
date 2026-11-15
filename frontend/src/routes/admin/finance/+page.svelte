@@ -9,6 +9,7 @@
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
   import AdminSupplierBills from '../../../lib/admin/AdminSupplierBills.svelte';
+  import AdminSupplierPaymentReview from '../../../lib/admin/AdminSupplierPaymentReview.svelte';
   import AdminFinanceOverview from '../../../lib/admin/AdminFinanceOverview.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
@@ -232,6 +233,9 @@
         <AdminFinanceOverview {owner} sessionId={$auth.session.user.id}/>
         <AdminSupplierBills {owner} sessionId={$auth.session.user.id}
           canWrite={hasAdminPermission($auth.session.user.permissions, 'finance:write')}/>
+        <AdminSupplierPaymentReview {owner} sessionId={$auth.session.user.id}
+          canWrite={hasAdminPermission($auth.session.user.permissions, 'finance:write')}
+          canReview={$auth.session.user.role === 'super_admin'}/>
       {/if}
       {#if !providerAccess}
         <section class="admin-panel" data-testid="finance-scoped-access">
@@ -239,7 +243,8 @@
             <h2>Πρόσβαση λογιστή</h2>
             <p>Η συνολική αναφορά είναι διαθέσιμη μόνο για τους οργανισμούς που σας έχουν ανατεθεί.
               Η χειροκίνητη καταχώριση τιμολογίων προμηθευτών είναι διαθέσιμη παραπάνω.
-              Η καταχώριση πληρωμών, η έκδοση εισπράξεων και η διπλογραφία παραμένουν υπό ανάπτυξη.</p>
+              Οι αιτήσεις χειροκίνητης εξόφλησης υποβάλλονται για ανεξάρτητο έλεγχο παραπάνω.
+              Η πραγματική τραπεζική συμφωνία, η έκδοση εισπράξεων και η διπλογραφία παραμένουν υπό ανάπτυξη.</p>
           {:else}
             <h2>Οικονομικά ανατεθειμένων τοποθεσιών</h2>
             <p>Οι διαχειριστές πόλης ή τοποθεσίας δεν έχουν πρόσβαση στα συνολικά
