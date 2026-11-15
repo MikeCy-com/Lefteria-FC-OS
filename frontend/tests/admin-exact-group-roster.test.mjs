@@ -14,7 +14,7 @@ const probe=read('ops/postgres/admin-group-roster-boundary.sql');
 const checks=read('ops/postgres/web-admin-auth-permissions-check.sql');
 
 test('all group player views are exact paged Academy or First Team groups from canonical database',()=>{
-  for(const m of ['club.teams g','club.academy_groups g','club.player_academy_groups m',
+  for(const m of ['club.teams t','club.academy_groups a','club.player_academy_groups m',
     'p.primary_academy_group_id=_group','m.academy_group_id=_group','p.team_id=_group',
     'identity.lock_admin_club_authority(_digest,_owner)','club.admin_football_allowed',
     'club.football_operational_scopes','club.academy_group_location_assignments',
