@@ -27,8 +27,8 @@ test('verified guardian review is inside the approved Academy registration, not 
   assert.match(component,/guardianPhone\.replace/);
   assert.match(component,/attested = \$state\(false\)/);
   assert.match(component,/bind:checked=\{attested\}/);
-  assert.match(component,/\+ '\/verify'/);
-  assert.match(component,/\+ '\/revoke'/);
+  assert.match(component,/endpoint\+'\/verify'/);
+  assert.match(component,/endpoint\+'\/revoke'/);
 });
 
 test('both HTTP and SQL are separately super-admin locked and fail closed', () => {
