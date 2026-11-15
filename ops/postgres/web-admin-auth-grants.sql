@@ -284,6 +284,32 @@ REVOKE ALL ON FUNCTION club.create_admin_academy_location_group_with_profile(
   text,text,text,uuid,jsonb,uuid) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_academy_location_group_with_profile(
   text,text,text,uuid,jsonb,uuid) TO :"admin_auth_role";
+-- Exact team/location checks are performed by the current SQL profile
+-- boundary, NOT by broad runtime table access.
+REVOKE ALL ON FUNCTION club.read_admin_first_team_profile(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_first_team_profile(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.write_admin_first_team_profile(text,text,bigint,jsonb)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_first_team_profile(text,text,bigint,jsonb)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_admin_academy_group_profile(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_profile(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.write_admin_academy_group_profile(text,text,bigint,jsonb)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_academy_group_profile(text,text,bigint,jsonb)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_admin_academy_group_publicity(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_publicity(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.set_admin_academy_group_publicity(text,text,bigint,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.set_admin_academy_group_publicity(text,text,bigint,boolean)
+  TO :"admin_auth_role";
 -- Only an audited, per-player version-checked membership transaction is callable.
 -- No raw roster or group table write privileges are granted.
 REVOKE ALL ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
@@ -433,6 +459,12 @@ BEGIN
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
                   'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
+                  'club.read_admin_first_team_profile(text,text)'::regprocedure,
+                  'club.write_admin_first_team_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_profile(text,text)'::regprocedure,
+                  'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
+                  'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                    'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
