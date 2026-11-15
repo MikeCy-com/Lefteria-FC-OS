@@ -45,6 +45,11 @@ jobs:
         env:
           LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
         run: node scripts/ui-role-visual-audit.mjs
+      - name: Reject forged cached role hints and invalid mobile tokens
+        working-directory: frontend
+        env:
+          LEFTERIA_UI_ARTIFACTS: ${{ runner.temp }}/lefteria-ui-screenshots
+        run: node scripts/ui-mobile-auth-denial-audit.mjs
       - name: Upload screenshots and width measurements
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
