@@ -42,33 +42,36 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
         CHECK(slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
         CHECK(address IS NULL OR address !~ '[[:cntrl:]]'),
         CHECK(google_maps_url IS NULL OR (
-          google_maps_url ~ '^https://(www[.])?google[.][a-z.]+/maps(/|[?]|$)|^https://maps[.]app[.]goo[.]gl/'
+          (google_maps_url ~ '^https://(www[.])?google[.][a-z.]+/maps(/|[?]|$)'
+            OR google_maps_url ~ '^https://maps[.]app[.]goo[.]gl/')
           AND google_maps_url !~ '[[:cntrl:][:space:]]')),
         CHECK(latitude IS NULL OR latitude BETWEEN -90 AND 90),
         CHECK(longitude IS NULL OR longitude BETWEEN -180 AND 180),
         CHECK((latitude IS NULL)=(longitude IS NULL))
       );
 
-      -- A Club team and an Academy location are never interchangeable.
-      -- One scope = one team's opponents/grounds/bases, or one Academy
-      -- location's opponents/grounds/bases; there is no global fallback.
+      -- Catalog scopes belong to ONE first-team squad or ONE Academy CITY.
+      -- All Academy locations inside that city reuse its opponents and fields.
+      -- Training bases, groups, staffing, payments and reporting remain tied
+      -- to individual locations. No fallback to other cities or Club teams.
       CREATE TABLE club.football_operational_scopes (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         organization_id varchar(32) NOT NULL,
         team_id varchar(128) COLLATE "C",
-        academy_location_id uuid REFERENCES club.football_locations(id) ON DELETE RESTRICT,
+        academy_city_id uuid REFERENCES club.football_cities(id) ON DELETE RESTRICT,
         created_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         UNIQUE(organization_id,id),
         UNIQUE(team_id,id),
         UNIQUE(team_id),
-        UNIQUE(academy_location_id),
+        UNIQUE(academy_city_id),
+        UNIQUE(academy_city_id,id),
         FOREIGN KEY(organization_id,team_id)
           REFERENCES club.teams(organization_id,id) ON DELETE RESTRICT,
         CHECK(
           (organization_id='lefteria_fc' AND team_id IS NOT NULL
-            AND academy_location_id IS NULL)
+            AND academy_city_id IS NULL)
           OR (organization_id='lefteria_fc_academy'
-            AND team_id IS NULL AND academy_location_id IS NOT NULL)
+            AND team_id IS NULL AND academy_city_id IS NOT NULL)
         )
       );
 
@@ -79,18 +82,26 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
         organization_id varchar(32) NOT NULL DEFAULT 'lefteria_fc_academy'
           CHECK(organization_id='lefteria_fc_academy'),
         group_id varchar(128) COLLATE "C" NOT NULL,
+        city_id uuid NOT NULL,
+        location_id uuid NOT NULL,
         scope_id uuid NOT NULL,
         assigned_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         PRIMARY KEY(organization_id,group_id),
-        UNIQUE(group_id,scope_id),
+        UNIQUE(group_id,scope_id,location_id),
         FOREIGN KEY(organization_id,group_id)
           REFERENCES club.academy_groups(organization_id,id) ON DELETE RESTRICT,
         FOREIGN KEY(organization_id,scope_id)
           REFERENCES club.football_operational_scopes(organization_id,id)
+          ON DELETE RESTRICT,
+        FOREIGN KEY(city_id,scope_id)
+          REFERENCES club.football_operational_scopes(academy_city_id,id)
+          ON DELETE RESTRICT,
+        FOREIGN KEY(city_id,location_id)
+          REFERENCES club.football_locations(city_id,id)
           ON DELETE RESTRICT
       );
       CREATE INDEX ix_academy_group_location_by_scope
-        ON club.academy_group_location_assignments(scope_id,group_id);
+        ON club.academy_group_location_assignments(scope_id,location_id,group_id);
 
       CREATE TABLE club.football_opponents (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -138,10 +149,14 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
       CREATE UNIQUE INDEX ux_football_field_name_per_scope
         ON club.football_playing_fields(scope_id,lower(name));
 
+      -- Academy training bases are specific to the LOCATION, unlike the
+      -- opponent and playing-field catalogs, which are shared across its city.
       CREATE TABLE club.football_training_bases (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         organization_id varchar(32) NOT NULL,
         scope_id uuid NOT NULL,
+        academy_city_id uuid,
+        academy_location_id uuid,
         name varchar(160) NOT NULL,
         playing_field_id uuid,
         address varchar(300),
@@ -155,24 +170,42 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
         FOREIGN KEY(scope_id,playing_field_id)
           REFERENCES club.football_playing_fields(scope_id,id)
           ON DELETE RESTRICT,
+        FOREIGN KEY(academy_city_id,scope_id)
+          REFERENCES club.football_operational_scopes(academy_city_id,id)
+          ON DELETE RESTRICT,
+        FOREIGN KEY(academy_city_id,academy_location_id)
+          REFERENCES club.football_locations(city_id,id)
+          ON DELETE RESTRICT,
+        CHECK(
+          (organization_id='lefteria_fc'
+            AND academy_city_id IS NULL AND academy_location_id IS NULL)
+          OR (organization_id='lefteria_fc_academy'
+            AND academy_city_id IS NOT NULL AND academy_location_id IS NOT NULL)
+        ),
         CHECK(name=btrim(name) AND length(name)>0 AND name !~ '[[:cntrl:]]'),
         CHECK(google_maps_url IS NULL OR (
           (google_maps_url ~ '^https://(www[.])?google[.][a-z.]+/maps(/|[?]|$)'
             OR google_maps_url ~ '^https://maps[.]app[.]goo[.]gl/')
           AND google_maps_url !~ '[[:cntrl:][:space:]]'))
       );
-      CREATE UNIQUE INDEX ux_football_base_name_per_scope
-        ON club.football_training_bases(scope_id,lower(name));
+      CREATE UNIQUE INDEX ux_football_base_name_per_team
+        ON club.football_training_bases(scope_id,lower(name))
+        WHERE organization_id='lefteria_fc';
+      CREATE UNIQUE INDEX ux_football_base_name_per_academy_location
+        ON club.football_training_bases(academy_location_id,lower(name))
+        WHERE organization_id='lefteria_fc_academy';
 
       -- Draft fixtures are intentionally NOT published to calendars or the
       -- public website. Every opponent/field and group/team ID is constrained
-      -- against the same exact operational scope at the database boundary.
+      -- against the team (Club) or city (Academy) catalog at the DB boundary.
+      -- Academy group and site must match the same exact city AND location.
       CREATE TABLE club.football_match_drafts (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         organization_id varchar(32) NOT NULL,
         scope_id uuid NOT NULL,
         club_team_id varchar(128) COLLATE "C",
         academy_group_id varchar(128) COLLATE "C",
+        academy_location_id uuid,
         opponent_id uuid NOT NULL,
         playing_field_id uuid NOT NULL,
         match_date date NOT NULL,
@@ -187,8 +220,8 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
         FOREIGN KEY(club_team_id,scope_id)
           REFERENCES club.football_operational_scopes(team_id,id)
           ON DELETE RESTRICT,
-        FOREIGN KEY(academy_group_id,scope_id)
-          REFERENCES club.academy_group_location_assignments(group_id,scope_id)
+        FOREIGN KEY(academy_group_id,scope_id,academy_location_id)
+          REFERENCES club.academy_group_location_assignments(group_id,scope_id,location_id)
           ON DELETE RESTRICT,
         FOREIGN KEY(scope_id,opponent_id)
           REFERENCES club.football_opponents(scope_id,id) ON DELETE RESTRICT,
@@ -197,9 +230,10 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
           ON DELETE RESTRICT,
         CHECK (
           (organization_id='lefteria_fc' AND club_team_id IS NOT NULL
-            AND academy_group_id IS NULL)
+            AND academy_group_id IS NULL AND academy_location_id IS NULL)
           OR (organization_id='lefteria_fc_academy'
-            AND club_team_id IS NULL AND academy_group_id IS NOT NULL)
+            AND club_team_id IS NULL AND academy_group_id IS NOT NULL
+            AND academy_location_id IS NOT NULL)
         )
       );
       CREATE INDEX ix_football_match_draft_schedule
@@ -248,10 +282,10 @@ public sealed class FootballTerritoryCatalogFoundation : Migration
           count(DISTINCT ga.group_id) AS groups
         FROM club.football_locations l
         JOIN club.football_operational_scopes s
-          ON s.academy_location_id=l.id
+          ON s.academy_city_id=l.city_id
           AND s.organization_id='lefteria_fc_academy'
         LEFT JOIN club.academy_group_location_assignments ga
-          ON ga.scope_id=s.id
+          ON ga.scope_id=s.id AND ga.location_id=l.id
         LEFT JOIN club.player_academy_groups pag
           ON pag.organization_id='lefteria_fc_academy'
           AND pag.academy_group_id=ga.group_id
