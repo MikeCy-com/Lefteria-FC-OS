@@ -1,15 +1,17 @@
 <script lang="ts">
   import type { PublicGroup,PublicSite } from './types';
   import { publicImages } from './images';
+  import { firstTeamHeroBanner } from './first-team-hero';
   import type { PublicIconName } from './icon-types';
   import Icon from './PublicIcon.svelte';
   import PublicImage from './PublicImage.svelte';
   let { site, groups = [] }: { site: PublicSite | null; groups?: PublicGroup[] } = $props();
+  const firstTeamBanner = $derived(firstTeamHeroBanner(site?.teams));
   const icons: Record<string, PublicIconName> = { academy: 'academy', team: 'trophy', schedule: 'calendar', shop: 'bag' };
   const rows = $derived([
-    ['academy','ΑΚΑΔΗΜΙΑ','Ηλικιακά τμήματα','/academy',groups.find(group => group.banner_url)?.banner_url || publicImages.academy],
-    ['team','ΠΡΩΤΗ ΟΜΑΔΑ','Αγώνες & νέα','/team',site?.teams.find(team => team.banner_url)?.banner_url || site?.club?.stadium_image_url || publicImages.pitch],
-    ['schedule','ΑΓΩΝΕΣ','Προπονήσεις & αγώνες','/team?tab=schedule',site?.club?.stadium_image_url || publicImages.academy],
+    ['academy','ΑΚΑΔΗΜΙΑ','Ηλικιακά τμήματα','/academy',groups.find(group => group.organization_id === 'lefteria_fc_academy' && group.banner_url)?.banner_url || publicImages.academy],
+    ['team','ΠΡΩΤΗ ΟΜΑΔΑ','Αγώνες & νέα','/team',firstTeamBanner || site?.club?.stadium_image_url || publicImages.pitch],
+    ['schedule','ΑΓΩΝΕΣ','Πρόγραμμα & αποτελέσματα','/team?tab=schedule',site?.club?.stadium_image_url || publicImages.pitch],
     ['shop','ΚΑΤΑΣΤΗΜΑ','Επίσημα προϊόντα','/shop?tab=merchandise',publicImages.supporter]
   ]);
 </script>
