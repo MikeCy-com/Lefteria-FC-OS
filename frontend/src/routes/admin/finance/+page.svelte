@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
+  import AdminFinanceOverview from '../../../lib/admin/AdminFinanceOverview.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Status = { configured: boolean; environment: 'sandbox'; payment_links: boolean;
@@ -203,14 +204,26 @@
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="finance" busy={$auth.busy} onLogout={() => void auth.logout()}>
     <div class="admin-workspace-intro" data-testid="payabl-admin-sandbox">
-      <p class="admin-eyebrow">ΟΙΚΟΝΟΜΙΚΑ · PAYABL. · SANDBOX</p>
-      <h1>Σύνδεσμοι πληρωμής</h1>
+      <p class="admin-eyebrow">ΟΙΚΟΝΟΜΙΚΑ · ΑΚΑΔΗΜΙΑ & ΠΡΩΤΗ ΟΜΑΔΑ</p>
+      <h1>Οικονομικά συλλόγου</h1>
       <p class="admin-muted">Δοκιμαστικό περιβάλλον: καμία πραγματική χρέωση. Η ένδειξη «πληρώθηκε» εμφανίζεται μόνο έπειτα από επαληθευμένη ειδοποίηση του παρόχου. Μην εισάγετε πραγματικά στοιχεία πελατών στο δημόσιο sandbox.</p>
     </div>
     {#if organizations.length}
       <section class="admin-panel">
         <span class="admin-organization-context-label" data-testid="payabl-owner">{organizations.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
+        {#if organizations.length > 1}
+          <label class="finance-owner-picker" for="finance-owner-selector">Οικονομική ενότητα
+            <select id="finance-owner-selector" value={owner ?? ''} onchange={event => {
+              const next = event.currentTarget.value;
+              if (organizations.some(org => org.id === next))
+                void goto('/admin/finance?organization_id=' + encodeURIComponent(next));
+            }}>
+              {#each organizations as org (org.id)}<option value={org.id}>{org.name}</option>{/each}
+            </select>
+          </label>
+        {/if}
       </section>
+      <AdminFinanceOverview {owner} role={$auth.session.user.role} sessionId={$auth.session.user.id} />
       {#if loading}
         <section class="admin-panel" role="status">Ανάκτηση ασφαλών στοιχείων πληρωμών…</section>
       {:else if failed}
@@ -295,6 +308,8 @@
 {/if}
 
 <style>
+  .finance-owner-picker{display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.8rem}
+  .finance-owner-picker select{padding:.55rem .75rem;border-radius:.6rem;border:1px solid #94a3b8;background:var(--surface,#fff);color:inherit}
   .payabl-form{display:grid;grid-template-columns:1fr;gap:.65rem;max-width:32rem}
   .payabl-form input{width:100%;padding:.75rem;border:1px solid var(--border-color,#9ca3af);border-radius:.5rem;background:var(--surface,#fff);color:inherit}
   .payabl-form button{padding:.8rem;border-radius:.5rem}
