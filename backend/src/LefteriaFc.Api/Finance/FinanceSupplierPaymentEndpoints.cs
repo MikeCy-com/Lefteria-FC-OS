@@ -42,7 +42,7 @@ public static class FinanceSupplierPaymentEndpoints
             var selected = FinanceSupplierBillEndpoints.Month(month);
             await using var db = await connections.OpenAsync(ct);
             await using var cmd = new NpgsqlCommand(
-                "SELECT finance.read_admin_supplier_payment_register(" +
+                "SELECT finance.read_admin_supplier_payable_position(" +
                 "@digest,@owner,@month)::text", db);
             cmd.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
             cmd.Parameters.AddWithValue("owner", organization_id!);
