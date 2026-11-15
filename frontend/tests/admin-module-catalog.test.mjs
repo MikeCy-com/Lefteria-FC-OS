@@ -49,7 +49,10 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.ok(!ids(user(['shop:read'],['lefteria_fc'],'editor')).includes('orders'));
   assert.ok(!ids(user(['shop:read'],['lefteria_fc'],'manager')).includes('orders'));
   assert.ok(ids(user(['shop:read','finance:read'],['lefteria_fc_academy'],'manager')).includes('orders'));
-  assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['payabl', 'charges', 'reports']);
+  assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), []);
+  assert.ok(!ids(user(['finance:read'], ['lefteria_fc_academy'], 'manager')).includes('payabl'));
+  assert.ok(ids(user(['finance:read'], ['lefteria_fc_academy'], 'accountant')).includes('payabl'));
+  assert.ok(ids(user(['finance:read'], ['lefteria_fc_academy'], 'super_admin')).includes('payabl'));
   assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
   assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['assigned_groups']);
   assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['campaigns']);
