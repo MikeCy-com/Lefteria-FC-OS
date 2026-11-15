@@ -6,6 +6,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
+  import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
@@ -45,6 +46,9 @@
   let notice = $state('');
   let problem = $state('');
   let preview = $state(true);
+  let draggingBlock = $state<number|null>(null);
+  let dropTarget = $state<number|null>(null);
+  let blockMessage = $state('');
   const selected = $derived(records.find(p=>p.slug===picked) ?? null);
   const canWrite = $derived(!!organization && $auth.status==='authenticated' && !!$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'news:write') &&
@@ -130,14 +134,46 @@
     draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
   }
   function removeBlock(index:number) {
-    if(draft.blocks.length<=1)return;
+    if(!canWrite || saving || isHero || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
     draft.blocks=draft.blocks.filter((_,i)=>i!==index);
+    blockMessage='Αφαιρέθηκε το block '+(index+1)+'.';
   }
   function moveBlock(index:number,direction:-1|1) {
-    const other=index+direction;
-    if(other<0||other>=draft.blocks.length)return;
-    const items=[...draft.blocks];[items[index],items[other]]=[items[other],items[index]];
-    draft.blocks=items;
+    if(!canWrite || saving || isHero || index+direction<0 || index+direction>=draft.blocks.length)return;
+    draft.blocks=moveWebsiteBlock(draft.blocks,index,index+direction);
+    blockMessage='Το block '+(index+1)+' μετακινήθηκε στη θέση '+(index+direction+1)+'.';
+  }
+  function duplicateBlock(index:number) {
+    if(!canWrite || saving || isHero || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
+    draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
+    blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
+  }
+  function clearBlockDrag() {
+    draggingBlock=null;dropTarget=null;
+  }
+  function blockDragStart(event:DragEvent,index:number) {
+    if(!canWrite || saving || isHero || index<0 || index>=draft.blocks.length){
+      event.preventDefault();return;
+    }
+    draggingBlock=index;dropTarget=null;
+    if(event.dataTransfer){
+      event.dataTransfer.effectAllowed='move';
+      event.dataTransfer.setData('text/plain','lefteria-website-block');
+    }
+  }
+  function blockDragOver(event:DragEvent,index:number) {
+    if(draggingBlock===null || !canWrite || saving || isHero)return;
+    event.preventDefault();
+    if(event.dataTransfer)event.dataTransfer.dropEffect='move';
+    dropTarget=index;
+  }
+  function blockDrop(event:DragEvent,index:number) {
+    if(draggingBlock===null || !canWrite || saving || isHero)return;
+    event.preventDefault();
+    const from=draggingBlock;
+    draft.blocks=moveWebsiteBlock(draft.blocks,from,index);
+    blockMessage=from===index?'Η θέση δεν άλλαξε.':'Το block '+(from+1)+' μετακινήθηκε στη θέση '+(index+1)+'.';
+    clearBlockDrag();
   }
   function valid():boolean {
     if(isHero && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
@@ -277,14 +313,24 @@
                     <label>Meta description <textarea rows="2" maxlength="300" bind:value={draft.seo_description} disabled={!canWrite || saving}></textarea></label>
                   </details>{/if}
                   <div class="cms-block-heading"><h3>Περιεχόμενο σελίδας</h3><span>{draft.blocks.length} / 40 blocks</span></div>
+                  {#if !isHero}<p class="admin-muted cms-drag-hint">Σύρετε ένα block από τη λαβή ⠿ για να αλλάξετε τη σειρά του ή χρησιμοποιήστε τα βέλη ↑ ↓ με πληκτρολόγιο ή κινητό. Η αντιγραφή διατηρεί το περιεχόμενο του block.</p>{/if}
+                  <p class="cms-block-status" role="status" aria-live="polite" aria-atomic="true">{blockMessage}</p>
                   <div class="cms-block-list">
-                    {#each draft.blocks as block, index (index)}
-                      <div class="cms-block" data-testid="website-page-block">
+                    {#each draft.blocks as block, index (block)}
+                      <div class="cms-block" data-testid="website-page-block"
+                        class:cms-dragging={draggingBlock===index}
+                        class:cms-drop-target={dropTarget===index && draggingBlock!==index}
+                        ondragover={e=>blockDragOver(e,index)}
+                        ondrop={e=>blockDrop(e,index)}>
                         <div class="cms-block-tools">
                           <strong>Block {index+1} · {block.type==='heading'?'Τίτλος':block.type==='paragraph'?'Κείμενο':block.type==='image'?'Εικόνα':'Κουμπί'}</strong>
                           <div>
+                            {#if !isHero}<button type="button" class="cms-drag-handle" draggable={canWrite && !saving}
+                              aria-label="Σύρετε το block για αναδιάταξη" title="Σύρετε για μετακίνηση"
+                              disabled={!canWrite || saving} ondragstart={e=>blockDragStart(e,index)} ondragend={clearBlockDrag}>⠿</button>{/if}
                             <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isHero || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
                             <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isHero || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
+                            {#if !isHero}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=40 || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
                             <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isHero || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
                           </div>
                         </div>
@@ -394,9 +440,15 @@
 .cms-seo label{margin-top:12px}
 .cms-block-heading h3{margin:0;font-size:20px}
 .cms-block-list{display:grid;gap:14px}
-.cms-block{padding:14px;border:1px solid #4f4b44;background:#171a1c;display:grid;gap:12px}
+.cms-block{padding:14px;border:1px solid #4f4b44;background:#171a1c;display:grid;gap:12px;min-width:0;transition:border-color .14s,background .14s,opacity .14s}
+.cms-block.cms-dragging{opacity:.52}
+.cms-block.cms-drop-target{border:2px dashed #ffd36d;background:#2a251a}
+.cms-drag-hint{font-size:12px;margin:0}
+.cms-block-status{margin:0;min-height:1px;color:#e8ce91;font-size:12px}
+.cms-drag-handle{cursor:grab!important;touch-action:manipulation}
+.cms-drag-handle:active{cursor:grabbing!important}
 .cms-block-tools strong{font-size:13px}
-.cms-block-tools>div{display:flex;gap:5px}
+.cms-block-tools>div{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
 .cms-block-tools button,.cms-add-block button{min-height:34px;min-width:36px;border:1px solid #79715d;background:#262b2e;color:#f5e4c0;cursor:pointer;padding:6px 10px}
 .cms-add-block{border-top:1px solid #4a4f4d;padding-top:16px}
 .cms-preview-toggle{display:flex!important;align-items:center;gap:7px}

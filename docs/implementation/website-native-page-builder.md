@@ -105,3 +105,15 @@ Academy CMS URLs keep `?organization_id=lefteria_fc_academy` in their canonical
 and social `og:url` metadata; First Team pages have the clean path. Untrusted
 query parameters and spoofed organization identifiers are dropped. Changes
 are code-only and require normal staging verification before deployment.
+
+## Accessible native block arrangement
+
+The CMS editor now provides an explicit drag handle for pointer-based block
+reordering, alongside the existing keyboard/mobile **up and down** controls.
+Dropping uses an in-session index only (never arbitrary external drag payloads)
+and is disabled for read-only users, homepage hero slots, and in-flight saves.
+Blocks can also be duplicated with one click, preserving text/URLs while
+respecting the 40-block content limit; all changes remain private drafts until
+separately saved and approved. Editor movement and duplication are pure,
+nonmutating operations with automated boundary tests. No untrusted HTML,
+plugins, or media uploads are introduced by this improvement.
