@@ -30,6 +30,10 @@ RUN dotnet publish tools/LefteriaFc.RosterImport/LefteriaFc.RosterImport.csproj 
     /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/runtime:10.0 AS roster-import
+# Npgsql 10 probes the native GSSAPI provider on PostgreSQL connections.
+# Microsoft .NET runtime images no longer guarantee this package is present.
+RUN apt-get update && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=import-build /app/import/ ./
 USER $APP_UID
@@ -39,7 +43,7 @@ ENTRYPOINT ["dotnet", "LefteriaFc.RosterImport.dll"]
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 # DejaVu Sans regular/bold covers all Greek invoice glyphs; the original
 # ReportLab design uses Noto/DejaVu and strips combining Greek marks.
-RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core \
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-dejavu-core libgssapi-krb5-2 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /app/publish/ ./
