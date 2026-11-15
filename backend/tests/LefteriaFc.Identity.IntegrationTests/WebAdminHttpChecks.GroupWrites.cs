@@ -27,7 +27,10 @@ internal sealed partial class WebAdminHttpChecks
         using(var denied=await anonymous.SendAsync(request))
             await ExpectJsonAsync(denied,401,"not_authenticated");
 
-        var admin=await database.SeedAsync(organizations:["lefteria_fc","lefteria_fc_academy"]);
+        // Newly-created flat groups have no city/location scope yet.
+        // Only Super Admin can see them in the verified directory until assigned.
+        var admin=await database.SeedAsync(role:"super_admin",
+            organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,admin);
         var fixture=await database.SeedAudienceAsync();
