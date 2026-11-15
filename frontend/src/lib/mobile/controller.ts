@@ -5,6 +5,7 @@ import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,validPublishedHubNext,validPublishedHubCompletion,
   type PublishedHubPage,type PublishedHubNextPage,type PublishedHubCompletion} from './published-education.ts';
+import {validPlayerClassroomPage,type PlayerClassroomPage} from './player-classrooms.ts';
 import {validPlayerQuizPage,validPlayerQuizStart,validPlayerQuizAnswers,validPlayerQuizScore,
  type PlayerQuizPage,type PlayerQuizStart,type PlayerQuiz,type PlayerQuizAnswer,
  type PlayerQuizOrganization,type PlayerQuizScore} from './player-weekly-quiz.ts';
@@ -1634,6 +1635,21 @@ export function createMobileAuthController(options: {
         throw new Error('Fan identity changed.');
       if(!validFanHubCompleted(result,page))
         throw new Error('Unverified fan completion.');
+      return result;
+    },
+    async getPlayerClassrooms(
+      organization:PlayerQuizOrganization):Promise<PlayerClassroomPage> {
+      if(state.user?.role!=='player'||!state.user.current_role_available)
+        throw new Error('Verified player role required.');
+      const actorId=state.user.id,actorToken=token,actorRevision=revision;
+      if(!actorToken)throw new Error('No verified player session.');
+      const result=await chatRequest('/api/mobile/hub/player-classrooms?organization_id='+
+        encodeURIComponent(organization));
+      if(state.user?.id!==actorId||state.user.role!=='player'||
+         !state.user.current_role_available||token!==actorToken||
+         revision!==actorRevision)throw new Error('Player identity changed.');
+      if(!validPlayerClassroomPage(result,organization))
+        throw new Error('Unverified player classroom response.');
       return result;
     },
     async startPlayerWeeklyQuiz(

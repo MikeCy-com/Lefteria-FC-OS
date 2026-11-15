@@ -92,6 +92,7 @@ builder.Services.AddScoped<MobileLessonScheduleStore>();
 builder.Services.AddSingleton<HubLessonDeliverySettings>();
 builder.Services.AddHostedService<HubLessonDeliveryWorker>();
 builder.Services.AddScoped<MobilePlayerWeeklyQuizStore>();
+builder.Services.AddScoped<MobilePlayerClassroomStore>();
 builder.Services.AddScoped<MobileFanPayablStore>();
 builder.Services.AddScoped<MobileFanLearningStore>();
 builder.Services.AddScoped<MobileFanLessonScheduleStore>();

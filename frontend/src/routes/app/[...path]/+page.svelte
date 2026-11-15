@@ -20,6 +20,7 @@
   import MobileFanPayablHub from '../../../lib/mobile/components/MobileFanPayablHub.svelte';
   import MobilePersonalLearningJourney from '../../../lib/mobile/components/MobilePersonalLearningJourney.svelte';
   import MobilePlayerWeeklyQuiz from '../../../lib/mobile/components/MobilePlayerWeeklyQuiz.svelte';
+  import MobilePlayerClassrooms from '../../../lib/mobile/components/MobilePlayerClassrooms.svelte';
   import MobilePlayerCoachFeedback from '../../../lib/mobile/components/MobilePlayerCoachFeedback.svelte';
   import MobileCoachFeedbackComposer from '../../../lib/mobile/components/MobileCoachFeedbackComposer.svelte';
   import MobileCoachFeedbackTargets from '../../../lib/mobile/components/MobileCoachFeedbackTargets.svelte';
@@ -201,6 +202,10 @@
         {/key}
       {:else if (activeTab === 'hub' || (activeTab === 'education' && role === 'parent')) && (role === 'parent' || role === 'player' || role === 'fan') && !composing}
         {#key user.id+':'+role}
+          {#if role === 'player'}
+            <MobilePlayerClassrooms {controller}/>
+            <div id="hub-player-lesson" aria-hidden="true"></div>
+          {/if}
           {#if role === 'parent' || role === 'player'}
             <MobilePersonalLearningJourney {controller} viewerRole={role}/>
           {/if}
@@ -211,6 +216,7 @@
             <MobileFanPayablHub {controller} />
           {/if}
           {#if role === 'player'}
+            <div id="hub-player-quiz" aria-hidden="true"></div>
             <MobilePlayerWeeklyQuiz {controller} />
             <MobilePlayerCoachFeedback {controller} />
           {/if}

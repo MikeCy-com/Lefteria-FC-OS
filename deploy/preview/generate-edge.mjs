@@ -278,12 +278,24 @@ export function protectedOperations(document) {
   return operations.sort((left, right) => left.method.localeCompare(right.method) || left.path.localeCompare(right.path));
 }
 
+// Explicitly reviewed internal Mobile GET. Never expose a generic path prefix.
+export const reviewedHiddenMobileEntries = [
+  ['get','/api/mobile/hub/player-classrooms']
+];
+
 export function bearerRouteGroups(document) {
   const groups = new Map();
   for (const operation of protectedOperations(document)) {
     const group = groups.get(operation.method) ?? [];
     group.push(operation.expression);
     groups.set(operation.method, group);
+  }
+  for(const [method,path] of reviewedHiddenMobileEntries){
+    if(document?.paths?.[path]?.[method])
+      throw new Error('Promote newly documented private Mobile route to contract review.');
+    const expressions=groups.get(method.toUpperCase())??[];
+    expressions.push('/'+entryPattern(path));
+    groups.set(method.toUpperCase(),expressions);
   }
   return [...groups].map(([method, expressions]) => ({ method, expression: `^(?:${expressions.join('|')})$` }));
 }

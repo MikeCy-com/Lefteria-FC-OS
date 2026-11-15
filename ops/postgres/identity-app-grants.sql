@@ -611,6 +611,12 @@ GRANT EXECUTE ON FUNCTION hub.start_mobile_player_quiz_track(
   uuid,text,text,timestamptz,text) TO :"app_role";
 GRANT EXECUTE ON FUNCTION hub.read_mobile_player_weekly_quiz(
   uuid,text,text,timestamptz,text) TO :"app_role";
+-- Only the mobile player role can call the read-only classroom summary;
+-- SQL also verifies the active canonical player/phone and exact owner.
+REVOKE ALL ON FUNCTION hub.read_mobile_player_classrooms(
+  uuid,text,text,timestamptz,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION hub.read_mobile_player_classrooms(
+  uuid,text,text,timestamptz,text) TO :"app_role";
 GRANT EXECUTE ON FUNCTION hub.submit_mobile_player_weekly_quiz(
   uuid,text,text,timestamptz,text,uuid,jsonb) TO :"app_role";
 
