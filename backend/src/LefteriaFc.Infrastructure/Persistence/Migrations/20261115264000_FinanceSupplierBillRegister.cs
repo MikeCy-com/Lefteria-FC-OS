@@ -60,6 +60,20 @@ public sealed class FinanceSupplierBillRegister : Migration
         WHERE organization_id='lefteria_fc_academy';
       REVOKE ALL ON finance.supplier_bills FROM PUBLIC;
       ALTER TABLE finance.supplier_bills ENABLE ROW LEVEL SECURITY;
+      -- No silent edits/deletions: corrections are a separate reviewed
+      -- reversal workflow, not UPDATE of the source supplier invoice.
+      CREATE FUNCTION finance.reject_supplier_bill_mutation()
+      RETURNS trigger LANGUAGE plpgsql VOLATILE
+      SET search_path=pg_catalog,pg_temp AS $immutable$
+      BEGIN
+        RAISE EXCEPTION 'supplier_bill_immutable'
+          USING ERRCODE='42501';
+      END $immutable$;
+      REVOKE ALL ON FUNCTION finance.reject_supplier_bill_mutation() FROM PUBLIC;
+      CREATE TRIGGER trg_supplier_bills_immutable
+        BEFORE UPDATE OR DELETE ON finance.supplier_bills
+        FOR EACH ROW EXECUTE FUNCTION finance.reject_supplier_bill_mutation();
+
 
       CREATE FUNCTION finance.authorize_admin_supplier_bills(
         _digest text,_owner text
@@ -274,5 +288,6 @@ public sealed class FinanceSupplierBillRegister : Migration
             text,text,uuid,text,text,text,text,date,bigint,uuid);
           DROP FUNCTION finance.authorize_admin_supplier_bills(text,text);
           DROP TABLE finance.supplier_bills;
+          DROP FUNCTION finance.reject_supplier_bill_mutation();
           """);
 }
