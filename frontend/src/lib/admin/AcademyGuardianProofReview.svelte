@@ -133,7 +133,7 @@
             </select>
           </label>
           <label>Εσωτερικός αριθμός φακέλου τεκμηρίωσης
-            <input required minlength="8" maxlength="64" pattern="[A-Za-z0-9][A-Za-z0-9_-]{7,63}"
+            <input required minlength="8" maxlength="64" pattern={'[A-Za-z0-9][A-Za-z0-9_-]{7,63}'}
               placeholder="CASE-2026-0001" bind:value={caseReference}
               oninput={() => requestId=''} />
           </label>
