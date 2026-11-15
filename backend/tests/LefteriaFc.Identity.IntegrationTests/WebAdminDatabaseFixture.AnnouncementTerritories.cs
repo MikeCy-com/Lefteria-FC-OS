@@ -79,6 +79,21 @@ internal sealed partial class WebAdminDatabaseFixture
         return topology;
     }
 
+    public async Task GrantAnnouncementCityAsync(
+        Account manager,AnnouncementTerritoryFixture topology)
+    {
+        RequireOwned(manager);
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            INSERT INTO club.football_city_admin_grants(
+              admin_account_id,city_id,role)
+            VALUES(@actor,@city,'city_manager')
+            """,con);
+        cmd.Parameters.AddWithValue("actor",manager.Id);
+        cmd.Parameters.AddWithValue("city",topology.City);
+        await cmd.ExecuteNonQueryAsync();
+    }
+
     public async Task RevokeAnnouncementTerritoriesAsync(Account manager,
         AnnouncementTerritoryFixture topology)
     {

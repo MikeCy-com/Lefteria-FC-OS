@@ -37,6 +37,11 @@ test('admin roster UI follows actual scoped server counts, not static or child-p
   assert.match(page,/verifiedDirectory\(raw,owner\)/);
   assert.match(page,/group\.active_players/);
   assert.match(page,/directory\.unassigned_players/);
+  assert.match(page,/\$auth\.session\?\.user\.role==='super_admin'/);
+  assert.match(page,/data-testid="admin-audiences-unassigned"/);
+  assert.match(page,/data-testid="admin-audiences-scoped"/);
+  assert.match(page,/Μόνο ανατεθειμένα τμήματα/);
+  assert.match(page,/Συμμετοχές σε ορατά τμήματα/);
   assert.match(page,/Τα ταμεία|Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί/);
   assert.doesNotMatch(page,/\{@html|innerHTML|player\.name|phone|\/api\/admin\/messages\/.*(POST|send)/i);
 });

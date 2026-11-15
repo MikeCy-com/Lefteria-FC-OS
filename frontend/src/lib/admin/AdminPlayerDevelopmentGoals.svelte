@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import {buildPlayerDevelopmentTimeline} from './player-development-timeline.ts';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Category='general'|'physical'|'technical'|'tactical'|'mental'|'social';
@@ -24,12 +25,15 @@
   ];
   const steps=Array.from({length:11},(_,i)=>i*10);
 
-  let {owner,playerId,playerName,actorId,assessments=[],onExpired,onRevoked}:{
+  let {owner,playerId,playerName,actorId,assessments=[],readOnly=false,onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;
     assessments?:{id:string;summary:string|null;created_at:string}[];
+    readOnly?:boolean;
     onExpired:()=>void;onRevoked:()=>void
   }=$props();
   let goals=$state<Goal[]>([]),loading=$state(false),saving=$state(false);
+  // Managers only ever receive goals; assessment titles and links are omitted.
+  const timeline=$derived(buildPlayerDevelopmentTimeline(readOnly?[]:assessments,goals));
   let error=$state(''),notice=$state(''),refresh=$state(0);
   let showCreate=$state(false),title=$state(''),description=$state('');
   let category=$state<Category>('technical'),targetDate=$state('');
@@ -78,6 +82,7 @@
 
   $effect(()=>{
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
+    const expectedReadOnly=readOnly;
     void refresh;
     goals=[];error='';notice='';editing=null;loading=false;
     if(!browser||!expectedActor||!validId(expectedPlayer))return;
@@ -91,13 +96,18 @@
         });
         if(controller.signal.aborted)return;
         if(response.status===401){onExpired();return;}
-        if(response.status===403){onRevoked();return;}
+        if(response.status===403){
+          if(expectedReadOnly){
+            error='Δεν επιτρέπεται η προβολή στόχων για την τρέχουσα τοποθεσία ή ομάδα.';
+          }else onRevoked();
+          return;
+        }
         if(!response.ok)throw Error('Οι στόχοι ανάπτυξης δεν είναι διαθέσιμοι.');
         const raw:unknown=await response.json();
         if(!validPage(raw,expectedOwner,expectedPlayer))
           throw Error('Μη επαληθευμένη απάντηση ανάπτυξης αθλητή.');
         if(!controller.signal.aborted&&owner===expectedOwner&&
-          playerId===expectedPlayer&&actorId===expectedActor)
+          playerId===expectedPlayer&&actorId===expectedActor&&readOnly===expectedReadOnly)
           goals=raw.goals;
       }catch{
         if(!controller.signal.aborted)error='Αποτυχία ανάκτησης ατομικών στόχων.';
@@ -107,7 +117,7 @@
   });
 
   async function createGoal(){
-    if(!browser||saving||loading||title!==title.trim()||
+    if(!browser||readOnly||saving||loading||title!==title.trim()||
       title.length<1||title.length>200||description.length>2000)return;
     if(!createRequest)createRequest=crypto.randomUUID();
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
@@ -138,12 +148,12 @@
   }
 
   function edit(goal:Goal){
-    if(goal.status==='archived'||saving)return;
+    if(readOnly||goal.status==='archived'||saving)return;
     editing=goal.id;editProgress=goal.progress;editNote='';
     archive=false;editRequest='';error='';notice='';
   }
   async function updateGoal(goal:Goal){
-    if(!browser||saving||loading||editing!==goal.id||
+    if(!browser||readOnly||saving||loading||editing!==goal.id||
       !steps.includes(editProgress)||editNote.length>500)return;
     if(!editRequest)editRequest=crypto.randomUUID();
     const expectedOwner=owner,expectedPlayer=playerId,expectedActor=actorId;
@@ -174,17 +184,55 @@
 </script>
 
 <section class="development-goals" data-testid="admin-player-development-goals"
+  data-access-mode={readOnly?'read-only':'manage'}
   aria-label={'Ατομικοί στόχοι '+playerName}>
   <div class="goals-heading">
     <h4>Ατομικοί στόχοι ανάπτυξης ({goals.length})</h4>
-    <button type="button" class="admin-secondary" disabled={loading||saving}
-      onclick={()=>showCreate=!showCreate}>
-      {showCreate?'Κλείσιμο':'Νέος στόχος'}
-    </button>
+    {#if !readOnly}
+      <button type="button" class="admin-secondary" disabled={loading||saving}
+        onclick={()=>showCreate=!showCreate}>
+        {showCreate?'Κλείσιμο':'Νέος στόχος'}
+      </button>
+    {/if}
   </div>
   <p class="admin-muted">Συνδέονται με τον μόνιμο φάκελο του αθλητή, όχι με μία μόνο σεζόν.
     Οι ολοκληρωμένοι στόχοι παραμένουν στο ιστορικό.</p>
-  {#if showCreate}
+  {#if readOnly}
+    <p class="admin-muted">Προβολή μόνο: εμφανίζονται αποκλειστικά στόχοι που επαληθεύτηκαν
+      για την τρέχουσα τοποθεσία και την τοποθεσία καταχώρισής τους. Η επεξεργασία
+      και η πρόσβαση σε άλλους ιδιωτικούς φακέλους δεν επιτρέπονται.</p>
+  {/if}
+  {#if !loading&&!error}
+    <details class="development-timeline" data-testid="admin-player-development-timeline">
+      <summary>{readOnly?'Χρονολόγιο στόχων':'Χρονολόγιο αξιολογήσεων και στόχων'}
+        ({timeline.loadedCount})</summary>
+      <p class="admin-muted">{readOnly
+        ?'Εμφανίζονται μόνο γεγονότα στόχων που επαληθεύτηκαν για την τρέχουσα τοποθεσία. Δεν προβάλλονται αξιολογήσεις ή άλλοι ιδιωτικοί φάκελοι.'
+        :'Ιδιωτικό χρονολόγιο: επαληθευμένες αξιολογήσεις και αλλαγές στόχων. Δεν περιλαμβάνει ακόμη παρουσίες, αγώνες ή βίντεο.'}</p>
+      {#if timeline.events.length===0}
+        <p>Δεν υπάρχουν ακόμη καταχωρίσεις με επαληθευμένη ημερομηνία.</p>
+      {:else}
+        <ol class="timeline-entries">
+          {#each timeline.events as entry (entry.key)}
+            <li>
+              <time datetime={entry.at}>{new Date(entry.at).toLocaleString('el-CY')}</time>
+              <a href={'#'+entry.targetId}>{entry.title}</a>
+              <span>{entry.kind==='assessment'?'Αξιολόγηση':'Στόχος'} · {entry.description}</span>
+            </li>
+          {/each}
+        </ol>
+      {/if}
+      {#if timeline.hiddenOlderCount>0}
+        <p class="admin-muted">Εμφανίζονται οι {timeline.events.length} πιο πρόσφατες από {timeline.loadedCount}
+          φορτωμένες καταχωρίσεις. Οι υπόλοιπες βρίσκονται στους αντίστοιχους φακέλους.</p>
+      {/if}
+      {#if timeline.unreturnedGoalEvents>0}
+        <p class="admin-muted">Άλλες {timeline.unreturnedGoalEvents} παλαιότερες αλλαγές στόχων
+          διατηρούνται στο ιστορικό, αλλά δεν έχουν φορτωθεί σε αυτή την προβολή.</p>
+      {/if}
+    </details>
+  {/if}
+  {#if showCreate&&!readOnly}
     <form class="goal-form" onsubmit={e=>{e.preventDefault();void createGoal();}}>
       <label>Τίτλος στόχου
         <input required maxlength="200" bind:value={title} oninput={resetCreateRequest}/>
@@ -221,7 +269,7 @@
   {#if notice}<p role="status">{notice}</p>{/if}
   {#if !loading&&!error&&goals.length===0}<p>Δεν υπάρχουν ακόμη στόχοι.</p>{/if}
   {#each goals as goal (goal.id)}
-    <article class="goal-row">
+    <article class="goal-row" id={'development-goal-'+goal.id}>
       <div class="goal-title">
         <strong>{goal.title}</strong>
         <span>{categories.find(c=>c.id===goal.category)?.label} ·
@@ -245,13 +293,13 @@
           <p class="admin-muted">Προβάλλονται οι 50 πιο πρόσφατες αλλαγές. Το πλήρες ιστορικό διατηρείται.</p>
         {/if}
       </details>
-      {#if goal.status!=='archived'}
+      {#if goal.status!=='archived'&&!readOnly}
         <button type="button" class="admin-secondary" disabled={saving}
           onclick={()=>editing===goal.id?editing=null:edit(goal)}>
           {editing===goal.id?'Ακύρωση':'Ενημέρωση προόδου'}
         </button>
       {/if}
-      {#if editing===goal.id}
+      {#if editing===goal.id&&!readOnly}
         <form class="goal-form" onsubmit={e=>{e.preventDefault();void updateGoal(goal);}}>
           <label>Πρόοδος
             <select bind:value={editProgress} onchange={resetEditRequest}>
@@ -276,6 +324,15 @@
 </section>
 <style>
   .development-goals{display:grid;gap:12px;border:1px solid #66512e;border-radius:10px;padding:14px;background:#151819}
+  .development-timeline{border:1px solid #504634;border-radius:8px;padding:10px 12px}
+  .development-timeline summary{cursor:pointer;min-height:28px;font-weight:750;color:#f6c95f}
+  .development-timeline summary:focus-visible{outline:3px solid #ffcc45;outline-offset:2px}
+  .timeline-entries{display:grid;gap:12px;list-style:none;padding:0;margin:12px 0}
+  .timeline-entries li{display:grid;gap:3px;padding:9px 10px;border-left:3px solid #ba9b52;background:#1f2424}
+  .timeline-entries time{font-size:12px;color:#c9bc9e}
+  .timeline-entries a{color:#f2c365;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+  .timeline-entries a:focus-visible{outline:3px solid #ffcc45;outline-offset:2px}
+  .timeline-entries span{font-size:13px;overflow-wrap:anywhere}
   .goals-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
   .goals-heading h4{margin:0;color:#ffca46}
   .goal-form{display:grid;gap:10px;border:1px solid #49453d;border-radius:8px;padding:12px}

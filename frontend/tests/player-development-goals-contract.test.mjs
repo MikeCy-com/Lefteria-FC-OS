@@ -77,9 +77,22 @@ test('operator grants only allow protected functions to the admin auth role',()=
   assert.match(grants,/has_table_privilege\(a,tbl,'SELECT,INSERT,UPDATE,DELETE'\)/);
   assert.match(program,/app\.MapAdminPlayerDevelopmentGoals\(\)/);
 });
-test('goal UI is embedded in private player records and hidden for delegated managers',()=>{
+test('Super Admin goal editing remains private, managers get separately isolated read-only group view',()=>{
   assert.match(group,/allowGoalManagement=\{user\.role==='super_admin'\}/);
+  assert.match(group,/allowGoalRead=\{user\.role==='manager'\}/);
   assert.match(roster,/allowGoalManagement=false/);
+  assert.match(roster,/allowGoalRead=false/);
+  assert.match(roster,/data-testid="admin-manager-goal-reader-toggle"/);
+  assert.match(roster,/data-testid="admin-manager-player-goals-workspace"/);
+  assert.match(roster,/currentGroups\(player\)\.includes\(currentGroup\)/);
+  assert.match(roster,/<AdminPlayerDevelopmentGoals[\s\S]*readOnly/);
+  assert.match(ui,/data-access-mode=\{readOnly\?'read-only':'manage'\}/);
+  assert.match(ui,/if\(!browser\|\|readOnly\|\|saving/);
+  assert.match(ui,/if\(readOnly\|\|goal\.status==='archived'/);
+  assert.match(ui,/goal\.status!=='archived'&&!readOnly/);
+  assert.match(ui,/editing===goal\.id&&!readOnly/);
+  assert.match(ui,/showCreate&&!readOnly/);
+  assert.match(ui,/if\(expectedReadOnly\)/);
   assert.match(privatePanel,/AdminPlayerDevelopmentGoals/);
   assert.match(privatePanel,/\{#if allowGoalManagement\}/);
   assert.match(ui,/data-testid="admin-player-development-goals"/);

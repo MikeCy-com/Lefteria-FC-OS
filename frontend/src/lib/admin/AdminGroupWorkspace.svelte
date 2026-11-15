@@ -79,6 +79,7 @@
             allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance}
             canReadAttendance={canReadAttendance} canWriteAttendance={canAttendanceWrite}
             allowGoalManagement={user.role==='super_admin'}
+            allowGoalRead={user.role==='manager'}
             {onExpired} {onRevoked} {onChanged}/>
         {:else}
           <p role="status">Η διαχείριση ατομικών φακέλων απαιτεί επαληθευμένα δικαιώματα.</p>

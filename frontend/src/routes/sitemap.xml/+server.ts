@@ -1,6 +1,7 @@
 import type { RequestHandler } from './$types';
 import { publicApi } from '../../lib/server/public-content';
 import { buildPublicSitemap, isIndexablePublicOrigin } from '../../lib/public/seo';
+import { readWebsitePages } from '../../lib/server/website-pages';
 import type { PublicArticle } from '../../lib/public/types';
 
 const MAX_NEWS = 500;
@@ -39,12 +40,14 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     const api = publicApi();
-    const [fcSite, academySite, fcSections, academySections, articles] = await Promise.all([
+    const [fcSite, academySite, fcSections, academySections, articles, fcPages, academyPages] = await Promise.all([
       api.GET('/api/public/site', { params: { query: { organization_id: 'lefteria_fc' } } }),
       api.GET('/api/public/site', { params: { query: { organization_id: 'lefteria_fc_academy' } } }),
       api.GET('/api/public/sections', { params: { query: { organization_id: 'lefteria_fc' } } }),
       api.GET('/api/public/sections', { params: { query: { organization_id: 'lefteria_fc_academy' } } }),
-      readPublicNews(api)
+      readPublicNews(api),
+      readWebsitePages('lefteria_fc'),
+      readWebsitePages('lefteria_fc_academy')
     ]);
     if (fcSite.response.status !== 200 || fcSite.data?.organization_id !== 'lefteria_fc'
       || academySite.response.status !== 200 || academySite.data?.organization_id !== 'lefteria_fc_academy'
@@ -57,7 +60,8 @@ export const GET: RequestHandler = async ({ url }) => {
       articles,
       groups: academySite.data.academy_groups,
       sites: [fcSite.data, academySite.data],
-      sections: [fcSections.data, academySections.data]
+      sections: [fcSections.data, academySections.data],
+      websitePages: [...fcPages, ...academyPages]
     }), {
       status: 200,
       headers: {

@@ -43,7 +43,14 @@ export function publicCanonicalHref(path: string): string {
   const newsOrganization = isNewsDetail &&
     (newsOwner === 'lefteria_fc' || newsOwner === 'lefteria_fc_academy')
     ? '?organization_id=' + newsOwner : '';
-  return 'https://lefteriafc.cy' + url.pathname + owner + newsOrganization;
+  // Native CMS pages share a route between First Team and Academy. The
+  // verified Academy owner is part of the page identity and must survive
+  // canonicalization; unrelated search params and spoofed owners must not.
+  const websiteOrganization = routeParts.length === 3 && routeParts[1] === 'pages'
+    && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(routeParts[2])
+    && newsOwner === 'lefteria_fc_academy'
+    ? '?organization_id=lefteria_fc_academy' : '';
+  return 'https://lefteriafc.cy' + url.pathname + owner + newsOrganization + websiteOrganization;
 }
 
 /** Only already-published HTTPS media URLs may be advertised to social crawlers.
