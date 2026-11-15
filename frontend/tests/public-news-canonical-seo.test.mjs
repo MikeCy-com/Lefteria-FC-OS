@@ -35,3 +35,18 @@ test('News route verifies published article before redirect and blocks cross-org
   assert.match(page,/\{canonicalPath\}>/);
   assert.doesNotThrow(()=>compile(page,{filename:'src/routes/news/[slug]/+page.svelte',generate:'server'}));
 });
+
+test('native CMS canonicals preserve Academy owner but discard untrusted filters', () => {
+  assert.equal(publicCanonicalHref('/pages/parents-guide?organization_id=lefteria_fc_academy&token=private'),
+    'https://lefteriafc.cy/pages/parents-guide?organization_id=lefteria_fc_academy');
+  assert.equal(publicCanonicalHref('/pages/parents-guide?organization_id=lefteria_fc&token=private'),
+    'https://lefteriafc.cy/pages/parents-guide');
+  assert.equal(publicCanonicalHref('/pages/parents-guide?organization_id=spoofed&token=private'),
+    'https://lefteriafc.cy/pages/parents-guide');
+  assert.equal(publicCanonicalHref('/team?organization_id=lefteria_fc_academy'),
+    'https://lefteriafc.cy/team');
+  const cmsPage=source('routes/pages/[slug]/+page.svelte');
+  assert.match(cmsPage, /og:url/);
+  assert.match(cmsPage, /publicCanonicalHref\(canonicalPath\)/);
+  assert.doesNotThrow(()=>compile(cmsPage,{filename:'src/routes/pages/[slug]/+page.svelte',generate:'server'}));
+});

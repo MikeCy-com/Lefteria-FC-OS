@@ -4,6 +4,7 @@
   import type { PublicPageData } from '../../../lib/public/types';
   import type { PublishedWebsitePage } from '../../../lib/public/website-pages';
   import { websitePagePath } from '../../../lib/public/website-pages';
+  import { publicCanonicalHref } from '../../../lib/public/public-urls';
   let {data}: {data: PublicPageData & {published: PublishedWebsitePage}} = $props();
   const content = $derived(data.published.page);
   const canonicalPath = $derived(websitePagePath(data.published.slug, data.organization));
@@ -12,6 +13,9 @@
   <title>{content.seo_title || content.title} | ΛΕΥΤΕΡΙΑ FC</title>
   <meta name="description" content={content.seo_description || content.summary} />
   <meta property="og:type" content="website"/>
+  <meta property="og:title" content={content.seo_title || content.title}/>
+  <meta property="og:description" content={content.seo_description || content.summary}/>
+  <meta property="og:url" content={publicCanonicalHref(canonicalPath)}/>
 </svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization}
   navigationGroups={data.navigationGroups} {canonicalPath}>
