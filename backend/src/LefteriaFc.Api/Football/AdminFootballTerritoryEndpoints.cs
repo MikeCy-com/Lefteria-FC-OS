@@ -72,7 +72,7 @@ public static class AdminFootballTerritoryEndpoints
         return endpoints;
     }
 
-    private static async Task<string> Verify(
+    internal static async Task<string> Verify(
         WebAdminService auth, string? owner, HttpContext context,
         bool write, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public static class AdminFootballTerritoryEndpoints
         return cookie!;
     }
 
-    private static async Task<IResult> Execute(NpgsqlCommand command, CancellationToken ct)
+    internal static async Task<IResult> Execute(NpgsqlCommand command, CancellationToken ct)
     {
         try
         {

@@ -224,6 +224,7 @@ app.MapAdminAcademyTrainingPlans();
 app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
 app.MapAdminFootballTerritories();
+app.MapAdminFootballTerritoryAccess();
 
 if (app.Environment.IsDevelopment())
 {

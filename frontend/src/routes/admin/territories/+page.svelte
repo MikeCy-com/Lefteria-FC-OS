@@ -3,6 +3,8 @@
   import { browser } from '$app/env';
   import { goto } from '$app/navigation';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import FootballLocationMetrics from '../../../lib/admin/FootballLocationMetrics.svelte';
+  import FootballTerritoryAccessPanel from '../../../lib/admin/FootballTerritoryAccessPanel.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
 
@@ -320,6 +322,10 @@
                 </form>
               {/if}
               {#if selectedLocation}
+                <FootballLocationMetrics organization="lefteria_fc_academy"
+                  cityId={cityId} locationId={locationId}
+                  actorId={$auth.session.user.id} revision={revision}
+                  canManageCity={Boolean(selectedScope?.can_write_catalog)} />
                 <h3>Τμήματα τοποθεσίας</h3>
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
@@ -491,6 +497,12 @@
         {/if}
       {:else if !error}
         <section class="admin-panel">Δεν υπάρχουν ακόμη επιβεβαιωμένες αναθέσεις.</section>
+      {/if}
+      {#if directory && $auth.session.user.role==='super_admin' && canWrite}
+        <FootballTerritoryAccessPanel {organization}
+          actorId={$auth.session.user.id} cities={directory.cities}
+          locations={directory.locations} scopes={directory.scopes}
+          revision={revision}/>
       {/if}
       {#if error}<p class="territory-error" role="alert">{error}</p>{/if}
       {#if message}<p class="territory-success" role="status">{message}</p>{/if}
