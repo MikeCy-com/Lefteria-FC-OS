@@ -10,6 +10,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
 import { chromium } from 'playwright';
+import { primaryTabs, canComposePost } from '../src/lib/mobile/navigation.ts';
 
 const frontend = fileURLToPath(new URL('../', import.meta.url));
 const auditRoute = path.join(frontend, 'src', 'routes', 'visual-role-audit');
@@ -81,10 +82,45 @@ try {
       if(snapshot.navigationCount<4)failures.push(role+'/'+viewport.name+': missing primary tab controls');
       if(snapshot.scrollWidth>snapshot.clientWidth+2)
         failures.push(role+'/'+viewport.name+': horizontal overflow '+snapshot.scrollWidth+' > '+snapshot.clientWidth);
-      await page.getByTestId('role-switcher').click();
-      await page.getByTestId('switch-role-'+role).waitFor();
+      const prefix=role+'/'+viewport.name;
+      const actualTabs=await page.locator('[data-testid^="bottom-tab-"]').evaluateAll(
+        buttons=>buttons.map(button=>button.getAttribute('data-testid')?.replace('bottom-tab-',''))
+      );
+      if(JSON.stringify(actualTabs)!==JSON.stringify(primaryTabs(role)))
+        failures.push(prefix+': primary tabs differ from permitted role navigation');
+      const active=await page.locator('[data-testid^="bottom-tab-"][aria-current="page"]').count();
+      if(active!==1)failures.push(prefix+': expected exactly one active navigation tab');
+      const composer=await page.getByTestId('mobile-create-post').count();
+      if(composer!==(canComposePost(role)?1:0))
+        failures.push(prefix+': post composer displayed for wrong role');
+
+      // Keyboard entry should expose a usable skip link before the rest of the shell.
+      await page.keyboard.press('Tab');
+      const skipFocused=await page.evaluate(()=>document.activeElement?.classList.contains('skip-link'));
+      if(!skipFocused)failures.push(prefix+': skip-to-content is not the first keyboard stop');
+      await page.keyboard.press('Enter');
+      const skipped=await page.evaluate(()=>document.activeElement?.tagName==='MAIN');
+      if(!skipped)failures.push(prefix+': skip link failed to focus main content');
+
+      // Role switch must be limited to the supplied verified choice and close with Escape.
+      const trigger=page.getByTestId('role-switcher');
+      await trigger.focus();
+      await page.keyboard.press('Enter');
+      const selected=page.getByTestId('switch-role-'+role);
+      await selected.waitFor({state:'visible'});
       const choices=await page.locator('[data-testid^="switch-role-"]').count();
-      if(choices!==1)failures.push(role+'/'+viewport.name+': unverified alternative identity visible');
+      if(choices!==1)failures.push(prefix+': unverified alternative identity visible');
+      if(await trigger.getAttribute('aria-expanded')!=='true')
+        failures.push(prefix+': role switcher does not announce expanded state');
+      const menuFocused=await selected.evaluate(button=>button===document.activeElement);
+      if(!menuFocused)failures.push(prefix+': role choice does not receive keyboard focus');
+      await page.keyboard.press('Escape');
+      if(await trigger.getAttribute('aria-expanded')!=='false')
+        failures.push(prefix+': Escape did not close role switcher');
+      if(!await trigger.evaluate(button=>button===document.activeElement))
+        failures.push(prefix+': Escape did not restore trigger focus');
+      if(await page.locator('[data-testid^="switch-role-"]').count()!==0)
+        failures.push(prefix+': hidden role choice remains in DOM after dismissal');
       await page.close();
     }
     await context.close();
