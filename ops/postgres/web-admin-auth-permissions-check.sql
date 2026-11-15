@@ -129,6 +129,7 @@ BEGIN
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
                   'club.read_admin_player_development_goals(text,text,text)'::regprocedure,
+                  'club.read_admin_player_development_goals_manager(text,text,text)'::regprocedure,
                   'club.create_admin_player_development_goal(text,text,text,uuid,text,text,text,date,uuid)'::regprocedure,
                   'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,

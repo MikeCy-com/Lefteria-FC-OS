@@ -9,9 +9,9 @@ using NpgsqlTypes;
 namespace LefteriaFc.Api.Evaluations;
 
 /// <summary>
-/// Super-admin-only private development goals. Goals belong to the permanent
+/// Super-admin private development goals, with narrowly scoped read-only manager access. Goals belong to the permanent
 /// player, never a temporary group/season; SQL revalidates every request.
-/// No delegated manager/coach/mobile/guardian access until geographic and actor grants are implemented.
+/// Managers read only goals matching verified current and historical territory; no coach/mobile/guardian access.
 /// </summary>
 public static class AdminPlayerDevelopmentGoalsEndpoints
 {
@@ -38,11 +38,13 @@ public static class AdminPlayerDevelopmentGoalsEndpoints
         {
             var cookie = await VerifyAsync(playerId, organization_id, false,
                 auth, context, ct);
+            var session = await auth.CurrentAsync(cookie, ct);
+            var managerRead = session?.User.Role == "manager";
             await using var connection = await connections.OpenAsync(ct);
-            await using var command = new NpgsqlCommand("""
-                SELECT club.read_admin_player_development_goals(
-                  @digest,@owner,@player)::text
-                """, connection);
+            await using var command = new NpgsqlCommand(managerRead
+                ? "SELECT club.read_admin_player_development_goals_manager(@digest,@owner,@player)::text"
+                : "SELECT club.read_admin_player_development_goals(@digest,@owner,@player)::text",
+                connection);
             AddScope(command, cookie, organization_id!, playerId, secrets);
             return await ExecuteAsync(command, ct);
         }).WithName("ReadAdminPlayerDevelopmentGoals");
@@ -139,7 +141,8 @@ public static class AdminPlayerDevelopmentGoalsEndpoints
         var permission = owner == "lefteria_fc"
             ? (write ? "teams:write" : "teams:read")
             : (write ? "academy:write" : "academy:read");
-        if (session.User.Role != "super_admin" ||
+        if (session.User.Role != "super_admin" &&
+            (write || session.User.Role != "manager") ||
             !AdminPermissions.Has(session.User.Role, permission) ||
             !session.User.Organizations.Any(o => o.Id == owner))
             throw new WebAdminException(403, "development_goal_access_denied",

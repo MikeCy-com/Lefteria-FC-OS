@@ -1,8 +1,8 @@
 \set ON_ERROR_STOP on
 -- Operator-only activation AFTER disposable-DB verification.
 -- Admin auth and mobile runtime roles must be distinct. This does not
--- expose private goals to delegated managers, coaches, guardians or players:
--- SQL functions independently require current super-admin authority.
+-- expose private goals to coaches, guardians or players. Delegated manager
+-- reads are individually verified against both live and historical territory.
 \if :{?admin_auth_role}
 \else
   DO $required$ BEGIN RAISE EXCEPTION 'admin_auth_role_required'; END $required$;
@@ -26,6 +26,7 @@ BEGIN
   THEN RAISE EXCEPTION 'goal_admin_role_invalid'; END IF;
   FOREACH fn IN ARRAY ARRAY[
     'club.read_admin_player_development_goals(text,text,text)'::regprocedure::oid,
+    'club.read_admin_player_development_goals_manager(text,text,text)'::regprocedure::oid,
     'club.create_admin_player_development_goal(text,text,text,uuid,text,text,text,date,uuid)'::regprocedure::oid,
     'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure::oid
   ] LOOP
@@ -40,6 +41,8 @@ END $check$;
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_player_development_goals(text,text,text)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_player_development_goals_manager(text,text,text)
+  TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_player_development_goal(
   text,text,text,uuid,text,text,text,date,uuid) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.update_admin_player_development_goal(
@@ -53,6 +56,7 @@ DECLARE
 BEGIN
   FOREACH fn IN ARRAY ARRAY[
     'club.read_admin_player_development_goals(text,text,text)'::regprocedure::oid,
+    'club.read_admin_player_development_goals_manager(text,text,text)'::regprocedure::oid,
     'club.create_admin_player_development_goal(text,text,text,uuid,text,text,text,date,uuid)'::regprocedure::oid,
     'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure::oid
   ] LOOP
