@@ -27,8 +27,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                 DECLARE v_role text; v_scope uuid; v_location uuid;
                 BEGIN
                   IF _actor IS NULL OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
-                    OR _group IS NULL OR _group !~ '^[a-zA-Z0-9_-]{1,128}
-        """); THEN
+                    OR _group IS NULL OR _group !~ '^[a-zA-Z0-9_-]{1,128}$' THEN
                     RETURN false;
                   END IF;
                   SELECT a.role INTO v_role FROM identity.admin_accounts a
@@ -76,14 +75,11 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_session uuid;
                   v_role text;
                 BEGIN
-                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-        """);
+                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
                     OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
-                    OR _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                    OR _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
-                    OR _group !~ '^[a-zA-Z0-9_-]+
-        """);
+                    OR _group !~ '^[a-zA-Z0-9_-]+$'
                     OR _title IS NULL OR char_length(_title) NOT BETWEEN 1 AND 140
                     OR _title<>btrim(_title) OR _title ~ '[[:cntrl:]]'
                     OR _body IS NULL OR char_length(_body) NOT BETWEEN 1 AND 4000
@@ -144,8 +140,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_actor uuid;
                   v_drafts jsonb;
                 BEGIN
-                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-        """);
+                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
                     OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy') THEN
                     RAISE EXCEPTION 'draft_invalid_owner' USING ERRCODE='22023';
                   END IF;
@@ -184,8 +179,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_item club.app_announcements%ROWTYPE;
                 BEGIN
-                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _expected_version IS NULL OR _expected_version<1 THEN
                     RAISE EXCEPTION 'app_announcement_invalid' USING ERRCODE='22023';
                   END IF;
@@ -264,8 +258,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                 DECLARE v_actor uuid;
                   v_item club.app_announcements%ROWTYPE;
                 BEGIN
-                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _expected_version IS NULL OR _expected_version<1 THEN
                     RAISE EXCEPTION 'app_announcement_invalid' USING ERRCODE='22023';
                   END IF;
@@ -305,8 +298,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_readers jsonb;
                   v_actor uuid;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """); THEN
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$' THEN
                     RAISE EXCEPTION 'notice_read_invalid' USING ERRCODE='22023';
                   END IF;
                   -- This locks and rechecks the active admin session, management
@@ -355,19 +347,16 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_media jsonb;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$'
                     OR _version IS NULL OR _version<1 OR _media IS NULL
                     OR _kind NOT IN ('banner','attachment')
-                    OR _name IS NULL OR _name COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,95}
-        """);
+                    OR _name IS NULL OR _name COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,95}$'
                     OR _content IS NULL
                     OR (_kind='banner' AND (_name<>'banner.jpg' OR _type<>'image/jpeg'
                       OR octet_length(_content) NOT BETWEEN 4 AND 1048576
                       OR substring(_content from 1 for 2)<>decode('ffd8','hex')
                       OR substring(_content from octet_length(_content)-1 for 2)<>decode('ffd9','hex')))
-                    OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf
-        """);
+                    OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$'
                       OR _type<>'application/pdf' OR octet_length(_content) NOT BETWEEN 8 AND 2097152
                       OR substring(_content from 1 for 5)<>decode('255044462d','hex')
                       OR substring(_content from octet_length(_content)-4 for 5)<>decode('2525454f46','hex'))) THEN
@@ -420,8 +409,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_media jsonb;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$'
                     OR _version IS NULL OR _version<1 OR _media IS NULL THEN
                     RAISE EXCEPTION 'media_invalid' USING ERRCODE='22023';
                   END IF;
@@ -468,14 +456,11 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_session uuid;
                   v_role text;
                 BEGIN
-                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-        """);
+                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
                     OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
-                    OR _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                    OR _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
-                    OR _group !~ '^[a-zA-Z0-9_-]+
-        """);
+                    OR _group !~ '^[a-zA-Z0-9_-]+$'
                     OR _title IS NULL OR char_length(_title) NOT BETWEEN 1 AND 140
                     OR _title<>btrim(_title) OR _title ~ '[[:cntrl:]]'
                     OR _body IS NULL OR char_length(_body) NOT BETWEEN 1 AND 4000
@@ -530,8 +515,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_role text;
                   v_drafts jsonb;
                 BEGIN
-                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-        """);
+                  IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
                     OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy') THEN
                     RAISE EXCEPTION 'draft_invalid_owner' USING ERRCODE='22023';
                   END IF;
@@ -569,8 +553,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_item club.app_announcements%ROWTYPE;
                 BEGIN
-                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _expected_version IS NULL OR _expected_version<1 THEN
                     RAISE EXCEPTION 'app_announcement_invalid' USING ERRCODE='22023';
                   END IF;
@@ -642,8 +625,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                 DECLARE v_actor uuid;
                   v_item club.app_announcements%ROWTYPE;
                 BEGIN
-                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _id IS NULL OR _id !~ '^ann_[0-9a-f]{32}$'
                     OR _expected_version IS NULL OR _expected_version<1 THEN
                     RAISE EXCEPTION 'app_announcement_invalid' USING ERRCODE='22023';
                   END IF;
@@ -677,8 +659,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_readers jsonb;
                   v_actor uuid;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """); THEN
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$' THEN
                     RAISE EXCEPTION 'notice_read_invalid' USING ERRCODE='22023';
                   END IF;
                   -- This locks and rechecks the active admin session, management
@@ -724,19 +705,16 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_media jsonb;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$'
                     OR _version IS NULL OR _version<1 OR _media IS NULL
                     OR _kind NOT IN ('banner','attachment')
-                    OR _name IS NULL OR _name COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,95}
-        """);
+                    OR _name IS NULL OR _name COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,95}$'
                     OR _content IS NULL
                     OR (_kind='banner' AND (_name<>'banner.jpg' OR _type<>'image/jpeg'
                       OR octet_length(_content) NOT BETWEEN 4 AND 1048576
                       OR substring(_content from 1 for 2)<>decode('ffd8','hex')
                       OR substring(_content from octet_length(_content)-1 for 2)<>decode('ffd9','hex')))
-                    OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf
-        """);
+                    OR (_kind='attachment' AND (_name !~* '^[A-Za-z0-9][A-Za-z0-9 ._()-]{0,91}\.pdf$'
                       OR _type<>'application/pdf' OR octet_length(_content) NOT BETWEEN 8 AND 2097152
                       OR substring(_content from 1 for 5)<>decode('255044462d','hex')
                       OR substring(_content from octet_length(_content)-4 for 5)<>decode('2525454f46','hex'))) THEN
@@ -786,8 +764,7 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   v_draft club.admin_announcement_drafts%ROWTYPE;
                   v_media jsonb;
                 BEGIN
-                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}
-        """);
+                  IF _announcement IS NULL OR _announcement !~ '^ann_[0-9a-f]{32}$'
                     OR _version IS NULL OR _version<1 OR _media IS NULL THEN
                     RAISE EXCEPTION 'media_invalid' USING ERRCODE='22023';
                   END IF;
