@@ -204,13 +204,10 @@
         {#key user.id+':'+role}
           {#if role === 'player'}
             <MobilePlayerClassrooms {controller}/>
+            <div id="hub-player-lesson" aria-hidden="true"></div>
           {/if}
-          {#if role === 'parent'}
+          {#if role === 'parent' || role === 'player'}
             <MobilePersonalLearningJourney {controller} viewerRole={role}/>
-          {:else if role === 'player'}
-            <section id="hub-player-lesson">
-              <MobilePersonalLearningJourney {controller} viewerRole={role}/>
-            </section>
           {/if}
           {#if role === 'fan'}
             <MobileAcademyEducation viewerRole={role} />
@@ -219,9 +216,8 @@
             <MobileFanPayablHub {controller} />
           {/if}
           {#if role === 'player'}
-            <section id="hub-player-quiz">
-              <MobilePlayerWeeklyQuiz {controller} />
-            </section>
+            <div id="hub-player-quiz" aria-hidden="true"></div>
+            <MobilePlayerWeeklyQuiz {controller} />
             <MobilePlayerCoachFeedback {controller} />
           {/if}
         {/key}
