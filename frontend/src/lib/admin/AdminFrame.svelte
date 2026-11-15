@@ -101,7 +101,23 @@
       {#if hasWebsite || liveIds.has('territories') || hasOperations}
         <div class="admin-nav-group admin-settings-section">
           <p class="admin-nav-label">ΣΥΣΤΗΜΑ</p>
-          <a class="admin-nav-section" href="/admin/settings" aria-current={active==='settings'?'page':undefined} data-testid="admin-settings-link">Ρυθμίσεις</a>
+          <a class="admin-nav-section" href="/admin/settings" aria-current={active==='settings'?'page':undefined} data-testid="admin-settings-link">Ρυθμίσεις συλλόγου</a>
+          <details class="admin-nav-settings-details" open={active==='settings'||active==='profile'}
+            data-testid="admin-settings-submenu">
+            <summary>Κατηγορίες ρυθμίσεων <span aria-hidden="true">⌄</span></summary>
+            <div class="admin-nav-settings-links">
+              {#if hasWebsite}
+                <a class="admin-nav-tool" href="/admin/settings#website-settings">Ιστοσελίδα &amp; περιεχόμενο</a>
+              {/if}
+              {#if liveIds.has('territories')}
+                <a class="admin-nav-tool" href="/admin/settings#football-settings">Πόλεις, γήπεδα &amp; τοποθεσίες</a>
+              {/if}
+              {#if hasOperations}
+                <a class="admin-nav-tool" href="/admin/settings#access-settings">Προσωπικό &amp; δικαιώματα</a>
+              {/if}
+              <a class="admin-nav-tool" href="/admin/profile" aria-current={active==='profile'?'page':undefined}>Ο προσωπικός μου λογαριασμός</a>
+            </div>
+          </details>
         </div>
       {/if}
     </nav>
