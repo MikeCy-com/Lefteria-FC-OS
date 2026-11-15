@@ -54,19 +54,20 @@ try {
       localStorage.setItem('mobile_available_roles',JSON.stringify(
         ['parent','player','coach','fan','management',role]));
     },{role});
+    // Broad fallback first: Playwright gives the most recently registered route
+    // precedence, so the auth-specific 401 handler below must win.
+    let unexpectedPrivateRequests=0;
+    await context.route('**/api/mobile/**',async request=>{
+      unexpectedPrivateRequests++;
+      await request.fulfill({status:403,contentType:'application/json',
+        body:JSON.stringify({detail:'Not authorized'})});
+    });
     let authChecks=0;
     await context.route('**/api/mobile/auth/**',async request=>{
       authChecks++;
       await request.fulfill({status:401,contentType:'application/json',
         headers:{'Cache-Control':'no-store'},
         body:JSON.stringify({detail:'The browser audit token is invalid',code:'session_expired'})});
-    });
-    // Fail closed: even an unexpected private API request cannot return private data.
-    let unexpectedPrivateRequests=0;
-    await context.route('**/api/mobile/**',async request=>{
-      unexpectedPrivateRequests++;
-      await request.fulfill({status:403,contentType:'application/json',
-        body:JSON.stringify({detail:'Not authorized'})});
     });
     for(const tab of privateTabs){
       const page=await context.newPage();
