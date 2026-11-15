@@ -43,7 +43,7 @@ internal sealed partial class WebAdminHttpChecks
         using(var missing=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
             await ExpectStatusAsync(missing,404);
         Console.WriteLine("CHECK admin-photo stage 2");
-        using(var unauth=await GetAsync(clientB,OwnPhotoPath,""))
+        using(var unauth=await clientB.GetAsync(OwnPhotoPath))
             await ExpectStatusAsync(unauth,401);
 
         Console.WriteLine("CHECK admin-photo stage 3");
