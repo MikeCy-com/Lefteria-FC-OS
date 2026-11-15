@@ -55,7 +55,7 @@
         {/if}
         {#if canTerritories}
           <section class="admin-panel" id="football-settings">
-            <p class="admin-eyebrow">ΟΡΓΑΝΩΣΗ ΑΚΑΔΗΜΙΑΣ</p>
+            <p class="admin-eyebrow">ΟΡΓΑΝΩΣΗ · ΥΠΟΔΟΜΕΣ</p>
             <h2>Πόλεις, τοποθεσίες & εγκαταστάσεις</h2>
             <p>Πραγματικές βάσεις προπόνησης, γήπεδα αγώνων και αντίπαλοι στον επιλεγμένο οργανισμό.
               Στην Ακαδημία αντίπαλοι και γήπεδα είναι κοινά <strong>ανά πόλη</strong>,
