@@ -148,6 +148,14 @@ public sealed class PosTerminalProvisioning : Migration
           THEN RAISE EXCEPTION 'pos_operator_location_grant_required'
              USING ERRCODE='42501'; END IF;
         END IF;
+        -- Never strand an open shift by revoking its active operator.
+        -- Close and reconcile the assigned shift before withdrawing access.
+        IF NOT _enabled AND EXISTS (
+          SELECT 1 FROM pos_cashier.shifts sh
+          WHERE sh.organization_id=_owner AND sh.register_id=_register
+            AND sh.cashier_id=_subject AND sh.closed_at IS NULL
+        ) THEN RAISE EXCEPTION 'pos_operator_open_shift_must_close'
+            USING ERRCODE='23514'; END IF;
         INSERT INTO pos_cashier.cashier_assignments(
           organization_id,register_id,admin_account_id,is_active)
           VALUES(_owner,_register,_subject,_enabled)
