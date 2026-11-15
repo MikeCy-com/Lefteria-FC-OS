@@ -147,10 +147,10 @@ BEGIN
     RAISE EXCEPTION 'Cross-city location/base mismatch accepted';
   EXCEPTION WHEN foreign_key_violation THEN NULL; END;
   BEGIN
-    INSERT INTO club.academy_group_location_assignments(
-      organization_id,group_id,city_id,location_id,scope_id
-    ) VALUES ('lefteria_fc_academy','missing-group',v_city_a,v_loc_b1,v_scope_a);
-    RAISE EXCEPTION 'Location assigned to the wrong city';
+    UPDATE club.academy_group_location_assignments
+       SET location_id=v_loc_b1
+     WHERE organization_id='lefteria_fc_academy' AND group_id=v_group_a1;
+    RAISE EXCEPTION 'Existing group relocated across cities without a matching scope';
   EXCEPTION WHEN foreign_key_violation THEN NULL; END;
 END $scope_fixture$;
 ROLLBACK;
