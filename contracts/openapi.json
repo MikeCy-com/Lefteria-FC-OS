@@ -2406,6 +2406,59 @@
         ],
         "type": "object"
       },
+      "Enrollment": {
+        "properties": {
+          "city_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "location_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "position": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "request_id",
+          "city_id",
+          "location_id",
+          "group_id",
+          "position",
+          "number"
+        ],
+        "type": "object"
+      },
       "FamilyChildDto": {
         "properties": {
           "academy_group_ids": {
@@ -9572,6 +9625,34 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Registration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/registrations/enroll": {
+      "post": {
+        "operationId": "EnrollAcademyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Enrollment"
               }
             }
           },

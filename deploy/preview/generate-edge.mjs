@@ -31,6 +31,8 @@ const entryOperations = [
   ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
+  // Exact reviewed enrollment POST; the API and SQL independently check authorization.
+  ['post', '/api/admin/academy/office/registrations/enroll', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
   ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],

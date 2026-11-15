@@ -38,7 +38,7 @@ for f in founding-admin-checks.sql academy-private-evaluation-guards-checks.sql 
   pos-location-ledger-checks.sql pos-cashier-ledger-checks.sql hub-recipient-learning-checks.sql academy-attendance-checks.sql \
   academy-attendance-lifecycle-checks.sql academy-training-plans-checks.sql academy-training-plans-lifecycle-checks.sql \
   player-birthday-lifecycle-checks.sql academy-crm-inbox-checks.sql academy-registration-intake-security-checks.sql \
-  academy-office-checks.sql payabl-callback-state-checks.sql payabl-training-fee-checks.sql general-charge-private-ledger-checks.sql \
+  academy-office-checks.sql academy-enrollment-checks.sql payabl-callback-state-checks.sql payabl-training-fee-checks.sql general-charge-private-ledger-checks.sql \
   admin-academy-profile-boundary.sql admin-first-team-profile-boundary.sql admin-profiled-group-create-boundary.sql guardian-permission-boundary.sql; do
   run "sql:$f" sql "$f"
 done
