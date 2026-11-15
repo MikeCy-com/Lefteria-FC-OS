@@ -2,7 +2,7 @@
 \set ECHO none
 -- Synthetic acceptance for Academy POS site/terminal/finance authority.
 -- Run ONLY against disposable migrated PostgreSQL. One unpaid synthetic
--- sale is inserted and deleted to prove recovery denial; all changes ROLLBACK.
+-- sale exists only in a rollback-on-error subtransaction; all changes ROLLBACK.
 -- No verified payment, refund, receipt, Payabl request or real person exists.
 BEGIN;
 DO $site_scope$
@@ -259,21 +259,22 @@ BEGIN
       AND t->'open_shift'->>'id'=v_cashier_shift::text
       AND (t->'open_shift'->>'cashier_active')::boolean=false
   ) THEN RAISE EXCEPTION 'supervisor_missing_suspended_shift_preview'; END IF;
-  -- A real unpaid sale blocks emergency closure. It is synthetic and
-  -- deleted inside the disposable test transaction before the positive path.
-  INSERT INTO pos_cashier.sales(
-    id,organization_id,register_id,shift_id,cashier_id,
-    request_id,subtotal_cents,total_cents)
-  VALUES(v_pending_sale,'lefteria_fc_academy',v_register_a1,
-    v_cashier_shift,v_cashier,gen_random_uuid(),100,100);
+  -- A real unpaid sale blocks emergency closure. The PL/pgSQL exception
+  -- block is an atomic subtransaction: on the expected 55000, it rolls back
+  -- the synthetic INSERT. Ledger sales have immutable no-DELETE triggers.
   BEGIN
+    INSERT INTO pos_cashier.sales(
+      id,organization_id,register_id,shift_id,cashier_id,
+      request_id,subtotal_cents,total_cents)
+    VALUES(v_pending_sale,'lefteria_fc_academy',v_register_a1,
+      v_cashier_shift,v_cashier,gen_random_uuid(),100,100);
     PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
       v_super_token,'lefteria_fc_academy',v_cashier_shift,
       1190,v_recovery_request,'account_suspended');
     RAISE EXCEPTION 'supervisor_recovered_shift_with_pending_sale';
   EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
-  DELETE FROM pos_cashier.sales
-    WHERE organization_id='lefteria_fc_academy' AND id=v_pending_sale;
+  IF EXISTS(SELECT 1 FROM pos_cashier.sales WHERE id=v_pending_sale)
+  THEN RAISE EXCEPTION 'synthetic_pending_sale_subtransaction_not_rolled_back'; END IF;
 
   BEGIN
     PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
