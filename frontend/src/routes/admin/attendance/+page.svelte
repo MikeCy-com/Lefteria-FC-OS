@@ -1,6 +1,7 @@
 <script lang="ts">
   import {getContext,untrack,onMount} from 'svelte';
   import {browser} from '$app/env';
+  import {page} from '$app/state';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
@@ -131,7 +132,9 @@
 
   $effect(()=>{
     const actor=$auth.session?.user.id;
-    const allowed=permitted;void groupReload;void actor;
+    const allowed=permitted;
+    const requestedGroup=page.url.searchParams.get('group_id');
+    void groupReload;void actor;
     let active=true;
     if(!browser||!allowed){groups=[];groupId='';return;}
     loadingGroups=true;error='';
@@ -148,7 +151,8 @@
         if(!validGroups(payload))throw new Error('Μη επαληθευμένα τμήματα Ακαδημίας.');
         if(active){
           groups=payload.groups;
-          if(!groups.some(g=>g.id===groupId))groupId=groups[0]?.id??'';
+          if(!groups.some(g=>g.id===groupId))
+            groupId=groups.find(g=>g.id===requestedGroup)?.id??groups[0]?.id??'';
         }
       }catch(e){
         if(active){groups=[];groupId='';error=e instanceof Error?e.message:'Σφάλμα τμημάτων.';}
