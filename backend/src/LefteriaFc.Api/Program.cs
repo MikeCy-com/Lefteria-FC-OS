@@ -238,6 +238,7 @@ app.MapAdminFinanceOverview();
 app.MapAdminSupplierBills();
 app.MapAdminSupplierPayments();
 app.MapAdminSupplierCredits();
+app.MapAdminSupplierReversals();
 
 if (app.Environment.IsDevelopment())
 {
