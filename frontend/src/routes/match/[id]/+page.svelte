@@ -4,8 +4,11 @@
   import { fixtureStatus, greekDate } from '../../../lib/public/content';
   import { CLUB_TIME_ZONE, kickoffInstant } from '../../../lib/public/fixture-clock';
   import type { PublicMatchData } from '../../../lib/server/public-match';
+  import { fixturePublicLink, publicCanonicalHref, publicSocialImage } from '../../../lib/public/public-urls';
   let { data }: { data: PublicMatchData } = $props();
   const fixture = $derived(data.fixture);
+  const canonical = $derived(publicCanonicalHref(fixturePublicLink(fixture)));
+  const socialImage = $derived(publicSocialImage(fixture.home_team_logo ?? fixture.away_team_logo));
   const academy = $derived(data.organization === 'lefteria_fc_academy');
   const back = $derived(academy ? '/academy#academy-fixtures' : fixture.status === 'Completed' ? '/team?tab=results' : '/team?tab=schedule');
   const group = $derived(data.site?.academy_groups.find(row => row.id === fixture.academy_group_id));
@@ -17,6 +20,12 @@
 <svelte:head>
   <title>{fixture.home_team} – {fixture.away_team} | ΛΕΥΤΕΡΙΑ FC</title>
   <meta name="description" content={`${fixture.competition || 'Αγώνας'} · ${greekDate(fixture.match_date)}${fixture.venue ? ' · ' + fixture.venue : ''}`} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={fixture.home_team+' – '+fixture.away_team+' | ΛΕΥΤΕΡΙΑ FC'} />
+  <meta property="og:description" content={`${fixture.competition || 'Αγώνας'} · ${greekDate(fixture.match_date)}`} />
+  <meta property="og:url" content={canonical} />
+  <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+  {#if socialImage}<meta property="og:image" content={socialImage} />{/if}
 </svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <section class="match-detail" data-testid="public-match-detail">
