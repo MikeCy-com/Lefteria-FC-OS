@@ -30,19 +30,21 @@ public sealed class CanonicalAcademyPublicDirectory : Migration
               'id',g.id,
               'organization_id','lefteria_fc_academy',
               'name',g.name,
-              'age_range',nullif(p.age_range,''),
-              'city',NULL,
-              'location_name',NULL,
-              'training_schedule',nullif(p.training_schedule,''),
-              'description',nullif(p.description,''),
-              'banner_url',nullif(p.banner_url,''),
-              'season',nullif(p.season,''),
-              'display_order',coalesce(p.display_order,0)
-            ) ORDER BY coalesce(p.display_order,0),g.name,g.id
+              'age_range',CASE WHEN p.group_id IS NOT NULL THEN nullif(p.age_range,'') ELSE d.data_json->>'age_range' END,
+              'city',d.data_json->>'city',
+              'location_name',d.data_json->>'location_name',
+              'training_schedule',CASE WHEN p.group_id IS NOT NULL THEN nullif(p.training_schedule,'') ELSE d.data_json->>'training_schedule' END,
+              'description',CASE WHEN p.group_id IS NOT NULL THEN nullif(p.description,'') ELSE d.data_json->>'description' END,
+              'banner_url',CASE WHEN p.group_id IS NOT NULL THEN nullif(p.banner_url,'') ELSE d.data_json->>'banner_url' END,
+              'season',CASE WHEN p.group_id IS NOT NULL THEN nullif(p.season,'') ELSE d.data_json->>'season' END,
+              'display_order',coalesce(p.display_order,(d.data_json->>'display_order')::integer,0)
+            ) ORDER BY coalesce(p.display_order,(d.data_json->>'display_order')::integer,0),g.name,g.id
           ),'[]'::jsonb)
           FROM club.academy_groups g
           LEFT JOIN club.academy_group_profiles p
             ON p.organization_id=g.organization_id AND p.group_id=g.id
+          LEFT JOIN public_content.documents d ON d.kind='academy_group'
+            AND d.organization_id=g.organization_id AND d.id=g.id
           WHERE g.organization_id='lefteria_fc_academy'
         ) ELSE NULL::jsonb END;
       $public_academy$;
