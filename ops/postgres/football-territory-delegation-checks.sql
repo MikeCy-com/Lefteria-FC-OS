@@ -295,6 +295,82 @@ BEGIN
   INSERT INTO club.player_academy_groups(organization_id,player_id,academy_group_id)
   VALUES('lefteria_fc_academy',v_player_a1,v_group_a1);
 
+  -- Document metadata is equally geography-bound. Synthetic, encrypted
+  -- disposable fixtures contain no real identity, medical or user files.
+  v_data:=academy_private.quarantine_admin_player_document(
+    v_token_local,'lefteria_fc_academy',v_player_a1,gen_random_uuid(),
+    'other','CI North encrypted metadata',NULL,NULL,'application/pdf',32,
+    repeat('a',64),'ci-disposable-test-key',gen_random_uuid(),
+    decode(repeat('00',32),'hex'),decode(repeat('00',12),'hex'),
+    decode(repeat('00',16),'hex'));
+  IF v_data->>'scan_status'<>'quarantined' THEN
+    RAISE EXCEPTION 'document_manager_upload_unverified'; END IF;
+  v_data:=academy_private.read_admin_player_document_metadata(
+    v_token_local,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>1 OR
+    v_data->'documents'->0->>'title'<>'CI North encrypted metadata'
+  THEN RAISE EXCEPTION 'document_manager_read_own_site_failed'; END IF;
+  BEGIN
+    PERFORM academy_private.quarantine_admin_player_document(
+      v_token_local,'lefteria_fc_academy',v_player_a2,gen_random_uuid(),
+      'other','Unauthorized South',NULL,NULL,'application/pdf',32,
+      repeat('a',64),'ci-disposable-test-key',gen_random_uuid(),
+      decode(repeat('00',32),'hex'),decode(repeat('00',12),'hex'),
+      decode(repeat('00',16),'hex'));
+    RAISE EXCEPTION 'manager_uploaded_sibling_private_document';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM academy_private.read_admin_player_document_metadata(
+      v_token_local,'lefteria_fc_academy',v_player_a2);
+    RAISE EXCEPTION 'manager_read_sibling_private_document';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_data:=academy_private.quarantine_admin_player_document(
+    v_token_manager,'lefteria_fc_academy',v_player_a2,gen_random_uuid(),
+    'other','CI South encrypted metadata',NULL,NULL,'application/pdf',32,
+    repeat('a',64),'ci-disposable-test-key',gen_random_uuid(),
+    decode(repeat('00',32),'hex'),decode(repeat('00',12),'hex'),
+    decode(repeat('00',16),'hex'));
+  v_data:=academy_private.read_admin_player_document_metadata(
+    v_token_manager,'lefteria_fc_academy',v_player_a2);
+  IF (v_data->>'total')::int<>1 THEN
+    RAISE EXCEPTION 'city_manager_cannot_read_site_document'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM academy_private.player_documents d
+    WHERE d.organization_id='lefteria_fc_academy'
+      AND d.player_id=v_player_a1 AND d.origin_scope_id=v_scope_a
+      AND d.origin_city_id=v_city_a AND d.origin_location_id=v_loc_a1
+      AND d.origin_recorded_at IS NOT NULL)
+  THEN RAISE EXCEPTION 'document_origin_not_recorded'; END IF;
+  BEGIN
+    UPDATE academy_private.player_documents d
+      SET origin_location_id=v_loc_a2
+      WHERE d.organization_id='lefteria_fc_academy' AND d.player_id=v_player_a1;
+    RAISE EXCEPTION 'document_origin_was_mutable';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_a1;
+  INSERT INTO club.player_academy_groups(organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_b);
+  BEGIN
+    PERFORM academy_private.read_admin_player_document_metadata(
+      v_token_manager,'lefteria_fc_academy',v_player_a1);
+    RAISE EXCEPTION 'old_city_manager_read_transferred_document';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',true);
+  v_data:=academy_private.read_admin_player_document_metadata(
+    v_token_manager,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>0 OR jsonb_array_length(v_data->'documents')<>0
+  THEN RAISE EXCEPTION 'new_city_manager_inherited_old_document'; END IF;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',false);
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_b;
+  INSERT INTO club.player_academy_groups(organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_a1);
+
   v_data:=club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
     v_local,'location',v_loc_a1,'location_manager',false);
   IF (v_data->>'changed')::boolean IS NOT TRUE THEN
