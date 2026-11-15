@@ -298,10 +298,14 @@
             <button type="button" class="admin-secondary" onclick={() => retry++}>Δοκιμή ξανά</button>
           </section>
         {:else}
-          <div class="admin-audiences-stats" aria-label="Πραγματική σύνοψη">
-            <div><span>Ομάδες / τμήματα</span><strong>{directory.groups.length}</strong></div>
-            <div><span>Ενεργές συμμετοχές</span><strong>{directory.groups.reduce((n,g) => n+g.active_players,0)}</strong></div>
-            <div><span>Χωρίς τμήμα</span><strong>{directory.unassigned_players}</strong></div>
+          <div class="admin-audiences-stats" aria-label="Σύνοψη εξουσιοδοτημένων ομάδων">
+            <div><span>Ορατές ομάδες / τμήματα</span><strong>{directory.groups.length}</strong></div>
+            <div><span>Συμμετοχές σε ορατά τμήματα</span><strong>{directory.groups.reduce((n,g) => n+g.active_players,0)}</strong></div>
+            {#if $auth.session?.user.role==='super_admin'}
+              <div data-testid="admin-audiences-unassigned"><span>Χωρίς τμήμα (οργανισμός)</span><strong>{directory.unassigned_players}</strong></div>
+            {:else}
+              <div data-testid="admin-audiences-scoped"><span>Πεδίο πρόσβασης</span><strong class="admin-audiences-scope-text">Μόνο ανατεθειμένα τμήματα</strong></div>
+            {/if}
           </div>
           {#if lastCreatedGroupId && lastCreatedOrganization===organization}
             <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
@@ -490,6 +494,7 @@
   .admin-audiences-stats>div{padding:16px;background:#121415;border:1px solid #303335;border-radius:12px;display:flex;flex-direction:column;gap:7px}
   .admin-audiences-stats span,.admin-audiences-caption,.admin-audiences-count span{font-size:12px;color:#aab0b3}
   .admin-audiences-stats strong{font-family:'Fira Sans Extra Condensed',sans-serif;font-size:29px;color:#ffca46}
+  .admin-audiences-stats .admin-audiences-scope-text{font-family:inherit;font-size:14px;line-height:1.35;color:#f8e6ac;overflow-wrap:anywhere}
   .admin-audiences-heading{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
   .admin-audiences-heading h2{margin:0}
   .admin-audiences-list{margin:12px 0 0;padding:0;list-style:none}
