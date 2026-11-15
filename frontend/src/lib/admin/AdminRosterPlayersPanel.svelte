@@ -5,7 +5,7 @@
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = {id: string;name: string;kind: 'team'|'academy_group';active_players: number};
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
-  type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
+  type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
   let {owner,actorId,groups,groupId='',allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];groupId?:string;
@@ -176,7 +176,7 @@
         const json:unknown=await response.json();
         if(!verified(json,currentOwner,currentOffset) ||
           (focusedGroup&&mode==='members' &&
-            ((json as Record<string,unknown>).group_id!==focusedGroup ||
+            (json.group_id!==focusedGroup ||
              json.players.some(player=>!currentGroups(player).includes(focusedGroup)))))
           throw new Error('Invalid group roster response.');
         if(!controller.signal.aborted)page=json;
