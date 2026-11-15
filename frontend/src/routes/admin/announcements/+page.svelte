@@ -124,6 +124,8 @@
     const actor=$auth.session?.user.id;
     const grants=permitted.map(o=>o.id).join('|');
     const generation=reload;
+    const requestedGroup=page.url.searchParams.get('group_id');
+    const requestedOwner=page.url.searchParams.get('organization_id');
     void actor;void grants;void generation;
     groups=[];drafts=[];published=[];groupId='';originGroupId='';title='';body='';error=null;success=null;
     readerItem=null;readerRows=[];
@@ -154,8 +156,6 @@
           groups=groupRaw.groups;drafts=draftRaw.drafts;published=liveRaw.announcements;
           // Never trust the URL's group ID by itself: it must be returned
           // from the fresh organization-scoped canonical audience directory.
-          const requestedOwner=page.url.searchParams.get('organization_id');
-          const requestedGroup=page.url.searchParams.get('group_id');
           if(requestedOwner===owner && requestedGroup &&
             groupRaw.groups.some(g=>g.id===requestedGroup)){
             groupId=requestedGroup;
