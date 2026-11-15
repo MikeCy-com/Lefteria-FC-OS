@@ -575,6 +575,8 @@ BEGIN
     OR NOT has_function_privilege(current_user,
        'hub.read_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text)','EXECUTE')
     OR NOT has_function_privilege(current_user,
+       'hub.read_mobile_player_classrooms(uuid,text,text,timestamptz,text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
        'hub.submit_mobile_player_weekly_quiz(uuid,text,text,timestamptz,text,uuid,jsonb)','EXECUTE')
     OR has_function_privilege(current_user,
        'hub.assert_current_quiz_player(uuid,text,text,timestamptz,text)','EXECUTE')
