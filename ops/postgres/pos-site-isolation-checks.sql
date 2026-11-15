@@ -15,6 +15,7 @@ DECLARE
   v_cashier uuid:=gen_random_uuid();
   v_cashier_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_cashier_shift uuid;
+  v_recovery_request uuid:=gen_random_uuid();
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_local_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -222,6 +223,23 @@ BEGIN
   IF (v_result->>'variance_cents')::bigint<>0
   THEN RAISE EXCEPTION 'cashier_empty_shift_reconciliation_invalid'; END IF;
 
+  -- A suspended-only recovery cannot force-close a live cashier's shift.
+  v_cashier_shift:=(pos_cashier.open_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1,1200,gen_random_uuid())
+      ->>'shift_id')::uuid;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'active_cashier_shift_force_closed_by_super_admin';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_city_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'city_manager_force_closed_cashier_shift';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- Suspending the cashier blocks further terminal use immediately.
   UPDATE identity.admin_accounts SET is_active=false WHERE id=v_cashier;
   BEGIN
@@ -230,6 +248,72 @@ BEGIN
     RAISE EXCEPTION 'suspended_cashier_retained_terminal_access';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- Super Admin sees exactly the suspended cashier's still-open shift.
+  v_result:=pos_cashier.read_admin_terminal_setup(
+    v_super_token,'lefteria_fc_academy');
+  IF NOT EXISTS(
+    SELECT 1 FROM jsonb_array_elements(v_result->'terminals') AS t
+    WHERE t->>'id'=v_register_a1
+      AND t->'open_shift'->>'id'=v_cashier_shift::text
+      AND (t->'open_shift'->>'cashier_active')::boolean=false
+  ) THEN RAISE EXCEPTION 'supervisor_missing_suspended_shift_preview'; END IF;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_cashier_token,'lefteria_fc_academy',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'cashier_force_closed_own_suspended_shift';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_cross_org_shift_recovery';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Enter an actual counted cash amount; the variance is preserved,
+  -- not manufactured as zero and no sale/payment/receipt is generated.
+  v_result:=pos_cashier.recover_suspended_admin_cashier_shift(
+    v_super_token,'lefteria_fc_academy',v_cashier_shift,
+    1190,v_recovery_request,'account_suspended');
+  IF (v_result->>'variance_cents')::bigint<>-10
+    OR (v_result->>'expected_cash_cents')::bigint<>1200
+    OR (v_result->>'counted_cash_cents')::bigint<>1190
+    OR NOT (v_result->>'requires_review')::boolean
+    OR (v_result->>'replay')::boolean
+    OR (SELECT cashier_id FROM pos_cashier.shifts WHERE id=v_cashier_shift)<>v_cashier
+    OR (SELECT recovery_actor_id FROM pos_cashier.shifts WHERE id=v_cashier_shift)<>v_super
+    OR (SELECT recovery_reason FROM pos_cashier.shifts WHERE id=v_cashier_shift)
+      <>'account_suspended'
+  THEN RAISE EXCEPTION 'supervisor_recovery_ledger_evidence_invalid'; END IF;
+  v_result:=pos_cashier.recover_suspended_admin_cashier_shift(
+    v_super_token,'lefteria_fc_academy',v_cashier_shift,
+    1190,v_recovery_request,'account_suspended');
+  IF NOT (v_result->>'replay')::boolean
+    OR (v_result->>'variance_cents')::bigint<>-10
+    OR (SELECT count(*) FROM pos_cashier.transaction_audit
+      WHERE organization_id='lefteria_fc_academy'
+        AND request_id=v_recovery_request AND action='shift_recovery_close')<>1
+  THEN RAISE EXCEPTION 'supervisor_recovery_replay_not_idempotent'; END IF;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_recovery_replay_count_mismatch_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM pos_cashier.sales
+      WHERE organization_id='lefteria_fc_academy' AND shift_id=v_cashier_shift)
+    OR EXISTS(SELECT 1 FROM pos_cashier.receipts WHERE organization_id='lefteria_fc_academy')
+    OR EXISTS(SELECT 1 FROM pos_cashier.payment_events WHERE organization_id='lefteria_fc_academy')
+  THEN RAISE EXCEPTION 'supervisor_recovery_fabricated_payment_or_receipt'; END IF;
+
+  -- Recovery completes before removal of a formerly stranded assignment.
+  v_result:=pos_cashier.set_admin_terminal_operator(
+    v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,false);
+  IF (v_result->>'active')::boolean OR
+    EXISTS(SELECT 1 FROM pos_cashier.cashier_assignments
+      WHERE organization_id='lefteria_fc_academy' AND register_id=v_register_a1
+        AND admin_account_id=v_cashier AND is_active)
+  THEN RAISE EXCEPTION 'recovered_shift_terminal_revocation_failed'; END IF;
 
   v_result:=pos_cashier.read_admin_pos_sites(v_local_token,'lefteria_fc_academy');
   IF jsonb_array_length(v_result->'sites')<>1
