@@ -274,6 +274,12 @@ export function protectedOperations(document) {
   return operations.sort((left, right) => left.method.localeCompare(right.method) || left.path.localeCompare(right.path));
 }
 
+// One intentionally undocumented, player-JWT-only classroom route. Review
+// its exact API source and PostgreSQL function before adding new paths.
+export const reviewedHiddenMobileEntries = [
+  ['get','/api/mobile/hub/player-classrooms']
+];
+
 export function bearerRouteGroups(document) {
   const groups = new Map();
   for (const operation of protectedOperations(document)) {
@@ -281,7 +287,303 @@ export function bearerRouteGroups(document) {
     group.push(operation.expression);
     groups.set(operation.method, group);
   }
-  return [...groups].map(([method, expressions]) => ({ method, expression: `^(?:${expressions.join('|')})$` }));
+  for(const [method,path] of reviewedHiddenMobileEntries){
+    if(document?.paths?.[path]?.[method])
+      throw new Error('Promote newly documented private Mobile route to contract review.');
+    const expressions=groups.get(method.toUpperCase())??[];
+    expressions.push('/'+entryPattern(path));
+    groups.set(method.toUpperCase(),expressions);
+  }
+  return [...groups].map(([method, expressions]) => ({ method, expression: `^(?:${expressions.join('|')})import { createHash } from 'node:crypto';
+import { readFile, writeFile } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
+
+const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
+const supportedHost = 'srv1649602.hstgr.cloud';
+const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections', '/api/public/website/pages'];
+const publicMediaPath = '/api/uploads/{folder}/{fileName}';
+const publicMediaFolders = ['players', 'staff', 'news', 'partners', 'sponsors', 'gallery', 'opponent',
+  'groups', 'academy', 'products', 'venues', 'club', 'teams', 'events', 'reels', 'standings'];
+export const publicMediaExpression = '^/api/uploads/(?:' + publicMediaFolders.join('|') + ')/[^/]+$';
+export function reviewedPublicMedia(document) {
+  const operations = document?.paths?.[publicMediaPath];
+  for (const method of ['get', 'head']) {
+    const operation = operations?.[method];
+    if (!operation || (operation.security !== undefined &&
+      (!Array.isArray(operation.security) || operation.security.length !== 0)))
+      throw new Error('Reviewed public media must remain anonymous.');
+    for (const key of ['folder', 'fileName']) {
+      if (![...(operations.parameters ?? []), ...(operation.parameters ?? [])]
+        .some(value => value?.in === 'path' && value.name === key && value.required === true))
+        throw new Error('Reviewed public media requires path parameters.');
+    }
+  }
+  return publicMediaExpression;
+}
+
+const entryOperations = [
+  ['post', '/api/admin/auth/login', []], ['post', '/api/admin/auth/logout', []],
+  ['get', '/api/admin/auth/setup', []], ['post', '/api/admin/auth/setup', []],
+  ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
+  // Exact reviewed enrollment POST; the API and SQL independently check authorization.
+  ['post', '/api/admin/academy/office/registrations/enroll', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
+  ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
+  ['get', '/api/admin/auth/me', [{ WebAdmin: [] }]],
+  ['get', '/api/admin/club', [{ WebAdmin: [] }]], ['put', '/api/admin/club', [{ WebAdmin: [] }]],
+  // Reviewed admin announcement operations only. Caddy still defers every
+  // session, permission and organization check to the secured ASP.NET API.
+  ['get','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts/{id}/publish',[{ WebAdmin: [] }]],
+  ['post','/api/admin/communications/announcement-drafts/{id}/media',[{ WebAdmin: [] }]],
+  ['delete','/api/admin/communications/announcement-drafts/{id}/media/{mediaId}',[{ WebAdmin: [] }]],
+  ['get','/api/admin/communications/app-announcements',[{ WebAdmin: [] }]],
+  ['get','/api/admin/communications/app-announcements/{id}/readers',[{ WebAdmin: [] }]],
+  ['delete','/api/admin/communications/app-announcements/{id}',[{ WebAdmin: [] }]],
+  ['post', '/api/mobile/auth/request-otp', []], ['post', '/api/mobile/auth/verify-otp', []],
+  ['post', '/api/mobile/auth/register-fan', []],
+  ['post', '/api/mobile/auth/exchange-legacy', [{ LegacyMobile: [] }]],
+  ['get', '/api/uploads/avatars/{fileName}', []], ['head', '/api/uploads/avatars/{fileName}', []]
+];
+
+// A fixed reviewed snapshot, not automatic publication of all future APIs.
+// These 90 existing WebAdmin-only operations were absent from the old preview
+// edge list, so even healthy APIs failed with an edge 404. Every entry's exact
+// method, path, mandatory parameters and WebAdmin security is rechecked
+// against the immutable contract; new routes must be explicitly reviewed.
+export const reviewedAdminEntries = [
+  ['get','/api/admin/academy/training'],
+  ['get','/api/admin/academy/training/plans'],
+  ['post','/api/admin/academy/training/plans'],
+  ['get','/api/admin/academy/training/plans/approvals'],
+  ['get','/api/admin/academy/training/plans/publications'],
+  ['put','/api/admin/academy/training/plans/{planId}'],
+  ['post','/api/admin/academy/training/plans/{planId}/approve'],
+  ['post','/api/admin/academy/training/plans/{planId}/cancel'],
+  ['get','/api/admin/academy/training/plans/{planId}/publication-preview'],
+  ['post','/api/admin/academy/training/plans/{planId}/publish'],
+  ['get','/api/admin/academy/training/{eventId}/attendance'],
+  ['post','/api/admin/academy/training/{eventId}/attendance'],
+  ['get','/api/admin/club/players/{playerId}/documents'],
+  ['post','/api/admin/club/players/{playerId}/documents'],
+  ['get','/api/admin/club/players/{playerId}/evaluations'],
+  ['post','/api/admin/club/players/{playerId}/evaluations'],
+  ['get','/api/admin/crm/academy/leads'],
+  ['post','/api/admin/crm/academy/leads/{leadId}/status'],
+  ['get','/api/admin/finance/payabl/invoices/multi.pdf'],
+  ['get','/api/admin/finance/payabl/invoices/{invoiceId}.pdf'],
+  ['get','/api/admin/finance/payabl/payment-requests'],
+  ['post','/api/admin/finance/payabl/payment-requests'],
+  ['get','/api/admin/finance/payabl/status'],
+  ['get','/api/admin/finance/payabl/training-fees'],
+  ['post','/api/admin/finance/payabl/training-fees'],
+  ['post','/api/admin/finance/payabl/training-fees/{feeId}/cash'],
+  ['post','/api/admin/finance/payabl/training-fees/{feeId}/sms'],
+  ['get','/api/admin/football/academy-group-profiles/{groupId}'],
+  ['put','/api/admin/football/academy-group-profiles/{groupId}'],
+  ['put','/api/admin/football/academy-group-profiles/{groupId}/visibility'],
+  ['put','/api/admin/football/assignments'],
+  ['get','/api/admin/football/audiences'],
+  ['put','/api/admin/football/coach-assignments'],
+  ['get','/api/admin/football/coaches'],
+  ['get','/api/admin/football/first-team-profiles/{teamId}'],
+  ['put','/api/admin/football/first-team-profiles/{teamId}'],
+  ['post','/api/admin/football/groups'],
+  ['post','/api/admin/football/groups/with-profile'],
+  ['get','/api/admin/football/players'],
+  ['get','/api/admin/football/players/{playerId}/birthday-preferences'],
+  ['put','/api/admin/football/players/{playerId}/birthday-preferences'],
+  ['post','/api/admin/hub/ai/education-briefs'],
+  ['get','/api/admin/hub/editorial'],
+  ['post','/api/admin/hub/editorial'],
+  ['get','/api/admin/hub/editorial/{id}'],
+  ['post','/api/admin/hub/editorial/{id}/final-approve'],
+  ['post','/api/admin/hub/editorial/{id}/images/quarantine'],
+  ['get','/api/admin/hub/editorial/{id}/images/{mediaId}/preview'],
+  ['post','/api/admin/hub/editorial/{id}/images/{mediaId}/reject'],
+  ['post','/api/admin/hub/editorial/{id}/publish'],
+  ['post','/api/admin/hub/editorial/{id}/return-for-revision'],
+  ['post','/api/admin/hub/editorial/{id}/revise'],
+  ['post','/api/admin/hub/editorial/{id}/submit-review'],
+  ['post','/api/admin/hub/editorial/{id}/text-review'],
+  ['post','/api/admin/hub/editorial/{id}/visual-approve'],
+  ['get','/api/admin/hub/player-quizzes'],
+  ['post','/api/admin/hub/player-quizzes'],
+  ['get','/api/admin/hub/player-quizzes/{id}'],
+  ['post','/api/admin/hub/player-quizzes/{id}/approve'],
+  ['post','/api/admin/hub/player-quizzes/{id}/publish'],
+  ['post','/api/admin/hub/player-quizzes/{id}/withdraw'],
+  ['get','/api/admin/pos/cashier/finance-handoff'],
+  ['get','/api/admin/pos/cashier/receipts/{receiptId}'],
+  ['get','/api/admin/pos/cashier/registers'],
+  ['post','/api/admin/pos/cashier/registers/{registerId}/sales/prepare'],
+  ['post','/api/admin/pos/cashier/registers/{registerId}/shifts'],
+  ['post','/api/admin/pos/cashier/returns/{returnId}/refund-requests'],
+  ['post','/api/admin/pos/cashier/returns/{returnId}/review'],
+  ['post','/api/admin/pos/cashier/sales/{saleId}/cancel'],
+  ['post','/api/admin/pos/cashier/sales/{saleId}/returns'],
+  ['post','/api/admin/pos/cashier/sales/{saleId}/tender-cash'],
+  ['post','/api/admin/pos/cashier/shifts/{shiftId}/close'],
+  ['get','/api/admin/pos/cashier/shifts/{shiftId}/reconciliation'],
+  ['get','/api/admin/pos/catalog'],
+  ['post','/api/admin/pos/categories'],
+  ['put','/api/admin/pos/categories/{id}'],
+  ['post','/api/admin/pos/cities'],
+  ['get','/api/admin/pos/locations'],
+  ['post','/api/admin/pos/locations'],
+  ['put','/api/admin/pos/locations/{locationId}/products/{productId}'],
+  ['post','/api/admin/pos/locations/{locationId}/stock'],
+  ['post','/api/admin/pos/products'],
+  ['put','/api/admin/pos/products/{id}'],
+  ['get','/api/admin/trials/settings'],
+  // Native CMS: only these exact per-organization draft and approval operations.
+  ['get','/api/admin/website/pages'],
+  ['post','/api/admin/website/pages'],
+  ['put','/api/admin/website/pages/{slug}'],
+  ['post','/api/admin/website/pages/{slug}/publication'],
+  ['get','/api/admin/website/news'],
+  ['get','/api/admin/website/news-drafts'],
+  ['post','/api/admin/website/news-drafts'],
+  ['put','/api/admin/website/news-drafts/{id}'],
+  ['get','/api/admin/website/news/{id}'],
+  ['put','/api/admin/website/news/{id}'],
+];
+
+// These private endpoints are intentionally excluded from the public OpenAPI
+// inventory. Each one has an explicit WebAdmin authorization guard in source,
+// and the preview routing review test pins that source policy. No wildcards.
+export const reviewedHiddenAdminEntries = [
+  ['get','/api/admin/hub/fan-subscriptions/overview'],
+  ['get','/api/admin/football/territories'],
+  ['post','/api/admin/football/territories'],
+  ['get','/api/admin/football/territories/access'],
+  ['put','/api/admin/football/territories/access'],
+  ['get','/api/admin/football/territories/metrics'],
+  ['get','/api/admin/football/group-players'],
+  ['get','/api/admin/access/users'],
+  ['post','/api/admin/access/users'],
+  ['post','/api/admin/access/users/status'],
+  ['post','/api/admin/access/users/role'],
+  ['get','/api/admin/academy/intake'],
+  // Explicit private review routes; API and SQL independently require Academy Super Admin.
+  ['get','/api/admin/academy/office/guardians'],
+  ['post','/api/admin/academy/office/guardians/verify'],
+  ['post','/api/admin/academy/office/guardians/revoke'],
+  ['post','/api/admin/auth/profile/name'],
+  ['post','/api/admin/auth/profile/password'],
+  // Future self-service contact address is still an admin-cookie operation;
+  // it does not enable auth/recovery email use.
+  ['get','/api/admin/auth/profile/contact-email'],
+  ['post','/api/admin/auth/profile/contact-email']
+];
+
+function entryPattern(path,operation) {
+  if(!path.startsWith('/api/') || path.includes('//') || path.endsWith('/'))
+    throw new Error('Unsafe preview entry route');
+  const params=[...(operation?.parameters??[])];
+  return path.split('/').slice(1).map(segment=>{
+    const variable=/^\{([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(segment);
+    const pdf=/^\{([A-Za-z_][A-Za-z0-9_]*)\}[.]pdf$/.exec(segment);
+    if(variable||pdf){
+      const parameter=(variable??pdf)[1];
+      if(operation&&!params.some(p=>p?.in==='path'&&p.name===parameter&&p.required===true))
+        throw new Error('Reviewed entry route requires a declared path parameter');
+      return pdf?'[0-9a-fA-F-]{36}[.]pdf':'[^/]+';
+    }
+    if(!/^[A-Za-z0-9_-]+(?:[.]pdf)?$/.test(segment))
+      throw new Error('Unsafe preview route segment');
+    return segment.replaceAll('.', '[.]');
+  }).join('/');
+}
+
+
+export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|about|contact|privacy|terms|fixtures|calendar|venues)(?:/__data[.]json)?$|(?:news|academy|match|player|staff|events|partners|sponsors|seasons|pages)(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
+export const publicApiExpression = '^/api/public/(?:site|sections|news(?:/[^/]+)?|website/pages)$';
+
+export function reviewedPublicReads(document) {
+  // This curated list never opens a newly added anonymous API automatically.
+  for (const path of publicApiPaths) {
+    const operation = document?.paths?.[path]?.get;
+    if (!operation || (operation.security !== undefined &&
+        (!Array.isArray(operation.security) || operation.security.length !== 0))) {
+      throw new Error('Reviewed public reads must remain explicitly anonymous.');
+    }
+  }
+  const parameter = document.paths['/api/public/news/{id}'].get.parameters;
+  if (!parameter?.some(value => value.in === 'path' && value.name === 'id' && value.required === true)) {
+    throw new Error('The public article path parameter must remain required.');
+  }
+  return publicApiPaths;
+}
+
+export function protectedOperations(document) {
+  if (!document || typeof document !== 'object' || Array.isArray(document) ||
+      !document.paths || typeof document.paths !== 'object' || Array.isArray(document.paths) ||
+      document.security !== undefined) throw new Error('Explicit operation security is required.');
+  const operations = [];
+  for (const [path, item] of Object.entries(document.paths)) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) throw new Error('Invalid path item.');
+    for (const [method, operation] of Object.entries(item)) {
+      if (!methods.has(method)) continue;
+      if (!operation || typeof operation !== 'object' || Array.isArray(operation)) throw new Error('Invalid operation.');
+      const security = operation.security;
+      const mentionsMobile = Array.isArray(security) && security.some(value =>
+        value && typeof value === 'object' && Object.hasOwn(value, 'Mobile'));
+      if (!mentionsMobile) continue;
+      if (security.length !== 1 || Object.keys(security[0]).length !== 1 ||
+          !Array.isArray(security[0].Mobile) || security[0].Mobile.length !== 0) {
+        throw new Error('Ambiguous Mobile operation security.');
+      }
+      if (!path.startsWith('/api/mobile/') || path.endsWith('/') || path.includes('//')) {
+        throw new Error('Unexpected Mobile operation path.');
+      }
+      const declaredParameters = [...(item.parameters ?? []), ...(operation.parameters ?? [])];
+      const segments = path.split('/').slice(1).map(segment => {
+        const parameter = /^\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/.exec(segment);
+        if (parameter) {
+          if (!declaredParameters.some(value => value?.in === 'path' && value.name === parameter[1] && value.required === true)) {
+            throw new Error('A path parameter must be explicitly required.');
+          }
+          return '[^/]+';
+        }
+        // Only two reviewed private invoice downloads use a literal .pdf
+        // suffix. Never allow arbitrary dotted paths in the Mobile router.
+        if (method === 'get' && path === '/api/mobile/finance/invoices/multi.pdf' &&
+            segment === 'multi.pdf') return 'multi[.]pdf';
+        if (method === 'get' && path === '/api/mobile/finance/invoices/{invoiceId}.pdf' &&
+            segment === '{invoiceId}.pdf') {
+          if (!declaredParameters.some(value => value?.in === 'path' &&
+              value.name === 'invoiceId' && value.required === true))
+            throw new Error('A path parameter must be explicitly required.');
+          return '[0-9a-fA-F-]{36}[.]pdf';
+        }
+        if (!/^[a-zA-Z0-9_-]+$/.test(segment)) throw new Error('Unsafe Mobile operation path.');
+        return segment;
+      });
+      operations.push({ method: method.toUpperCase(), path, expression: '/' + segments.join('/') });
+    }
+  }
+  if (operations.length === 0) throw new Error('No explicit Mobile operations were found.');
+  return operations.sort((left, right) => left.method.localeCompare(right.method) || left.path.localeCompare(right.path));
+}
+
+// One intentionally undocumented, player-JWT-only classroom route. Review
+// its exact API source and PostgreSQL function before adding new paths.
+export const reviewedHiddenMobileEntries = [
+  ['get','/api/mobile/hub/player-classrooms']
+];
+
+export function bearerRouteGroups(document) {
+  const groups = new Map();
+  for (const operation of protectedOperations(document)) {
+    const group = groups.get(operation.method) ?? [];
+    group.push(operation.expression);
+    groups.set(operation.method, group);
+  }
+ }));
 }
 
 export function entryRouteGroups(document) {
