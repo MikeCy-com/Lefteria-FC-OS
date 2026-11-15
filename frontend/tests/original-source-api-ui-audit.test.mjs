@@ -37,9 +37,13 @@ test('legacy staff destination preserves original First Team overview redirect',
 test('unported sensitive source flows remain honest instead of fake success',()=>{
   for(const path of ['join','academy/registration','vote']){
     const s=source('src/routes/'+path+'/+page.svelte');
-    assert.match(s,path === 'academy/registration' ? /<fieldset disabled/ : /PublicJourney/);
+    assert.match(s,/PublicJourney/);
     assert.doesNotMatch(s,/fetch\([^)]*method: ['"]POST['"]/);
   }
+  const registration=source('src/routes/academy/registration/+page.svelte');
+  assert.match(registration,/data-testid="step-5"/);
+  assert.match(registration,/response.status===202/);
+  assert.match(registration,/registration-submit-error/);
   const trial=source('src/routes/trials/+page.svelte');
   assert.match(trial,/trials-closed/);
   assert.doesNotMatch(trial,/\bhandleSubmit\b/);
