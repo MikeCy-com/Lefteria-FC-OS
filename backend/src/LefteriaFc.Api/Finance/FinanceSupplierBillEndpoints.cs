@@ -189,6 +189,35 @@ public static class FinanceSupplierBillEndpoints
             return await Run(cmd, ct);
         }).WithName("ReadAcademySupplierBillLocationTotals")
           .ExcludeFromDescription();
+        // The legacy /supplier-bills endpoint remains a gross-obligation
+        // report. The new site-only endpoint adds manually reviewed credits
+        // and payment evidence without exposing supplier identities.
+        var payables = endpoints.MapGroup(
+                "/api/admin/football/territories/finance/supplier-payables")
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("Academy manager site-only supplier payable positions");
+        payables.MapGet("", async (
+            string? organization_id, string? month,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var cookie = await AdminFootballTerritoryEndpoints.Verify(
+                auth, organization_id, context, false, ct);
+            if (organization_id != "lefteria_fc_academy" ||
+                context.Request.Query["organization_id"].Count != 1)
+                throw new WebAdminException(422, "supplier_site_payables_scope_invalid",
+                    "Select exactly the Academy organization for site-level payables.");
+            var selected = Month(month);
+            await using var db = await connections.OpenAsync(ct);
+            await using var cmd = new NpgsqlCommand(
+                "SELECT finance.read_admin_supplier_site_payables(" +
+                "@digest,@owner,@month)::text", db);
+            cmd.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            cmd.Parameters.AddWithValue("owner", organization_id!);
+            cmd.Parameters.AddWithValue("month", NpgsqlDbType.Date, selected);
+            return await Run(cmd, ct);
+        }).WithName("ReadAcademySupplierLocationPayables")
+          .ExcludeFromDescription();
         return endpoints;
     }
 }
