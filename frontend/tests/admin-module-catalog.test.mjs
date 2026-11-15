@@ -59,7 +59,7 @@ test('admin navigation exposes real operational destinations without five orphan
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
   }
   assert.match(workspace,/data-testid="admin-quick-navigation"/);
-  assert.match(workspace,/module\.status==='live'/);
+  assert.match(workspace,/item\.status==='live'/);
   assert.doesNotMatch(workspace,/admin-overview-stats|Under Developments|admin-account-grid|admin-tool-planned/);
   assert.doesNotMatch(source,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
   assert.doesNotMatch(workspace,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
