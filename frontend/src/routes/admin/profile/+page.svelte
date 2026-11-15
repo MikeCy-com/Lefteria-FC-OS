@@ -75,7 +75,7 @@
     event.preventDefault();
     if(!browser||!user||!emailLoaded||emailSaving||savingName||savingPassword)return;
     const actor=user.id,email=emailValue.trim().toLowerCase(),secret=emailPassword;
-    if(!/^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,63}$/.test(email)||
+    if(!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,63}$/.test(email)||
       email.length>254||email.includes('..')||
       !secret||secret.length>4096){
       emailError='Πληκτρολογήστε έγκυρο email και τον τρέχοντα κωδικό σας.';
