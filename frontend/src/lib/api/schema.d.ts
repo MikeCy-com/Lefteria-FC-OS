@@ -1552,6 +1552,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/website/sponsorships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListAdminSponsorshipEditorial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/sponsorships/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SaveAdminSponsorshipDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/sponsorships/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PublishAdminSponsorshipEditorial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/live": {
         parameters: {
             query?: never;
@@ -5008,6 +5056,41 @@ export interface components {
         };
         RoleSwitchBody: {
             role: null | string;
+        };
+        SponsorshipAdminRecord: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            item_id: string;
+            kind: string;
+            organization_id: string;
+            published: null | components["schemas"]["SponsorshipEditorialCopy"];
+            /** Format: date-time */
+            published_at: null | string;
+            /** Format: date-time */
+            updated_at: null | string;
+            /** Format: int64 */
+            version: number | string;
+        };
+        SponsorshipDraftChange: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            /** Format: int64 */
+            expected_version: number | string;
+            item_id: string;
+            kind: string;
+        };
+        SponsorshipEditorialCopy: {
+            description: null | string;
+            /** Format: int32 */
+            display_order: number | string;
+            image_url: null | string;
+            name: string;
+            website_url: null | string;
+        };
+        SponsorshipPublicationChange: {
+            /** Format: int64 */
+            expected_version: number | string;
+            item_id: string;
+            kind: string;
+            publish: boolean;
         };
         TrainingFeeSmsCommand: {
             /** Format: uuid */
@@ -11375,6 +11458,80 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WebsitePageRecord"];
+                };
+            };
+        };
+    };
+    ListAdminSponsorshipEditorial: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"][];
+                };
+            };
+        };
+    };
+    SaveAdminSponsorshipDraft: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipDraftChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
+                };
+            };
+        };
+    };
+    PublishAdminSponsorshipEditorial: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipPublicationChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
                 };
             };
         };
