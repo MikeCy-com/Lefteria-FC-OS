@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -27,6 +28,12 @@
 
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
+  let focusedGroupId = $state('');
+  const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
+  const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
+    ['manager','super_admin'].includes($auth.session.user.role) &&
+    organization==='lefteria_fc_academy' &&
+    hasAdminPermission($auth.session.user.permissions,'attendance:read')));
   let loading = $state(false);
   let unavailable = $state(false);
   let retry = $state(0);
@@ -46,6 +53,12 @@
   let academyOrder = $state(0);
   let saving = $state(false);
   let createError = $state<string | null>(null);
+  $effect(()=>{
+    const requested=page.url.searchParams.get('group_id')??'';
+    const available=directory?.groups ?? [];
+    if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
+    if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
+  });
   const canCreate = $derived(
     $auth.status === 'authenticated' && $auth.session && !!organization &&
     assignments.some(org => org.id === organization) &&
@@ -361,23 +374,44 @@
             </div>
             {#if directory.groups.length === 0}
               <p class="admin-muted" data-testid="admin-audiences-empty">Δεν υπάρχουν τμήματα στο επαληθευμένο ρόστερ αυτού του οργανισμού.</p>
+              {#if canCreate}<button type="button" class="admin-secondary" onclick={()=>{showCreate=true;}} data-testid="admin-first-group-button">Δημιουργία πρώτου τμήματος</button>{/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
                 {#each directory.groups as group (group.id)}
                   <li>
                     <div><span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span><strong>{group.name}</strong></div>
                     <div class="admin-audiences-count"><strong>{group.active_players}</strong><span>ενεργοί παίκτες</span></div>
-                    {#if organization === 'lefteria_fc_academy'}
-                      <nav class="admin-audience-actions" aria-label={`Ενέργειες τμήματος ${group.name}`}>
-                        <a href={`/admin/schedule?group_id=${encodeURIComponent(group.id)}`}
-                           data-testid="admin-group-training-link">Πρόγραμμα ›</a>
-                        <a href={`/admin/attendance?group_id=${encodeURIComponent(group.id)}`}
-                           data-testid="admin-group-attendance-link">Παρουσίες ›</a>
-                      </nav>
-                    {/if}
+                    <button type="button" class="admin-secondary"
+                      aria-expanded={focusedGroupId===group.id}
+                      aria-controls="admin-group-workspace"
+                      onclick={()=>focusedGroupId=focusedGroupId===group.id?'':group.id}
+                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Άνοιγμα τμήματος'}</button>
                   </li>
                 {/each}
               </ul>
+              {#if focusedGroup}
+                <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
+                  data-testid="admin-group-workspace">
+                  <header><p class="admin-eyebrow">ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</p>
+                    <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
+                    <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                  </header>
+                  <nav class="admin-group-tools" aria-label={`Ενέργειες τμήματος ${focusedGroup.name}`}>
+                    {#if canSeeAcademyAttendance}
+                      <a href={`/admin/schedule?group_id=${encodeURIComponent(focusedGroup.id)}`}
+                        data-testid="admin-group-training-link">Προπονήσεις & πρόγραμμα ↗</a>
+                      <a href={`/admin/attendance?group_id=${encodeURIComponent(focusedGroup.id)}`}
+                        data-testid="admin-group-attendance-link">Παρουσίες προπονήσεων ↗</a>
+                    {/if}
+                    <a href={`/admin/matches?organization_id=${encodeURIComponent(organization??'')}&group_id=${encodeURIComponent(focusedGroup.id)}`}
+                      data-testid="admin-group-matches-link">Αγώνες & αποτελέσματα ↗</a>
+                    <a href="#admin-private-player-heading" data-testid="admin-group-players-link">Παίκτες · Αξιολογήσεις & έγγραφα ↓</a>
+                  </nav>
+                  <p class="admin-muted">Οι αξιολογήσεις και τα προστατευμένα έγγραφα ανοίγουν από
+                    τον ατομικό φάκελο του αθλητή στο ρόστερ παρακάτω.
+                    Οι προπονήσεις και οι αγώνες συνδέονται με το τμήμα.</p>
+                </section>
+              {/if}
             {/if}
           </section>
           {#if canCreate && organization && $auth.session}
@@ -461,6 +495,15 @@
   .admin-audience-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;color:#ffca46;border:1px solid #70572a;border-radius:7px;font-size:14px}
   .admin-audience-actions a:hover{background:#f6bb3820;border-color:#ffca46}
   .admin-audience-actions a:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
+  .admin-group-workspace{margin-top:22px;padding:18px;border:1px solid #9e7834;background:linear-gradient(130deg,#242017,#101212);scroll-margin-top:100px}
+  .admin-group-workspace header h3{font:italic 900 clamp(26px,2.4vw,39px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 9px;color:#fff}
+  .admin-group-tools{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:19px 0}
+  .admin-group-tools>a{display:flex;align-items:center;min-height:48px;padding:12px 15px;
+    color:#ffcf61;background:#181a1a;border:1px solid #8e723e;text-decoration:none;
+    font-size:14px;font-weight:750}
+  .admin-group-tools>a:hover{border-color:#ffdc80;background:#312614}
+  .admin-group-tools>a:focus-visible{outline:3px solid #ffcc63;outline-offset:2px}
+  @media(max-width:700px){.admin-group-tools{grid-template-columns:1fr}}
   .admin-audiences-note{max-width:80ch;color:#b5babd;font-size:12px;margin-top:18px}
   @media(max-width:650px){.admin-audiences-stats{grid-template-columns:1fr}.admin-audiences-list li{align-items:start}.admin-audiences-count{flex-direction:column;align-items:flex-end;gap:2px}}
 </style>
