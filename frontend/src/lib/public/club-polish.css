@@ -212,3 +212,32 @@
   .public-site .public-page-heading:not(.academy-intro):not(.team-heading) {border-bottom-color:var(--public-gold);}
   .public-site .public-empty {border-style:solid;border-color:var(--public-gold);}
 }
+
+
+/* Shared catalog pages: sponsors, partners, events and season archives. */
+.public-site .catalog-heading {position:relative;border-bottom:1px solid rgb(246 187 56 / 18%);}
+.public-site .catalog-heading .public-eyebrow {color:var(--public-gold);}
+.public-site .catalog-heading h1 {text-wrap:balance;max-width:18ch;}
+.public-site .catalog-card {border-radius:0 11px 0 9px;overflow:hidden;box-shadow:0 12px 34px rgb(0 0 0 / 18%);}
+.public-site .catalog-card-image {border-bottom:1px solid rgb(246 187 56 / 15%);}
+.public-site .catalog-card-body {background:linear-gradient(150deg,#181a19,#101111);}
+.public-site .catalog-card:focus-visible {outline:3px solid var(--public-gold);outline-offset:3px;}
+.public-site .catalog-detail-image {overflow:hidden;border:1px solid rgb(246 187 56 / 20%);border-radius:0 20px 0 8px;}
+.public-site .catalog-filters {border-inline:1px solid rgb(246 187 56 / 15%);}
+.public-site .catalog-grid > * {min-width:0;}
+
+/* Legal, registration-adjacent and service status screens remain readable. */
+.public-site .source-legal-document .legal-heading {border-bottom:1px solid rgb(246 187 56 / 24%);padding-bottom:20px;}
+.public-site .source-legal-document .legal-heading h1 {text-wrap:balance;}
+.public-site .source-legal-document .legal-intro {border-left:4px solid var(--public-gold);}
+.public-site .source-journey .journey-content {position:relative;border-top:2px solid rgb(246 187 56 / 36%);}
+.public-site .source-journey .journey-notice {border-left:3px solid var(--public-gold);}
+.public-site .source-about section:first-child {background:radial-gradient(ellipse at top right,rgb(246 187 56 / 8%),transparent 65%),#0a0b0b;}
+.public-site .public-news-list .public-news-card {border-radius:0 10px 0 8px;overflow:hidden;}
+.public-site .public-news-list .public-news-card:focus-visible {outline:3px solid var(--public-gold);outline-offset:3px;}
+
+/* On 320px devices, leave only functional actions in the compact topbar.
+   The bell is an already-disabled placeholder; app notifications are untouched. */
+@media(max-width:430px) {
+  .public-site .public-header-tools > [data-testid="push-toggle"] {display:none;}
+}
