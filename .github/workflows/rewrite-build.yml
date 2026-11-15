@@ -147,6 +147,9 @@ jobs:
       - name: Verify private POS cashier ledger in disposable PostgreSQL
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/pos-cashier-ledger-checks.sql
+      - name: Verify Academy POS city, site, terminal and finance isolation (disposable PostgreSQL)
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/pos-site-isolation-checks.sql
       - name: Verify late-registration learning journeys (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/hub-recipient-learning-checks.sql

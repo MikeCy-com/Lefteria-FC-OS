@@ -94,3 +94,22 @@ test('operator-approved grant script keeps raw financial tables and private help
   assert.match(grants,/has_function_privilege\(m,f,'EXECUTE'\)/);
   assert.doesNotMatch(grants,/GRANT (SELECT|INSERT|UPDATE|DELETE) ON pos_cashier\./);
 });
+
+
+test('real PostgreSQL POS site isolation is executed in CI and workspace staging suite',()=>{
+  const sql=read('ops/postgres/pos-site-isolation-checks.sql');
+  const ci=read('.github/workflows/rewrite-build.yml');
+  const integration=read('scripts/workspace/run-integration-tests.sh');
+  assert.match(ci,/pos-site-isolation-checks\.sql/);
+  assert.match(integration,/pos-site-isolation-checks\.sql/);
+  assert.match(sql,/BEGIN;[\s\S]*ROLLBACK;/);
+  assert.match(sql,/pos_cashier\.ensure_admin_academy_pos_site/);
+  assert.match(sql,/pos_cashier\.set_admin_terminal_operator/);
+  assert.match(sql,/pos_cashier\.read_admin_pos_site_finances/);
+  assert.match(sql,/pos_cashier\.read_admin_pos_site_sales/);
+  assert.match(sql,/location_manager_read_sibling_finances/);
+  assert.match(sql,/city_manager_read_other_city_finances/);
+  assert.match(sql,/revoked_manager_still_owns_assigned_cashier_register/);
+  assert.match(sql,/revoked_admin_session_still_read_pos_site_directory/);
+  assert.doesNotMatch(sql,/INSERT INTO pos_cashier\.(sales|payment_events|receipts|refund_events)/);
+});
