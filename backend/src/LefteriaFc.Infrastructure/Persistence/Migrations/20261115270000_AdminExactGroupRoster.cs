@@ -24,6 +24,9 @@ public sealed class AdminExactGroupRoster : Migration
             AS $admin_roster_players$
             DECLARE
               v_role text;
+              v_actor uuid;
+              v_scope uuid;
+              v_location uuid;
               v_total integer;
               v_rows jsonb;
             BEGIN
@@ -39,7 +42,7 @@ public sealed class AdminExactGroupRoster : Migration
               -- Session, account and exact owner grant locked against
               -- revocation while deciding and reading youth roster data.
               PERFORM identity.lock_admin_club_authority(_digest,_owner);
-              SELECT a.role INTO v_role
+              SELECT a.id,a.role INTO v_actor,v_role
               FROM identity.admin_sessions s
               JOIN identity.admin_accounts a ON a.id=s.admin_account_id
               JOIN identity.admin_organization_grants g
@@ -58,15 +61,29 @@ public sealed class AdminExactGroupRoster : Migration
               -- Reject foreign/unpublished group identities before touching
               -- any player record. Academy and First Team catalogs never mix.
               IF _owner='lefteria_fc' THEN
-                IF NOT EXISTS(SELECT 1 FROM club.teams g
-                   WHERE g.organization_id=_owner AND g.id=_group) THEN
-                  RAISE EXCEPTION 'group_roster_unknown_group' USING ERRCODE='22023';
-                END IF;
+                -- The selected team must have its own verified First Team
+                -- operational scope and an explicit team-manager grant.
+                SELECT s.id INTO v_scope FROM club.football_operational_scopes s
+                  JOIN club.teams t ON t.id=s.team_id
+                    AND t.organization_id=s.organization_id
+                  WHERE s.organization_id=_owner AND s.team_id=_group;
+                v_location:=NULL;
               ELSE
-                IF NOT EXISTS(SELECT 1 FROM club.academy_groups g
-                   WHERE g.organization_id=_owner AND g.id=_group) THEN
-                  RAISE EXCEPTION 'group_roster_unknown_group' USING ERRCODE='22023';
-                END IF;
+                -- An Academy group is tied to one physical location; a
+                -- manager of another location in the same city is denied.
+                SELECT g.scope_id,g.location_id INTO v_scope,v_location
+                  FROM club.academy_group_location_assignments g
+                  JOIN club.academy_groups a ON a.id=g.group_id
+                    AND a.organization_id=g.organization_id
+                  WHERE g.organization_id=_owner AND g.group_id=_group;
+              END IF;
+              -- Organization grants alone are never sufficient to read a
+              -- child's group roster. Unassigned or foreign scopes fail
+              -- closed until Super Admin assigns their team or location.
+              IF v_scope IS NULL
+                OR NOT club.admin_football_allowed(
+                    v_actor,v_role,_owner,v_scope,v_location,false) THEN
+                RAISE EXCEPTION 'group_roster_scope_denied' USING ERRCODE='42501';
               END IF;
 
               -- Only active roster members; never a global directory or
@@ -91,19 +108,10 @@ public sealed class AdminExactGroupRoster : Migration
                 jsonb_build_object(
                   'id',p.id,'name',p.name,
                   'team_id',CASE WHEN _owner='lefteria_fc' THEN p.team_id ELSE NULL END,
-                  'academy_group_ids',CASE WHEN _owner='lefteria_fc_academy' THEN
-                    COALESCE((
-                      SELECT jsonb_agg(x.group_id ORDER BY x.group_id COLLATE "C")
-                      FROM (
-                        SELECT p.primary_academy_group_id AS group_id
-                        WHERE p.primary_academy_group_id IS NOT NULL
-                        UNION
-                        SELECT m.academy_group_id AS group_id
-                        FROM club.player_academy_groups m
-                        WHERE m.organization_id=p.organization_id AND m.player_id=p.id
-                      ) x
-                    ),'[]'::jsonb)
-                  ELSE '[]'::jsonb END)
+                  -- Never disclose other locations' group memberships;
+                  -- assignments must use the separately authorized org picker.
+                  'academy_group_ids',CASE WHEN _owner='lefteria_fc_academy'
+                    THEN jsonb_build_array(_group) ELSE '[]'::jsonb END)
                 ORDER BY p.name COLLATE "C",p.id COLLATE "C"),'[]'::jsonb)
               INTO v_rows
               FROM (
