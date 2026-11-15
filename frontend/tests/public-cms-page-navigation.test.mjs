@@ -76,15 +76,18 @@ test('published CMS return destinations lead back to the correct organization or
     href:'/about?organization_id=lefteria_fc_academy',label:'Ο ΣΥΛΛΟΓΟΣ'
   });
   assert.deepEqual(websitePageParentLink(academy,'events'),{
-    href:'/events?organization_id=lefteria_fc_academy',label:'ΕΚΔΗΛΩΣΕΙΣ'
+    href:'/events?scope=academy',label:'ΕΚΔΗΛΩΣΕΙΣ'
   });
   assert.deepEqual(websitePageParentLink(academy,'contact'),{
     href:'/contact?organization_id=lefteria_fc_academy',label:'ΕΠΙΚΟΙΝΩΝΙΑ'
   });
   assert.deepEqual(websitePageParentLink(academy,'shop'),{
-    href:'/shop?organization_id=lefteria_fc_academy',label:'ΚΑΤΑΣΤΗΜΑ'
+    href:'/shop',label:'ΚΑΤΑΣΤΗΜΑ'
   });
   assert.deepEqual(websitePageParentLink(team,'contact'),{href:'/contact',label:'ΕΠΙΚΟΙΝΩΝΙΑ'});
+  assert.deepEqual(websitePageParentLink(team,'events'),{
+    href:'/events?scope=first_team',label:'ΕΚΔΗΛΩΣΕΙΣ'
+  });
 });
 
 test('published page retains semantic article, escaped editor blocks, SEO and polished navigable masthead',()=>{
