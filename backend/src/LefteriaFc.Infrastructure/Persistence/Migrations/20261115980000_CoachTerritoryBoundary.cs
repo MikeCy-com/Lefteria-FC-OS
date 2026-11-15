@@ -304,7 +304,7 @@ public sealed class CoachTerritoryBoundary : Migration
         $coach_assignment$;
         REVOKE ALL ON FUNCTION club.write_admin_coach_assignment(
           text,text,text,jsonb,jsonb) FROM PUBLIC;
-        """);
+      """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
       -- A rollback must not re-enable the previously permissive manager
