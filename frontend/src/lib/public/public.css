@@ -1240,9 +1240,9 @@ dialog.public-dialog::backdrop { background:#000c; }
     width:var(--public-rail);border-right-color:#262626;
     background:linear-gradient(165deg,#141617,#080808 46%,#0b0c0d);
   }
-  .public-site .public-rail-logo{height:144px}
+  .public-site .public-rail-logo{height:139px}
   .public-site .public-rail-logo img{
-    width:142px;height:142px;object-fit:contain;
+    width:103px;height:108px;object-fit:contain;
     filter:drop-shadow(0 2px 14px #eab43620);
   }
   .public-site .public-rail nav{gap:0}
@@ -1272,7 +1272,7 @@ dialog.public-dialog::backdrop { background:#000c; }
   }
   .public-site .public-header{
     min-height:64px;height:64px;gap:15px;
-    padding:0 clamp(20px,2vw,35px) 0 clamp(36px,6vw,100px);
+    padding:0 clamp(36px,6vw,100px) 0 clamp(20px,2vw,35px);
     border-bottom:1px solid #d8a432;
     box-shadow:0 1px 14px #f6bb382e;
   }

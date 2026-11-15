@@ -214,12 +214,10 @@
     </div>
       </div>
       <div class="login-benefits">
-        <strong class="login-benefits-intro"><span aria-hidden="true">//</span> ΜΕΣΑ ΣΤΗΝ ΕΦΑΡΜΟΓΗ ΘΑ ΒΡΕΙΣ:</strong>
-        <span>▦　<strong>Παρουσίες</strong><small>Προπονήσεις και αγώνες</small></span>
-        <span>▤　<strong>Πρόγραμμα</strong><small>Δραστηριότητες ομάδων</small></span>
-        <span>♧　<strong>Ανακοινώσεις</strong><small>Επίσημη ενημέρωση</small></span>
-        <span>♕　<strong>Επόμενος αγώνας</strong><small>Ανάλογα με την ομάδα</small></span>
-        <span>▤　<strong>Νέα Συλλόγου</strong><small>Δημοσιευμένα νέα</small></span>
+        <span>▦　Παρουσίες και πρόγραμμα</span>
+        <span>♧　Ανακοινώσεις</span>
+        <span>♕　Επόμενος αγώνας</span>
+        <span>▤　Νέα Συλλόγου</span>
       </div>
     </div>
   </div>
@@ -343,72 +341,5 @@
   @media(max-width:1100px){.login-content{grid-template-columns:minmax(0,1fr);max-width:700px;margin:auto}.login-welcome{min-height:275px}.login-form-panel{padding:22px}.login-platform{grid-template-columns:92px minmax(0,1fr)}.login-sidebar nav a{font-size:11px;padding-inline:6px}.login-audience-grid button{min-height:100px}}
   @media(max-width:720px){.login-platform{display:block}.login-sidebar{display:none}.login-topbar{padding:8px 16px}.login-topbar-brand{font-size:22px}.login-topbar-home{font-size:12px}.login-content{padding:15px;max-width:560px}.login-welcome{min-height:230px;padding:22px;background-position:center 42%;margin:0}.login-welcome h2{font-size:36px}.login-home{margin:0}.brand h1{font-size:26px}.login-benefits{font-size:12px;justify-content:flex-start}}
   @media(max-width:430px){.login-audience-grid{gap:6px}.login-audience-grid button{font-size:13px;min-height:90px;padding-inline:3px}.login-form-panel{padding:16px}.brand img{width:42px;height:42px}.brand h1{font-size:23px}}
-
-
-  /* Photo-comparison geometry (club-supplied member login 1672×941):
-     154px club rail, ~62px topbar, left story fills to 803px,
-     photo role card first row 219px, benefits strip at y≈803. */
-  @media (min-width:1200px) and (min-height:850px) {
-    .login-page{min-height:100dvh;max-height:none}
-    .login-platform{grid-template-columns:154px minmax(0,1fr);min-height:100dvh}
-    .login-sidebar{padding:9px 0;gap:0}
-    .login-sidebar>a{height:132px;width:100%;display:flex;align-items:flex-start;justify-content:center}
-    .login-sidebar>a img{width:160px;height:160px;max-width:none;transform:translateY(-12px)}
-    .login-sidebar nav{gap:0}
-    .login-sidebar nav a{min-height:47px;padding:9px 20px;font-size:13px}
-    .login-sidebar nav a:first-child{background:linear-gradient(100deg,#ffd052,#d6a21b);color:#080808}
-    .login-sidebar>p{font-size:12px;padding-bottom:17px}
-    .login-core{height:100dvh;min-height:0}
-    .login-topbar{height:62px;min-height:62px;padding:7px 30px}
-    .login-topbar-brand{gap:18px;font-size:27px}
-    .login-content{
-      display:grid;grid-template-columns:minmax(0,1.046fr) minmax(0,.954fr);
-      gap:26px;width:100%;max-width:none;height:calc(100dvh - 200px);min-height:0;
-      flex:0 0 auto;padding:0 50px 0 0;margin:0;align-items:stretch;
-    }
-    .login-welcome{
-      min-height:0;height:100%;margin:0;padding:45px clamp(30px,4.3vw,73px);
-      display:flex;flex-direction:column;justify-content:flex-start;gap:18px;
-      border:0;border-radius:0;background-position:center;
-    }
-    .login-home{display:none}
-    .welcome-kicker{font-size:clamp(21px,1.8vw,29px);margin:0}
-    .login-welcome h2{font-size:clamp(55px,4.4vw,78px);line-height:1.02;margin:0}
-    .login-welcome>p:last-child{font-size:clamp(16px,1.2vw,21px);line-height:1.43;max-width:39ch;margin:0}
-    .login-form-panel{
-      min-height:0;margin:30px 0 30px;padding:24px 30px;
-      border-radius:13px;display:flex;flex-direction:column;justify-content:flex-start;
-      background:linear-gradient(140deg,#171a1bdc,#060808f5);
-    }
-    .login-form-panel .brand{padding-bottom:0;margin-bottom:8px;min-height:68px}
-    .login-form-panel .brand h1{font-size:clamp(26px,2.25vw,38px)}
-    .login-audience-grid{margin:25px 0 7px;gap:13px}
-    .login-audience-grid button{min-height:clamp(134px,9vw,146px);font-size:clamp(17px,1.15vw,23px)}
-    .login-audience-note{font-size:10px;margin:0 0 11px}
-    .login-form-panel label{margin:8px 0 4px}
-    .login-form-panel .remember-choice{margin:7px 0}
-    .login-form-panel .primary{min-height:48px;margin-top:10px}
-    .login-form-panel .signup-prompt{margin-top:11px}
-    .login-benefits{
-      min-height:138px;max-height:138px;padding:20px 20px;
-      display:grid;grid-template-columns:1.3fr repeat(5,minmax(0,1fr));
-      align-items:center;justify-content:stretch;gap:0;
-      border-top:1px solid #6e5b3e;
-    }
-    .login-benefits>span{
-      display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
-      min-height:65px;padding:5px 11px;border-left:1px solid #8c8170;
-      font:700 clamp(12px,.93vw,17px)/1.35 var(--lf-heading);
-      white-space:normal;
-    }
-    .login-benefits>span strong{font:800 clamp(14px,1vw,18px) var(--lf-heading)}
-    .login-benefits>span small{font:400 11px/1.4 'Fira Sans',sans-serif;color:#ddd}
-    .login-benefits-intro{
-      padding-right:12px;
-      font:italic 900 clamp(18px,1.5vw,25px)/1.05 var(--lf-heading);
-    }
-    .login-benefits-intro>span{color:#f6bb38;margin-right:7px}
-    .login-page>footer{display:none}
-  }
 
 </style>

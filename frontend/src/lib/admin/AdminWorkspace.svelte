@@ -20,7 +20,7 @@
     {id:'groups',label:'Ομάδες & τμήματα',description:'Δημιουργία, ρόστερ, προπονήσεις, αγώνες και ενέργειες αθλητών',href:'/admin/groups'},
     {id:'territories',label:'Πόλεις & τοποθεσίες',description:'Οργάνωση Ακαδημίας, βάσεις, αγωνιστικοί κατάλογοι ανά πόλη',href:'/admin/territories'},
     {id:'communications',label:'Επικοινωνία εφαρμογής',description:'Ανακοινώσεις, συνομιλίες, ειδοποιήσεις και προστατευμένα αρχεία',href:'/admin/communications'},
-    {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
+    {id:'registrations',label:'Αιτήσεις & οικογένειες',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
@@ -30,6 +30,35 @@
     {id:'leads',label:'CRM · Ενδιαφερόμενοι',description:'Επαληθευμένες εγγραφές ενδιαφέροντος',href:'/admin/leads'},
     {id:'club',label:'Ρυθμίσεις ιστοσελίδας',description:'Ταυτότητα και δημόσια στοιχεία του οργανισμού',href:'/admin/settings'}
   ].filter(item=>has(item.id)));
+  const hasOrganization=(id:string)=>user.organizations.some(org=>org.id===id);
+  // These are real, authorized entry points. The forms and the backend enforce
+  // permissions again; displaying a card never grants a write capability.
+  const creationActions=$derived([
+    ...(has('groups')&&hasOrganization('lefteria_fc')&&
+      hasAdminPermission(user.permissions,'teams:write')&&
+      ['manager','super_admin'].includes(user.role)
+      ? [{id:'first-team',label:'Νέα ομάδα πρώτης ομάδας',
+          href:'/admin/groups?organization_id=lefteria_fc&new=1'}] : []),
+    ...(has('groups')&&hasOrganization('lefteria_fc_academy')&&
+      hasAdminPermission(user.permissions,'academy:write')&&
+      ['manager','super_admin'].includes(user.role)
+      ? [{id:'academy-group',label:'Νέο τμήμα Ακαδημίας',
+          href:'/admin/groups?organization_id=lefteria_fc_academy&new=1'}] : []),
+    ...(has('territories')&&hasOrganization('lefteria_fc_academy')&&
+      hasAdminPermission(user.permissions,'academy:write')&&
+      user.role==='super_admin'
+      ? [{id:'academy-city',label:'Νέα πόλη Ακαδημίας',
+          href:'/admin/territories?organization_id=lefteria_fc_academy#create-city'}] : []),
+    ...(has('territories')&&hasOrganization('lefteria_fc_academy')&&
+      hasAdminPermission(user.permissions,'academy:write')&&
+      ['manager','super_admin'].includes(user.role)
+      ? [{id:'academy-location',label:'Νέα τοποθεσία',
+          href:'/admin/territories?organization_id=lefteria_fc_academy#create-location'}] : []),
+    ...(has('users')&&user.role==='super_admin'
+      ? [{id:'admin-account',label:'Νέος χρήστης & ρόλος',
+          href:'/admin/users?new=1'}] : [])
+  ]);
+
   const canSeeOverviewMetrics=$derived(
     ['teams:read','academy:read','news:read'].some(permission=>
       hasAdminPermission(user.permissions,permission))||
@@ -46,6 +75,19 @@
     <p class="admin-muted">Επιλέξτε πού θέλετε να εργαστείτε. Οι ομάδες συγκεντρώνουν
       το πρόγραμμα, τους αγώνες, τους αθλητές και τις καταχωρίσεις τους.</p>
   </div>
+
+  {#if creationActions.length}
+    <nav class="admin-creation-shortcuts" aria-label="Γρήγορη δημιουργία" data-testid="admin-creation-actions">
+      <h2>Γρήγορη δημιουργία</h2>
+      <div class="admin-creation-shortcut-grid">
+        {#each creationActions as item (item.id)}
+          <a href={item.href} data-testid={'admin-new-'+item.id}>
+            <span aria-hidden="true">＋</span> {item.label}
+          </a>
+        {/each}
+      </div>
+    </nav>
+  {/if}
 
   {#if actions.length}
     <nav class="admin-panel admin-action-dashboard" aria-label="Εργασίες διαχείρισης" data-testid="admin-quick-navigation">
@@ -79,6 +121,18 @@
   {/if}
 </AdminFrame>
 <style>
+
+  .admin-creation-shortcuts{margin:14px 0 20px}
+  .admin-creation-shortcuts h2{font:italic 900 24px/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 12px}
+  .admin-creation-shortcut-grid{display:flex;flex-wrap:wrap;gap:9px}
+  .admin-creation-shortcut-grid a{
+    display:inline-flex;align-items:center;gap:8px;min-height:44px;
+    padding:10px 14px;background:#f6bb38;color:#111!important;
+    border:1px solid #ffcc69;border-radius:5px;
+    text-decoration:none;font:800 15px 'Fira Sans Extra Condensed',sans-serif;
+  }
+  .admin-creation-shortcut-grid a:hover{background:#ffcf6a}
+  .admin-creation-shortcut-grid a:focus-visible{outline:3px solid #ffd778;outline-offset:3px}
   .admin-action-dashboard{margin:16px 0 24px}
   .admin-action-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 18px}
   .admin-action-heading h2{margin:0;font-style:italic;text-transform:uppercase}
