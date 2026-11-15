@@ -19,6 +19,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
        set_config('lefteria.mobile_runtime_role', :'app_role', true) AS mobile_runtime_role_setting
 \gset
 \ir admin-club-lock-boundary.sql
+\ir admin-self-profile-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
