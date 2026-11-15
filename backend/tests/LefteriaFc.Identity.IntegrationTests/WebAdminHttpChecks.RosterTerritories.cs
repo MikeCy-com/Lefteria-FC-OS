@@ -118,6 +118,9 @@ internal sealed partial class WebAdminHttpChecks
             Console.WriteLine("CHECK scoped create: authorized site commit");
             using(var saved=await Post(client,login.Cookie,path,payload))
             {
+                if(!saved.IsSuccessStatusCode)
+                    Console.WriteLine("CHECK scoped create: authorized site HTTP "+
+                        (int)saved.StatusCode+" body="+await saved.Content.ReadAsStringAsync());
                 var data=await ExpectJsonAsync(saved,200);
                 groupId=data.GetProperty("id").GetString();
                 Require(groupId is not null &&
