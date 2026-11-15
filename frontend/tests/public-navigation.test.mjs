@@ -11,9 +11,9 @@ test('public navigation preserves all nine original sections and the real submen
   assert.ok(paths.every(path => path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/admin') && !path.startsWith('/app')));
 });
 
-test('Academy category appends generated DTO group links with original Greek slugs and opaque IDs', () => {
+test('Academy category appends transliterated readable group links with stable opaque IDs', () => {
   const group = {id:'Case/opaque--id',name:'Ακαδημία Κ-12'};
-  assert.equal(academyGroupLink(group),'/academy/ακαδημια-κ-12--Case%2Fopaque--id');
+  assert.equal(academyGroupLink(group),'/academy/akadimia-k-12--Case%2Fopaque--id');
   const academy = publicNavigation.find(item => item.id === 'academy');
   const links = categoryLinks(academy,[group]);
   assert.equal(links.length,6); assert.deepEqual(links.at(-1),[group.id,group.name,academyGroupLink(group)]);

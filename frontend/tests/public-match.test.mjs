@@ -80,7 +80,7 @@ test('public match resolves both explicit organizations, preserves legacy IDs, d
     assert.match(pending,/\/academy#academy-fixtures/);
     const {default:Fixtures} = await import('../src/lib/public/Fixtures.svelte');
     const rows = render(Fixtures,{props:{fixtures:[{...fixture,id:'opaque/id'}]}}).body;
-    assert.match(rows,/href="\/match\/opaque%2Fid"/);
+    assert.match(rows,/href="\/match\/leyteria-fc-vs-recorded-opponent--opaque%2Fid"/);
     assert.match(rows,/Λεπτομέρειες αγώνα/);
     unavailable = true;
     await assert.rejects(loadPublicMatch(url,'not-in-snapshot'), error => error.status === 503);

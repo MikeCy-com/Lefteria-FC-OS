@@ -11,7 +11,8 @@ test('public fixtures compile and preserve match navigation for mobile and deskt
   assert.doesNotThrow(() => compile(source, { filename:'Fixtures.svelte', generate:'server' }));
   assert.match(source, /fixture-detail-link/);
   assert.match(source, /fixture-mobile-detail-link/);
-  assert.match(source, /encodeURIComponent\(fixture\.id\)/);
+  assert.match(source, /fixturePublicLink\(fixture\)/);
+  assert.match(source, /fixture-mobile-detail-link.+fixturePublicLink\(fixture\)/);
   assert.match(css, /min-height:44px/);
 });
 

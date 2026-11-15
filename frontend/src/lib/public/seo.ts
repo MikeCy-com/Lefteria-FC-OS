@@ -3,13 +3,14 @@ import type { PublicSections } from './sections-types';
 import { articleLink } from './content.ts';
 import { academyGroupLink } from './navigation.ts';
 import { catalogHref } from './PublicCatalog.ts';
+import { personPublicLink, fixturePublicLink } from './public-urls.ts';
 
 // Only the verified public host may advertise an indexable sitemap.
 // Preview, localhost and host-header aliases must never list canonical content.
 export const CANONICAL_PUBLIC_ORIGIN = 'https://lefteriafc.cy';
 const PUBLIC_HOSTS = new Set([CANONICAL_PUBLIC_ORIGIN, 'https://www.lefteriafc.cy']);
 
-export function isIndexablePublicOrigin(url: URL): boolean {
+export function isIndexablePublicOrigin(url: Pick<URL, 'origin' | 'username' | 'password'>): boolean {
   return PUBLIC_HOSTS.has(url.origin) && !url.username && !url.password;
 }
 
@@ -83,7 +84,7 @@ export function buildPublicSitemap(data: PublicSitemapData): string {
   const counts = new Map<string, number>();
   for (const fixture of allFixtures) counts.set(fixture.id, (counts.get(fixture.id) ?? 0) + 1);
   for (const fixture of allFixtures) {
-    if (counts.get(fixture.id) === 1) add('/match/' + encodeURIComponent(fixture.id));
+    if (counts.get(fixture.id) === 1) add(fixturePublicLink(fixture));
   }
 
   for (const section of data.sections) {
@@ -93,11 +94,11 @@ export function buildPublicSitemap(data: PublicSitemapData): string {
       for (const player of section.players) {
         if (player.organization_id === 'lefteria_fc' && player.team_type === 'First Team'
             && player.age !== null && Number(player.age) >= 18 && safeId(player.id))
-          add('/player/' + encodeURIComponent(player.id));
+          add(personPublicLink('player', player));
       }
       for (const staff of section.staff) {
         if (staff.organization_id === 'lefteria_fc' && safeId(staff.id))
-          add('/staff/' + encodeURIComponent(staff.id));
+          add(personPublicLink('staff', staff));
       }
     }
     // Other published catalog records are safe public projections, not

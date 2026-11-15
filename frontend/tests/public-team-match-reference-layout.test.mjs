@@ -17,7 +17,7 @@ test('first team match overview presents reference next game, upcoming and stand
   assert.ok(matches.includes('grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,.9fr)'));
   assert.ok(matches.includes('sort((a,b)=>a.match_date.localeCompare(b.match_date)'));
   assert.ok(matches.includes('nearest=$derived(upcoming.slice(0,4))'));
-  assert.ok(matches.includes('href={\'/match/\'+encodeURIComponent(next.id)}'));
+  assert.ok(matches.includes('href={fixturePublicLink(next)}'));
   assert.ok(matches.includes('@media(max-width:780px)'));
 });
 test('selected team scope stays on all match pages and individual fixtures',()=>{
@@ -29,7 +29,7 @@ test('selected team scope stays on all match pages and individual fixtures',()=>
   assert.ok(matches.includes('teamId?'));
   assert.ok(matches.includes("encodeURIComponent(teamId)"));
   assert.ok(server.includes("if (requestedTeam && !teams.some(team => team.id === requestedTeam))"));
-  assert.ok(fixtures.includes('href={`/match/${encodeURIComponent(fixture.id)}`}'));
+  assert.ok(fixtures.includes('href={fixturePublicLink(fixture)}'));
   assert.ok(team.includes('<Fixtures {fixtures} />'),'full schedule remains below overview');
   assert.ok(!matches.includes('lefteria_fc_academy'));
 });

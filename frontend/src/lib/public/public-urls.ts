@@ -1,0 +1,35 @@
+/**
+ * Human-readable URLs for public, already-published identities.
+ * Stable opaque IDs are retained for uniqueness, renames and old bookmarks.
+ * Never call this with private CRM names: use only public projection DTOs.
+ */
+const greek: Record<string,string> = {
+  'α':'a','β':'v','γ':'g','δ':'d','ε':'e','ζ':'z','η':'i','θ':'th',
+  'ι':'i','κ':'k','λ':'l','μ':'m','ν':'n','ξ':'x','ο':'o','π':'p',
+  'ρ':'r','σ':'s','ς':'s','τ':'t','υ':'y','φ':'f','χ':'ch','ψ':'ps','ω':'o'
+};
+
+export function publicSlug(value: string): string {
+  const folded = value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR');
+  return [...folded].map(char => greek[char] ?? char).join('')
+    .replace(/[^a-z0-9]+/g,'-').slice(0,80).replace(/^-+|-+$/g,'');
+}
+
+type PublicEntity = { id: string; name: string };
+export function personPublicLink(kind: 'player'|'staff', person: PublicEntity): string {
+  const slug = publicSlug(person.name ?? '');
+  return '/' + kind + '/' + (slug ? slug + '--' : '') + encodeURIComponent(person.id);
+}
+
+export function fixturePublicLink(fixture: { id: string; home_team: string; away_team: string }): string {
+  const slug = fixture.home_team || fixture.away_team
+    ? publicSlug((fixture.home_team ?? '') + '-vs-' + (fixture.away_team ?? '')) : '';
+  return '/match/' + (slug ? slug + '--' : '') + encodeURIComponent(fixture.id);
+}
+
+export function publicCanonicalHref(path: string): string {
+  if (!path.startsWith('/') || path.startsWith('//')) return 'https://lefteriafc.cy/';
+  const url = new URL(path, 'https://lefteriafc.cy');
+  // Canonical only the path, not context/filters/search/caller parameters.
+  return 'https://lefteriafc.cy' + url.pathname;
+}

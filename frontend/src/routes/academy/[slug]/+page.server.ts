@@ -1,4 +1,5 @@
-import { error } from '@sveltejs/kit';
+import { error, redirect } from '@sveltejs/kit';
+import { academyGroupLink } from '../../../lib/public/navigation';
 import { loadPublicSite } from '../../../lib/server/public-content';
 
 export async function load({ url, params }: { url: URL; params: { slug: string } }) {
@@ -11,6 +12,8 @@ export async function load({ url, params }: { url: URL; params: { slug: string }
   const separator = slug.indexOf('--');
   const group = exact ?? (separator > 0 ? groups.find(group => group.id === slug.slice(separator + 2)) : undefined);
   if (!group) error(404, 'Το τμήμα δεν βρέθηκε.');
+  const canonical = academyGroupLink(group);
+  if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) redirect(308, canonical);
   const groupFixtures = data.site.fixtures
     .filter(fixture => fixture.organization_id === 'lefteria_fc_academy' && fixture.academy_group_id === group.id)
     .sort((left, right) => left.match_date.localeCompare(right.match_date) || (left.match_time ?? '').localeCompare(right.match_time ?? '') || left.id.localeCompare(right.id));
