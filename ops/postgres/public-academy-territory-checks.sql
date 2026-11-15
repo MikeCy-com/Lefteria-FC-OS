@@ -50,10 +50,10 @@ BEGIN
     FROM club.academy_groups WHERE id IN (v_a1,v_a2,v_b1,v_legacy);
   INSERT INTO public_content.documents(kind,organization_id,id,data_json,display_order)
     VALUES('academy_group','lefteria_fc_academy',v_a1,
-      jsonb_build_object('id',v_a1,'city','WRONG IMPORTED CITY',
+      jsonb_build_object('id',v_a1,'organization_id','lefteria_fc_academy','city','WRONG IMPORTED CITY',
         'location_name','WRONG IMPORTED LOCATION'),0),
       ('academy_group','lefteria_fc_academy',v_legacy,
-      jsonb_build_object('id',v_legacy,'city','Unverified legacy city',
+      jsonb_build_object('id',v_legacy,'organization_id','lefteria_fc_academy','city','Unverified legacy city',
         'location_name','Unverified legacy location'),0);
 
   v_directory:=club.read_public_academy_group_directory();
