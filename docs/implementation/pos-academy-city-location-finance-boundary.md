@@ -31,6 +31,18 @@ canonical Academy site and re-evaluates active grants, at request time:
 | Cashier assigned to a terminal | Existing shift functions for that terminal, subject to current Academy grants |
 | Coach, family, player, fan, unassigned management | Denied |
 
+**Global accounting is separate from site management.** The Academy's
+organization-wide Payabl payment requests, training-fee ledger, SMS workflow,
+cash postings and invoice PDFs require an active `super_admin` or
+`accountant` account with the exact organization grant. The API, navigation
+and ten underlying PostgreSQL security-definer functions enforce this, so a
+`manager` with a city or location grant cannot open the full Academy ledger.
+Accountants may use global finance but do not inherit football territory,
+team, POS terminal, user management or other role privileges. A manager's
+permitted Academy finance view remains the canonical site-attributed report
+under `/admin/territories`, while POS sales are reported in `/admin/pos`.
+Existing payment records are not rewritten when roles change.
+
 The independent first-team POS location-to-team manager mapping is not yet
 defined. Until then, its new finance site reports are **Super Admin only**,
 rather than granting an organization-wide first-team manager access by guess.
@@ -77,6 +89,7 @@ before general operators should be onboarded.
 ## Verification and release blockers
 
 - Source-level regression tests: `frontend/tests/pos-academy-site-finance-boundary.test.mjs`.
+- Global accountant role assertions: `frontend/tests/finance-global-role-boundary.test.mjs` and PostgreSQL `ops/postgres/finance-global-role-checks.sql` (run in CI).
 - PostgreSQL structural RLS/definer checks: `ops/postgres/pos-cashier-ledger-checks.sql`.
 - Optional and **operator-run only** staging grant script:
   `ops/postgres/pos-academy-site-admin-grants.sql`. Migrations do not grant
