@@ -27,7 +27,7 @@ test('Chromium captures include Academy group view and check true computed typog
   const script=read('frontend/scripts/ui-visual-audit.mjs');
   const groups=read('frontend/src/routes/academy/groups/+page.svelte');
   assert.match(groups,/data-testid="academy-groups-hero"/);
-  assert.match(script,/name:'academy-groups', path:'\/academy\/groups'/);
+  assert.match(script,/name:'academy-groups-unavailable', path:'\/academy\/groups', expectedStatus:503/);
   assert.match(script,/getComputedStyle\(root\)\.fontFamily/);
   assert.match(script,/publicFont\.family\.startsWith\('Manrope'\)/);
   assert.match(script,/viewport\.width <= 650 \? 38 : 58/);
