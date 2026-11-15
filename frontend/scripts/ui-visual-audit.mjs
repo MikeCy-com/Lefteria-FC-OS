@@ -19,7 +19,7 @@ const routes = [
   { name:'team-schedule', path:'/team?tab=schedule', expectedStatus:200 },
   { name:'team-roster-unavailable', path:'/team?tab=roster', expectedStatus:503 },
   { name:'academy', path:'/academy', expectedStatus:200 },
-  { name:'academy-groups', path:'/academy/groups', expectedStatus:200 },
+  { name:'academy-groups-unavailable', path:'/academy/groups', expectedStatus:503 },
   { name:'academy-philosophy', path:'/academy/philosophy', expectedStatus:200 },
   { name:'about', path:'/about', expectedStatus:200 },
   { name:'contact', path:'/contact', expectedStatus:200 },
