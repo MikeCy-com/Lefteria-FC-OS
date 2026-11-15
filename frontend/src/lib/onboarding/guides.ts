@@ -99,10 +99,6 @@ export function adminGuide(user:AdminIdentity):WalkthroughStep[] {
     'Έλεγξε ότι εμφανίζονται μόνο οι οργανισμοί που σου έχουν ανατεθεί. Η πρόσβαση επιβεβαιώνεται ξανά στον διακομιστή.',
     '/admin/settings',organizations.length?'verified':'ready');
   const result=[profile,organization];
-  if(has('teams:read') || has('academy:read'))
-    result.push(adminStep('groups','Ομάδες, παίκτες & προπονητές',
-      'Διάβασε το τρέχον ρόστερ. Οι αλλαγές μελών και προπονητών απαιτούν δικαιώματα εγγραφής.',
-      '/admin/groups'));
   const canManage = user.role==='manager' || user.role==='super_admin';
   const canReadFootball = organizations.some(o=>
     o.id==='lefteria_fc' && has('teams:read') ||
@@ -110,6 +106,10 @@ export function adminGuide(user:AdminIdentity):WalkthroughStep[] {
   const canWriteFootball = organizations.some(o=>
     o.id==='lefteria_fc' && has('teams:write') ||
     o.id==='lefteria_fc_academy' && has('academy:write'));
+  if(canReadFootball)
+    result.push(adminStep('groups','Ομάδες, παίκτες & προπονητές',
+      'Διάβασε το τρέχον ρόστερ. Οι αλλαγές μελών και προπονητών απαιτούν δικαιώματα εγγραφής.',
+      '/admin/groups'));
   if(canManage && canReadFootball)
     result.push(adminStep('facilities','Γήπεδα και βάσεις προπόνησης',
       'Διαχειρίσου τις πραγματικές υποδομές ανά οργανισμό: γήπεδα/αντίπαλοι Ακαδημίας ανά πόλη και βάσεις προπόνησης ανά τοποθεσία.',
