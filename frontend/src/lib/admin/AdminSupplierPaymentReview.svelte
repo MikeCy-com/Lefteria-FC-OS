@@ -1,9 +1,11 @@
 <script lang="ts">
   import {untrack} from 'svelte';
+  import AdminSupplierCredits from './AdminSupplierCredits.svelte';
 
   type Bill={
     id:string;supplier_name:string;invoice_reference:string;bill_date:string;
     gross_amount_cents:number;approved_manual_cents:number;
+    approved_credit_cents:number;net_payable_cents:number;
     remaining_cents:number;pending_evidence_cents:number;
     city_id:string|null;location_id:string|null;
   };
@@ -14,13 +16,19 @@
     status:'pending'|'approved_manual'|'rejected';
     reviewed_at:string|null;review_note:string|null;
   };
+  type Credit={id:string;bill_id:string;credit_reference:string;
+    credit_date:string;amount_cents:number;reason:string;
+    requested_by:string;requested_at:string;
+    status:'pending'|'approved_manual'|'rejected';
+    reviewed_at:string|null;review_note:string|null};
   type PaymentRegister={
     organization_id:string;month:string;currency:'EUR';
-    bank_verified:false;is_general_ledger:false;
+    bank_verified:false;bank_refund_recorded:false;is_general_ledger:false;
     summary:{bill_count:number;obligations_cents:number;
-      approved_manual_cents:number;remaining_cents:number;
-      pending_evidence_cents:number};
-    bills:Bill[];requests:Evidence[];
+      approved_manual_cents:number;approved_credit_cents:number;
+      pending_credit_cents:number;net_payables_cents:number;
+      remaining_cents:number;pending_evidence_cents:number};
+    bills:Bill[];requests:Evidence[];credit_notes:Credit[];
   };
   let {owner,sessionId,canWrite,canReview}:{
     owner:string|null;sessionId:string;canWrite:boolean;canReview:boolean
@@ -59,24 +67,34 @@
     const r=raw as Record<string,unknown>;
     if(r.organization_id!==selected||r.month!==period+'-01'||
       r.currency!=='EUR'||r.bank_verified!==false||
+      r.bank_refund_recorded!==false||
       r.is_general_ledger!==false||!r.summary||
       typeof r.summary!=='object'||Array.isArray(r.summary)||
       !['bill_count','obligations_cents','approved_manual_cents',
+        'approved_credit_cents','pending_credit_cents','net_payables_cents',
         'remaining_cents','pending_evidence_cents'].every(key=>
         safe((r.summary as Record<string,unknown>)[key]))||
       !Array.isArray(r.bills)||r.bills.length>100||
-      !Array.isArray(r.requests)||r.requests.length>200)return false;
+      !Array.isArray(r.requests)||r.requests.length>200||
+      !Array.isArray(r.credit_notes)||r.credit_notes.length>200)return false;
+    const summary=r.summary as Record<string,number>;
+    if(summary.obligations_cents!==summary.approved_credit_cents+summary.net_payables_cents||
+      summary.net_payables_cents!==summary.approved_manual_cents+summary.remaining_cents)
+      return false;
     return r.bills.every((x:unknown)=>{
       if(!x||typeof x!=='object'||Array.isArray(x))return false;
       const b=x as Record<string,unknown>;
       return uuid(b.id)&&typeof b.supplier_name==='string'&&
         typeof b.invoice_reference==='string'&&
         typeof b.bill_date==='string'&&datePattern.test(b.bill_date)&&
-        ['gross_amount_cents','approved_manual_cents','remaining_cents',
+        ['gross_amount_cents','approved_manual_cents','approved_credit_cents',
+          'net_payable_cents','remaining_cents',
           'pending_evidence_cents'].every(k=>safe(b[k]))&&
         (b.city_id===null||uuid(b.city_id))&&
         (b.location_id===null||uuid(b.location_id))&&
-        (b.gross_amount_cents as number)===(b.approved_manual_cents as number)+
+        (b.gross_amount_cents as number)===(b.approved_credit_cents as number)+
+          (b.net_payable_cents as number)&&
+        (b.net_payable_cents as number)===(b.approved_manual_cents as number)+
           (b.remaining_cents as number);
     })&&r.requests.every((x:unknown)=>{
       if(!x||typeof x!=='object'||Array.isArray(x))return false;
@@ -86,6 +104,17 @@
         typeof a.payment_date==='string'&&datePattern.test(a.payment_date)&&
         typeof a.requested_at==='string'&&
         typeof a.evidence_reference==='string'&&methods.includes(String(a.payment_method))&&
+        ['pending','approved_manual','rejected'].includes(String(a.status))&&
+        (a.reviewed_at===null||typeof a.reviewed_at==='string')&&
+        (a.review_note===null||typeof a.review_note==='string');
+    })&&r.credit_notes.every((x:unknown)=>{
+      if(!x||typeof x!=='object'||Array.isArray(x))return false;
+      const a=x as Record<string,unknown>;
+      return uuid(a.id)&&uuid(a.bill_id)&&uuid(a.requested_by)&&
+        typeof a.credit_reference==='string'&&typeof a.reason==='string'&&
+        typeof a.credit_date==='string'&&datePattern.test(a.credit_date)&&
+        typeof a.requested_at==='string'&&safe(a.amount_cents)&&
+        (a.amount_cents as number)>0&&
         ['pending','approved_manual','rejected'].includes(String(a.status))&&
         (a.reviewed_at===null||typeof a.reviewed_at==='string')&&
         (a.review_note===null||typeof a.review_note==='string');
@@ -233,9 +262,12 @@
   {:else if data}
     <div class="settlement-cards">
       <div><strong>{euro(data.summary.obligations_cents)}</strong><span>Σύνολο τιμολογίων</span></div>
-      <div><strong>{euro(data.summary.approved_manual_cents)}</strong><span>Εγκεκριμένα χειροκίνητα</span></div>
+      <div><strong>{euro(data.summary.approved_credit_cents)}</strong><span>Εγκεκριμένα πιστωτικά</span></div>
+      <div><strong>{euro(data.summary.net_payables_cents)}</strong><span>Καθαρή οφειλή μετά πιστωτικά</span></div>
+      <div><strong>{euro(data.summary.approved_manual_cents)}</strong><span>Εγκεκριμένα χειροκίνητα αποδεικτικά</span></div>
       <div><strong>{euro(data.summary.remaining_cents)}</strong><span>Υπόλοιπο μετά τις εγκρίσεις</span></div>
-      <div><strong>{euro(data.summary.pending_evidence_cents)}</strong><span>Τεκμήρια προς έλεγχο (όχι εξοφλημένα)</span></div>
+      <div><strong>{euro(data.summary.pending_evidence_cents)}</strong><span>Τεκμήρια εξόφλησης προς έλεγχο</span></div>
+      <div><strong>{euro(data.summary.pending_credit_cents)}</strong><span>Πιστωτικά προς έλεγχο (χωρίς μείωση οφειλής)</span></div>
     </div>
     {#if data.summary.bill_count>data.bills.length}
       <p class="admin-muted">Εμφανίζονται τα πρώτα {data.bills.length} τιμολόγια.
@@ -289,6 +321,8 @@
         <p class="admin-muted">Προβάλλονται τα 200 νεότερα αιτήματα της περιόδου.</p>
       {/if}
     {/if}
+    <AdminSupplierCredits {owner} sessionId={sessionId} {canWrite} {canReview}
+      bills={data.bills} credits={data.credit_notes} onSaved={()=>refresh++}/>
     {#if canReview&&canWrite}
       <h3>Ανεξάρτητη απόφαση Super Admin</h3>
       <p class="admin-muted">Δεν μπορείτε να εγκρίνετε δικό σας αίτημα. Ελέγξτε το
