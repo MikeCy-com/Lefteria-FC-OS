@@ -40,7 +40,7 @@ test('API enforces same owner guard for writes and admin only shows valid option
   assert.match(api,/content.MenuParent is "team" or "matches"/);
   assert.match(api,/content.MenuParent == "academy"/);
   const admin=source('frontend/src/routes/admin/website-pages/+page.svelte');
-  assert.match(admin,/websiteMenuParentAllowed\(organization, parent.value\)/);
+  assert.match(admin,/websiteMenuParentAllowed\(organization!, parent.value\)/);
   assert.match(admin,/visibleParents\.some/);
   assert.match(admin,/each visibleParents as parent/);
 });
