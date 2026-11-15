@@ -39,7 +39,7 @@ test('classroom DTO rejects cross-owner, parent, inflated score, duplicate skill
     x=>x.subjects[0].completed_quizzes=2,
     x=>x.subjects[0].correct_answers=5,
     x=>x.subjects[0].total_answers=4,
-    x=>x.subjects[1].topic='defending',
+    x=>x.subjects[1].topic='positioning',
     x=>x.lessons.completed=4,
     x=>x.lessons.next_kind='video',
     x=>x.quizzes.current_week=3,
