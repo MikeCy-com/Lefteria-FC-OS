@@ -12,6 +12,9 @@ DECLARE
   v_neighbor_manager uuid:=gen_random_uuid();
   v_unscoped uuid:=gen_random_uuid();
   v_team_manager uuid:=gen_random_uuid();
+  v_cashier uuid:=gen_random_uuid();
+  v_cashier_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
+  v_cashier_shift uuid;
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_local_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -162,6 +165,71 @@ BEGIN
         AND register_id IN (v_register_a1,v_register_a2,v_register_b1)
         AND is_active)<>1
   THEN RAISE EXCEPTION 'failed_cross_site_assignment_was_persisted'; END IF;
+  -- Cashier is an ordinary named credential but carries NO city-manager
+  -- grant and no Academy, finance, staff or catalog rights.
+  INSERT INTO identity.admin_accounts
+    (id,username,display_name,role,is_active,password_hash,invite_pending,otp2fa_enabled)
+  VALUES(v_cashier,'ci-pos-cashier-'||left(md5(v_cashier::text),8),
+    'CI Terminal Cashier','cashier',true,'ci-fixture-hash',false,false);
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id)
+    VALUES(v_cashier,'lefteria_fc_academy');
+  INSERT INTO identity.admin_sessions
+    (id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
+    VALUES(gen_random_uuid(),v_cashier_token,v_cashier,repeat('f',64),
+      clock_timestamp(),clock_timestamp()+interval '1 day');
+  v_result:=pos_cashier.set_admin_terminal_operator(
+    v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,true);
+  IF v_result->>'admin_account_id'<>v_cashier::text
+     OR NOT (v_result->>'active')::boolean
+  THEN RAISE EXCEPTION 'cashier_single_register_assignment_failed'; END IF;
+  IF pos_cashier.current_cashier_authority(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1)<>v_cashier
+  THEN RAISE EXCEPTION 'cashier_assigned_register_rejected'; END IF;
+  v_result:=pos_cashier.read_admin_cashier_registers(
+    v_cashier_token,'lefteria_fc_academy');
+  IF jsonb_array_length(v_result->'registers')<>1
+    OR v_result->'registers'->0->>'id'<>v_register_a1
+  THEN RAISE EXCEPTION 'cashier_discovered_other_location'; END IF;
+  BEGIN
+    PERFORM pos_cashier.set_admin_terminal_operator(
+      v_super_token,'lefteria_fc_academy',v_register_a2,v_cashier,true);
+    RAISE EXCEPTION 'cashier_assigned_second_active_register';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.current_cashier_authority(
+      v_cashier_token,'lefteria_fc_academy',v_register_b1);
+    RAISE EXCEPTION 'cashier_cross_city_register_access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.authorize_site_finances(
+      v_cashier_token,'lefteria_fc_academy',v_pos_a1);
+    RAISE EXCEPTION 'cashier_read_location_finance';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.read_admin_pos_sites(
+      v_cashier_token,'lefteria_fc_academy');
+    RAISE EXCEPTION 'cashier_read_management_site_directory';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- A real shift opens and closes without inventing any sale or receipt.
+  v_result:=pos_cashier.open_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1,1200,gen_random_uuid());
+  v_cashier_shift:=(v_result->>'shift_id')::uuid;
+  IF v_cashier_shift IS NULL
+  THEN RAISE EXCEPTION 'cashier_cannot_open_assigned_shift'; END IF;
+  v_result:=pos_cashier.close_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_cashier_shift,1200,gen_random_uuid());
+  IF (v_result->>'variance_cents')::bigint<>0
+  THEN RAISE EXCEPTION 'cashier_empty_shift_reconciliation_invalid'; END IF;
+
+  -- Suspending the cashier blocks further terminal use immediately.
+  UPDATE identity.admin_accounts SET is_active=false WHERE id=v_cashier;
+  BEGIN
+    PERFORM pos_cashier.current_cashier_authority(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1);
+    RAISE EXCEPTION 'suspended_cashier_retained_terminal_access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
 
   v_result:=pos_cashier.read_admin_pos_sites(v_local_token,'lefteria_fc_academy');
   IF jsonb_array_length(v_result->'sites')<>1
