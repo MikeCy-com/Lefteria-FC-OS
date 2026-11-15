@@ -20,6 +20,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \gset
 \ir admin-club-lock-boundary.sql
 \ir admin-self-profile-boundary.sql
+\ir admin-contact-email-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
