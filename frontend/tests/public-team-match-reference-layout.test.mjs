@@ -23,7 +23,8 @@ test('first team match overview presents reference next game, upcoming and stand
 test('selected team scope stays on all match pages and individual fixtures',()=>{
   assert.ok(team.includes('item.organization_id === \'lefteria_fc\' && matchesTeam(item.team_id)'));
   assert.ok(team.includes('<PublicTeamMatchOverview {fixtures} standings={firstTeamStandings}'));
-  assert.ok(team.includes('firstTeamStandings = $derived(selectedTeam &&'));
+  assert.ok(team.includes('firstTeamStandings = $derived(isSelectedFirstTeam'));
+  assert.ok(team.includes("selectedTeam.organization_id === 'lefteria_fc'"));
   assert.ok(team.includes("row.organization_id==='lefteria_fc'"));
   assert.ok(matches.includes('teamId?'));
   assert.ok(matches.includes("encodeURIComponent(teamId)"));
