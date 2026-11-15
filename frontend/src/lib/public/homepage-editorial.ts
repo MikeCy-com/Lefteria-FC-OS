@@ -1,6 +1,6 @@
 import type {PublicOrganization} from './types';
 import {HOMEPAGE_HERO_SLUGS, isPublishedWebsitePage,
-  type PublishedWebsitePage, type WebsitePageContent} from './website-pages';
+  type PublishedWebsitePage, type WebsitePageContent} from './website-pages.ts';
 
 // A fixed, minimal projection is rendered in existing homepage markup; no HTML
 // from CMS is executed and no First Team content is borrowed into Academy.
