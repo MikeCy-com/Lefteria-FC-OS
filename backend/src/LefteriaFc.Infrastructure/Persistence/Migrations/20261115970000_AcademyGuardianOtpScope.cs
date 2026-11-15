@@ -22,7 +22,7 @@ public sealed class AcademyGuardianOtpScope : Migration
           ON DELETE RESTRICT,
         normalized_phone varchar(15) NOT NULL
           CHECK(normalized_phone ~ '^[1-9][0-9]{7,14}$'),
-        challenge_id uuid NOT NULL UNIQUE,
+        challenge_id uuid NOT NULL,
         confirmed_at timestamptz NOT NULL DEFAULT clock_timestamp(),
         -- A phone+proof assertion must be renewed by re-review after 90 days.
         -- No indefinite entitlement follows a recycled phone number.
