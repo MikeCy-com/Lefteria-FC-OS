@@ -924,7 +924,7 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations
 
                     b.ToTable("admin_accounts", "identity", t =>
                         {
-                            t.HasCheckConstraint("ck_admin_account_role", "role IN ('super_admin','manager','editor','marketing','coach','matchday_editor','accountant')");
+                            t.HasCheckConstraint("ck_admin_account_role", "role IN ('super_admin','manager','editor','marketing','coach','matchday_editor','accountant','cashier')");
 
                             t.HasCheckConstraint("ck_admin_normalized_phone", "normalized_phone IS NULL OR normalized_phone ~ '^[1-9][0-9]{7,14}$'");
 

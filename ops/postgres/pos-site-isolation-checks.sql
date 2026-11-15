@@ -1,8 +1,9 @@
 \set ON_ERROR_STOP on
 \set ECHO none
 -- Synthetic acceptance for Academy POS site/terminal/finance authority.
--- Run ONLY against disposable migrated PostgreSQL. No sale, payment, refund,
--- receipt, stock posting, Payabl request or real person is created.
+-- Run ONLY against disposable migrated PostgreSQL. One unpaid synthetic
+-- sale exists only in a rollback-on-error subtransaction; all changes ROLLBACK.
+-- No verified payment, refund, receipt, Payabl request or real person exists.
 BEGIN;
 DO $site_scope$
 DECLARE
@@ -12,6 +13,11 @@ DECLARE
   v_neighbor_manager uuid:=gen_random_uuid();
   v_unscoped uuid:=gen_random_uuid();
   v_team_manager uuid:=gen_random_uuid();
+  v_cashier uuid:=gen_random_uuid();
+  v_cashier_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
+  v_cashier_shift uuid;
+  v_recovery_request uuid:=gen_random_uuid();
+  v_pending_sale uuid:=gen_random_uuid();
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_local_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -162,6 +168,171 @@ BEGIN
         AND register_id IN (v_register_a1,v_register_a2,v_register_b1)
         AND is_active)<>1
   THEN RAISE EXCEPTION 'failed_cross_site_assignment_was_persisted'; END IF;
+  -- Cashier is an ordinary named credential but carries NO city-manager
+  -- grant and no Academy, finance, staff or catalog rights.
+  INSERT INTO identity.admin_accounts
+    (id,username,display_name,role,is_active,password_hash,invite_pending,otp2fa_enabled)
+  VALUES(v_cashier,'ci-pos-cashier-'||left(md5(v_cashier::text),8),
+    'CI Terminal Cashier','cashier',true,'ci-fixture-hash',false,false);
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id)
+    VALUES(v_cashier,'lefteria_fc_academy');
+  INSERT INTO identity.admin_sessions
+    (id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
+    VALUES(gen_random_uuid(),v_cashier_token,v_cashier,repeat('f',64),
+      clock_timestamp(),clock_timestamp()+interval '1 day');
+  v_result:=pos_cashier.set_admin_terminal_operator(
+    v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,true);
+  IF v_result->>'admin_account_id'<>v_cashier::text
+     OR NOT (v_result->>'active')::boolean
+  THEN RAISE EXCEPTION 'cashier_single_register_assignment_failed'; END IF;
+  IF pos_cashier.current_cashier_authority(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1)<>v_cashier
+  THEN RAISE EXCEPTION 'cashier_assigned_register_rejected'; END IF;
+  v_result:=pos_cashier.read_admin_cashier_registers(
+    v_cashier_token,'lefteria_fc_academy');
+  IF jsonb_array_length(v_result->'registers')<>1
+    OR v_result->'registers'->0->>'id'<>v_register_a1
+  THEN RAISE EXCEPTION 'cashier_discovered_other_location'; END IF;
+  BEGIN
+    PERFORM pos_cashier.set_admin_terminal_operator(
+      v_super_token,'lefteria_fc_academy',v_register_a2,v_cashier,true);
+    RAISE EXCEPTION 'cashier_assigned_second_active_register';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.current_cashier_authority(
+      v_cashier_token,'lefteria_fc_academy',v_register_b1);
+    RAISE EXCEPTION 'cashier_cross_city_register_access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.authorize_site_finances(
+      v_cashier_token,'lefteria_fc_academy',v_pos_a1);
+    RAISE EXCEPTION 'cashier_read_location_finance';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.read_admin_pos_sites(
+      v_cashier_token,'lefteria_fc_academy');
+    RAISE EXCEPTION 'cashier_read_management_site_directory';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- A real shift opens and closes without inventing any sale or receipt.
+  v_result:=pos_cashier.open_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1,1200,gen_random_uuid());
+  v_cashier_shift:=(v_result->>'shift_id')::uuid;
+  IF v_cashier_shift IS NULL
+  THEN RAISE EXCEPTION 'cashier_cannot_open_assigned_shift'; END IF;
+  v_result:=pos_cashier.close_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_cashier_shift,1200,gen_random_uuid());
+  IF (v_result->>'variance_cents')::bigint<>0
+  THEN RAISE EXCEPTION 'cashier_empty_shift_reconciliation_invalid'; END IF;
+
+  -- A suspended-only recovery cannot force-close a live cashier's shift.
+  v_cashier_shift:=(pos_cashier.open_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1,1200,gen_random_uuid())
+      ->>'shift_id')::uuid;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'active_cashier_shift_force_closed_by_super_admin';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_city_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'city_manager_force_closed_cashier_shift';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Suspending the cashier blocks further terminal use immediately.
+  UPDATE identity.admin_accounts SET is_active=false WHERE id=v_cashier;
+  BEGIN
+    PERFORM pos_cashier.current_cashier_authority(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1);
+    RAISE EXCEPTION 'suspended_cashier_retained_terminal_access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Super Admin sees exactly the suspended cashier's still-open shift.
+  v_result:=pos_cashier.read_admin_terminal_setup(
+    v_super_token,'lefteria_fc_academy');
+  IF NOT EXISTS(
+    SELECT 1 FROM jsonb_array_elements(v_result->'terminals') AS t
+    WHERE t->>'id'=v_register_a1
+      AND t->'open_shift'->>'id'=v_cashier_shift::text
+      AND (t->'open_shift'->>'cashier_active')::boolean=false
+  ) THEN RAISE EXCEPTION 'supervisor_missing_suspended_shift_preview'; END IF;
+  -- A real unpaid sale blocks emergency closure. The PL/pgSQL exception
+  -- block is an atomic subtransaction: on the expected 55000, it rolls back
+  -- the synthetic INSERT. Ledger sales have immutable no-DELETE triggers.
+  BEGIN
+    INSERT INTO pos_cashier.sales(
+      id,organization_id,register_id,shift_id,cashier_id,
+      request_id,subtotal_cents,total_cents)
+    VALUES(v_pending_sale,'lefteria_fc_academy',v_register_a1,
+      v_cashier_shift,v_cashier,gen_random_uuid(),100,100);
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_recovered_shift_with_pending_sale';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM pos_cashier.sales WHERE id=v_pending_sale)
+  THEN RAISE EXCEPTION 'synthetic_pending_sale_subtransaction_not_rolled_back'; END IF;
+
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_cashier_token,'lefteria_fc_academy',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'cashier_force_closed_own_suspended_shift';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc',v_cashier_shift,
+      1190,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_cross_org_shift_recovery';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Enter an actual counted cash amount; the variance is preserved,
+  -- not manufactured as zero and no sale/payment/receipt is generated.
+  v_result:=pos_cashier.recover_suspended_admin_cashier_shift(
+    v_super_token,'lefteria_fc_academy',v_cashier_shift,
+    1190,v_recovery_request,'account_suspended');
+  IF (v_result->>'variance_cents')::bigint<>-10
+    OR (v_result->>'expected_cash_cents')::bigint<>1200
+    OR (v_result->>'counted_cash_cents')::bigint<>1190
+    OR NOT (v_result->>'requires_review')::boolean
+    OR (v_result->>'replay')::boolean
+    OR (SELECT cashier_id FROM pos_cashier.shifts WHERE id=v_cashier_shift)<>v_cashier
+    OR (SELECT recovery_actor_id FROM pos_cashier.shifts WHERE id=v_cashier_shift)<>v_super
+    OR (SELECT recovery_reason FROM pos_cashier.shifts WHERE id=v_cashier_shift)
+      <>'account_suspended'
+  THEN RAISE EXCEPTION 'supervisor_recovery_ledger_evidence_invalid'; END IF;
+  v_result:=pos_cashier.recover_suspended_admin_cashier_shift(
+    v_super_token,'lefteria_fc_academy',v_cashier_shift,
+    1190,v_recovery_request,'account_suspended');
+  IF NOT (v_result->>'replay')::boolean
+    OR (v_result->>'variance_cents')::bigint<>-10
+    OR (SELECT count(*) FROM pos_cashier.transaction_audit
+      WHERE organization_id='lefteria_fc_academy'
+        AND request_id=v_recovery_request AND action='shift_recovery_close')<>1
+  THEN RAISE EXCEPTION 'supervisor_recovery_replay_not_idempotent'; END IF;
+  BEGIN
+    PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,
+      1200,v_recovery_request,'account_suspended');
+    RAISE EXCEPTION 'supervisor_recovery_replay_count_mismatch_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM pos_cashier.sales
+      WHERE organization_id='lefteria_fc_academy' AND shift_id=v_cashier_shift)
+    OR EXISTS(SELECT 1 FROM pos_cashier.receipts WHERE organization_id='lefteria_fc_academy')
+    OR EXISTS(SELECT 1 FROM pos_cashier.payment_events WHERE organization_id='lefteria_fc_academy')
+  THEN RAISE EXCEPTION 'supervisor_recovery_fabricated_payment_or_receipt'; END IF;
+
+  -- Recovery completes before removal of a formerly stranded assignment.
+  v_result:=pos_cashier.set_admin_terminal_operator(
+    v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,false);
+  IF (v_result->>'active')::boolean OR
+    EXISTS(SELECT 1 FROM pos_cashier.cashier_assignments
+      WHERE organization_id='lefteria_fc_academy' AND register_id=v_register_a1
+        AND admin_account_id=v_cashier AND is_active)
+  THEN RAISE EXCEPTION 'recovered_shift_terminal_revocation_failed'; END IF;
 
   v_result:=pos_cashier.read_admin_pos_sites(v_local_token,'lefteria_fc_academy');
   IF jsonb_array_length(v_result->'sites')<>1

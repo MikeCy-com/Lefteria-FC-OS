@@ -32,7 +32,7 @@
   const availableOwners=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
   const roleChoices=[['manager','Manager'],['coach','Coach'],['editor','Editor'],
-    ['marketing','Marketing'],['matchday_editor','Matchday editor'],['accountant','Accountant']] as const;
+    ['marketing','Marketing'],['matchday_editor','Matchday editor'],['accountant','Accountant'],['cashier','Cashier · ένα ταμείο']] as const;
   function ownerToggle(id:string,checked:boolean){
     selectedOwners=checked?[...new Set([...selectedOwners,id])]:selectedOwners.filter(x=>x!==id);
     createError='';createNotice='';
@@ -44,6 +44,7 @@
     if(!/^[a-z0-9][a-z0-9._@+\-]{2,79}$/.test(normalized)||!name||name.length>200||
       password.length<12||password.length>72||bytes>72||password!==confirmPassword||
       selectedOwners.length<1||selectedOwners.length>2||
+      (accountRole==='cashier'&&selectedOwners.length!==1)||
       !selectedOwners.every(id=>availableOwners.some(org=>org.id===id))){
       createError='Ελέγξτε χρήστη, όνομα, οργανισμό και δύο ίδιους ισχυρούς κωδικούς (12–72 χαρακτήρες, έως 72 bytes).';
       return;

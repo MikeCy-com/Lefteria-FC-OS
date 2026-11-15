@@ -77,14 +77,55 @@ sequence for one location. Operator assignment adds or revokes an explicit
 `pos_cashier.cashier_assignments` row, after checking the subject's current
 organization and canonical location/city manager grant.
 
-**Important limitation:** the existing cashier shift and settlement APIs
-accept authenticated manager/super-admin accounts, not a least-privilege
-standalone cashier account. This slice supports distinct **existing authorized
-manager identities** on different registers; it does not create independent
-cashier PINs, automatically grant broad manager privileges or activate the
-private `pos.operators` code-based identity table. A dedicated restricted
-cashier role/session lifecycle remains a separate required implementation
-before general operators should be onboarded.
+**Dedicated Cashier credential (development only):** A Super Admin can
+create a `cashier` role with a strong web-admin password and exactly **one**
+organization grant. A Cashier has `shop:operate` only, not `shop:read`,
+`shop:write`, `finance:read`, team, staff or administrator privileges.
+A separate terminal assignment, granted by a Super Admin, is mandatory
+before any register is visible or usable.
+
+The database serializes cashier assignments on the subject account and
+permits **one active terminal per cashier**, including across cities and
+organizations. Revoking a terminal grant or suspending the account prevents
+further authorized POS calls. An open shift must be closed and reconciled
+before its operator's terminal assignment is revoked.
+
+The cashier-only admin workspace exposes assigned register discovery and
+shift opening/closing. Server-side return review and refund request actions
+are reserved for managers. Site-level finance and invoices never become
+visible through a cashier credential.
+
+**Suspended cashier / open-shift recovery (draft):** The Super Admin
+terminal setup view identifies any open shift and whether its assigned
+cashier account is still active. After *explicitly suspending* a Cashier
+account through Users, a Super Admin may record the physically counted
+cash and select an incident reason via the dedicated supervisor workflow.
+This is not allowed for active cashiers, managers, unrelated organizations
+or invalid canonical sites.
+
+The recovery function locks authority, cashier identity and the shift;
+rejects unresolved payments, reservations, refunds and inconsistent
+receipt state; computes expected cash exclusively from verified immutable
+ledger events; and records the supervisor, original cashier, reason, count,
+variance, unique request ID and security/transaction audits. **Cash
+variance is preserved and flagged for investigation.** The operation is
+idempotent only when supervisor, shift, reason, counted amount and request
+ID match. No new sale, verified payment, receipt, Payabl refund or stock
+movement occurs. Following a valid closure, the Super Admin can revoke
+the old terminal assignment and appoint a replacement cashier.
+
+The new function's EXECUTE permission remains private until explicit,
+reviewed *staging* approval using
+`ops/postgres/pos-shift-recovery-admin-grants.sql`. No production grant,
+merchant activation or rollout has been performed. The organization
+should separately approve financial discrepancy handling, dual-control
+for physical cash counts, incident reporting and customer-facing receipts
+before permitting production POS recovery.
+
+The existing `pos.operators` code/PIN records remain **inactive** and are not
+silently substituted for fully authenticated named cashier accounts. Checkout
+and cash/card settlement still require explicitly approved grants, merchant
+and fiscal configuration; this update does **not** activate live sales.
 
 ## Verification and release blockers
 

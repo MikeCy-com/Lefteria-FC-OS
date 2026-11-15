@@ -89,11 +89,11 @@
           {#if liveIds.has('leads')}<a class="admin-nav-tool" href="/admin/leads" aria-current={active==='leads'?'page':undefined} data-testid="admin-crm-leads-link">Ενδιαφερόμενοι</a>{/if}
         </div>
       {/if}
-      {#if liveIds.has('payabl') || liveIds.has('products')}
+      {#if liveIds.has('payabl') || liveIds.has('products') || liveIds.has('registers')}
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΟΙΚΟΝΟΜΙΚΑ & ΚΑΤΑΣΤΗΜΑ</p>
           {#if liveIds.has('payabl')}<a class="admin-nav-section" href="/admin/finance" aria-current={active==='finance'?'page':undefined} data-testid="admin-payabl-link">Οικονομικά</a>{/if}
-          {#if liveIds.has('products')}<a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined} data-testid="admin-pos-link">POS & προϊόντα</a>{/if}
+          {#if liveIds.has('products') || liveIds.has('registers')}<a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined} data-testid="admin-pos-link">{user.role === 'cashier' ? 'Το ταμείο μου' : 'POS & προϊόντα'}</a>{/if}
         </div>
       {/if}
       {#if hasOperations}
