@@ -13,15 +13,16 @@
     city_grants:RawGrant[];location_grants:RawGrant[];
     team_grants:RawGrant[]};
 
-  let {organization,actorId,cities,locations,scopes,revision=0}:{
+  let {organization,actorId,cities,locations,scopes,revision=0,focusAccountId=''}:{
     organization:Owner;actorId:string;cities:City[];
-    locations:Location[];scopes:Scope[];revision?:number;
+    locations:Location[];scopes:Scope[];revision?:number;focusAccountId?:string;
   }=$props();
 
   let access=$state<Response|null>(null);
   let loading=$state(false),busy=$state(false);
   let error=$state(''),notice=$state(''),refresh=$state(0);
   let selectedAccount=$state(''),kind=$state<Kind>('city');
+  let requestedAccountApplied=false;
   let selectedScope=$state(''),selectedRole=$state('');
   const choices=$derived(kind==='city'
     ?cities.map(c=>({id:c.id,label:c.name}))
@@ -82,6 +83,15 @@
   $effect(()=>{
     if(organization==='lefteria_fc')kind='team';
     else if(kind==='team')kind='city';
+  });
+  $effect(()=>{
+    // The account ID in a protected deep link can only select a verified
+    // account already returned by the delegated-access API. It grants nothing.
+    if(requestedAccountApplied||!focusAccountId||!access)return;
+    if(access.accounts.some(item=>item.id===focusAccountId)){
+      requestedAccountApplied=true;
+      selectedAccount=focusAccountId;
+    }
   });
   $effect(()=>{
     if(!access?.accounts.some(a=>a.id===selectedAccount))
