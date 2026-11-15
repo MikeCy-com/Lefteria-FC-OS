@@ -2,6 +2,7 @@
   import {getContext,untrack} from 'svelte';
   import {browser} from '$app/env';
   import {goto} from '$app/navigation';
+  import {page} from '$app/state';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
@@ -34,7 +35,9 @@
     new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):[]);
 
   $effect(()=>{
-    const allowed=permitted,actor=$auth.session?.user.id;void actor;void refresh;
+    const allowed=permitted,actor=$auth.session?.user.id;
+    const requestedGroup=page.url.searchParams.get('group_id');
+    void actor;void refresh;
     groups=[];groupId='';sessions=null;
     if(!browser||!allowed)return;
     const ctrl=new AbortController();loadingGroups=true;error='';
@@ -47,7 +50,10 @@
         if(!res.ok)throw Error('Δεν φορτώθηκαν τα τμήματα.');
         const data:unknown=await res.json();
         if(!isAcademyScheduleGroupList(data))throw Error('Μη επαληθευμένη λίστα τμημάτων.');
-        if(!ctrl.signal.aborted){groups=data.groups;groupId=data.groups[0]?.id??'';}
+        if(!ctrl.signal.aborted){
+          groups=data.groups;
+          groupId=data.groups.find(g=>g.id===requestedGroup)?.id??data.groups[0]?.id??'';
+        }
       }catch(e){if(!ctrl.signal.aborted)error=e instanceof Error?e.message:'Πρόβλημα σύνδεσης.';}
       finally{if(!ctrl.signal.aborted)loadingGroups=false;}
     })();});
@@ -120,7 +126,9 @@
               {/each}
             </ol>
           {/if}
-          <a class="go-attendance" href="/admin/attendance">Άνοιγμα παρουσιολογίου προπονήσεων ›</a>
+          <a class="go-attendance" href={`/admin/attendance?group_id=${encodeURIComponent(groupId)}`}>
+            Άνοιγμα παρουσιολογίου για το επιλεγμένο τμήμα ›
+          </a>
         {:else if !loadingGroups&&!loadingSessions&&groups.length===0}
           <p class="notice">Δεν υπάρχουν διαθέσιμα τμήματα για τον συγκεκριμένο οργανισμό.</p>
         {/if}
