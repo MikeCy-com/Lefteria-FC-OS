@@ -1,3 +1,5 @@
+using System.Net.Http.Json;
+
 namespace LefteriaFc.Identity.IntegrationTests;
 
 internal sealed partial class WebAdminHttpChecks
@@ -48,4 +50,117 @@ internal sealed partial class WebAdminHttpChecks
             await database.CleanupAudienceAsync(audience);
         }
     }
+
+    private async Task AdminAcademyLocationGroupCreationAsync()
+    {
+        var manager=await database.SeedAsync(role:"manager",
+            organizations:["lefteria_fc","lefteria_fc_academy"]);
+        using var client=Client();
+        var login=await LoginAsync(client,manager);
+        var roster=await database.SeedAudienceAsync();
+        var site=await database.SeedAnnouncementTerritoriesAsync(roster,manager);
+        string? groupId=null;
+        const string path="/api/admin/football/groups/with-profile?organization_id=lefteria_fc_academy";
+        const string fcPath="/api/admin/football/groups/with-profile?organization_id=lefteria_fc";
+
+        static object Request(string name,Guid requestId,Guid? location) =>
+            new {
+                name,request_id=requestId,location_id=location,
+                academy_profile=new {
+                    age_range="U9",coach_name="",training_schedule="Tuesdays",
+                    description="Disposable Academy group",max_players=25,
+                    season="2026-27",banner_url="",display_order=0
+                }
+            };
+        static async Task<HttpResponseMessage> Post(HttpClient http,string cookie,
+            string target,object body)
+        {
+            using var request=Mutation(target,JsonContent.Create(body));
+            request.Headers.Add("Cookie",cookie);
+            return await http.SendAsync(request);
+        }
+
+        try
+        {
+            var id=Guid.NewGuid();
+            var payload=Request("Fixture City One · U9",id,site.SecondLocation);
+            using(var denied=await Post(client,login.Cookie,path,
+                Request("Wrong sibling site",Guid.NewGuid(),site.FirstLocation)))
+                await ExpectJsonAsync(denied,403,"group_creation_denied");
+            using(var denied=await Post(client,login.Cookie,path,
+                Request("Without a location",Guid.NewGuid(),null)))
+                await ExpectJsonAsync(denied,422,"invalid_group_profile");
+            using(var denied=await Post(client,login.Cookie,fcPath,new{
+                name="Unscoped FC",request_id=Guid.NewGuid(),
+                team_profile=new{level="First Team",description="",banner_url=""}}))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+            using(var denied=await Post(client,login.Cookie,
+                "/api/admin/football/groups?organization_id=lefteria_fc_academy",
+                new{name="Forbidden flat Academy group"}))
+                await ExpectJsonAsync(denied,403,"not_authorized");
+
+            var outsider=await database.SeedAsync(role:"manager",
+                organizations:["lefteria_fc_academy"]);
+            using(var outsiderClient=Client())
+            {
+                var other=await LoginAsync(outsiderClient,outsider);
+                using var denied=await Post(outsiderClient,other.Cookie,path,
+                    Request("Organization grant only",Guid.NewGuid(),site.SecondLocation));
+                await ExpectJsonAsync(denied,403,"group_creation_denied");
+            }
+
+            using(var saved=await Post(client,login.Cookie,path,payload))
+            {
+                var data=await ExpectJsonAsync(saved,200);
+                groupId=data.GetProperty("id").GetString();
+                Require(groupId is not null &&
+                    data.GetProperty("location_id").GetGuid()==site.SecondLocation &&
+                    data.GetProperty("city_id").GetGuid()==site.City &&
+                    data.GetProperty("profile").GetProperty("revision").GetInt64()==1 &&
+                    data.GetProperty("replay").GetBoolean()==false,
+                    "Scoped Academy create omitted its verified location or profile.");
+            }
+            await database.AssertScopedAcademyGroupAsync(groupId!,site.City,site.SecondLocation);
+            using(var replay=await Post(client,login.Cookie,path,payload))
+            {
+                var data=await ExpectJsonAsync(replay,200);
+                Require(data.GetProperty("id").GetString()==groupId &&
+                    data.GetProperty("replay").GetBoolean(),
+                    "Network replay created a second site group.");
+            }
+            using(var conflict=await Post(client,login.Cookie,path,
+                Request("Changed retry payload",id,site.SecondLocation)))
+                await ExpectJsonAsync(conflict,409,"group_creation_conflict");
+            using(var duplicate=await Post(client,login.Cookie,path,
+                Request("Fixture City One · U9",Guid.NewGuid(),site.SecondLocation)))
+                await ExpectJsonAsync(duplicate,409,"group_creation_conflict");
+            Require(await database.SyntheticGroupCountAsync(
+                "lefteria_fc_academy","Fixture City One · U9")==1,
+                "Replays or duplicate names created multiple Academy groups.");
+
+            await database.WithGroupAuditFailureAsync(manager,async()=>{
+                using var failed=await Post(client,login.Cookie,path,
+                    Request("Audit rollback site group",Guid.NewGuid(),site.SecondLocation));
+                await ExpectJsonAsync(failed,503,"group_creation_unavailable");
+            });
+            Require(await database.SyntheticGroupCountAsync(
+                "lefteria_fc_academy","Audit rollback site group")==0,
+                "Site group creation was not atomic with the audit.");
+
+            await database.RevokeAnnouncementTerritoriesAsync(manager,site);
+            using(var denied=await Post(client,login.Cookie,path,
+                Request("Revoked site group",Guid.NewGuid(),site.SecondLocation)))
+                await ExpectJsonAsync(denied,403,"group_creation_denied");
+            using(var denied=await Post(client,login.Cookie,path,payload))
+                await ExpectJsonAsync(denied,403,"group_creation_denied");
+        }
+        finally
+        {
+            if(groupId is not null)
+                await database.CleanupScopedAcademyGroupsAsync(manager,[groupId]);
+            await database.CleanupAnnouncementTerritoriesAsync(manager,site);
+            await database.CleanupAudienceAsync(roster);
+        }
+    }
+
 }
