@@ -5,6 +5,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
+  import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
 
   type Player = { id: string; name: string };
   type Entry = { id: string; status: string; status_version: number; applicant_first_name: string;
