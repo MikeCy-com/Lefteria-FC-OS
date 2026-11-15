@@ -45,6 +45,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/access/users'],
     ['POST','/api/admin/academy/office/registrations/enroll'],
     ['POST','/api/admin/access/users/status'],
+    ['POST','/api/admin/access/users/role'],
     ['GET','/api/admin/academy/training/plans'],
     ['POST','/api/admin/academy/training/plans'],
     ['POST','/api/admin/auth/profile/name'],
@@ -63,7 +64,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/admin/access/users/delete','/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,15);
+  assert.equal(reviewedHiddenAdminEntries.length,16);
 });
 test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
   const future=structuredClone(contract);
