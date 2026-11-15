@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { hasAdminPermission } from './permissions.ts';
-  import { preferredAdminOrganization, type AdminOrganizationUser } from './admin-organization.ts';
+  import { adminOrganizationsFor, type AdminOrganizationId, type AdminOrganizationUser } from './admin-organization.ts';
   import { verifiedAdminAudiences, verifiedAdminPublishedNews, verifiedAdminNewLeads } from './admin-overview-data.ts';
   import type { AdminOverviewMetric, AdminPublishedNewsMetric } from './admin-overview-data.ts';
 
-  let { user }: { user: AdminOrganizationUser & { permissions: string[] } } = $props();
-  const organization = $derived(preferredAdminOrganization(user));
-  const canSeeRoster = $derived(organization === 'lefteria_fc'
+  let { user, organization }: { user: AdminOrganizationUser & { permissions: string[] }; organization: AdminOrganizationId } = $props();
+  const granted = $derived(adminOrganizationsFor(user).includes(organization));
+  const canSeeRoster = $derived(granted && (organization === 'lefteria_fc'
     ? hasAdminPermission(user.permissions, 'teams:read')
-    : hasAdminPermission(user.permissions, 'academy:read'));
-  const canSeeNews = $derived(hasAdminPermission(user.permissions, 'news:read'));
-  const canSeeNewLeads = $derived(organization === 'lefteria_fc_academy' &&
+    : hasAdminPermission(user.permissions, 'academy:read')));
+  const canSeeNews = $derived(granted && hasAdminPermission(user.permissions, 'news:read'));
+  const canSeeNewLeads = $derived(granted && organization === 'lefteria_fc_academy' &&
     ['super_admin','manager'].includes(user.role) && hasAdminPermission(user.permissions,'marketing:read'));
   let roster = $state<AdminOverviewMetric | null>(null);
   let news = $state<AdminPublishedNewsMetric | null>(null);
@@ -93,16 +93,16 @@
   });
 </script>
 
-<section class="admin-panel admin-club-metrics" aria-labelledby="admin-club-metrics-heading" data-testid="admin-club-metrics">
+<section class="admin-panel admin-club-metrics" aria-label={organization === 'lefteria_fc' ? 'Στατιστικά συλλόγου' : 'Στατιστικά Ακαδημίας'} data-testid="admin-club-metrics">
   <header class="admin-club-metrics-heading">
     <div>
       <p class="admin-eyebrow">ΕΠΙΣΚΟΠΗΣΗ · {organization === 'lefteria_fc' ? 'ΣΥΛΛΟΓΟΣ' : 'ΑΚΑΔΗΜΙΑ'}</p>
-      <h2 id="admin-club-metrics-heading">Στοιχεία οργανισμού</h2>
+      <h2>Στοιχεία οργανισμού</h2>
       <p class="admin-muted">Μόνο επιβεβαιωμένα στοιχεία από το API. Δεν συμπληρώνονται ενδεικτικοί αριθμοί.</p>
     </div>
     <button type="button" class="admin-secondary" disabled={loading} onclick={() => refresh++}>Ανανέωση</button>
   </header>
-  {#if !organization}
+  {#if !granted}
     <p role="status">Δεν υπάρχει ενεργός οργανισμός.</p>
   {:else}
     <div class="admin-club-metrics-grid" aria-busy={loading}>
