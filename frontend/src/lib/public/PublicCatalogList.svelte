@@ -2,7 +2,7 @@
   import PublicShell from './PublicShell.svelte';
   import PublicImage from './PublicImage.svelte';
   import { greekDate } from './content';
-  import { catalogTitles, catalogScopeLabel, eventTypeLabel, eventDateTime, eventPrice } from './PublicCatalog';
+  import { catalogTitles, catalogScopeLabel, catalogListHref, eventTypeLabel, eventDateTime, eventPrice } from './PublicCatalog';
   import type { CatalogData } from '../server/public-catalog';
   let { data }: { data: CatalogData } = $props();
   const descriptions = { events: 'Οι στιγμές που φέρνουν την οικογένεια της Λευτεριάς πιο κοντά.', partners: 'Οι άνθρωποι και οι οργανισμοί που μοιράζονται το όραμά μας.', sponsors: 'Δίπλα στην ομάδα. Μέρος της διαδρομής μας.', seasons: 'Οι αγώνες, οι ομάδες και οι στιγμές κάθε σεζόν.' };
@@ -12,6 +12,31 @@
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <section class="catalog" data-testid={`public-${data.kind}-catalog`}>
     <header class="catalog-heading"><p class="public-eyebrow">Η ΟΙΚΟΓΕΝΕΙΑ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p><h1>{title}</h1><p>{descriptions[data.kind]}</p></header>
+    {#if data.kind === 'events'}
+      <nav class="event-chip-filters" aria-label="Φίλτρα εκδηλώσεων" data-testid="events-original-chip-filters">
+        <div class="event-chip-row" data-testid="filter-scope">
+          <span class="event-chip-heading">ΟΜΑΔΑ</span>
+          <a href={catalogListHref('events',null,data.when,data.eventType)} aria-current={data.scope === null ? 'page' : undefined} data-testid="filter-scope-all">ΟΛΑ</a>
+          <a href={catalogListHref('events','first_team',data.when,data.eventType)} aria-current={data.scope === 'first_team' ? 'page' : undefined} data-testid="filter-scope-first-team">ΠΡΩΤΗ ΟΜΑΔΑ</a>
+          <a href={catalogListHref('events','academy',data.when,data.eventType)} aria-current={data.scope === 'academy' ? 'page' : undefined} data-testid="filter-scope-academy">ΑΚΑΔΗΜΙΑ</a>
+        </div>
+        <div class="event-chip-row" data-testid="filter-when">
+          <span class="event-chip-heading">ΧΡΟΝΟΣ</span>
+          <a href={catalogListHref('events',data.scope,'upcoming',data.eventType)} aria-current={data.when === 'upcoming' ? 'page' : undefined} data-testid="filter-when-upcoming">ΠΡΟΣΕΧΕΙΣ</a>
+          <a href={catalogListHref('events',data.scope,'past',data.eventType)} aria-current={data.when === 'past' ? 'page' : undefined} data-testid="filter-when-past">ΠΑΡΕΛΘΟΝΤΕΣ</a>
+          <a href={catalogListHref('events',data.scope,'all',data.eventType)} aria-current={data.when === 'all' ? 'page' : undefined} data-testid="filter-when-all">ΟΛΕΣ</a>
+        </div>
+        {#if data.eventTypes.length}
+          <div class="event-chip-row" data-testid="filter-type">
+            <span class="event-chip-heading">ΤΥΠΟΣ</span>
+            <a href={catalogListHref('events',data.scope,data.when,'all')} aria-current={data.eventType === 'all' ? 'page' : undefined} data-testid="filter-type-all">ΟΛΟΙ</a>
+            {#each data.eventTypes as value (value)}
+              <a href={catalogListHref('events',data.scope,data.when,value)} aria-current={data.eventType === value ? 'page' : undefined} data-testid={'filter-type-'+value}>{eventTypeLabel(value)}</a>
+            {/each}
+          </div>
+        {/if}
+      </nav>
+    {/if}
     <form method="GET"
       action={data.kind === 'sponsors' && data.fixedScope === 'academy' ? '/sponsors/academy'
         : data.kind === 'sponsors' && data.fixedScope === 'first_team' ? '/sponsors/first-team'
@@ -47,4 +72,13 @@
   .event-card-facts dt { color:var(--public-gold); font-weight:600; }
   .event-card-facts dd { margin:0; color:#eee; overflow-wrap:anywhere; }
   .event-card-facts small { color:#aaa; white-space:nowrap; }
+
+  .event-chip-filters{display:grid;gap:15px;border-top:1px solid #4b3c21;border-bottom:1px solid #4b3c21;padding:20px clamp(12px,2vw,24px);background:#080808}
+  .event-chip-row{display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+  .event-chip-heading{min-width:88px;color:#a9a9a9;letter-spacing:.07em;font-weight:800;font-size:12px}
+  .event-chip-row a{border:1px solid #504a3e;border-radius:999px;padding:10px 17px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;color:#d4d4d4;background:#141414;text-decoration:none;font-size:13px;font-weight:800}
+  .event-chip-row a:hover,.event-chip-row a:focus-visible{border-color:#f6bb38;color:#f6bb38}
+  .event-chip-row a:focus-visible{outline:3px solid #f6bb38;outline-offset:2px}
+  .event-chip-row a[aria-current="page"]{background:#f6bb38;border-color:#f6bb38;color:#111}
+  @media(max-width:650px){.event-chip-row{gap:7px}.event-chip-heading{width:100%;min-width:unset}.event-chip-row a{font-size:12px;padding:9px 12px}}
 </style>
