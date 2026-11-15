@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
-const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115910000_HubFanAdminOverview.cs');
+const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115920000_HubFanAdminOverview.cs');
 const endpoint=read('backend/src/LefteriaFc.Api/Hub/AdminHubEndpoints.cs');
 const grants=read('ops/postgres/web-admin-auth-grants.sql');
 const permissions=read('ops/postgres/web-admin-auth-permissions-check.sql');
