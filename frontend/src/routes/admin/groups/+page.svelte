@@ -232,7 +232,24 @@
         <h1>Ομάδες & τμήματα</h1>
         <p class="admin-muted">Ζωντανή εικόνα των ομάδων και των τμημάτων από το επαληθευμένο ρόστερ, όχι διπλές στατικές καταχωρίσεις. Οι αριθμοί περιλαμβάνουν μόνο ενεργούς παίκτες χωρίς αρχειοθέτηση ή μεταγραφή.</p>
         <section class="admin-panel admin-audiences-select" aria-label="Οργανισμός ομάδων">
-          <span class="admin-organization-context-label" data-testid="admin-audience-owner">{assignments.find(org => org.id === organization)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
+          {#if assignments.length > 1}
+            <label class="admin-groups-organization-choice">Οργανισμός
+              <select value={organization ?? ''} data-testid="admin-groups-organization"
+                disabled={loading || saving}
+                onchange={event => {
+                  const next = event.currentTarget.value;
+                  if (assignments.some(org => org.id === next)) organization = next as Organization;
+                }}>
+                {#each assignments as available (available.id)}
+                  <option value={available.id}>{available.name}</option>
+                {/each}
+              </select>
+            </label>
+          {:else}
+            <span class="admin-organization-context-label" data-testid="admin-audience-owner">
+              {assignments[0]?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}
+            </span>
+          {/if}
           <button type="button" class="admin-secondary" onclick={() => retry++} disabled={loading}>Ανανέωση</button>
         </section>
 
@@ -269,9 +286,16 @@
                     oninput={() => createRequestId=''}/>
                   {#if organization === 'lefteria_fc'}
                     <label>Επίπεδο ομάδας
-                      <input type="text" maxlength="100" required bind:value={teamLevel}
+                      <input type="text" maxlength="100" required list="admin-team-level-options" bind:value={teamLevel}
                         disabled={saving} oninput={() => createRequestId=''}/>
                     </label>
+                    <datalist id="admin-team-level-options">
+                      <option value="Α' Ομάδα"></option>
+                      <option value="Γυναικεία Ομάδα"></option>
+                      <option value="Επιλεγμένη Ομάδα"></option>
+                      <option value="Β' Ομάδα"></option>
+                      <option value="Αναπτυξιακή Ομάδα"></option>
+                    </datalist>
                     <label>Περιγραφή ομάδας
                       <textarea rows="3" maxlength="2000" bind:value={teamDescription}
                         disabled={saving} oninput={() => createRequestId=''}/>
@@ -343,6 +367,14 @@
                   <li>
                     <div><span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span><strong>{group.name}</strong></div>
                     <div class="admin-audiences-count"><strong>{group.active_players}</strong><span>ενεργοί παίκτες</span></div>
+                    {#if organization === 'lefteria_fc_academy'}
+                      <nav class="admin-audience-actions" aria-label={`Ενέργειες τμήματος ${group.name}`}>
+                        <a href={`/admin/schedule?group_id=${encodeURIComponent(group.id)}`}
+                           data-testid="admin-group-training-link">Πρόγραμμα ›</a>
+                        <a href={`/admin/attendance?group_id=${encodeURIComponent(group.id)}`}
+                           data-testid="admin-group-attendance-link">Παρουσίες ›</a>
+                      </nav>
+                    {/if}
                   </li>
                 {/each}
               </ul>
@@ -421,6 +453,12 @@
   .admin-audiences-type{color:#ffca46;letter-spacing:.075em;font-size:10px}
   .admin-audiences-count{display:flex;align-items:baseline;gap:9px;white-space:nowrap}
   .admin-audiences-count strong{font-family:'Fira Sans Extra Condensed',sans-serif;color:#ffca46;font-size:23px}
+  .admin-groups-organization-choice{min-width:min(100%,310px)!important;font-size:14px!important;color:#f6bb38!important}
+  .admin-groups-organization-choice select{min-height:44px;padding:9px 12px;border:1px solid #8f783f;border-radius:7px;background:#181a1b;color:#fff}
+  .admin-audience-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .admin-audience-actions a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;color:#ffca46;border:1px solid #70572a;border-radius:7px;font-size:14px}
+  .admin-audience-actions a:hover{background:#f6bb3820;border-color:#ffca46}
+  .admin-audience-actions a:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
   .admin-audiences-note{max-width:80ch;color:#b5babd;font-size:12px;margin-top:18px}
   @media(max-width:650px){.admin-audiences-stats{grid-template-columns:1fr}.admin-audiences-list li{align-items:start}.admin-audiences-count{flex-direction:column;align-items:flex-end;gap:2px}}
 </style>
