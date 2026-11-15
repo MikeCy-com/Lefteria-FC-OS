@@ -314,9 +314,9 @@ public sealed class PosAcademySiteFinancialBoundary : Migration
           'journal_entries_confirmed',0,'finance_posting_active',false);
       END $global_finance$;
 
-      -- A cashier assignment does not override football site boundaries.
-      -- This check applies to every existing shift/checkout/reconciliation
-      -- operation that calls current_cashier_authority.
+
+      -- An assigned register must also belong to the actor's current
+      -- Academy city/location grant, even if the assignment is stale.
       CREATE OR REPLACE FUNCTION pos_cashier.current_cashier_authority(
         _digest text,_owner text,_register text
       ) RETURNS uuid LANGUAGE plpgsql VOLATILE SECURITY DEFINER
@@ -325,8 +325,95 @@ public sealed class PosAcademySiteFinancialBoundary : Migration
         v_actor uuid;v_role text;v_pos_location text;v_academy_location uuid;
         v_scope uuid;
       BEGIN
-        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}, even on migrated databases. The
-      -- independent admin DB role needs an operator-approved grant script.
+        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
+          OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
+          OR _register IS NULL OR _register !~ '^[A-Za-z0-9_-]{1,80}$'
+        THEN RAISE EXCEPTION 'cashier_scope_invalid' USING ERRCODE='22023'; END IF;
+        PERFORM identity.lock_admin_club_authority(_digest,_owner);
+        SELECT a.id,a.role,r.location_id
+          INTO v_actor,v_role,v_pos_location
+          FROM identity.admin_sessions s
+          JOIN identity.admin_accounts a ON a.id=s.admin_account_id
+          JOIN identity.admin_organization_grants g
+            ON g.admin_account_id=a.id AND g.organization_id=_owner
+          JOIN pos_cashier.cashier_assignments ca
+            ON ca.organization_id=_owner AND ca.register_id=_register
+              AND ca.admin_account_id=a.id AND ca.is_active
+          JOIN pos_cashier.registers r
+            ON r.organization_id=_owner AND r.id=_register AND r.is_active
+          JOIN pos.locations l
+            ON l.organization_id=_owner AND l.id=r.location_id AND l.active
+          WHERE s.token_digest=_digest AND s.revoked_at IS NULL
+            AND s.expires_at>clock_timestamp() AND a.is_active
+            AND NOT a.invite_pending AND NOT a.otp2fa_enabled
+            AND a.password_hash IS NOT NULL
+          FOR SHARE OF ca,r,l;
+        IF NOT FOUND OR v_role NOT IN ('manager','super_admin')
+        THEN RAISE EXCEPTION 'cashier_not_assigned_or_not_active'
+          USING ERRCODE='42501'; END IF;
+        IF _owner='lefteria_fc_academy' THEN
+          SELECT link.academy_location_id,scope.id
+            INTO v_academy_location,v_scope
+            FROM pos.academy_football_location_links link
+            JOIN club.football_locations fl
+              ON fl.id=link.academy_location_id
+                AND fl.city_id=link.academy_city_id AND fl.is_active
+            JOIN club.football_cities fc ON fc.id=fl.city_id AND fc.is_active
+            JOIN club.football_operational_scopes scope
+              ON scope.academy_city_id=fl.city_id
+                AND scope.organization_id=_owner
+            WHERE link.organization_id=_owner
+              AND link.pos_location_id=v_pos_location;
+          IF v_scope IS NULL OR NOT club.admin_football_allowed(
+            v_actor,v_role,_owner,v_scope,v_academy_location,false)
+          THEN RAISE EXCEPTION 'cashier_site_grant_revoked'
+             USING ERRCODE='42501'; END IF;
+        END IF;
+        RETURN v_actor;
+      END $scoped_cashier$;
+
+      -- Discover only currently authorized, assigned and active registers.
+      CREATE OR REPLACE FUNCTION pos_cashier.read_admin_cashier_registers(
+        _digest text,_owner text
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $scoped_registers$
+      DECLARE v_actor uuid;v_role text;v_rows jsonb;
+      BEGIN
+        SELECT actor_id,account_role INTO STRICT v_actor,v_role
+          FROM club.authorize_admin_football(_digest,_owner);
+        SELECT coalesce(jsonb_agg(jsonb_build_object(
+          'id',r.id,'label',r.label,'location_id',r.location_id,
+          'location_name',l.name,'shift_id',sh.id,
+          'opened_at',sh.opened_at,'opening_cash_cents',sh.opening_cash_cents)
+          ORDER BY r.id),'[]'::jsonb) INTO v_rows
+        FROM pos_cashier.registers r
+        JOIN pos.locations l ON l.organization_id=r.organization_id
+          AND l.id=r.location_id AND l.active
+        JOIN pos_cashier.cashier_assignments ca
+          ON ca.organization_id=r.organization_id
+          AND ca.register_id=r.id AND ca.admin_account_id=v_actor AND ca.is_active
+        LEFT JOIN pos_cashier.shifts sh
+          ON sh.organization_id=r.organization_id
+          AND sh.register_id=r.id AND sh.closed_at IS NULL
+        LEFT JOIN pos.academy_football_location_links link
+          ON link.organization_id=r.organization_id
+          AND link.pos_location_id=r.location_id
+        LEFT JOIN club.football_operational_scopes scope
+          ON scope.academy_city_id=link.academy_city_id
+          AND scope.organization_id=r.organization_id
+        WHERE r.organization_id=_owner AND r.is_active
+          AND (_owner<>'lefteria_fc_academy' OR
+             (link.academy_location_id IS NOT NULL AND scope.id IS NOT NULL
+              AND club.admin_football_allowed(v_actor,v_role,_owner,
+                scope.id,link.academy_location_id,false)));
+        IF jsonb_array_length(v_rows)>100
+        THEN RAISE EXCEPTION 'cashier_registers_too_many' USING ERRCODE='54000'; END IF;
+        RETURN jsonb_build_object('organization_id',_owner,
+          'registers',v_rows,'total',jsonb_array_length(v_rows));
+      END $scoped_registers$;
+
+      -- Security-definer operations are not automatically granted to
+      -- any web or mobile account by migration.
       REVOKE ALL ON FUNCTION pos_cashier.authorize_site_finances(text,text,text) FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos_cashier.ensure_admin_academy_pos_site(text,uuid) FROM PUBLIC;
       REVOKE ALL ON FUNCTION pos_cashier.read_admin_pos_sites(text,text) FROM PUBLIC;
