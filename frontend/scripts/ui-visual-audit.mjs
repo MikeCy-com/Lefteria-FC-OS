@@ -463,10 +463,12 @@ try {
               failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
-            if(motto.y<tiles.bottom-2||motto.y>tiles.bottom+12)
-              failures.push('home: reference black motto interval is not after the four image tiles');
-            if(news.y<900)
-              failures.push('home: preserve actual CMS news below the reference fold, not above the 941px screenshot');
+            if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
+              failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
+            if(motto.y<news.bottom-2||motto.y>news.bottom+32)
+              failures.push('home: compact club motto should immediately follow CMS news');
+            if(news.y>900)
+              failures.push('home: CMS news must be visible above the desktop reference fold');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
           }
