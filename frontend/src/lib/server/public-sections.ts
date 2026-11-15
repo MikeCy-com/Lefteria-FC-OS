@@ -59,7 +59,12 @@ async function findPlayer(url: URL, id: string) {
       missingProjection = true;
       continue;
     }
-    const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
+    // Club players can belong to First, Women's, Selected or another published
+    // team. Academy players remain separate and their names are abbreviated
+    // in the Academy public projection. Never exclude a Club player merely
+    // because their team_type is not the historical 'First Team' label.
+    const rows = data.sections!.players.filter(row =>
+      row.organization_id === organization && (organization === 'lefteria_fc' || row.team_type === type));
     // Raw legacy IDs may themselves contain '--'. Search both organizations
     // for the exact ID before allowing a title-slug suffix to match another player.
     const exact = rows.find(row => row.id === id);
@@ -78,8 +83,16 @@ export async function loadPlayerPage(url: URL, id: string): Promise<PlayerPageDa
   const sections = data.sections!;
   const gallery = sections.gallery.filter(image => image.organization_id === player.organization_id && image.player_id === player.id);
   const season = sections.seasons.find(item => item.organization_id === player.organization_id && item.is_current && !item.is_archived)?.name ?? null;
+  // Accept a team return context only for a player assigned to exactly that
+  // published team. A forged query can never redirect a player to an
+  // unrelated Club roster or turn Academy identity into a Club link.
+  const requestedTeam = url.searchParams.get('team_id');
+  const returnTeamId = player.organization_id === 'lefteria_fc' &&
+    requestedTeam && player.team_id === requestedTeam &&
+    data.site?.teams.some(team => team.id === requestedTeam && team.organization_id === 'lefteria_fc')
+      ? requestedTeam : null;
   return { site: data.site, available: data.available, organization: data.organization,
-    branding: data.branding, navigationGroups: data.navigationGroups, player, gallery, season };
+    branding: data.branding, navigationGroups: data.navigationGroups, player, gallery, season, returnTeamId };
 }
 
 export async function loadStaffPage(url: URL, id: string): Promise<StaffPageData> {
