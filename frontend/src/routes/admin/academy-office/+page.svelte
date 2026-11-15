@@ -5,7 +5,6 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
-  import { preferredAdminOrganization } from '../../../lib/admin/admin-organization.ts';
 
   type Player = { id: string; name: string };
   type Entry = { id: string; status: string; status_version: number; applicant_first_name: string;
@@ -17,7 +16,7 @@
   const access = $derived($auth.status === 'authenticated' && !!$auth.session &&
     ['manager', 'super_admin'].includes($auth.session.user.role) &&
     $auth.session.user.organizations.some(org => org.id === 'lefteria_fc_academy') &&
-    preferredAdminOrganization($auth.session.user) === 'lefteria_fc_academy');
+    hasAdminPermission($auth.session.user.permissions, 'academy:read'));
   const api = '/api/admin/academy/office/';
   let tab = $state<'registrations' | 'orders'>('registrations');
   let offset = $state(0);
