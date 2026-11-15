@@ -19,7 +19,7 @@
   const actions=$derived([
     {id:'groups',label:'Ομάδες & τμήματα',description:'Δημιουργία, ρόστερ, προπονήσεις, αγώνες και ενέργειες αθλητών',href:'/admin/groups'},
     {id:'territories',label:'Πόλεις & τοποθεσίες',description:'Οργάνωση Ακαδημίας, βάσεις, αγωνιστικοί κατάλογοι ανά πόλη',href:'/admin/territories'},
-    {id:'announcements',label:'Ανακοινώσεις εφαρμογής',description:'Δημοσίευση ανά ομάδα και παρακολούθηση ανάγνωσης',href:'/admin/announcements'},
+    {id:'communications',label:'Επικοινωνία εφαρμογής',description:'Ανακοινώσεις, συνομιλίες, ειδοποιήσεις και προστατευμένα αρχεία',href:'/admin/communications'},
     {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
