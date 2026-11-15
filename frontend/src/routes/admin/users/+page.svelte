@@ -64,7 +64,7 @@
         !('role' in saved)||saved.role!==accountRole||
         !('organizations' in saved)||!Array.isArray(saved.organizations)||
         saved.organizations.length!==selectedOwners.length||
-        !selectedOwners.every(owner=>saved.organizations.includes(owner)))
+        !selectedOwners.every(owner=>(saved.organizations as string[]).includes(owner)))
         throw Error('Ο λογαριασμός δεν επιβεβαιώθηκε.');
       createNotice='Ο λογαριασμός δημιουργήθηκε με τον επιλεγμένο ρόλο. Μεταδώστε τον αρχικό κωδικό στον χρήστη μέσω ασφαλούς καναλιού.';
       username='';displayName='';selectedOwners=[];showCreate=false;offset=0;revision++;
