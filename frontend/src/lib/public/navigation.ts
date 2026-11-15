@@ -148,7 +148,7 @@ export function publicSearch(
   query: string, groups: PublicGroup[], news: PublicArticle[],
   context?: PublicSearchContext
 ) {
-  const normalize = (value: string) => value.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('el-GR');
+  const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('el-GR');
   const organization = context?.organization;
   const source = context?.navigation ?? publicNavigation;
   const links = source.flatMap(item => {
