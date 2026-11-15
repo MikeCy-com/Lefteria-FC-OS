@@ -141,6 +141,6 @@
     .website-page-return a{width:100%;justify-content:center;white-space:normal;}
   }
   @media(prefers-reduced-motion:reduce){
-    .website-page :is(a,button){transition:none!important;}
+    .website-page a{transition:none!important;}
   }
 </style>
