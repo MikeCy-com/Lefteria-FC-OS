@@ -23,6 +23,7 @@
     {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
+    {id:'hub_subscriptions',label:'HUB · Συνδρομές φιλάθλων',description:'Επαληθευμένα συγκεντρωτικά στοιχεία, διαθέσιμα μόνο σε Super Admin',href:'/admin/hub/subscriptions'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
     {id:'staff',label:'Προσωπικό & προπονητές',description:'Αναθέσεις σε πραγματικές ομάδες',href:'/admin/staff'},
     {id:'users',label:'Χρήστες & δικαιώματα',description:'Προβολή επαληθευμένων λογαριασμών',href:'/admin/users'},
