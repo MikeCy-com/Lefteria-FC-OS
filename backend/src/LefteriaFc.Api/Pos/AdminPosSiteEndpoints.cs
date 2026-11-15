@@ -17,6 +17,7 @@ public static class AdminPosSiteEndpoints
     public sealed record EnsureAcademySite(Guid AcademyLocationId);
     public sealed record CreateTerminal(string? LocationId, string? Label);
     public sealed record AssignOperator(Guid AdminAccountId, bool Enabled);
+    public sealed record RecoverSuspendedShift(Guid RequestId, long CountedCashCents, string? ReasonCode);
 
     public static IEndpointRouteBuilder MapAdminPosSites(this IEndpointRouteBuilder endpoints)
     {
@@ -156,6 +157,33 @@ public static class AdminPosSiteEndpoints
             return await Query(command,ct);
         }).WithName("AssignAdminPosTerminalOperator").ExcludeFromDescription();
 
+        // Deliberately separate from cashier self-service. A real Super Admin
+        // must count physical cash and provide an idempotency key and reason.
+        routes.MapPost("/shifts/{shiftId:guid}/recover-close", async (
+            Guid shiftId, string? organization_id, RecoverSuspendedShift input,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authorized(auth, organization_id,
+                context, true, true, true, ct);
+            if (shiftId == Guid.Empty || input.RequestId == Guid.Empty ||
+                input.CountedCashCents is < 0 or > 100000000 ||
+                input.ReasonCode is not ("account_suspended" or "security_incident" or "operator_unavailable"))
+                throw new WebAdminException(422,"pos_shift_recovery_invalid",
+                    "Select a suspended cashier shift, counted cash and a recovery reason.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.recover_suspended_admin_cashier_shift(" +
+                "@digest,@owner,@shift,@counted,@request,@reason)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("shift",shiftId);
+            command.Parameters.AddWithValue("counted",input.CountedCashCents);
+            command.Parameters.AddWithValue("request",input.RequestId);
+            command.Parameters.AddWithValue("reason",input.ReasonCode!);
+            return await Query(command,ct);
+        }).WithName("RecoverSuspendedAdminPosCashierShift").ExcludeFromDescription();
+
         return endpoints;
     }
 
@@ -198,9 +226,9 @@ public static class AdminPosSiteEndpoints
             return content is null ? Results.Problem(statusCode:503)
                 : Results.Content(content,"application/json",Encoding.UTF8,200);
         } catch(PostgresException error) when(error.SqlState is
-            "42501" or "22023" or "23505" or "23514" or "54000") {
+            "42501" or "22023" or "23505" or "23514" or "54000" or "55000" or "40001") {
             var status=error.SqlState switch {
-                "42501"=>403,"22023"=>422,"23505"=>409,"23514"=>409,_=>413
+                "42501"=>403,"22023"=>422,"23505"=>409,"23514"=>409,"55000"=>409,"40001"=>409,_=>413
             };
             throw new WebAdminException(status,"pos_site_operation_unavailable",
                 "The selected location or current permissions have changed.");
