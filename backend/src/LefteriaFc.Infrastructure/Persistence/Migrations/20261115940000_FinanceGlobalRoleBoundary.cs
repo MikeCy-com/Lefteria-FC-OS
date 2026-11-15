@@ -549,7 +549,9 @@ public sealed class FinanceGlobalRoleBoundary : Migration
 
     // Downgrading a populated finance database would reopen cross-location
     // manager access. Only an empty disposable migration fixture may revert.
-    // A downgrade must never restore broad legacy payment authority.
+    // No privilege-widening reverse migration. Older migration Downs own the
+    // underlying functions/tables on a complete rollback. A targeted rollback
+    // keeps the narrowed predicates until a separately reviewed forward change.
     protected override void Down(MigrationBuilder migrationBuilder)
-        => throw new NotSupportedException("finance_global_role_requires_reviewed_forward_recovery");
+        => migrationBuilder.Sql("SELECT 1; -- finance_global_role_requires_reviewed_forward_recovery");
 }
