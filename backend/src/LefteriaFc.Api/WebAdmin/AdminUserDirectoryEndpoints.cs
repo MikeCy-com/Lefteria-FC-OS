@@ -43,6 +43,16 @@ public static class AdminUserDirectoryEndpoints
 
             var take=limit??20;
             var skip=offset??0;
+            // Never expose an account's identity or existence to an operator
+            // who does not hold ALL of that account's organization grants.
+            // A dual-organization account is invisible to single-owner admins.
+            // Authoritative, freshly verified owners come only from the signed session.
+            var owned=session.User.Organizations
+                .Select(o=>o.Id)
+                .Where(id=>id is "lefteria_fc" or "lefteria_fc_academy")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
             await using var connection=await connections.OpenAsync(token);
             await using var command=connection.CreateCommand();
             command.CommandText="""
@@ -52,12 +62,22 @@ public static class AdminUserDirectoryEndpoints
                     (count(*) OVER ())::integer AS total
                 FROM identity.admin_accounts a
                 LEFT JOIN identity.admin_organization_grants g ON g.admin_account_id=a.id
+                WHERE EXISTS (
+                  SELECT 1 FROM identity.admin_organization_grants subject_owner
+                  WHERE subject_owner.admin_account_id=a.id
+                    AND subject_owner.organization_id=ANY(@owners)
+                ) AND NOT EXISTS (
+                  SELECT 1 FROM identity.admin_organization_grants foreign_owner
+                  WHERE foreign_owner.admin_account_id=a.id
+                    AND NOT(foreign_owner.organization_id=ANY(@owners))
+                )
                 GROUP BY a.id,a.display_name,a.role,a.is_active,a.invite_pending
                 ORDER BY lower(a.display_name),a.id
                 LIMIT @take OFFSET @skip
                 """;
             command.Parameters.AddWithValue("take",take);
             command.Parameters.AddWithValue("skip",skip);
+            command.Parameters.Add("owners",NpgsqlDbType.Array|NpgsqlDbType.Text).Value=owned;
             var accounts=new List<object>();
             int total=0;
             await using (var reader=await command.ExecuteReaderAsync(token))
@@ -79,7 +99,19 @@ public static class AdminUserDirectoryEndpoints
             if(accounts.Count==0 && skip>0)
             {
                 await using var count=connection.CreateCommand();
-                count.CommandText="SELECT count(*)::integer FROM identity.admin_accounts";
+                count.CommandText="""
+                    SELECT count(*)::integer FROM identity.admin_accounts a
+                    WHERE EXISTS (
+                      SELECT 1 FROM identity.admin_organization_grants subject_owner
+                      WHERE subject_owner.admin_account_id=a.id
+                        AND subject_owner.organization_id=ANY(@owners)
+                    ) AND NOT EXISTS (
+                      SELECT 1 FROM identity.admin_organization_grants foreign_owner
+                      WHERE foreign_owner.admin_account_id=a.id
+                        AND NOT(foreign_owner.organization_id=ANY(@owners))
+                    )
+                    """;
+                count.Parameters.Add("owners",NpgsqlDbType.Array|NpgsqlDbType.Text).Value=owned;
                 total=Convert.ToInt32(await count.ExecuteScalarAsync(token));
             }
             return Results.Json(new {offset=skip,limit=take,total,accounts});
