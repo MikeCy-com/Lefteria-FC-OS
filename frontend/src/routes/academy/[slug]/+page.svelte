@@ -2,16 +2,28 @@
   import PublicShell from '../../../lib/public/PublicShell.svelte';
   import PublicImage from '../../../lib/public/PublicImage.svelte';
   import Fixtures from '../../../lib/public/Fixtures.svelte';
-  import { personPublicLink } from '../../../lib/public/public-urls';
+  import { personPublicLink, publicCanonicalHref, publicSocialImage } from '../../../lib/public/public-urls';
+  import { academyGroupLink } from '../../../lib/public/navigation';
   import type { PublicPageData, PublicGroup, PublicFixture } from '../../../lib/public/types';
   import type { SectionPlayer, SectionStaff, PublicSections } from '../../../lib/public/sections-types';
   let { data }: { data: PublicPageData & { group: PublicGroup; groupFixtures: PublicFixture[]; groupPlayers: SectionPlayer[]; groupCoaches: SectionStaff[]; groupGallery: PublicSections['gallery']; groupSectionsAvailable: boolean } } = $props();
   const group = $derived(data.group);
+  const canonical = $derived(publicCanonicalHref(academyGroupLink(group)));
+  const socialImage = $derived(publicSocialImage(group.banner_url));
   const upcoming = $derived(data.groupFixtures.filter(fixture => fixture.status !== 'Completed'));
   const results = $derived(data.groupFixtures.filter(fixture => fixture.status === 'Completed').reverse());
 </script>
 
-<svelte:head><title>{group.name} | ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={group.description || `Πληροφορίες, προπονήσεις και αγώνες του τμήματος ${group.name} της ακαδημίας Λευτεριά FC.`} /></svelte:head>
+<svelte:head>
+  <title>{group.name} | ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</title>
+  <meta name="description" content={group.description || `Πληροφορίες, προπονήσεις και αγώνες του τμήματος ${group.name} της ακαδημίας Λευτεριά FC.`} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={group.name+' | ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC'} />
+  <meta property="og:description" content={group.description || 'Επίσημο ηλικιακό τμήμα της Ακαδημίας Λευτεριά FC.'} />
+  <meta property="og:url" content={canonical} />
+  <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+  {#if socialImage}<meta property="og:image" content={socialImage} />{/if}
+</svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc_academy" navigationGroups={data.navigationGroups}>
   <section class="group-hero">
     {#if group.banner_url}<div class="group-hero-image"><PublicImage src={group.banner_url} alt="" eager /></div>{/if}
