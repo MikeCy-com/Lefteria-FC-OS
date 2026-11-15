@@ -586,7 +586,7 @@ try {
             failures.push('First Team search exposed Academy groups on '+viewport.name);
         }
         const countText=await page.getByTestId('public-search-count').innerText();
-        if(!countText.includes('αποτέλεσμα'))
+        if(!/(?:αποτέλεσμα|αποτελέσματα)/u.test(countText))
           failures.push('Search live result counter is absent on '+viewport.name);
         await page.keyboard.press('Escape');
         await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
