@@ -63,7 +63,7 @@
 <header class="public-header" data-testid="main-navigation">
   <button type="button" class="public-icon-button" aria-label="Άνοιγμα μενού" aria-haspopup="dialog" aria-expanded={menuOpen} onclick={() => void open()} data-testid="public-menu-open"><Icon name="menu" size={25} /></button>
   <a href="/" class="public-header-brand" data-testid="public-header-logo"><PublicImage src={club?.logo_url} alt="" eager /><div><strong>{name}</strong><span>ΙΔΡ. {club?.founded || '2024'}</span></div></a>
-  <div class="public-header-tools"><SiteSearch {groups} />
+  <div class="public-header-tools"><SiteSearch {groups} {organization} navigation={websiteNavigation} />
     <button type="button" class="public-icon-button" disabled aria-label="Ειδοποιήσεις · προσωρινά μη διαθέσιμες" title="Οι ειδοποιήσεις δεν είναι ακόμη διαθέσιμες σε αυτή την προεπισκόπηση." data-testid="push-toggle"><Icon name="bell" size={19} /></button>
     <a href="/app/login" target="_blank" rel="noopener noreferrer" class="public-icon-button" aria-label="Σύνδεση στην εφαρμογή σε νέα καρτέλα" title="Σύνδεση στην εφαρμογή σε νέα καρτέλα" data-testid="public-account-link"><Icon name="user" size={21} /></a>
     <a href="/cart" class="public-icon-button public-cart" aria-label="Καλάθι" title="Καλάθι" data-testid="public-cart-link"><Icon name="bag" size={20} /></a>
