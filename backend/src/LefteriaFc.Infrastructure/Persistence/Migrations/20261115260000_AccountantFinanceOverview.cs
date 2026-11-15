@@ -145,6 +145,105 @@ public sealed class AccountantFinanceOverview : Migration
         END $finance_overview$;
         REVOKE ALL ON FUNCTION finance.read_admin_finance_overview(text,text)
           FROM PUBLIC;
+        -- Minimal finance-only eligible player picker. Never grant an
+        -- accountant permission to the general, medical, or roster APIs.
+        CREATE FUNCTION finance.read_admin_billable_players(
+          _digest text,_owner text,_query text
+        ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+        SET search_path=pg_catalog,pg_temp AS $billable_players$
+        DECLARE v_role text; v_result jsonb;
+        BEGIN
+          IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
+        """);
+
+    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+        DROP FUNCTION finance.read_admin_billable_players(text,text,text);
+        DROP FUNCTION finance.read_admin_finance_overview(text,text);
+        DO $accountant_rollback$
+        DECLARE
+          v_signature text;
+          v_oid oid;
+          v_definition text;
+          v_old constant text := 'v_role NOT IN (''manager'',''super_admin'',''accountant'')';
+          v_new constant text := 'v_role NOT IN (''manager'',''super_admin'')';
+        BEGIN
+          FOREACH v_signature IN ARRAY ARRAY[
+            'finance.create_admin_payment_request(text,text,uuid,uuid,text,text,bigint,text,text,text)',
+            'finance.ready_admin_payment_request(text,text,uuid,text,text)',
+            'finance.read_admin_payment_requests(text,text)',
+            'finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)',
+            'finance.attach_admin_training_fee_payment(text,text,uuid,uuid)',
+            'finance.read_admin_training_fees(text,text)',
+            'finance.reserve_admin_training_fee_sms(text,text,uuid,uuid)',
+            'finance.finish_admin_training_fee_sms(text,text,uuid,boolean,text)',
+            'finance.record_admin_training_fee_cash(text,text,uuid,uuid,text)',
+            'finance.read_admin_invoice_pdf(text,text,uuid[])'
+          ] LOOP
+            v_oid := to_regprocedure(v_signature);
+            IF v_oid IS NULL THEN
+              RAISE EXCEPTION 'finance_accountant_rollback_missing: %',v_signature;
+            END IF;
+            v_definition := pg_get_functiondef(v_oid);
+            IF length(v_definition)-length(replace(v_definition,v_old,''))<>length(v_old)
+            THEN RAISE EXCEPTION 'finance_accountant_rollback_changed: %',v_signature;
+            END IF;
+            EXECUTE replace(v_definition,v_old,v_new);
+          END LOOP;
+        END $accountant_rollback$;
+        """);
+}
+
+            OR _owner<>'lefteria_fc_academy'
+            OR _query IS NULL OR length(_query)>100
+            OR _query ~ '[[:cntrl:]]'
+          THEN RAISE EXCEPTION 'billable_player_invalid_scope'
+            USING ERRCODE='22023'; END IF;
+          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+          SELECT a.role INTO v_role
+          FROM identity.admin_sessions s
+          JOIN identity.admin_accounts a ON a.id=s.admin_account_id
+          JOIN identity.admin_organization_grants g
+            ON g.admin_account_id=a.id AND g.organization_id=_owner
+          WHERE s.token_digest=_digest AND s.revoked_at IS NULL
+            AND s.expires_at>clock_timestamp() AND a.is_active
+            AND NOT a.invite_pending AND NOT a.otp2fa_enabled
+            AND a.password_hash IS NOT NULL;
+          IF NOT FOUND OR v_role NOT IN ('super_admin','accountant')
+          THEN RAISE EXCEPTION 'billable_player_access_denied'
+            USING ERRCODE='42501'; END IF;
+          WITH eligible AS MATERIALIZED (
+            SELECT p.id,p.name FROM club.players p
+            WHERE p.organization_id=_owner AND p.is_active
+              AND NOT p.is_archived AND NOT p.is_transferred
+              AND (_query='' OR position(lower(_query) IN lower(p.name))>0)
+              AND EXISTS (
+                SELECT 1 FROM identity.mobile_record_links l
+                JOIN identity.mobile_identities i
+                  ON i.id=l.identity_id
+                    AND i.normalized_phone=l.normalized_phone
+                    AND i.role='parent' AND i.is_active
+                JOIN identity.canonical_contact_bindings b
+                  ON b.collection=l.collection AND b.source_id=l.record_id
+                    AND b.kind='guardian' AND b.normalized_phone=i.normalized_phone
+                WHERE l.collection='players' AND l.record_id=p.id
+                  AND l.kind='guardian' AND l.role='parent'
+              )
+          )
+          SELECT jsonb_build_object(
+            'organization_id',_owner,'ready',true,
+            'total',(SELECT count(*) FROM eligible),
+            'players',(
+              SELECT coalesce(jsonb_agg(jsonb_build_object('id',x.id,'name',x.name)
+                ORDER BY x.name COLLATE "C",x.id),'[]'::jsonb)
+              FROM (SELECT id,name FROM eligible
+                ORDER BY name COLLATE "C",id LIMIT 50) x
+            )
+          ) INTO v_result;
+          RETURN v_result;
+        END $billable_players$;
+        REVOKE ALL ON FUNCTION finance.read_admin_billable_players(text,text,text)
+          FROM PUBLIC;
+
         """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
