@@ -160,7 +160,13 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   SELECT coalesce(jsonb_agg(jsonb_build_object(
                     'id',d.id,'organization_id',d.organization_id,
                     'group_id',d.group_id,'title',d.title,'body',d.body,
-                    'status',d.status,'version',d.version)
+                    'status',d.status,'version',d.version,
+                    'media',coalesce((SELECT jsonb_agg(jsonb_build_object(
+                      'id',f.id,'kind',f.kind,'file_name',f.file_name,
+                      'content_type',f.content_type,'size',octet_length(f.content))
+                    ORDER BY f.kind,f.created_at,f.id)
+                    FROM club.app_announcement_media f
+                    WHERE f.announcement_id=d.id),'[]'::jsonb))
                     ORDER BY d.created_at DESC,d.id),'[]'::jsonb)
                   INTO v_drafts
                   FROM (SELECT * FROM club.admin_announcement_drafts
@@ -239,7 +245,13 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                     'id',a.id,'organization_id',a.organization_id,
                     'group_id',a.group_id,'title',a.title,'body',a.body,
                     'published_at',a.published_at,
-                    'status','published','version',a.version)
+                    'status','published','version',a.version,
+                    'media',coalesce((SELECT jsonb_agg(jsonb_build_object(
+                      'id',f.id,'kind',f.kind,'file_name',f.file_name,
+                      'content_type',f.content_type,'size',octet_length(f.content))
+                    ORDER BY f.kind,f.created_at,f.id)
+                    FROM club.app_announcement_media f
+                    WHERE f.announcement_id=a.id),'[]'::jsonb))
                     ORDER BY a.published_at DESC,a.id DESC),'[]'::jsonb)
                   INTO v_items FROM (SELECT * FROM club.app_announcements
                     WHERE organization_id=_owner AND removed_at IS NULL
@@ -535,7 +547,13 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                   SELECT coalesce(jsonb_agg(jsonb_build_object(
                     'id',d.id,'organization_id',d.organization_id,
                     'group_id',d.group_id,'title',d.title,'body',d.body,
-                    'status',d.status,'version',d.version)
+                    'status',d.status,'version',d.version,
+                    'media',coalesce((SELECT jsonb_agg(jsonb_build_object(
+                      'id',f.id,'kind',f.kind,'file_name',f.file_name,
+                      'content_type',f.content_type,'size',octet_length(f.content))
+                    ORDER BY f.kind,f.created_at,f.id)
+                    FROM club.app_announcement_media f
+                    WHERE f.announcement_id=d.id),'[]'::jsonb))
                     ORDER BY d.created_at DESC,d.id),'[]'::jsonb)
                   INTO v_drafts
                   FROM (SELECT * FROM club.admin_announcement_drafts
@@ -607,7 +625,13 @@ public sealed class AppAnnouncementTerritoryBoundary : Migration
                     'id',a.id,'organization_id',a.organization_id,
                     'group_id',a.group_id,'title',a.title,'body',a.body,
                     'published_at',a.published_at,
-                    'status','published','version',a.version)
+                    'status','published','version',a.version,
+                    'media',coalesce((SELECT jsonb_agg(jsonb_build_object(
+                      'id',f.id,'kind',f.kind,'file_name',f.file_name,
+                      'content_type',f.content_type,'size',octet_length(f.content))
+                    ORDER BY f.kind,f.created_at,f.id)
+                    FROM club.app_announcement_media f
+                    WHERE f.announcement_id=a.id),'[]'::jsonb))
                     ORDER BY a.published_at DESC,a.id DESC),'[]'::jsonb)
                   INTO v_items FROM (SELECT * FROM club.app_announcements
                     WHERE organization_id=_owner AND removed_at IS NULL
