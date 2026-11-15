@@ -11,7 +11,8 @@ const navigation=read('PublicNavigation.svelte');
 const footer=read('PublicFooter.svelte');
 
 test('reference hero uses canonical editorial asset independent of academy groups',()=>{
-  assert.match(hero,/const backgrounds = \$derived\(\[publicImages\.hero, firstTeam\?\.banner_url/);
+  assert.match(hero,/const backgrounds = \$derived\(\[publicImages\.hero, firstTeamBanner \|\| club\?\.stadium_image_url/);
+  assert.match(hero,/firstTeamHeroBanner\(site\?\.teams\)/);
   assert.match(hero,/data-testid="hero-carousel"/);
   assert.match(hero,/data-testid="public-hero-fixture"/);
   assert.match(hero,/data-testid="hero-slide-controls"/);
