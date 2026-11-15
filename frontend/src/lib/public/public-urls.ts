@@ -22,7 +22,8 @@ export function personPublicLink(kind: 'player'|'staff', person: PublicEntity): 
 }
 
 export function fixturePublicLink(fixture: { id: string; home_team: string; away_team: string }): string {
-  const slug = publicSlug(fixture.home_team + '-vs-' + fixture.away_team);
+  const slug = fixture.home_team || fixture.away_team
+    ? publicSlug((fixture.home_team ?? '') + '-vs-' + (fixture.away_team ?? '')) : '';
   return '/match/' + (slug ? slug + '--' : '') + encodeURIComponent(fixture.id);
 }
 
