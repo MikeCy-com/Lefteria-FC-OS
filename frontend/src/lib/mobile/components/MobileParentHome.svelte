@@ -5,6 +5,7 @@
   import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp, parentHomeCancelledEvents } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
+  import { publicImages } from '../../public/images.ts';
 
   interface Props {
     identityId: string;
@@ -68,9 +69,12 @@
 </script>
 
 <section class="parent-home" aria-labelledby={id + '-home-heading'} data-testid="parent-dashboard-home">
-  <header class="parent-greeting">
+  <header class="parent-greeting" data-testid="parent-photo-hero"
+    style:background-image={`linear-gradient(90deg,#080909f4 0%,#080909e3 34%,#08090962 75%,#08090927),linear-gradient(0deg,#090a0bdd,transparent 40%),url("${publicImages.hero}")`}>
     <p class="parent-eyebrow">ΚΑΛΩΣ ΗΡΘΕΣ</p>
     <h1 id={id + '-home-heading'}>{parentName || 'Γονέας'}</h1>
+    <p class="parent-hero-description">Το πρόγραμμα, οι αγώνες και η πορεία των παιδιών σου,
+      όλα σε ένα μέρος με επαληθευμένη οικογενειακή πρόσβαση.</p>
     <button class="parent-settings" type="button" onclick={() => void onChildren()} disabled={busy}
       data-testid="parent-home-family-link">Οικογενειακές ρυθμίσεις <span aria-hidden="true">›</span></button>
   </header>
@@ -244,9 +248,20 @@
 
 <style>
   .parent-home{width:min(100%,920px);margin:0 auto;padding:2px 0 18px;color:#f5f5f5}
-  .parent-greeting{position:relative;margin-bottom:28px}
+  .parent-greeting{position:relative;isolation:isolate;overflow:hidden;
+    min-height:clamp(210px,26vw,310px);display:flex;flex-direction:column;
+    align-items:flex-start;justify-content:flex-end;
+    margin:0 0 22px;padding:clamp(20px,4vw,36px);
+    border:1px solid #ae883c;border-radius:11px;
+    background-size:cover;background-position:65% 43%;
+    box-shadow:inset 0 0 0 1px #ffffff18,0 8px 30px #0005}
   .parent-eyebrow{color:#f6bb38;font-size:13px;font-weight:700;letter-spacing:.09em;margin:0 0 6px}
-  .parent-greeting h1{font-size:clamp(32px,6vw,43px);margin:0 0 14px;line-height:1.1;overflow-wrap:anywhere}
+  .parent-greeting h1{font-family:'Fira Sans Extra Condensed',sans-serif;
+    font-size:clamp(34px,7vw,56px);font-style:italic;font-weight:850;
+    margin:0 0 10px;line-height:1.04;overflow-wrap:anywhere;
+    text-shadow:0 3px 16px #000b}
+  .parent-hero-description{max-width:40ch;font-size:clamp(13px,2.7vw,16px);
+    line-height:1.5;margin:0 0 15px;color:#f0efea;text-shadow:0 2px 9px #000d}
   .parent-settings{min-height:44px;display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border:1px solid #63502c;border-radius:8px;color:#ffca46;background:#211b12;font-size:15px;cursor:pointer}
   .parent-settings span,.parent-section-heading button span{font-size:20px;line-height:1}
   .parent-section{margin:0 0 26px}
@@ -312,6 +327,11 @@
   .parent-select-schedule:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
   .parent-shortcut-grid>button:disabled,.parent-child-card button:disabled{opacity:.55;cursor:wait}
   @media(max-width:640px){
+    .parent-greeting{min-height:265px;padding:19px;border-radius:8px;
+      background-position:61% center;}
+    .parent-greeting h1{font-size:clamp(31px,9vw,46px);}
+    .parent-hero-description{font-size:13px;max-width:29ch}
+
     .parent-shortcut-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .parent-section-heading{flex-wrap:wrap;gap:8px}
     .parent-child-card{flex-wrap:wrap}
