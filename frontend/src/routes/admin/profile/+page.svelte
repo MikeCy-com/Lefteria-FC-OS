@@ -243,7 +243,7 @@
         </div>
       </section>
       <div class="admin-profile-columns">
-        <section class="admin-panel" aria-labelledby="my-profile-account-heading">
+        <section class="admin-panel" id="account" aria-labelledby="my-profile-account-heading">
           <h2 id="my-profile-account-heading">Στοιχεία λογαριασμού</h2>
           <dl class="admin-details">
             <div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div>
@@ -324,7 +324,7 @@
             onclick={()=>void auth.logout()}>Αποσύνδεση από αυτή τη συσκευή</button>
         </section>
       </div>
-      <section class="admin-panel" aria-labelledby="my-profile-access-heading">
+      <section class="admin-panel" id="access" aria-labelledby="my-profile-access-heading">
         <h2 id="my-profile-access-heading">Οι αναθέσεις μου</h2>
         {#if user.organizations.length}
           <ul class="admin-profile-orgs">

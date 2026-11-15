@@ -78,6 +78,7 @@ test('admin navigation exposes real operational destinations without five orphan
   assert.match(frame,/canReadClub\(user\)/);
   assert.match(frame,/canViewFirstTeamTrials\(user\)/);
   assert.match(frame,/href="\/admin\/profile"/);
+  assert.match(frame,/href="\/admin\/profile#access"/);
   assert.match(frame,/href="\/admin\/settings"/);
   assert.match(frame,/href="\/admin\/groups"/);
   for(const orphan of ['schedule','attendance','matches','evaluations','documents']){

@@ -22,6 +22,8 @@ test('real profile edit compiles and retains full user/role visibility with veri
   assert.match(ui,/raw\.updated!==true/);
   assert.match(ui,/roleName/);
   assert.match(ui,/user\.organizations/);
+  assert.match(ui,/id="access" aria-labelledby="my-profile-access-heading"/);
+  assert.match(ui,/id="account" aria-labelledby="my-profile-account-heading"/);
   assert.match(ui,/Η αλλαγή email απαιτεί επαλήθευση/);
   assert.match(ui,/data-testid="admin-self-photo-form"/);
   assert.match(ui,/uploadOwnPhoto/);

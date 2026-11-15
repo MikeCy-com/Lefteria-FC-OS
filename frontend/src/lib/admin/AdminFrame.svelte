@@ -45,6 +45,7 @@
           <p class="admin-profile-dropdown-name">{user.name || user.username}<small>{roleName}</small></p>
           <a href="/admin/profile" data-testid="admin-profile-link">Το προφίλ μου</a>
           <a href="/admin/profile#security">Ασφάλεια & σύνδεση</a>
+          <a href="/admin/profile#access" data-testid="admin-my-access-link">Οι αναθέσεις & τα δικαιώματά μου</a>
           <a href="/admin/settings" data-testid="admin-settings-header-link">Ρυθμίσεις</a>
           <button type="button" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
         </div>
