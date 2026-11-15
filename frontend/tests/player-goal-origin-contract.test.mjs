@@ -23,7 +23,7 @@ test('creation-time goal origin is nullable, verified and immutable',()=>{
   assert.match(migration,/REVOKE ALL ON FUNCTION club\.capture_player_goal_origin/);
   assert.match(migration,/SECURITY DEFINER/);
   assert.match(migration,/FOREIGN KEY\(origin_city_id,origin_location_id\)/);
-  assert.match(migration,/FOREIGN KEY\(origin_group_id,origin_scope_id,origin_location_id\)/);
+  assert.match(migration,/FOREIGN KEY\(organization_id,origin_group_id\)/);
   assert.match(migration,/count\(\*\) FILTER\(WHERE ag\.id IS NOT NULL/);
   assert.match(migration,/v_total=v_mapped AND v_scopes=1 AND v_cities=1/);
   assert.match(migration,/v_locations=1/);
@@ -34,7 +34,8 @@ test('actual disposable PostgreSQL tests cover transfers and ambiguity',()=>{
   for(const text of [
     'single_group_origin_incorrect','same_site_multigroup_origin_incorrect',
     'ambiguous_or_unmapped_goal_origin_inferred','first_team_origin_incorrect',
-    'transfer_rewrote_historical_origin','goal_origin_update_was_allowed',
+    'transfer_rewrote_historical_origin','group_relocation_changed_goal_origin',
+    'goal_origin_update_was_allowed',
     'goal_origin_spoof_was_allowed'
   ])assert.ok(sql.includes(text),text);
   assert.match(sql,/BEGIN;[\s\S]*ROLLBACK;/);

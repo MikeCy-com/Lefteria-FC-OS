@@ -127,6 +127,16 @@ BEGIN
       AND origin_location_id=v_site_a1 AND progress=10)
   THEN RAISE EXCEPTION 'transfer_rewrote_historical_origin'; END IF;
 
+  -- Group relocation must remain possible. A goal's historical site is
+  -- frozen at creation, not a foreign key to mutable group-to-site mapping.
+  UPDATE club.academy_group_location_assignments
+    SET location_id=v_site_a2
+    WHERE organization_id='lefteria_fc_academy' AND group_id=v_group_a1;
+  IF NOT EXISTS(SELECT 1 FROM club.player_development_goals
+    WHERE id=v_goal_one AND origin_scope_id=v_scope_a
+      AND origin_location_id=v_site_a1 AND origin_group_id=v_group_a1)
+  THEN RAISE EXCEPTION 'group_relocation_changed_goal_origin'; END IF;
+
   BEGIN
     UPDATE club.player_development_goals
       SET origin_location_id=v_site_a2 WHERE id=v_goal_one;

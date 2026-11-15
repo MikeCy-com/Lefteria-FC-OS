@@ -14,7 +14,8 @@ prerequisite for precise location- and coach-scoped private development access.
   team scopes and goals that existed before this migration stay **unscoped**.
   We never infer a historical assignment from current rosters.
 - A child's subsequent transfer, group change, or season change cannot mutate
-  the origin. A PostgreSQL BEFORE UPDATE trigger enforces immutability on every
+  the origin. A group's location can also change later without rewriting
+  old goal snapshots. A PostgreSQL BEFORE UPDATE trigger enforces immutability on every
   goal update, including progress updates. Foreign keys enforce exact geography.
 - The existing append-only goal events and idempotent creation contract are
   unchanged. All new fields are private columns on the existing canonical goal.

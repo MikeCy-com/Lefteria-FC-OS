@@ -48,8 +48,8 @@ public sealed class PlayerGoalTerritoryOrigin : Migration
           REFERENCES club.football_locations(city_id,id)
           ON DELETE RESTRICT,
         ADD CONSTRAINT fk_goal_origin_exact_group
-          FOREIGN KEY(origin_group_id,origin_scope_id,origin_location_id)
-          REFERENCES club.academy_group_location_assignments(group_id,scope_id,location_id)
+          FOREIGN KEY(organization_id,origin_group_id)
+          REFERENCES club.academy_groups(organization_id,id)
           ON DELETE RESTRICT;
 
       CREATE INDEX ix_goal_origin_site
