@@ -2856,14 +2856,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        AcademyLeadFollowUpCommand: {
-            expected_status: null | string;
-            next_status: null | string;
-        };
         AcademyGroupVisibilityCommand: {
             /** Format: int64 */
             expected_revision: number | string;
             is_public: boolean;
+        };
+        AcademyLeadFollowUpCommand: {
+            expected_status: null | string;
+            next_status: null | string;
         };
         AcademyTrainingFeeIssueCommand: {
             /** Format: int64 */
