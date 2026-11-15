@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {browser} from '$app/environment';
+  import {browser} from '$app/env';
 
   let {organization,cityId,locationId,actorId,revision=0,canManageCity=false}:{
     organization:'lefteria_fc_academy';
