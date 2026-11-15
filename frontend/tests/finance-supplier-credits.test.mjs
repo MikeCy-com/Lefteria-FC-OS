@@ -128,6 +128,6 @@ test('Svelte compiles and displays different gross, approved credit, net and pen
   'onSaved()',
   'X-Lefteria-Admin',
   "bank_refund_recorded!==false",
-  "'/api/admin/finance/supplier-credits'"
+  "'/api/admin/finance/supplier-credits?organization_id='"
  ])assert.ok(credits.includes(marker),marker);
 });
