@@ -53,7 +53,7 @@ public sealed class FootballTerritoryAdminCatalog : Migration
       CREATE FUNCTION club.admin_football_allowed(
         _actor uuid,_role text,_owner text,_scope uuid,
         _location uuid,_write boolean
-      ) RETURNS boolean LANGUAGE plpgsql STABLE SECURITY DEFINER
+      ) RETURNS boolean LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $allowed$
       DECLARE v_city uuid;
       BEGIN
@@ -73,7 +73,7 @@ public sealed class FootballTerritoryAdminCatalog : Migration
             JOIN club.football_operational_scopes s ON s.id=g.scope_id
             WHERE g.admin_account_id=_actor AND g.scope_id=_scope
               AND s.organization_id='lefteria_fc'
-              AND (NOT _write OR g.role='team_manager'));
+              AND (NOT _write OR g.role='team_manager') FOR SHARE OF g);
         END IF;
         SELECT academy_city_id INTO v_city
           FROM club.football_operational_scopes
@@ -84,11 +84,11 @@ public sealed class FootballTerritoryAdminCatalog : Migration
           WHERE id=_location AND city_id=v_city) THEN RETURN false; END IF;
         IF EXISTS (SELECT 1 FROM club.football_city_admin_grants
           WHERE admin_account_id=_actor AND city_id=v_city
-            AND role='city_manager') THEN RETURN true; END IF;
+            AND role='city_manager' FOR SHARE) THEN RETURN true; END IF;
         IF _location IS NOT NULL THEN
           RETURN EXISTS (SELECT 1 FROM club.football_location_admin_grants g
             WHERE g.admin_account_id=_actor AND g.location_id=_location
-              AND (NOT _write OR g.role='location_manager'));
+              AND (NOT _write OR g.role='location_manager') FOR SHARE);
         END IF;
         RETURN NOT _write AND EXISTS (
           SELECT 1 FROM club.football_location_admin_grants g
