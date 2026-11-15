@@ -47,11 +47,35 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
                     LegacySocials = club.SocialLinks.Select(pair => new PublicSectionSocial(pair.Key, pair.Value)).ToArray() };
             }
         }
+        // Only the security-definer projection is granted to the public role.
+        // Never load unpublished drafts into the public DbContext.
+        var approvedJson = await database.Database.SqlQueryRaw<string>(
+            "SELECT public_content.read_published_sponsorship({0})::text AS \"Value\"",
+            organizationId).SingleAsync(token);
+        var approved = JsonSerializer.Deserialize<PublishedSponsorshipEditorial[]>(approvedJson, Json)
+            ?? Array.Empty<PublishedSponsorshipEditorial>();
+        var sponsorCopies = approved.Where(e => e.Kind == "sponsor" && e.Content is not null && e.Content.Valid())
+            .GroupBy(e => e.ItemId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().Content, StringComparer.Ordinal);
+        var partnerCopies = approved.Where(e => e.Kind == "partner" && e.Content is not null && e.Content.Valid())
+            .GroupBy(e => e.ItemId, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First().Content, StringComparer.Ordinal);
+        var sponsors = Read<PublicSectionSponsor>("sponsor").Select(s =>
+            sponsorCopies.TryGetValue(s.Id, out var copy) ? s with {
+                Name = copy.Name, Description = copy.Description, LogoUrl = copy.ImageUrl,
+                Website = copy.WebsiteUrl, DisplayOrder = copy.DisplayOrder
+            } : s).OrderBy(s => s.DisplayOrder).ThenBy(s => s.Name, StringComparer.Ordinal).ToArray();
+        var partners = Read<PublicSectionPartner>("partner").Select(p =>
+            partnerCopies.TryGetValue(p.Id, out var copy) ? p with {
+                Name = copy.Name, Tagline = copy.Description, HeroImageUrl = copy.ImageUrl,
+                WebsiteUrl = copy.WebsiteUrl, DisplayOrder = copy.DisplayOrder
+            } : p).OrderBy(p => p.DisplayOrder).ThenBy(p => p.Name, StringComparer.Ordinal).ToArray();
+
         var response = new PublicSectionsResult(organizationId, Read<PublicSectionPlayer>("player"), Read<PublicSectionStaff>("staff"), Read<PublicSectionGroup>("academy_group"),
             Read<PublicSectionStanding>("standing").OrderByDescending(row => row.Points).ThenByDescending(row => row.GoalDifference).ThenBy(row => row.TeamName, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionVenue>("venue"), Read<PublicSectionSeason>("season").OrderByDescending(row => row.StartDate, StringComparer.Ordinal).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
-            Read<PublicSectionGallery>("gallery").OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(), Read<PublicSectionSponsor>("sponsor"),
-            Read<PublicSectionPartner>("partner"), Read<PublicSectionEvent>("event").OrderBy(row => row.StartAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
+            Read<PublicSectionGallery>("gallery").OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(), sponsors,
+            partners, Read<PublicSectionEvent>("event").OrderBy(row => row.StartAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionProduct>("product").OrderBy(row => row.Name, StringComparer.Ordinal).ToArray(), Read<PublicSectionTrials>("trials").SingleOrDefault(), fixtures,
             Read<PublicSectionTicket>("ticket"), Read<PublicSectionArchive>("archive").OrderByDescending(row => row.ArchivedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionReview>("review").OrderByDescending(row => row.PublishedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
