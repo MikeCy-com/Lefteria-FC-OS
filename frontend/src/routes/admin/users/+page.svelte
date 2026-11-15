@@ -2,6 +2,7 @@
   import {getContext,untrack} from 'svelte';
   import {browser} from '$app/env';
   import {goto} from '$app/navigation';
+  import {page as routePage} from '$app/state';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
@@ -20,6 +21,7 @@
   let loading=$state(false);
   let error=$state('');
   let showCreate=$state(false),creating=$state(false);
+  let requestedCreateOpened=false;
   let username=$state(''),displayName=$state(''),password=$state(''),confirmPassword=$state('');
   let accountRole=$state('coach'),selectedOwners=$state<string[]>([]);
   let createError=$state(''),createNotice=$state('');
@@ -96,6 +98,15 @@
     });
   }
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
+  $effect(()=>{
+    // The "new staff/account" action is available only to the actual
+    // Super Admin; direct navigation does not change authorization.
+    if(!browser||!permitted||requestedCreateOpened||
+      routePage.url.searchParams.get('new')!=='1')return;
+    requestedCreateOpened=true;
+    showCreate=true;
+  });
+
   $effect(()=>{
     const authorized=permitted,actor=$auth.session?.user.id,wantedOffset=offset,changed=revision;
     void actor;void changed;
