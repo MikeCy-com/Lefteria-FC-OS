@@ -65,13 +65,13 @@
       <nav class="matches-reference-tabs" aria-label="Ενότητες αγώνων">
         <a href={withTeam('/team?tab=schedule')} aria-current={data.tab === 'schedule' && !cupOnly ? 'page' : undefined}><PublicIcon name="calendar" size={19}/> ΠΡΟΓΡΑΜΜΑΤΙΣΜΕΝΟΙ</a>
         <a href={withTeam('/team?tab=results')} aria-current={data.tab === 'results' && !cupOnly ? 'page' : undefined}><PublicIcon name="trophy" size={19}/> ΑΠΟΤΕΛΕΣΜΑΤΑ</a>
-        <a href={withTeam('/team#standings')}><PublicIcon name="trophy" size={19}/> ΒΑΘΜΟΛΟΓΙΑ</a>
+        <a href={data.selectedTeamId ? '/team?team_id='+encodeURIComponent(data.selectedTeamId)+'#standings' : '/team#standings'}><PublicIcon name="trophy" size={19}/> ΒΑΘΜΟΛΟΓΙΑ</a>
         <button type="button" aria-pressed={cupOnly} onclick={() => cupOnly = !cupOnly} data-testid="match-cup-filter"><PublicIcon name="trophy" size={19}/> ΚΥΠΕΛΛΟ</button>
       </nav>
           {#if teamsCount > 1}
       <nav class="public-team-selector" aria-label="Επίλεξε ομάδα" data-testid="public-team-selector">
         {#each (data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc') as team (team.id)}
-          <a href={withTeam(data.tab === 'overview' ? '/team' : '/team?tab='+data.tab, team.id)}
+          <a href={withTeam('/team?tab='+data.tab, team.id)}
             aria-current={team.id === data.selectedTeamId ? 'page' : undefined}
             data-testid="public-team-select">{team.name}</a>
         {/each}
@@ -192,15 +192,15 @@
   .matches-extra-navigation summary{font:800 12px 'Fira Sans Extra Condensed',sans-serif;color:#f6c261;cursor:pointer}
   .matches-extra-navigation .team-tabs{display:flex;margin-top:10px;flex-wrap:wrap;position:static}
   :global(.public-site[data-route="/team"]) .matches-reference-heading+.team-section{padding-top:23px}
-  :global(.public-site[data-route="/team"]) .team-section:has(.match-overview){padding-top:20px}
-  :global(.public-site[data-route="/team"]) .team-section .match-overview{margin-bottom:0}
-  :global(.public-site[data-route="/team"]) .team-section .match-overview-heading{
+   :global(.public-site[data-route="/team"] .team-section:has(.match-overview)){padding-top:20px}
+  :global(.public-site[data-route="/team"] .team-section .match-overview){margin-bottom:0}
+  :global(.public-site[data-route="/team"] .team-section .match-overview-heading){
     position:absolute!important;width:1px!important;height:1px!important;
     padding:0!important;margin:-1px!important;overflow:hidden!important;
     clip:rect(0,0,0,0)!important;white-space:nowrap!important;
   }
-  :global(.public-site[data-route="/team"]) .team-section .match-overview-grid{gap:14px}
-  :global(.public-site[data-route="/team"]) .team-section .match-overview-grid .match-panel{
+  :global(.public-site[data-route="/team"] .team-section .match-overview-grid){gap:14px}
+  :global(.public-site[data-route="/team"] .team-section .match-overview-grid .match-panel){
     background:linear-gradient(140deg,#1b1b1b,#090a0b 70%);border-radius:0;padding:13px;
   }
   @media(max-width:780px){
