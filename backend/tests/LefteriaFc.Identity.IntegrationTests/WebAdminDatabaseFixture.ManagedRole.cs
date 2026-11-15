@@ -51,6 +51,58 @@ internal sealed partial class WebAdminDatabaseFixture
         await transaction.CommitAsync();
     }
 
+    // A dormant cashier assignment must also block role reinterpretation.
+    public async Task<string> SeedManagedRolePosAssignmentAsync(Account account)
+    {
+        RequireOwned(account);
+        var id="role"+Guid.NewGuid().ToString("N");
+        await using var connection=await OwnerAsync();
+        await using var transaction=await connection.BeginTransactionAsync();
+        await using(var cmd=new NpgsqlCommand("""
+            INSERT INTO pos.cities(organization_id,id,name)
+              VALUES('lefteria_fc',@id,'Disposable role POS city');
+            INSERT INTO pos.locations(organization_id,id,city_id,code,name)
+              VALUES('lefteria_fc',@id,@id,@code,'Disposable role POS location');
+            INSERT INTO pos_cashier.registers(organization_id,location_id,id,label)
+              VALUES('lefteria_fc',@id,@id,'Disposable role POS register');
+            INSERT INTO pos_cashier.cashier_assignments(
+              organization_id,register_id,admin_account_id,is_active)
+              VALUES('lefteria_fc',@id,@account,false);
+            """,connection,transaction))
+        {
+            cmd.Parameters.AddWithValue("id",id);
+            cmd.Parameters.AddWithValue("code","role-"+Guid.NewGuid().ToString("N"));
+            cmd.Parameters.AddWithValue("account",account.Id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        await transaction.CommitAsync();
+        return id;
+    }
+
+    public async Task ClearManagedRolePosAssignmentAsync(Account account,string id)
+    {
+        RequireOwned(account);
+        await using var connection=await OwnerAsync();
+        await using var transaction=await connection.BeginTransactionAsync();
+        await using(var cmd=new NpgsqlCommand("""
+            DELETE FROM pos_cashier.cashier_assignments
+              WHERE organization_id='lefteria_fc' AND register_id=@id
+                AND admin_account_id=@account;
+            DELETE FROM pos_cashier.registers
+              WHERE organization_id='lefteria_fc' AND id=@id;
+            DELETE FROM pos.locations
+              WHERE organization_id='lefteria_fc' AND id=@id;
+            DELETE FROM pos.cities
+              WHERE organization_id='lefteria_fc' AND id=@id;
+            """,connection,transaction))
+        {
+            cmd.Parameters.AddWithValue("id",id);
+            cmd.Parameters.AddWithValue("account",account.Id);
+            await cmd.ExecuteNonQueryAsync();
+        }
+        await transaction.CommitAsync();
+    }
+
     public async Task<long> CountManagedRoleAuditAsync(Account account)
     {
         RequireOwned(account);
