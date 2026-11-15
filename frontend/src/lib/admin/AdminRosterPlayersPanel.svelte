@@ -33,7 +33,10 @@
       ? (player.team_id ? [player.team_id] : []) : [...player.academy_group_ids];
   }
   function startEditing(player:Player) {
-    if (saving || loading || !groups.length) return;
+    // Exact-group rows redact all other group memberships. Editing from
+    // that minimized view could silently remove a child's other groups.
+    // Open explicit organization-wide assignment mode before any PUT.
+    if (saving || loading || !groups.length || currentGroup) return;
     editing=player.id;
     selectedGroups=currentGroups(player);
     saveError=null;
@@ -52,7 +55,7 @@
       : selectedGroups.filter(group=>group!==id);
   }
   async function saveAssignment(player:Player) {
-    if (!browser || saving || loading || editing!==player.id || !page) return;
+    if (!browser || saving || loading || editing!==player.id || !page || currentGroup) return;
     const selectedOwner=owner;
     const selectedActor=actorId;
     const previous=currentGroups(player);
@@ -271,9 +274,12 @@
                     <button type="button" class="admin-secondary" disabled={saving} onclick={cancelEditing}>Ακύρωση</button>
                   </div>
                 </div>
-              {:else}
+              {:else if !currentGroup}
                 <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
                   onclick={()=>startEditing(player)}>Αλλαγή ανάθεσης</button>
+              {:else}
+                <span class="admin-group-minimal-roster-note">Οι αναθέσεις σε περισσότερα τμήματα
+                  εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
@@ -330,4 +336,5 @@
   .admin-player-group-scope button[aria-pressed=true]{background:#f6bb38;color:#080808;border-color:#f6bb38}
   .admin-player-group-scope button:focus-visible{outline:3px solid #ffd164;outline-offset:2px}
   .admin-player-group-scope button:disabled{opacity:.6;cursor:not-allowed}
+  .admin-group-minimal-roster-note{font-size:11px;color:#bfb5a0;line-height:1.4;max-width:30ch}
 </style>
