@@ -23,6 +23,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
   const academyPlayers = [{...player,id:'academy-child',organization_id:'lefteria_fc_academy',team_type:'Academy',name:'Ανδρέας Πα.',bio:null,nationality:null}];
   let unavailable = false; let firstTeamUnavailable = false; let wrongScope = false;
   let publishedTeams = [];
+  let publishedFixtures = [];
   const requests = [];
   const server = createServer((request,response) => {
     const url = new URL(request.url,'http://fixture.test'); requests.push({url,cookie:request.headers.cookie,authorization:request.headers.authorization});
@@ -32,7 +33,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
       else if(url.searchParams.get('organization_id')==='lefteria_fc_academy') response.end(JSON.stringify({...sections,organization_id:'lefteria_fc_academy',
         players:academyPlayers}));
       else response.end(JSON.stringify(wrongScope ? {...sections,organization_id:'lefteria_fc_academy'} : sections));
-    } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:publishedTeams,academy_groups:[],fixtures:[],news:[]}));
+    } else if(url.pathname==='/api/public/site') response.end(JSON.stringify({organization_id:url.searchParams.get('organization_id'),club:null,teams:publishedTeams,academy_groups:[],fixtures:publishedFixtures,news:[]}));
     else {response.statusCode=404;response.end('{}');}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -97,7 +98,7 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal(academy.organization,'lefteria_fc_academy');
 
     const {default:Team}=await import('../src/routes/team/+page.svelte');
-    for(const [tab,text] of [['roster','Recorded Player'],['staff','Recorded Coach'],['gallery','Recorded team photo'],['venues','Recorded Stadium'],['statistics','ΣΤΑΤΙΣΤΙΚΑ ΠΑΙΚΤΩΝ']]) {
+    for(const [tab,text] of [['roster','Recorded Player'],['staff','Recorded Coach'],['gallery','Δεν έχουν δημοσιευτεί φωτογραφίες.'],['venues','Δεν έχουν δημοσιευτεί γήπεδα.'],['statistics','ΣΤΑΤΙΣΤΙΚΑ ΠΑΙΚΤΩΝ']]) {
       const data=await loadTeamPage(new URL('https://preview.test/team?tab='+tab));assert.equal(data.tab,tab);
       const html=render(Team,{props:{data}}).body;assert.match(html,new RegExp(text));assert.doesNotMatch(html,/sentinel-academy|sentinel-private|<script>Recorded Player/);
       if(tab==='roster')assert.match(html,/href="\/player\/script-recorded-player-script--Case--ID"/);
@@ -114,10 +115,47 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
       {...player,team_id:'first-team-id'},
       {...player,id:'women-player',name:'Recorded Women Player',team_id:'women-id',team_type:'Women'}
     ];
+    const baseGallery=sections.gallery[0], baseVenue=sections.venues[0];
+    sections.gallery = [
+      {...baseGallery,id:'first-photo',title:'First Team photo only',team_id:'first-team-id'},
+      {...baseGallery,id:'women-photo',title:'Women Team photo only',team_id:'women-id'},
+      {...baseGallery,id:'women-player-photo',title:'Women player photo',team_id:null,player_id:'women-player'},
+      {...baseGallery,id:'first-imported',title:'First Team imported photo',team_id:null,player_id:null,category:'First Team'},
+      {...baseGallery,id:'unscoped-photo',title:'Unassigned club photo',team_id:null,player_id:null,category:'Club'},
+      {...baseGallery,id:'academy-photo',title:'Academy photo sentinel',team_id:'women-id',
+        organization_id:'lefteria_fc_academy',academy_group_id:'u12'}
+    ];
+    sections.venues = [
+      {...baseVenue,id:'first-venue',name:'First Team home ground',is_home_ground:true},
+      {...baseVenue,id:'women-venue',name:'Women Ground',is_home_ground:false,
+        map_url:'https://maps.example.test/women'},
+      {...baseVenue,id:'other-venue',name:'Unrelated training pitch',is_home_ground:false}
+    ];
+    publishedFixtures=[
+      {id:'w-game',organization_id:'lefteria_fc',team_id:'women-id',venue:'Women Ground',status:'Scheduled'},
+      {id:'m-game',organization_id:'lefteria_fc',team_id:'first-team-id',venue:'First Team home ground',status:'Scheduled'}
+    ];
     const womenPage=await loadTeamPage(new URL('https://preview.test/team?tab=roster&team_id=women-id'));
     assert.equal(womenPage.selectedTeamId,'women-id');
     const womenHtml=render(Team,{props:{data:womenPage}}).body;
     assert.match(womenHtml,/Recorded Women Player/);
+    const scopedWomenGallery=render(Team,{props:{data:await loadTeamPage(
+      new URL('https://preview.test/team?tab=gallery&team_id=women-id'))}}).body;
+    assert.match(scopedWomenGallery,/Women Team photo only|Women player photo/);
+    assert.doesNotMatch(scopedWomenGallery,/First Team photo only|First Team imported photo|Unassigned club photo|Academy photo sentinel/);
+    const scopedFirstGallery=render(Team,{props:{data:await loadTeamPage(
+      new URL('https://preview.test/team?tab=gallery&team_id=first-team-id'))}}).body;
+    assert.match(scopedFirstGallery,/First Team photo only|First Team imported photo/);
+    assert.doesNotMatch(scopedFirstGallery,/Women Team photo only|Women player photo|Unassigned club photo|Academy photo sentinel/);
+    const scopedWomenVenues=render(Team,{props:{data:await loadTeamPage(
+      new URL('https://preview.test/team?tab=venues&team_id=women-id'))}}).body;
+    assert.match(scopedWomenVenues,/Women Ground/);
+    assert.match(scopedWomenVenues,/https:\/\/maps\.example\.test\/women/);
+    assert.doesNotMatch(scopedWomenVenues,/First Team home ground|Unrelated training pitch/);
+    const scopedFirstVenues=render(Team,{props:{data:await loadTeamPage(
+      new URL('https://preview.test/team?tab=venues&team_id=first-team-id'))}}).body;
+    assert.match(scopedFirstVenues,/First Team home ground/);
+    assert.doesNotMatch(scopedFirstVenues,/Women Ground|Unrelated training pitch/);
     assert.doesNotMatch(womenHtml,/Recorded Player&lt;\/script>|href="\/player\/script-recorded-player-script--Case--ID"/);
     assert.match(womenHtml,/\/player\/recorded-women-player--women-player\?team_id=women-id/);
     await assert.rejects(loadTeamPage(new URL('https://preview.test/team?team_id=not-published')),error=>error.status===404);
@@ -149,6 +187,9 @@ test('public roster routes use scoped recorded sections, preserve opaque IDs and
     assert.equal(forgedCoach.returnTeamId,null);
     sections.staff=originalStaff;
     sections.players = originalPlayers;
+    sections.gallery = [baseGallery];
+    sections.venues = [baseVenue];
+    publishedFixtures = [];
     publishedTeams = [];
     firstTeamUnavailable=true;
     const academyWithoutFirstTeam=await loadPlayerPage(url,'academy-child');
