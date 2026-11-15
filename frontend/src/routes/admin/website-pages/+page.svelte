@@ -7,7 +7,7 @@
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
-  import { websitePagePath, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -51,6 +51,7 @@
   const canPublish = $derived(canWrite && ['manager','super_admin'].includes($auth.session?.user.role ?? ''));
   const dirty = $derived(creating || !!selected && JSON.stringify(draft)!==JSON.stringify(selected.draft));
   const editing = $derived(creating || !!selected);
+  const isHero = $derived(organization !== null && slug === HOMEPAGE_HERO_SLUGS[organization]);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -106,6 +107,23 @@
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';
   }
+  function openHomepageHero() {
+    if(!organization || !canWrite)return;
+    const target=HOMEPAGE_HERO_SLUGS[organization];
+    const existing=records.find(page=>page.slug===target);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    const academy=organization==='lefteria_fc_academy';
+    creating=true;picked=null;slug=target;
+    draft={title:academy?'Hero αρχικής · Ακαδημία':'Hero αρχικής · Πρώτη ομάδα',
+      summary:'Εγκεκριμένο κείμενο κεντρικής προβολής',seo_title:'',seo_description:'',
+      menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:academy?'Η ΠΟΛΗ ΜΑΣ.\nΤΑ ΠΑΙΔΙΑ ΜΑΣ.\nΤΟ ΜΕΛΛΟΝ ΤΟΥΣ.':'ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ.\nΗ ΠΕΡΗΦΑΝΙΑ ΜΑΣ.',url:null},
+        {type:'paragraph',text:academy?'Χτίζουμε πρωταθλητές μέσα από το πάθος, την πειθαρχία και την ομαδικότητα. Ελάτε μαζί μας στο ταξίδι προς την κορυφή.':'Στο πλευρό της ομάδας μας, σε κάθε αγώνα.',url:null}
+      ]};
+    notice='';problem='';
+  }
   function addBlock(type: WebsiteBlock['type']) {
     if(!canWrite || draft.blocks.length>=40)return;
     draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
@@ -121,6 +139,10 @@
     draft.blocks=items;
   }
   function valid():boolean {
+    if(isHero && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+       draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
+       draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
+       draft.blocks[1].text.length>500 || draft.blocks[0].text.split('\n').length>3))return false;
     if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length<2 || slug.length>80 ||
        !draft.title.trim() || draft.title.length>180 || draft.summary.length>500 ||
        draft.seo_title.length>180 || draft.seo_description.length>300 ||
@@ -214,6 +236,7 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openHomepageHero} disabled={loading || saving}>Επεξεργασία Hero αρχικής · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</button>{/if}
             {#if loading}<p role="status">Φόρτωση…</p>{/if}
             {#if !loading && records.length===0}<p class="admin-muted">Δεν έχουν δημιουργηθεί σελίδες.</p>{/if}
             <nav aria-label="Επεξεργασία σελίδας" class="cms-page-list">
@@ -240,17 +263,18 @@
                       pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="our-values" bind:value={slug}
                       disabled={!creating || !canWrite || saving}/></label>
                   </div>
+                  {#if isHero}<p class="admin-muted">Η αλλαγή αφορά μόνο το κείμενο της κεντρικής εικόνας στην αρχική σελίδα. Καρουζέλ, εικόνες, επόμενος αγώνας και σύνδεσμοι μένουν δυναμικοί. Απαιτείται ξεχωριστή έγκριση και δημοσίευση.</p>{/if}
                   <label>Σύντομη περιγραφή <textarea rows="2" maxlength="500" bind:value={draft.summary} disabled={!canWrite || saving}></textarea></label>
                   <div class="cms-field-grid">
-                    <label>Θέση στο μενού <select bind:value={draft.menu_parent} disabled={!canWrite || saving}>
+                    <label>Θέση στο μενού <select bind:value={draft.menu_parent} disabled={!canWrite || saving || isHero}>
                       {#each parents as parent (parent.value)}<option value={parent.value}>{parent.label}</option>{/each}
                     </select></label>
-                    <label>Σειρά στο μενού (0 = πρώτη) <input type="number" min="0" max="1000" step="1" bind:value={draft.menu_order} disabled={!canWrite || saving}/></label>
+                    <label>Σειρά στο μενού (0 = πρώτη) <input type="number" min="0" max="1000" step="1" bind:value={draft.menu_order} disabled={!canWrite || saving || isHero}/></label>
                   </div>
-                  <details class="cms-seo"><summary>SEO · τίτλος και περιγραφή αναζήτησης</summary>
+                  {#if !isHero}<details class="cms-seo"><summary>SEO · τίτλος και περιγραφή αναζήτησης</summary>
                     <label>SEO τίτλος <input maxlength="180" bind:value={draft.seo_title} disabled={!canWrite || saving}/></label>
                     <label>Meta description <textarea rows="2" maxlength="300" bind:value={draft.seo_description} disabled={!canWrite || saving}></textarea></label>
-                  </details>
+                  </details>{/if}
                   <div class="cms-block-heading"><h3>Περιεχόμενο σελίδας</h3><span>{draft.blocks.length} / 40 blocks</span></div>
                   <div class="cms-block-list">
                     {#each draft.blocks as block, index (index)}
@@ -258,14 +282,16 @@
                         <div class="cms-block-tools">
                           <strong>Block {index+1} · {block.type==='heading'?'Τίτλος':block.type==='paragraph'?'Κείμενο':block.type==='image'?'Εικόνα':'Κουμπί'}</strong>
                           <div>
-                            <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
-                            <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
-                            <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
+                            <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isHero || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
+                            <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isHero || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
+                            <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isHero || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
                           </div>
                         </div>
                         <label>{block.type==='image'?'Εναλλακτικό κείμενο εικόνας':block.type==='button'?'Ετικέτα κουμπιού':'Κείμενο'}
                           {#if block.type==='paragraph'}
-                            <textarea rows="4" maxlength="5000" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
+                            <textarea rows="4" maxlength={isHero?500:5000} value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
+                          {:else if isHero && block.type==='heading'}
+                            <textarea rows="3" maxlength="180" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}></textarea>
                           {:else}
                             <input maxlength="5000" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}/>
                           {/if}
@@ -279,7 +305,7 @@
                       </div>
                     {/each}
                   </div>
-                  {#if canWrite}<div class="cms-add-block" aria-label="Προσθήκη block">
+                  {#if canWrite && !isHero}<div class="cms-add-block" aria-label="Προσθήκη block">
                     <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=40}>+ Τίτλος</button>
                     <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=40}>+ Κείμενο</button>
                     <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=40}>+ Εικόνα</button>
@@ -299,7 +325,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isHero ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
@@ -310,7 +336,11 @@
                   <p class="admin-eyebrow">{organization==='lefteria_fc'?'ΠΡΩΤΗ ΟΜΑΔΑ':'ΑΚΑΔΗΜΙΑ'}</p>
                   <h2>{draft.title || 'Τίτλος σελίδας'}</h2>
                   {#if draft.summary}<p>{draft.summary}</p>{/if}
-                  <WebsitePageBlocks blocks={draft.blocks}/>
+                  {#if isHero}
+                    <p class="admin-muted">Προεπισκόπηση περιεχομένου Hero · η τελική γεωμετρία διατηρείται από την αρχική σελίδα.</p>
+                    <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
+                    <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
+                  {:else}<WebsitePageBlocks blocks={draft.blocks}/>{/if}
                 </section>
               {/if}
             {:else}
@@ -374,6 +404,7 @@
 .cms-preview-bar{font-size:11px;color:#f9d282;letter-spacing:.07em;padding-bottom:16px;border-bottom:1px solid #4b4f4e}
 .cms-preview>h2{font:italic 900 clamp(33px,4vw,54px)/1.1 'Fira Sans Extra Condensed',sans-serif}
 .cms-preview :global(.website-blocks){margin-top:24px}
+.cms-hero-copy{white-space:pre-line;overflow-wrap:anywhere}
 .cms-error{color:#ff9f9f}.cms-success{color:#a7e2b4}
 .cms-start{display:grid;justify-items:start;gap:16px}
 .cms button:disabled{opacity:.5;cursor:not-allowed}

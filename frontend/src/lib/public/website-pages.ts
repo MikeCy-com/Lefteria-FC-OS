@@ -18,6 +18,14 @@ export type PublishedWebsitePage = {
 };
 export type WebsiteNavigationData = Record<PublicOrganization, PublishedWebsitePage[]>;
 
+// Native homepage regions are published snapshots, not standalone public pages.
+export const HOMEPAGE_HERO_SLUGS = {
+  lefteria_fc: 'homepage-hero-first-team',
+  lefteria_fc_academy: 'homepage-hero-academy'
+} as const satisfies Record<PublicOrganization, string>;
+export const isHomeHeroSlug = (slug: string) =>
+  slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
+
 export function websitePagePath(slug: string, org: PublicOrganization): string {
   return '/pages/' + encodeURIComponent(slug) +
     (org === 'lefteria_fc_academy' ? '?organization_id=lefteria_fc_academy' : '');
@@ -44,7 +52,7 @@ export function withWebsitePages(
   const result = navigation.map(item => item.items ?
     {...item, items: [...item.items]} as PublicNavigationItem : {...item} as PublicNavigationItem);
   for (const row of [...pages].filter(p => p.organization_id === organization &&
-      isPublishedWebsitePage(p, organization) && p.page.menu_parent !== 'hidden')
+      isPublishedWebsitePage(p, organization) && !isHomeHeroSlug(p.slug) && p.page.menu_parent !== 'hidden')
       .sort((a,b) => a.page.menu_order-b.page.menu_order || a.slug.localeCompare(b.slug))) {
     const path = websitePagePath(row.slug, organization);
     const label = row.page.title.slice(0, 80);

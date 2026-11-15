@@ -50,6 +50,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/auth/profile/name'],
     ['POST','/api/admin/auth/profile/password'],
     ['GET','/api/admin/auth/profile/contact-email'],
+    ['GET','/api/admin/hub/fan-subscriptions/overview'],
     ['POST','/api/admin/auth/profile/contact-email']
   ]){
     assert.equal(permitted(method,path),true,method+' '+path);
@@ -62,7 +63,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/admin/access/users/delete','/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,14);
+  assert.equal(reviewedHiddenAdminEntries.length,15);
 });
 test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
   const future=structuredClone(contract);
@@ -81,13 +82,15 @@ test('hidden admin routes are pinned to independently authorized source instead 
     'backend/src/LefteriaFc.Api/Audiences/AdminRosterPlayerEndpoints.cs',
     'backend/src/LefteriaFc.Api/WebAdmin/AdminUserDirectoryEndpoints.cs',
     'backend/src/LefteriaFc.Api/Marketing/AcademyIntakeAdminEndpoints.cs',
-    'backend/src/LefteriaFc.Api/WebAdmin/AdminSelfServiceEndpoints.cs'
+    'backend/src/LefteriaFc.Api/WebAdmin/AdminSelfServiceEndpoints.cs',
+    'backend/src/LefteriaFc.Api/Hub/AdminHubEndpoints.cs'
   ];
   const sources=await Promise.all(files.map(repoFile));
   for(const source of sources)assert.match(source,/RequireAuthorization\(WebAdminServices\.Policy\)/);
   for(const route of ['/api/admin/football/territories','/api/admin/football/group-players',
     '/api/admin/access/users','/api/admin/academy/intake',
-    '/api/admin/auth/profile/name','/api/admin/auth/profile/password'])
+    '/api/admin/auth/profile/name','/api/admin/auth/profile/password',
+    '/api/admin/hub/fan-subscriptions/overview'])
     assert.ok(sources.some(source=>source.includes(route)),'No secured source path '+route);
   const generator=await repoFile('deploy/preview/generate-edge.mjs');
   assert.doesNotMatch(generator,/path_regexp entry_.*\^\/api\/admin\/\[\^\/\]/);

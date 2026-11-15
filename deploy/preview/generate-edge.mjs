@@ -31,7 +31,7 @@ const entryOperations = [
   ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
-  // Reviewed exact Academy enrolment route, independently authorized by API and SQL.
+  // Exact reviewed enrollment POST; the API and SQL independently check authorization.
   ['post', '/api/admin/academy/office/registrations/enroll', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
@@ -160,6 +160,7 @@ export const reviewedAdminEntries = [
 // inventory. Each one has an explicit WebAdmin authorization guard in source,
 // and the preview routing review test pins that source policy. No wildcards.
 export const reviewedHiddenAdminEntries = [
+  ['get','/api/admin/hub/fan-subscriptions/overview'],
   ['get','/api/admin/football/territories'],
   ['post','/api/admin/football/territories'],
   ['get','/api/admin/football/territories/access'],

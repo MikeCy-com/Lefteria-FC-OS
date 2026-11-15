@@ -24,6 +24,7 @@
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
     {id:'pages',label:'Σελίδες · Visual Builder',description:'Νέες σελίδες, περιεχόμενο, μενού και προεπισκόπηση',href:'/admin/website-pages'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
+    {id:'hub_subscriptions',label:'HUB · Συνδρομές φιλάθλων',description:'Επαληθευμένα συγκεντρωτικά στοιχεία, διαθέσιμα μόνο σε Super Admin',href:'/admin/hub/subscriptions'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
     {id:'staff',label:'Προσωπικό & προπονητές',description:'Αναθέσεις σε πραγματικές ομάδες',href:'/admin/staff'},
     {id:'users',label:'Χρήστες & δικαιώματα',description:'Προβολή επαληθευμένων λογαριασμών',href:'/admin/users'},

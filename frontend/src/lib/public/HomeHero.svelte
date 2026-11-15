@@ -1,13 +1,29 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { PublicGroup, PublicSite } from './types';
+  import type { WebsitePageContent } from './website-pages';
   import { CLUB_TIME_ZONE, nextPublicFixture, fixtureCountdown, snapshotInstant } from './fixture-clock';
   import { publicImages } from './images';
   import { firstTeamHeroBanner } from './first-team-hero';
   import { fixturePublicLink } from './public-urls';
   import Icon from './PublicIcon.svelte';
   import TeamCrest from './TeamCrest.svelte';
-  let { site, navigationGroups = [] }: { site: PublicSite | null; navigationGroups?: PublicGroup[] } = $props();
+  let { site, navigationGroups = [], academyEditorial = null, teamEditorial = null }: {
+    site: PublicSite | null; navigationGroups?: PublicGroup[];
+    academyEditorial?: WebsitePageContent | null; teamEditorial?: WebsitePageContent | null
+  } = $props();
+  // The original markup, artwork, carousel and next-match widget remain intact.
+  // Only human-approved per-organization heading and description text can replace fallback copy.
+  const headingLines = (content: WebsitePageContent | null) =>
+    content?.blocks[0]?.type === 'heading'
+      ? content.blocks[0].text.split(/\r?\n/).map(line=>line.trim()).filter(Boolean).slice(0,3)
+      : null;
+  const editorialDescription = (content: WebsitePageContent | null) =>
+    content?.blocks[1]?.type === 'paragraph' ? content.blocks[1].text : null;
+  const academyHeading = $derived(headingLines(academyEditorial));
+  const teamHeading = $derived(headingLines(teamEditorial));
+  const academyDescription = $derived(editorialDescription(academyEditorial));
+  const teamDescription = $derived(editorialDescription(teamEditorial));
   let index = $state(0); let paused = $state(false); let visible = $state(true); let reduced = $state(false);
   let hovered = $state(false); let focused = $state(false); let hidden = $state(false); let region: HTMLElement;
   const club = $derived(site?.club); const firstTeamBanner = $derived(firstTeamHeroBanner(site?.teams));
@@ -49,8 +65,21 @@
     ontouchstart={event => { if (!(event.target as Element).closest('[data-testid="hero-slide-toggle"]')) paused = true; }}>
     {#each backgrounds as image, position}<div class="public-hero-visual" class:is-active={index === position} style:background-image={`url("${image.replaceAll('"','%22')}")`} aria-hidden="true" data-testid={`hero-slide-background-${position}`}></div>{/each}
     <div class="public-hero-copy" aria-live={running ? 'off' : 'polite'} aria-atomic="true"><p class="public-eyebrow" data-testid="public-hero-brand">{academySlide ? club?.name || 'ΛΕΥΤΕΡΙΑ FC' : 'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
-      <h1 class="hero-copy-stack" data-testid="public-hero-title"><span aria-hidden={!academySlide}>Η ΠΟΛΗ ΜΑΣ.<br /><em>ΤΑ ΠΑΙΔΙΑ ΜΑΣ.</em><br />ΤΟ ΜΕΛΛΟΝ ΤΟΥΣ.</span><span aria-hidden={academySlide}>ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ.<br /><em>Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</em></span></h1>
-      <p class="public-hero-description hero-copy-stack" data-testid="public-hero-description"><span aria-hidden={!academySlide}>{club?.description || 'Χτίζουμε πρωταθλητές μέσα από το πάθος, την πειθαρχία και την ομαδικότητα. Ελάτε μαζί μας στο ταξίδι προς την κορυφή.'}</span><span aria-hidden={academySlide}>Στο πλευρό της ομάδας μας, σε κάθε αγώνα.</span></p>
+      <h1 class="hero-copy-stack" data-testid="public-hero-title">
+        <span aria-hidden={!academySlide}>{#if academyHeading?.length}
+          {#each academyHeading as line, lineIndex (lineIndex)}
+            {#if lineIndex === 1}<em>{line}</em>{:else}{line}{/if}
+            {#if lineIndex < academyHeading.length-1}<br />{/if}
+          {/each}
+        {:else}Η ΠΟΛΗ ΜΑΣ.<br /><em>ΤΑ ΠΑΙΔΙΑ ΜΑΣ.</em><br />ΤΟ ΜΕΛΛΟΝ ΤΟΥΣ.{/if}</span>
+        <span aria-hidden={academySlide}>{#if teamHeading?.length}
+          {#each teamHeading as line, lineIndex (lineIndex)}
+            {#if lineIndex === 1}<em>{line}</em>{:else}{line}{/if}
+            {#if lineIndex < teamHeading.length-1}<br />{/if}
+          {/each}
+        {:else}ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ.<br /><em>Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</em>{/if}</span>
+      </h1>
+      <p class="public-hero-description hero-copy-stack" data-testid="public-hero-description"><span aria-hidden={!academySlide}>{academyDescription ?? (club?.description || 'Χτίζουμε πρωταθλητές μέσα από το πάθος, την πειθαρχία και την ομαδικότητα. Ελάτε μαζί μας στο ταξίδι προς την κορυφή.')}</span><span aria-hidden={academySlide}>{teamDescription ?? 'Στο πλευρό της ομάδας μας, σε κάθε αγώνα.'}</span></p>
       <div class="public-hero-actions">{#if academySlide}<a href="/academy" class="public-button" data-testid="hero-join-academy">ΔΕΣ ΤΗΝ ΑΚΑΔΗΜΙΑ <Icon name="arrow" size={18} /></a><a href="/team" class="public-button public-button-outline" data-testid="hero-view-team">Η ΠΡΩΤΗ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a>{:else}<a href="/team" class="public-button" data-testid="hero-first-team-link">ΓΝΩΡΙΣΕ ΤΗΝ ΟΜΑΔΑ <Icon name="arrow" size={18} /></a><a href="/team?tab=schedule" class="public-button public-button-outline" data-testid="hero-first-team-schedule">ΠΡΟΓΡΑΜΜΑ ΑΓΩΝΩΝ <Icon name="arrow" size={18} /></a>{/if}</div>
     </div>
     {#if fixture}<aside class="public-hero-fixture" data-testid="public-hero-fixture">
