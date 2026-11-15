@@ -26,6 +26,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-group-roster-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
@@ -112,6 +113,7 @@ BEGIN
                    'club.write_admin_football_access(text,text,uuid,text,uuid,text,boolean)'::regprocedure,
                    'club.read_admin_football_location_metrics(text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,

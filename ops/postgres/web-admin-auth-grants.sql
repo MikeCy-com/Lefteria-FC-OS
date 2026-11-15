@@ -242,6 +242,11 @@ GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO 
 -- The web-admin role still cannot SELECT club.players directly.
 REVOKE ALL ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) TO :"admin_auth_role";
+-- A separate manager-only projection reads ONLY the verified chosen group.
+REVOKE ALL ON FUNCTION club.read_admin_group_roster(text,text,text,integer,integer)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_group_roster(text,text,text,integer,integer)
+  TO :"admin_auth_role";
 \ir admin-club-lock-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
@@ -249,6 +254,7 @@ GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integ
 \ir admin-audience-directory-boundary.sql
 \ir admin-group-create-boundary.sql
 \ir admin-player-directory-boundary.sql
+\ir admin-group-roster-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
@@ -355,6 +361,7 @@ BEGIN
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,

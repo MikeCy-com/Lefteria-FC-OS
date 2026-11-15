@@ -39,12 +39,13 @@ test('admin player list uses current backend membership, not fake data or stale 
   assert.match(workspace,/\{#if canCreate\}/);
   assert.match(ui,/data-testid="admin-private-player-directory"/);
   assert.match(ui,/data-testid="admin-players-list"/);
-  assert.match(ui,/fetch\('\/api\/admin\/football\/players\?'/);
+  assert.match(ui,/const source=group\?'\/api\/admin\/football\/group-players\?'\:'\/api\/admin\/football\/players\?'/);
+  assert.match(ui,/fetch\(source\+params\.toString\(\)/);
   assert.match(ui,/credentials:'same-origin',cache:'no-store'/);
   assert.match(ui,/controller\.abort\(\)/);
   assert.match(ui,/response\.status===401/);
   assert.match(ui,/response\.status===403/);
-  assert.match(ui,/verified\(json,currentOwner,currentOffset\)/);
+  assert.match(ui,/verified\(json,currentOwner,currentOffset,group\)/);
   assert.match(ui,/academy_group_ids/);
   assert.match(ui,/groupLabels\(player\)/);
   assert.match(ui,/admin-player-assignment-editor/);

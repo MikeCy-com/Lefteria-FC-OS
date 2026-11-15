@@ -67,7 +67,7 @@
           έγγραφά του. Οι αναθέσεις νέων αθλητών γίνονται από τον επαληθευμένο
           κατάλογο του οργανισμού και όχι από υποθετικό ρόστερ.</p>
         {#if canCreate}
-          <AdminRosterPlayersPanel owner={organization} actorId={user.id} {groups}
+          <AdminRosterPlayersPanel owner={organization} actorId={user.id} {groups} focusGroupId={group.id}
             allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance}
             {onExpired} {onRevoked} {onChanged}/>
         {:else}
