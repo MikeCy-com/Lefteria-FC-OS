@@ -55,6 +55,8 @@ GRANT EXECUTE ON FUNCTION finance.read_admin_payment_requests(
   text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.read_admin_finance_overview(
   text,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_billable_players(
+  text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.apply_payabl_notification(
   uuid,text,text,text,integer,bigint,text,text,bigint,text) TO :"app_role";
 
