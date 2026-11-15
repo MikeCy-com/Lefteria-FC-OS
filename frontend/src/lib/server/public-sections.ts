@@ -59,7 +59,12 @@ async function findPlayer(url: URL, id: string) {
       missingProjection = true;
       continue;
     }
-    const rows = data.sections!.players.filter(row => row.organization_id === organization && row.team_type === type);
+    // Club players can belong to First, Women's, Selected or another published
+    // team. Academy players remain separate and their names are abbreviated
+    // in the Academy public projection. Never exclude a Club player merely
+    // because their team_type is not the historical 'First Team' label.
+    const rows = data.sections!.players.filter(row =>
+      row.organization_id === organization && (organization === 'lefteria_fc' || row.team_type === type));
     // Raw legacy IDs may themselves contain '--'. Search both organizations
     // for the exact ID before allowing a title-slug suffix to match another player.
     const exact = rows.find(row => row.id === id);
