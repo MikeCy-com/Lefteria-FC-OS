@@ -1,6 +1,7 @@
 <script lang="ts">
   import {untrack} from 'svelte';
   import AdminSupplierCredits from './AdminSupplierCredits.svelte';
+  import AdminSupplierApprovalReversals from './AdminSupplierApprovalReversals.svelte';
 
   type Bill={
     id:string;supplier_name:string;invoice_reference:string;bill_date:string;
@@ -15,12 +16,18 @@
     evidence_reference:string;requested_at:string;requested_by:string;
     status:'pending'|'approved_manual'|'rejected';
     reviewed_at:string|null;review_note:string|null;
+    reviewed_by:string|null;reversed_manual:boolean;
   };
   type Credit={id:string;bill_id:string;credit_reference:string;
     credit_date:string;amount_cents:number;reason:string;
     requested_by:string;requested_at:string;
     status:'pending'|'approved_manual'|'rejected';
-    reviewed_at:string|null;review_note:string|null};
+    reviewed_at:string|null;review_note:string|null;
+    reviewed_by:string|null;reversed_manual:boolean;};
+  type Reversal={id:string;target_kind:'payment'|'credit';
+    target_id:string;reason:string;requested_by:string;requested_at:string;
+    status:'pending'|'approved_manual'|'rejected';
+    reviewed_by:string|null;reviewed_at:string|null;review_note:string|null};
   type PaymentRegister={
     organization_id:string;month:string;currency:'EUR';
     bank_verified:false;bank_refund_recorded:false;is_general_ledger:false;
@@ -28,7 +35,7 @@
       approved_manual_cents:number;approved_credit_cents:number;
       pending_credit_cents:number;net_payables_cents:number;
       remaining_cents:number;pending_evidence_cents:number};
-    bills:Bill[];requests:Evidence[];credit_notes:Credit[];
+    bills:Bill[];requests:Evidence[];credit_notes:Credit[];reversals:Reversal[];
   };
   let {owner,sessionId,canWrite,canReview}:{
     owner:string|null;sessionId:string;canWrite:boolean;canReview:boolean
@@ -76,7 +83,8 @@
         safe((r.summary as Record<string,unknown>)[key]))||
       !Array.isArray(r.bills)||r.bills.length>100||
       !Array.isArray(r.requests)||r.requests.length>200||
-      !Array.isArray(r.credit_notes)||r.credit_notes.length>200)return false;
+      !Array.isArray(r.credit_notes)||r.credit_notes.length>200||
+      !Array.isArray(r.reversals)||r.reversals.length>200)return false;
     const summary=r.summary as Record<string,number>;
     if(summary.obligations_cents!==summary.approved_credit_cents+summary.net_payables_cents||
       summary.net_payables_cents!==summary.approved_manual_cents+summary.remaining_cents)
@@ -106,7 +114,10 @@
         typeof a.evidence_reference==='string'&&methods.includes(String(a.payment_method))&&
         ['pending','approved_manual','rejected'].includes(String(a.status))&&
         (a.reviewed_at===null||typeof a.reviewed_at==='string')&&
-        (a.review_note===null||typeof a.review_note==='string');
+        (a.review_note===null||typeof a.review_note==='string')&&
+        (a.reviewed_by===null||uuid(a.reviewed_by))&&
+        typeof a.reversed_manual==='boolean'&&
+        (!a.reversed_manual||a.status==='approved_manual');
     })&&r.credit_notes.every((x:unknown)=>{
       if(!x||typeof x!=='object'||Array.isArray(x))return false;
       const a=x as Record<string,unknown>;
@@ -116,6 +127,19 @@
         typeof a.requested_at==='string'&&safe(a.amount_cents)&&
         (a.amount_cents as number)>0&&
         ['pending','approved_manual','rejected'].includes(String(a.status))&&
+        (a.reviewed_at===null||typeof a.reviewed_at==='string')&&
+        (a.review_note===null||typeof a.review_note==='string')&&
+        (a.reviewed_by===null||uuid(a.reviewed_by))&&
+        typeof a.reversed_manual==='boolean'&&
+        (!a.reversed_manual||a.status==='approved_manual');
+    })&&r.reversals.every((x:unknown)=>{
+      if(!x||typeof x!=='object'||Array.isArray(x))return false;
+      const a=x as Record<string,unknown>;
+      return uuid(a.id)&&uuid(a.target_id)&&uuid(a.requested_by)&&
+        (a.target_kind==='payment'||a.target_kind==='credit')&&
+        typeof a.reason==='string'&&typeof a.requested_at==='string'&&
+        ['pending','approved_manual','rejected'].includes(String(a.status))&&
+        (a.reviewed_by===null||uuid(a.reviewed_by))&&
         (a.reviewed_at===null||typeof a.reviewed_at==='string')&&
         (a.review_note===null||typeof a.review_note==='string');
     });
@@ -309,7 +333,8 @@
           <li>
             <strong>{data.bills.find(b=>b.id===request.bill_id)?.supplier_name??'Καταχωρισμένο τιμολόγιο'}
               · {euro(request.amount_cents)}</strong>
-            <span>{request.status==='pending'?'Προς ανεξάρτητο έλεγχο':
+            <span>{request.reversed_manual?'Αναστράφηκε κατόπιν ανεξάρτητου ελέγχου':
+              request.status==='pending'?'Προς ανεξάρτητο έλεγχο':
               request.status==='approved_manual'?'Εγκεκριμένο χειροκίνητα':'Απορρίφθηκε'}
               · {request.payment_date} · {request.payment_method}</span>
             <small>Αναφορά: {request.evidence_reference}
@@ -323,6 +348,9 @@
     {/if}
     <AdminSupplierCredits owner={owner ?? ''} sessionId={sessionId} {canWrite} {canReview}
       bills={data.bills} credits={data.credit_notes} onSaved={()=>refresh++}/>
+    <AdminSupplierApprovalReversals owner={owner ?? ''} sessionId={sessionId}
+      {canWrite} {canReview} payments={data.requests} credits={data.credit_notes}
+      reversals={data.reversals} onSaved={()=>refresh++}/>
     {#if canReview&&canWrite}
       <h3>Ανεξάρτητη απόφαση Super Admin</h3>
       <p class="admin-muted">Δεν μπορείτε να εγκρίνετε δικό σας αίτημα. Ελέγξτε το
