@@ -562,8 +562,21 @@ try {
       // Search remains organization-specific even when the news API is absent.
       if (['academy','first-team'].includes(route.name) &&
           ['phone','reference'].includes(viewport.name)) {
-        await page.getByTestId('public-search-open').click();
-        await page.getByTestId('public-search-dialog').waitFor({state:'visible'});
+        // The audit navigates with DOMContentLoaded for screenshot speed.
+        // Wait for client hydration before exercising a real event handler,
+        // then retry a few times instead of mistaking SSR markup for a click.
+        await page.waitForLoadState('load',{timeout:12000}).catch(()=>{});
+        const trigger=page.getByTestId('public-search-open');
+        const dialog=page.getByTestId('public-search-dialog');
+        let opened=false;
+        for(let attempt=0;attempt<3 && !opened;attempt++){
+          await trigger.click();
+          try {await dialog.waitFor({state:'visible',timeout:2000});opened=true;}
+          catch { /* allow client hydration to complete */ }
+        }
+        if(!opened) {
+          failures.push(route.name+' '+viewport.name+': search did not open after client hydration');
+        }else{
         const contextText=await page.getByTestId('public-search-context').innerText();
         const input=page.getByTestId('public-search-input');
         if(route.name==='academy'){
@@ -590,6 +603,7 @@ try {
           failures.push('Search live result counter is absent on '+viewport.name);
         await page.keyboard.press('Escape');
         await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
+        }
       }
       await page.close();
     }
