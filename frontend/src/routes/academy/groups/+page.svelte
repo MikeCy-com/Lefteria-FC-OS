@@ -9,7 +9,7 @@
 
 <svelte:head><title>ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Τα ηλικιακά τμήματα της ακαδημίας Λευτεριά FC, οι χώροι και τα προγράμματα προπονήσεών τους." /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc_academy" navigationGroups={data.navigationGroups}>
-  <section class="academy-intro">
+  <section class="academy-intro" data-testid="academy-groups-hero">
     <p class="public-eyebrow">ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</p><h1>ΜΙΚΡΑ ΒΗΜΑΤΑ.<br /><em>ΜΕΓΑΛΑ ΟΝΕΙΡΑ.</em></h1>
     <p class="intro-copy">Γνώρισε τα τμήματά μας και βρες τις πληροφορίες προπονήσεων και αγώνων για κάθε ηλικιακή ομάδα.</p>
     <nav class="academy-section-links" aria-label="Ακαδημία"><a href="/academy">Η ακαδημία μας</a><a href="/academy/philosophy">Η φιλοσοφία μας</a><a href="/contact">Επικοινωνία</a></nav>
