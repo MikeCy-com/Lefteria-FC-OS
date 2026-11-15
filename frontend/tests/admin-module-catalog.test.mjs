@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
+    ['pages', '/admin/website-pages'], ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/website-pages', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
   }
 });
 
@@ -42,7 +42,7 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(ids(user(['finance:read'])).filter(id => id.startsWith('hub_')), []);
   assert.deepEqual(ids(user(['shop:read'])).filter(id => id.startsWith('hub_')), []);
   assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub']);
-  assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
+  assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['pages','news']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);

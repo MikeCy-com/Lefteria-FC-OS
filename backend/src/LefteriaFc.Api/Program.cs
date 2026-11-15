@@ -196,6 +196,7 @@ app.MapAcademyIntakeAdmin();
 app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminNewsDrafts();
+app.MapWebsitePages();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();

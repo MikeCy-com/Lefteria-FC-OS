@@ -10,7 +10,7 @@
     user:WebAdminSession['user'];
     active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
-      'schedule'|'hub'|'matches'|'staff'|'users'|'territories';
+      'schedule'|'hub'|'matches'|'staff'|'users'|'territories'|'pages';
     busy?:boolean;onLogout:()=>void;children:Snippet;
   }=$props();
   const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
@@ -65,6 +65,7 @@
       {#if hasWebsite}
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΙΣΤΟΣΕΛΙΔΑ</p>
+          {#if liveIds.has('pages')}<a class="admin-nav-section" href="/admin/website-pages" aria-current={active==='pages'?'page':undefined}>Σελίδες · Visual Builder</a>{/if}
           {#if liveIds.has('news')}<a class="admin-nav-section" href="/admin/news" aria-current={active==='news'?'page':undefined} data-testid="admin-news-link">Άρθρα & νέα</a>{/if}
           {#if canReadClub(user)}<a class="admin-nav-tool" href="/admin/settings#website-settings" aria-current={active==='club'?'page':undefined}>Ρυθμίσεις ιστοσελίδας</a>{/if}
         </div>
