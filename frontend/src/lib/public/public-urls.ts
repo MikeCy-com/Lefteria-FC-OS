@@ -32,7 +32,10 @@ export function publicCanonicalHref(path: string): string {
   const url = new URL(path, 'https://lefteriafc.cy');
   // Canonical only verified public owner scope, never return filters,
   // guardian/child context, arbitrary query, tokens or caller parameters.
-  const isPublicCatalogDetail = /^\\/(?:events|partners|sponsors|seasons)\\/[^/]+$/.test(url.pathname);
+  const routeParts = url.pathname.split('/');
+  const isPublicCatalogDetail = routeParts.length === 3
+    && ['events','partners','sponsors','seasons'].includes(routeParts[1])
+    && routeParts[2].length > 0;
   const scope = url.searchParams.get('scope');
   const owner = isPublicCatalogDetail && (scope === 'academy' || scope === 'first_team') ? '?scope=' + scope : '';
   return 'https://lefteriafc.cy' + url.pathname + owner;
