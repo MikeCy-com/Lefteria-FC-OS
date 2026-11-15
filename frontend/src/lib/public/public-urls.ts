@@ -17,7 +17,7 @@ export function publicSlug(value: string): string {
 
 type PublicEntity = { id: string; name: string };
 export function personPublicLink(kind: 'player'|'staff', person: PublicEntity): string {
-  const slug = publicSlug(person.name);
+  const slug = publicSlug(person.name ?? '');
   return '/' + kind + '/' + (slug ? slug + '--' : '') + encodeURIComponent(person.id);
 }
 
