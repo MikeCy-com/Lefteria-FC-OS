@@ -27,7 +27,7 @@ test('new Academy group is only called assigned after second server-confirmed ci
 });
 
 test('ownership boundary stays server-verified and city-level match catalogs are unchanged',()=>{
-  assert.match(territory,/organizations ?? \[\]/);
+  assert.match(territory,/\.user\.organizations \?\? \[\]/);
   assert.match(territory,/owners\.includes\(organization\)/);
   assert.match(territory,/canWrite = \$derived/);
   assert.match(territory,/mayManageLocation && directory\.unassigned_groups\.length>0/);
