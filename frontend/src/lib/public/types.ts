@@ -4,7 +4,12 @@ export type PublicOrganization = 'lefteria_fc' | 'lefteria_fc_academy';
 export type PublicNewsScope = PublicOrganization | null;
 export type PublicClub = components['schemas']['PublicClub'];
 export type PublicTeam = components['schemas']['PublicTeam'];
-export type PublicGroup = components['schemas']['PublicAcademyGroup'];
+// The public directory adds verified territory identifiers. Keep the generated
+// base contract usable until the next OpenAPI snapshot export.
+export type PublicGroup = components['schemas']['PublicAcademyGroup'] & {
+  city_id?: string | null; location_id?: string | null;
+  city_slug?: string | null; location_slug?: string | null;
+};
 export type PublicArticle = components['schemas']['PublicArticle'];
 export type PublicFixture = components['schemas']['PublicFixture'];
 export type PublicSite = components['schemas']['PublicSiteResult'];
