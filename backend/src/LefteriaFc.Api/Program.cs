@@ -28,6 +28,7 @@ using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Api.Crm;
 using LefteriaFc.Api.Payabl;
 using LefteriaFc.Api.Football;
+using LefteriaFc.Api.Finance;
 using LefteriaFc.Api.Marketing;
 using LefteriaFc.Infrastructure.MobileChat;
 
@@ -230,6 +231,7 @@ app.MapAcademyOffice();
 app.MapAdminFootballTerritories();
 app.MapAdminFootballTerritoryAccess();
 app.MapAdminAcademyLocationFinance();
+app.MapAdminFinanceOverview();
 
 if (app.Environment.IsDevelopment())
 {
