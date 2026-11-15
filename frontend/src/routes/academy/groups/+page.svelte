@@ -1,6 +1,8 @@
 <script lang="ts">
   import PublicShell from '../../../lib/public/PublicShell.svelte';
   import PublicImage from '../../../lib/public/PublicImage.svelte';
+  import AcademyDirectoryGroupCard from '../../../lib/public/AcademyDirectoryGroupCard.svelte';
+  import { buildAcademyTerritoryDirectory } from '../../../lib/public/academy-territory-directory';
   import { academyGroupLink } from '../../../lib/public/navigation';
   import { personPublicLink } from '../../../lib/public/public-urls';
   import { publicImages } from '../../../lib/public/images';
@@ -9,6 +11,7 @@
   const groups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
   // Only backend-published public DTOs for a group which also appears in
   // the canonical administrator-approved public group directory.
+  const territory = $derived(buildAcademyTerritoryDirectory(groups));
   const publishedGroupIds = $derived(new Set(groups.map(group => group.id)));
   const publicPlayers = $derived((data.sections?.players ?? []).filter(player =>
     player.organization_id === 'lefteria_fc_academy' &&
@@ -32,20 +35,48 @@
   </section>
   <section class="academy-directory" aria-labelledby="groups-heading">
     <div class="directory-heading"><h2 id="groups-heading">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2><span>{groups.length} {groups.length === 1 ? 'τμήμα' : 'τμήματα'}</span></div>
-    <div class="academy-cards">{#each groups as group (group.id)}
-      <a class="academy-card" href={academyGroupLink(group)} data-testid="academy-group-card">
-        <div class="card-visual">{#if group.banner_url}<PublicImage src={group.banner_url} alt="" />{:else}<span class="group-monogram" aria-hidden="true">{group.name}</span>{/if}<span class="card-arrow" aria-hidden="true">↗</span></div>
-        <div class="card-content"><p class="public-eyebrow">{group.age_range || 'ΑΚΑΔΗΜΙΑ'}{group.season ? ` · ${group.season}` : ''}</p><h3>{group.name}</h3>
-          {#if group.description}<p class="card-description">{group.description}</p>{/if}
-          {#if group.city || group.location_name}<p class="card-location">{[group.city, group.location_name].filter(Boolean).join(' · ')}</p>{/if}
-          {#if groupCoaches(group.id).length}
-            <p class="card-coaches" data-testid="academy-public-coach">ΠΡΟΠΟΝΗΤΗΣ: {groupCoaches(group.id).map(coach=>coach.name).join(' · ')}</p>
-          {/if}
-          {#if group.training_schedule}<p class="card-training">{group.training_schedule}</p>{/if}
-          <span class="card-action">ΓΝΩΡΙΣΕ ΤΟ ΤΜΗΜΑ <span aria-hidden="true">→</span></span>
+    {#if territory.cities.length}
+      <nav class="academy-city-index" aria-label="Πόλεις της ακαδημίας" data-testid="academy-city-navigation">
+        {#each territory.cities as city (city.id)}
+          <a href={`#academy-city-${city.slug}`}>{city.name}</a>
+        {/each}
+      </nav>
+    {/if}
+    {#each territory.cities as city (city.id)}
+      <section class="academy-city-section" aria-labelledby={`academy-city-${city.slug}`} data-testid="academy-verified-city">
+        <div class="academy-territory-heading">
+          <p class="public-eyebrow">ΠΟΛΗ ΑΚΑΔΗΜΙΑΣ</p>
+          <h3 id={`academy-city-${city.slug}`}>{city.name}</h3>
         </div>
-      </a>
-    {:else}<p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>{/each}</div>
+        {#each city.locations as location (location.id)}
+          <section class="academy-location-section" aria-labelledby={`academy-location-${city.slug}-${location.slug}`} data-testid="academy-verified-location">
+            <div class="academy-territory-heading academy-territory-location">
+              <p class="public-eyebrow">ΤΟΠΟΘΕΣΙΑ</p>
+              <h4 id={`academy-location-${city.slug}-${location.slug}`}>{location.name}</h4>
+              <span>{location.groups.length} {location.groups.length === 1 ? 'τμήμα' : 'τμήματα'}</span>
+            </div>
+            <div class="academy-cards">
+              {#each location.groups as group (group.id)}
+                <AcademyDirectoryGroupCard {group} coaches={groupCoaches(group.id)} />
+              {/each}
+            </div>
+          </section>
+        {/each}
+      </section>
+    {/each}
+    {#if territory.unassigned.length}
+      <section class="academy-location-pending" aria-labelledby="academy-unassigned-title" data-testid="academy-unassigned-groups">
+        <h3 id="academy-unassigned-title">ΤΜΗΜΑΤΑ ΧΩΡΙΣ ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΤΟΠΟΘΕΣΙΑ</h3>
+        <p>Τα δημοσιευμένα τμήματα εμφανίζονται εδώ μέχρι να αντιστοιχιστούν σε πόλη και τοποθεσία από τη διοίκηση.</p>
+        <div class="academy-cards">
+          {#each territory.unassigned as group (group.id)}
+            <AcademyDirectoryGroupCard {group} coaches={groupCoaches(group.id)} />
+          {/each}
+        </div>
+      </section>
+    {:else if groups.length === 0}
+      <p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>
+    {/if}
   </section>
   <section class="academy-groups-philosophy public-section" aria-labelledby="academy-groups-philosophy-title" data-testid="academy-groups-philosophy">
     <div class="academy-groups-philosophy-copy">
@@ -100,13 +131,24 @@
 
 
 <style>
+  .academy-city-index{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 32px}
+  .academy-city-index a{display:inline-flex;align-items:center;min-height:44px;padding:10px 17px;border:1px solid #9d782f;color:#f2d18e;text-decoration:none;font-weight:700;background:#151310}
+  .academy-city-index a:hover,.academy-city-index a:focus-visible{border-color:#f6bb38;color:#fff;outline-offset:3px}
+  .academy-city-section{margin:28px 0 44px;scroll-margin-top:95px}
+  .academy-location-section{margin:19px 0 32px;scroll-margin-top:95px}
+  .academy-territory-heading{display:flex;align-items:baseline;gap:13px;flex-wrap:wrap;padding:12px 0 16px;border-bottom:1px solid #715926}
+  .academy-territory-heading h3{font:900 clamp(28px,3vw,44px)/1.12 'Fira Sans Extra Condensed',sans-serif;margin:0;color:#f6bb38}
+  .academy-territory-heading h4{font:800 clamp(22px,2.2vw,30px)/1.2 'Fira Sans Extra Condensed',sans-serif;margin:0;color:#fff}
+  .academy-territory-heading .public-eyebrow{margin:0}
+  .academy-territory-location{border-bottom-color:#383225;margin:6px 0 18px}
+  .academy-territory-location span{margin-inline-start:auto;color:#c4c4c4;font-size:13px}
+  .academy-location-pending{border-top:1px solid #4f4026;padding:28px 0}
+  .academy-location-pending h3{font:800 25px 'Fira Sans Extra Condensed',sans-serif;color:#f6bb38}
+  .academy-location-pending>p{color:#c4c4c4;margin:10px 0 24px;line-height:1.55}
   .academy-groups-hero-image{position:absolute;inset:0;pointer-events:none;overflow:hidden;z-index:0}
   .academy-groups-hero-image :global(img){width:100%;height:100%;object-fit:cover;opacity:.38}
   .academy-groups-hero-image::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,#060607ed,#0606078c 72%,#0606075c)}
   .academy-groups-hero-copy{position:relative;z-index:1}
-  .card-coaches,.card-training{font-size:13px;line-height:1.55;color:#cacaca;margin:16px 0;overflow-wrap:anywhere}
-  .card-coaches{color:#e7c47f;font-weight:700}
-  .card-training{border-left:2px solid #e7b644;padding-left:11px;white-space:pre-line}
   .academy-groups-philosophy{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(28px,5vw,70px);background:#0b0b0b;border-block:1px solid #4b4027}
   .academy-groups-philosophy h2,.academy-groups-registration h2{font:900 clamp(30px,3.5vw,56px)/1.06 'Fira Sans Extra Condensed',sans-serif;margin:12px 0 25px}
   .academy-groups-philosophy h2 em,.academy-groups-registration h2 em{font-style:normal;color:#f6bb38}
