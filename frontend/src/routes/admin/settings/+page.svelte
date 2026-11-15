@@ -70,7 +70,7 @@
             <p>Πρόσβαση σε οργανισμούς, πόλεις, τοποθεσίες και ομάδες με επαληθευμένο δικαίωμα.</p>
             {#if canStaff}<a class="admin-settings-link" href="/admin/staff">Προσωπικό & προπονητές <span aria-hidden="true">↗</span></a>{/if}
             {#if canUsers}<a class="admin-settings-link" href="/admin/users">Δημιουργία λογαριασμών & προβολή δικαιωμάτων <span aria-hidden="true">↗</span></a>{/if}
-            <p class="admin-settings-note">Η αλλαγή ρόλου ή απενεργοποίηση υπάρχοντος χρήστη δεν υποστηρίζεται ακόμη. Οι αναθέσεις ομάδας και περιοχής γίνονται από τα αντίστοιχα προστατευμένα εργαλεία.</p>
+            <p class="admin-settings-note">Η αλλαγή ρόλου δεν υποστηρίζεται ακόμη. Ο Super Admin μπορεί να απενεργοποιεί ή να επανενεργοποιεί λογαριασμούς από τη λίστα χρηστών. Οι αναθέσεις ομάδας και περιοχής γίνονται από τα αντίστοιχα προστατευμένα εργαλεία.</p>
           </section>
         {/if}
         <section class="admin-panel" id="personal-settings">

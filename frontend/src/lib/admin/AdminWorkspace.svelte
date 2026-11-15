@@ -22,6 +22,7 @@
     {id:'communications',label:'Επικοινωνία εφαρμογής',description:'Ανακοινώσεις, συνομιλίες, ειδοποιήσεις και προστατευμένα αρχεία',href:'/admin/communications'},
     {id:'registrations',label:'Εγγραφές Ακαδημίας',description:'Ενιαία λίστα ηλεκτρονικών και χειροκίνητων αιτήσεων',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
+    {id:'pages',label:'Σελίδες · Visual Builder',description:'Νέες σελίδες, περιεχόμενο, μενού και προεπισκόπηση',href:'/admin/website-pages'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
     {id:'hub_subscriptions',label:'HUB · Συνδρομές φιλάθλων',description:'Επαληθευμένα συγκεντρωτικά στοιχεία, διαθέσιμα μόνο σε Super Admin',href:'/admin/hub/subscriptions'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},

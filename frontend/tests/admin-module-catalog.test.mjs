@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
+    ['pages', '/admin/website-pages'], ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/hub/subscriptions', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/website-pages', '/admin/news', '/admin/hub', '/admin/hub/subscriptions', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
   }
 });
 
@@ -40,13 +40,12 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(adminSectionsFor(user(['*:*'], [])), []);
   assert.deepEqual(ids(user(['news:read'])).filter(id => id.startsWith('hub_')), ['hub_editorial']);
   assert.deepEqual(ids(user(['finance:read'])).filter(id => id.startsWith('hub_')), []);
-  assert.deepEqual(ids(user(['finance:read'], ['lefteria_fc'], 'super_admin'))
-    .filter(id => id.startsWith('hub_')), ['hub_subscriptions']);
-  assert.ok(!ids(user(['finance:read'], ['lefteria_fc'], 'accountant')).includes('hub_subscriptions'));
+  assert.deepEqual(ids(user(['finance:read'], ['lefteria_fc'], 'super_admin')).filter(id => id.startsWith('hub_')), ['hub_subscriptions']);
   assert.ok(!ids(user(['finance:read'], ['lefteria_fc'], 'manager')).includes('hub_subscriptions'));
+  assert.ok(!ids(user(['finance:read'], ['lefteria_fc'], 'accountant')).includes('hub_subscriptions'));
   assert.deepEqual(ids(user(['shop:read'])).filter(id => id.startsWith('hub_')), []);
   assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub']);
-  assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
+  assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['pages','news']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
@@ -118,19 +117,18 @@ test('one canonical live groups module removes duplicate team/Academy admin link
   assert.ok(!ids(user(['academy:read_assigned'],['lefteria_fc_academy'],'coach')).includes('groups'));
 });
 
-test('Academy attendance and training are inside authorized groups rather than orphan global modules',()=>{
+test('training and attendance are contextual group workflows, never global modules',()=>{
   for(const role of ['manager','super_admin','coach']){
-    for(const owner of ['lefteria_fc','lefteria_fc_academy']){
-      const result=ids(user(['*:*'],[owner],role));
-      for(const orphan of ['academy_schedule','attendance','documents','evaluations','fixtures'])
-        assert.ok(!result.includes(orphan),role+' '+owner+' '+orphan);
-    }
+    const actor=user(['*:*'],['lefteria_fc_academy'],role);
+    for(const id of ['academy_schedule','attendance','documents','evaluations','fixtures'])
+      assert.ok(!ids(actor).includes(id),id+' is not a top-level module');
   }
-  assert.ok(ids(user(['academy:read'],['lefteria_fc_academy'],'manager')).includes('groups'));
-  assert.ok(!ids(user(['academy:read'],['lefteria_fc'],'manager')).includes('groups'));
   const groupWorkspace=read('AdminGroupWorkspace.svelte');
-  assert.match(groupWorkspace,/admin-group-training-link/);
-  assert.match(groupWorkspace,/admin-group-attendance-link/);
+  assert.match(groupWorkspace,/AdminAcademyTrainingPlans/);
+  assert.match(groupWorkspace,/AdminGroupAttendancePanel/);
+  assert.match(groupWorkspace,/AdminGroupPublishedFixtures/);
+  assert.match(groupWorkspace,/AdminGroupMatchDraftPanel/);
+  assert.match(groupWorkspace,/AdminRosterPlayersPanel/);
 });
 
 test('announcement drafting is visible only to authorized owners and managers',()=>{
@@ -165,6 +163,10 @@ test('live workflows are reachable in contextual groups and authorized standalon
     assert.ok(entry?.href,id);
     assert.ok(readFileSync(new URL('../src/routes'+entry.href+'/+page.svelte',import.meta.url),'utf8').includes('ADMIN_AUTH_CONTEXT'),id);
   }
+  // Old bookmarks still resolve to guarded routes. They are no longer
+  // advertised as standalone modules in the administration information architecture.
+  for(const href of ['/admin/schedule','/admin/attendance','/admin/evaluations','/admin/documents','/admin/matches'])
+    assert.match(readFileSync(new URL('../src/routes'+href+'/+page.svelte',import.meta.url),'utf8'),/ADMIN_AUTH_CONTEXT/);
   for(const href of ['/admin/hub','/admin/academy-office','/admin/staff','/admin/groups'])
     assert.ok(frame.includes('href="'+href+'"'),href);
   const groupsPage=readFileSync(new URL('../src/routes/admin/groups/+page.svelte',import.meta.url),'utf8');
@@ -186,15 +188,16 @@ test('Academy office discovery matches its existing manager and organization pol
 });
 
 
-test('match viewing stays in authorized group workspace, with no orphan global fixture entry',()=>{
-  for(const [permission,owner] of [['teams:read','lefteria_fc'],['academy:read','lefteria_fc_academy']]){
-    const result=adminSectionsFor(user([permission],[owner],'manager')).flatMap(x=>x.modules);
-    assert.equal(result.find(x=>x.id==='groups')?.href,'/admin/groups');
-    assert.ok(!result.some(x=>x.id==='fixtures'));
+test('matches are handled only inside granted groups, never as standalone global modules',()=>{
+  const clubManager=user(['teams:read'],['lefteria_fc'],'manager');
+  const academyManager=user(['academy:read'],['lefteria_fc_academy'],'manager');
+  for(const actor of [clubManager,academyManager]){
+    assert.ok(ids(actor).includes('groups'));
+    assert.ok(!ids(actor).includes('fixtures'));
   }
-  assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'],'manager')).includes('groups'));
-  assert.ok(!ids(user(['academy:read'],['lefteria_fc'],'manager')).includes('groups'));
-  assert.match(read('AdminGroupWorkspace.svelte'),/admin-group-matches-link/);
+  assert.ok(!ids(user(['teams:read'],['lefteria_fc_academy'])).includes('groups'));
+  assert.ok(!ids(user(['academy:read'],['lefteria_fc'])).includes('groups'));
+  assert.match(read('AdminGroupWorkspace.svelte'),/AdminGroupPublishedFixtures/);
 });
 
 test('coach staff module requires organization-specific write grants and manager role',()=>{

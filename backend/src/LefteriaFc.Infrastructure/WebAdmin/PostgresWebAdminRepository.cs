@@ -49,6 +49,24 @@ public sealed class PostgresWebAdminRepository(WebAdminConnections connections) 
     {
         await using var connection = await connections.OpenAsync(cancellationToken);
         await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        // Security-definer lock keeps this account stable until session
+        // insertion commits. The runtime has SELECT only, never raw UPDATE,
+        // on admin_accounts (FOR SHARE directly would demand UPDATE rights).
+        await using (var admission = connection.CreateCommand())
+        {
+            admission.Transaction = transaction;
+            admission.CommandText = "SELECT identity.lock_admin_login_account(@admin,@hash,@role)";
+            admission.Parameters.AddWithValue("admin", candidate.Id);
+            admission.Parameters.AddWithValue("hash", candidate.PasswordHash!);
+            admission.Parameters.AddWithValue("role", candidate.Role);
+            if (await admission.ExecuteScalarAsync(cancellationToken) is not true)
+            {
+                await AuditAsync(connection, transaction, null, null,
+                    "admin.login", "denied", subjectDigest, "account_changed", cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                return false;
+            }
+        }
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """

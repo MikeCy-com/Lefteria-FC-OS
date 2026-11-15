@@ -124,7 +124,7 @@ export function adminGuide(user:AdminIdentity):WalkthroughStep[] {
   }
   if(user.role==='super_admin' && has('users:read') && organizations.length)
     result.push(adminStep('users','Δημιουργία λογαριασμών και αρχικών ρόλων',
-      'Δημιούργησε λογαριασμό Coach, Manager ή Accountant με ισχυρό αρχικό κωδικό και οργανισμό. Μετέπειτα αλλαγή ρόλου δεν υποστηρίζεται ακόμη.',
+      'Δημιούργησε λογαριασμό Coach, Manager ή Accountant με ισχυρό αρχικό κωδικό και οργανισμό. Απενεργοποίηση και επανενεργοποίηση είναι διαθέσιμες, αλλά η αλλαγή ρόλου δεν υποστηρίζεται ακόμη.',
       '/admin/users'));
   if(has('shop:read'))
     result.push(adminStep('pos','Κατάλογος POS','Δες τις κατηγορίες και τα προϊόντα. Δεν υπάρχει ενεργό checkout.',

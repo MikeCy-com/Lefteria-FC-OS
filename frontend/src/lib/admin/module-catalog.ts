@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -22,6 +22,7 @@ interface Section {
 }
 const catalog: readonly Section[] = [
   { id: 'website', name: 'Ιστοσελίδα', description: 'Δημόσια παρουσία, περιεχόμενο και ταυτότητα συλλόγου.', modules: [
+    { id: 'pages', name: 'Σελίδες · Visual Builder', description: 'Δημιουργία σελίδων, οπτική προεπισκόπηση, διάταξη μενού και δημοσίευση με έγκριση ανά οργανισμό.', status: 'live', href: '/admin/website-pages', scope: 'any', anyPermission: ['news:read'] },
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
     { id: 'news', name: 'Άρθρα & νέα', description: 'Επεξεργασία δημοσιευμένων άρθρων και ιδιωτικά πρόχειρα ανά οργανισμό. Νέα δημοσίευση και έγκριση εκκρεμούν.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
     { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
@@ -68,7 +69,7 @@ const catalog: readonly Section[] = [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
     { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένοι προπονητές και προστατευμένες αναθέσεις τμημάτων. Η δημιουργία λογαριασμού Coach γίνεται χωριστά από τον Super Admin· δεν δημιουργεί αυτόματα εγγραφή προσωπικού.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Πραγματικοί κατάλογοι γηπέδων και βάσεων προπόνησης, μέσα από τη διαχείριση πόλεων και τοποθεσιών. Γήπεδα Ακαδημίας ανά πόλη, βάσεις ανά τοποθεσία· πρώτη ομάδα ανεξάρτητα.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
-    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Μεταβολή υφιστάμενων δικαιωμάτων και ανάκληση εκκρεμούν.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
+    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Απενεργοποίηση και επανενεργοποίηση λογαριασμών με ανάκληση συνεδριών· αλλαγή ρόλου εκκρεμεί.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
     { id: 'organization', name: 'Ρυθμίσεις οργανισμών', description: 'Ρυθμίσεις εκτός δημόσιου προφίλ.', status: 'planned', scope: 'any', anyPermission: ['settings:read'] }
   ] }
 ];
