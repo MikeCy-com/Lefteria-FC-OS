@@ -6,8 +6,12 @@ public sealed record AdminRosterPlayerDto(string Id,string Name,string? TeamId,
     IReadOnlyList<string> AcademyGroupIds);
 public sealed record AdminRosterPlayersPageDto(string OrganizationId,bool Ready,
     int Offset,int Limit,int Total,IReadOnlyList<AdminRosterPlayerDto> Players);
+public sealed record AdminGroupRosterPlayersPageDto(string OrganizationId,string GroupId,bool Ready,
+    int Offset,int Limit,int Total,IReadOnlyList<AdminRosterPlayerDto> Players);
 public interface IAdminRosterPlayerDirectory
 {
     Task<AdminRosterPlayersPageDto> ReadAsync(
         string cookie,string organizationId,int offset,int limit,CancellationToken token);
+    Task<AdminGroupRosterPlayersPageDto> ReadGroupAsync(
+        string cookie,string organizationId,string groupId,int offset,int limit,CancellationToken token);
 }
