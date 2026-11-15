@@ -19,6 +19,7 @@ const routes = [
   { name:'team-schedule', path:'/team?tab=schedule', expectedStatus:200 },
   { name:'team-roster-unavailable', path:'/team?tab=roster', expectedStatus:503 },
   { name:'academy', path:'/academy', expectedStatus:200 },
+  { name:'academy-groups-unavailable', path:'/academy/groups', expectedStatus:503 },
   { name:'academy-philosophy', path:'/academy/philosophy', expectedStatus:200 },
   { name:'about', path:'/about', expectedStatus:200 },
   { name:'contact', path:'/contact', expectedStatus:200 },
@@ -374,6 +375,27 @@ try {
         };
       });
       if (!typography.italicLoaded) failures.push(route.path + ' ' + viewport.name + ': real Greek italic font did not load');
+      // Original public website baseline, measured with Chromium at the
+      // same viewport: Manrope body 16px; catalog/group h1 38px on phones,
+      // 58px from tablets upward. This is typography parity, not a pixel diff.
+      const publicFont = await page.evaluate(() => {
+        const root = document.querySelector('.public-site');
+        const headline = document.querySelector('[data-testid="academy-groups-hero"] h1, .catalog-heading h1');
+        return root ? {
+          family:getComputedStyle(root).fontFamily,
+          size:parseFloat(getComputedStyle(root).fontSize),
+          headlineSize:headline ? parseFloat(getComputedStyle(headline).fontSize) : null
+        } : null;
+      });
+      if(publicFont) {
+        if(!publicFont.family.startsWith('Manrope') || publicFont.size !== 16)
+          failures.push(route.path+' '+viewport.name+': public Manrope 16px mismatch: '+JSON.stringify(publicFont));
+        if(publicFont.headlineSize !== null) {
+          const originalSize = viewport.width <= 650 ? 38 : 58;
+          if(Math.abs(publicFont.headlineSize-originalSize) > .5)
+            failures.push(route.path+' '+viewport.name+': measured original heading '+originalSize+'px vs '+publicFont.headlineSize+'px');
+        }
+      }
       const metrics = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         clientWidth:document.documentElement.clientWidth,
@@ -383,7 +405,7 @@ try {
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);
