@@ -22,8 +22,8 @@ DECLARE
 BEGIN
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active)
     VALUES(v_actor,'ci_fee_admin_'||left(replace(v_actor::text,'-',''),15),
-      'Disposable fee test admin','manager',true);
-  -- Synthetic manager with an isolated active auth session and Academy grant.
+      'Disposable fee accountant','accountant',true);
+  -- Synthetic accountant with an isolated active auth session and Academy grant.
   UPDATE identity.admin_accounts
     SET password_hash='disposable_ci_hash_not_a_real_password'
     WHERE id=v_actor;
@@ -80,7 +80,7 @@ BEGIN
   IF v_cash_result->>'payment_method'<>'cash'
      OR v_cash_result->>'status'<>'paid'
      OR (v_cash_result->>'replay')::boolean THEN
-    RAISE EXCEPTION 'Manager cash receipt was not recorded';
+    RAISE EXCEPTION 'Accountant cash receipt was not recorded';
   END IF;
   v_cash_result:=finance.record_admin_training_fee_cash(
     v_digest,'lefteria_fc_academy',v_second,v_cash_receipt,'');
