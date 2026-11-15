@@ -20,6 +20,7 @@ public sealed class ManagedAdminRoleChange : Migration
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[a-f0-9]{64}$'
           OR _subject IS NULL OR _expected_active IS NULL
+          OR _expected_role IS NULL OR _next_role IS NULL
           OR _expected_role NOT IN ('manager','coach','editor','marketing','matchday_editor','accountant')
           OR _next_role NOT IN ('manager','coach','editor','marketing','matchday_editor','accountant')
           OR _expected_role=_next_role
