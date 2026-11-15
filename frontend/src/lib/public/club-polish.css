@@ -690,3 +690,110 @@
     grid-column:1/-1;
   }
 }
+
+
+/* Contextual public search: editorial card rhythm, legible result count,
+   tactile keyboard focus and resilient narrow-screen dialog sizing. */
+.public-site .public-search-dialog {
+  width:min(94vw,650px);
+  max-height:min(86dvh,800px);
+  overflow-y:auto;
+  padding:clamp(20px,3vw,36px);
+  border:1px solid rgb(246 187 56 / 50%);
+  border-radius:0 14px 0 14px;
+  background:linear-gradient(145deg,#1a1d1d,#0b0d0e 76%);
+  box-shadow:0 28px 90px rgb(0 0 0 / 75%);
+}
+.public-site .public-search-dialog h2 {
+  margin:0 0 8px;
+  color:#fff;
+  font:italic 900 clamp(30px,3vw,46px)/1 'Fira Sans Extra Condensed',sans-serif;
+}
+.public-site .public-search-dialog #public-search-description {
+  max-width:53ch;
+  color:#d4d3cd;
+  font-size:14px;
+  line-height:1.55;
+  margin:0 0 18px;
+}
+.public-site .public-search-dialog input {
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  min-height:50px;
+  padding:13px 16px;
+  border:1px solid rgb(246 187 56 / 48%);
+  border-radius:0 7px 0 7px;
+  background:#0a0c0d;
+  color:#fff;
+  font-size:16px;
+}
+.public-site .public-search-dialog input:focus-visible {
+  outline:3px solid var(--public-gold);
+  outline-offset:3px;
+}
+.public-site .public-search-count {
+  color:#e8c47c;
+  font:800 13px/1.4 'Fira Sans Extra Condensed',sans-serif;
+  letter-spacing:.015em;
+  margin:18px 0 8px;
+}
+.public-site .public-search-results {
+  display:grid;
+  gap:7px;
+  max-height:min(48dvh,460px);
+  overflow:auto;
+  padding:4px 2px 6px;
+  scrollbar-color:#826b39 #141717;
+}
+.public-site .public-search-results a {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  min-height:47px;
+  gap:15px;
+  padding:11px 14px;
+  border:1px solid rgb(255 255 255 / 15%);
+  border-left:3px solid transparent;
+  border-radius:0 6px 0 0;
+  background:rgb(255 255 255 / 3%);
+  color:#f7f7f5;
+  font:700 14px/1.4 'Fira Sans',sans-serif;
+  text-decoration:none;
+  overflow-wrap:anywhere;
+}
+.public-site .public-search-results a:is(:hover,:focus-visible) {
+  color:#ffce6b;
+  background:rgb(246 187 56 / 10%);
+  border-color:rgb(246 187 56 / 44%);
+  border-left-color:var(--public-gold);
+}
+.public-site .public-search-results a:focus-visible {
+  outline:2px solid #fff;
+  outline-offset:-2px;
+}
+.public-site .public-search-results a svg {flex-shrink:0;}
+.public-site .public-search-dialog [data-testid="public-search-empty"],
+.public-site .public-search-dialog [data-testid="public-search-error"] {
+  padding:13px 16px;
+  color:#e5e4dd;
+  background:#23211c;
+  border-left:3px solid var(--public-gold);
+  font-size:13px;
+  line-height:1.55;
+}
+@media(max-width:600px) {
+  .public-site .public-search-dialog {
+    width:calc(100vw - 20px);
+    max-width:calc(100vw - 20px);
+    max-height:calc(100dvh - 20px);
+    margin:auto;
+    padding:22px 16px;
+    border-radius:8px;
+  }
+  .public-site .public-search-results {max-height:49dvh;}
+  .public-site .public-search-results a {font-size:14px;padding:12px;min-height:48px;}
+}
+@media(prefers-reduced-motion:reduce) {
+  .public-site .public-search-results a {transition:none!important;}
+}
