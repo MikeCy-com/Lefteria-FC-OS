@@ -1,13 +1,24 @@
+using System.Text;
+using System.Text.RegularExpressions;
 using LefteriaFc.Application.WebAdmin;
+using Npgsql;
+using NpgsqlTypes;
 using LefteriaFc.Infrastructure.WebAdmin;
 
 namespace LefteriaFc.Api.WebAdmin;
 
-/// <summary>Read-only and strictly super-admin-only identity summary.
-/// No password hashes, phone numbers, invite secrets or account mutations.
-/// This uses the separately credentialed web-admin DB connection.</summary>
+/// <summary>Super-admin-scoped account directory and audited direct credential provisioning.
+/// Password hashes never leave the API; DB writes use a narrow SECURITY DEFINER function.</summary>
+public sealed record ManagedAdminCreateCommand(
+    string? Username, string? Name, string? Role, string? Password,
+    string[]? Organizations)
+{
+    public override string ToString() => "Managed web administrator creation (credential redacted)";
+}
+
 public static class AdminUserDirectoryEndpoints
 {
+    private static readonly SemaphoreSlim PasswordHashQueue = new(2,2);
     public static IEndpointRouteBuilder MapAdminUserDirectory(this IEndpointRouteBuilder endpoints)
     {
         endpoints.MapGet("/api/admin/access/users", async (
@@ -74,6 +85,93 @@ public static class AdminUserDirectoryEndpoints
         .WithTags("Web administration")
         // Do not silently change the frozen canonical API contract in this slice.
         // A versioned OpenAPI contract update is a separate integration review.
+        .ExcludeFromDescription();
+        endpoints.MapPost("/api/admin/access/users", async (
+            ManagedAdminCreateCommand request,
+            HttpContext context,WebAdminService service,
+            WebAdminConnections connections,IWebAdminSecrets secrets,
+            CancellationToken token) =>
+        {
+            context.Response.Headers.CacheControl = "private, no-store";
+            context.Response.Headers.Pragma = "no-cache";
+            var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+            var session=await service.CurrentAsync(cookie,token);
+            if(session is null)
+                throw new WebAdminException(401,"not_authenticated","Sign in again.");
+            if(session.User.Role!="super_admin")
+                throw new WebAdminException(403,"not_authorized","Super administrator required.");
+
+            // Do not create additional super administrators, assign arbitrary
+            // roles, accept ungranted owners, or activate legacy invite flags.
+            var username=request.Username?.Trim().ToLowerInvariant();
+            var name=request.Name?.Trim();
+            var password=request.Password;
+            var owners=request.Organizations;
+            var granted=session.User.Organizations.Select(o=>o.Id).ToHashSet(StringComparer.Ordinal);
+            var permittedRoles=new HashSet<string>(StringComparer.Ordinal){
+                "manager","editor","marketing","coach","matchday_editor","accountant"
+            };
+            int bytes=0;
+            try {if(password is not null)bytes=new UTF8Encoding(false,true).GetByteCount(password);}
+            catch (EncoderFallbackException) { }
+            if(username is null ||
+                !Regex.IsMatch(username,@"\A[a-z0-9][a-z0-9._@+\-]{2,79}\z",RegexOptions.CultureInvariant) ||
+                name is not {Length:>0 and <=200} || name.Any(char.IsControl) ||
+                password is not {Length:>=12 and <=72} || password.Contains('\0') ||
+                bytes<12 || bytes>72 ||
+                request.Role is null || !permittedRoles.Contains(request.Role) ||
+                owners is null || owners.Length is <1 or >2 ||
+                owners.Distinct(StringComparer.Ordinal).Count()!=owners.Length ||
+                owners.Any(owner=>owner is not ("lefteria_fc" or "lefteria_fc_academy") ||
+                    !granted.Contains(owner)))
+                throw new WebAdminException(422,"managed_admin_invalid",
+                    "Check username, display name, role, password and assigned organizations.");
+
+            // Bound synchronous bcrypt work. Do not log sensitive input or
+            // return either the password or its hash to the caller.
+            if(!await PasswordHashQueue.WaitAsync(0,token))
+                throw new WebAdminException(503,"managed_admin_busy",
+                    "Credential provisioning is busy.");
+            string hash;
+            try { hash=await Task.Run(()=>BCrypt.Net.BCrypt.HashPassword(password,workFactor:12),
+                CancellationToken.None); }
+            finally {PasswordHashQueue.Release();}
+            var id=Guid.NewGuid();
+            await using var connection=await connections.OpenAsync(token);
+            await using var cmd=new NpgsqlCommand(
+                "SELECT identity.create_managed_admin(@digest,@id,@username,@name,@role,@hash,@owners)",
+                connection);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie!));
+            cmd.Parameters.AddWithValue("id",id);
+            cmd.Parameters.AddWithValue("username",username);
+            cmd.Parameters.AddWithValue("name",name);
+            cmd.Parameters.AddWithValue("role",request.Role);
+            cmd.Parameters.AddWithValue("hash",hash);
+            cmd.Parameters.Add("owners",NpgsqlDbType.Array|NpgsqlDbType.Text).Value=owners;
+            try {
+                if(await cmd.ExecuteScalarAsync(token) is not Guid created || created!=id)
+                    throw new WebAdminException(503,"managed_admin_unconfirmed",
+                        "Account creation could not be confirmed.");
+            } catch(PostgresException e) when(e.SqlState is "23505") {
+                throw new WebAdminException(409,"managed_admin_username_exists",
+                    "An account with this username already exists.");
+            } catch(PostgresException e) when(e.SqlState is "23503" or "23514" or "22023" or "23502") {
+                throw new WebAdminException(422,"managed_admin_invalid",
+                    "The account could not be created with these assignments.");
+            } catch(PostgresException e) when(e.SqlState is "42501") {
+                throw new WebAdminException(403,"managed_admin_denied",
+                    "This account is not authorized to create these grants.");
+            } catch(PostgresException e) when(e.SqlState is "42883" or "3F000") {
+                throw new WebAdminException(503,"managed_admin_unavailable",
+                    "Account provisioning is not enabled in this environment.");
+            }
+            return Results.Json(new {id,username,name,role=request.Role,
+                organizations=owners},statusCode:201);
+        })
+        .RequireAuthorization(WebAdminServices.Policy)
+        .WithName("CreateManagedAdminAccount")
+        .WithTags("Web administration")
+        .Accepts<ManagedAdminCreateCommand>("application/json")
         .ExcludeFromDescription();
         return endpoints;
     }
