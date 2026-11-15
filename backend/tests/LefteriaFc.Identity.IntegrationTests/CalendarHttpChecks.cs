@@ -55,6 +55,7 @@ internal sealed partial class IdentityHttpChecks
             await CalendarReadinessChecksAsync(input,player);
             await CalendarOwnerChecksAsync(input);
             await CalendarScopeChecksAsync(input,player,parent,coach,management,fan);
+            await CalendarRoleSwitchBoundaryChecksAsync(input);
             await CalendarAvailabilityChecksAsync(input,player,parent,coach,management);
             await CalendarFinalBindingChecksAsync(input,player,parent,coach,management);
             await FamilyDelegatedCalendarChecksAsync(input,parent,player,fan);
