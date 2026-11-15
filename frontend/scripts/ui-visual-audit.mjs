@@ -601,6 +601,12 @@ try {
         const countText=await page.getByTestId('public-search-count').innerText();
         if(!/(?:αποτέλεσμα|αποτελέσματα)/u.test(countText))
           failures.push('Search live result counter is absent on '+viewport.name);
+        // Preserve a real, inspectable screenshot of the open search surface.
+        await input.fill(route.name==='academy' ? 'Ηλικιακά τμήματα' : 'ΑΠΟΤΕΛΕΣΜΑΤΑ');
+        await page.screenshot({
+          path:path.join(artifacts,route.name+'-search-'+viewport.name+'.png'),
+          animations:'disabled',timeout:30000
+        });
         await page.keyboard.press('Escape');
         await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
         }
