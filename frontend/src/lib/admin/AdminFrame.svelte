@@ -78,8 +78,8 @@
       {/if}
       {#if liveIds.has('registrations') || liveIds.has('leads')}
         <div class="admin-nav-group">
-          <p class="admin-nav-label">CRM & ΓΡΑΜΜΑΤΕΙΑ</p>
-          {#if liveIds.has('registrations')}<a class="admin-nav-section" href="/admin/academy-office" aria-current={active==='academy-office'?'page':undefined}>Γραμματεία Ακαδημίας</a>{/if}
+          <p class="admin-nav-label">CRM & ΕΠΑΦΕΣ</p>
+          {#if liveIds.has('registrations')}<a class="admin-nav-section" href="/admin/academy-office" aria-current={active==='academy-office'?'page':undefined}>Εγγραφές Ακαδημίας</a>{/if}
           {#if liveIds.has('leads')}<a class="admin-nav-tool" href="/admin/leads" aria-current={active==='leads'?'page':undefined} data-testid="admin-crm-leads-link">Ενδιαφερόμενοι</a>{/if}
         </div>
       {/if}
