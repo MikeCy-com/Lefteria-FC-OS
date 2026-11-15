@@ -105,6 +105,7 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,403,"not_authorized");
 
             Console.WriteLine("CHECK scoped create: no-grant outsider");
+            Console.WriteLine("CHECK profile scope: outsider no-grant GET");
             var outsider=await database.SeedAsync(role:"manager",
                 organizations:["lefteria_fc_academy"]);
             using(var outsiderClient=Client())
@@ -239,24 +240,29 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
 
             Console.WriteLine("CHECK profile scope: authorized reads and writes");
+            Console.WriteLine("CHECK profile scope: GET authorized FC");
             using(var own=await GetAsync(client,fcOwn,session.Cookie))
                 Require((await ExpectJsonAsync(own,200))
                     .GetProperty("revision").GetInt64()==0,
                     "A manager cannot read their own First Team profile.");
+            Console.WriteLine("CHECK profile scope: GET authorized Academy");
             using(var own=await GetAsync(client,siteOwn,session.Cookie))
                 Require((await ExpectJsonAsync(own,200))
                     .GetProperty("revision").GetInt64()==0,
                     "A location manager cannot read their assigned Academy group.");
+            Console.WriteLine("CHECK profile scope: PUT authorized FC");
             using(var saved=await Put(client,session.Cookie,fcOwn,Team(0)))
                 Require((await ExpectJsonAsync(saved,200))
                     .GetProperty("revision").GetInt64()==1,
                     "First Team profile write did not honor an exact team grant.");
+            Console.WriteLine("CHECK profile scope: PUT authorized Academy");
             using(var saved=await Put(client,session.Cookie,siteOwn,
                 Academy(0,"Authorized site edit")))
                 Require((await ExpectJsonAsync(saved,200))
                     .GetProperty("revision").GetInt64()==1,
                     "Academy profile writer did not honor exact assigned location.");
 
+            Console.WriteLine("CHECK profile scope: PUT authorized publication");
             using(var visibility=await Put(client,session.Cookie,
                 ownVisibility,new{expected_revision=1,is_public=false}))
             {
@@ -265,9 +271,11 @@ internal sealed partial class WebAdminHttpChecks
                     !data.GetProperty("is_public").GetBoolean(),
                     "Location manager could not control their own group publication.");
             }
+            Console.WriteLine("CHECK profile scope: stale revision");
             using(var stale=await Put(client,session.Cookie,
                 ownVisibility,new{expected_revision=1,is_public=true}))
                 await ExpectJsonAsync(stale,409,"academy_profile_conflict");
+            Console.WriteLine("CHECK profile scope: GET publication confirmation");
             using(var confirmed=await GetAsync(client,siteOwn,session.Cookie))
             {
                 var data=await ExpectJsonAsync(confirmed,200);
