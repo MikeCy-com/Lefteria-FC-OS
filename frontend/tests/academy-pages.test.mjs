@@ -42,7 +42,17 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
         title:'Επιβεβαιωμένη φωτογραφία',image_url:'https://example.test/academy.jpg'},
       {id:'foreign-gallery',organization_id:'lefteria_fc_academy',academy_group_id:'other',
         title:'Unrelated photo sentinel',image_url:'https://example.test/other.jpg'}
-    ],fixtures:[],sponsors:[],modules:[],events:[],partners:[],seasons:[],reviews:[],venues:[]
+    ],fixtures:[],sponsors:[],modules:[],events:[],partners:[],seasons:[],reviews:[
+      {id:'approved-review-1',organization_id:'lefteria_fc_academy',author_name:'Published Guardian',
+        author_role:'Γονέας',rating:5,title:'Πολύ καλή συνεργασία',
+        body:'Αληθινό δημοσιευμένο σχόλιο',response:'Ευχαριστούμε',published_at:'2026-11-01T12:00:00Z'},
+      {id:'approved-review-2',organization_id:'lefteria_fc_academy',author_name:'Published Athlete',
+        author_role:'Αθλητής',rating:3,title:null,body:'Δημοσιευμένη εμπειρία',
+        response:null,published_at:'2026-10-11T12:00:00Z'},
+      {id:'wrong-org-review',organization_id:'lefteria_fc',author_name:'Other organization review sentinel',
+        author_role:'Fan',rating:5,title:'Club review',body:'Sentinel from First Team',
+        response:null,published_at:'2026-11-12T12:00:00Z'}
+    ],venues:[]
   };
   let unavailable = false;
   const requests=[];
@@ -120,6 +130,17 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     assert.match(withStatsHtml,/>95%<\/strong>/);
     assert.match(withStatsHtml,/academy-development-philosophy/);
     assert.match(withStatsHtml,/academy-registration-cta-btn/);
+    assert.match(withStatsHtml,/data-testid="academy-public-reviews"/);
+    assert.match(withStatsHtml,/Published Guardian/);
+    assert.match(withStatsHtml,/Published Athlete/);
+    assert.match(withStatsHtml,/4\/5/);
+    assert.match(withStatsHtml,/Ευχαριστούμε/);
+    assert.doesNotMatch(withStatsHtml,/Other organization review sentinel|Sentinel from First Team/);
+    const withoutReviews = render(Landing,{props:{data:{
+      ...withStats, sections:{...withStats.sections,reviews:[]}
+    }}}).body;
+    assert.doesNotMatch(withoutReviews,/academy-public-reviews|academy-published-rating-summary/);
+
     assert.ok(requests.every(row=>row.cookie===undefined&&row.authorization===undefined));
     assert.ok(requests.every(row=>['lefteria_fc_academy','lefteria_fc'].includes(row.url.searchParams.get('organization_id'))));
     unavailable=true;
