@@ -47,7 +47,7 @@ test('API and SQL separately restrict role mutations to active Super Admins',()=
   assert.match(migration,/FOR UPDATE/);
   assert.match(migration,/FOR SHARE/);
   for(const table of ['football_city_admin_grants','football_location_admin_grants',
-    'football_team_admin_grants','admin_staff_links'])
+    'football_team_admin_grants','admin_staff_links','cashier_assignments'])
     assert.ok(migration.includes(table),'Missing guard for '+table);
   assert.match(migration,/UPDATE identity\.admin_sessions/);
   assert.match(migration,/admin\.account\.role_change/);
@@ -65,6 +65,7 @@ test('role writers are non-public and blocked to mobile, with isolated integrati
   assert.match(integration,/managed_admin_role_assignments_exist/);
   assert.match(integration,/managed_admin_role_conflict/);
   assert.match(integration,/CountManagedRoleAuditAsync/);
+  assert.match(integration,/SeedManagedRolePosAssignmentAsync/);
   assert.match(integration,/not_authenticated/);
   assert.match(integration,/revoked/);
 });
