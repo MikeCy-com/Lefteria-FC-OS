@@ -162,6 +162,33 @@ internal sealed partial class WebAdminDatabaseFixture
         await tx.CommitAsync();
     }
 
+    public async Task CleanupTerritoryProfileFixturesAsync(AudienceFixture audience)
+    {
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            DELETE FROM club.academy_group_profiles
+              WHERE organization_id='lefteria_fc_academy'
+                AND group_id=ANY(@academy);
+            DELETE FROM club.first_team_profiles
+              WHERE organization_id='lefteria_fc' AND team_id=ANY(@teams);
+            """,con);
+        cmd.Parameters.AddWithValue("academy",new[]{audience.Group1,audience.Group2});
+        cmd.Parameters.AddWithValue("teams",new[]{audience.Team1,audience.Team2});
+        await cmd.ExecuteNonQueryAsync();
+    }
+
+    public async Task SetAnnouncementSiteActiveAsync(Guid location,bool active)
+    {
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            UPDATE club.football_locations SET is_active=@active WHERE id=@location
+            """,con);
+        cmd.Parameters.AddWithValue("active",active);
+        cmd.Parameters.AddWithValue("location",location);
+        if(await cmd.ExecuteNonQueryAsync()!=1)
+            throw new InvalidOperationException("Expected one disposable Academy location.");
+    }
+
     public async Task RevokeAnnouncementTerritoriesAsync(Account manager,
         AnnouncementTerritoryFixture topology)
     {
