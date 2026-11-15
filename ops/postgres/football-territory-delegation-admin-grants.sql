@@ -43,6 +43,9 @@ BEGIN
     )
     THEN RAISE EXCEPTION 'football_delegation_unprotected_function'; END IF;
   END LOOP;
+  -- The mobile app legitimately reads players/group memberships behind RLS;
+  -- never revoke these existing privileges. Enforce full denial for all
+  -- newly introduced territory tables, and the admin login for every table.
   IF EXISTS(SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='club' AND c.relname IN (
       'football_city_admin_grants','football_location_admin_grants',
@@ -50,8 +53,9 @@ BEGIN
       'players','player_academy_groups','football_locations')
     AND (has_any_column_privilege(a,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
       OR has_table_privilege(a,c.oid,'DELETE,TRUNCATE,TRIGGER')
-      OR has_any_column_privilege(m,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
-      OR has_table_privilege(m,c.oid,'DELETE,TRUNCATE,TRIGGER')))
+      OR (c.relname NOT IN ('players','player_academy_groups')
+        AND (has_any_column_privilege(m,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
+          OR has_table_privilege(m,c.oid,'DELETE,TRUNCATE,TRIGGER')))))
   THEN RAISE EXCEPTION 'football_delegation_direct_table_access'; END IF;
 END $guard$;
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
