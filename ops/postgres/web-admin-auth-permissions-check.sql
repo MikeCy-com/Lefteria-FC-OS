@@ -88,6 +88,8 @@ BEGIN
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
+                   'club.read_admin_football_directory(text,text)'::regprocedure,
+                   'club.create_admin_football_resource(text,text,text,jsonb)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
