@@ -18,7 +18,8 @@ test('Contact layout restores original information cards and accessible form, wi
   assert.match(page,/safeContactEmail\(club\?\.email\)/);
   assert.match(page,/contactEmailDraftHref\(validEmail/);
   assert.match(page,/δεν αποθηκεύει ούτε στέλνει δεδομένα/);
-  assert.doesNotMatch(page,/contact-success|\/?api\/contact|fetch\(|σας εστάλη επιτυχώς/);
+  assert.doesNotMatch(page,/contact-success|fetch\(|axios\.post\(|σας εστάλη επιτυχώς/);
+  assert.match(page,/The old website POSTed \/api\/contact/);
   assert.match(page,/aria-current=\{data\.organization === 'lefteria_fc_academy'/);
 });
 
