@@ -19,6 +19,7 @@ DECLARE
   otp_challenge uuid:=gen_random_uuid();
   original_parent_id uuid:=gen_random_uuid();
   otp_digest bytea:=decode(repeat('a',64),'hex');
+  otp_issued_at timestamptz;
   confirmed int;
   children_count int;
   proof_body jsonb;
@@ -201,11 +202,12 @@ BEGIN
   -- Public-form guardian phone and human proof alone grant no role.
   -- The OTP must have been issued after that human proof and must be
   -- cryptographically verified (not merely marked consumed by a caller).
+  otp_issued_at:=clock_timestamp();
   INSERT INTO identity.otp_challenges(
     id,normalized_phone,code_digest,created_at,expires_at,
     verification_calls,is_consumed)
-  VALUES(otp_challenge,'35799123456',otp_digest,statement_timestamp(),
-    statement_timestamp()+interval '5 minutes',0,false);
+  VALUES(otp_challenge,'35799123456',otp_digest,otp_issued_at,
+    otp_issued_at+interval '5 minutes',0,false);
   IF NOT identity.has_pending_academy_guardian_proof('35799123456',otp_challenge)
   THEN RAISE EXCEPTION 'Reviewed Academy guardian not eligible for OTP'; END IF;
   IF identity.has_pending_academy_guardian_proof('35799123457',otp_challenge)
