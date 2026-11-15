@@ -103,6 +103,8 @@ BEGIN
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_contact_email(text)'::regprocedure,
+                  'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
