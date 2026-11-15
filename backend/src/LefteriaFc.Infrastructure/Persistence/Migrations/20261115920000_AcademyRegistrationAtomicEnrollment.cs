@@ -50,6 +50,27 @@ public sealed class AcademyRegistrationAtomicEnrollment : Migration
         BEFORE UPDATE OR DELETE ON academy_intake.registration_placements
         FOR EACH ROW EXECUTE FUNCTION academy_intake.reject_evidence_mutation();
 
+      -- Direct status-only approval of a public minor application would
+      -- bypass the verified placement. Legacy approved records are retained,
+      -- but all new public approvals must carry an onboarded player.
+      CREATE FUNCTION academy_intake.require_public_enrollment_on_approval()
+      RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $guard$
+      BEGIN
+        IF NEW.recorded_by IS NULL AND NEW.status='approved'
+          AND NEW.onboarded_player_id IS NULL THEN
+          RAISE EXCEPTION 'public_registration_requires_roster_approval'
+            USING ERRCODE='23514';
+        END IF;
+        RETURN NEW;
+      END $guard$;
+      REVOKE ALL ON FUNCTION academy_intake.require_public_enrollment_on_approval()
+        FROM PUBLIC;
+      CREATE TRIGGER public_registration_approval_guard
+        BEFORE UPDATE OF status ON academy_intake.registrations
+        FOR EACH ROW WHEN (NEW.status='approved' AND OLD.status IS DISTINCT FROM NEW.status)
+        EXECUTE FUNCTION academy_intake.require_public_enrollment_on_approval();
+
       -- Typed data is validated independently at the HTTP boundary.
       -- This function is the final authorization and atomic write boundary.
       CREATE FUNCTION identity.enroll_admin_academy_registration(
@@ -253,6 +274,8 @@ public sealed class AcademyRegistrationAtomicEnrollment : Migration
           RAISE EXCEPTION 'cannot_rollback_enrolled_children';
         END IF;
       END $enroll_guard$;
+      DROP TRIGGER public_registration_approval_guard ON academy_intake.registrations;
+      DROP FUNCTION academy_intake.require_public_enrollment_on_approval();
       DROP FUNCTION identity.enroll_admin_academy_registration(text,jsonb);
       DROP TABLE academy_intake.registration_placements;
     """);
