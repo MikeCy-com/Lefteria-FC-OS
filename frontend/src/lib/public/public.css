@@ -1201,3 +1201,30 @@ dialog.public-dialog::backdrop { background:#000c; }
     line-height:1.05;
   }
 }
+
+/* Public editorial hierarchy: a section heading is not a homepage hero.
+   Academy and First Team photographic heroes retain their own display scale. */
+.public-site .public-page-heading:not(.academy-intro):not(.team-heading) h1,
+.public-site .catalog-heading h1,
+.public-site .journey-content h1 {
+  font-size:clamp(33px,3.25vw,52px);
+  line-height:1.03;
+  font-weight:800;
+  overflow-wrap:normal;
+  text-wrap:balance;
+}
+.public-site .public-page-heading:not(.academy-intro):not(.team-heading) {
+  min-height:unset;
+  padding-block:clamp(26px,3.6vw,52px) clamp(20px,2.3vw,34px);
+}
+.public-site .public-markdown h2 {font-size:clamp(22px,1.9vw,31px);line-height:1.14;}
+.public-site .public-markdown h3 {font-size:clamp(19px,1.6vw,26px);line-height:1.18;}
+.public-site .public-markdown :is(h2,h3,p) {max-width:76ch;}
+@media(max-width:600px) {
+  .public-site .public-page-heading:not(.academy-intro):not(.team-heading) h1 {
+    font-size:clamp(30px,8.4vw,40px);
+  }
+  .public-site .public-page-heading:not(.academy-intro):not(.team-heading) {
+    padding-block:24px 20px;
+  }
+}
