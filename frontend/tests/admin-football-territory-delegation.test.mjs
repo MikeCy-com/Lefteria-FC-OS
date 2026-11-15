@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+const mig=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115240000_FootballTerritoryAccessAndMetrics.cs');
+const api=read('../../backend/src/LefteriaFc.Api/Football/AdminFootballTerritoryAccessEndpoints.cs');
+const pg=read('../../ops/postgres/football-territory-delegation-checks.sql');
+const grants=read('../../ops/postgres/football-territory-delegation-admin-grants.sql');
+const allowlist=read('../../ops/postgres/web-admin-auth-permissions-check.sql');
+const page=read('../src/routes/admin/territories/+page.svelte');
+const panel=read('../src/lib/admin/FootballTerritoryAccessPanel.svelte');
+const metrics=read('../src/lib/admin/FootballLocationMetrics.svelte');
+const workflow=read('../../.github/workflows/rewrite-build.yml');
+
+test('delegation only through confirmed super-admin session and target same-organization role',()=>{
+  assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(api,/AdminFootballTerritoryEndpoints\.Verify/);
+  assert.match(api,/secrets\.TokenDigest\(cookie\)/);
+  assert.match(api,/club\.read_admin_football_access\(@digest,@owner\)/);
+  assert.match(api,/club\.write_admin_football_access\(/);
+  assert.match(api,/club\.read_admin_football_location_metrics\(@digest,@owner\)/);
+  assert.match(api,/!input\.Enabled\.HasValue/);
+  assert.match(mig,/club\.authorize_admin_football\(_digest,_owner\)/);
+  assert.match(mig,/v_role<>'super_admin'/);
+  assert.match(mig,/a\.is_active AND NOT a\.invite_pending/);
+  assert.match(mig,/g\.admin_account_id=_subject AND g\.organization_id=_owner FOR SHARE/);
+  assert.match(mig,/v_subject_role<>'manager'/);
+  assert.match(mig,/v_subject_role<>'coach'/);
+  assert.match(mig,/v_subject_role NOT IN \('editor','matchday_editor'\)/);
+  assert.match(mig,/admin\.football\.grant\.revoke/);
+  assert.match(mig,/ON CONFLICT DO NOTHING/);
+});
+test('delegation permissions never grant private tables or mobile functions',()=>{
+  assert.match(grants,/has_any_column_privilege/);
+  assert.match(grants,/REVOKE ALL ON FUNCTION/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION/);
+  assert.match(grants,/TO :"admin_auth_role"/);
+  assert.match(grants,/FROM :"app_role"/);
+  assert.match(allowlist,/'club\.read_admin_football_access\(text,text\)'::regprocedure/);
+  assert.match(allowlist,/'club\.write_admin_football_access\(text,text,uuid,text,uuid,text,boolean\)'::regprocedure/);
+  assert.match(allowlist,/'club\.read_admin_football_location_metrics\(text,text\)'::regprocedure/);
+  assert.doesNotMatch(api,/finance\.|SELECT \* FROM identity\.admin/);
+});
+test('site statistics join only canonical active roster counts and honor exact site visibility',()=>{
+  assert.match(mig,/club\.private_academy_location_roster_counts m/);
+  assert.match(mig,/club\.admin_football_allowed\(/);
+  assert.match(mig,/s\.id,l\.id,false/);
+  assert.match(mig,/coalesce\(m\.active_players,0\)/);
+  assert.match(mig,/coalesce\(m\.groups,0\)/);
+  assert.match(pg,/local_manager_metrics_not_exact/);
+  assert.match(pg,/city_manager_metrics_misallocated/);
+  assert.match(pg,/revoked_site_grant_leaked_private_metrics/);
+  assert.match(pg,/revoked_city_grant_leaked_private_metrics/);
+  assert.match(pg,/first_team_received_academy_private_metrics/);
+  assert.match(pg,/ROLLBACK/);
+  assert.doesNotMatch(mig,/finance\.(training_fee_issues|general_charge_issues)/);
+});
+test('management page honors authenticated owner, confirms revocation, verified API reply and role limits',()=>{
+  assert.match(page,/FootballTerritoryAccessPanel/);
+  assert.match(page,/FootballLocationMetrics/);
+  assert.match(page,/session\.user\.role==='super_admin'/);
+  assert.match(panel,/\/api\/admin\/football\/territories\/access\?organization_id=/);
+  assert.match(panel,/credentials:'same-origin',cache:'no-store'/);
+  assert.match(panel,/window\.confirm/);
+  assert.match(panel,/enabled!==enabled/);
+  assert.match(panel,/actor\.role==='coach'/);
+  assert.match(panel,/actor\.role==='manager'/);
+  assert.match(panel,/data-testid="football-territory-delegated-access"/);
+  assert.match(panel,/aria-label=\{'Ανάκληση δικαιώματος '/);
+  assert.match(metrics,/\/api\/admin\/football\/territories\/metrics\?organization_id=/);
+  assert.match(metrics,/data-testid="territory-location-private-metrics"/);
+  assert.match(metrics,/Number\.isSafeInteger/);
+  assert.match(metrics,/city_id===cityId && row\.location_id===locationId/);
+  assert.match(workflow,/football-territory-delegation-admin-grants\.sql/);
+  assert.match(workflow,/football-territory-delegation-checks\.sql/);
+});
