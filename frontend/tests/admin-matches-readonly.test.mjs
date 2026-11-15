@@ -34,7 +34,9 @@ test('Club and Academy groups are filtered by the organization set once in the a
   assert.match(source,/href=\{'\/match\/' \+ encodeURIComponent\(fixture\.id\)\}/);
   assert.doesNotMatch(frame,/href="\/admin\/matches"/);
   const groupPage=readFileSync(new URL('../src/routes/admin/groups/+page.svelte', import.meta.url),'utf8');
-  assert.match(groupPage,/admin-group-matches-link/);
+  const groupWorkspace=readFileSync(new URL('../src/lib/admin/AdminGroupWorkspace.svelte',import.meta.url),'utf8');
+  assert.match(groupPage,/AdminGroupWorkspace/);
+  assert.match(groupWorkspace,/admin-group-matches-link/);
   assert.match(source,/requestedOrganization/);
   assert.match(source,/requestedGroup/);
   assert.match(frame,/includes\(active\)/);

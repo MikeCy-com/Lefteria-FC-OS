@@ -8,11 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
-  import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
-  import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
-  import AdminAcademyGroupProfilePanel from '../../../lib/admin/AdminAcademyGroupProfilePanel.svelte';
-  import AdminFirstTeamProfilePanel from '../../../lib/admin/AdminFirstTeamProfilePanel.svelte';
-  import AdminGroupMatchDraftPanel from '../../../lib/admin/AdminGroupMatchDraftPanel.svelte';
+  import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -424,62 +420,20 @@
                     <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
                     <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
                   </header>
-                  <nav class="admin-group-tools" aria-label={`Ενέργειες τμήματος ${focusedGroup.name}`}>
-                    {#if canSeeAcademyAttendance}
-                      <a href={`/admin/schedule?group_id=${encodeURIComponent(focusedGroup.id)}`}
-                        data-testid="admin-group-training-link">Προπονήσεις & πρόγραμμα ↗</a>
-                      <a href={`/admin/attendance?group_id=${encodeURIComponent(focusedGroup.id)}`}
-                        data-testid="admin-group-attendance-link">Παρουσίες προπονήσεων ↗</a>
-                    {/if}
-                    <a href={`/admin/matches?organization_id=${encodeURIComponent(organization??'')}&group_id=${encodeURIComponent(focusedGroup.id)}`}
-                      data-testid="admin-group-matches-link">Αγώνες & αποτελέσματα ↗</a>
-                    <a href="#admin-private-player-heading" data-testid="admin-group-players-link">Παίκτες · Αξιολογήσεις & έγγραφα ↓</a>
-                  </nav>
-                  <p class="admin-muted">Οι αξιολογήσεις και τα προστατευμένα έγγραφα ανοίγουν από
-                    τον ατομικό φάκελο του αθλητή στο ρόστερ παρακάτω.
-                    Οι προπονήσεις και οι αγώνες συνδέονται με το τμήμα.</p>
-                  {#if canCreate && organization && $auth.session}
-                    {#key organization + ':' + focusedGroup.id + ':' + $auth.session.user.id}
-                      <AdminGroupMatchDraftPanel groupId={focusedGroup.id}
-                        {organization} actorId={$auth.session.user.id}
-                        canWrite={canCreate}/>
+                  {#if organization && $auth.session}
+                    {#key organization+':'+focusedGroup.id+':'+$auth.session.user.id}
+                      <AdminGroupWorkspace group={focusedGroup} groups={directory.groups}
+                        {organization} user={$auth.session.user}
+                        canCreate={Boolean(canCreate)} canReadAttendance={canSeeAcademyAttendance}
+                        onExpired={()=>auth.invalidateSession()}
+                        onRevoked={()=>void auth.bootstrap()}
+                        onChanged={()=>retry++}/>
                     {/key}
                   {/if}
                 </section>
               {/if}
             {/if}
           </section>
-          {#if canCreate && organization && $auth.session}
-            {#key organization + ':' + $auth.session.user.id + ':' + $auth.session.user.role + ':' + $auth.session.user.permissions.join('|')}
-              <AdminRosterPlayersPanel owner={organization as Organization}
-                actorId={$auth.session.user.id} groups={directory.groups}
-                allowPrivate={['manager','super_admin'].includes($auth.session.user.role)}
-                allowFinance={organization === 'lefteria_fc_academy' &&
-                  hasAdminPermission($auth.session.user.permissions,'finance:read')}
-                allowEvaluationWrite={['manager','super_admin'].includes($auth.session.user.role)&&
-                  hasAdminPermission($auth.session.user.permissions,
-                    organization==='lefteria_fc'?'teams:write':'academy:write')}
-                onExpired={() => auth.invalidateSession()}
-                onRevoked={() => void auth.bootstrap()}
-                onChanged={() => retry++}/>
-              {#if organization === 'lefteria_fc'}
-                <AdminFirstTeamProfilePanel actorId={$auth.session.user.id}
-                  groups={directory.groups}
-                  onExpired={() => auth.invalidateSession()}
-                  onRevoked={() => void auth.bootstrap()}/>
-              {/if}
-              {#if organization === 'lefteria_fc_academy'}
-                <AdminAcademyGroupProfilePanel actorId={$auth.session.user.id}
-                  groups={directory.groups}
-                  onExpired={() => auth.invalidateSession()}
-                  onRevoked={() => void auth.bootstrap()}/>
-              {/if}
-              <AdminCoachDirectoryPanel owner={organization as Organization}
-                actorId={$auth.session.user.id} groups={directory.groups}
-                onExpired={() => auth.invalidateSession()}
-                onRevoked={() => void auth.bootstrap()}/>
-            {/key}
-          {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
       </div>

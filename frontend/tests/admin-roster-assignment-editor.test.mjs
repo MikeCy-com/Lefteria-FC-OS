@@ -5,6 +5,7 @@ const base=new URL('../../',import.meta.url);
 const read=p=>readFileSync(new URL(p,base),'utf8');
 const panel=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
 const route=read('frontend/src/routes/admin/groups/+page.svelte');
+const workspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261108140000_AdminRosterAssignment.cs');
 test('assignment editor saves only canonical group IDs with expected membership and refreshes directory',()=>{
   assert.match(panel,/admin-player-assignment-editor/);
@@ -15,7 +16,8 @@ test('assignment editor saves only canonical group IDs with expected membership 
   assert.match(panel,/response.status===401/);
   assert.match(panel,/response.status===403/);
   assert.match(panel,/onChanged\(\)/);
-  assert.match(route,/onChanged=\{\(\) => retry\+\+\}/);
+  assert.match(route,/onChanged=\{\(\)=>retry\+\+\}/);
+  assert.match(workspace,/\{onChanged\}/);
   assert.doesNotMatch(panel,/@html|innerHTML|\/api\/admin\/messages/);
 });
 test('single FC team and bounded plural Academy group UI',()=>{

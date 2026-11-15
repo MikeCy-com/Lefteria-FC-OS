@@ -7,6 +7,7 @@ const sql=src('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/2026
 const api=src('backend/src/LefteriaFc.Api/Audiences/AdminRosterPlayerEndpoints.cs');
 const ui=src('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
 const page=src('frontend/src/routes/admin/groups/+page.svelte');
+const workspace=src('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
 const grant=src('ops/postgres/web-admin-auth-grants.sql');
 const border=src('ops/postgres/admin-player-directory-boundary.sql');
 
@@ -31,9 +32,11 @@ test('private player picker is manager-only, owner-locked, paged and intentional
 });
 
 test('admin player list uses current backend membership, not fake data or stale owner',()=>{
-  assert.match(page,/AdminRosterPlayersPanel/);
-  assert.match(page,/\{#if canCreate && organization && \$auth\.session\}/);
-  assert.match(page,/\{#key organization \+ ':' \+ \$auth\.session\.user\.id/);
+  assert.match(page,/AdminGroupWorkspace/);
+  assert.match(page,/\{#if organization && \$auth\.session\}/);
+  assert.ok(page.includes("{#key organization+':'+focusedGroup.id"));
+  assert.match(workspace,/AdminRosterPlayersPanel/);
+  assert.match(workspace,/\{#if canCreate\}/);
   assert.match(ui,/data-testid="admin-private-player-directory"/);
   assert.match(ui,/data-testid="admin-players-list"/);
   assert.match(ui,/fetch\('\/api\/admin\/football\/players\?'/);
