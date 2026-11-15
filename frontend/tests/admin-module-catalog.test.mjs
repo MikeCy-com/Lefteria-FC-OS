@@ -30,18 +30,18 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
 test('the dashboard cannot leak first-team, financial, POS or Academy modules across grants', () => {
   assert.deepEqual(adminSectionsFor(user(['*:*'], [])), []);
   assert.deepEqual(ids(user(['news:read'])).filter(id => id.startsWith('hub_')), ['hub_editorial']);
-  assert.deepEqual(ids(user(['finance:read'])).filter(id => id.startsWith('hub_')), ['hub_subscriptions']);
+  assert.deepEqual(ids(user(['finance:read'])).filter(id => id.startsWith('hub_')), []);
   assert.deepEqual(ids(user(['shop:read'])).filter(id => id.startsWith('hub_')), []);
-  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub','operations']);
+  assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub']);
   assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['news']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
-  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos','operations']);
-  assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['orders', 'payabl', 'charges', 'reports']);
+  assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
+  assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), ['payabl', 'charges', 'reports']);
   assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
   assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['assigned_groups']);
   assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['campaigns']);
-  assert.ok(legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
+  assert.ok(!legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
   assert.equal(legacyIds(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
 });
 
@@ -54,7 +54,8 @@ test('all planned admin modules are visibly disabled, never wired to mutations o
   assert.match(workspace,/admin-tool-planned/);
   assert.match(workspace,/Under Developments/);
   assert.ok(workspace.includes("data-testid={'admin-section-' + section.id}"));
-  assert.match(frame,/adminSectionsFor\(user, selectedOrganization\)/);
+  assert.match(frame,/adminSectionsFor\(user\)/);
+  assert.doesNotMatch(frame,/admin-header-organization|switchOrganization/);
   assert.match(frame,/canReadClub\(user\)/);
   assert.match(frame,/canViewFirstTeamTrials\(user\)/);
   assert.doesNotMatch(source,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
@@ -141,11 +142,13 @@ test('Academy office discovery matches its existing manager and organization pol
 });
 
 
-test('published matches management is readable only for the selected authorized organization', () => {
+test('published matches management is readable only for genuinely granted organizations', () => {
   const clubManager=user(['teams:read'],['lefteria_fc'],'manager');
   const academyManager=user(['academy:read'],['lefteria_fc_academy'],'manager');
-  assert.equal(adminSectionsFor(clubManager,'lefteria_fc').flatMap(x=>x.modules).find(x=>x.id==='fixtures')?.href,'/admin/matches');
-  assert.equal(adminSectionsFor(academyManager,'lefteria_fc_academy').flatMap(x=>x.modules).find(x=>x.id==='fixtures')?.href,'/admin/matches');
-  assert.ok(!adminSectionsFor(clubManager,'lefteria_fc_academy').flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
-  assert.ok(!adminSectionsFor(academyManager,'lefteria_fc').flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
+  const club=adminSectionsFor(clubManager).flatMap(x=>x.modules);
+  const academy=adminSectionsFor(academyManager).flatMap(x=>x.modules);
+  assert.equal(club.find(x=>x.id==='fixtures')?.href,'/admin/matches');
+  assert.equal(academy.find(x=>x.id==='fixtures')?.href,'/admin/matches');
+  assert.ok(!adminSectionsFor(user(['teams:read'],['lefteria_fc_academy'])).flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
+  assert.ok(!adminSectionsFor(user(['academy:read'],['lefteria_fc'])).flatMap(x=>x.modules).some(x=>x.id==='fixtures'));
 });
