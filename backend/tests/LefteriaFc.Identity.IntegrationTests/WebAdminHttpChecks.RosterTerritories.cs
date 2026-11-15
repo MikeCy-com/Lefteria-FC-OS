@@ -216,15 +216,20 @@ internal sealed partial class WebAdminHttpChecks
         try
         {
             Console.WriteLine("CHECK profile scope: sibling site and different squad");
+            Console.WriteLine("CHECK profile scope: GET forbidden FC team");
             using(var denied=await GetAsync(client,fcOther,session.Cookie))
                 await ExpectJsonAsync(denied,403,"team_profile_denied");
+            Console.WriteLine("CHECK profile scope: GET forbidden Academy sibling");
             using(var denied=await GetAsync(client,siteOther,session.Cookie))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            Console.WriteLine("CHECK profile scope: PUT forbidden FC team");
             using(var denied=await Put(client,session.Cookie,fcOther,Team(0)))
                 await ExpectJsonAsync(denied,403,"team_profile_denied");
+            Console.WriteLine("CHECK profile scope: PUT forbidden Academy sibling");
             using(var denied=await Put(client,session.Cookie,siteOther,
                 Academy(0,"Unauthorized write")))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
+            Console.WriteLine("CHECK profile scope: PUT forbidden sibling visibility");
             using(var denied=await Put(client,session.Cookie,
                 siteOther+"/visibility",new{expected_revision=1,is_public=false}))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
