@@ -5,6 +5,7 @@
   import { greekDate, safePublicHref } from './content';
   import { catalogTitles, catalogScopeLabel, catalogListHref, catalogCanonicalDetailLink, eventTypeLabel } from './PublicCatalog';
   import type { CatalogDetailData } from '../server/public-catalog';
+  import { publicCanonicalHref, publicSocialImage } from './public-urls';
   let { data }: { data: CatalogDetailData } = $props();
   const safe = (value: string | null) => value ? safePublicHref(value) : null;
   const dateTime = (value: string) => new Intl.DateTimeFormat('el-GR', { timeZone: 'Asia/Nicosia', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
@@ -17,9 +18,20 @@
     : data.archives[0] ? catalogCanonicalDetailLink('seasons',data.archives[0],data.archives[0].season_name)
     : undefined);
   const image = $derived(data.event?.cover_image_url ?? data.partner?.hero_image_url ?? data.sponsor?.banner_url ?? null);
+  const socialImage = $derived(publicSocialImage(image));
+  const socialUrl = $derived(canonicalPath ? publicCanonicalHref(canonicalPath) : null);
 </script>
 {#snippet link(url: string | null, label: string | null)}{#if safe(url)}<a href={safe(url)!} rel="noreferrer" target={safe(url)?.startsWith('https:') ? '_blank' : undefined} class="public-button public-button-outline">{label || 'ΠΕΡΙΣΣΟΤΕΡΑ'} ↗</a>{/if}{/snippet}
-<svelte:head><title>{data.title} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={data.event?.description?.slice(0,180) ?? data.partner?.tagline ?? data.sponsor?.description?.slice(0,180) ?? data.title} /></svelte:head>
+<svelte:head>
+  <title>{data.title} | ΛΕΥΤΕΡΙΑ FC</title>
+  <meta name="description" content={data.event?.description?.slice(0,180) ?? data.partner?.tagline ?? data.sponsor?.description?.slice(0,180) ?? data.title} />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={data.title+' | ΛΕΥΤΕΡΙΑ FC'} />
+  <meta property="og:description" content={data.event?.description?.slice(0,180) ?? data.partner?.tagline ?? data.sponsor?.description?.slice(0,180) ?? data.title} />
+  {#if socialUrl}<meta property="og:url" content={socialUrl} />{/if}
+  <meta name="twitter:card" content={socialImage ? 'summary_large_image' : 'summary'} />
+  {#if socialImage}<meta property="og:image" content={socialImage} />{/if}
+</svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups} {canonicalPath}>
   <article class="catalog catalog-detail" data-testid={`public-${data.kind}-detail`}>
     <header class="catalog-heading"><p class="public-eyebrow">{catalogTitles[data.kind]}</p><h1>{data.title}</h1>{#if data.partner?.tagline}<p>{data.partner.tagline}</p>{/if}</header>
