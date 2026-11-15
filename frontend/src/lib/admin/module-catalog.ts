@@ -46,7 +46,7 @@ const catalog: readonly Section[] = [
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
     { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Υφιστάμενη διαχείριση σημείων πώλησης και εξουσιοδοτημένων βαρδιών στο POS. Η πρόσβαση στις ενέργειες ελέγχεται από το API.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένος κατάλογος και ελεγχόμενη διαχείριση κατηγοριών · χωρίς πωλήσεις.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
-    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] }
+    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Επαληθευμένο ιστορικό συναλλαγών ανά εξουσιοδοτημένη τοποθεσία. Η ολοκλήρωση πληρωμών, τα online orders και οι επιστροφές παραμένουν σε υλοποίηση.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
     { id: 'payabl', name: 'Ακαδημία · Χρεώσεις, PDF & payabl. (sandbox)', description: 'Έκδοση επιλεγμένου μήνα ανά παιδί, καταχώριση μετρητών, λήψη αυθεντικού PDF και δοκιμαστικοί σύνδεσμοι Payabl με προστατευμένο Twilio SMS. Οι πραγματικές αυτόματες εισπράξεις, η παραγωγική διασύνδεση και οι πληρωμές προσωπικού παραμένουν ανενεργές.', status: 'live', href: '/admin/finance', scope: 'any', anyPermission: ['finance:read'] },
@@ -93,6 +93,9 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
          (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
+      if (item.id === 'orders') return ['manager','super_admin'].includes(user.role) &&
+        hasAdminPermission(user.permissions,'shop:read') &&
+        hasAdminPermission(user.permissions,'finance:read');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
       if (item.id === 'facilities') return ['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
