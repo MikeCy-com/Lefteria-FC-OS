@@ -24,7 +24,6 @@
     {id:'social',label:'Ομαδικότητα'}
   ];
   const steps=Array.from({length:11},(_,i)=>i*10);
-  const timeline=$derived(buildPlayerDevelopmentTimeline(assessments,goals));
 
   let {owner,playerId,playerName,actorId,assessments=[],onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;
@@ -32,6 +31,7 @@
     onExpired:()=>void;onRevoked:()=>void
   }=$props();
   let goals=$state<Goal[]>([]),loading=$state(false),saving=$state(false);
+  const timeline=$derived(buildPlayerDevelopmentTimeline(assessments,goals));
   let error=$state(''),notice=$state(''),refresh=$state(0);
   let showCreate=$state(false),title=$state(''),description=$state('');
   let category=$state<Category>('technical'),targetDate=$state('');

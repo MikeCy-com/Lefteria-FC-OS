@@ -50,7 +50,7 @@ test('timeline lives only within private Super Admin goal view; no new global na
   assert.match(component,/buildPlayerDevelopmentTimeline\(assessments,goals\)/);
   assert.match(component,/admin-player-development-timeline/);
   assert.match(component,/unreturnedGoalEvents/);
-  assert.match(panel,/academy-evaluation-\'+evaluation\.id/);
+  assert.match(panel,/id=\{'academy-evaluation-'\+evaluation\.id\}/);
   assert.match(group,/allowGoalManagement=\{user\.role==='super_admin'\}/);
   assert.doesNotMatch(group,/AdminPlayerDevelopmentTimeline/);
 });
