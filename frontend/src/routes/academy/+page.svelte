@@ -65,24 +65,24 @@
       <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
     </div>
   </section>
-  {#snippet ageCard(group: PublicGroup)}
-<article class="academy-age-card">
-<PublicImage src={group.banner_url || publicImages.academy} alt="" />
-<div class="academy-age-caption">
-<h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
-<strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
-{#if group.season}<span>{group.season}</span>{/if}
-<a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
-</div>
-{#if group.description || group.training_schedule}
-<details class="academy-age-details">
-<summary>Περισσότερες πληροφορίες</summary>
-{#if group.description}<p>{group.description}</p>{/if}
-{#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
-</details>
-{/if}
-</article>
-  {/snippet}
+    {#snippet ageCard(group: PublicGroup)}
+    <article class="academy-age-card">
+      <PublicImage src={group.banner_url || publicImages.academy} alt="" />
+      <div class="academy-age-caption">
+        <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
+        <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
+        {#if group.season}<span>{group.season}</span>{/if}
+        <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
+      </div>
+      {#if group.description || group.training_schedule}
+      <details class="academy-age-details">
+        <summary>Περισσότερες πληροφορίες</summary>
+      {#if group.description}<p>{group.description}</p>{/if}
+        {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
+      </details>
+      {/if}
+    </article>
+          {/snippet}
   <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
     <div class="academy-age-heading">
       <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
@@ -359,6 +359,53 @@
   .academy-age-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #3c3429;padding-bottom:12px}
   .academy-age-heading h2{font:900 clamp(21px,1.8vw,29px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
   .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:#ffcb4a;font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
+  .academy-landing-city-index{
+    display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+    padding:14px 0 5px;margin:0;
+  }
+  .academy-landing-city-index a{
+    display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;
+    border:1px solid #876b38;border-radius:0 8px 0 5px;
+    background:linear-gradient(140deg,#242117,#141515);color:#f9d68d;
+    font:800 14px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    text-decoration:none;
+  }
+  .academy-landing-city-index a:is(:hover,:focus-visible){
+    color:#080909;background:#f6bb38;border-color:#f6bb38;
+  }
+  .academy-landing-city-index a:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .academy-city-block{padding:8px 0 12px;border-bottom:1px solid #34322b;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-city-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .academy-city-heading a{
+    display:inline-flex;align-items:center;gap:7px;min-height:44px;
+    color:#f6bb38;font:800 13px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    text-decoration:none;
+  }
+  .academy-city-heading a:is(:hover,:focus-visible){color:#fff;text-decoration:underline;text-underline-offset:3px}
+  .academy-city-heading a:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  .academy-city-label{scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-location-block{padding:10px 0 6px;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-location-block>h4{
+    display:flex;gap:8px;align-items:center;
+    font:800 17px/1.3 'Fira Sans Extra Condensed',sans-serif;
+    color:#f3f2ed;margin:0 0 11px;
+  }
+  .academy-location-block>h4::before{
+    content:"";width:4px;height:1.05em;flex:none;
+    transform:skew(-16deg);background:#f6bb38;
+  }
+  .academy-age-card:focus-within{border-color:#f6bb38;box-shadow:0 0 0 1px #f6bb38}
+  .academy-age-card :is(a,summary):focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .academy-unassigned-block{
+    padding:20px 18px;margin:18px 0 4px;
+    background:linear-gradient(130deg,#1e1a14,#111313);
+    border:1px solid #8c7549;border-left:4px solid #f6bb38;
+  }
+  .academy-unassigned-block h3{
+    margin:0 0 8px;color:#f6bb38;
+    font:800 clamp(21px,2vw,29px)/1.16 'Fira Sans Extra Condensed',sans-serif;
+  }
+  .academy-unassigned-block>p{font-size:13px;line-height:1.6;color:#ded8cc;max-width:75ch;margin:0 0 16px}
   .academy-city-block{margin-top:12px}
   .academy-city-label{font:800 14px 'Fira Sans Extra Condensed',sans-serif;color:#f5b835;margin:0 0 9px}
   .academy-location-block{margin:0 0 10px}
@@ -415,6 +462,14 @@
     .academy-program-facts{grid-template-columns:1fr;gap:9px}
     .academy-program-facts>div{padding:8px 0;border-left:0;border-top:1px solid #444}
     .academy-age-groups{padding:20px 16px}
+    .academy-landing-city-index{
+      flex-wrap:nowrap;overflow-x:auto;padding:12px 1px;
+      scrollbar-width:thin;overscroll-behavior-inline:contain;
+      scroll-padding-inline:12px;
+    }
+    .academy-landing-city-index a{flex:none}
+    .academy-city-heading{align-items:flex-start}
+    .academy-unassigned-block{padding:18px 14px;margin-inline:0}
     .academy-age-grid{grid-template-columns:1fr}
     .academy-age-heading{align-items:flex-start;flex-direction:column}
     .academy-age-card{min-height:170px}
