@@ -3,18 +3,24 @@
   import PublicImage from './PublicImage.svelte';
   import MarkdownContent from './MarkdownContent.svelte';
   import { greekDate, safePublicHref } from './content';
-  import { catalogTitles, catalogScopeLabel, catalogListHref, eventTypeLabel } from './PublicCatalog';
+  import { catalogTitles, catalogScopeLabel, catalogListHref, catalogCanonicalDetailLink, eventTypeLabel } from './PublicCatalog';
   import type { CatalogDetailData } from '../server/public-catalog';
   let { data }: { data: CatalogDetailData } = $props();
   const safe = (value: string | null) => value ? safePublicHref(value) : null;
   const dateTime = (value: string) => new Intl.DateTimeFormat('el-GR', { timeZone: 'Asia/Nicosia', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
   const price = (value: number | string) => new Intl.NumberFormat('el-GR', { style: 'currency', currency: 'EUR' }).format(Number(value));
   const back = $derived(data.backHref ?? catalogListHref(data.kind, data.scope));
+  const canonicalPath = $derived(data.event
+    ? catalogCanonicalDetailLink('events',data.event,data.event.title)
+    : data.sponsor ? catalogCanonicalDetailLink('sponsors',data.sponsor,data.sponsor.name)
+    : data.partner ? catalogCanonicalDetailLink('partners',data.partner,data.partner.name,data.partner.slug)
+    : data.archives[0] ? catalogCanonicalDetailLink('seasons',data.archives[0],data.archives[0].season_name)
+    : undefined);
   const image = $derived(data.event?.cover_image_url ?? data.partner?.hero_image_url ?? data.sponsor?.banner_url ?? null);
 </script>
 {#snippet link(url: string | null, label: string | null)}{#if safe(url)}<a href={safe(url)!} rel="noreferrer" target={safe(url)?.startsWith('https:') ? '_blank' : undefined} class="public-button public-button-outline">{label || 'ΠΕΡΙΣΣΟΤΕΡΑ'} ↗</a>{/if}{/snippet}
 <svelte:head><title>{data.title} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={data.event?.description?.slice(0,180) ?? data.partner?.tagline ?? data.sponsor?.description?.slice(0,180) ?? data.title} /></svelte:head>
-<PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
+<PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups} {canonicalPath}>
   <article class="catalog catalog-detail" data-testid={`public-${data.kind}-detail`}>
     <header class="catalog-heading"><p class="public-eyebrow">{catalogTitles[data.kind]}</p><h1>{data.title}</h1>{#if data.partner?.tagline}<p>{data.partner.tagline}</p>{/if}</header>
     {#if image}<div class="catalog-detail-image"><PublicImage src={image} alt="" eager /></div>{/if}
