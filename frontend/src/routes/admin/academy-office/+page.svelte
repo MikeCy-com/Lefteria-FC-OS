@@ -4,6 +4,7 @@
   import { browser } from '$app/env';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AcademyGuardianProofReview from '../../../lib/admin/AcademyGuardianProofReview.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
 
@@ -39,6 +40,7 @@
   let position = $state('');
   let shirtNumber = $state(0);
   let enrollmentRequestId = $state('');
+  let guardianReviewId = $state('');
   const permittedCities = $derived(
     territory?.cities.filter(city => city.is_active &&
       territory?.locations.some(loc => loc.city_id === city.id && loc.can_manage && loc.is_active)) ?? []);
@@ -85,6 +87,7 @@
     requestId = null;
     enrollingId = ''; cityId = ''; locationId = ''; groupId = '';
     position = ''; shirtNumber = 0; enrollmentRequestId = '';
+    guardianReviewId = '';
     message = '';
     error = '';
   });
@@ -319,6 +322,18 @@
               <p>{row.applicant_birth_date} · {row.guardian_name} ({row.guardian_relationship}) · {row.guardian_phone} · {row.guardian_email}</p>
               {#if row.status === 'approved'}
                 <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
+                {#if $auth.session.user.role === 'super_admin' &&
+                    row.onboarded_player_id && row.submission_source === 'website'}
+                  <button type="button" class="admin-secondary" disabled={busy}
+                    aria-expanded={guardianReviewId === row.id}
+                    onclick={() => guardianReviewId = guardianReviewId === row.id ? '' : row.id}>
+                    {guardianReviewId === row.id ? 'Κλείσιμο ελέγχου κηδεμόνα' : 'Έλεγχος επαλήθευσης κηδεμόνα'}
+                  </button>
+                  {#if guardianReviewId === row.id}
+                    <AcademyGuardianProofReview registrationId={row.id}
+                      guardianPhone={row.guardian_phone} />
+                  {/if}
+                {/if}
               {/if}
               {#if row.status === 'under_review' && row.submission_source === 'website'}
                 {#if canEnroll && territory}
