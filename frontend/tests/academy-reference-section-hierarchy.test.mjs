@@ -41,11 +41,16 @@ test('Academy visual sections follow the supplied reference without deleting ope
 });
 test('published group picture cards are scoped Academy → city → location and never First Team',()=>{
   assert.match(page,/organization_id === 'lefteria_fc_academy'/);
-  assert.match(page,/const academyCities = \$derived/);
-  assert.match(page,/group\.city\?\.trim\(\)/);
-  assert.match(page,/group\.location_name\?\.trim\(\)/);
-  assert.match(page,/each academyCities as city/);
-  assert.match(page,/each city\.locations as location/);
+  assert.match(page,/buildAcademyTerritoryDirectory\(scopedGroups\)/);
+  assert.match(page,/const academyCities = \$derived\(academyTerritory\.cities\)/);
+  assert.doesNotMatch(page,/group\.city\?\.trim\(\)|group\.location_name\?\.trim\(\)/);
+  assert.match(page,/each academyCities as city \(city\.id\)/);
+  assert.match(page,/each city\.locations as location \(location\.id\)/);
+  assert.match(page,/each academyTerritory\.unassigned as group \(group\.id\)/);
+  assert.match(page,/data-testid="academy-landing-unassigned-groups"/);
+  assert.match(page,/data-testid="academy-landing-verified-city"/);
+  assert.match(page,/data-testid="academy-landing-verified-location"/);
+  assert.match(page,/aria-label="Πόλεις Ακαδημίας"/);
   assert.match(page,/each location\.groups as group/);
   assert.match(page,/group\.banner_url \|\| publicImages\.academy/);
   assert.match(page,/data-testid="academy-age-groups"/);

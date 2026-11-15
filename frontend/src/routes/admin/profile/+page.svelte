@@ -5,6 +5,8 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
+  import AdminProfilePhoto from '../../../lib/admin/AdminProfilePhoto.svelte';
+  import {adminPhotoRevision} from '../../../lib/admin/photo-revision.ts';
   import {ADMIN_ROLE_NAMES,isAdminRole,adminCapabilityName} from '../../../lib/admin/permissions.ts';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -23,6 +25,61 @@
   let emailReading=$state(false),emailSaving=$state(false),emailRevision=$state(0);
   let emailError=$state(''),emailSuccess=$state('');
   let emailLoaded=$state(false);
+  let photoBusy=$state(false),photoError=$state(''),photoSuccess=$state('');
+  let photoInput:HTMLInputElement;
+  async function uploadOwnPhoto(event:SubmitEvent){
+    event.preventDefault();
+    if(!browser||!user||photoBusy||$auth.status!=='authenticated')return;
+    const actor=user.id,file=photoInput?.files?.[0];
+    photoError='';photoSuccess='';
+    if(!file||file.size===0||file.size>5*1024*1024||
+      !['image/jpeg','image/png','image/gif','image/webp'].includes(file.type)){
+      photoError='Επιλέξτε έγκυρη εικόνα JPG, PNG, GIF ή WebP έως 5 MB.';return;
+    }
+    const form=new FormData();
+    form.append('file',file,file.name);
+    photoBusy=true;
+    try{
+      const response=await fetch('/api/admin/auth/profile/photo',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'X-Lefteria-Admin':'1'},body:form
+      });
+      if(user?.id!==actor)return;
+      if(response.status===401||response.status===403){
+        auth.invalidateSession();throw Error('Η σύνδεσή σας άλλαξε. Συνδεθείτε ξανά.');
+      }
+      if(response.status!==204)throw Error(
+        response.status===413?'Η εικόνα υπερβαίνει το επιτρεπόμενο μέγεθος.':
+        'Η εικόνα δεν αποθηκεύτηκε. Δοκιμάστε άλλη φωτογραφία.');
+      if(photoInput)photoInput.value='';
+      adminPhotoRevision.update(value=>value+1);
+      photoSuccess='Η φωτογραφία του λογαριασμού ενημερώθηκε.';
+    }catch(e){
+      if(user?.id===actor)photoError=e instanceof Error?e.message:'Η μεταφόρτωση απέτυχε.';
+    }finally{if(user?.id===actor)photoBusy=false;}
+  }
+  async function removeOwnPhoto(){
+    if(!browser||!user||photoBusy||$auth.status!=='authenticated')return;
+    const actor=user.id;photoError='';photoSuccess='';photoBusy=true;
+    try{
+      const response=await fetch('/api/admin/auth/profile/photo',{
+        method:'DELETE',credentials:'same-origin',cache:'no-store',
+        headers:{'X-Lefteria-Admin':'1','Content-Type':'application/json'},
+        body:'{}'
+      });
+      if(user?.id!==actor)return;
+      if(response.status===401||response.status===403){
+        auth.invalidateSession();throw Error('Η σύνδεσή σας άλλαξε. Συνδεθείτε ξανά.');
+      }
+      if(response.status!==204)throw Error('Η αφαίρεση φωτογραφίας δεν επιβεβαιώθηκε.');
+      if(photoInput)photoInput.value='';
+      adminPhotoRevision.update(value=>value+1);
+      photoSuccess='Η φωτογραφία αφαιρέθηκε.';
+    }catch(e){
+      if(user?.id===actor)photoError=e instanceof Error?e.message:'Η αφαίρεση απέτυχε.';
+    }finally{if(user?.id===actor)photoBusy=false;}
+  }
+
 
   $effect(()=>{
     const actor=user?.id??'';
@@ -31,6 +88,8 @@
       namePassword='';currentPassword='';nextPassword='';confirmPassword='';
       nameError='';nameSuccess='';passwordError='';
       emailValue='';emailPassword='';emailError='';emailSuccess='';emailLoaded=false;
+      photoError='';photoSuccess='';photoBusy=false;
+      if(photoInput)photoInput.value='';
     }
   });
 
@@ -177,14 +236,14 @@
           onclick={()=>void auth.bootstrap()}>Ανανέωση στοιχείων</button>
       </header>
       <section class="admin-panel admin-profile-identity" aria-label="Προσωπικά στοιχεία">
-        <div class="admin-profile-initials" aria-label="Αρχικά προφίλ">{initials}</div>
+        <AdminProfilePhoto actorId={user.id} {initials} size="large"/>
         <div><h2>{user.name || user.username}</h2>
           <p class="admin-muted">{roleName} · {user.username}</p>
-          <p class="admin-profile-unavailable">Εικόνα προφίλ: δεν υπάρχει επαληθευμένο API μεταφόρτωσης για τον διαχειριστή.</p>
+          <p class="admin-muted">Η φωτογραφία είναι ιδιωτική και εμφανίζεται μόνο στον δικό σας λογαριασμό.</p>
         </div>
       </section>
       <div class="admin-profile-columns">
-        <section class="admin-panel" aria-labelledby="my-profile-account-heading">
+        <section class="admin-panel" id="account" aria-labelledby="my-profile-account-heading">
           <h2 id="my-profile-account-heading">Στοιχεία λογαριασμού</h2>
           <dl class="admin-details">
             <div><dt>Όνομα</dt><dd>{user.name || '—'}</dd></div>
@@ -226,8 +285,20 @@
             {#if emailError}<p role="alert" class="admin-self-error">{emailError}</p>{/if}
             {#if emailSuccess}<p role="status" class="admin-self-success">{emailSuccess}</p>{/if}
           </form>
-          <p class="admin-profile-unavailable">Η φωτογραφία προφίλ απαιτεί προστατευμένο αποθηκευτικό χώρο.
-            Η μεταφόρτωσή της δεν έχει ενεργοποιηθεί.</p>
+          <form class="admin-self-form" onsubmit={uploadOwnPhoto} data-testid="admin-self-photo-form">
+            <h3>Φωτογραφία προφίλ</h3>
+            <p class="admin-muted">Η εικόνα μετατρέπεται σε προστατευμένο JPEG, χωρίς μεταδεδομένα τοποθεσίας. Έως 5 MB.</p>
+            <label for="admin-own-photo-file">Επιλογή προσωπικής φωτογραφίας</label>
+            <input id="admin-own-photo-file" type="file" accept="image/jpeg,image/png,image/gif,image/webp"
+              bind:this={photoInput} disabled={photoBusy||$auth.busy}/>
+            <button type="submit" class="admin-primary" disabled={photoBusy||$auth.busy}>
+              {photoBusy?'Επεξεργασία…':'ΑΠΟΘΗΚΕΥΣΗ ΦΩΤΟΓΡΑΦΙΑΣ'}
+            </button>
+            <button type="button" class="admin-secondary" disabled={photoBusy||$auth.busy}
+              onclick={()=>void removeOwnPhoto()}>ΑΦΑΙΡΕΣΗ ΦΩΤΟΓΡΑΦΙΑΣ</button>
+            {#if photoError}<p role="alert" class="admin-self-error">{photoError}</p>{/if}
+            {#if photoSuccess}<p role="status" class="admin-self-success">{photoSuccess}</p>{/if}
+          </form>
         </section>
         <section class="admin-panel" id="security" aria-labelledby="my-profile-security-heading">
           <h2 id="my-profile-security-heading">Ασφάλεια & σύνδεση</h2>
@@ -253,7 +324,7 @@
             onclick={()=>void auth.logout()}>Αποσύνδεση από αυτή τη συσκευή</button>
         </section>
       </div>
-      <section class="admin-panel" aria-labelledby="my-profile-access-heading">
+      <section class="admin-panel" id="access" aria-labelledby="my-profile-access-heading">
         <h2 id="my-profile-access-heading">Οι αναθέσεις μου</h2>
         {#if user.organizations.length}
           <ul class="admin-profile-orgs">

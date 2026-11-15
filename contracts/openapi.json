@@ -2406,6 +2406,59 @@
         ],
         "type": "object"
       },
+      "Enrollment": {
+        "properties": {
+          "city_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "location_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "position": {
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "request_id",
+          "city_id",
+          "location_id",
+          "group_id",
+          "position",
+          "number"
+        ],
+        "type": "object"
+      },
       "FamilyChildDto": {
         "properties": {
           "academy_group_ids": {
@@ -9304,6 +9357,183 @@
           "expires_at"
         ],
         "type": "object"
+      },
+      "WebsiteBlock": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "type",
+          "text",
+          "url"
+        ],
+        "type": "object"
+      },
+      "WebsitePageContent": {
+        "additionalProperties": false,
+        "properties": {
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/WebsiteBlock"
+            },
+            "type": "array"
+          },
+          "menu_order": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "menu_parent": {
+            "type": "string"
+          },
+          "seo_description": {
+            "type": "string"
+          },
+          "seo_title": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "summary",
+          "seo_title",
+          "seo_description",
+          "menu_parent",
+          "menu_order",
+          "blocks"
+        ],
+        "type": "object"
+      },
+      "WebsitePageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "page": {
+            "$ref": "#/components/schemas/WebsitePageContent"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "page"
+        ],
+        "type": "object"
+      },
+      "WebsitePagePublication": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "publish": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expected_version",
+          "publish"
+        ],
+        "type": "object"
+      },
+      "WebsitePageRecord": {
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/WebsitePageContent"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WebsitePageContent"
+              }
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "slug": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "organization_id",
+          "slug",
+          "version",
+          "draft",
+          "published",
+          "published_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "WebsitePageRevision": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "page": {
+            "$ref": "#/components/schemas/WebsitePageContent"
+          }
+        },
+        "required": [
+          "expected_version",
+          "page"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -9395,6 +9625,34 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/Registration"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy office"
+        ]
+      }
+    },
+    "/api/admin/academy/office/registrations/enroll": {
+      "post": {
+        "operationId": "EnrollAcademyRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Enrollment"
               }
             }
           },
@@ -17783,6 +18041,189 @@
               }
             },
             "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/pages": {
+      "get": {
+        "operationId": "ListAdminWebsitePages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WebsitePageRecord"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      },
+      "post": {
+        "operationId": "CreateAdminWebsitePage",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsitePageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsitePageRecord"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/pages/{slug}": {
+      "put": {
+        "operationId": "UpdateAdminWebsitePage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsitePageRevision"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsitePageRecord"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/pages/{slug}/publication": {
+      "post": {
+        "operationId": "PublishAdminWebsitePage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebsitePagePublication"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsitePageRecord"
+                }
+              }
+            },
+            "description": "OK"
           }
         },
         "security": [
@@ -26750,6 +27191,35 @@
               }
             },
             "description": "Service Unavailable"
+          }
+        },
+        "tags": [
+          "Public website"
+        ]
+      }
+    },
+    "/api/public/website/pages": {
+      "get": {
+        "operationId": "GetPublishedWebsitePages",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
           }
         },
         "tags": [

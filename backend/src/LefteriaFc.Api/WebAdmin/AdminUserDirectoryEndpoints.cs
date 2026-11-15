@@ -16,6 +16,10 @@ public sealed record ManagedAdminCreateCommand(
     public override string ToString() => "Managed web administrator creation (credential redacted)";
 }
 
+/// <summary>Optimistic, role-locked changes to existing delegated admin status.</summary>
+public sealed record ManagedAdminStatusCommand(
+    Guid? Id, string? ExpectedRole, bool? ExpectedActive, bool? Active);
+
 public static class AdminUserDirectoryEndpoints
 {
     private static readonly SemaphoreSlim PasswordHashQueue = new(2,2);
@@ -39,6 +43,16 @@ public static class AdminUserDirectoryEndpoints
 
             var take=limit??20;
             var skip=offset??0;
+            // Never expose an account's identity or existence to an operator
+            // who does not hold ALL of that account's organization grants.
+            // A dual-organization account is invisible to single-owner admins.
+            // Authoritative, freshly verified owners come only from the signed session.
+            var owned=session.User.Organizations
+                .Select(o=>o.Id)
+                .Where(id=>id is "lefteria_fc" or "lefteria_fc_academy")
+                .Distinct(StringComparer.Ordinal)
+                .Order(StringComparer.Ordinal)
+                .ToArray();
             await using var connection=await connections.OpenAsync(token);
             await using var command=connection.CreateCommand();
             command.CommandText="""
@@ -48,12 +62,22 @@ public static class AdminUserDirectoryEndpoints
                     (count(*) OVER ())::integer AS total
                 FROM identity.admin_accounts a
                 LEFT JOIN identity.admin_organization_grants g ON g.admin_account_id=a.id
+                WHERE EXISTS (
+                  SELECT 1 FROM identity.admin_organization_grants subject_owner
+                  WHERE subject_owner.admin_account_id=a.id
+                    AND subject_owner.organization_id=ANY(@owners)
+                ) AND NOT EXISTS (
+                  SELECT 1 FROM identity.admin_organization_grants foreign_owner
+                  WHERE foreign_owner.admin_account_id=a.id
+                    AND NOT(foreign_owner.organization_id=ANY(@owners))
+                )
                 GROUP BY a.id,a.display_name,a.role,a.is_active,a.invite_pending
                 ORDER BY lower(a.display_name),a.id
                 LIMIT @take OFFSET @skip
                 """;
             command.Parameters.AddWithValue("take",take);
             command.Parameters.AddWithValue("skip",skip);
+            command.Parameters.Add("owners",NpgsqlDbType.Array|NpgsqlDbType.Text).Value=owned;
             var accounts=new List<object>();
             int total=0;
             await using (var reader=await command.ExecuteReaderAsync(token))
@@ -75,7 +99,19 @@ public static class AdminUserDirectoryEndpoints
             if(accounts.Count==0 && skip>0)
             {
                 await using var count=connection.CreateCommand();
-                count.CommandText="SELECT count(*)::integer FROM identity.admin_accounts";
+                count.CommandText="""
+                    SELECT count(*)::integer FROM identity.admin_accounts a
+                    WHERE EXISTS (
+                      SELECT 1 FROM identity.admin_organization_grants subject_owner
+                      WHERE subject_owner.admin_account_id=a.id
+                        AND subject_owner.organization_id=ANY(@owners)
+                    ) AND NOT EXISTS (
+                      SELECT 1 FROM identity.admin_organization_grants foreign_owner
+                      WHERE foreign_owner.admin_account_id=a.id
+                        AND NOT(foreign_owner.organization_id=ANY(@owners))
+                    )
+                    """;
+                count.Parameters.Add("owners",NpgsqlDbType.Array|NpgsqlDbType.Text).Value=owned;
                 total=Convert.ToInt32(await count.ExecuteScalarAsync(token));
             }
             return Results.Json(new {offset=skip,limit=take,total,accounts});
@@ -172,6 +208,87 @@ public static class AdminUserDirectoryEndpoints
         .WithName("CreateManagedAdminAccount")
         .WithTags("Web administration")
         .Accepts<ManagedAdminCreateCommand>("application/json")
+        .ExcludeFromDescription();
+        endpoints.MapPost("/api/admin/access/users/status", async (
+            ManagedAdminStatusCommand request,HttpContext context,
+            WebAdminService service,WebAdminConnections connections,
+            IWebAdminSecrets secrets,CancellationToken token) =>
+        {
+            context.Response.Headers.CacheControl="private, no-store";
+            context.Response.Headers.Pragma="no-cache";
+            var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+            var session=await service.CurrentAsync(cookie,token);
+            if(session is null)
+                throw new WebAdminException(401,"not_authenticated","Sign in again.");
+            if(session.User.Role!="super_admin")
+                throw new WebAdminException(403,"not_authorized","Super administrator required.");
+            if(request.Id is null || request.Id==Guid.Empty ||
+                request.Id==session.User.Id)
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "Select an eligible account other than your own.");
+            if(request.ExpectedRole is not ("manager" or "editor" or "marketing"
+                  or "coach" or "matchday_editor" or "accountant"))
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "The expected role is not an eligible delegated role.");
+            if(request.Active is null || request.ExpectedActive is null ||
+                request.Active==request.ExpectedActive)
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "Provide different current and next active states.");
+
+            await using var connection=await connections.OpenAsync(token);
+            // Defense in depth for privileged targets. The SECURITY DEFINER
+            // routine repeats this under row locks, so a concurrent role edit
+            // cannot turn this preflight into authority.
+            await using(var targetRoleQuery=new NpgsqlCommand(
+                "SELECT role FROM identity.admin_accounts WHERE id=@id",connection))
+            {
+                targetRoleQuery.Parameters.AddWithValue("id",request.Id.Value);
+                if(await targetRoleQuery.ExecuteScalarAsync(token) is string targetRole &&
+                    targetRole=="super_admin")
+                    throw new WebAdminException(403,"managed_admin_status_denied",
+                        "Other super administrator accounts cannot be changed.");
+            }
+            await using var cmd=new NpgsqlCommand(
+                "SELECT identity.set_managed_admin_status(@digest,@subject,@role,@expected,@active)",
+                connection);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie!));
+            cmd.Parameters.AddWithValue("subject",request.Id.Value);
+            cmd.Parameters.AddWithValue("role",request.ExpectedRole);
+            cmd.Parameters.AddWithValue("expected",request.ExpectedActive.Value);
+            cmd.Parameters.AddWithValue("active",request.Active.Value);
+            try
+            {
+                if(await cmd.ExecuteScalarAsync(token) is not bool persisted ||
+                   persisted!=request.Active.Value)
+                    throw new WebAdminException(503,"managed_admin_status_unconfirmed",
+                        "The account state was not confirmed.");
+            }
+            catch(PostgresException e) when(e.SqlState=="40001")
+            {
+                throw new WebAdminException(409,"managed_admin_status_conflict",
+                    "The account changed. Refresh before trying again.");
+            }
+            catch(PostgresException e) when(e.SqlState=="42501")
+            {
+                throw new WebAdminException(403,"managed_admin_status_denied",
+                    "Current session or ownership does not permit this change.");
+            }
+            catch(PostgresException e) when(e.SqlState is "22023" or "23514")
+            {
+                throw new WebAdminException(422,"managed_admin_status_invalid",
+                    "The requested account status is invalid.");
+            }
+            catch(PostgresException e) when(e.SqlState is "42883" or "3F000")
+            {
+                throw new WebAdminException(503,"managed_admin_status_unavailable",
+                    "Account status management is not installed in this environment.");
+            }
+            return Results.Json(new {id=request.Id,role=request.ExpectedRole,active=request.Active});
+        })
+        .RequireAuthorization(WebAdminServices.Policy)
+        .WithName("SetManagedAdminStatus")
+        .WithTags("Web administration")
+        .Accepts<ManagedAdminStatusCommand>("application/json")
         .ExcludeFromDescription();
         return endpoints;
     }

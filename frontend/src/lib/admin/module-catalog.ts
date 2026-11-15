@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -22,6 +22,7 @@ interface Section {
 }
 const catalog: readonly Section[] = [
   { id: 'website', name: 'Ιστοσελίδα', description: 'Δημόσια παρουσία, περιεχόμενο και ταυτότητα συλλόγου.', modules: [
+    { id: 'pages', name: 'Σελίδες · Visual Builder', description: 'Δημιουργία σελίδων, οπτική προεπισκόπηση, διάταξη μενού και δημοσίευση με έγκριση ανά οργανισμό.', status: 'live', href: '/admin/website-pages', scope: 'any', anyPermission: ['news:read'] },
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
     { id: 'news', name: 'Άρθρα & νέα', description: 'Επεξεργασία δημοσιευμένων άρθρων και ιδιωτικά πρόχειρα ανά οργανισμό. Νέα δημοσίευση και έγκριση εκκρεμούν.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
     { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
@@ -30,7 +31,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'hub', name: 'HUB · Περιεχόμενο & συνδρομές', description: 'Ασφαλές εκπαιδευτικό περιεχόμενο για γονείς και αθλητές, με προαιρετική συνδρομή φιλάθλων και υποχρεωτική ανθρώπινη έγκριση.', modules: [
     { id: 'hub_editorial', name: 'AI πρόχειρα & έγκριση περιεχομένου', description: 'Πραγματική λίστα, κείμενα, έλεγχος εικόνων, ανθρώπινη έγκριση και δημοσίευση. Η παραγωγή AI ενεργοποιείται ξεχωριστά μόνο σε απομονωμένη δοκιμή.', status: 'live', href: '/admin/hub', scope: 'any', anyPermission: ['news:read'] },
-    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
+    { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Μόνο Super Admin: πραγματική συγκεντρωτική εικόνα ενεργών επαληθευμένων συνδρομών και sandbox τιμοκαταλόγου ανά οργανισμό. Χωρίς στοιχεία συνδρομητών, επαναλαμβανόμενες χρεώσεις ή μεταβολές.', status: 'live', href: '/admin/hub/subscriptions', scope: 'any', anyPermission: ['finance:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
     { id: 'communications', name: 'Κέντρο επικοινωνίας εφαρμογής', description: 'Ενοποιημένη εικόνα ανακοινώσεων, ιδιωτικών συνομιλιών, ειδοποιήσεων και συνημμένων με πραγματικές καταστάσεις υλοποίησης.', status: 'live', href: '/admin/communications', scope: 'any', anyPermission: ['teams:write','academy:write'] },
@@ -41,13 +42,13 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
     { id: 'leads', name: 'Ενδιαφερόμενοι Ακαδημίας', description: 'Ιδιωτικός κατάλογος αιτημάτων και ελεγχόμενη καταχώριση επικοινωνίας (χωρίς αυτόματη εγγραφή ή αποστολή).', status: 'live', href: '/admin/leads', scope: 'academy', anyPermission: ['marketing:read'] },
-    { id: 'registrations', name: 'Αιτήσεις & οικογένειες', description: 'Αιτήσεις εγγραφής, έλεγχος στοιχείων κηδεμόνων και εσωτερικές παραγγελίες. Η ένταξη στο ρόστερ ολοκληρώνεται χωριστά.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
+    { id: 'registrations', name: 'Εγγραφές Ακαδημίας', description: 'Ενιαία λίστα ηλεκτρονικών και χειροκίνητων αιτήσεων, έλεγχος κηδεμόνων και εσωτερικές παραγγελίες. Η εγκεκριμένη αίτηση δεν προσθέτει ακόμη τον παίκτη στο ρόστερ.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
     { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Υφιστάμενη διαχείριση σημείων πώλησης και εξουσιοδοτημένων βαρδιών στο POS. Η πρόσβαση στις ενέργειες ελέγχεται από το API.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένος κατάλογος και ελεγχόμενη διαχείριση κατηγοριών · χωρίς πωλήσεις.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
-    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Επαληθευμένο ιστορικό συναλλαγών ανά εξουσιοδοτημένη τοποθεσία. Η ολοκλήρωση πληρωμών, τα online orders και οι επιστροφές παραμένουν σε υλοποίηση.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] }
+    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Επαληθευμένο ιστορικό συναλλαγών ανά εξουσιοδοτημένη τοποθεσία· εκκρεμείς παραγγελίες δεν σημαίνουν πληρωμή.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
     { id: 'payabl', name: 'Ακαδημία · Χρεώσεις, PDF & payabl. (sandbox)', description: 'Έκδοση επιλεγμένου μήνα ανά παιδί, καταχώριση μετρητών, λήψη αυθεντικού PDF και δοκιμαστικοί σύνδεσμοι Payabl με προστατευμένο Twilio SMS. Οι πραγματικές αυτόματες εισπράξεις, η παραγωγική διασύνδεση και οι πληρωμές προσωπικού παραμένουν ανενεργές.', status: 'live', href: '/admin/finance', scope: 'any', anyPermission: ['finance:read'] },
@@ -68,7 +69,7 @@ const catalog: readonly Section[] = [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
     { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένοι προπονητές και προστατευμένες αναθέσεις τμημάτων. Η δημιουργία λογαριασμού Coach γίνεται χωριστά από τον Super Admin· δεν δημιουργεί αυτόματα εγγραφή προσωπικού.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Πραγματικοί κατάλογοι γηπέδων και βάσεων προπόνησης, μέσα από τη διαχείριση πόλεων και τοποθεσιών. Γήπεδα Ακαδημίας ανά πόλη, βάσεις ανά τοποθεσία· πρώτη ομάδα ανεξάρτητα.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
-    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Μεταβολή υφιστάμενων δικαιωμάτων και ανάκληση εκκρεμούν.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
+    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Απενεργοποίηση και επανενεργοποίηση λογαριασμών με ανάκληση συνεδριών· αλλαγή ρόλου εκκρεμεί.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
     { id: 'organization', name: 'Ρυθμίσεις οργανισμών', description: 'Ρυθμίσεις εκτός δημόσιου προφίλ.', status: 'planned', scope: 'any', anyPermission: ['settings:read'] }
   ] }
 ];
@@ -92,9 +93,12 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'orders') return ['manager','super_admin'].includes(user.role) &&
         hasAdminPermission(user.permissions,'shop:read') &&
         hasAdminPermission(user.permissions,'finance:read');
+      // Legacy organization-wide provider finance is not accessible to managers.
+      // Server-side provider/fee operations are independently Super Admin-only.
       if (['payabl','charges','reports'].includes(item.id)) return ['super_admin','accountant'].includes(user.role) &&
         hasAdminPermission(user.permissions,'finance:read');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
+      if (item.id === 'hub_subscriptions') return user.role==='super_admin' && hasAdminPermission(user.permissions,'finance:read');
       if (item.id === 'facilities') return ['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));

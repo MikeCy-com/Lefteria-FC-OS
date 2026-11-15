@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
   import type { WebAdminSession } from './controller.ts';
+  import AdminProfilePhoto from './AdminProfilePhoto.svelte';
   import { canReadClub } from './club-controller.ts';
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
@@ -10,7 +11,7 @@
     user:WebAdminSession['user'];
     active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
-      'schedule'|'hub'|'matches'|'staff'|'users'|'territories';
+      'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages';
     busy?:boolean;onLogout:()=>void;children:Snippet;
   }=$props();
   const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
@@ -36,7 +37,7 @@
       <a class="admin-public-link" href="/app" aria-label="Εφαρμογή μελών">Εφαρμογή <span aria-hidden="true">↗</span></a>
       <details class="admin-profile-menu" data-testid="admin-profile-menu">
         <summary aria-label="Άνοιγμα προφίλ λογαριασμού" data-testid="admin-profile-menu-toggle">
-          <span class="admin-profile-avatar" aria-hidden="true">{initials}</span>
+          <AdminProfilePhoto actorId={user.id} {initials}/>
           <span class="admin-profile-menu-text"><strong>{user.name || user.username}</strong><small>{roleName}</small></span>
           <span aria-hidden="true">⌄</span>
         </summary>
@@ -44,6 +45,7 @@
           <p class="admin-profile-dropdown-name">{user.name || user.username}<small>{roleName}</small></p>
           <a href="/admin/profile" data-testid="admin-profile-link">Το προφίλ μου</a>
           <a href="/admin/profile#security">Ασφάλεια & σύνδεση</a>
+          <a href="/admin/profile#access" data-testid="admin-my-access-link">Οι αναθέσεις & τα δικαιώματά μου</a>
           <a href="/admin/settings" data-testid="admin-settings-header-link">Ρυθμίσεις</a>
           <button type="button" disabled={busy} onclick={onLogout} data-testid="admin-logout">Αποσύνδεση</button>
         </div>
@@ -65,22 +67,24 @@
       {#if hasWebsite}
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΙΣΤΟΣΕΛΙΔΑ</p>
+          {#if liveIds.has('pages')}<a class="admin-nav-section" href="/admin/website-pages" aria-current={active==='pages'?'page':undefined}>Σελίδες · Visual Builder</a>{/if}
           {#if liveIds.has('news')}<a class="admin-nav-section" href="/admin/news" aria-current={active==='news'?'page':undefined} data-testid="admin-news-link">Άρθρα & νέα</a>{/if}
           {#if canReadClub(user)}<a class="admin-nav-tool" href="/admin/settings#website-settings" aria-current={active==='club'?'page':undefined}>Ρυθμίσεις ιστοσελίδας</a>{/if}
         </div>
       {/if}
-      {#if liveIds.has('hub_editorial') || liveIds.has('announcements') || liveIds.has('communications')}
+      {#if liveIds.has('hub_editorial') || liveIds.has('hub_subscriptions') || liveIds.has('announcements') || liveIds.has('communications')}
         <div class="admin-nav-group">
           <p class="admin-nav-label">ΕΦΑΡΜΟΓΗ ΜΕΛΩΝ</p>
           {#if liveIds.has('communications')}<a class="admin-nav-section" href="/admin/communications" aria-current={active==='communications'?'page':undefined} data-testid="admin-communications-link">Επικοινωνία εφαρμογής</a>{/if}
           {#if liveIds.has('announcements')}<a class="admin-nav-tool" href="/admin/announcements" aria-current={active==='announcements'?'page':undefined} data-testid="admin-announcements-link">Ανακοινώσεις</a>{/if}
           {#if liveIds.has('hub_editorial')}<a class="admin-nav-tool" href="/admin/hub" aria-current={active==='hub'?'page':undefined} data-testid="admin-hub-link">HUB · Περιεχόμενο</a>{/if}
+          {#if liveIds.has('hub_subscriptions')}<a class="admin-nav-tool" href="/admin/hub/subscriptions" aria-current={active==='hub-subscriptions'?'page':undefined} data-testid="admin-hub-subscriptions-link">HUB · Συνδρομές φιλάθλων</a>{/if}
         </div>
       {/if}
       {#if liveIds.has('registrations') || liveIds.has('leads')}
         <div class="admin-nav-group">
-          <p class="admin-nav-label">CRM & ΓΡΑΜΜΑΤΕΙΑ</p>
-          {#if liveIds.has('registrations')}<a class="admin-nav-section" href="/admin/academy-office" aria-current={active==='academy-office'?'page':undefined}>Αιτήσεις & οικογένειες</a>{/if}
+          <p class="admin-nav-label">CRM & ΕΠΑΦΕΣ</p>
+          {#if liveIds.has('registrations')}<a class="admin-nav-section" href="/admin/academy-office" aria-current={active==='academy-office'?'page':undefined}>Εγγραφές Ακαδημίας</a>{/if}
           {#if liveIds.has('leads')}<a class="admin-nav-tool" href="/admin/leads" aria-current={active==='leads'?'page':undefined} data-testid="admin-crm-leads-link">Ενδιαφερόμενοι</a>{/if}
         </div>
       {/if}

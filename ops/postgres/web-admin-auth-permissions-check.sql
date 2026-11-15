@@ -20,7 +20,9 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \gset
 \ir admin-club-lock-boundary.sql
 \ir admin-self-profile-boundary.sql
+\ir admin-managed-status-boundary.sql
 \ir admin-contact-email-boundary.sql
+\ir admin-self-photo-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
 \ir pos-product-writer-boundary.sql
@@ -77,6 +79,8 @@ BEGIN
           'identity.write_admin_own_name(text,text,text)'::regprocedure,
                   'identity.read_admin_own_contact_email(text)'::regprocedure,
                   'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_profile_photo(text)'::regprocedure,
+                  'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
           'identity.write_admin_own_password(text,text,text)'::regprocedure
         ) AND (NOT p.prosecdef OR
           EXISTS(SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
@@ -100,12 +104,17 @@ BEGIN
                 AND has_schema_privilege(current_user,n.oid,'USAGE') AND has_function_privilege(current_user,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
+                  'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
                   'identity.read_admin_own_contact_email(text)'::regprocedure,
                   'identity.write_admin_own_contact_email(text,text,text)'::regprocedure,
+                  'identity.read_admin_own_profile_photo(text)'::regprocedure,
+                  'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
@@ -120,17 +129,29 @@ BEGIN
                    'finance.assign_admin_academy_issue_site(text,text,text,uuid,uuid,text)'::regprocedure,
                    'finance.read_admin_academy_location_finance(text,text,date)'::regprocedure,
                    'finance.read_admin_academy_unallocated_issues(text,text,date)'::regprocedure,
+                    'finance.read_admin_accounting_overview(text,text,date)'::regprocedure,
+                    'finance.create_admin_supplier_bill(text,text,uuid,text,text,text,text,date,bigint,uuid)'::regprocedure,
+                    'finance.read_admin_supplier_bills(text,text,date)'::regprocedure,
+                    'finance.read_admin_supplier_site_totals(text,text,date)'::regprocedure,
+                    'finance.create_admin_supplier_payment_request(text,text,uuid,uuid,bigint,date,text,text)'::regprocedure,
+                    'finance.review_admin_supplier_payment_request(text,text,uuid,boolean,text)'::regprocedure,
+                    'finance.read_admin_supplier_payment_register(text,text,date)'::regprocedure,
+                    'finance.create_admin_supplier_credit_request(text,text,uuid,uuid,text,date,bigint,text)'::regprocedure,
+                    'finance.review_admin_supplier_credit_request(text,text,uuid,boolean,text)'::regprocedure,
+                    'finance.read_admin_supplier_payable_position(text,text,date)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
                   'club.read_admin_player_development_goals(text,text,text)'::regprocedure,
+                  'club.read_admin_player_development_goals_manager(text,text,text)'::regprocedure,
                   'club.create_admin_player_development_goal(text,text,text,uuid,text,text,text,date,uuid)'::regprocedure,
                   'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
+                  'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
                   'hub.create_admin_draft(text,text,uuid,uuid,text,text,text,boolean,boolean,smallint,smallint)'::regprocedure,
                   'hub.submit_admin_draft_review(text,text,uuid,bigint)'::regprocedure,
                   'hub.read_admin_editorial_detail(text,text,uuid)'::regprocedure,

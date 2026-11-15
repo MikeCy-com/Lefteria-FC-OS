@@ -31,6 +31,7 @@ public static class WebAdminEndpoints
         endpoints.MapFoundingAdminSetup();
         endpoints.MapAdminSelfService();
         endpoints.MapAdminContactEmail();
+        endpoints.MapAdminProfilePhoto();
         return endpoints;
     }
 

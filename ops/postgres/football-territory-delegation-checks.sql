@@ -171,6 +171,62 @@ BEGIN
       WHERE (x->>'groups')::int=1 AND (x->>'active_players')::int=1)<>2
   THEN RAISE EXCEPTION 'city_manager_metrics_misallocated'; END IF;
 
+  -- Real private-goal boundary: manager cannot read a sibling location's
+  -- record; city manager can read only within assigned city; moving a
+  -- player to a new city never imports the old site's historical notes.
+  INSERT INTO club.player_development_goals(
+    id,organization_id,player_id,title,category,created_by,updated_by)
+  VALUES
+    (gen_random_uuid(),'lefteria_fc_academy',v_player_a1,'North private goal',
+      'technical',v_super,v_super),
+    (gen_random_uuid(),'lefteria_fc_academy',v_player_a2,'South private goal',
+      'tactical',v_super,v_super);
+  v_data:=club.read_admin_player_development_goals_manager(
+    v_token_local,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>1 OR
+    (v_data->'goals'->0->>'title')<>'North private goal' OR
+    (v_data->'goals'->0->>'source_evaluation_id') IS NOT NULL
+  THEN RAISE EXCEPTION 'local_manager_goal_projection_incorrect'; END IF;
+  BEGIN
+    PERFORM club.read_admin_player_development_goals_manager(
+      v_token_local,'lefteria_fc_academy',v_player_a2);
+    RAISE EXCEPTION 'sibling_location_private_goal_exposed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_data:=club.read_admin_player_development_goals_manager(
+    v_token_manager,'lefteria_fc_academy',v_player_a2);
+  IF (v_data->>'total')::int<>1
+  THEN RAISE EXCEPTION 'city_manager_goal_projection_incorrect'; END IF;
+  BEGIN
+    PERFORM club.read_admin_player_development_goals_manager(
+      v_token_super,'lefteria_fc_academy',v_player_a1);
+    RAISE EXCEPTION 'delegated_goal_reader_accepted_superadmin_role';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_a1;
+  INSERT INTO club.player_academy_groups(
+    organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_b);
+  BEGIN
+    PERFORM club.read_admin_player_development_goals_manager(
+      v_token_manager,'lefteria_fc_academy',v_player_a1);
+    RAISE EXCEPTION 'old_city_manager_read_transferred_player';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',true);
+  v_data:=club.read_admin_player_development_goals_manager(
+    v_token_manager,'lefteria_fc_academy',v_player_a1);
+  IF (v_data->>'total')::int<>0 OR jsonb_array_length(v_data->'goals')<>0
+  THEN RAISE EXCEPTION 'new_city_manager_inherited_old_private_goals'; END IF;
+  PERFORM club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
+    v_manager,'city',v_city_b,'city_manager',false);
+  DELETE FROM club.player_academy_groups
+    WHERE organization_id='lefteria_fc_academy'
+      AND player_id=v_player_a1 AND academy_group_id=v_group_b;
+  INSERT INTO club.player_academy_groups(
+    organization_id,player_id,academy_group_id)
+  VALUES('lefteria_fc_academy',v_player_a1,v_group_a1);
+
   v_data:=club.write_admin_football_access(v_token_super,'lefteria_fc_academy',
     v_local,'location',v_loc_a1,'location_manager',false);
   IF (v_data->>'changed')::boolean IS NOT TRUE THEN

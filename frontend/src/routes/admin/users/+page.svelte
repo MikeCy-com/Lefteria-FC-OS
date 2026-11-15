@@ -25,6 +25,7 @@
   let username=$state(''),displayName=$state(''),password=$state(''),confirmPassword=$state('');
   let accountRole=$state('coach'),selectedOwners=$state<string[]>([]);
   let createError=$state(''),createNotice=$state('');
+  let statusPending=$state(''),statusError=$state(''),statusNotice=$state('');
   let provisionedAccountId=$state(''),provisionedOwner=$state(''),provisionedRole=$state('');
   const availableOwners=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
@@ -82,6 +83,40 @@
     finally{password='';confirmPassword='';creating=false;}
   }
 
+
+  async function setAccountActive(account:Entry){
+    if(!browser||!permitted||statusPending||loading||!page ||
+      account.id===$auth.session?.user.id||account.role==='super_admin'||
+      account.invitation_pending||!page.accounts.some(item=>item.id===account.id))return;
+    const actor=$auth.session?.user.id;
+    const next=!account.active;
+    if(!window.confirm(next
+      ? 'Επανενεργοποίηση «'+account.name+'» με τους προηγούμενους ρόλους και οργανισμούς; Οι παλιές συνεδρίες παραμένουν ανακλημένες.'
+      : 'Απενεργοποίηση «'+account.name+'»; Όλες οι τρέχουσες συνεδρίες θα ανακληθούν και η σύνδεση θα απαγορευτεί.'))return;
+    statusPending=account.id;statusError='';statusNotice='';
+    try{
+      const response=await fetch('/api/admin/access/users/status',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({id:account.id,expected_role:account.role,
+          expected_active:account.active,active:next})
+      });
+      if(actor!==$auth.session?.user.id)return;
+      if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
+      if(response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε ή ο λογαριασμός δεν επιτρέπεται.');}
+      if(response.status===409){revision++;throw Error('Η κατάσταση άλλαξε. Ανανεώστε τον κατάλογο.');}
+      if(!response.ok)throw Error('Η αλλαγή κατάστασης δεν αποθηκεύτηκε.');
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+        !('id' in result)||result.id!==account.id||
+        !('role' in result)||result.role!==account.role||
+        !('active' in result)||result.active!==next)
+        throw Error('Η αλλαγή κατάστασης δεν επαληθεύτηκε.');
+      statusNotice=next?'Ο λογαριασμός επανενεργοποιήθηκε.':'Ο λογαριασμός απενεργοποιήθηκε και οι συνεδρίες του ανακλήθηκαν.';
+      revision++;
+    }catch(e){statusError=e instanceof Error?e.message:'Η αλλαγή κατάστασης απέτυχε.';}
+    finally{statusPending='';}
+  }
 
   const organizationName=(id:string)=>id==='lefteria_fc'?'Lefteria FC':
     id==='lefteria_fc_academy'?'Lefteria FC Academy':'Μη επαληθευμένος οργανισμός';
@@ -154,8 +189,11 @@
     <section class="access-directory" data-testid="admin-users-directory">
       <p class="admin-eyebrow">ΟΡΓΑΝΩΣΗ · ΛΟΓΑΡΙΑΣΜΟΙ ΔΙΑΧΕΙΡΙΣΗΣ</p>
       <h1>Χρήστες & δικαιώματα</h1>
-      <p class="admin-muted">Δημιουργήστε έναν λογαριασμό με αρχικό κωδικό και επαληθευμένο ρόλο.
-        Η πρόσκληση, μεταβολή ρόλου και ανάκληση λογαριασμού δεν έχουν ενεργοποιηθεί.</p>
+      <p class="admin-muted">Δημιουργία χρηστών με ισχυρό αρχικό κωδικό, ρόλο και οργανισμούς.
+        Μόνο Super Admin μπορεί να απενεργοποιεί ή επανενεργοποιεί υπάρχοντες λογαριασμούς.
+        Η αλλαγή ρόλου και η πρόσκληση παραμένουν εκτός λειτουργίας.
+        Ο κατάλογος και τα σύνολα περιλαμβάνουν μόνο λογαριασμούς των οποίων
+        όλοι οι οργανισμοί καλύπτονται από τις δικές σας εξουσιοδοτήσεις.</p>
       {#if !permitted}
         <div class="admin-panel" role="alert" data-testid="admin-users-forbidden">
           Απαιτείται επαληθευμένος ρόλος Super Admin.
@@ -221,6 +259,8 @@
             </form>
           {/if}
         </section>
+        {#if statusError}<p role="alert" class="access-create-error" data-testid="admin-account-status-error">{statusError}</p>{/if}
+        {#if statusNotice}<p role="status" class="access-create-success" data-testid="admin-account-status-success">{statusNotice}</p>{/if}
         <div class="access-toolbar">
           <button type="button" class="admin-secondary" disabled={loading}
             onclick={()=>revision++}>Ανανέωση καταλόγου</button>
@@ -246,6 +286,15 @@
                     <div class="access-status">
                       <span>{account.active?'Ενεργός':'Ανενεργός'}</span>
                       {#if account.invitation_pending}<span>Εκκρεμεί πρόσκληση</span>{/if}
+                      {#if account.role!=='super_admin' && !account.invitation_pending &&
+                        account.id!==$auth.session.user.id}
+                        <button type="button" class="admin-secondary access-status-button"
+                          data-testid="admin-account-status-toggle"
+                          disabled={!!statusPending||loading}
+                          onclick={()=>void setAccountActive(account)}>
+                          {statusPending===account.id?'Αποθήκευση…':account.active?'Απενεργοποίηση':'Επανενεργοποίηση'}
+                        </button>
+                      {/if}
                     </div>
                     <div class="access-organizations">
                       {#each account.organizations as org (org)}
@@ -286,6 +335,7 @@
   .access-list strong{font-size:16px;overflow-wrap:anywhere}
   .access-list span{font-size:14px;color:#c4c9c9}
   .access-status span:first-child{color:#f1c65d}
+  .access-status-button{justify-self:start;margin-top:5px;min-height:44px;font-size:13px}
   .access-pages span{margin-right:auto}
   @media(max-width:690px){.access-list li{grid-template-columns:1fr 1fr}.access-organizations{grid-column:1/-1}}
   @media(max-width:390px){.access-list li{grid-template-columns:1fr}.access-organizations{grid-column:auto}}

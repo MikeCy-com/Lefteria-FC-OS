@@ -5,6 +5,8 @@
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import type { PublicSectionPageData } from '../../lib/public/sections-types';
   import { academyGroupLink } from '../../lib/public/navigation';
+  import { buildAcademyTerritoryDirectory } from '../../lib/public/academy-territory-directory';
+  import type { PublicGroup } from '../../lib/public/types';
   import { publicImages } from '../../lib/public/images';
   import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
@@ -26,17 +28,17 @@
         academyReviews.reduce((sum,row)=>sum+row.rating,0)/academyReviews.length)
     : null);
   const scopedGroups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
-  // City catalog owns the published Academy opponents and fields; locations
-  // own their rosters and schedules. Never flatten these public groups into
-  // a single unscoped or First Team collection.
-  const academyCities = $derived([...new Set(scopedGroups.map(group => group.city?.trim() || 'Άλλη περιοχή'))]
-    .map(city => ({
-      city, locations:[...new Set(scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city)
-        .map(group => group.location_name?.trim() || 'Ακαδημία'))].map(location => ({
-          location, groups:scopedGroups.filter(group => (group.city?.trim() || 'Άλλη περιοχή') === city &&
-            (group.location_name?.trim() || 'Ακαδημία') === location)
-        }))
-    })));
+  // One verified, shared hierarchy for both Academy landing and directory.
+  // Imported legacy text is unassigned until an administrator verifies IDs.
+  const publishedGroupIds = $derived(new Set(scopedGroups.map(group => group.id)));
+  const academyFixtures = $derived((data.site?.fixtures ?? []).filter(fixture =>
+    fixture.organization_id === 'lefteria_fc_academy' &&
+    typeof fixture.academy_group_id === 'string' &&
+    publishedGroupIds.has(fixture.academy_group_id)));
+  const academyTerritory = $derived(buildAcademyTerritoryDirectory(scopedGroups));
+  const academyCities = $derived(academyTerritory.cities);
+  const academyLocationsCount = $derived(academyCities.reduce(
+    (count,city) => count + city.locations.length, 0));
   const academySeasons = $derived([...new Set(scopedGroups.map(group=>group.season).filter(Boolean))].slice(0,2));
   const academyAges = $derived([...new Set(scopedGroups.map(group=>group.age_range).filter(Boolean))].slice(0,3));
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
@@ -61,47 +63,74 @@
     <h2 id="academy-program-title"><span aria-hidden="true">//</span> ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
     <p>Ανάπτυξη με σεβασμό στο παιδί, την ηλικία και τις ανάγκες του κάθε αθλητή.</p>
     <div class="academy-program-facts">
-      <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length || '—'} δημοσιευμένες πόλεις</strong></span></div>
+      <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length
+            ? `${academyCities.length} ${academyCities.length === 1 ? 'πόλη' : 'πόλεις'} · ${academyLocationsCount} ${academyLocationsCount === 1 ? 'τοποθεσία' : 'τοποθεσίες'}`
+            : 'Καμία επιβεβαιωμένη τοποθεσία'}</strong></span></div>
       <div><PublicIcon name="users" size={27} /><span>ΗΛΙΚΙΕΣ <strong>{academyAges.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
       <div><PublicIcon name="calendar" size={27} /><span>ΠΡΟΓΡΑΜΜΑ <strong>{academySeasons.join(' · ') || 'Αναμένεται δημοσίευση'}</strong></span></div>
     </div>
   </section>
+  
   <section class="academy-age-groups public-section" id="groups" aria-labelledby="academy-groups-title" data-testid="academy-age-groups">
+    {#snippet ageCard(group: PublicGroup)}
+      <article class="academy-age-card">
+        <PublicImage src={group.banner_url || publicImages.academy} alt="" />
+        <div class="academy-age-caption">
+          <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
+          <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
+          {#if group.season}<span>{group.season}</span>{/if}
+          <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
+        </div>
+        {#if group.description || group.training_schedule}
+          <details class="academy-age-details">
+            <summary>Περισσότερες πληροφορίες</summary>
+            {#if group.description}<p>{group.description}</p>{/if}
+            {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
+          </details>
+        {/if}
+      </article>
+    {/snippet}
     <div class="academy-age-heading">
       <h2 id="academy-groups-title">ΤΑ ΤΜΗΜΑΤΑ ΜΑΣ</h2>
       <a href="/academy/groups">ΔΕΙΤΕ ΟΛΑ ΤΑ ΤΜΗΜΑΤΑ <PublicIcon name="arrow" size={17}/></a>
     </div>
-    {#if academyCities.length}
-      {#each academyCities as city (city.city)}
-        <section class="academy-city-block" aria-label={city.city}>
-          <h3 class="academy-city-label">{city.city}</h3>
-          {#each city.locations as location (location.location)}
-            <div class="academy-location-block">
-              <h4>{location.location}</h4>
+    {#if academyCities.length || academyTerritory.unassigned.length}
+      {#if academyCities.length > 1}
+        <nav class="academy-landing-city-index" aria-label="Πόλεις Ακαδημίας" data-testid="academy-landing-city-navigation">
+          {#each academyCities as city (city.id)}
+            <a href={`#academy-landing-city-${city.slug}`}>{city.name}</a>
+          {/each}
+        </nav>
+      {/if}
+      {#each academyCities as city (city.id)}
+        <section class="academy-city-block" aria-labelledby={`academy-landing-city-${city.slug}`} data-testid="academy-landing-verified-city">
+          <div class="academy-city-heading"><h3 class="academy-city-label" id={`academy-landing-city-${city.slug}`}>{city.name}</h3>
+            <a href={`/academy/groups#academy-city-${city.slug}`}>ΤΜΗΜΑΤΑ ΠΟΛΗΣ <PublicIcon name="arrow" size={15} /></a>
+          </div>
+          {#each city.locations as location (location.id)}
+            <section class="academy-location-block" aria-labelledby={`academy-landing-location-${city.slug}-${location.slug}`} data-testid="academy-landing-verified-location">
+              <h4 id={`academy-landing-location-${city.slug}-${location.slug}`}>{location.name}</h4>
               <div class="academy-age-grid">
                 {#each location.groups as group (group.id)}
-                  <article class="academy-age-card">
-                    <PublicImage src={group.banner_url || publicImages.academy} alt="" />
-                    <div class="academy-age-caption">
-                      <h5><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h5>
-                      <strong>{group.age_range || 'ΑΚΑΔΗΜΙΑ'}</strong>
-                      {#if group.season}<span>{group.season}</span>{/if}
-                      <a class="academy-card-arrow" href={academyGroupLink(group)} aria-label={`Προβολή ${group.name}`}>→</a>
-                    </div>
-                    {#if group.description || group.training_schedule}
-                      <details class="academy-age-details">
-                        <summary>Περισσότερες πληροφορίες</summary>
-                        {#if group.description}<p>{group.description}</p>{/if}
-                        {#if group.training_schedule}<p class="preserve-lines">{group.training_schedule}</p>{/if}
-                      </details>
-                    {/if}
-                  </article>
+                  {@render ageCard(group)}
                 {/each}
               </div>
-            </div>
+            </section>
           {/each}
         </section>
       {/each}
+      {#if academyTerritory.unassigned.length}
+        <section class="academy-unassigned-block" aria-labelledby="academy-landing-unassigned" data-testid="academy-landing-unassigned-groups">
+          <h3 id="academy-landing-unassigned">ΤΜΗΜΑΤΑ ΧΩΡΙΣ ΕΠΙΒΕΒΑΙΩΜΕΝΗ ΤΟΠΟΘΕΣΙΑ</h3>
+          <p>Τα δημοσιευμένα τμήματα εμφανίζονται εδώ μέχρι να αντιστοιχιστούν από τη διοίκηση σε επίσημη πόλη και τοποθεσία.</p>
+          <h4 class="sr-only">Δημοσιευμένα τμήματα χωρίς τοποθεσία</h4>
+          <div class="academy-age-grid">
+            {#each academyTerritory.unassigned as group (group.id)}
+              {@render ageCard(group)}
+            {/each}
+          </div>
+        </section>
+      {/if}
     {:else}
       <div class="academy-published-empty">
         <p>Τα ηλικιακά τμήματα και οι τοποθεσίες δεν έχουν δημοσιευτεί ακόμη.</p>
@@ -144,7 +173,7 @@
     </div>
     {#if !academyStats}<p class="public-empty">Τα επίσημα στατιστικά της Ακαδημίας δεν έχουν δημοσιευτεί ακόμη.</p>{/if}
   </section>
-  {#if !data.available}<Unavailable />{:else}<section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
+  {#if !data.available}<Unavailable />{:else}<section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if academyFixtures.length}<Fixtures fixtures={academyFixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
   <section class="academy-enquiry public-section" data-testid="academy-enquiry-section">
     <div><p class="public-eyebrow">ΕΝΔΙΑΦΕΡΕΣΑΙ;</p><h2>ΔΟΚΙΜΑΣΤΙΚΑ & ΕΓΓΡΑΦΕΣ</h2>
       <p>Γνώρισε από κοντά τη Λευτεριά FC Academy και το προπονητικό της περιβάλλον. Δες τις διαθέσιμες πληροφορίες εγγραφής ή επικοινώνησε με τον σύλλογο για το πρόγραμμα του παιδιού σου.</p>
@@ -337,6 +366,53 @@
   .academy-age-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #3c3429;padding-bottom:12px}
   .academy-age-heading h2{font:900 clamp(21px,1.8vw,29px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
   .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:#ffcb4a;font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
+  .academy-landing-city-index{
+    display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+    padding:14px 0 5px;margin:0;
+  }
+  .academy-landing-city-index a{
+    display:inline-flex;align-items:center;min-height:44px;padding:10px 16px;
+    border:1px solid #876b38;border-radius:0 8px 0 5px;
+    background:linear-gradient(140deg,#242117,#141515);color:#f9d68d;
+    font:800 14px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    text-decoration:none;
+  }
+  .academy-landing-city-index a:is(:hover,:focus-visible){
+    color:#080909;background:#f6bb38;border-color:#f6bb38;
+  }
+  .academy-landing-city-index a:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .academy-city-block{padding:8px 0 12px;border-bottom:1px solid #34322b;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-city-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .academy-city-heading a{
+    display:inline-flex;align-items:center;gap:7px;min-height:44px;
+    color:#f6bb38;font:800 13px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    text-decoration:none;
+  }
+  .academy-city-heading a:is(:hover,:focus-visible){color:#fff;text-decoration:underline;text-underline-offset:3px}
+  .academy-city-heading a:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  .academy-city-label{scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-location-block{padding:10px 0 6px;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
+  .academy-location-block>h4{
+    display:flex;gap:8px;align-items:center;
+    font:800 17px/1.3 'Fira Sans Extra Condensed',sans-serif;
+    color:#f3f2ed;margin:0 0 11px;
+  }
+  .academy-location-block>h4::before{
+    content:"";width:4px;height:1.05em;flex:none;
+    transform:skew(-16deg);background:#f6bb38;
+  }
+  .academy-age-card:focus-within{border-color:#f6bb38;box-shadow:0 0 0 1px #f6bb38}
+  .academy-age-card :is(a,summary):focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .academy-unassigned-block{
+    padding:20px 18px;margin:18px 0 4px;
+    background:linear-gradient(130deg,#1e1a14,#111313);
+    border:1px solid #8c7549;border-left:4px solid #f6bb38;
+  }
+  .academy-unassigned-block h3{
+    margin:0 0 8px;color:#f6bb38;
+    font:800 clamp(21px,2vw,29px)/1.16 'Fira Sans Extra Condensed',sans-serif;
+  }
+  .academy-unassigned-block>p{font-size:13px;line-height:1.6;color:#ded8cc;max-width:75ch;margin:0 0 16px}
   .academy-city-block{margin-top:12px}
   .academy-city-label{font:800 14px 'Fira Sans Extra Condensed',sans-serif;color:#f5b835;margin:0 0 9px}
   .academy-location-block{margin:0 0 10px}
@@ -393,6 +469,14 @@
     .academy-program-facts{grid-template-columns:1fr;gap:9px}
     .academy-program-facts>div{padding:8px 0;border-left:0;border-top:1px solid #444}
     .academy-age-groups{padding:20px 16px}
+    .academy-landing-city-index{
+      flex-wrap:nowrap;overflow-x:auto;padding:12px 1px;
+      scrollbar-width:thin;overscroll-behavior-inline:contain;
+      scroll-padding-inline:12px;
+    }
+    .academy-landing-city-index a{flex:none}
+    .academy-city-heading{align-items:flex-start}
+    .academy-unassigned-block{padding:18px 14px;margin-inline:0}
     .academy-age-grid{grid-template-columns:1fr}
     .academy-age-heading{align-items:flex-start;flex-direction:column}
     .academy-age-card{min-height:170px}

@@ -400,6 +400,22 @@ try {
             failures.push(route.path+' '+viewport.name+': measured original heading '+originalSize+'px vs '+publicFont.headlineSize+'px');
         }
       }
+      // Public footer navigation is contextual: Academy pages cannot inherit
+      // the First Team's single-city banner or links to its roster/results.
+      if(route.name === 'academy' || route.name === 'first-team'){
+        const footer = page.getByTestId('footer');
+        const footerScope = await footer.getAttribute('data-organization');
+        const bannerLabel = (await page.getByTestId('public-city-banner').locator('strong').innerText()).trim();
+        if(route.name === 'academy'){
+          if(footerScope !== 'lefteria_fc_academy' || bannerLabel !== 'ΑΚΑΔΗΜΙΑ' ||
+              await page.getByTestId('footer-nav-team').count() !== 0 ||
+              await page.getByTestId('footer-nav-groups').count() !== 1)
+            failures.push('Academy: footer must keep verified Academy city/link scope '+JSON.stringify({footerScope,bannerLabel}));
+        }else if(footerScope !== 'lefteria_fc' || bannerLabel !== 'ΛΕΜΕΣΟΣ' ||
+            await page.getByTestId('footer-nav-team').count() !== 1){
+          failures.push('First Team: footer must keep First Team navigation '+JSON.stringify({footerScope,bannerLabel}));
+        }
+      }
       const metrics = await page.evaluate(() => ({
         scrollWidth:document.documentElement.scrollWidth,
         clientWidth:document.documentElement.clientWidth,
@@ -411,7 +427,7 @@ try {
       // that bounds alone establish photographic/pixel parity.
       let referenceLayout = null;
       if (viewport.name === 'reference' &&
-          ['admin-login','app-login','academy-registration','home','contact'].includes(route.name)) {
+          ['admin-login','app-login','academy-registration','home','contact','first-team'].includes(route.name)) {
         referenceLayout = await page.evaluate(kind => {
           const rect = selector => {
             const element = document.querySelector(selector);
@@ -441,16 +457,20 @@ try {
             hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
             publicRail:rect('.public-rail'),
             publicTopbar:rect('.public-header'),
+            homeFixture:rect('[data-testid="public-hero-fixture"]'),
             homeTiles:rect('[data-testid="public-destinations"]'),
             homeMotto:rect('[data-testid="home-brand-interval"]'),
-            homeNews:rect('[data-testid="public-home-news"]')
+            homeNews:rect('[data-testid="public-home-news"]'),
+            teamHeading:rect('.team-heading:not(.matches-reference-heading)'),
+            teamCover:rect('[data-testid="team-heading-photo"]'),
+            teamTabs:rect('.team-heading .team-tabs')
           };
           if (kind === 'app-login') result.roleButtons =
             document.querySelectorAll('.login-audience-grid button').length;
           return result;
         },route.name);
         if (route.name==='home') {
-          const {hero,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
             homeMotto:motto,homeNews:news}=referenceLayout;
           if(!hero||!rail||!top||!tiles||!motto||!news){
             failures.push('home 1672×941: one or more reference sections are missing');
@@ -463,12 +483,27 @@ try {
               failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
-            if(motto.y<tiles.bottom-2||motto.y>tiles.bottom+12)
-              failures.push('home: reference black motto interval is not after the four image tiles');
-            if(news.y<900)
-              failures.push('home: preserve actual CMS news below the reference fold, not above the 941px screenshot');
+            if(!fixture || fixture.width<300 || fixture.height<200)
+              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition '+JSON.stringify(fixture));
+            if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
+              failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
+            if(motto.y<news.bottom-2||motto.y>news.bottom+32)
+              failures.push('home: compact club motto should immediately follow CMS news');
+            if(news.y>900)
+              failures.push('home: CMS news must be visible above the desktop reference fold');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
+          }
+        }
+        if (route.name==='first-team') {
+          const {teamHeading,teamCover,teamTabs}=referenceLayout;
+          if(!teamHeading||!teamCover||!teamTabs ||
+            teamHeading.height<320 ||
+            teamCover.height<teamHeading.height-2 ||
+            teamCover.width<teamHeading.width-2 ||
+            teamTabs.height<44 ||
+            teamTabs.bottom>teamHeading.bottom+4) {
+            failures.push('first-team: photographic club hero and working tabs are not aligned '+JSON.stringify({teamHeading,teamCover,teamTabs}));
           }
         }
         if (route.name==='admin-login') {

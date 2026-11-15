@@ -17,6 +17,12 @@
   const navigation: [TeamTab, string][] = [['overview','Η ΟΜΑΔΑ'],['roster','ΡΟΣΤΕΡ'],['staff','ΕΠΙΤΕΛΕΙΟ'],['schedule','ΠΡΟΓΡΑΜΜΑ'],['results','ΑΠΟΤΕΛΕΣΜΑΤΑ'],['statistics','ΣΤΑΤΙΣΤΙΚΑ'],['gallery','ΓΚΑΛΕΡΙ'],['venues','ΓΗΠΕΔΑ']];
   const title = $derived(navigation.find(([id]) => id === data.tab)?.[1] ?? 'Η ΟΜΑΔΑ');
   const selectedTeam = $derived((data.site?.teams ?? []).find(team => team.id === data.selectedTeamId));
+  // Only a verified club team may contribute its own public hero image.
+  // A neutral pitch is the safe fallback when no club banner is published.
+  const teamHeadingPhoto = $derived(
+    (selectedTeam?.organization_id === 'lefteria_fc' ? selectedTeam.banner_url : null) ||
+    data.site?.club?.stadium_image_url || publicImages.pitch);
+
   const teamsCount = $derived((data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc').length);
   // The legacy standings projection is First-Team-only. Do not present it
   // as Women's/Selected Team standings without an authoritative team scope.
@@ -82,6 +88,9 @@
             <nav class="public-subnav team-tabs" aria-label="Ενότητες ομάδας">{#each navigation as [id,label]}<a href={withTeam(id === 'overview' ? '/team' : '/team?tab='+id)} aria-current={data.tab === id ? 'page' : undefined}>{label}</a>{/each}</nav>
       </details>
     {:else}
+      <div class="team-heading-photo" aria-hidden="true" data-testid="team-heading-photo">
+        <PublicImage src={teamHeadingPhoto} alt="" eager />
+      </div>
       <p class="public-eyebrow">ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ. Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</p>
       <h1>{selectedTeam?.name ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'}</h1>
           {#if teamsCount > 1}

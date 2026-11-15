@@ -23,7 +23,8 @@ BEGIN
       RAISE EXCEPTION 'Finance function missing: %',fn;
     END IF;
     SELECT pg_catalog.pg_get_functiondef(fn_oid) INTO fn_def;
-    IF position('v_role NOT IN (''accountant'',''super_admin'')' IN fn_def)=0
+    IF position('v_role<>''super_admin''' IN fn_def)=0
+      OR position('v_role NOT IN (''accountant'',''super_admin'')' IN fn_def)>0
       OR position('v_role NOT IN (''manager'',''super_admin'')' IN fn_def)>0
     THEN RAISE EXCEPTION 'Global finance role boundary missing: %',fn; END IF;
     IF NOT (SELECT p.prosecdef FROM pg_catalog.pg_proc p WHERE p.oid=fn_oid)
