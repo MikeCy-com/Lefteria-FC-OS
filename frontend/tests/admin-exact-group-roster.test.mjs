@@ -16,7 +16,9 @@ const checks=read('ops/postgres/web-admin-auth-permissions-check.sql');
 test('all group player views are exact paged Academy or First Team groups from canonical database',()=>{
   for(const m of ['club.teams g','club.academy_groups g','club.player_academy_groups m',
     'p.primary_academy_group_id=_group','m.academy_group_id=_group','p.team_id=_group',
-    'identity.lock_admin_club_authority(_digest,_owner)','FOR UPDATE']){
+    'identity.lock_admin_club_authority(_digest,_owner)','club.admin_football_allowed',
+    'club.football_operational_scopes','club.academy_group_location_assignments',
+    'v_actor,v_role,_owner,v_scope,v_location,false','jsonb_build_array(_group)']){
     if(m==='FOR UPDATE')continue;
     assert.ok(sql.includes(m),m);
   }
@@ -29,6 +31,8 @@ test('all group player views are exact paged Academy or First Team groups from c
   assert.doesNotMatch(sql,/SELECT .*parent_phone|guardian_phone|birth_date|UPDATE club\.players/);
   assert.match(probe,/f\.pronargs<>5/);
   assert.match(probe,/p\.team_id=_group/);
+  assert.match(probe,/v_actor,v_role,_owner,v_scope,v_location,false/);
+  assert.match(probe,/jsonb_build_array\(_group\)/);
   assert.match(probe,/has_any_column_privilege\(admin_role,c\.oid/);
   assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_admin_group_roster/);
   assert.match(checks,/admin-group-roster-boundary\.sql/);
