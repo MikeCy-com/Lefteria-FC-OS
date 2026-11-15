@@ -8,13 +8,19 @@
     payment_request_id:string|null;payment_status:string;checkout_url:string|null;
     sms_status:'reserved'|'accepted'|'unknown'|null;
   };
-  let { owner,configured,canWrite,sessionId }:{
-    owner:string|null;configured:boolean;canWrite:boolean;sessionId:string
+  let { owner,configured,canWrite,sessionId,focusPlayerId='' }:{
+    owner:string|null;configured:boolean;canWrite:boolean;sessionId:string;focusPlayerId?:string
   }=$props();
   type RosterPlayer={id:string;name:string};
   let rosterPlayers=$state<RosterPlayer[]>([]);
   let rosterError=$state(false);
   let fees=$state<Fee[]>([]);
+  // URL selection never fetches extra data or grants access. Filter only
+  // server-verified fees already authorized for the Academy finance reader.
+  const focus = $derived(/^[^\\x00-\\x1f\\x7f]{1,128}$/.test(focusPlayerId) ? focusPlayerId : '');
+  const visibleFees = $derived(focus ? fees.filter(f=>f.player_id===focus) : fees);
+  const focusName = $derived(fees.find(f=>f.player_id===focus)?.child_name ??
+    rosterPlayers.find(p=>p.id===focus)?.name ?? 'Επιλεγμένος παίκτης');
   let status=$state<'idle'|'loading'|'ready'|'error'>('idle');
   let pending=$state(false);
   let message=$state('');
@@ -260,6 +266,13 @@
 {#if owner==='lefteria_fc_academy'}
   <section class="admin-panel academy-fees" data-testid="academy-issued-training-fees">
     <h2>Μηνιαίες χρεώσεις Ακαδημίας · ανά παιδί</h2>
+    {#if focus}
+      <div class="fee-player-context" data-testid="admin-fee-player-context">
+        <strong>Χρεώσεις: {focusName}</strong>
+        <span>{visibleFees.length} {visibleFees.length===1?'χρέωση':'χρεώσεις'}</span>
+        <a href="/admin/finance?organization_id=lefteria_fc_academy">Όλες οι χρεώσεις της Ακαδημίας ↗</a>
+      </div>
+    {/if}
     <p>Εκδίδετε μόνο τους μήνες που επιλέγετε. Δεν δημιουργούνται αυτόματα 12 χρεώσεις.
       Κάθε μήνας αντιστοιχίζεται στον επαληθευμένο γονέα και στο συγκεκριμένο παιδί.</p>
     {#if canWrite}
@@ -298,10 +311,10 @@
     {#if status==='loading'}<p role="status">Ανάκτηση χρεώσεων Ακαδημίας…</p>
     {:else if status==='error'}<p role="alert">{message}</p>
     {:else if status==='ready'}
-      {#if fees.length===0}<p>Δεν υπάρχουν χρεώσεις μήνα για την Ακαδημία.</p>
+      {#if visibleFees.length===0}<p>{focus?'Δεν υπάρχουν καταχωρισμένες χρεώσεις για αυτόν τον παίκτη.':'Δεν υπάρχουν χρεώσεις μήνα για την Ακαδημία.'}</p>
       {:else}
         <ul class="fee-list">
-        {#each fees as fee (fee.id)}
+        {#each visibleFees as fee (fee.id)}
           <li>
             <label class="fee-choice"><input type="checkbox"
               checked={selectedInvoiceIds.includes(fee.id)}
@@ -369,6 +382,11 @@
 
 <style>
   .academy-fees{margin-top:18px}
+  .fee-player-context{display:flex;gap:12px;flex-wrap:wrap;align-items:center;
+    margin:16px 0;padding:13px;border:1px solid #937538;border-radius:7px;background:#f6bb3810}
+  .fee-player-context strong{font-size:17px;color:#ffca46}
+  .fee-player-context span{color:#ddd;font-size:13px}
+  .fee-player-context a{margin-left:auto;color:#ffca46;font-weight:700;min-height:44px;display:inline-flex;align-items:center}
   .fee-form{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;max-width:34rem;margin:20px 0}
   .fee-form label{font-size:14px;font-weight:650}
   .fee-form input{padding:11px 13px;background:var(--surface,#fff);color:inherit;

@@ -385,6 +385,8 @@
               <AdminRosterPlayersPanel owner={organization as Organization}
                 actorId={$auth.session.user.id} groups={directory.groups}
                 allowPrivate={['manager','super_admin'].includes($auth.session.user.role)}
+                allowFinance={organization === 'lefteria_fc_academy' &&
+                  hasAdminPermission($auth.session.user.permissions,'finance:read')}
                 allowEvaluationWrite={['manager','super_admin'].includes($auth.session.user.role)&&
                   hasAdminPermission($auth.session.user.permissions,
                     organization==='lefteria_fc'?'teams:write':'academy:write')}

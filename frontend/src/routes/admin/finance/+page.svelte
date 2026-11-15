@@ -1,6 +1,7 @@
 <script lang="ts">
   import { getContext } from 'svelte';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -85,7 +86,9 @@
     if (browser && $auth.status === 'anonymous') void goto('/admin/login', { replace: true });
   });
   $effect(() => {
-    const selected = scopedAdminOrganization($auth.session?.user ?? null, organizations.map(org => org.id));
+    const requested = page.url.searchParams.get('organization_id');
+    const authorized = organizations.find(org => org.id === requested);
+    const selected = authorized?.id ?? scopedAdminOrganization($auth.session?.user ?? null, organizations.map(org => org.id));
     if (owner !== selected) owner = selected;
   });
   $effect(() => {
@@ -245,7 +248,8 @@
         {/if}
         {#if owner === 'lefteria_fc_academy'}
           <AdminTrainingFees {owner} configured={status.configured}
-            canWrite={!!canWrite} sessionId={$auth.session.user.id} />
+            canWrite={!!canWrite} sessionId={$auth.session.user.id}
+            focusPlayerId={page.url.searchParams.get('player_id') ?? ''} />
         {/if}
         <section class="admin-panel" data-testid="payabl-payment-ledger">
           <h2>Ιστορικό αιτημάτων · {owner}</h2>

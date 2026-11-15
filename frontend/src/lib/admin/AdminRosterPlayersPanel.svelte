@@ -7,8 +7,8 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;
+  let {owner,actorId,groups,allowPrivate,allowEvaluationWrite,allowFinance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
 
@@ -204,6 +204,11 @@
             <strong>{player.name}</strong>
             <div class="admin-player-actions">
               <span>{groupLabels(player)}</span>
+              {#if allowFinance && owner === 'lefteria_fc_academy'}
+                <a class="admin-player-finance-link"
+                  href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
+                  data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
+              {/if}
               {#if allowPrivate && currentGroups(player).length>0}
                 <button type="button" class="admin-secondary"
                   aria-expanded={inspectedPlayer===player.id}
@@ -267,6 +272,11 @@
 
 <style>
   .admin-player-directory{margin:16px 0}
+  .admin-player-finance-link{display:inline-flex;align-items:center;min-height:44px;
+    padding:9px 13px;border:1px solid #99702f;border-radius:7px;
+    color:#ffca46;font-size:13px;font-weight:700}
+  .admin-player-finance-link:hover{background:#f6bb3820;border-color:#ffca46}
+  .admin-player-finance-link:focus-visible{outline:2px solid #ffca46;outline-offset:3px}
   .admin-player-heading{display:flex;align-items:start;justify-content:space-between;flex-wrap:wrap;gap:12px}
   .admin-player-heading h2{margin:0 0 7px}
   .admin-player-heading .admin-muted{margin:0;max-width:80ch}
