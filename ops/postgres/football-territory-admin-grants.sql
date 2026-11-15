@@ -33,7 +33,8 @@ BEGIN
     IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE p.oid=f
       AND p.prosecdef AND p.proowner=(
         SELECT relowner FROM pg_class WHERE oid='club.football_cities'::regclass)
-      AND 'search_path=pg_catalog,pg_temp'=ANY(p.proconfig))
+      AND EXISTS(SELECT 1 FROM unnest(coalesce(p.proconfig,ARRAY[]::text[])) AS conf(entry)
+        WHERE regexp_replace(conf.entry,'[[:space:]]','','g')='search_path=pg_catalog,pg_temp'))
       OR EXISTS(SELECT 1 FROM pg_proc p,
         LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
         WHERE p.oid=f AND acl.grantee=0 AND acl.privilege_type='EXECUTE')
