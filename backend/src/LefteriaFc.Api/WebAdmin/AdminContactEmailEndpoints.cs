@@ -66,10 +66,10 @@ public static class AdminContactEmailEndpoints
             var email=request.Email?.Trim().ToLowerInvariant();
             if(email is null || email.Length is <5 or >254 ||
                 !ContactFormat.IsMatch(email) || email.Contains("..",StringComparison.Ordinal) ||
-                email.StartsWith('.',StringComparison.Ordinal) ||
-                email.Split('@')[0].EndsWith('.',StringComparison.Ordinal) ||
-                email.Split('@')[1].Split('.').Any(s=>s.Length<1||s.StartsWith('-',StringComparison.Ordinal)||
-                    s.EndsWith('-',StringComparison.Ordinal)))
+                email.StartsWith(".",StringComparison.Ordinal) ||
+                email.Split('@')[0].EndsWith(".",StringComparison.Ordinal) ||
+                email.Split('@')[1].Split('.').Any(s=>s.Length<1||s.StartsWith("-",StringComparison.Ordinal)||
+                    s.EndsWith("-",StringComparison.Ordinal)))
                 throw new WebAdminException(422,"invalid_contact_email",
                     "Enter a valid contact email address.");
             var cookie=context.Request.Cookies[WebAdminServices.CookieName];
