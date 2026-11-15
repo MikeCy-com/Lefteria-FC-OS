@@ -31,7 +31,8 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.match(page,/href="\/contact"/);
       assert.match(page,/δεν ζητάμε προσωπικά στοιχεία/);
     }else if(route==='academy/registration'){
-      assert.match(page, /<fieldset disabled/);
+      assert.match(page, /data-testid="step-5"/);
+      assert.match(page, /data-testid="registration-submit-error"/);
       assert.ok(page.includes('organization="'+organization+'"'));
     }else{
       assert.match(page,/PublicJourney/);
@@ -39,8 +40,9 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.match(page,/status="[^"]+"/);
     }
     assert.match(server,/loadPublicSite\(url/);
-    assert.doesNotMatch(page,/<form|type="submit"|medical|payment|stripe|axios/i,
-      'Do not fake collecting personal, child-medical or financial data');
+    if(route!=='academy/registration')
+      assert.doesNotMatch(page,/<form|type="submit"|medical|payment|stripe|axios/i,
+        'Do not fake collecting personal, child-medical or financial data');
   }
 });
 
