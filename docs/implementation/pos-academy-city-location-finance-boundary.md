@@ -77,14 +77,28 @@ sequence for one location. Operator assignment adds or revokes an explicit
 `pos_cashier.cashier_assignments` row, after checking the subject's current
 organization and canonical location/city manager grant.
 
-**Important limitation:** the existing cashier shift and settlement APIs
-accept authenticated manager/super-admin accounts, not a least-privilege
-standalone cashier account. This slice supports distinct **existing authorized
-manager identities** on different registers; it does not create independent
-cashier PINs, automatically grant broad manager privileges or activate the
-private `pos.operators` code-based identity table. A dedicated restricted
-cashier role/session lifecycle remains a separate required implementation
-before general operators should be onboarded.
+**Dedicated Cashier credential (development only):** A Super Admin can
+create a `cashier` role with a strong web-admin password and exactly **one**
+organization grant. A Cashier has `shop:operate` only, not `shop:read`,
+`shop:write`, `finance:read`, team, staff or administrator privileges.
+A separate terminal assignment, granted by a Super Admin, is mandatory
+before any register is visible or usable.
+
+The database serializes cashier assignments on the subject account and
+permits **one active terminal per cashier**, including across cities and
+organizations. Revoking a terminal grant or suspending the account prevents
+further authorized POS calls. An open shift must be closed and reconciled
+before its operator's terminal assignment is revoked.
+
+The cashier-only admin workspace exposes assigned register discovery and
+shift opening/closing. Server-side return review and refund request actions
+are reserved for managers. Site-level finance and invoices never become
+visible through a cashier credential.
+
+The existing `pos.operators` code/PIN records remain **inactive** and are not
+silently substituted for fully authenticated named cashier accounts. Checkout
+and cash/card settlement still require explicitly approved grants, merchant
+and fiscal configuration; this update does **not** activate live sales.
 
 ## Verification and release blockers
 
