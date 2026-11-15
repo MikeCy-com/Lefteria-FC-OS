@@ -188,6 +188,8 @@ internal sealed partial class WebAdminHttpChecks
         var session=await LoginAsync(client,manager);
         var audience=await database.SeedAudienceAsync();
         var sites=await database.SeedAnnouncementTerritoriesAsync(audience,manager);
+        await database.DiagnoseFixtureFirstTeamProfileScopeAsync(
+            manager,audience.Team1,sites.FirstTeamScope);
         var fcOwn="/api/admin/football/first-team-profiles/"+audience.Team1+
             "?organization_id=lefteria_fc";
         var fcOther="/api/admin/football/first-team-profiles/"+audience.Team2+
