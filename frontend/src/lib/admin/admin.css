@@ -594,3 +594,8 @@
 @media (max-width:720px) {
   .admin-app .admin-sidebar .admin-nav-section {font-size:17px; font-weight:800}
 }
+
+/* Compact shared admin navigation and personal account entry. */
+.admin-app .admin-sidebar a{padding-top:7px;padding-bottom:7px;line-height:1.25}
+.admin-app .admin-profile-link{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:4px 10px;border:1px solid #343638;border-radius:999px;text-decoration:none;font-size:12px}
+.admin-app .admin-profile-avatar{display:grid;place-items:center;width:27px;height:27px;border-radius:50%;background:#302311;color:#ffca46;font-weight:700}
