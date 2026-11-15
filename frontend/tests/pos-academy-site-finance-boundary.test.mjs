@@ -52,6 +52,7 @@ test('super admin provisions terminals with distinct existing accounts and exact
   assert.match(terminals,/CREATE FUNCTION pos_cashier\.create_admin_terminal/);
   assert.match(terminals,/CREATE FUNCTION pos_cashier\.set_admin_terminal_operator/);
   assert.match(terminals,/pos_operator_location_grant_required/);
+  assert.match(terminals,/pos_operator_open_shift_must_close/);
   assert.match(terminals,/club\.admin_football_allowed\(/);
   assert.match(terminals,/pos_cashier\.cashier_assignments/);
   assert.match(terminals,/v_subject_role NOT IN \('manager','super_admin'\)/);
