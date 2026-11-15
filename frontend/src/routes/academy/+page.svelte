@@ -14,6 +14,15 @@
     data.site?.academy_groups.find(group=>group.organization_id==='lefteria_fc_academy'&&group.banner_url)?.banner_url
     || publicImages.hero);
   const academyStats = $derived(data.sections?.academy_stats?.organization_id === 'lefteria_fc_academy' ? data.sections.academy_stats : null);
+  // The public sections endpoint is already publication-allowlisted. Do not
+  // fetch private CRM reviews, invent aggregate ratings, or borrow club reviews.
+  const academyReviews = $derived((data.sections?.reviews ?? [])
+    .filter(row => row.organization_id === 'lefteria_fc_academy' && Number.isInteger(row.rating) && row.rating >= 1 && row.rating <= 5)
+    .toSorted((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? '') || a.id.localeCompare(b.id)));
+  const averageRating = $derived(academyReviews.length
+    ? new Intl.NumberFormat('el-GR',{maximumFractionDigits:1}).format(
+        academyReviews.reduce((sum,row)=>sum+row.rating,0)/academyReviews.length)
+    : null);
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
     { href: '/academy/groups', icon: 'users', title: 'ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ', description: 'Βρες το τμήμα που ταιριάζει στο παιδί σου και δες το πρόγραμμα προπονήσεών του.' },
@@ -66,6 +75,33 @@
       <a class="public-button public-button-outline" href="/contact">ΡΩΤΗΣΕ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
   </section>
   <OrganizationSponsorStrip organization="lefteria_fc_academy" sponsors={data.sections?.sponsors ?? []} />
+  {#if academyReviews.length}
+    <section class="public-section academy-public-reviews" data-testid="academy-public-reviews"
+      aria-labelledby="academy-reviews-heading">
+      <div class="academy-reviews-heading">
+        <div><p class="public-eyebrow">ΟΙ ΑΝΘΡΩΠΟΙ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p>
+          <h2 id="academy-reviews-heading">ΤΙ ΛΕΝΕ ΟΙ ΓΟΝΕΙΣ & ΑΘΛΗΤΕΣ</h2>
+          <p>Δημοσιευμένες αξιολογήσεις της Ακαδημίας</p></div>
+        <div class="academy-reviews-summary" data-testid="academy-published-rating-summary">
+          <strong>{averageRating}/5</strong><span>{academyReviews.length} δημοσιευμένες {academyReviews.length === 1 ? 'αξιολόγηση' : 'αξιολογήσεις'}</span>
+        </div>
+      </div>
+      <div class="academy-review-grid">
+        {#each academyReviews.slice(0,3) as review (review.id)}
+          <blockquote class="academy-review-card">
+            <div class="academy-review-stars">
+              <span aria-hidden="true">{'★'.repeat(review.rating)}{'☆'.repeat(5-review.rating)}</span>
+              <span class="sr-only">Βαθμολογία {review.rating} από 5</span>
+            </div>
+            {#if review.title}<h3>{review.title}</h3>{/if}
+            <p class="academy-review-body">{review.body}</p>
+            <footer><strong>{review.author_name}</strong>{#if review.author_role}<span>{review.author_role}</span>{/if}</footer>
+            {#if review.response}<div class="academy-review-response"><strong>ΑΠΑΝΤΗΣΗ ΑΚΑΔΗΜΙΑΣ</strong><p>{review.response}</p></div>{/if}
+          </blockquote>
+        {/each}
+      </div>
+    </section>
+  {/if}
 </PublicShell>
 
 
@@ -142,6 +178,26 @@
     :global(.public-site[data-route="/academy"]) .academy-intro-copy{padding-bottom:25px;}
   }
 
+  .academy-public-reviews{background:#0a0a0a;border-top:1px solid #65501f}
+  .academy-reviews-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:28px}
+  .academy-reviews-heading h2{font:900 clamp(29px,3vw,48px)/1.1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-reviews-heading p:not(.public-eyebrow){color:#bdbdbd;margin-top:8px}
+  .academy-reviews-summary{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+  .academy-reviews-summary strong{font:900 36px/1 'Fira Sans Extra Condensed',sans-serif;color:#ffce65}
+  .academy-reviews-summary span{color:#bdbdbd;font-size:12px}
+  .academy-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+  .academy-review-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:27px 24px;margin:0;background:#181818;border:1px solid #5e4d2d}
+  .academy-review-stars{color:#ffca57;font-size:23px;letter-spacing:.06em}
+  .academy-review-card h3{font:800 24px/1.15 'Fira Sans Extra Condensed',sans-serif}
+  .academy-review-body{font-size:15px;line-height:1.7;color:#ececec;overflow-wrap:anywhere}
+  .academy-review-card footer{margin-top:auto;border-top:1px solid #444;padding-top:14px;display:flex;flex-direction:column;gap:5px}
+  .academy-review-card footer strong{color:#fff;font-size:14px}
+  .academy-review-card footer span{color:#bbb;font-size:12px}
+  .academy-review-response{padding:14px;background:#101010;border-left:3px solid #e5b94e}
+  .academy-review-response strong{font-size:11px;letter-spacing:.05em;color:#f6bb38}
+  .academy-review-response p{margin-top:6px;color:#ccc;font-size:13px;line-height:1.6}
+  @media(max-width:1000px){.academy-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:650px){.academy-review-grid{grid-template-columns:1fr}.academy-reviews-heading{align-items:flex-start;flex-direction:column}.academy-reviews-summary{align-items:flex-start}.academy-review-card{padding:21px 18px}}
   .academy-key-figures{background:#090a0b;border-block:1px solid #3c3528}
   .academy-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
   .academy-stats-grid>div{padding:25px 15px;border-left:2px solid #c99732;background:#151515;display:flex;flex-direction:column;gap:7px}
