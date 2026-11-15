@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -22,6 +22,7 @@ interface Section {
 }
 const catalog: readonly Section[] = [
   { id: 'website', name: 'Ιστοσελίδα', description: 'Δημόσια παρουσία, περιεχόμενο και ταυτότητα συλλόγου.', modules: [
+    { id: 'pages', name: 'Σελίδες · Visual Builder', description: 'Δημιουργία σελίδων, οπτική προεπισκόπηση, διάταξη μενού και δημοσίευση με έγκριση ανά οργανισμό.', status: 'live', href: '/admin/website-pages', scope: 'any', anyPermission: ['news:read'] },
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
     { id: 'news', name: 'Άρθρα & νέα', description: 'Επεξεργασία δημοσιευμένων άρθρων και ιδιωτικά πρόχειρα ανά οργανισμό. Νέα δημοσίευση και έγκριση εκκρεμούν.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
     { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
