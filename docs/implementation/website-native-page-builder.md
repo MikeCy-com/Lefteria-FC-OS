@@ -91,3 +91,15 @@ Shared root, club/news/events/shop/contact slots retain their existing
 organization-specific pages. Incompatible pre-existing snapshots remain
 available through their direct scoped URL but cannot appear in the wrong
 organization's public menu until corrected and republished.
+
+## Accessible native block arrangement
+
+The CMS editor now provides an explicit drag handle for pointer-based block
+reordering, alongside the existing keyboard/mobile **up and down** controls.
+Dropping uses an in-session index only (never arbitrary external drag payloads)
+and is disabled for read-only users, homepage hero slots, and in-flight saves.
+Blocks can also be duplicated with one click, preserving text/URLs while
+respecting the 40-block content limit; all changes remain private drafts until
+separately saved and approved. Editor movement and duplication are pure,
+nonmutating operations with automated boundary tests. No untrusted HTML,
+plugins, or media uploads are introduced by this improvement.
