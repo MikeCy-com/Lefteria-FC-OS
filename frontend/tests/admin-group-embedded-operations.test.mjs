@@ -24,7 +24,7 @@ test('all five operations live inside selected group instead of five global menu
     'AdminGroupPublishedFixtures','AdminGroupMatchDraftPanel','AdminRosterPlayersPanel',
     'AdminFirstTeamProfilePanel','AdminAcademyGroupProfilePanel','AdminCoachDirectoryPanel'])
     assert.match(workspace,new RegExp('<'+tag+'\\b'));
-  assert.match(workspace,/\{#key organization\+':'+group\.id/);
+  assert.ok(workspace.includes("{#key organization+':'+group.id"));
   assert.match(workspace,/groupId=\{group\.id\}/);
   assert.match(workspace,/groups=\{\[group\]\}/);
   assert.match(workspace,/from=\{range\.start\} to=\{range\.end\}/);
@@ -41,10 +41,10 @@ test('attendance write belongs to selected group, event and actual player and ve
   assert.match(attendance,/x\.event_id===id/);
   assert.match(attendance,/x\.players\.every/);
   assert.match(attendance,/validRegister\(raw,selected\)/);
-  assert.match(attendance,/canWrite&&/);
+  assert.match(attendance,/!canWrite/);
   assert.match(attendance,/register\?\.writable/);
   assert.match(attendance,/expected_version:version/);
-  assert.match(attendance,/status===409/);
+  assert.match(attendance,/res\.status===409/);
   assert.match(attendance,/x\.event_id!==event\|\|x\.player_id!==row\.player_id/);
   assert.match(attendance,/RSVP/);
   assert.match(attendance,/δεν υποκαθιστά την πραγματική παρουσία/);
