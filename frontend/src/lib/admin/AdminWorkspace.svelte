@@ -22,6 +22,7 @@
     {id:'announcements',label:'Ανακοινώσεις εφαρμογής',description:'Δημοσίευση ανά ομάδα και παρακολούθηση ανάγνωσης',href:'/admin/announcements'},
     {id:'registrations',label:'Γραμματεία Ακαδημίας',description:'Αιτήσεις εγγραφής, γονείς και αιτήματα',href:'/admin/academy-office'},
     {id:'news',label:'Άρθρα & νέα',description:'Περιεχόμενο και δημοσιευμένα νέα ανά οργανισμό',href:'/admin/news'},
+    {id:'pages',label:'Σελίδες · Visual Builder',description:'Νέες σελίδες, περιεχόμενο, μενού και προεπισκόπηση',href:'/admin/website-pages'},
     {id:'hub_editorial',label:'HUB · Εγκρίσεις περιεχομένου',description:'Ελεγχόμενα πρόχειρα και ανθρώπινη έγκριση',href:'/admin/hub'},
     {id:'payabl',label:'Οικονομικά Ακαδημίας',description:'Τιμολόγια, εισπράξεις και δοκιμαστικό payabl.',href:'/admin/finance'},
     {id:'staff',label:'Προσωπικό & προπονητές',description:'Αναθέσεις σε πραγματικές ομάδες',href:'/admin/staff'},
