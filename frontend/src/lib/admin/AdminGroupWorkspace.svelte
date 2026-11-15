@@ -45,7 +45,7 @@
   <div class="group-operation-tabs" role="group" aria-label={'Ενότητες '+group.name}
     data-testid="admin-group-tabs">
     <button type="button" aria-pressed={tab==='players'} onclick={()=>tab='players'}
-      data-testid="admin-group-players-link">Αθλητές · Αξιολογήσεις · Έγγραφα</button>
+      data-testid="admin-group-players-link">Αθλητές & ατομικοί φάκελοι</button>
     {#if canReadAttendance}
       <button type="button" aria-pressed={tab==='training'} onclick={()=>tab='training'}
         data-testid="admin-group-training-link">Προπονήσεις & πρόγραμμα</button>
@@ -69,6 +69,7 @@
         {#if canCreate}
           <AdminRosterPlayersPanel owner={organization} actorId={user.id} {groups} focusGroupId={group.id}
             allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance}
+            canReadAttendance={canReadAttendance} canWriteAttendance={canAttendanceWrite}
             allowGoalManagement={user.role==='super_admin'}
             {onExpired} {onRevoked} {onChanged}/>
         {:else}

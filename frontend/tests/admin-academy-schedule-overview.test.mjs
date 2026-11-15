@@ -37,9 +37,10 @@ test('admin schedule uses real cookie-scoped existing backend and only manager g
   assert.match(component,/\/api\/admin\/academy\/training\/\?/);
   assert.match(component,/credentials:'same-origin',cache:'no-store'/);
   assert.match(component,/onExpired|auth\.bootstrap\(\)/);
-  assert.match(catalog,/id: 'academy_schedule'/);
-  assert.match(catalog,/href: '\/admin\/schedule'/);
-  assert.match(catalog,/item\.id === 'academy_schedule' \|\| item\.id === 'attendance'/);
+  assert.doesNotMatch(catalog,/id: 'academy_schedule'/);
+  const workspace=readFileSync(new URL('../src/lib/admin/AdminGroupWorkspace.svelte',import.meta.url),'utf8');
+  assert.match(workspace,/AdminAcademyTrainingPlans/);
+  assert.match(workspace,/AdminGroupAttendancePanel/);
   assert.doesNotMatch(component,/method:'POST'|method:'DELETE'|sampleTraining|demoTraining|localStorage|playerPhone/);
   assert.ok(compile(component,{filename:'AdminAcademySchedule.svelte',generate:'server'}).js.code.length>0);
 });

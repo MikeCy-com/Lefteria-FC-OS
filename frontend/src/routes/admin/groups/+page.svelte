@@ -59,6 +59,17 @@
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
     if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
   });
+  let appliedInitialOrganization=false;
+  let openedRequestedCreate=false;
+  $effect(()=>{
+    const choices=assignments;
+    if(!browser||appliedInitialOrganization||$auth.status!=='authenticated'||!choices.length)return;
+    appliedInitialOrganization=true;
+    const requested=page.url.searchParams.get('organization_id');
+    if((requested==='lefteria_fc'||requested==='lefteria_fc_academy')&&
+      choices.some(item=>item.id===requested))organization=requested;
+  });
+
   const canCreate = $derived(
     $auth.status === 'authenticated' && $auth.session && !!organization &&
     assignments.some(org => org.id === organization) &&
@@ -189,6 +200,16 @@
     academyBanner='';academyOrder=0;
     createError = null;
   });
+  // Deep links from the work dashboard open the *real* creation form.
+  // These never grant permission: the API rechecks every write.
+  $effect(()=>{
+    const selected=organization,loaded=directory?.organization_id===selected;
+    const wantsNew=page.url.searchParams.get('new')==='1';
+    if(!browser||openedRequestedCreate||!wantsNew||!loaded||!canCreate)return;
+    openedRequestedCreate=true;
+    showCreate=true;
+  });
+
   $effect(() => {
     // An owner revoked by the server may never remain selected in the UI.
     if (!assignments.some(org => org.id === organization))
