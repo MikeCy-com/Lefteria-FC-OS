@@ -14,6 +14,14 @@ internal sealed partial class WebAdminDatabaseFixture(FixtureConfiguration fixtu
     private readonly HashSet<string> subjects = new(StringComparer.Ordinal);
     private readonly HashSet<string> buckets = new(StringComparer.Ordinal);
 
+    // Registers only an exact synthetic account created by the disposable HTTP
+    // fixture; cleanup never touches unrelated identities.
+    public void TrackManagedAccount(Guid id,string username)
+    {
+        accounts.Add(id);
+        TrackUsername(username);
+    }
+
     public void TrackUsername(string username)
     {
         var subject = factory.Fingerprint("admin-username", username);

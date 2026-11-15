@@ -126,6 +126,13 @@ REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLI
 GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO :"admin_auth_role";
+-- Super Admin creates scoped credentials only through an audited,
+-- role-checking, owner-qualified SECURITY DEFINER function.
+REVOKE ALL ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
+  TO :"admin_auth_role";
+
 GRANT EXECUTE ON FUNCTION identity.lock_admin_club_authority(text,text) TO :"admin_auth_role";
 -- The only new POS entitlement is a session/owner-checking read function.
 -- Raw products, variants, categories and sales are NEVER granted.
@@ -328,6 +335,7 @@ BEGIN
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
+                  'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
