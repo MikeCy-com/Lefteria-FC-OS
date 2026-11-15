@@ -332,3 +332,188 @@
 @media(max-width:767px) {
   .public-site .home-reference .public-hero-fixture-empty {min-height:245px;}
 }
+
+
+/* First Team editorial hero. Deliberately excludes the separate matches hub
+   and excludes Academy image assets: those remain scoped to their own routes. */
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  min-height:clamp(330px,27vw,460px);
+  padding:clamp(58px,5.1vw,95px) var(--public-page-inset) 0;
+  background:#0a0b0c;
+  border-bottom:2px solid rgb(246 187 56 / 65%);
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) .team-heading-photo {
+  position:absolute;
+  inset:0;
+  z-index:-2;
+  pointer-events:none;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) .team-heading-photo img {
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 54%;
+  filter:saturate(.78) contrast(1.07);
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) .team-heading-photo img[data-fallback="true"] {
+  width:clamp(180px,35%,440px);
+  height:75%;
+  position:absolute;
+  right:5%;
+  top:10%;
+  object-fit:contain;
+  opacity:.35;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading)::before {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0;
+  background:
+    linear-gradient(0deg,#070909 0%,rgb(7 9 9 / 85%) 18%,transparent 80%),
+    linear-gradient(95deg,#070909 0%,rgb(7 9 9 / 90%) 29%,rgb(7 9 9 / 58%) 57%,rgb(7 9 9 / 20%) 100%);
+  pointer-events:none;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading)::after {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  inset:0 20% 0 auto;
+  width:clamp(32px,7vw,110px);
+  transform:skewX(-19deg);
+  border-left:2px solid rgb(255 208 98 / 45%);
+  border-right:1px solid rgb(255 255 255 / 22%);
+  background:linear-gradient(90deg,rgb(246 187 56 / 9%),rgb(255 255 255 / 5%) 55%,transparent);
+  pointer-events:none;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .public-eyebrow {
+  position:relative;
+  font:800 clamp(15px,1.28vw,22px)/1.1 'Fira Sans Extra Condensed',sans-serif;
+  text-shadow:0 3px 18px #000;
+  margin-bottom:12px;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > h1 {
+  position:relative;
+  font:italic 900 clamp(52px,5.3vw,94px)/.95 'Fira Sans Extra Condensed',sans-serif;
+  letter-spacing:-.025em;
+  max-width:15ch;
+  text-wrap:balance;
+  text-shadow:0 4px 24px #000;
+  margin:0 0 clamp(34px,3.8vw,64px);
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .public-team-selector {
+  position:relative;
+  z-index:1;
+  margin:0 0 14px;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .team-tabs {
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:0;
+  width:100%;
+  max-width:100%;
+  min-height:56px;
+  padding:0;
+  margin:0;
+  background:rgb(8 10 10 / 84%);
+  border-top:1px solid rgb(255 255 255 / 25%);
+  border-bottom:0;
+  box-shadow:0 -8px 25px rgb(0 0 0 / 16%);
+  -webkit-overflow-scrolling:touch;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .team-tabs > a {
+  display:inline-flex;
+  align-items:center;
+  min-height:55px;
+  min-width:fit-content;
+  padding:15px clamp(13px,1.3vw,22px);
+  border-top:0;
+  border-bottom:0;
+  border-left:1px solid rgb(255 255 255 / 20%);
+  border-right:0;
+  font:800 clamp(12px,.9vw,15px)/1.15 'Fira Sans Extra Condensed',sans-serif;
+  letter-spacing:.015em;
+  white-space:nowrap;
+  text-shadow:none;
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .team-tabs > a[aria-current] {
+  background:var(--public-gold);
+  color:#070909;
+  border-color:var(--public-gold);
+}
+.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .team-tabs > a:focus-visible {
+  outline:3px solid #fff;
+  outline-offset:-4px;
+}
+@media(max-width:767px) {
+  .public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) {
+    min-height:295px;
+    padding:52px 0 0;
+  }
+  .public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > :is(.public-eyebrow,h1,.public-team-selector) {
+    margin-inline:20px;
+  }
+  .public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > h1 {
+    font-size:clamp(44px,11vw,64px);
+    margin-bottom:clamp(40px,10vw,62px);
+  }
+  .public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > .team-tabs {
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-inline:10px;
+    scroll-padding-inline:10px;
+  }
+  .public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) .team-heading-photo img {
+    object-position:62% center;
+  }
+}
+
+/* A genuine unavailable source should still look like a finished club page.
+   This state does not simulate any fixtures, statistics or player records. */
+.public-site[data-route="/team"] .public-unavailable {
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  border-top:0;
+  border-bottom:1px solid rgb(246 187 56 / 26%);
+  padding:clamp(34px,5vw,64px);
+  background:
+    radial-gradient(ellipse 40% 100% at 95% 50%,rgb(246 187 56 / 7%),transparent),
+    linear-gradient(120deg,#171819,#0a0c0d 75%);
+}
+.public-site[data-route="/team"] .public-unavailable::after {
+  content:"";
+  position:absolute;
+  z-index:-1;
+  top:-32%;
+  right:6%;
+  width:clamp(80px,18vw,280px);
+  height:160%;
+  transform:skew(-20deg);
+  border-left:1px solid rgb(246 187 56 / 17%);
+  border-right:1px solid rgb(255 255 255 / 6%);
+  background:linear-gradient(90deg,transparent,rgb(246 187 56 / 3%),transparent);
+  pointer-events:none;
+}
+.public-site[data-route="/team"] .public-unavailable h2 {
+  font:italic 900 clamp(23px,2.2vw,36px)/1.08 'Fira Sans Extra Condensed',sans-serif;
+  text-wrap:balance;
+}
+.public-site[data-route="/team"] .public-unavailable p:not(.public-eyebrow) {
+  max-width:65ch;
+  line-height:1.65;
+  color:#d0d0ce;
+}
+.public-site[data-route="/team"] .public-unavailable .public-button {
+  min-height:44px;
+  margin-top:8px;
+}
