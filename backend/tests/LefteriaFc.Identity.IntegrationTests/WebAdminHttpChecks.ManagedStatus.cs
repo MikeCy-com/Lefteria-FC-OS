@@ -49,7 +49,13 @@ internal sealed partial class WebAdminHttpChecks
         Console.WriteLine("CHECK managed status: deny other superadmin");
         using(var otherSuperAdmin=await ChangeStatusAsync(client,adminLogin.Cookie,
             new {id=limitedAdmin.Id,expectedRole="manager",expectedActive=true,active=false}))
+        {
+            var responseBody=await otherSuperAdmin.Content.ReadAsStringAsync();
+            var responseCode=System.Text.RegularExpressions.Regex.Match(responseBody,
+                "\\\"code\\\"\\s*:\\s*\\\"([a-z0-9_]+)\\\"").Groups[1].Value;
+            Console.WriteLine($"CHECK managed status: deny other superadmin HTTP {(int)otherSuperAdmin.StatusCode}, code={responseCode}");
             await ExpectJsonAsync(otherSuperAdmin,403,"managed_admin_status_denied");
+        }
         Console.WriteLine("CHECK managed status: deny scope");
         using(var limitedClient=Client())
         {
