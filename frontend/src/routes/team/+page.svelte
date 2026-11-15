@@ -7,6 +7,7 @@
   import Unavailable from '../../lib/public/Unavailable.svelte';
   import { safePublicHref } from '../../lib/public/content';
   import { personPublicLink } from '../../lib/public/public-urls';
+  import { selectTeamGallery, selectTeamVenues } from '../../lib/public/team-scope';
   import type { TeamPageData, TeamTab } from '../../lib/public/sections-types';
   let { data }: { data: TeamPageData } = $props();
   let search = $state(''); let position = $state('');
@@ -40,6 +41,10 @@
   const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR');
   const mapHref = (value: string | null | undefined) => value ? safePublicHref(value) : null;
   const filtered = $derived(players.filter(row => (!position || row.position === position) && normalize(row.name + ' ' + row.number).includes(normalize(search.trim()))));
+  const gallery = $derived(selectTeamGallery(data.sections?.gallery ?? [], players,
+    data.selectedTeamId, isSelectedFirstTeam));
+  const venues = $derived(selectTeamVenues(data.sections?.venues ?? [], fixtures,
+    data.selectedTeamId, isSelectedFirstTeam));
   const competitions = $derived([...new Set(firstTeamStandings.map(row => row.competition))]);
 </script>
 <svelte:head><title>{title} · {selectedTeam?.name ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={`${selectedTeam?.name ?? 'ΛΕΥΤΕΡΙΑ FC'} · Παίκτες, τεχνικό επιτελείο, πραγματικά στατιστικά, αγώνες και αποτελέσματα.`} /></svelte:head>
@@ -92,9 +97,9 @@
       <div class="section-heading"><h2>ΣΤΑΤΙΣΤΙΚΑ ΠΑΙΚΤΩΝ</h2></div><p class="table-description">Τα καταγεγραμμένα στοιχεία της ομάδας. Η παύλα σημαίνει ότι δεν υπάρχει καταγεγραμμένο στοιχείο.</p>
       {#if players.length}<div class="table-scroll"><table><caption class="sr-only">Στατιστικά παικτών {selectedTeam?.name ?? 'της ομάδας'}</caption><thead><tr><th scope="col">ΠΑΙΚΤΗΣ</th><th scope="col">ΣΥΜΜΕΤΟΧΕΣ</th><th scope="col">ΓΚΟΛ</th><th scope="col">ΑΣΙΣΤ</th><th scope="col">ΛΕΠΤΑ</th><th scope="col">ΚΙΤΡΙΝΕΣ</th><th scope="col">ΚΟΚΚΙΝΕΣ</th></tr></thead><tbody>{#each players as player (player.id)}<tr><th scope="row"><a href={withTeam(personPublicLink('player',player))}>{player.number} · {player.name} ↗</a></th><td>{player.statistics?.appearances ?? '—'}</td><td class="points">{player.statistics?.goals ?? '—'}</td><td>{player.statistics?.assists ?? '—'}</td><td>{player.statistics?.minutes_played ?? '—'}</td><td>{player.statistics?.yellow_cards ?? '—'}</td><td>{player.statistics?.red_cards ?? '—'}</td></tr>{/each}</tbody></table></div>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί στοιχεία παικτών.</p>{/if}
     {:else if data.tab === 'gallery'}
-      <div class="section-heading"><h2>ΣΤΙΓΜΕΣ ΤΗΣ ΟΜΑΔΑΣ</h2></div><div class="gallery-grid">{#each data.sections?.gallery ?? [] as image (image.id)}<figure><PublicImage src={image.image_url} alt={image.title} /><figcaption><p class="public-eyebrow">{image.category}</p><h3>{image.title}</h3>{#if image.description}<p>{image.description}</p>{/if}</figcaption></figure>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί φωτογραφίες.</p>{/each}</div>
+      <div class="section-heading"><h2>ΣΤΙΓΜΕΣ ΤΗΣ ΟΜΑΔΑΣ</h2></div><div class="gallery-grid">{#each gallery as image (image.id)}<figure><PublicImage src={image.image_url} alt={image.title} /><figcaption><p class="public-eyebrow">{image.category}</p><h3>{image.title}</h3>{#if image.description}<p>{image.description}</p>{/if}</figcaption></figure>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί φωτογραφίες.</p>{/each}</div>
     {:else if data.tab === 'venues'}
-      <div class="section-heading"><h2>ΤΑ ΓΗΠΕΔΑ ΜΑΣ</h2></div><div class="venue-grid">{#each data.sections?.venues ?? [] as venue (venue.id)}<article class="venue-card">{#if venue.image_url}<PublicImage src={venue.image_url} alt={venue.name} />{/if}<div><p class="public-eyebrow">{venue.is_home_ground ? 'Η ΕΔΡΑ ΜΑΣ' : 'ΓΗΠΕΔΟ'}</p><h3>{venue.name}</h3>{#if venue.address || venue.city}<p>{[venue.address,venue.city,venue.country].filter(Boolean).join(', ')}</p>{/if}<dl>{#if venue.surface}<div><dt>ΕΠΙΦΑΝΕΙΑ</dt><dd>{venue.surface}</dd></div>{/if}{#if venue.capacity !== null}<div><dt>ΧΩΡΗΤΙΚΟΤΗΤΑ</dt><dd>{venue.capacity}</dd></div>{/if}</dl>{#if mapHref(venue.map_url)}<a class="public-button public-button-outline" href={mapHref(venue.map_url)!} target="_blank" rel="noreferrer">ΧΑΡΤΗΣ ↗</a>{/if}</div></article>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί γήπεδα.</p>{/each}</div>
+      <div class="section-heading"><h2>ΤΑ ΓΗΠΕΔΑ ΜΑΣ</h2></div><div class="venue-grid">{#each venues as venue (venue.id)}<article class="venue-card">{#if venue.image_url}<PublicImage src={venue.image_url} alt={venue.name} />{/if}<div><p class="public-eyebrow">{venue.is_home_ground ? 'Η ΕΔΡΑ ΜΑΣ' : 'ΓΗΠΕΔΟ'}</p><h3>{venue.name}</h3>{#if venue.address || venue.city}<p>{[venue.address,venue.city,venue.country].filter(Boolean).join(', ')}</p>{/if}<dl>{#if venue.surface}<div><dt>ΕΠΙΦΑΝΕΙΑ</dt><dd>{venue.surface}</dd></div>{/if}{#if venue.capacity !== null}<div><dt>ΧΩΡΗΤΙΚΟΤΗΤΑ</dt><dd>{venue.capacity}</dd></div>{/if}</dl>{#if mapHref(venue.map_url)}<a class="public-button public-button-outline" href={mapHref(venue.map_url)!} target="_blank" rel="noreferrer">ΧΑΡΤΗΣ ↗</a>{/if}</div></article>{:else}<p class="public-empty">Δεν έχουν δημοσιευτεί γήπεδα.</p>{/each}</div>
     {/if}
   </section>{/if}
   {#if isSelectedFirstTeam}
