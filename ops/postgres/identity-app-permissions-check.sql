@@ -36,6 +36,10 @@ BEGIN
   END IF;
   PERFORM kind,organization_id,id,data_json FROM public_content.documents LIMIT 0;
   PERFORM kind,organization_id,id,data_json FROM public_content.edits LIMIT 0;
+  IF has_any_column_privilege(current_user,'public_content.website_pages','SELECT,INSERT,UPDATE,REFERENCES')
+     OR has_table_privilege(current_user,'public_content.website_pages','DELETE,TRUNCATE,TRIGGER')
+     OR NOT has_function_privilege(current_user,'public_content.read_published_website_pages(text,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'Website drafts must remain private; only approved page projection is public'; END IF;
   IF has_any_column_privilege(current_user,'public_content.news_drafts',
         'SELECT,INSERT,UPDATE,REFERENCES')
       OR has_table_privilege(current_user,'public_content.news_drafts',

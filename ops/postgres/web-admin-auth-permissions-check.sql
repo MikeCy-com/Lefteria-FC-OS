@@ -20,6 +20,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \gset
 \ir admin-club-lock-boundary.sql
 \ir admin-self-profile-boundary.sql
+\ir admin-managed-status-boundary.sql
 \ir admin-contact-email-boundary.sql
 \ir pos-catalog-reader-boundary.sql
 \ir pos-category-writer-boundary.sql
@@ -103,6 +104,8 @@ BEGIN
                   'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                   'identity.write_admin_own_name(text,text,text)'::regprocedure,
                   'identity.write_admin_own_password(text,text,text)'::regprocedure,
                   'identity.read_admin_own_contact_email(text)'::regprocedure,

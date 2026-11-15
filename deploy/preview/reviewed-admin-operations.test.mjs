@@ -15,16 +15,16 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
     Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
       JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
       .map(([method])=>[method,path]));
-  assert.equal(guarded.length,107);
+  assert.equal(guarded.length,111);
   const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
-  assert.equal(reviewed.size,90);
+  assert.equal(reviewed.size,94);
   for(const [method,path] of reviewedAdminEntries){
     assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
     assert.equal(permitted(method.toUpperCase(),
       path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
       true,method+' '+path);
   }
-  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,107);
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,111);
   assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
     /handle @entry_get/);
 });
@@ -44,6 +44,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['GET','/api/admin/access/users'],
     ['POST','/api/admin/access/users'],
     ['POST','/api/admin/academy/office/registrations/enroll'],
+    ['POST','/api/admin/access/users/status'],
     ['GET','/api/admin/academy/training/plans'],
     ['POST','/api/admin/academy/training/plans'],
     ['POST','/api/admin/auth/profile/name'],
@@ -61,7 +62,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/admin/access/users/delete','/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,13);
+  assert.equal(reviewedHiddenAdminEntries.length,14);
 });
 test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
   const future=structuredClone(contract);

@@ -1,0 +1,312 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+using LefteriaFc.Api.WebAdmin;
+using LefteriaFc.Application.PublicContent;
+using LefteriaFc.Application.WebAdmin;
+using LefteriaFc.Domain.AdminAuth;
+using LefteriaFc.Infrastructure.Persistence;
+using LefteriaFc.Infrastructure.WebAdmin;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+
+namespace LefteriaFc.Api.PublicContent;
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsiteBlock(string Type, string Text, string? Url)
+{
+    public bool Valid() =>
+        Type is "heading" or "paragraph" or "image" or "button" &&
+        Text is { Length: <= 5000 } &&
+        Text.All(c => c >= ' ' && c != '\u007f' || c is '\n' or '\r' or '\t') &&
+        (Type switch {
+            "image" => WebsitePageContent.SafeUrl(Url, image: true),
+            "button" => WebsitePageContent.SafeUrl(Url, image: false),
+            _ => Url is null
+        });
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePageContent(
+    string Title, string Summary, string SeoTitle, string SeoDescription,
+    string MenuParent, int MenuOrder, IReadOnlyList<WebsiteBlock> Blocks)
+{
+    public static bool SafeUrl(string? value, bool image) =>
+        value is { Length: > 0 and <= 2048 } &&
+        !value.Contains('\\') && !value.Contains('"') &&
+        (value.StartsWith("/", StringComparison.Ordinal) && !value.StartsWith("//", StringComparison.Ordinal) ||
+         value.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) &&
+        Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out var uri) &&
+        (!uri.IsAbsoluteUri || uri.Scheme == Uri.UriSchemeHttps) &&
+        (!image || !value.StartsWith("data:", StringComparison.OrdinalIgnoreCase));
+    public void Validate()
+    {
+        if (Title is not {Length: > 0 and <= 180} || string.IsNullOrWhiteSpace(Title) ||
+            Summary is not {Length: <= 500} ||
+            SeoTitle is not {Length: <= 180} || SeoDescription is not {Length: <= 300} ||
+            MenuParent is not ("hidden" or "root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact") ||
+            MenuOrder is < 0 or > 1000 || Blocks is null || Blocks.Count is < 1 or > 40 ||
+            Blocks.Any(b => b is null || !b.Valid()) ||
+            Blocks.Any(b => b.Type is "heading" or "paragraph" or "button" && string.IsNullOrWhiteSpace(b.Text)) ||
+            Blocks.Any(b => b.Type == "image" && string.IsNullOrWhiteSpace(b.Text)))
+            throw new WebAdminException(422, "website_page_invalid", "Check page fields and blocks.");
+    }
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePageCreate(string Slug, WebsitePageContent Page);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePageRevision(long ExpectedVersion, WebsitePageContent Page);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePagePublication(long ExpectedVersion, bool Publish);
+public sealed record WebsitePageRecord(
+    string OrganizationId, string Slug, long Version, WebsitePageContent Draft,
+    WebsitePageContent? Published, DateTimeOffset? PublishedAt, DateTimeOffset UpdatedAt);
+
+/// <summary>
+/// First-party, plugin-free website CMS. Editing is ALWAYS a private draft;
+/// a fresh manager approval is required to change the public projection.
+/// </summary>
+public static class WebsitePageEndpoints
+{
+    private static readonly JsonSerializerOptions Json = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+        NumberHandling = JsonNumberHandling.Strict,
+        MaxDepth = 12
+    };
+
+    public static IEndpointRouteBuilder MapWebsitePages(this IEndpointRouteBuilder endpoints)
+    {
+        var admin = endpoints.MapGroup("/api/admin/website/pages")
+            .RequireAuthorization(WebAdminServices.Policy).WithTags("Website administration");
+        admin.MapGet("", async (string? organization_id, HttpContext context, CancellationToken ct) =>
+            Results.Ok(await Authorized(context, Owner(organization_id), "news:read",
+                (db, tx, _, _) => Read(db, tx, Owner(organization_id), ct), ct)))
+            .WithName("ListAdminWebsitePages").Produces<IReadOnlyList<WebsitePageRecord>>();
+        admin.MapPost("", async (string? organization_id, HttpContext context, CancellationToken ct) =>
+        {
+            var owner = Owner(organization_id);
+            var body = await Parse<WebsitePageCreate>(context, ct);
+            Slug(body.Slug); body.Page.Validate();
+            return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
+            {
+                await using var command = new NpgsqlCommand("""
+                    INSERT INTO public_content.website_pages(organization_id,slug,draft_json)
+                    VALUES(@org,@slug,@draft::jsonb)
+                    """, db, tx);
+                command.Parameters.AddWithValue("org", owner);
+                command.Parameters.AddWithValue("slug", body.Slug);
+                command.Parameters.AddWithValue("draft", JsonSerializer.Serialize(body.Page, Json));
+                try { await command.ExecuteNonQueryAsync(ct); }
+                catch (PostgresException e) when (e.SqlState == PostgresErrorCodes.UniqueViolation)
+                { throw new WebAdminException(409, "website_slug_exists", "This slug is already used."); }
+                await Audit(db, tx, actor, session, owner, "admin.website_page.create", ct);
+                return (await Read(db, tx, owner, ct)).Single(p => p.Slug == body.Slug);
+            }, ct));
+        }).WithName("CreateAdminWebsitePage").Accepts<WebsitePageCreate>("application/json").Produces<WebsitePageRecord>();
+        admin.MapPut("/{slug}", async (string slug, string? organization_id, HttpContext context, CancellationToken ct) =>
+        {
+            Slug(slug);
+            var owner = Owner(organization_id);
+            var body = await Parse<WebsitePageRevision>(context, ct);
+            if (body.ExpectedVersion < 1) throw Invalid();
+            body.Page.Validate();
+            return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
+            {
+                await using var command = new NpgsqlCommand("""
+                    UPDATE public_content.website_pages
+                       SET draft_json=@draft::jsonb,version=version+1,updated_at=clock_timestamp()
+                     WHERE organization_id=@org AND slug=@slug AND version=@version
+                    """, db, tx);
+                command.Parameters.AddWithValue("org", owner);
+                command.Parameters.AddWithValue("slug", slug);
+                command.Parameters.AddWithValue("version", body.ExpectedVersion);
+                command.Parameters.AddWithValue("draft", JsonSerializer.Serialize(body.Page, Json));
+                if (await command.ExecuteNonQueryAsync(ct) == 0)
+                    throw new WebAdminException(409, "website_page_conflict", "Reload the page before saving.");
+                await Audit(db, tx, actor, session, owner, "admin.website_page.update", ct);
+                return (await Read(db, tx, owner, ct)).Single(p => p.Slug == slug);
+            }, ct));
+        }).WithName("UpdateAdminWebsitePage").Accepts<WebsitePageRevision>("application/json").Produces<WebsitePageRecord>();
+        admin.MapPost("/{slug}/publication", async (string slug, string? organization_id, HttpContext context, CancellationToken ct) =>
+        {
+            Slug(slug);
+            var owner = Owner(organization_id);
+            var body = await Parse<WebsitePagePublication>(context, ct);
+            if (body.ExpectedVersion < 1) throw Invalid();
+            return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
+            {
+                // Draft editors cannot self-publish. Publication is atomic,
+                // versioned, audited, and scoped to the exact organization.
+                await using var command = new NpgsqlCommand("""
+                    UPDATE public_content.website_pages
+                       SET published_json=CASE WHEN @publish THEN draft_json ELSE NULL END,
+                           published_at=CASE WHEN @publish THEN clock_timestamp() ELSE NULL END,
+                           version=version+1,updated_at=clock_timestamp()
+                     WHERE organization_id=@org AND slug=@slug AND version=@version
+                    """, db, tx);
+                command.Parameters.AddWithValue("org", owner);
+                command.Parameters.AddWithValue("slug", slug);
+                command.Parameters.AddWithValue("version", body.ExpectedVersion);
+                command.Parameters.AddWithValue("publish", body.Publish);
+                if (await command.ExecuteNonQueryAsync(ct) == 0)
+                    throw new WebAdminException(409, "website_page_conflict", "Reload before publication.");
+                await Audit(db, tx, actor, session, owner,
+                    body.Publish ? "admin.website_page.publish" : "admin.website_page.unpublish", ct);
+                return (await Read(db, tx, owner, ct)).Single(p => p.Slug == slug);
+            }, ct, requirePublisher: true));
+        }).WithName("PublishAdminWebsitePage").Accepts<WebsitePagePublication>("application/json").Produces<WebsitePageRecord>();
+
+        // Only the fixed SQL definer projection is accessible to the public
+        // runtime. It returns neither draft_json nor private version/actor.
+        endpoints.MapGet("/api/public/website/pages", async (
+            string? organization_id, string? slug, LefteriaDbContext database, CancellationToken ct) =>
+        {
+            var owner = Owner(organization_id ?? "lefteria_fc");
+            if (slug is not null) Slug(slug);
+            var json = await database.Database.SqlQueryRaw<string>(
+                "SELECT public_content.read_published_website_pages({0},{1})::text AS \"Value\"",
+                owner, (object?)slug ?? DBNull.Value).SingleAsync(ct);
+            return Results.Content(json, "application/json");
+        }).AllowAnonymous().WithTags("Public website").WithName("GetPublishedWebsitePages")
+          .Produces(200, contentType: "application/json");
+        return endpoints;
+    }
+
+    private static async Task<IReadOnlyList<WebsitePageRecord>> Read(
+        NpgsqlConnection db, NpgsqlTransaction tx, string owner, CancellationToken ct)
+    {
+        await using var cmd = new NpgsqlCommand("""
+            SELECT slug,version,draft_json::text,published_json::text,published_at,updated_at
+            FROM public_content.website_pages WHERE organization_id=@org
+            ORDER BY updated_at DESC,slug LIMIT 100
+            """, db, tx);
+        cmd.Parameters.AddWithValue("org", owner);
+        var rows = new List<WebsitePageRecord>();
+        await using var reader = await cmd.ExecuteReaderAsync(ct);
+        while (await reader.ReadAsync(ct))
+        {
+            rows.Add(new WebsitePageRecord(owner, reader.GetString(0), reader.GetInt64(1),
+                JsonSerializer.Deserialize<WebsitePageContent>(reader.GetString(2), Json)!,
+                reader.IsDBNull(3) ? null : JsonSerializer.Deserialize<WebsitePageContent>(reader.GetString(3), Json),
+                reader.IsDBNull(4) ? null : reader.GetFieldValue<DateTimeOffset>(4),
+                reader.GetFieldValue<DateTimeOffset>(5)));
+        }
+        return rows;
+    }
+
+    private static async Task<T> Authorized<T>(
+        HttpContext context, string org, string capability,
+        Func<NpgsqlConnection,NpgsqlTransaction,Guid,Guid,Task<T>> work,
+        CancellationToken ct, bool requirePublisher = false)
+    {
+        var secrets = context.RequestServices.GetRequiredService<IWebAdminSecrets>();
+        var token = context.Request.Cookies[WebAdminServices.CookieName] ?? "";
+        if (!secrets.IsToken(token)) throw Denied();
+        await using var db = await context.RequestServices.GetRequiredService<WebAdminConnections>().OpenAsync(ct);
+        await using var tx = await db.BeginTransactionAsync(ct);
+        await using (var limits = new NpgsqlCommand(
+            "SET LOCAL lock_timeout='3s'; SET LOCAL statement_timeout='8s';", db, tx))
+            await limits.ExecuteNonQueryAsync(ct);
+        var digest = secrets.TokenDigest(token);
+        try
+        {
+            await using (var guard = new NpgsqlCommand(
+                "SELECT identity.lock_admin_club_authority(@token,@org)", db, tx))
+            {
+                guard.Parameters.AddWithValue("token", digest);
+                guard.Parameters.AddWithValue("org", org);
+                await guard.ExecuteNonQueryAsync(ct);
+            }
+        }
+        catch (PostgresException e) when (e.SqlState == "P0001")
+        { throw Denied(); }
+        await using var permission = new NpgsqlCommand("""
+            SELECT a.id,s.id,a.role,a.password_hash,s.credential_digest,
+              EXISTS(SELECT 1 FROM identity.admin_organization_grants g
+                 WHERE g.admin_account_id=a.id AND g.organization_id=@org)
+            FROM identity.admin_sessions s
+            JOIN identity.admin_accounts a ON a.id=s.admin_account_id
+            WHERE s.token_digest=@token AND s.revoked_at IS NULL
+              AND s.expires_at>clock_timestamp() AND a.is_active
+              AND NOT a.invite_pending AND NOT a.otp2fa_enabled
+              AND a.password_hash IS NOT NULL
+            """, db, tx);
+        permission.Parameters.AddWithValue("token", digest);
+        permission.Parameters.AddWithValue("org", org);
+        Guid actor, session;
+        await using (var reader = await permission.ExecuteReaderAsync(ct))
+        {
+            if (!await reader.ReadAsync(ct)) throw Denied();
+            actor = reader.GetGuid(0); session = reader.GetGuid(1);
+            var role = reader.GetString(2);
+            if (!secrets.SameDigest(reader.GetString(4), secrets.CredentialDigest(reader.GetString(3))))
+                throw Denied();
+            if (!reader.GetBoolean(5) || !AdminPermissions.Has(role, capability) ||
+                requirePublisher && role is not ("super_admin" or "manager"))
+                throw new WebAdminException(403, "website_page_forbidden", "This website page is outside your publishing permissions.");
+        }
+        var value = await work(db, tx, actor, session);
+        await tx.CommitAsync(ct);
+        return value;
+    }
+
+    private static async Task Audit(NpgsqlConnection db, NpgsqlTransaction tx,
+        Guid actor, Guid session, string owner, string action, CancellationToken ct)
+    {
+        await using var audit = new NpgsqlCommand("""
+            INSERT INTO audit.security_events(
+                id,actor_realm,occurred_at,actor_identity_id,device_session_id,
+                action,outcome,organization_id,reason_code)
+            VALUES(@id,'admin',clock_timestamp(),@actor,@session,
+                @action,'succeeded',@org,'website_page_cms')
+            """, db, tx);
+        audit.Parameters.AddWithValue("id", Guid.NewGuid());
+        audit.Parameters.AddWithValue("actor", actor);
+        audit.Parameters.AddWithValue("session", session);
+        audit.Parameters.AddWithValue("action", action);
+        audit.Parameters.AddWithValue("org", owner);
+        await audit.ExecuteNonQueryAsync(ct);
+    }
+
+    private static async Task<T> Parse<T>(HttpContext context, CancellationToken ct)
+    {
+        try
+        {
+            using var document = await JsonDocument.ParseAsync(context.Request.Body,
+                new JsonDocumentOptions { MaxDepth = 12 }, ct);
+            Unique(document.RootElement);
+            return document.Deserialize<T>(Json) ?? throw Invalid();
+        }
+        catch (JsonException) { throw Invalid(); }
+    }
+    private static void Unique(JsonElement value)
+    {
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var prop in value.EnumerateObject())
+            {
+                if (!names.Add(prop.Name)) throw new JsonException("Duplicate property.");
+                Unique(prop.Value);
+            }
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+            foreach (var element in value.EnumerateArray()) Unique(element);
+    }
+    private static string Owner(string? org) =>
+        org is "lefteria_fc" or "lefteria_fc_academy" ? org :
+        throw new WebAdminException(400,"invalid_organization","Choose an organization.");
+    private static void Slug(string slug)
+    {
+        if (slug.Length is < 2 or > 80 || !Regex.IsMatch(slug,
+                @"\A[a-z0-9]+(?:-[a-z0-9]+)*\z", RegexOptions.CultureInvariant))
+            throw Invalid();
+    }
+    private static WebAdminException Invalid() =>
+        new(422, "website_page_invalid", "Check page fields.");
+    private static WebAdminException Denied() =>
+        new(401, "admin_session_invalid", "Sign in again.");
+}

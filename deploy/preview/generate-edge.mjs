@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 
 const methods = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const supportedHost = 'srv1649602.hstgr.cloud';
-const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections'];
+const publicApiPaths = ['/api/public/site', '/api/public/news', '/api/public/news/{id}', '/api/public/sections', '/api/public/website/pages'];
 const publicMediaPath = '/api/uploads/{folder}/{fileName}';
 const publicMediaFolders = ['players', 'staff', 'news', 'partners', 'sponsors', 'gallery', 'opponent',
   'groups', 'academy', 'products', 'venues', 'club', 'teams', 'events', 'reels', 'standings'];
@@ -31,8 +31,7 @@ const entryOperations = [
   ['get', '/api/admin/academy/office/{collection}', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/registrations/review', [{ WebAdmin: [] }]],
-  // Explicit API-contract operation with its own cookie/role/grant checks;
-  // exact method and path only, no broad Academy route publication.
+  // Reviewed exact Academy enrolment route, independently authorized by API and SQL.
   ['post', '/api/admin/academy/office/registrations/enroll', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders', [{ WebAdmin: [] }]],
   ['post', '/api/admin/academy/office/orders/status', [{ WebAdmin: [] }]],
@@ -144,6 +143,11 @@ export const reviewedAdminEntries = [
   ['post','/api/admin/pos/products'],
   ['put','/api/admin/pos/products/{id}'],
   ['get','/api/admin/trials/settings'],
+  // Native CMS: only these exact per-organization draft and approval operations.
+  ['get','/api/admin/website/pages'],
+  ['post','/api/admin/website/pages'],
+  ['put','/api/admin/website/pages/{slug}'],
+  ['post','/api/admin/website/pages/{slug}/publication'],
   ['get','/api/admin/website/news'],
   ['get','/api/admin/website/news-drafts'],
   ['post','/api/admin/website/news-drafts'],
@@ -164,6 +168,7 @@ export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/football/group-players'],
   ['get','/api/admin/access/users'],
   ['post','/api/admin/access/users'],
+  ['post','/api/admin/access/users/status'],
   ['get','/api/admin/academy/intake'],
   ['post','/api/admin/auth/profile/name'],
   ['post','/api/admin/auth/profile/password'],
@@ -193,8 +198,8 @@ function entryPattern(path,operation) {
 }
 
 
-export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|about|contact|privacy|terms|fixtures|calendar|venues)(?:/__data[.]json)?$|(?:news|academy|match|player|staff|events|partners|sponsors|seasons)(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
-export const publicApiExpression = '^/api/public/(?:site|sections|news(?:/[^/]+)?)$';
+export const publicWebExpression = '^/(?:$|__data[.]json$|(?:team|about|contact|privacy|terms|fixtures|calendar|venues)(?:/__data[.]json)?$|(?:news|academy|match|player|staff|events|partners|sponsors|seasons|pages)(?:/[^/]+)?(?:/__data[.]json)?$|(?:_app|club|mobile)/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$|favicon[.]ico$|robots[.]txt$)';
+export const publicApiExpression = '^/api/public/(?:site|sections|news(?:/[^/]+)?|website/pages)$';
 
 export function reviewedPublicReads(document) {
   // This curated list never opens a newly added anonymous API automatically.

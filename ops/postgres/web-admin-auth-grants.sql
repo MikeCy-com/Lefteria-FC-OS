@@ -120,6 +120,11 @@ GRANT UPDATE (data_json,version) ON public_content.edits TO :"admin_auth_role";
 REVOKE ALL ON public_content.news_drafts FROM PUBLIC, :"app_role";
 GRANT SELECT, INSERT ON public_content.news_drafts TO :"admin_auth_role";
 GRANT UPDATE (data_json,version,updated_at) ON public_content.news_drafts TO :"admin_auth_role";
+-- Native website page drafts and approved snapshots; public runtime has no table access.
+REVOKE ALL ON public_content.website_pages FROM PUBLIC, :"app_role";
+GRANT SELECT, INSERT ON public_content.website_pages TO :"admin_auth_role";
+GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
+  ON public_content.website_pages TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
@@ -133,6 +138,16 @@ GRANT EXECUTE ON FUNCTION identity.create_founding_admin(uuid,text,text,text) TO
 REVOKE ALL ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
+  TO :"admin_auth_role";
+-- Suspensions and restorations cannot bypass the Super Admin role or any
+-- target organization; never expose direct account status UPDATE.
+REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
   TO :"admin_auth_role";
 -- The verified current admin account may change only its own display name
 -- or rotate its own password through audited account/session-locked routines.
@@ -365,6 +380,8 @@ BEGIN
                   'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
                    'identity.read_admin_own_contact_email(text)'::regprocedure,
@@ -420,15 +437,16 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
-    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
-    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts'));
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages'));
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
     can_update := can_update OR (target.nspname='public_content' AND
       (target.relname='edits' AND target.attname IN ('data_json','version') OR
-       target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at')));
+       target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at') OR
+       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update
