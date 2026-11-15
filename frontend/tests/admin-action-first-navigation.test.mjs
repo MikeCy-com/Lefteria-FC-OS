@@ -28,7 +28,7 @@ test('top-right account entry owns profile and session, without dashboard clutte
   assert.match(profile,/roleName/);
   assert.doesNotMatch(home,/id="account"|id="session"|id="access"|admin-overview-stats/);
   assert.doesNotMatch(home,/plannedCount|liveCount|Under Developments/);
-  assert.match(home,/admin-dashboard-groups/);
+  assert.match(home,/id:'groups',label:'Ομάδες & τμήματα'/);
   assert.match(home,/adminOrganizationsFor\(user\)/);
 });
 
