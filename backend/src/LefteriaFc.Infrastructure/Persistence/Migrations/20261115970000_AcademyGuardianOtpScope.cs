@@ -115,8 +115,8 @@ public sealed class AcademyGuardianOtpScope : Migration
           WHERE id=_challenge AND normalized_phone=_phone
           FOR UPDATE;
         IF NOT FOUND OR v_otp.is_consumed OR
-          v_otp.expires_at<=statement_timestamp()
-          OR v_otp.created_at>statement_timestamp()
+          v_otp.expires_at<=clock_timestamp()
+          OR v_otp.created_at>clock_timestamp()
           OR v_otp.code_digest IS DISTINCT FROM _code_digest
         THEN RAISE EXCEPTION 'guardian_otp_invalid' USING ERRCODE='42501'; END IF;
         IF NOT identity.has_pending_academy_guardian_proof(_phone,_challenge)
