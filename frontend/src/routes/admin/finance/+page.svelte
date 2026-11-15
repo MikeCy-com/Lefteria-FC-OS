@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
+  import AdminFinanceOverview from '../../../lib/admin/AdminFinanceOverview.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Status = { configured: boolean; environment: 'sandbox'; payment_links: boolean;
@@ -40,7 +41,11 @@
   let writeError = $state('');
   let lastLink = $state<string | null>(null);
   let requestId = $state<string | null>(null);
-  const canWrite = $derived($auth.status === 'authenticated' && $auth.session &&
+  // Reports and sandbox payment operations have different authorization gates.
+  const orgWideAccess = $derived($auth.session?.user.role === 'super_admin' ||
+    $auth.session?.user.role === 'accountant');
+  const providerAccess = $derived($auth.session?.user.role === 'super_admin');
+  const canWrite = $derived(providerAccess &&$auth.status === 'authenticated' && $auth.session &&
     hasAdminPermission($auth.session.user.permissions, 'finance:write') &&
     !!owner && organizations.some(org => org.id === owner));
   const money = (cents: number) => new Intl.NumberFormat('el-CY',
@@ -108,7 +113,7 @@
     // Keep the last checkout link visible across ledger refreshes.
     // A newly selected organization must still clear it separately.
     writeError = '';
-    if (!browser || !selected || $auth.status !== 'authenticated') return;
+    if (!browser || !selected || !providerAccess || $auth.status !== 'authenticated') return;
     const controller = new AbortController();
     loading = true;
     void (async () => {
@@ -198,20 +203,51 @@
   }
 </script>
 
-<svelte:head><title>payabl. · Οικονομικά | Λευτεριά FC</title></svelte:head>
+<svelte:head><title>Οικονομικά & λογιστήριο | Λευτεριά FC</title></svelte:head>
 
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="finance" busy={$auth.busy} onLogout={() => void auth.logout()}>
     <div class="admin-workspace-intro" data-testid="payabl-admin-sandbox">
-      <p class="admin-eyebrow">ΟΙΚΟΝΟΜΙΚΑ · PAYABL. · SANDBOX</p>
-      <h1>Σύνδεσμοι πληρωμής</h1>
-      <p class="admin-muted">Δοκιμαστικό περιβάλλον: καμία πραγματική χρέωση. Η ένδειξη «πληρώθηκε» εμφανίζεται μόνο έπειτα από επαληθευμένη ειδοποίηση του παρόχου. Μην εισάγετε πραγματικά στοιχεία πελατών στο δημόσιο sandbox.</p>
+      <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ · ΟΙΚΟΝΟΜΙΚΑ</p>
+      <h1>Οικονομικά & λογιστήριο</h1>
+      <p class="admin-muted">Ξεχωριστά οικονομικά Πρώτης Ομάδας και Ακαδημίας. Τα ιστορικά
+        στοιχεία προέρχονται από επαληθευμένα μητρώα, ενώ το Payabl παραμένει sandbox.</p>
     </div>
     {#if organizations.length}
       <section class="admin-panel">
         <span class="admin-organization-context-label" data-testid="payabl-owner">{organizations.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
+        {#if organizations.length > 1}
+          <nav class="finance-organization-tabs" aria-label="Οικονομικά ανά οργανισμό">
+            {#each organizations as org (org.id)}
+              <a href={'/admin/finance?organization_id='+encodeURIComponent(org.id)}
+                aria-current={owner === org.id ? 'page' : undefined}>
+                {org.id === 'lefteria_fc' ? 'Πρώτη Ομάδα' : 'Ακαδημία'}
+              </a>
+            {/each}
+          </nav>
+        {/if}
       </section>
-      {#if loading}
+      {#if orgWideAccess}
+        <AdminFinanceOverview {owner} sessionId={$auth.session.user.id}/>
+      {/if}
+      {#if !providerAccess}
+        <section class="admin-panel" data-testid="finance-scoped-access">
+          {#if $auth.session.user.role === 'accountant'}
+            <h2>Πρόσβαση λογιστή</h2>
+            <p>Η συνολική αναφορά είναι διαθέσιμη μόνο για τους οργανισμούς που σας έχουν ανατεθεί.
+              Η διαχείριση νέων εισπράξεων, παραστατικών και πληρωμών απαιτεί την επόμενη,
+              ξεχωριστά ελεγμένη λογιστική ροή.</p>
+          {:else}
+            <h2>Οικονομικά ανατεθειμένων τοποθεσιών</h2>
+            <p>Οι διαχειριστές πόλης ή τοποθεσίας δεν έχουν πρόσβαση στα συνολικά
+              οικονομικά της Ακαδημίας ή σε ξένες τοποθεσίες.</p>
+            {#if owner === 'lefteria_fc_academy'}
+              <a href="/admin/territories?organization_id=lefteria_fc_academy">
+                Προβολή επαληθευμένων οικονομικών ανά τοποθεσία</a>
+            {/if}
+          {/if}
+        </section>
+      {:else if loading}
         <section class="admin-panel" role="status">Ανάκτηση ασφαλών στοιχείων πληρωμών…</section>
       {:else if failed}
         <section class="admin-panel" role="alert">
@@ -295,6 +331,9 @@
 {/if}
 
 <style>
+  .finance-organization-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem}
+  .finance-organization-tabs a{padding:.6rem .9rem;border:1px solid var(--border-color,#9ca3af);border-radius:.55rem;text-decoration:none;color:inherit}
+  .finance-organization-tabs a[aria-current="page"]{font-weight:700;outline:2px solid currentColor;outline-offset:2px}
   .payabl-form{display:grid;grid-template-columns:1fr;gap:.65rem;max-width:32rem}
   .payabl-form input{width:100%;padding:.75rem;border:1px solid var(--border-color,#9ca3af);border-radius:.5rem;background:var(--surface,#fff);color:inherit}
   .payabl-form button{padding:.8rem;border-radius:.5rem}
