@@ -26,7 +26,7 @@ export const publicNavigation: readonly PublicNavigationItem[] = [
   ] },
   { id: "matches", label: "ΑΓΩΝΕΣ", icon: 'calendar', items: [
     ["schedule", "Πρόγραμμα αγώνων", "/team?tab=schedule"], ["results", "Αποτελέσματα", "/team?tab=results"],
-    ["standings", "Βαθμολογία", "/team?tab=overview#standings"], ["vote", "Παίκτης του μήνα", "/vote"], ["tickets", "Εισιτήρια", "/shop"],
+    ["standings", "Βαθμολογία", "/team?tab=overview#standings"], ["vote", "Παίκτης του μήνα", "/vote"], ["tickets", "Προϊόντα συλλόγου", "/shop"],
   ] },
   { id: "news", label: "ΝΕΑ", path: "/news", icon: 'news' },
   { id: "events", label: "ΕΚΔΗΛΩΣΕΙΣ", path: "/events", icon: 'event' },
@@ -159,8 +159,14 @@ export function publicSearch(
       id: item.id + '-' + id, label, path
     })) : [{id:item.id,label:item.label,path:item.path}];
   }).filter(item => !organization || belongsToSearchOrganization(item.path, organization))
-    .map(item => item.path === '/news' && organization ?
-      {...item,path:newsLink(organization)} : item);
+    .map(item => {
+      if (!organization) return item;
+      if (item.path === '/news') return {...item,path:newsLink(organization)};
+      if (item.path === '/partners') return {
+        ...item,path:'/partners?scope=' + (organization === 'lefteria_fc_academy' ? 'academy' : 'first_team')
+      };
+      return item;
+    });
   const groupResults = groups
     .filter(group => !organization || (organization === 'lefteria_fc_academy' &&
       group.organization_id === 'lefteria_fc_academy'))
