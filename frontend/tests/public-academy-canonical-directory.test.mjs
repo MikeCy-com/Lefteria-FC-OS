@@ -18,7 +18,9 @@ test('Academy directory reads canonical groups rather than exposing disconnected
   assert.match(migration,/club\.roster_import_state WHERE id='initial'/);
   for(const key of ['id','name','age_range','city','location_name','training_schedule','description','banner_url','season','display_order'])
     assert.ok(migration.includes("'"+key+"'"),'Missing public group field '+key);
-  const sqlProjection = migration.split('AS $public_academy
+  const projection = migration.split('SELECT CASE WHEN EXISTS')[1]?.split('REVOKE ALL ON FUNCTION')[0] ?? '';
+  assert.ok(projection.length > 100,'Actual executed public directory SQL body must exist');
+  assert.doesNotMatch(projection,/player_phone|medical_notes|guardian|parent_contact|password_hash/);
 });
 
 test('Academy group database bridge enforces restricted reader, retains original presentation and checks real PostgreSQL',()=>{
