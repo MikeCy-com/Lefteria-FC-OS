@@ -61,6 +61,11 @@ BEGIN
     admin_account_id,location_id,role)
   VALUES(v_manager,v_site_a,'location_manager');
 
+  v_bill:=finance.create_admin_supplier_bill(
+    v_acc_token,'lefteria_fc_academy',v_request,'CI Vendor North',
+    'AC-N-'||substr(md5(v_request::text),1,8),'equipment','Training cones',
+    v_month,13500,v_site_a);
+  v_id:=(v_bill->>'id')::uuid;
   BEGIN
     UPDATE finance.supplier_bills SET gross_amount_cents=1 WHERE id=v_id;
     RAISE EXCEPTION 'supplier_bill_updated_in_place';
@@ -70,11 +75,7 @@ BEGIN
     RAISE EXCEPTION 'supplier_bill_deleted_in_place';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
-  v_bill:=finance.create_admin_supplier_bill(
-    v_acc_token,'lefteria_fc_academy',v_request,'CI Vendor North',
-    'AC-N-'||substr(md5(v_request::text),1,8),'equipment','Training cones',
-    v_month,13500,v_site_a);
-  v_id:=(v_bill->>'id')::uuid;
+
   IF v_bill->>'organization_id'<>'lefteria_fc_academy'
     OR v_bill->>'recorded'<>'true' OR v_bill->>'replay'<>'false'
     OR v_bill->>'cash_paid'<>'false'
