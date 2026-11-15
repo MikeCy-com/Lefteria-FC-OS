@@ -1050,3 +1050,27 @@ test('picker 401 invalidates pending own writes and organization requests before
     });
   }
 });
+
+test('delayed private notification JSON never crosses a logout boundary', async () => {
+  const beganParsing=Promise.withResolvers();
+  const body=Promise.withResolvers();
+  const {controller}=setup(({path})=>{
+    if(path==='/api/mobile/auth/me')return Response.json(identity('parent'));
+    if(path==='/api/mobile/app/notifications'){
+      return {ok:true,status:200,json:()=>{
+        beganParsing.resolve();
+        return body.promise;
+      }};
+    }
+    throw new Error('Unexpected request: '+path);
+  },{mobile_token:'parent-token'});
+  assert.equal(await controller.bootstrap(),true);
+  const pending=controller.getAppNotificationInbox(0);
+  await beganParsing.promise;
+  controller.logout();
+  body.resolve({previous_user_private_data:true});
+  await assert.rejects(pending,error=>
+    error?.status===401&&/Η συνεδρία άλλαξε/.test(error.message));
+  assert.equal(controller.getState().status,'anonymous');
+  assert.equal(controller.getState().user,null);
+});
