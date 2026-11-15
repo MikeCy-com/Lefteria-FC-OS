@@ -22,7 +22,7 @@ test('Original Academy group creation fields have exact snake_case contract end-
   assert.match(app,/app.MapAdminAcademyGroupProfiles\(\)/);
   assert.match(groupWorkspace,/AdminAcademyGroupProfilePanel/);
   assert.match(groupPage,/AdminGroupWorkspace/);
-  assert.match(groupPage,/organization === 'lefteria_fc_academy'/);
+  assert.match(groupWorkspace,/organization==='lefteria_fc_academy'/);
 });
 test('profile creation preserves canonical roster IDs, memberships and independent coach assignments',()=>{
   assert.match(db,/REFERENCES club.academy_groups\(organization_id,id\)/);

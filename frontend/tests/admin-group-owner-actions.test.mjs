@@ -25,8 +25,8 @@ test('per-Academy group action links carry exact server-validated group to train
   for(const [name,source] of [['schedule',schedule],['attendance',attendance]])
     assert.ok(compile(source,{filename:'admin/'+name+'/+page.svelte',generate:'server'}).js.code.length>100);
   assert.match(groups,/group\.kind === 'team' \? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'/);
-  assert.match(workspace,/organization==='lefteria_fc_academy'/);
   const workspace=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
+  assert.match(workspace,/organization==='lefteria_fc_academy'/);
   assert.match(workspace,/admin-group-training-link/);
   assert.match(workspace,/admin-group-attendance-link/);
   assert.match(groups,/group=\{focusedGroup\}/);

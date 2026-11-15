@@ -34,7 +34,7 @@ test('private player picker is manager-only, owner-locked, paged and intentional
 test('admin player list uses current backend membership, not fake data or stale owner',()=>{
   assert.match(page,/AdminGroupWorkspace/);
   assert.match(page,/\{#if organization && \$auth\.session\}/);
-  assert.match(page,/\{#key organization\+':'+focusedGroup\.id/);
+  assert.ok(page.includes("{#key organization+':'+focusedGroup.id"));
   assert.match(workspace,/AdminRosterPlayersPanel/);
   assert.match(workspace,/\{#if canCreate\}/);
   assert.match(ui,/data-testid="admin-private-player-directory"/);
