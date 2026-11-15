@@ -61,7 +61,7 @@
   <a href="/" class="public-header-brand" data-testid="public-header-logo"><PublicImage src={club?.logo_url} alt="" eager /><div><strong>{name}</strong><span>ΙΔΡ. {club?.founded || '2024'}</span></div></a>
   <div class="public-header-tools"><SiteSearch {groups} />
     <button type="button" class="public-icon-button" disabled aria-label="Ειδοποιήσεις · προσωρινά μη διαθέσιμες" title="Οι ειδοποιήσεις δεν είναι ακόμη διαθέσιμες σε αυτή την προεπισκόπηση." data-testid="push-toggle"><Icon name="bell" size={19} /></button>
-    <a href="/login" class="public-icon-button" aria-label="Σύνδεση" title="Σύνδεση" data-testid="public-account-link"><Icon name="user" size={21} /></a>
+    <a href="/app/login" target="_blank" rel="noopener noreferrer" class="public-icon-button" aria-label="Σύνδεση στην εφαρμογή σε νέα καρτέλα" title="Σύνδεση στην εφαρμογή σε νέα καρτέλα" data-testid="public-account-link"><Icon name="user" size={21} /></a>
     <a href="/cart" class="public-icon-button public-cart" aria-label="Καλάθι" title="Καλάθι" data-testid="public-cart-link"><Icon name="bag" size={20} /></a>
     <a href="/shop" class="public-button public-ticket-link" data-testid="public-tickets-link">ΕΙΣΙΤΗΡΙΑ <Icon name="arrow" size={18} /></a>
   </div>
@@ -77,7 +77,7 @@
       {:else}<a href={item.path} aria-current={navigationLinkCurrent(item.path, page.url, groups)} onclick={() => close(false)} class="public-menu-row" class:is-current={navigationActive(item, page.url, organization)} data-testid={`public-menu-${item.id}`}><Icon name={item.icon} size={21} /><span>{item.label}</span></a>{/if}
     </div>{/each}{/if}
   </nav>
-  {#if !category}<div class="public-menu-account"><a href="/login" onclick={() => close(false)} data-testid="public-menu-account">Σύνδεση</a><a href="/academy/registration" onclick={() => close(false)} data-testid="public-menu-register">Εγγραφή αθλητή <Icon name="arrow" size={16} /></a><a href="/cart" onclick={() => close(false)} data-testid="public-menu-cart">Καλάθι</a></div>{/if}
+  {#if !category}<div class="public-menu-account"><a href="/app/login" target="_blank" rel="noopener noreferrer" onclick={() => close(false)} data-testid="public-menu-account">Σύνδεση στην εφαρμογή</a><a href="/academy/registration" onclick={() => close(false)} data-testid="public-menu-register">Εγγραφή αθλητή <Icon name="arrow" size={16} /></a><a href="/cart" onclick={() => close(false)} data-testid="public-menu-cart">Καλάθι</a></div>{/if}
   <button type="button" class="public-dialog-close" onclick={() => close()} aria-label="Κλείσιμο μενού" data-testid="public-menu-close"><Icon name="close" size={16} /></button>
 </dialog>
 
