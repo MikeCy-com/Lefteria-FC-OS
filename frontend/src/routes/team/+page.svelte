@@ -9,21 +9,44 @@
   let search = $state(''); let position = $state('');
   const navigation: [TeamTab, string][] = [['overview','Η ΟΜΑΔΑ'],['roster','ΡΟΣΤΕΡ'],['staff','ΕΠΙΤΕΛΕΙΟ'],['schedule','ΠΡΟΓΡΑΜΜΑ'],['results','ΑΠΟΤΕΛΕΣΜΑΤΑ'],['statistics','ΣΤΑΤΙΣΤΙΚΑ'],['gallery','ΓΚΑΛΕΡΙ'],['venues','ΓΗΠΕΔΑ']];
   const title = $derived(navigation.find(([id]) => id === data.tab)?.[1] ?? 'Η ΟΜΑΔΑ');
-  const fixtures = $derived((data.site?.fixtures ?? []).filter(item => data.tab === 'results' ? item.status === 'Completed' : data.tab === 'schedule' ? item.status !== 'Completed' : true));
-  const players = $derived((data.sections?.players ?? []).filter(row => row.organization_id === 'lefteria_fc' && row.team_type === 'First Team'));
-  const staff = $derived((data.sections?.staff ?? []).filter(row => row.organization_id === 'lefteria_fc'));
+  const selectedTeam = $derived((data.site?.teams ?? []).find(team => team.id === data.selectedTeamId));
+  const teamsCount = $derived((data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc').length);
+  const withTeam = (path: string, id: string | null = data.selectedTeamId) =>
+    id ? path + (path.includes('?') ? '&' : '?') + 'team_id=' + encodeURIComponent(id) : path;
+  const matchesTeam = (teamId: string | null) => !data.selectedTeamId ||
+    teamId === data.selectedTeamId || (teamsCount <= 1 && teamId === null);
+  const fixtures = $derived((data.site?.fixtures ?? []).filter(item =>
+    item.organization_id === 'lefteria_fc' && matchesTeam(item.team_id) &&
+    (data.tab === 'results' ? item.status === 'Completed' : data.tab === 'schedule' ? item.status !== 'Completed' : true)));
+  const players = $derived((data.sections?.players ?? []).filter(row =>
+    row.organization_id === 'lefteria_fc' && matchesTeam(row.team_id) &&
+    (data.selectedTeamId !== null || row.team_type === 'First Team')));
+  const staff = $derived((data.sections?.staff ?? []).filter(row =>
+    row.organization_id === 'lefteria_fc' &&
+    (!data.selectedTeamId || row.team_ids.includes(data.selectedTeamId) ||
+      (teamsCount <= 1 && row.team_ids.length === 0))));
   const positions = $derived([...new Set(players.map(row => row.position).filter((value): value is string => !!value))]);
   const normalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('el-GR');
   const mapHref = (value: string | null | undefined) => value ? safePublicHref(value) : null;
   const filtered = $derived(players.filter(row => (!position || row.position === position) && normalize(row.name + ' ' + row.number).includes(normalize(search.trim()))));
   const competitions = $derived([...new Set((data.sections?.standings ?? []).map(row => row.competition))]);
 </script>
-<svelte:head><title>{title} · ΠΡΩΤΗ ΟΜΑΔΑ | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Η πρώτη ομάδα της Λευτεριάς FC. Παίκτες, τεχνικό επιτελείο, πραγματικά στατιστικά, αγώνες και αποτελέσματα." /></svelte:head>
+<svelte:head><title>{title} · {selectedTeam?.name ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Η πρώτη ομάδα της Λευτεριάς FC. Παίκτες, τεχνικό επιτελείο, πραγματικά στατιστικά, αγώνες και αποτελέσματα." /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}>
-  <section class="public-page-heading team-heading"><p class="public-eyebrow">ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ. Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</p><h1>ΠΡΩΤΗ ΟΜΑΔΑ</h1><nav class="public-subnav team-tabs" aria-label="Πρώτη ομάδα">{#each navigation as [id,label]}<a href={id === 'overview' ? '/team' : '/team?tab='+id} aria-current={data.tab === id ? 'page' : undefined}>{label}</a>{/each}</nav></section>
+  <section class="public-page-heading team-heading"><p class="public-eyebrow">ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ. Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</p><h1>{selectedTeam?.name ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'}</h1>
+    {#if teamsCount > 1}
+      <nav class="public-team-selector" aria-label="Επίλεξε ομάδα" data-testid="public-team-selector">
+        {#each (data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc') as team (team.id)}
+          <a href={withTeam(data.tab === 'overview' ? '/team' : '/team?tab='+data.tab, team.id)}
+            aria-current={team.id === data.selectedTeamId ? 'page' : undefined}
+            data-testid="public-team-select">{team.name}</a>
+        {/each}
+      </nav>
+    {/if}
+    <nav class="public-subnav team-tabs" aria-label="Ενότητες ομάδας">{#each navigation as [id,label]}<a href={withTeam(id === 'overview' ? '/team' : '/team?tab='+id)} aria-current={data.tab === id ? 'page' : undefined}>{label}</a>{/each}</nav></section>
   {#if !data.available}<Unavailable />{:else}<section class="public-section team-section">
     {#if data.tab === 'overview'}
-      {#each data.site?.teams ?? [] as team (team.id)}<article class="public-team-overview">{#if team.banner_url}<PublicImage src={team.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{team.level || 'ΛΕΥΤΕΡΙΑ FC'}</p><h2>{team.name}</h2>{#if team.description}<p class="preserve-lines">{team.description}</p>{/if}<a class="public-button" href="/team?tab=roster">ΓΝΩΡΙΣΕ ΤΟΥΣ ΠΑΙΚΤΕΣ ↗</a></div></article>{/each}
+      {#each (data.site?.teams ?? []).filter(team => team.id === data.selectedTeamId) as team (team.id)}<article class="public-team-overview">{#if team.banner_url}<PublicImage src={team.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{team.level || 'ΛΕΥΤΕΡΙΑ FC'}</p><h2>{team.name}</h2>{#if team.description}<p class="preserve-lines">{team.description}</p>{/if}<a class="public-button" href={withTeam('/team?tab=roster')}>ΓΝΩΡΙΣΕ ΤΟΥΣ ΠΑΙΚΤΕΣ ↗</a></div></article>{/each}
       <div id="standings" class="standings-anchor">{#each competitions as competition}<div class="section-heading"><h2>ΒΑΘΜΟΛΟΓΙΑ</h2><p>{competition}</p></div><div class="table-scroll"><table><caption class="sr-only">Βαθμολογία {competition}</caption><thead><tr><th scope="col">ΟΜΑΔΑ</th><th scope="col">ΑΓ</th><th scope="col">Ν</th><th scope="col">Ι</th><th scope="col">Η</th><th scope="col">ΓΚΟΛ</th><th scope="col">Β</th></tr></thead><tbody>{#each (data.sections?.standings ?? []).filter(row=>row.competition===competition) as row (row.id)}<tr><th scope="row">{row.team_name}</th><td>{row.played}</td><td>{row.won}</td><td>{row.drawn}</td><td>{row.lost}</td><td>{row.goals_for}:{row.goals_against}</td><td class="points">{row.points}</td></tr>{/each}</tbody></table></div>{/each}</div>
     {/if}
     {#if data.tab === 'overview' || data.tab === 'schedule' || data.tab === 'results'}
@@ -44,3 +67,12 @@
     {/if}
   </section>{/if}
 </PublicShell>
+
+<style>
+  .public-team-selector{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 18px}
+  .public-team-selector a{display:inline-flex;min-height:44px;align-items:center;
+    padding:9px 15px;border:1px solid #837448;border-radius:6px;
+    color:#ffca46;background:#101112;font-size:14px;font-weight:700}
+  .public-team-selector a[aria-current="page"]{background:#ffbf32;color:#080808;border-color:#ffbf32}
+  .public-team-selector a:focus-visible{outline:2px solid #ffd068;outline-offset:3px}
+</style>
