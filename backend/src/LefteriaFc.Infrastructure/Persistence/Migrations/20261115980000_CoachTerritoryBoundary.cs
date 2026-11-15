@@ -231,9 +231,6 @@ public sealed class CoachTerritoryBoundary : Migration
             INTO v_expected FROM jsonb_array_elements_text(_expected);
           SELECT coalesce(jsonb_agg(value ORDER BY value),'[]'::jsonb)
             INTO v_desired FROM jsonb_array_elements_text(_desired);
-          IF v_current<>v_expected THEN
-            RAISE EXCEPTION 'coach_assignment_conflict' USING ERRCODE='40001';
-          END IF;
           -- Manager rights are on exact First Team squads and Academy sites.
           -- The full existing membership is checked, not merely requested
           -- additions: a shared coach cannot be moved from another site.
@@ -264,6 +261,9 @@ public sealed class CoachTerritoryBoundary : Migration
                 RAISE EXCEPTION 'coach_assignment_territory_denied' USING ERRCODE='42501';
               END IF;
             END LOOP;
+          END IF;
+          IF v_current<>v_expected THEN
+            RAISE EXCEPTION 'coach_assignment_conflict' USING ERRCODE='40001';
           END IF;
           IF _owner='lefteria_fc' THEN
             DELETE FROM club.staff_teams t WHERE t.staff_id=_staff
