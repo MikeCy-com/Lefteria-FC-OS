@@ -52,3 +52,15 @@ test('staff and account directory navigation are independent role-first sections
   assert.match(frame,/data-testid="admin-users-link"/);
   assert.doesNotMatch(frame,/switchOrganization|admin-header-organization/);
 });
+
+test('the directory and its empty-page total are confined to every subject owner',()=>{
+  const getOnly=api.slice(api.indexOf('endpoints.MapGet('),api.indexOf('endpoints.MapPost('));
+  assert.match(getOnly,/var owned=session\.User\.Organizations/);
+  assert.match(getOnly,/subject_owner\.organization_id=ANY\(@owners\)/);
+  assert.match(getOnly,/NOT\(foreign_owner\.organization_id=ANY\(@owners\)\)/);
+  assert.match(getOnly,/foreign_owner\.admin_account_id=a\.id/);
+  assert.match(getOnly,/\.Distinct\(StringComparer\.Ordinal\)/);
+  assert.match(getOnly,/count\.Parameters\.Add\("owners"/);
+  assert.match(getOnly,/command\.Parameters\.Add\("owners"/);
+  assert.match(ui,/Ο κατάλογος και τα σύνολα περιλαμβάνουν μόνο λογαριασμούς/);
+});
