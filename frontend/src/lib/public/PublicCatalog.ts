@@ -26,7 +26,7 @@ export function catalogCanonicalRedirect(source: URL, canonical: string): string
     if(value === null) continue;
     if(key === 'list_scope' && !['academy','first_team','all'].includes(value)) continue;
     if(key === 'when' && !['upcoming','past','all'].includes(value)) continue;
-    if(key === 'type' && (value.length > 64 || /[\\u0000-\\u001f\\u007f]/.test(value))) continue;
+    if(key === 'type' && (value.length > 64 || [...value].some(char => char.charCodeAt(0) < 32 || char.charCodeAt(0) === 127))) continue;
     target.searchParams.set(key,value);
   }
   return target.pathname + target.search;
