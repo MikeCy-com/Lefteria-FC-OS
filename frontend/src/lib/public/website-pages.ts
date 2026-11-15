@@ -30,6 +30,12 @@ export function websiteMenuParentAllowed(organization: PublicOrganization, paren
 }
 export const isHomeHeroSlug = (slug: string) =>
   slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
+export const HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG = 'homepage-academy-spotlight' as const;
+export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
+// Native slots are not routable standalone CMS pages, even if a legacy
+// record has an incompatible menu assignment.
+export const isHomepageEditorialSlug = (slug: string) =>
+  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug);
 
 export function websitePagePath(slug: string, org: PublicOrganization): string {
   return '/pages/' + encodeURIComponent(slug) +
@@ -59,7 +65,7 @@ export function withWebsitePages(
   const result = navigation.map(item => item.items ?
     {...item, items: [...item.items]} as PublicNavigationItem : {...item} as PublicNavigationItem);
   for (const row of [...pages].filter(p => p.organization_id === organization &&
-      isPublishedWebsitePage(p, organization) && !isHomeHeroSlug(p.slug) &&
+      isPublishedWebsitePage(p, organization) && !isHomepageEditorialSlug(p.slug) &&
       p.page.menu_parent !== 'hidden' && websiteMenuParentAllowed(organization, p.page.menu_parent))
       .sort((a,b) => a.page.menu_order-b.page.menu_order || a.slug.localeCompare(b.slug))) {
     const path = websitePagePath(row.slug, organization);

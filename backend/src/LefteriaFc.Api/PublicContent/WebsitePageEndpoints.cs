@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -322,6 +322,20 @@ public static class WebsitePageEndpoints
             content.Blocks[1].Type != "paragraph" ||
             content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
             content.Blocks[0].Text.Split('\n').Length > 3)
+            throw Invalid();
+    }
+    // Academy-only editorial slot: the three headline phrases keep the reference
+    // design's accented separators, without creating arbitrary site templates.
+    private static void ValidateAcademySpotlight(string owner, string slug, WebsitePageContent content)
+    {
+        if (slug != "homepage-academy-spotlight") return;
+        if (owner != "lefteria_fc_academy" || content.MenuParent != "hidden" ||
+            content.MenuOrder != 0 || content.Blocks.Count != 2 ||
+            content.Blocks[0].Type != "heading" || content.Blocks[1].Type != "paragraph" ||
+            content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
+            content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n') ||
+            content.Blocks[0].Text.Split('·').Length != 3 ||
+            content.Blocks[0].Text.Split('·').Any(part => string.IsNullOrWhiteSpace(part) || part.Length > 60))
             throw Invalid();
     }
     private static string Owner(string? org) =>
