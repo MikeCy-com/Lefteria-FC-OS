@@ -12,6 +12,7 @@
   import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
   import AdminAcademyGroupProfilePanel from '../../../lib/admin/AdminAcademyGroupProfilePanel.svelte';
   import AdminFirstTeamProfilePanel from '../../../lib/admin/AdminFirstTeamProfilePanel.svelte';
+  import AdminGroupMatchDraftPanel from '../../../lib/admin/AdminGroupMatchDraftPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -410,6 +411,13 @@
                   <p class="admin-muted">Οι αξιολογήσεις και τα προστατευμένα έγγραφα ανοίγουν από
                     τον ατομικό φάκελο του αθλητή στο ρόστερ παρακάτω.
                     Οι προπονήσεις και οι αγώνες συνδέονται με το τμήμα.</p>
+                  {#if canCreate && organization && $auth.session}
+                    {#key organization + ':' + focusedGroup.id + ':' + $auth.session.user.id}
+                      <AdminGroupMatchDraftPanel groupId={focusedGroup.id}
+                        {organization} actorId={$auth.session.user.id}
+                        canWrite={canCreate}/>
+                    {/key}
+                  {/if}
                 </section>
               {/if}
             {/if}
