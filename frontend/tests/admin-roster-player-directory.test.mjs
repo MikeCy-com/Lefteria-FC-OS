@@ -45,7 +45,7 @@ test('admin player list uses current backend membership, not fake data or stale 
   assert.match(ui,/controller\.abort\(\)/);
   assert.match(ui,/response\.status===401/);
   assert.match(ui,/response\.status===403/);
-  assert.match(ui,/verified\(json,currentOwner,currentOffset\)/);
+  assert.match(ui,/verified\(json,currentOwner,currentOffset,group\)/);
   assert.match(ui,/academy_group_ids/);
   assert.match(ui,/groupLabels\(player\)/);
   assert.match(ui,/admin-player-assignment-editor/);
