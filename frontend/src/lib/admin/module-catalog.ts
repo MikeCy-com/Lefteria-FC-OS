@@ -2,7 +2,6 @@ import type { WebAdminSession } from './controller.ts';
 import { hasAdminPermission } from './permissions.ts';
 import { canReadClub } from './club-controller.ts';
 import { canViewFirstTeamTrials } from './trials-access.ts';
-import type { AdminOrganizationId } from './admin-organization.ts';
 
 type AdminUser = WebAdminSession['user'];
 export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'finance' | 'football' | 'operations';
@@ -47,7 +46,7 @@ const catalog: readonly Section[] = [
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
     { id: 'registers', name: 'Ταμεία & σημεία πώλησης', description: 'Υφιστάμενη διαχείριση σημείων πώλησης και εξουσιοδοτημένων βαρδιών στο POS. Η πρόσβαση στις ενέργειες ελέγχεται από το API.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
     { id: 'products', name: 'Κατάλογος προϊόντων', description: 'Επαληθευμένος κατάλογος και ελεγχόμενη διαχείριση κατηγοριών · χωρίς πωλήσεις.', status: 'live', href: '/admin/pos', scope: 'any', anyPermission: ['shop:read'] },
-    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read', 'finance:read'] }
+    { id: 'orders', name: 'Πωλήσεις & παραγγελίες', description: 'Συναλλαγές και ιστορικό.', status: 'planned', scope: 'any', anyPermission: ['shop:read'] }
   ] },
   { id: 'finance', name: 'Οικονομικά', description: 'Χρεώσεις, εισπράξεις, έξοδα και αναφορές.', modules: [
     { id: 'payabl', name: 'Ακαδημία · Χρεώσεις, PDF & payabl. (sandbox)', description: 'Έκδοση επιλεγμένου μήνα ανά παιδί, καταχώριση μετρητών, λήψη αυθεντικού PDF και δοκιμαστικοί σύνδεσμοι Payabl με προστατευμένο Twilio SMS. Οι πραγματικές αυτόματες εισπράξεις, η παραγωγική διασύνδεση και οι πληρωμές προσωπικού παραμένουν ανενεργές.', status: 'live', href: '/admin/finance', scope: 'any', anyPermission: ['finance:read'] },
@@ -55,7 +54,7 @@ const catalog: readonly Section[] = [
     { id: 'reports', name: 'Αναφορές & έξοδα', description: 'Οικονομικά ανά οργανισμό.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] }
   ] },
   { id: 'football', name: 'Αγωνιστικό & Ακαδημία', description: 'Ομάδες, προπονήσεις, αγώνες και δοκιμαστικά.', modules: [
-    { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read', 'marketing:read'] },
+    { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read'] },
     { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Πραγματικές ομάδες, μέλη και ελεγχόμενη δημιουργία τμημάτων ανά οργανισμό.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
     { id: 'academy_schedule', name: 'Πρόγραμμα προπονήσεων Ακαδημίας', description: 'Επαληθευμένη ανά τμήμα προβολή πραγματικών προπονήσεων και ακυρώσεων, με σύνδεσμο στο παρουσιολόγιο. Η επεξεργασία εκκρεμεί.', status: 'live', href: '/admin/schedule', scope: 'academy', anyPermission: ['attendance:read'] },
     { id: 'attendance', name: 'Παρουσίες προπονήσεων Ακαδημίας', description: 'Ιδιωτικό παρουσιολόγιο πραγματικής παρουσίας σε επιβεβαιωμένες προπονήσεις, ανεξάρτητο από RSVP. Μόνο εξουσιοδοτημένη διαχείριση.', status: 'live', href: '/admin/attendance', scope: 'academy', anyPermission: ['attendance:read'] },
@@ -76,12 +75,10 @@ const catalog: readonly Section[] = [
 // Navigation is presentation-only. Protected API endpoints MUST independently
 // verify fresh session role and organization grants. Planned items never
 // receive clickable URLs and never imply live POS, CRM or payment operations.
-export function adminSectionsFor(user: AdminUser, selectedOrganization?: AdminOrganizationId | null): AdminSection[] {
-  // Global header context narrows presentation to the current club. The
-  // backend remains the authority for every protected operation.
-  const grants = user.organizations.map(org => org.id);
-  const organizations = selectedOrganization === undefined
-    ? grants : grants.filter(org => org === selectedOrganization);
+export function adminSectionsFor(user: AdminUser): AdminSection[] {
+  // Role capabilities and real server-issued organization grants determine
+  // visible modules. No global context toggle limits the workspace.
+  const organizations = user.organizations.map(org => org.id);
   const assigned = organizations.some(id => id === 'lefteria_fc' || id === 'lefteria_fc_academy');
   return catalog.flatMap(section => {
     const modules = section.modules.filter(item => {
@@ -95,7 +92,7 @@ export function adminSectionsFor(user: AdminUser, selectedOrganization?: AdminOr
          (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
-      if (item.id === 'onboarding') return true;
+      if (item.id === 'onboarding') return ['manager','super_admin'].includes(user.role);
       if (item.id === 'academy_schedule' || item.id === 'attendance') return (
         ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy') &&
