@@ -118,6 +118,10 @@ $columns$;
 
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
 GRANT SELECT ON public_content.documents,public_content.import_state TO :"app_role";
+-- No public table access: only human-approved snapshots through this fixed projection.
+REVOKE ALL ON public_content.website_pages FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION public_content.read_published_website_pages(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION public_content.read_published_website_pages(text,text) TO :"app_role";
 GRANT SELECT (kind,organization_id,id,data_json) ON public_content.edits TO :"app_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 GRANT SELECT (legacy_subject,identity_id) ON identity.imported_mobile_subjects TO :"app_role";
