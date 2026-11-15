@@ -198,6 +198,7 @@ app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminNewsDrafts();
 app.MapWebsitePages();
+app.MapAdminSponsorships();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();

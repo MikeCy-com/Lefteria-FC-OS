@@ -125,6 +125,18 @@ REVOKE ALL ON public_content.website_pages FROM PUBLIC, :"app_role";
 GRANT SELECT, INSERT ON public_content.website_pages TO :"admin_auth_role";
 GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
   ON public_content.website_pages TO :"admin_auth_role";
+-- Sponsor and partner editorial drafts stay private, with narrow publication rights.
+REVOKE ALL ON public_content.sponsorship_editorial FROM PUBLIC, :"app_role";
+GRANT SELECT,INSERT ON public_content.sponsorship_editorial TO :"admin_auth_role";
+GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
+  ON public_content.sponsorship_editorial TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION public_content.read_published_sponsorship(text)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
+  FROM PUBLIC, :"admin_auth_role", :"app_role";
+GRANT EXECUTE ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
+  TO :"admin_auth_role";
+
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
@@ -426,6 +438,7 @@ BEGIN
                    'identity.read_admin_own_profile_photo(text)'::regprocedure,
                    'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
+                   'public_content.current_sponsorship_exists(text,text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
@@ -479,16 +492,17 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
-    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages','sponsorship_editorial'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
-    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages'));
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages','sponsorship_editorial'));
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
     can_update := can_update OR (target.nspname='public_content' AND
       (target.relname='edits' AND target.attname IN ('data_json','version') OR
        target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at') OR
-       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
+       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at') OR
+        target.relname='sponsorship_editorial' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update

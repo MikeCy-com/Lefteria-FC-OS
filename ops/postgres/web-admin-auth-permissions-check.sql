@@ -119,6 +119,7 @@ BEGIN
                   'identity.read_admin_own_profile_photo(text)'::regprocedure,
                   'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
+                   'public_content.current_sponsorship_exists(text,text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,

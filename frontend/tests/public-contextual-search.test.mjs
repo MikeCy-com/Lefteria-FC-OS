@@ -96,6 +96,12 @@ test('search UI compiles, scopes backend news and announces keyboard-accessible 
   assert.match(search,/article\.organization_id === sourceOrganization/);
   assert.match(search,/AbortSignal\.any\(\[controller\.signal, AbortSignal\.timeout\(10000\)\]\)/);
   assert.match(search,/data-testid="public-search-count"/);
+  // Navigation and current search matches remain countable while the news
+  // request is pending. The loading message must not replace the live count.
+  assert.match(search,/\{results\.length\} \{results\.length === 1/);
+  assert.match(search,/\{loading \? ' · Ενημερώνονται τα δημοσιευμένα νέα…' : ''\}/);
+  assert.doesNotMatch(search,/loading \? 'Αναζήτηση δημοσιευμένων νέων…'/);
+  assert.match(search,/data-testid="public-search-loading"/);
   assert.match(search,/aria-live="polite"/);
   assert.match(search,/aria-controls="public-search-results"/);
   assert.match(search,/aria-label="Αποτελέσματα αναζήτησης"/);

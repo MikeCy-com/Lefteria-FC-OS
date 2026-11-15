@@ -9177,6 +9177,164 @@
         ],
         "type": "object"
       },
+      "SponsorshipAdminRecord": {
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/SponsorshipEditorialCopy"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "published": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SponsorshipEditorialCopy"
+              }
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "organization_id",
+          "kind",
+          "item_id",
+          "version",
+          "draft",
+          "published",
+          "published_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "SponsorshipDraftChange": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/SponsorshipEditorialCopy"
+          },
+          "expected_version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "item_id",
+          "expected_version",
+          "draft"
+        ],
+        "type": "object"
+      },
+      "SponsorshipEditorialCopy": {
+        "properties": {
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "display_order": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "website_url": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "image_url",
+          "website_url",
+          "display_order"
+        ],
+        "type": "object"
+      },
+      "SponsorshipPublicationChange": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "publish": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "item_id",
+          "expected_version",
+          "publish"
+        ],
+        "type": "object"
+      },
       "TrainingFeeSmsCommand": {
         "properties": {
           "client_request_id": {
@@ -18220,6 +18378,131 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/WebsitePageRecord"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/sponsorships": {
+      "get": {
+        "operationId": "ListAdminSponsorshipEditorial",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SponsorshipAdminRecord"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/sponsorships/draft": {
+      "post": {
+        "operationId": "SaveAdminSponsorshipDraft",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SponsorshipDraftChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipAdminRecord"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/sponsorships/publication": {
+      "post": {
+        "operationId": "PublishAdminSponsorshipEditorial",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SponsorshipPublicationChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipAdminRecord"
                 }
               }
             },
