@@ -53,7 +53,9 @@ internal sealed partial class WebAdminHttpChecks
             var responseBody=await otherSuperAdmin.Content.ReadAsStringAsync();
             var responseCode=System.Text.RegularExpressions.Regex.Match(responseBody,
                 "\\\"code\\\"\\s*:\\s*\\\"([a-z0-9_]+)\\\"").Groups[1].Value;
-            Console.WriteLine($"CHECK managed status: deny other superadmin HTTP {(int)otherSuperAdmin.StatusCode}, code={responseCode}");
+            var responseDetail=System.Text.RegularExpressions.Regex.Match(responseBody,
+                "\\\"detail\\\"\\s*:\\s*\\\"([a-zA-Z0-9 .,\\-]+)\\\"").Groups[1].Value;
+            Console.WriteLine($"CHECK managed status: deny other superadmin HTTP {(int)otherSuperAdmin.StatusCode}, code={responseCode}, detail={responseDetail}");
             await ExpectJsonAsync(otherSuperAdmin,403,"managed_admin_status_denied");
         }
         Console.WriteLine("CHECK managed status: deny scope");
