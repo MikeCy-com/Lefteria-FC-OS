@@ -45,3 +45,15 @@ export function publicCanonicalHref(path: string): string {
     ? '?organization_id=' + newsOwner : '';
   return 'https://lefteriafc.cy' + url.pathname + owner + newsOrganization;
 }
+
+/** Only already-published HTTPS media URLs may be advertised to social crawlers.
+ * Relative/private attachments are not transformed into crawlable endpoints.
+ */
+export function publicSocialImage(value: string | null | undefined): string | null {
+  if (!value || value.length > 2048 || /[\u0000-\u001f\u007f\\]/.test(value)) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.username || url.password) return null;
+    return url.href;
+  } catch { return null; }
+}
