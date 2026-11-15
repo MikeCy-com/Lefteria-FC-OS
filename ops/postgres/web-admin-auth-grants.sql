@@ -362,6 +362,7 @@ BEGIN
                 AND has_schema_privilege(auth_name,n.oid,'USAGE') AND has_function_privilege(auth_name,p.oid,'EXECUTE')
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
+                  'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
