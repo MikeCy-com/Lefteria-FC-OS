@@ -242,9 +242,17 @@ internal sealed partial class WebAdminHttpChecks
             Console.WriteLine("CHECK profile scope: authorized reads and writes");
             Console.WriteLine("CHECK profile scope: GET authorized FC");
             using(var own=await GetAsync(client,fcOwn,session.Cookie))
-                Require((await ExpectJsonAsync(own,200))
-                    .GetProperty("revision").GetInt64()==0,
+            {
+                Console.WriteLine("CHECK profile scope: FC own GET HTTP="+(int)own.StatusCode);
+                if(!own.IsSuccessStatusCode)
+                    Console.WriteLine("CHECK profile scope: FC own GET error="+
+                        await own.Content.ReadAsStringAsync());
+                var data=await ExpectJsonAsync(own,200);
+                Console.WriteLine("CHECK profile scope: FC own revision="+
+                    data.GetProperty("revision").GetInt64());
+                Require(data.GetProperty("revision").GetInt64()==0,
                     "A manager cannot read their own First Team profile.");
+            }
             Console.WriteLine("CHECK profile scope: GET authorized Academy");
             using(var own=await GetAsync(client,siteOwn,session.Cookie))
                 Require((await ExpectJsonAsync(own,200))
