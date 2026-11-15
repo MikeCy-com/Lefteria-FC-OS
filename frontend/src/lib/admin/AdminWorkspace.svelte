@@ -112,6 +112,11 @@
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
                     <span class="admin-tool-arrow" aria-hidden="true">↗</span>
                   </a>
+                {:else if module.status === 'live' && module.id === 'territories'}
+                  <a class="admin-tool admin-tool-live" href="/admin/territories" data-testid="admin-territories-module">
+                    <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>
+                    <span class="admin-tool-arrow" aria-hidden="true">↗</span>
+                  </a>
                 {:else if module.status === 'live' && module.id === 'groups'}
                   <a class="admin-tool admin-tool-live" href="/admin/groups" data-testid="admin-groups-module">
                     <span class="admin-tool-copy"><strong>{module.name}</strong><small>{module.description}</small></span>

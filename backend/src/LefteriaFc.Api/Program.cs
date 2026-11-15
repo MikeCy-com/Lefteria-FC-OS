@@ -27,6 +27,7 @@ using LefteriaFc.Api.Attendance;
 using LefteriaFc.Application.MobileChat;
 using LefteriaFc.Api.Crm;
 using LefteriaFc.Api.Payabl;
+using LefteriaFc.Api.Football;
 using LefteriaFc.Infrastructure.MobileChat;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
@@ -222,6 +223,7 @@ app.MapAdminAcademyAttendance();
 app.MapAdminAcademyTrainingPlans();
 app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
+app.MapAdminFootballTerritories();
 
 if (app.Environment.IsDevelopment())
 {

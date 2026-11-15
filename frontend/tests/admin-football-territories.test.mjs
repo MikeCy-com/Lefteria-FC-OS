@@ -1,0 +1,72 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
+const migration=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115230000_FootballTerritoryAdminCatalog.cs');
+const endpoint=read('../../backend/src/LefteriaFc.Api/Football/AdminFootballTerritoryEndpoints.cs');
+const grants=read('../../ops/postgres/football-territory-admin-grants.sql');
+const dbChecks=read('../../ops/postgres/football-territory-admin-checks.sql');
+const page=read('../src/routes/admin/territories/+page.svelte');
+const frame=read('../src/lib/admin/AdminFrame.svelte');
+const modules=read('../src/lib/admin/module-catalog.ts');
+const workflow=read('../../.github/workflows/rewrite-build.yml');
+
+test('every territorial admin API call rechecks current cookie, role, org and DB grant',()=>{
+  assert.match(endpoint,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(endpoint,/auth\.CurrentAsync\(cookie, ct\)/);
+  assert.match(endpoint,/AdminPermissions\.Has\(session\.User\.Role, permission\)/);
+  assert.match(endpoint,/secrets\.TokenDigest\(cookie\)/);
+  assert.match(endpoint,/club\.read_admin_football_directory\(@digest,@owner\)/);
+  assert.match(endpoint,/club\.create_admin_football_resource\(@digest,@owner,@kind,@data\)/);
+  assert.match(migration,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
+  assert.match(migration,/club\.football_city_admin_grants/);
+  assert.match(migration,/club\.football_location_admin_grants/);
+  assert.match(migration,/club\.football_team_admin_grants/);
+  assert.match(migration,/FOR SHARE OF g/);
+});
+test('city-owned Academy shared catalogs are never authorized by another site write grant',()=>{
+  assert.match(migration,/IF _kind IN \('group_assignment','training_base','match_draft'\)/);
+  assert.match(migration,/CASE WHEN _kind IN \('group_assignment','training_base','match_draft'\)/);
+  assert.match(migration,/v_location ELSE NULL END,true/);
+  assert.match(migration,/role='city_manager' FOR SHARE/);
+  assert.match(migration,/role='location_manager'/);
+  assert.match(migration,/v_location:=\(_data->>'location_id'\)::uuid/);
+  assert.match(migration,/location_id=v_location/);
+  assert.match(migration,/scope_id=v_scope AND is_active/);
+  assert.match(migration,/club\.football_match_drafts/);
+  assert.match(migration,/club\.football_training_bases/);
+});
+test('no implicit new financial, roster, application or public website permissions',()=>{
+  assert.doesNotMatch(endpoint,/public_content|mobile\/|payments|invoices/);
+  assert.doesNotMatch(migration,/UPDATE (?:club\.players|finance\.)/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.read_admin_football_directory/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.create_admin_football_resource/);
+  assert.match(grants,/REVOKE ALL ON FUNCTION club\.authorize_admin_football/);
+  assert.match(grants,/REVOKE ALL ON FUNCTION club\.read_admin_football_directory/);
+  assert.match(grants,/has_any_column_privilege/);
+  assert.match(dbChecks,/location_manager_modified_sibling_location_base/);
+  assert.match(dbChecks,/city_manager_modified_other_city_opponent/);
+  assert.match(dbChecks,/first_team_cross_organization_read/);
+  assert.match(dbChecks,/revoked_session_read_catalog/);
+  assert.match(dbChecks,/ROLLBACK/);
+  assert.match(workflow,/football-territory-admin-grants\.sql/);
+  assert.match(workflow,/football-territory-admin-checks\.sql/);
+});
+test('admin UI uses selected organization, city, location and team scope with real authenticated API',()=>{
+  assert.match(page,/\/api\/admin\/football\/territories\?organization_id=/);
+  assert.match(page,/credentials:'same-origin',cache:'no-store'/);
+  assert.match(page,/'X-Lefteria-Admin':'1'/);
+  assert.match(page,/data-testid="territory-organization"/);
+  assert.match(page,/data-testid="territory-city"/);
+  assert.match(page,/data-testid="territory-location"/);
+  assert.match(page,/data-testid="territory-team"/);
+  assert.match(page,/directory\.unassigned_groups/);
+  assert.match(page,/kind==='training_base'&&organization==='lefteria_fc_academy'/);
+  assert.match(page,/scope_id:selectedScope\.id/);
+  assert.match(page,/group_id:selectedGroup/);
+  assert.match(page,/Αποθήκευση προχείρου/);
+  assert.match(page,/role="alert"/);
+  assert.match(frame,/href="\/admin\/territories"/);
+  assert.match(modules,/id: 'territories'/);
+});
