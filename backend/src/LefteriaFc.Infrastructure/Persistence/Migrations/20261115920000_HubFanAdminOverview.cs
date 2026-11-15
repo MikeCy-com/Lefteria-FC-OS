@@ -11,7 +11,7 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 /// A recorded "active" row is not equivalent to a verified current entitlement.
 /// </summary>
 [DbContext(typeof(LefteriaDbContext))]
-[Migration("20261115910000_HubFanAdminOverview")]
+[Migration("20261115920000_HubFanAdminOverview")]
 public sealed class HubFanAdminOverview : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) =>
