@@ -57,6 +57,7 @@ internal sealed partial class WebAdminHttpChecks
             organizations:["lefteria_fc","lefteria_fc_academy"]);
         using var client=Client();
         var login=await LoginAsync(client,manager);
+        Console.WriteLine("CHECK scoped create: seed canonical roster + site");
         var roster=await database.SeedAudienceAsync();
         var site=await database.SeedAnnouncementTerritoriesAsync(roster,manager);
         string? groupId=null;
@@ -84,21 +85,26 @@ internal sealed partial class WebAdminHttpChecks
         {
             var id=Guid.NewGuid();
             var payload=Request("Fixture City One · U9",id,site.SecondLocation);
+            Console.WriteLine("CHECK scoped create: sibling-site deny");
             using(var denied=await Post(client,login.Cookie,path,
                 Request("Wrong sibling site",Guid.NewGuid(),site.FirstLocation)))
                 await ExpectJsonAsync(denied,403,"group_creation_denied");
+            Console.WriteLine("CHECK scoped create: missing location deny");
             using(var denied=await Post(client,login.Cookie,path,
                 Request("Without a location",Guid.NewGuid(),null)))
                 await ExpectJsonAsync(denied,422,"invalid_group_profile");
+            Console.WriteLine("CHECK scoped create: FC manager deny");
             using(var denied=await Post(client,login.Cookie,fcPath,new{
                 name="Unscoped FC",request_id=Guid.NewGuid(),
                 team_profile=new{level="First Team",description="",banner_url=""}}))
                 await ExpectJsonAsync(denied,403,"not_authorized");
+            Console.WriteLine("CHECK scoped create: flat Academy deny");
             using(var denied=await Post(client,login.Cookie,
                 "/api/admin/football/groups?organization_id=lefteria_fc_academy",
                 new{name="Forbidden flat Academy group"}))
                 await ExpectJsonAsync(denied,403,"not_authorized");
 
+            Console.WriteLine("CHECK scoped create: no-grant outsider");
             var outsider=await database.SeedAsync(role:"manager",
                 organizations:["lefteria_fc_academy"]);
             using(var outsiderClient=Client())
@@ -109,6 +115,7 @@ internal sealed partial class WebAdminHttpChecks
                 await ExpectJsonAsync(denied,403,"group_creation_denied");
             }
 
+            Console.WriteLine("CHECK scoped create: authorized site commit");
             using(var saved=await Post(client,login.Cookie,path,payload))
             {
                 var data=await ExpectJsonAsync(saved,200);
@@ -120,7 +127,9 @@ internal sealed partial class WebAdminHttpChecks
                     data.GetProperty("replay").GetBoolean()==false,
                     "Scoped Academy create omitted its verified location or profile.");
             }
+            Console.WriteLine("CHECK scoped create: persisted canonical assignment");
             await database.AssertScopedAcademyGroupAsync(groupId!,site.City,site.SecondLocation);
+            Console.WriteLine("CHECK scoped create: idempotent replay");
             using(var replay=await Post(client,login.Cookie,path,payload))
             {
                 var data=await ExpectJsonAsync(replay,200);
@@ -138,6 +147,7 @@ internal sealed partial class WebAdminHttpChecks
                 "lefteria_fc_academy","Fixture City One · U9")==1,
                 "Replays or duplicate names created multiple Academy groups.");
 
+            Console.WriteLine("CHECK scoped create: audit rollback");
             await database.WithGroupAuditFailureAsync(manager,async()=>{
                 using var failed=await Post(client,login.Cookie,path,
                     Request("Audit rollback site group",Guid.NewGuid(),site.SecondLocation));
@@ -147,6 +157,7 @@ internal sealed partial class WebAdminHttpChecks
                 "lefteria_fc_academy","Audit rollback site group")==0,
                 "Site group creation was not atomic with the audit.");
 
+            Console.WriteLine("CHECK scoped create: immediate grant revocation");
             await database.RevokeAnnouncementTerritoriesAsync(manager,site);
             using(var denied=await Post(client,login.Cookie,path,
                 Request("Revoked site group",Guid.NewGuid(),site.SecondLocation)))
@@ -156,10 +167,12 @@ internal sealed partial class WebAdminHttpChecks
         }
         finally
         {
+            Console.WriteLine("CHECK scoped create: cleanup");
             if(groupId is not null)
                 await database.CleanupScopedAcademyGroupsAsync(manager,[groupId]);
             await database.CleanupAnnouncementTerritoriesAsync(manager,site);
             await database.CleanupAudienceAsync(roster);
+            Console.WriteLine("CHECK scoped create: cleanup complete");
         }
     }
 
