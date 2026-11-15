@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import FootballLocationMetrics from '../../../lib/admin/FootballLocationMetrics.svelte';
+  import AcademyLocationFinancePanel from '../../../lib/admin/AcademyLocationFinancePanel.svelte';
   import FootballTerritoryAccessPanel from '../../../lib/admin/FootballTerritoryAccessPanel.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
@@ -326,6 +327,11 @@
                   cityId={cityId} locationId={locationId}
                   actorId={$auth.session.user.id} revision={revision}
                   canManageCity={Boolean(selectedScope?.can_write_catalog)} />
+                <AcademyLocationFinancePanel
+                  actorId={$auth.session.user.id} {cityId} {locationId}
+                  locations={directory.locations}
+                  superAdmin={$auth.session.user.role==='super_admin'}
+                  revision={revision}/>
                 <h3>Τμήματα τοποθεσίας</h3>
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
