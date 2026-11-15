@@ -234,6 +234,7 @@ app.MapAdminAcademyLocationFinance();
 app.MapAdminFinanceOverview();
 app.MapAdminSupplierBills();
 app.MapAdminSupplierPayments();
+app.MapAdminSupplierCredits();
 
 if (app.Environment.IsDevelopment())
 {
