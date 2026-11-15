@@ -111,5 +111,10 @@ test('real PostgreSQL POS site isolation is executed in CI and workspace staging
   assert.match(sql,/city_manager_read_other_city_finances/);
   assert.match(sql,/revoked_manager_still_owns_assigned_cashier_register/);
   assert.match(sql,/revoked_admin_session_still_read_pos_site_directory/);
-  assert.doesNotMatch(sql,/INSERT INTO pos_cashier\.(sales|payment_events|receipts|refund_events)/);
+  // One disposable unpaid sale proves recovery refuses an unresolved checkout.
+  // It is deleted before the positive path and the entire suite rolls back.
+  assert.match(sql,/INSERT INTO pos_cashier\\.sales\\(/);
+  assert.match(sql,/DELETE FROM pos_cashier\\.sales/);
+  assert.match(sql,/supervisor_recovered_shift_with_pending_sale/);
+  assert.doesNotMatch(sql,/INSERT INTO pos_cashier\\.(payment_events|receipts|refund_events)/);
 });
