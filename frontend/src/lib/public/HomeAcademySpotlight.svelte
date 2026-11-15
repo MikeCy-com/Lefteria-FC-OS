@@ -3,7 +3,8 @@
   import {publicImages} from './images';
   import Icon from './PublicIcon.svelte';
   let {site,groups=[]}:{site:PublicSite|null;groups?:PublicGroup[]}=$props();
-  const sections=$derived(groups.length ? groups : (site?.academy_groups??[]));
+  const sections=$derived((groups.length ? groups : (site?.academy_groups??[]))
+    .filter(group => group.organization_id === 'lefteria_fc_academy'));
 </script>
 
 <section class="home-academy-spotlight" aria-labelledby="home-academy-title"
