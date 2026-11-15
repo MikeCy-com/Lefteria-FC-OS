@@ -15,6 +15,8 @@ DECLARE
   application uuid:=gen_random_uuid();
   request_id uuid:=gen_random_uuid();
   alternate_request uuid:=gen_random_uuid();
+  proof_request uuid:=gen_random_uuid();
+  proof_body jsonb;
   fixture_player_id text:='ply_'||replace(request_id::text,'-','');
   payload jsonb;
   result jsonb;
@@ -80,6 +82,14 @@ BEGIN
     RAISE EXCEPTION 'Status-only public approval bypassed roster enrollment';
   EXCEPTION WHEN check_violation THEN NULL; END;
 
+  -- A pending/under-review public application is not enough to begin
+  -- attesting guardian identity: it must first be added to the roster.
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(admin_digest,'read',
+      jsonb_build_object('registration_id',application));
+    RAISE EXCEPTION 'Unenrolled child admitted to guardian proof review';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   payload:=jsonb_build_object('id',application,'version',2,
     'request_id',request_id,'city_id',city,'location_id',location,
     'group_id',fixture_group_id,'position','Defender','number',14);
@@ -127,6 +137,72 @@ BEGIN
     PERFORM identity.enroll_admin_academy_registration(admin_digest,
       jsonb_set(payload,'{request_id}',to_jsonb(alternate_request::text)));
     RAISE EXCEPTION 'Conflicting enrollment request was accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+
+  -- Independent guardian proof review is a human attestation ledger,
+  -- NOT an OTP login or an app entitlement. The source phone is compared
+  -- with the already approved public Academy application.
+  result:=identity.admin_academy_guardian_proof(admin_digest,'read',
+    jsonb_build_object('registration_id',application));
+  IF result->>'status'<>'not_verified'
+    OR result->>'app_access_enabled'<>'false' THEN
+    RAISE EXCEPTION 'Unreviewed guardian received access'; END IF;
+  proof_body:=jsonb_build_object(
+    'registration_id',application,'phone','35799123456',
+    'proof_method','in_person_document','case_reference','CASE-2026-0001',
+    'request_id',proof_request,'attested',true);
+
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(manager_digest,'verify',proof_body);
+    RAISE EXCEPTION 'Location manager could attest guardian identity';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(admin_digest,'verify',
+      jsonb_set(proof_body,'{phone}',to_jsonb('35799123457'::text)));
+    RAISE EXCEPTION 'Wrong telephone was accepted as original guardian';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(admin_digest,'verify',
+      jsonb_set(proof_body,'{attested}','false'::jsonb));
+    RAISE EXCEPTION 'No human confirmation was accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+
+  result:=identity.admin_academy_guardian_proof(admin_digest,'verify',proof_body);
+  IF result->>'status'<>'verified_proof'
+    OR result->>'app_access_enabled'<>'false'
+    OR result->>'player_id'<>fixture_player_id THEN
+    RAISE EXCEPTION 'Guardian proof review not verified'; END IF;
+  result:=identity.admin_academy_guardian_proof(admin_digest,'verify',proof_body);
+  IF result->>'replay'<>'true' THEN
+    RAISE EXCEPTION 'Guardian proof retry not idempotent'; END IF;
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(admin_digest,'verify',
+      jsonb_set(proof_body,'{request_id}',to_jsonb(gen_random_uuid()::text)));
+    RAISE EXCEPTION 'Second guardian review overwrote first';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+
+  result:=identity.admin_academy_guardian_proof(admin_digest,'read',
+    jsonb_build_object('registration_id',application));
+  IF result->>'status'<>'verified_proof'
+     OR result->>'phone_hint'<>'••••3456'
+     OR result ? 'normalized_phone'
+     OR result ? 'case_reference'
+     OR result->>'app_access_enabled'<>'false'
+     OR EXISTS(SELECT 1 FROM identity.mobile_record_links
+       WHERE record_id=fixture_player_id)
+     OR identity.has_current_guardian_phone_grant('35799123456')
+  THEN RAISE EXCEPTION 'Proof review exposed guardian data or app rights'; END IF;
+
+  result:=identity.admin_academy_guardian_proof(admin_digest,'revoke',
+    jsonb_build_object('registration_id',application,'version',1));
+  IF result->>'status'<>'revoked' OR result->>'version'<>'2'
+    OR result->>'app_access_enabled'<>'false'
+    OR (SELECT count(*) FROM academy_intake.guardian_proof_review_events
+      WHERE registration_id=application)<>2 THEN
+    RAISE EXCEPTION 'Guardian proof revoke failed'; END IF;
+  BEGIN
+    PERFORM identity.admin_academy_guardian_proof(admin_digest,'verify',proof_body);
+    RAISE EXCEPTION 'Revoked guardian proof was silently reopened';
   EXCEPTION WHEN unique_violation THEN NULL; END;
 
   -- Loss of Academy grant after success prevents idempotent response replay.

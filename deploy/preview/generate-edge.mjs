@@ -171,6 +171,10 @@ export const reviewedHiddenAdminEntries = [
   ['post','/api/admin/access/users'],
   ['post','/api/admin/access/users/status'],
   ['get','/api/admin/academy/intake'],
+  // Explicit private review routes; API and SQL independently require Academy Super Admin.
+  ['get','/api/admin/academy/office/guardians'],
+  ['post','/api/admin/academy/office/guardians/verify'],
+  ['post','/api/admin/academy/office/guardians/revoke'],
   ['post','/api/admin/auth/profile/name'],
   ['post','/api/admin/auth/profile/password'],
   // Future self-service contact address is still an admin-cookie operation;

@@ -230,6 +230,7 @@ app.MapAdminAcademyAttendance();
 app.MapAdminAcademyTrainingPlans();
 app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
+app.MapAcademyGuardianProof();
 app.MapAdminFootballTerritories();
 app.MapAdminFootballTerritoryAccess();
 app.MapAdminAcademyLocationFinance();
