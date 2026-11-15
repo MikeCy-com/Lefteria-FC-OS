@@ -10,7 +10,8 @@ public sealed record PublicTeam(string Id, string OrganizationId, string Name, s
     string? Description, string? BannerUrl);
 public sealed record PublicAcademyGroup(string Id, string OrganizationId, string Name, string? AgeRange,
     string? City, string? LocationName, string? TrainingSchedule, string? Description,
-    string? BannerUrl, string? Season, int DisplayOrder);
+    string? BannerUrl, string? Season, int DisplayOrder,
+    string? CityId = null, string? LocationId = null, string? CitySlug = null, string? LocationSlug = null);
 public sealed record PublicArticle(string Id, string OrganizationId, string Title, string Content,
     string Excerpt, string? ImageUrl, string Category, string Audience, bool IsFeatured, DateTimeOffset? CreatedAt);
 public sealed record PublicFixture(string Id, string OrganizationId, string HomeTeam, string AwayTeam,
