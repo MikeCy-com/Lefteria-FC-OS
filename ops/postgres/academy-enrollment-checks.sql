@@ -18,6 +18,10 @@ DECLARE
   proof_request uuid:=gen_random_uuid();
   otp_challenge uuid:=gen_random_uuid();
   original_parent_id uuid:=gen_random_uuid();
+  unrelated_parent_id uuid:=gen_random_uuid();
+  fee_for_child uuid:=gen_random_uuid();
+  fee_for_other_child uuid:=gen_random_uuid();
+  unrelated_player_id text:='ply_other_'||replace(gen_random_uuid()::text,'-','');
   otp_digest bytea:=decode(repeat('a',64),'hex');
   otp_issued_at timestamptz;
   confirmed int;
@@ -251,6 +255,65 @@ BEGIN
       clock_timestamp()+interval '1 hour'))
   THEN RAISE EXCEPTION 'Guardian could change signed phone to steal children'; END IF;
 
+  -- A parent's invoice is visible only if BOTH the payer identity and the
+  -- currently verified exact child match. A payer reference alone must not
+  -- expose a second active Academy player's private charge.
+  INSERT INTO club.players(
+    id,organization_id,name,number,position,team_type,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+  VALUES(unrelated_player_id,'lefteria_fc_academy','Other private child',
+    27,'Defender','Academy',true,false,false,true);
+  INSERT INTO finance.training_fee_issues(
+    id,organization_id,player_id,payer_identity_id,fee_month,
+    amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
+  VALUES
+    (fee_for_child,'lefteria_fc_academy',fixture_player_id,original_parent_id,
+      DATE '2026-11-01',4500,'+35799123456',
+      'original-fixture@example.invalid','First','Guardian',admin_id),
+    (fee_for_other_child,'lefteria_fc_academy',unrelated_player_id,original_parent_id,
+      DATE '2026-11-01',6500,'+35799123456',
+      'other-fixture@example.invalid','First','Guardian',admin_id);
+  INSERT INTO identity.mobile_identities(
+    id,normalized_phone,role,display_name,is_active,platform,created_at)
+  VALUES(unrelated_parent_id,'35799123457','parent','Other Parent',true,
+    'ios',clock_timestamp());
+
+  result:=finance.read_parent_training_fees(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>1
+    OR result->'fees'->0->>'id'<>fee_for_child::text
+    OR result->'fees'->0->>'player_id'<>fixture_player_id
+  THEN RAISE EXCEPTION 'Scoped parent wallet includes an unrelated player fee'; END IF;
+  result:=finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+  IF jsonb_array_length(result->'items')<>1
+    OR result->'items'->0->>'player_id'<>fixture_player_id
+    OR result->'items'->0->>'payer_identity_id'<>original_parent_id::text
+  THEN RAISE EXCEPTION 'Verified original guardian invoice PDF scope failed'; END IF;
+
+  -- All-or-nothing PDF retrieval: one unauthorized item rejects the entire
+  -- mixed batch even if a permitted child's invoice was also requested.
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',
+      ARRAY[fee_for_child,fee_for_other_child]);
+    RAISE EXCEPTION 'Mixed child PDF batch exposed unrelated payer data';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123457',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Wrong signed parent phone exposed invoice';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=finance.read_parent_training_fees(unrelated_parent_id,'35799123457',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>0
+  THEN RAISE EXCEPTION 'Other parent received original guardian wallet'; END IF;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(unrelated_parent_id,'35799123457',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Other parent received original guardian invoice';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- New guardians cannot create a fake canonical lineage root. Delegated
   -- second-parent support needs a separate lineage/consent integration.
   BEGIN
@@ -285,6 +348,18 @@ BEGIN
   IF (SELECT count(*) FROM identity.academy_guardian_otp_claims
       WHERE registration_id=application)<>1 THEN
     RAISE EXCEPTION 'Revocation erased immutable OTP proof'; END IF;
+
+  -- Even an already authenticated and designated payer loses wallet and
+  -- PDF visibility the moment human guardianship proof is revoked.
+  result:=finance.read_parent_training_fees(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>0
+  THEN RAISE EXCEPTION 'Revoked guardian retained a private fee wallet'; END IF;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Revoked guardian retained private PDF access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   -- Loss of Academy grant after success prevents idempotent response replay.
   DELETE FROM identity.admin_organization_grants WHERE admin_account_id=admin_id;
