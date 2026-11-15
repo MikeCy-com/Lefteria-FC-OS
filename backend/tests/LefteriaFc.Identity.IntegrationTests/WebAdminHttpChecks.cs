@@ -76,6 +76,7 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Web-admin exact credentials, uniform failures and unavailable two-factor fail closed", CredentialFailuresAsync),
         ("Web-admin mutation origins, JSON types, methods and bounded streamed bodies", RequestBoundaryAsync),
         ("Web-admin role permissions and organization union follow current grants", FreshAuthorityAsync),
+        ("Super Admin account POST audits direct credentials, allowed role and organizations without granting table writes", ManagedAdminCredentialsAsync),
         ("Web-admin copied cookies lose authority after logout and account/session changes", CookieInvalidationAsync),
         ("Web-admin cookie and mobile bearer realms remain independent", RealmIsolationAsync),
         ("Web-admin durable client and username throttle dimensions are independent", DurableThrottlesAsync),
