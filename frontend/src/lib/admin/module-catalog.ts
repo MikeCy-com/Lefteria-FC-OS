@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -68,7 +68,7 @@ const catalog: readonly Section[] = [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
     { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένος κατάλογος προπονητών και ελεγχόμενες αναθέσεις σε ομάδες και τμήματα. Η δημιουργία προσωπικού παραμένει εκτός λειτουργίας.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Χώροι και πόροι.', status: 'planned', scope: 'any', anyPermission: ['facilities:read'] },
-    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Εξουσιοδοτήσεις λογαριασμών.', status: 'planned', scope: 'any', anyPermission: ['users:read', 'users:write'] },
+    { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: επαληθευμένος κατάλογος λογαριασμών, ρόλων και οργανισμών, χωρίς αλλαγή δικαιωμάτων.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
     { id: 'organization', name: 'Ρυθμίσεις οργανισμών', description: 'Ρυθμίσεις εκτός δημόσιου προφίλ.', status: 'planned', scope: 'any', anyPermission: ['settings:read'] }
   ] }
 ];
@@ -92,6 +92,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
          (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
+      if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
       if (item.id === 'staff') return ['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write')));

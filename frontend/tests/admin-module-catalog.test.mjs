@@ -18,12 +18,12 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['fixtures', '/admin/matches'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff']
+    ['club', '/admin/club'], ['news', '/admin/news'], ['hub_editorial', '/admin/hub'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['academy_schedule', '/admin/schedule'], ['attendance', '/admin/attendance'], ['documents', '/admin/documents'], ['evaluations', '/admin/evaluations'], ['fixtures', '/admin/matches'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['users', '/admin/users']
   ]);
   assert.ok(modules(all).filter(module => module.status === 'planned').length > 12);
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/news', '/admin/hub', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users'].includes(item.href));
   }
 });
 
@@ -121,7 +121,7 @@ test('existing live workflows remain clickable instead of the planned fallback',
   // The formerly unreachable modules must share a live-link fallback before the disabled branch.
   assert.match(workspace,/{:else if module.status === 'live' && module.href}[\s\S]*?href={module.href}[\s\S]*?{:else}[\s\S]*?admin-tool-planned/);
   const all=modules(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
-  for(const id of ['leads','academy_schedule','attendance','evaluations','documents','registrations','staff']){
+  for(const id of ['leads','academy_schedule','attendance','evaluations','documents','registrations','staff','users']){
     const entry=all.find(m=>m.id===id);
     assert.equal(entry?.status,'live',id);
     assert.ok(entry?.href,id);
@@ -172,4 +172,15 @@ test('coach staff module requires organization-specific write grants and manager
   assert.match(route,/admin-staff-organization/);
   assert.match(route,/validDirectory\(raw,activeOwner\)/);
   assert.doesNotMatch(route,/localStorage|sessionStorage|preferredAdminOrganization|{@html|innerHTML/);
+});
+
+test('account directory is discoverable only for verified super admins',()=>{
+  const get=(role,permissions,organizations=['lefteria_fc'])=>
+    modules(user(permissions,organizations,role)).find(x=>x.id==='users');
+  assert.equal(get('super_admin',['*:*'])?.href,'/admin/users');
+  assert.equal(get('manager',['*:*']),undefined);
+  assert.equal(get('editor',['users:read']),undefined);
+  assert.equal(get('accountant',['*:*']),undefined);
+  assert.equal(get('coach',['*:*']),undefined);
+  assert.equal(get('super_admin',['*:*'],[]),undefined);
 });

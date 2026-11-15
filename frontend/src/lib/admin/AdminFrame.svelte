@@ -8,7 +8,7 @@
 
 
   let { user, active = 'account', busy = false, onLogout, children }: {
-    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches' | 'staff'; busy?: boolean;
+    user: WebAdminSession['user']; active?: 'account' | 'club' | 'news' | 'pos' | 'trials' | 'groups' | 'announcements' | 'onboarding' | 'leads' | 'finance' | 'attendance' | 'evaluations' | 'documents' | 'academy-office' | 'schedule' | 'hub' | 'matches' | 'staff' | 'users'; busy?: boolean;
     onLogout: () => void; children: Snippet;
   } = $props();
   const roleName = $derived(isAdminRole(user.role) ? ADMIN_ROLE_NAMES[user.role] : '—');
@@ -63,6 +63,9 @@
           {/if}
           {#if section.id === 'finance' && section.modules.some(item => item.id === 'payabl' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/finance" aria-current={active === 'finance' ? 'page' : undefined} data-testid="admin-payabl-link">payabl. · Sandbox</a>
+          {/if}
+          {#if section.id === 'operations' && section.modules.some(item => item.id === 'users' && item.status === 'live')}
+            <a class="admin-nav-tool" href="/admin/users" aria-current={active === 'users' ? 'page' : undefined} data-testid="admin-users-link">Χρήστες & δικαιώματα</a>
           {/if}
           {#if section.id === 'operations' && section.modules.some(item => item.id === 'staff' && item.status === 'live')}
             <a class="admin-nav-tool" href="/admin/staff" aria-current={active === 'staff' ? 'page' : undefined} data-testid="admin-staff-link">Προσωπικό & προπονητές</a>

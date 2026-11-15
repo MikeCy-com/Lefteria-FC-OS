@@ -180,6 +180,7 @@ app.MapMobilePrivateChat();
 app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();
 app.MapWebAdmin();
+app.MapAdminUserDirectory();
 app.MapPayabl();
 app.MapAcademyFees();
 app.MapAcademyInvoices();
