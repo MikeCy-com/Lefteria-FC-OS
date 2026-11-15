@@ -95,6 +95,7 @@ BEGIN
                    'club.write_admin_football_access(text,text,uuid,text,uuid,text,boolean)'::regprocedure,
                    'club.read_admin_football_location_metrics(text,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
