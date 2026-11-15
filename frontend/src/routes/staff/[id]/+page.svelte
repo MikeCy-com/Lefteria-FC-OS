@@ -5,4 +5,4 @@
   let { data }: { data: StaffPageData } = $props();
 </script>
 <svelte:head><title>{data.staff.name} | ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content={`Γνώρισε τον ${data.staff.name}, ${data.staff.role}, Λευτεριά FC.`} /></svelte:head>
-<PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}><PublicPersonProfile staff={data.staff} /></PublicShell>
+<PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}><PublicPersonProfile staff={data.staff} returnTeamId={data.returnTeamId} /></PublicShell>
