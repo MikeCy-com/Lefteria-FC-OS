@@ -120,7 +120,7 @@ CREATE FUNCTION club.read_admin_group_players(
               ) p;
 
               RETURN jsonb_build_object(
-                'organization_id',_owner,'ready',true,
+                'organization_id',_owner,'group_id',_group,'ready',true,
                 'offset',_offset,'limit',_limit,'total',v_total,
                 'players',v_rows);
             END $admin_roster_players$;
