@@ -142,7 +142,17 @@ internal sealed partial class WebAdminDatabaseFixture
             """,con,tx);
         cmd.Parameters.AddWithValue("actor",actor.Id);
         cmd.Parameters.AddWithValue("ids",ids.ToArray());
-        var affected=await cmd.ExecuteNonQueryAsync();
+        int affected;
+        try { affected=await cmd.ExecuteNonQueryAsync(); }
+        catch(PostgresException e)
+        {
+            // Disposable CI fixture only: no player, administrator or
+            // credential values. Identify the exact FK/check preventing
+            // synthetic group teardown.
+            Console.WriteLine("CHECK scoped create: cleanup SQLSTATE="+e.SqlState+
+                " constraint="+e.ConstraintName+" message="+e.MessageText);
+            throw;
+        }
         if(affected!=ids.Count)
             throw new InvalidOperationException("Scoped cohort cleanup was not exact.");
         await tx.CommitAsync();
