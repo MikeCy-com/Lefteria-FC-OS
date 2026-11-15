@@ -95,3 +95,29 @@ test('XML serialization escapes query strings and rejects source IDs that alter 
   assert.doesNotMatch(xml, /abc%2Fdef|\.\.\/match/);
   assert.doesNotMatch(xml, /<loc>[^<]*&(?!amp;)/);
 });
+
+test('native CMS sitemap includes approved visible pages with canonical Academy scope only', () => {
+  const row = (org, slug, menu_parent, published_at = '2026-11-15T08:00:00Z') => ({
+    organization_id: org, slug, published_at,
+    page: { title: 'Verified public title', summary: '', seo_title: '', seo_description: '',
+      menu_parent, menu_order: 0, blocks: [{type:'paragraph',text:'Public only',url:null}] }
+  });
+  const xml = buildPublicSitemap({
+    articles: [], groups: [], sites: [], sections: [],
+    websitePages: [
+      row('lefteria_fc', 'our-history', 'club'),
+      row('lefteria_fc_academy', 'parents-guide', 'academy'),
+      row('lefteria_fc', 'not-in-menu', 'hidden'),
+      row('lefteria_fc_academy', 'homepage-hero-academy', 'hidden'),
+      row('lefteria_fc_academy', 'wrong-team-parent', 'team'),
+      row('lefteria_fc', 'wrong-academy-parent', 'academy'),
+      row('unverified_owner', 'fake-owner', 'root'),
+      {...row('lefteria_fc', 'private-draft', 'root'), published_at: null}
+    ]
+  });
+  assert.match(xml, /<loc>https:\/\/lefteriafc\.cy\/pages\/our-history<\/loc>/);
+  assert.match(xml, /<loc>https:\/\/lefteriafc\.cy\/pages\/parents-guide\?organization_id=lefteria_fc_academy<\/loc>/);
+  assert.match(xml, /<lastmod>2026-11-15<\/lastmod>/);
+  assert.doesNotMatch(xml, /not-in-menu|homepage-hero-academy|wrong-team-parent|wrong-academy-parent|fake-owner|private-draft/);
+  assert.doesNotMatch(xml, /draft_json|private|token/);
+});

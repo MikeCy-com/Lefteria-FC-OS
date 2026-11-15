@@ -91,3 +91,17 @@ Shared root, club/news/events/shop/contact slots retain their existing
 organization-specific pages. Incompatible pre-existing snapshots remain
 available through their direct scoped URL but cannot appear in the wrong
 organization's public menu until corrected and republished.
+
+## Native page search indexing
+
+Indexable production sitemap discovery now includes only the anonymous,
+**published** CMS projection for each verified organization. The sitemap does
+not expose editor drafts, hidden menu entries, reserved homepage hero slots,
+or snapshots attached to a different organization's menu. It includes the
+publication date when valid. Non-production origins remain fully blocked from
+sitemap generation, before either CMS projection is requested.
+
+Academy CMS URLs keep `?organization_id=lefteria_fc_academy` in their canonical
+and social `og:url` metadata; First Team pages have the clean path. Untrusted
+query parameters and spoofed organization identifiers are dropped. Changes
+are code-only and require normal staging verification before deployment.
