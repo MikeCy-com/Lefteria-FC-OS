@@ -373,6 +373,7 @@ BEGIN
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
                    'identity.read_admin_own_contact_email(text)'::regprocedure,
