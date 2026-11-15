@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -33,6 +33,7 @@ const catalog: readonly Section[] = [
     { id: 'hub_subscriptions', name: 'Συνδρομές HUB φιλάθλων', description: 'Ξεχωριστή επαληθευμένη συνδρομή με επιλογές γονέα / αθλητή, χωρίς αλλαγή ρόλου ή δικαιώματα παιδιών. Η χρέωση και η επαλήθευση παρόχου εκκρεμούν.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'app', name: 'Εφαρμογή · Επικοινωνία', description: 'Μόνο η ιδιωτική εφαρμογή μελών: μηνύματα, ανακοινώσεις, ειδοποιήσεις και κανόνες ορατότητας. Δεν αφορά τη δημόσια ιστοσελίδα.', modules: [
+    { id: 'communications', name: 'Κέντρο επικοινωνίας εφαρμογής', description: 'Ενοποιημένη εικόνα ανακοινώσεων, ιδιωτικών συνομιλιών, ειδοποιήσεων και συνημμένων με πραγματικές καταστάσεις υλοποίησης.', status: 'live', href: '/admin/communications', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'announcements', name: 'Ανακοινώσεις εφαρμογής', description: 'Πρόχειρα, εικόνες και PDF, δημοσίευση ανά ομάδα, αναγνώστες και απόσυρση από την εφαρμογή.', status: 'live', href: '/admin/announcements', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'messages', name: 'Μηνύματα εφαρμογής', description: 'Ιδιωτικές συνομιλίες, ομαδικά μηνύματα, αντιδράσεις και επιβεβαιώσεις ανάγνωσης· σε υλοποίηση.', status: 'planned', scope: 'any', anyPermission: ['messages:read'] },
     { id: 'app_notifications', name: 'Ειδοποιήσεις εφαρμογής', description: 'Ειδοποιήσεις προς τρέχοντα και επιτρεπόμενα μέλη, με απόπειρες και επαναλήψεις.', status: 'planned', scope: 'any', anyPermission: ['messages:write'] },
@@ -40,7 +41,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'crm', name: 'CRM & επαφές', description: 'Εγγραφές, οικογένειες, εξυπηρέτηση και ενδιαφερόμενοι· διακριτά από την επικοινωνία της εφαρμογής.', modules: [
     { id: 'leads', name: 'Ενδιαφερόμενοι Ακαδημίας', description: 'Ιδιωτικός κατάλογος αιτημάτων και ελεγχόμενη καταχώριση επικοινωνίας (χωρίς αυτόματη εγγραφή ή αποστολή).', status: 'live', href: '/admin/leads', scope: 'academy', anyPermission: ['marketing:read'] },
-    { id: 'registrations', name: 'Γραμματεία Ακαδημίας', description: 'Αιτήσεις εγγραφής, έλεγχος στοιχείων κηδεμόνων και εσωτερικές παραγγελίες. Η ένταξη στο ρόστερ ολοκληρώνεται χωριστά.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
+    { id: 'registrations', name: 'Αιτήσεις & οικογένειες', description: 'Αιτήσεις εγγραφής, έλεγχος στοιχείων κηδεμόνων και εσωτερικές παραγγελίες. Η ένταξη στο ρόστερ ολοκληρώνεται χωριστά.', status: 'live', href: '/admin/academy-office', scope: 'academy', anyPermission: ['academy:read', 'academy:read_assigned'] },
     { id: 'campaigns', name: 'Καμπάνιες & παραπομπές', description: 'Προώθηση και συνεργάτες.', status: 'planned', scope: 'any', anyPermission: ['marketing:read'] }
   ] },
   { id: 'pos', name: 'POS & κατάστημα', description: 'Σημεία πώλησης, κατάλογος και παραγγελίες.', modules: [
@@ -53,17 +54,15 @@ const catalog: readonly Section[] = [
     { id: 'charges', name: 'Χρεώσεις & εισπράξεις', description: 'Οφειλές και πληρωμές.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] },
     { id: 'reports', name: 'Αναφορές & έξοδα', description: 'Οικονομικά ανά οργανισμό.', status: 'planned', scope: 'any', anyPermission: ['finance:read'] }
   ] },
+  // Operational training, attendance, evaluations, documents and match results
+  // are child workflows of a verified group or athlete. Their legacy private
+  // routes remain guarded for bookmarked URLs but are not admin modules.
   { id: 'football', name: 'Αγωνιστικό & Ακαδημία', description: 'Ομάδες, προπονήσεις, αγώνες και δοκιμαστικά.', modules: [
     { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read'] },
     { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Πραγματικές ομάδες, μέλη και ελεγχόμενη δημιουργία τμημάτων ανά οργανισμό.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
-    { id: 'academy_schedule', name: 'Πρόγραμμα προπονήσεων Ακαδημίας', description: 'Επαληθευμένη ανά τμήμα προβολή πραγματικών προπονήσεων και ακυρώσεων, με σύνδεσμο στο παρουσιολόγιο. Η επεξεργασία εκκρεμεί.', status: 'live', href: '/admin/schedule', scope: 'academy', anyPermission: ['attendance:read'] },
-    { id: 'attendance', name: 'Παρουσίες προπονήσεων Ακαδημίας', description: 'Ιδιωτικό παρουσιολόγιο πραγματικής παρουσίας σε επιβεβαιωμένες προπονήσεις, ανεξάρτητο από RSVP. Μόνο εξουσιοδοτημένη διαχείριση.', status: 'live', href: '/admin/attendance', scope: 'academy', anyPermission: ['attendance:read'] },
-    { id: 'documents', name: 'Προστατευμένα έγγραφα αθλητών', description: 'Ιδιωτική προβολή τύπων και ημερομηνιών λήξης· χωρίς πρόσβαση σε αρχεία.', status: 'live', href: '/admin/documents', scope: 'any', anyPermission: ['academy:read','teams:read'] },
-    { id: 'evaluations', name: 'Αξιολογήσεις αθλητών', description: 'Περιορισμένη προβολή αξιολογήσεων ανά αθλητή.', status: 'live', href: '/admin/evaluations', scope: 'any', anyPermission: ['academy:read','teams:read'] },
     { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
     { id: 'territories', name: 'Πόλεις, γήπεδα & αγωνιστικοί κατάλογοι', description: 'Ασφαλείς κατάλογοι Ακαδημίας ανά πόλη/τοποθεσία και ανεξάρτητοι κατάλογοι πρώτης ομάδας, με πρόχειρους αγώνες.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
-    { id: 'fixtures', name: 'Αγώνες & αποτελέσματα', description: 'Επαληθευμένη προβολή δημοσιευμένων αγώνων, αποτελεσμάτων και Κυπέλλου για τον επιλεγμένο οργανισμό. Η επεξεργασία σκορ και η βαθμολογία απαιτούν ξεχωριστό API.', status: 'live', href: '/admin/matches', scope: 'any', anyPermission: ['teams:read', 'academy:read'] }
   ] },
   { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
@@ -88,9 +87,6 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
-      if (item.id === 'documents' || item.id === 'evaluations') return ['manager','super_admin'].includes(user.role) &&
-        ((organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')) ||
-         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')));
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
       if (item.id === 'users') return user.role === 'super_admin' && hasAdminPermission(user.permissions,'users:read');
@@ -101,14 +97,10 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write')));
       if (item.id === 'onboarding') return ['manager','super_admin'].includes(user.role);
-      if (item.id === 'academy_schedule' || item.id === 'attendance') return (
-        ['manager','super_admin'].includes(user.role) &&
-        organizations.includes('lefteria_fc_academy') &&
-        hasAdminPermission(user.permissions,'attendance:read'));
       if (item.id === 'leads') return (['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy') &&
         hasAdminPermission(user.permissions,'marketing:read'));
-      if (item.id === 'announcements') return (['manager','super_admin'].includes(user.role) && (
+      if (item.id === 'announcements' || item.id === 'communications') return (['manager','super_admin'].includes(user.role) && (
         (organizations.includes('lefteria_fc') && hasAdminPermission(user.permissions,'teams:write')) ||
         (organizations.includes('lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:write'))));
       if (item.id === 'groups' || item.id === 'fixtures' || item.id === 'territories') return (

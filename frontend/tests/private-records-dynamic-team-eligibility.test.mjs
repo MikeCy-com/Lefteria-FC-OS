@@ -52,8 +52,12 @@ test('the admin UI follows current allowed organizations rather than a hardcoded
     assert.match(source,/organization_id:owner/);
     assert.match(source,/\/api\/admin\/club\/players\//);
   }
-  assert.match(modules,/item\.id === 'evaluations'/);
-  assert.match(modules,/item\.id === 'documents'/);
-  assert.match(modules,/hasAdminPermission\(user\.permissions,'teams:read'\)/);
-  assert.match(modules,/hasAdminPermission\(user\.permissions,'academy:read'\)/);
+  assert.doesNotMatch(modules,/id: 'evaluations'/);
+  assert.doesNotMatch(modules,/id: 'documents'/);
+  const group=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
+  const player=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
+  assert.match(group,/AdminRosterPlayersPanel/);
+  assert.match(group,/hasAdminPermission\(user\.permissions,organization===/);
+  assert.match(player,/AdminPlayerPrivateRecordsPanel/);
+  assert.match(player,/focusGroupId/);
 });

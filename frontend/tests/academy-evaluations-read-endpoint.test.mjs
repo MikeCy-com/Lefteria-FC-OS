@@ -49,6 +49,11 @@ test('UI validates response and strips stale private data',()=>{
   assert.match(ui,/activePermission=allowed/);
   assert.match(ui,/auth\.bootstrap\(\)/);
   assert.match(ui,/onLogout=\{\(\) => void auth\.logout\(\)\}/);
-  assert.match(nav,/item\.id === 'evaluations'.*\['manager','super_admin'\]/);
+  assert.doesNotMatch(nav,/id: 'evaluations'/);
+  const group=load('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
+  const player=load('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
+  assert.match(group,/\['manager','super_admin'\]\.includes\(user\.role\)/);
+  assert.match(group,/AdminRosterPlayersPanel/);
+  assert.match(player,/\/evaluations\?/);
   assert.doesNotMatch(ui,/fetch\([^\n]+method:'POST'/);
 });

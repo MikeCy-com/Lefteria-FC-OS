@@ -11,8 +11,9 @@
     historical_attendance:Status;attendance:Status;attendance_source:'legacy_import'|'os_manager'|'not_recorded';version:number};
   type Register={organization_id:'lefteria_fc_academy';event_id:string;day:string;title:string;
     is_cancelled:boolean;is_archived:boolean;writable:boolean;total:number;players:Player[]};
-  let {groupId,actorId,canRead=false,canWrite=false}:{
-    groupId:string;actorId:string;canRead:boolean;canWrite:boolean
+  let {groupId,actorId,canRead=false,canWrite=false,playerId=null,playerName=''}:{
+    groupId:string;actorId:string;canRead:boolean;canWrite:boolean;
+    playerId?:string|null;playerName?:string;
   }=$props();
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const base='/api/admin/academy/training';
@@ -32,7 +33,9 @@
   let loading=$state(false),loadingRegister=$state(false),saving=$state('');
   let message=$state(''),error=$state('');
   let refreshSessions=$state(0),refreshRegister=$state(0);
-  const totals=$derived(register?summarizeAcademyAttendance(register.players):null);
+  const visiblePlayers=$derived(register ? register.players.filter(row=>
+    !playerId || row.player_id===playerId) : []);
+  const totals=$derived(register?summarizeAcademyAttendance(visiblePlayers):null);
   const idSafe=(s:unknown):s is string=>typeof s==='string'&&s.length>0&&s.length<=128&&!/[\x00-\x1f\x7f]/.test(s);
   const daySafe=(s:unknown):s is string=>typeof s==='string'&&/^\d{4}-\d\d-\d\d$/.test(s);
   const statuses:Record<'present'|'absent',string>={present:'Παρόν',absent:'Απών'};
@@ -140,7 +143,7 @@
 
 <section class="admin-group-attendance-panel" aria-labelledby="group-attendance-title"
   data-testid="group-embedded-attendance">
-  <h4 id="group-attendance-title">Παρουσίες ανά προπόνηση και αθλητή</h4>
+  <h4 id="group-attendance-title">{playerId ? `Παρουσίες αθλητή · ${playerName}` : 'Παρουσίες ανά προπόνηση και αθλητή'}</h4>
   <p class="admin-muted">Οι παρουσίες καταγράφονται για κάθε συγκεκριμένη προπόνηση.
     Η δήλωση συμμετοχής (RSVP) δεν υποκαθιστά την πραγματική παρουσία.</p>
   {#if !canRead}
@@ -173,9 +176,9 @@
         <h5>{register.title} · {register.day}</h5>
         <button type="button" class="admin-secondary" onclick={()=>refreshRegister++}>Ανανέωση παρουσιών</button>
       </div>
-      {#if totals}<p class="admin-muted">Επαληθευμένες παρουσίες ανά αθλητή · Σύνολο {register.players.length}</p>{/if}
+      {#if totals}<p class="admin-muted">{playerId ? 'Ατομικό παρουσιολόγιο από την επιλεγμένη προπόνηση' : 'Επαληθευμένες παρουσίες ανά αθλητή'} · Σύνολο {visiblePlayers.length}</p>{/if}
       <div class="attendance-register-list">
-        {#each register.players as player (player.player_id)}
+        {#each visiblePlayers as player (player.player_id)}
           <article class="attendance-player">
             <div><strong>{player.name}</strong><small>Δήλωση: {player.rsvp==='going'?'Θα έρθει':player.rsvp==='not_going'?'Δεν θα έρθει':player.rsvp==='maybe'?'Ίσως':'Χωρίς δήλωση'}</small>
               <span>Παρουσία: {player.attendance?statuses[player.attendance]:'Χωρίς καταχώριση'}</span></div>
@@ -190,6 +193,9 @@
           </article>
         {/each}
       </div>
+      {#if playerId && visiblePlayers.length===0}
+        <p class="admin-muted" role="status">Δεν υπάρχει καταχώριση αυτού του αθλητή στο παρουσιολόγιο της επιλεγμένης προπόνησης.</p>
+      {/if}
       {#if !register.writable}<p class="admin-muted">Η προπόνηση δεν δέχεται αλλαγές παρουσίας.</p>{/if}
     {/if}
   {/if}
