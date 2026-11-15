@@ -229,6 +229,7 @@ app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
 app.MapAdminFootballTerritories();
 app.MapAdminFootballTerritoryAccess();
+app.MapAdminAcademyLocationFinance();
 
 if (app.Environment.IsDevelopment())
 {
