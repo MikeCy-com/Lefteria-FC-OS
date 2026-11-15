@@ -37,16 +37,20 @@ internal sealed partial class WebAdminHttpChecks
         using var clientB=Client();
         var loginA=await LoginAsync(clientA,accountA);
         var loginB=await LoginAsync(clientB,accountB);
+        Console.WriteLine("CHECK admin-photo stage 1");
         using(var missing=await GetAsync(clientA,OwnPhotoPath,loginA.Cookie))
             await ExpectStatusAsync(missing,404);
         using(var missing=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
             await ExpectStatusAsync(missing,404);
+        Console.WriteLine("CHECK admin-photo stage 2");
         using(var unauth=await GetAsync(clientB,OwnPhotoPath,""))
             await ExpectStatusAsync(unauth,401);
 
+        Console.WriteLine("CHECK admin-photo stage 3");
         using(var saved=await UploadFixturePhotoAsync(clientA,loginA.Cookie,FixturePhoto(SKColors.Red)))
             await ExpectStatusAsync(saved,204);
         byte[] personalBytes;
+        Console.WriteLine("CHECK admin-photo stage 4");
         using(var own=await GetAsync(clientA,OwnPhotoPath,loginA.Cookie))
         {
             await ExpectStatusAsync(own,200);
@@ -59,6 +63,7 @@ internal sealed partial class WebAdminHttpChecks
         using(var cross=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
             await ExpectStatusAsync(cross,404);
 
+        Console.WriteLine("CHECK admin-photo stage 5");
         using(var saved=await UploadFixturePhotoAsync(clientB,loginB.Cookie,FixturePhoto(SKColors.Blue)))
             await ExpectStatusAsync(saved,204);
         using(var ownB=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
@@ -75,6 +80,7 @@ internal sealed partial class WebAdminHttpChecks
                 "Another account upload overwrote the first private portrait.");
         }
 
+        Console.WriteLine("CHECK admin-photo stage 6");
         using(var badForm=new MultipartFormDataContent())
         using(var request=Mutation(OwnPhotoPath,badForm))
         {
@@ -89,6 +95,7 @@ internal sealed partial class WebAdminHttpChecks
                 "Invalid multipart upload mutated existing photo.");
         }
 
+        Console.WriteLine("CHECK admin-photo stage 7");
         using(var request=new HttpRequestMessage(HttpMethod.Delete,OwnPhotoPath))
         {
             request.Content=new StringContent("{}",Encoding.UTF8,"application/json");
@@ -103,6 +110,7 @@ internal sealed partial class WebAdminHttpChecks
         using(var stillB=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
             await ExpectStatusAsync(stillB,200);
 
+        Console.WriteLine("CHECK admin-photo stage 8");
         await database.ExpireSessionAsync(accountB,loginB.Token);
         using(var expired=await GetAsync(clientB,OwnPhotoPath,loginB.Cookie))
             await ExpectStatusAsync(expired,401);
