@@ -1,11 +1,25 @@
 <script lang="ts">
-  import type { PublicClub } from './types';
+  import type { PublicClub, PublicOrganization } from './types';
+  import { publicImages } from './images';
   import PublicImage from './PublicImage.svelte';
   import Icon from './PublicIcon.svelte';
   import AppInstallButton from './AppInstallButton.svelte';
   import type { PublicIconName } from './icon-types';
-  let { club }: { club: PublicClub | null } = $props();
-  const links = [['home','Αρχική','/'],['about','Ο σύλλογος','/about'],['team','Πρώτη ομάδα','/team'],['academy','Ακαδημία','/academy'],['matches','Αγώνες','/team?tab=results'],['news','Νέα','/news'],['events','Εκδηλώσεις','/events'],['shop','Κατάστημα','/shop'],['contact','Επικοινωνία','/contact'],['registration','Εγγραφές','/academy/registration'],['seasons','Παλαιότερες σεζόν','/seasons'],['partners','Συνεργάτες','/partners']];
+  let { club, organization = 'lefteria_fc' }: { club: PublicClub | null; organization?: PublicOrganization } = $props();
+  const clubLinks = [['home','Αρχική','/'],['about','Ο σύλλογος','/about'],['team','Πρώτη ομάδα','/team'],['academy','Ακαδημία','/academy'],['matches','Αγώνες','/team?tab=results'],['news','Νέα','/news'],['events','Εκδηλώσεις','/events'],['shop','Κατάστημα','/shop'],['contact','Επικοινωνία','/contact'],['registration','Εγγραφές','/academy/registration'],['seasons','Παλαιότερες σεζόν','/seasons'],['partners','Συνεργάτες','/partners']];
+  const academyLinks = [
+    ['home','Αρχική','/'],
+    ['academy','Ακαδημία','/academy'],
+    ['groups','Ηλικιακά τμήματα','/academy/groups'],
+    ['philosophy','Η φιλοσοφία μας','/academy/philosophy'],
+    ['registration','Εγγραφές','/academy/registration'],
+    ['partners','Συνεργάτες Ακαδημίας','/partners?scope=academy'],
+    ['sponsors','Χορηγοί Ακαδημίας','/sponsors/academy'],
+    ['contact','Επικοινωνία','/contact'],
+    ['about','Ο σύλλογος','/about']
+  ];
+  const isAcademy = $derived(organization === 'lefteria_fc_academy');
+  const links = $derived(isAcademy ? academyLinks : clubLinks);
   const accounts: [string,string,string,PublicIconName][] = [['profile','Το προφίλ μου','/app/login','user'],['orders','Οι παραγγελίες μου','/profile','bag'],['tickets','Προϊόντα συλλόγου','/shop','bag'],['cart','Το καλάθι μου','/cart','bag']];
   const socials: [string,string,PublicIconName][] = [['facebook','Facebook','facebook'],['instagram','Instagram','instagram'],['youtube','YouTube','youtube'],['twitter','X','external'],['tiktok','TikTok','external']];
   const name = $derived(club?.name || 'ΛΕΥΤΕΡΙΑ FC');
@@ -13,8 +27,13 @@
   const hasPublicSocials = $derived(socials.some(([key]) => Boolean(club?.social_links?.[key])));
   function top() { window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' }); }
 </script>
-<footer class="public-footer" data-testid="footer">
-  <div class="public-city-banner" style:background-image="url(https://images.unsplash.com/photo-1661155100640-37747341ad48?auto=format&fit=crop&w=1800&q=85)" data-testid="public-city-banner"><strong>ΛΕΜΕΣΟΣ</strong><p>Η ΠΟΛΗ ΜΑΣ.<br />Η ΟΙΚΟΓΕΝΕΙΑ ΜΑΣ.<br />ΤΟ ΜΕΛΛΟΝ ΜΑΣ.</p></div>
+<footer class="public-footer" data-organization={organization} data-testid="footer">
+  <div class="public-city-banner"
+    style:background-image={`url("${isAcademy ? publicImages.academy : publicImages.city}")`}
+    data-testid="public-city-banner">
+    <strong>{isAcademy ? 'ΑΚΑΔΗΜΙΑ' : 'ΛΕΜΕΣΟΣ'}</strong>
+    <p>{#if isAcademy}ΚΑΘΕ ΠΟΛΗ.<br />ΜΙΑ ΟΙΚΟΓΕΝΕΙΑ.<br />ΕΝΑ ΟΝΕΙΡΟ.{:else}Η ΠΟΛΗ ΜΑΣ.<br />Η ΟΙΚΟΓΕΝΕΙΑ ΜΑΣ.<br />ΤΟ ΜΕΛΛΟΝ ΜΑΣ.{/if}</p>
+  </div>
   <div class="public-footer-grid">
     <section class="public-footer-about"><a href="/" class="public-footer-brand" data-testid="footer-logo"><PublicImage src={club?.logo_url} alt={name} /><div><strong>{name}</strong><span>ΙΔΡ. {club?.founded || '2024'}</span></div></a>
       <p data-testid="footer-description">{club?.description || 'Αφοσιωμένοι στην αριστεία εντός και εκτός γηπέδου. Χτίζουμε πρωταθλητές μέσα από πάθος, πειθαρχία και ομαδικότητα.'}</p>
