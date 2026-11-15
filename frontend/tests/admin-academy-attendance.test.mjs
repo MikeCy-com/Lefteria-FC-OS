@@ -74,7 +74,11 @@ test('Admin UI separates RSVP from presence, shows provenance and verifies write
   assert.match(page,/validRegister\(payload,event\)/);
   assert.match(page,/data-testid="attendance-denied"/);
   assert.doesNotMatch(page,/@html|innerHTML|localStorage\./);
-  assert.match(catalog,/href: '\/admin\/attendance'/);
+  assert.doesNotMatch(catalog,/id: 'attendance'/);
+  const group=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
+  const player=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
+  assert.match(group,/AdminGroupAttendancePanel/);
+  assert.match(player,/AdminGroupAttendancePanel/);
   assert.doesNotMatch(frame,/href="\/admin\/attendance"/);
   assert.match(read('frontend/src/lib/admin/AdminGroupWorkspace.svelte'),/admin-group-attendance-link/);
   assert.match(program,/app\.MapAdminAcademyAttendance\(\)/);
