@@ -311,7 +311,7 @@
       <div>
         <h4>Αξιολογήσεις ({evaluations.length})</h4>
         {#each evaluations as evaluation (evaluation.id)}
-          <details>
+          <details id={'academy-evaluation-'+evaluation.id}>
             <summary>{evaluation.summary??'Αξιολόγηση'} · {new Date(evaluation.created_at).toLocaleDateString('el-CY')}</summary>
             {#if evaluation.notes}<p>{evaluation.notes}</p>{/if}
             {#each sections as section}
