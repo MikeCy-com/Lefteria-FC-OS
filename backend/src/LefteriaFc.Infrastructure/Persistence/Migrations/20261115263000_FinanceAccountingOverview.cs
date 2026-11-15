@@ -29,7 +29,12 @@ public sealed class FinanceAccountingOverview : Migration
 
           -- This helper locks the current session and organization grant.
           -- A role alone does not authorize a different organization.
-          PERFORM identity.lock_admin_club_authority(_digest,_owner);
+          BEGIN
+            PERFORM identity.lock_admin_club_authority(_digest,_owner);
+          EXCEPTION WHEN raise_exception THEN
+            RAISE EXCEPTION 'accounting_overview_denied'
+              USING ERRCODE='42501';
+          END;
           SELECT a.id,a.role INTO v_actor,v_role
           FROM identity.admin_sessions s
           JOIN identity.admin_accounts a ON a.id=s.admin_account_id
