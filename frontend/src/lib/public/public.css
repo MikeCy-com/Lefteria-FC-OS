@@ -1170,3 +1170,17 @@ dialog.public-dialog::backdrop { background:#000c; }
 @media(prefers-contrast:more) {
   .public-site {--public-panel-edge:#b4b4b4;--public-line:#999;}
 }
+
+
+/* The persistent left rail is the desktop menu. The drawer trigger belongs
+   exclusively to the collapsed/mobile layout; keep it accessible there. */
+@media (min-width:768px) {
+  .public-site .public-header > [data-testid="public-menu-open"] {
+    display:none;
+  }
+}
+@media (max-width:767px) {
+  .public-site .public-header > [data-testid="public-menu-open"] {
+    display:inline-flex;
+  }
+}
