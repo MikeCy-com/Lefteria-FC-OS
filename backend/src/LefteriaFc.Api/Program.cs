@@ -192,6 +192,7 @@ app.MapFirstTeamTrialsAdmin();
 app.MapPublicSections();
 app.MapPublicMedia();
 app.MapAcademyRegistration();
+app.MapAcademyIntakeAdmin();
 app.MapAdminClub();
 app.MapAdminNews();
 app.MapAdminNewsDrafts();
