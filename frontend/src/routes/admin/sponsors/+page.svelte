@@ -225,7 +225,7 @@
               {/each}
             </nav>
           </aside>
-          <main class="sponsorship-workspace">
+          <div class="sponsorship-workspace">
             {#if selected&&draft}
               <section class="admin-panel sponsorship-editor">
                 <div class="sponsorship-editor-head">
@@ -245,7 +245,7 @@
                       oninput={e=>{if(draft)draft.description=e.currentTarget.value||null;}}
                       disabled={!canWrite||saving}></textarea></label>
                   <label>{selected.kind==='sponsor'?'URL λογότυπου':'URL εικόνας εξωφύλλου'}
-                    <input type="url" maxlength="2048" placeholder="https://… ή /api/uploads/…"
+                    <input type="text" maxlength="2048" placeholder="https://… ή /api/uploads/…"
                       value={draft.image_url??''} oninput={e=>{if(draft)draft.image_url=e.currentTarget.value||null;}}
                       disabled={!canWrite||saving}/></label>
                   {#if canWrite}
@@ -305,7 +305,7 @@
                 <p class="admin-muted">Η δημοσίευση γίνεται χωριστά, με αρμοδιότητα Manager ή Super Admin.</p>
               </section>
             {/if}
-          </main>
+          </div>
         </div>
       {:else}
         <section class="admin-panel"><p role="alert">Δεν έχετε δικαίωμα sponsors:read ή εξουσιοδοτημένο οργανισμό.</p></section>

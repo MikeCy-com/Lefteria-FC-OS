@@ -157,3 +157,37 @@ destination remain owned by their original dynamic components. This fixed
 slot cannot be opened as a public /pages URL or indexed in the sitemap;
 it is excluded from navigation even if an older record is malformed.
 There are no new database tables, permissions or Hostinger deployments.
+
+## Sponsor and partner publishing administration
+
+The first native sponsor/partner editorial slice is in `/admin/sponsors`.
+It lists **only current, already imported public sponsor/partner records**
+for each explicitly granted organization. It preserves their canonical
+source IDs and imported public details; it does not create a new independent
+sponsor catalog. Each editor can propose an audited, optimistic-concurrency
+draft (name, short description/tagline, sponsor logo/partner cover image,
+HTTPS website, display order). There is a visual preview and an image
+picker restricted to already published images from the same owner.
+
+A current `sponsors:read` + organization grant is needed to load records.
+`sponsors:write` authorizes drafts, and a manager/super-admin with the same
+current grant must separately approve publication or unpublish changes.
+Each request rechecks the real account, active credential-bound session,
+owner grant and imported record identity *inside the same locked transaction*.
+A conflicting version is rejected, never silently overwritten. Publication
+copies only an approved draft into a separate published snapshot and writes
+an actor/session/owner security audit event. Unpublishing restores the source
+record in the anonymous catalog; imported source and provenance are immutable.
+
+The public runtime cannot read private drafts or the new table; the narrow
+`read_published_sponsorship` security-definer function exposes only
+published fields to the existing First Team / Academy public-sections
+projection. The original sponsor and partner detail routes, related
+benefits, personnel, slugs and layouts are retained. The admin side has
+no cross-owner fallback and distinguishes an unavailable published source
+from a valid empty list.
+
+This slice does **not** implement sponsor creation, contract/payment lifecycle,
+invoicing, cancellation, files or public sign-up. Apply the EF migration and
+separate least-privilege grants in an **isolated staging database** before
+testing. No automatic Hostinger or production deployment is performed.
