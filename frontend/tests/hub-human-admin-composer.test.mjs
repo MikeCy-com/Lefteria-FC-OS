@@ -42,3 +42,25 @@ test('editorial status picker only filters the already verified selected-organiz
   assert.match(page,/\{#each filteredItems as item \(item\.id\)\}/);
   assert.match(page,/\{statusLabels\[item\.status\]\}/);
 });
+
+test('existing protected revision, image quarantine and rejection endpoints are reachable from admin workflow',()=>{
+  assert.match(page,/async function reviseDraft\(\)/);
+  assert.match(page,/async function quarantineImage\(\)/);
+  assert.match(page,/async function returnRejectedForRevision\(\)/);
+  assert.match(page,/async function rejectImage\(mediaId:string\)/);
+  assert.match(page,/\/revise\?organization_id=/);
+  assert.match(page,/\/images\/quarantine\?organization_id=/);
+  assert.match(page,/\/return-for-revision\?organization_id=/);
+  assert.match(page,/\/reject\?organization_id=/);
+  assert.match(page,/file\.type!=='image\/jpeg'/);
+  assert.match(page,/file\.size>1048576/);
+  assert.match(page,/base64:btoa\(chunks\.join\(''\)\),alt_text:alt/);
+  assert.match(page,/source\.status!=='ai_draft'/);
+  assert.match(page,/source\.status!=='review_required'/);
+  assert.match(page,/validHubTransition\(result,owner,source\.id,source\.version,'ai_draft'\)/);
+  assert.match(page,/validHubTransition\(result,owner,source\.id,source\.version,'review_required'\)/);
+  assert.match(backend,/MapPost\("\/api\/admin\/hub\/editorial\/\{id:guid\}\/revise"/);
+  assert.match(backend,/MapPost\("\/api\/admin\/hub\/editorial\/\{id:guid\}\/images\/quarantine"/);
+  assert.match(backend,/MapPost\("\/api\/admin\/hub\/editorial\/\{id:guid\}\/return-for-revision"/);
+  assert.match(backend,/MapPost\("\/api\/admin\/hub\/editorial\/\{id:guid\}\/images\/\{mediaId:guid\}\/reject"/);
+});
