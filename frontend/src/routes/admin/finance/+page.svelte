@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
+  import AdminSupplierBills from '../../../lib/admin/AdminSupplierBills.svelte';
   import AdminFinanceOverview from '../../../lib/admin/AdminFinanceOverview.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
@@ -229,14 +230,16 @@
       </section>
       {#if orgWideAccess}
         <AdminFinanceOverview {owner} sessionId={$auth.session.user.id}/>
+        <AdminSupplierBills {owner} sessionId={$auth.session.user.id}
+          canWrite={hasAdminPermission($auth.session.user.permissions, 'finance:write')}/>
       {/if}
       {#if !providerAccess}
         <section class="admin-panel" data-testid="finance-scoped-access">
           {#if $auth.session.user.role === 'accountant'}
             <h2>Πρόσβαση λογιστή</h2>
             <p>Η συνολική αναφορά είναι διαθέσιμη μόνο για τους οργανισμούς που σας έχουν ανατεθεί.
-              Η διαχείριση νέων εισπράξεων, παραστατικών και πληρωμών απαιτεί την επόμενη,
-              ξεχωριστά ελεγμένη λογιστική ροή.</p>
+              Η χειροκίνητη καταχώριση τιμολογίων προμηθευτών είναι διαθέσιμη παραπάνω.
+              Η καταχώριση πληρωμών, η έκδοση εισπράξεων και η διπλογραφία παραμένουν υπό ανάπτυξη.</p>
           {:else}
             <h2>Οικονομικά ανατεθειμένων τοποθεσιών</h2>
             <p>Οι διαχειριστές πόλης ή τοποθεσίας δεν έχουν πρόσβαση στα συνολικά
