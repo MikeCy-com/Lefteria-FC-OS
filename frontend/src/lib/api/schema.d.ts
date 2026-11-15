@@ -4244,11 +4244,15 @@ export interface components {
             age_range: null | string;
             banner_url: null | string;
             city: null | string;
+            city_id?: null | string;
+            city_slug?: null | string;
             description: null | string;
             /** Format: int32 */
             display_order: number | string;
             id: string;
+            location_id?: null | string;
             location_name: null | string;
+            location_slug?: null | string;
             name: string;
             organization_id: string;
             season: null | string;
