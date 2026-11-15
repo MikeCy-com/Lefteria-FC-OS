@@ -10,13 +10,15 @@ const groups=read('routes/admin/groups/+page.svelte');
 const users=read('routes/admin/users/+page.svelte');
 const territories=read('routes/admin/territories/+page.svelte');
 const workspace=read('lib/admin/AdminGroupWorkspace.svelte');
+const catalog=read('lib/admin/module-catalog.ts');
 const roster=read('lib/admin/AdminRosterPlayersPanel.svelte');
+const delegation=read('lib/admin/FootballTerritoryAccessPanel.svelte');
 const attendance=read('lib/admin/AdminGroupAttendancePanel.svelte');
 const profile=read('routes/admin/profile/+page.svelte');
 const settings=read('routes/admin/settings/+page.svelte');
 
 test('all shared admin routes and contextual player records compile in Svelte',()=>{
-  for(const [name,source] of Object.entries({frame,dashboard,groups,users,territories,workspace,roster,attendance,profile,settings}))
+  for(const [name,source] of Object.entries({frame,dashboard,groups,users,territories,workspace,roster,attendance,delegation,profile,settings}))
     assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>100,name);
 });
 
@@ -56,6 +58,13 @@ test('dashboard starts authorized real create workflows, not service counters',(
   assert.match(users,/routePage\.url\.searchParams\.get\('new'\)/);
   assert.match(users,/permitted/);
   assert.match(users,/\/api\/admin\/access\/users/);
+  assert.match(users,/data-testid="admin-new-account-scope-link"/);
+  assert.match(territories,/id="delegated-access"/);
+  assert.match(territories,/focusAccountId=\{page\.url\.searchParams\.get\('account_id'\)/);
+  assert.match(delegation,/access\.accounts\.some\(item=>item\.id===focusAccountId\)/);
+  for(const id of ['academy_schedule','attendance','documents','evaluations','fixtures'])
+    assert.doesNotMatch(catalog,new RegExp("id: '"+id+"'"));
+
 });
 
 test('athlete attendance is accessible only within Academy group player file',()=>{
