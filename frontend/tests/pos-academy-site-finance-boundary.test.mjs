@@ -41,7 +41,7 @@ test('per-site summaries count verified refunds and receipted sales only for thi
   assert.match(boundary,/CREATE FUNCTION pos_cashier\.read_admin_pos_site_finances/);
   assert.match(boundary,/v_actor:=pos_cashier\.authorize_site_finances\(_digest,_owner,_location\)/);
   assert.match(boundary,/r\.location_id=_location/);
-  assert.match(boundary,/JOIN pos_cashier\.receipts rc/);
+  assert.match(boundary,/FROM pos_cashier\.receipts rc/);
   assert.match(boundary,/f\.status='verified'/);
   assert.match(boundary,/p\.status='verified' AND s\.status='paid'/);
   assert.match(boundary,/'finance_posting_active',false/);
