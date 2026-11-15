@@ -10,7 +10,7 @@ import { personPublicLink, fixturePublicLink } from './public-urls.ts';
 export const CANONICAL_PUBLIC_ORIGIN = 'https://lefteriafc.cy';
 const PUBLIC_HOSTS = new Set([CANONICAL_PUBLIC_ORIGIN, 'https://www.lefteriafc.cy']);
 
-export function isIndexablePublicOrigin(url: URL): boolean {
+export function isIndexablePublicOrigin(url: Pick<URL, 'origin' | 'username' | 'password'>): boolean {
   return PUBLIC_HOSTS.has(url.origin) && !url.username && !url.password;
 }
 
