@@ -17,7 +17,9 @@
   // The public sections endpoint is already publication-allowlisted. Do not
   // fetch private CRM reviews, invent aggregate ratings, or borrow club reviews.
   const academyReviews = $derived((data.sections?.reviews ?? [])
-    .filter(row => row.organization_id === 'lefteria_fc_academy' && Number.isInteger(row.rating) && row.rating >= 1 && row.rating <= 5)
+    .filter(row => row.organization_id === 'lefteria_fc_academy' &&
+      Number.isInteger(Number(row.rating)) && Number(row.rating) >= 1 && Number(row.rating) <= 5)
+    .map(row => ({...row,rating:Number(row.rating)}))
     .toSorted((a,b) => (b.published_at ?? '').localeCompare(a.published_at ?? '') || a.id.localeCompare(b.id)));
   const averageRating = $derived(academyReviews.length
     ? new Intl.NumberFormat('el-GR',{maximumFractionDigits:1}).format(
