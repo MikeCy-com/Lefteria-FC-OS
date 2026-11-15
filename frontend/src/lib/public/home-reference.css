@@ -361,7 +361,7 @@
    105px photographic tiles, and deliberate black motto section. This
    corrects page geometry, not verified original photo pixels. */
 .public-site .home-reference .home-brand-interval{
-  position:relative;min-height:clamp(275px,17vw,580px);
+  position:relative;min-height:clamp(305px,21.5vw,700px);
   background:linear-gradient(180deg,#080909,#070909 76%,#0d0e0d);
   display:flex;flex-direction:column;justify-content:flex-end;
   overflow:hidden;padding:0 clamp(24px,3vw,50px) 16px;
