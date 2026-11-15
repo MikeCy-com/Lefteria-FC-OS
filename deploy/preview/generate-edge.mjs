@@ -166,6 +166,7 @@ export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/football/group-players'],
   ['get','/api/admin/access/users'],
   ['post','/api/admin/access/users'],
+  ['post','/api/admin/access/users/status'],
   ['get','/api/admin/academy/intake'],
   ['post','/api/admin/auth/profile/name'],
   ['post','/api/admin/auth/profile/password'],

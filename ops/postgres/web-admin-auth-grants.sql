@@ -137,6 +137,16 @@ REVOKE ALL ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,te
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text,text,text[])
   TO :"admin_auth_role";
+-- Suspensions and restorations cannot bypass the Super Admin role or any
+-- target organization; never expose direct account status UPDATE.
+REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
+  TO :"admin_auth_role";
 -- The verified current admin account may change only its own display name
 -- or rotate its own password through audited account/session-locked routines.
 -- Raw UPDATE of identity.admin_accounts is prohibited for both runtimes.
@@ -367,6 +377,8 @@ BEGIN
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
+                  'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
                    'identity.read_admin_own_contact_email(text)'::regprocedure,
