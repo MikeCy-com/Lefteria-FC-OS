@@ -105,6 +105,7 @@ BEGIN
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
+                  'identity.admin_academy_guardian_proof(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
