@@ -436,7 +436,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isHero ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
