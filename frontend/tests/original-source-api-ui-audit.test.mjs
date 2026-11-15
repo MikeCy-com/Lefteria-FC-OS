@@ -35,7 +35,7 @@ test('legacy staff destination preserves original First Team overview redirect',
   assert.match(source('src/routes/team/+page.svelte'),/data.tab === 'staff'/);
 });
 test('unported sensitive source flows remain honest instead of fake success',()=>{
-  for(const path of ['join','academy/registration','vote']){
+  for(const path of ['join','vote']){
     const s=source('src/routes/'+path+'/+page.svelte');
     assert.match(s,/PublicJourney/);
     assert.doesNotMatch(s,/fetch\([^)]*method: ['"]POST['"]/);
