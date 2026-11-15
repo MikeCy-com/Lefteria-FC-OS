@@ -3,11 +3,12 @@
   import PublicImage from '../../lib/public/PublicImage.svelte';
   import Fixtures from '../../lib/public/Fixtures.svelte';
   import Unavailable from '../../lib/public/Unavailable.svelte';
-  import type { PublicPageData } from '../../lib/public/types';
+  import type { PublicSectionPageData } from '../../lib/public/sections-types';
   import { academyGroupLink } from '../../lib/public/navigation';
+  import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import type { PublicIconName } from '../../lib/public/icon-types';
-  let { data }: { data: PublicPageData } = $props();
+  let { data }: { data: PublicSectionPageData } = $props();
   const academyBanner = $derived(data.site?.academy_groups.find(group => group.banner_url)?.banner_url);
   const destinations: { href: string; icon: PublicIconName; title: string; description: string }[] = [
     { href: '/academy/philosophy', icon: 'heart', title: 'Η ΦΙΛΟΣΟΦΙΑ ΜΑΣ', description: 'Γνώρισε τις αξίες και την προσέγγισή μας στην ανάπτυξη νέων παικτών.' },
@@ -30,5 +31,6 @@
     <div class="academy-destinations">{#each destinations as item (item.href)}<a href={item.href} class="academy-destination"><PublicIcon name={item.icon} size={28} /><h3>{item.title}</h3><p>{item.description}</p><span>ΠΕΡΙΣΣΟΤΕΡΑ <PublicIcon name="arrow" size={18} /></span></a>{/each}</div>
   </section>
   {#if !data.available}<Unavailable />{:else}<section class="public-section" id="groups" aria-labelledby="academy-groups-title"><div class="section-heading"><h2 id="academy-groups-title">ΗΛΙΚΙΑΚΑ ΤΜΗΜΑΤΑ</h2></div><div class="public-group-grid">{#each data.site?.academy_groups ?? [] as group (group.id)}<article id={`group-${encodeURIComponent(group.id)}`} class="public-group-card">{#if group.banner_url}<PublicImage src={group.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{group.age_range || group.season || 'ΑΚΑΔΗΜΙΑ'}</p><h3><a href={academyGroupLink(group)}>{group.name} <span aria-hidden="true">↗</span></a></h3>{#if group.description}<p>{group.description}</p>{/if}{#if group.city || group.location_name}<p class="group-location">{[group.city, group.location_name].filter(Boolean).join(' · ')}</p>{/if}{#if group.training_schedule}<h4>ΠΡΟΓΡΑΜΜΑ ΠΡΟΠΟΝΗΣΕΩΝ</h4><p class="preserve-lines">{group.training_schedule}</p>{/if}<a class="group-open" href={academyGroupLink(group)}>ΓΝΩΡΙΣΕ ΤΟ ΤΜΗΜΑ <span aria-hidden="true">↗</span></a></div></article>{:else}<p class="public-empty">Δεν έχουν καταχωριστεί ηλικιακά τμήματα.</p>{/each}</div></section><section class="public-section section-dark" id="academy-fixtures" aria-labelledby="academy-fixtures-title"><div class="section-heading"><h2 id="academy-fixtures-title">ΑΓΩΝΕΣ ΑΚΑΔΗΜΙΑΣ</h2></div>{#if data.site?.fixtures.length}<Fixtures fixtures={data.site.fixtures} />{:else}<p class="public-empty">Δεν έχουν καταχωριστεί αγώνες ακαδημίας.</p>{/if}</section>{/if}
+  <OrganizationSponsorStrip organization="lefteria_fc_academy" sponsors={data.sections?.sponsors ?? []} />
 </PublicShell>
 
