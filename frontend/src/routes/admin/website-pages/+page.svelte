@@ -6,6 +6,8 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
+  import PublishedMediaBrowser from '../../../lib/admin/PublishedMediaBrowser.svelte';
+  import { publishedMediaUrl, type PublishedMediaAsset } from '../../../lib/admin/published-media.ts';
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
@@ -49,6 +51,7 @@
   let draggingBlock = $state<number|null>(null);
   let dropTarget = $state<number|null>(null);
   let blockMessage = $state('');
+  let mediaPickerIndex = $state<number|null>(null);
   const selected = $derived(records.find(p=>p.slug===picked) ?? null);
   const canWrite = $derived(!!organization && $auth.status==='authenticated' && !!$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'news:write') &&
@@ -64,7 +67,7 @@
   $effect(() => {
     if (!permitted.some(o=>o.id===organization)) {
       organization = permitted[0]?.id as PublicOrganization ?? null;
-      picked = null; creating = false; slug = ''; draft = blank();
+      picked = null; creating = false; slug = ''; draft = blank();mediaPickerIndex=null;
     }
   });
   $effect(() => {
@@ -101,16 +104,16 @@
   function setOrganization(next: PublicOrganization) {
     if(next===organization || !permitted.some(o=>o.id===next))return;
     if(dirty && !window.confirm('Οι αλλαγές δεν έχουν αποθηκευτεί. Αλλαγή οργανισμού;'))return;
-    organization=next;picked=null;creating=false;slug='';draft=blank();notice='';problem='';
+    organization=next;picked=null;creating=false;slug='';draft=blank();notice='';problem='';mediaPickerIndex=null;
   }
   function openPage(page: WebsitePageRecord) {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     picked=page.slug;slug=page.slug;draft=structuredClone(page.draft);
-    creating=false;problem='';notice='';
+    creating=false;problem='';notice='';mediaPickerIndex=null;
   }
   function newPage() {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
-    creating=true;picked=null;slug='';draft=blank();problem='';notice='';
+    creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
   }
   function openHomepageHero() {
     if(!organization || !canWrite)return;
@@ -119,7 +122,7 @@
     if(existing){openPage(existing);return;}
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     const academy=organization==='lefteria_fc_academy';
-    creating=true;picked=null;slug=target;
+    creating=true;picked=null;slug=target;mediaPickerIndex=null;
     draft={title:academy?'Hero αρχικής · Ακαδημία':'Hero αρχικής · Πρώτη ομάδα',
       summary:'Εγκεκριμένο κείμενο κεντρικής προβολής',seo_title:'',seo_description:'',
       menu_parent:'hidden',menu_order:0,
@@ -130,22 +133,26 @@
     notice='';problem='';
   }
   function addBlock(type: WebsiteBlock['type']) {
-    if(!canWrite || draft.blocks.length>=40)return;
+    if(!canWrite || saving || isHero || draft.blocks.length>=40)return;
+    mediaPickerIndex=null;
     draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
   }
   function removeBlock(index:number) {
     if(!canWrite || saving || isHero || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
     draft.blocks=draft.blocks.filter((_,i)=>i!==index);
+    mediaPickerIndex=null;
     blockMessage='Αφαιρέθηκε το block '+(index+1)+'.';
   }
   function moveBlock(index:number,direction:-1|1) {
     if(!canWrite || saving || isHero || index+direction<0 || index+direction>=draft.blocks.length)return;
     draft.blocks=moveWebsiteBlock(draft.blocks,index,index+direction);
+    mediaPickerIndex=null;
     blockMessage='Το block '+(index+1)+' μετακινήθηκε στη θέση '+(index+direction+1)+'.';
   }
   function duplicateBlock(index:number) {
     if(!canWrite || saving || isHero || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
     draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
+    mediaPickerIndex=null;
     blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
   }
   function clearBlockDrag() {
@@ -172,8 +179,20 @@
     event.preventDefault();
     const from=draggingBlock;
     draft.blocks=moveWebsiteBlock(draft.blocks,from,index);
+    mediaPickerIndex=null;
     blockMessage=from===index?'Η θέση δεν άλλαξε.':'Το block '+(from+1)+' μετακινήθηκε στη θέση '+(index+1)+'.';
     clearBlockDrag();
+  }
+  function usePublishedImage(asset:PublishedMediaAsset) {
+    const index=mediaPickerIndex;
+    if(!canWrite || saving || isHero || !organization || asset.organization_id!==organization ||
+       index===null || draft.blocks[index]?.type!=='image')return;
+    const url=publishedMediaUrl(asset.url);
+    if(!url)return;
+    draft.blocks[index].url=url;
+    if(!draft.blocks[index].text.trim())draft.blocks[index].text=asset.alt.slice(0,180);
+    mediaPickerIndex=null;
+    notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
     if(isHero && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
@@ -349,9 +368,24 @@
                               oninput={e=>draft.blocks[index].url=e.currentTarget.value} disabled={!canWrite || saving}/>
                           </label>
                         {/if}
+                        {#if block.type==='image' && canWrite && !isHero}
+                          <button type="button" class="cms-media-open" disabled={saving}
+                            aria-expanded={mediaPickerIndex===index} aria-controls="cms-published-media"
+                            onclick={()=>mediaPickerIndex=mediaPickerIndex===index?null:index}>
+                            {mediaPickerIndex===index?'Κλείσιμο βιβλιοθήκης':'Επιλογή από δημοσιευμένες εικόνες'}
+                          </button>
+                        {/if}
                       </div>
                     {/each}
                   </div>
+                  {#if mediaPickerIndex!==null && organization && canWrite && !isHero &&
+                    draft.blocks[mediaPickerIndex]?.type==='image'}
+                    <section class="cms-media-chooser" id="cms-published-media" aria-label="Επιλογή δημοσιευμένης εικόνας">
+                      <h3>Επιλογή δημόσιας εικόνας · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</h3>
+                      <p class="admin-muted">Χρησιμοποιούνται μόνο εικόνες που ήδη εμφανίζονται δημόσια στον ίδιο οργανισμό. Τοποθετούνται στο ιδιωτικό πρόχειρο.</p>
+                      <PublishedMediaBrowser {organization} onPick={usePublishedImage} embedded />
+                    </section>
+                  {/if}
                   {#if canWrite && !isHero}<div class="cms-add-block" aria-label="Προσθήκη block">
                     <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=40}>+ Τίτλος</button>
                     <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=40}>+ Κείμενο</button>
@@ -449,6 +483,10 @@
 .cms-drag-handle:active{cursor:grabbing!important}
 .cms-block-tools strong{font-size:13px}
 .cms-block-tools>div{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.cms-media-chooser{border:1px solid #77613b;background:#111516;padding:18px;display:grid;gap:14px}
+.cms-media-chooser h3{font-size:18px;margin:0}
+.cms-media-chooser .admin-muted{margin:0}
+.cms-media-open{border:1px solid #b79a57;background:#2d291e;color:#f2d798;min-height:42px;padding:8px 12px;justify-self:start;cursor:pointer}
 .cms-block-tools button,.cms-add-block button{min-height:34px;min-width:36px;border:1px solid #79715d;background:#262b2e;color:#f5e4c0;cursor:pointer;padding:6px 10px}
 .cms-add-block{border-top:1px solid #4a4f4d;padding-top:16px}
 .cms-preview-toggle{display:flex!important;align-items:center;gap:7px}
