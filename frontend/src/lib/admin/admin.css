@@ -637,21 +637,21 @@
     grid-auto-rows:min-content;
   }
   .admin-app .admin-sidebar .admin-nav-label{
-    font-size:11px;line-height:1.2;margin:10px 10px 4px;
+    font-size:13px;line-height:1.15;margin:7px 10px 3px;
   }
   .admin-app .admin-sidebar .admin-nav-group{
-    gap:0;margin-top:5px;padding-top:5px;
+    gap:0;margin-top:3px;padding-top:3px;
   }
   .admin-app .admin-sidebar a,
   .admin-app .admin-sidebar .admin-nav-section,
   .admin-app .admin-sidebar .admin-nav-tool{
-    min-height:35px;padding:7px 12px;
-    font-size:13px;line-height:1.22;
+    min-height:44px;padding:6px 11px;
+    font-size:16px;line-height:1.12;
   }
   .admin-app .admin-sidebar .admin-nav-tool{
-    padding-left:20px;font-size:12px;
+    padding-left:17px;font-size:16px;
   }
-  .admin-app .admin-sidebar .admin-nav-section{font-weight:800}
+  .admin-app .admin-sidebar .admin-nav-section{font-weight:800;font-size:17px}
 }
 .admin-app .admin-profile-menu{position:relative;flex:none;z-index:60}
 .admin-app .admin-profile-menu>summary{
