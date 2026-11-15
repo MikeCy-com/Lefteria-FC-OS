@@ -311,14 +311,14 @@ public sealed class CoachTerritoryBoundary : Migration
       -- directory/writer. Keep the same function signatures but fail closed
       -- for all roles until this migration or an audited successor is applied.
       CREATE OR REPLACE FUNCTION club.read_admin_coaches(
-        text,text,integer,integer
+        _digest text,_owner text,_offset integer,_limit integer
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $rollback_coaches$
       BEGIN
         RAISE EXCEPTION 'coach_directory_upgrade_required' USING ERRCODE='42501';
       END $rollback_coaches$;
       CREATE OR REPLACE FUNCTION club.write_admin_coach_assignment(
-        text,text,text,jsonb,jsonb
+        _digest text,_owner text,_staff text,_expected jsonb,_desired jsonb
       ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $rollback_assignment$
       BEGIN
