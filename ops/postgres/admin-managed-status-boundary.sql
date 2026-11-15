@@ -12,7 +12,9 @@ BEGIN
   IF NOT protected
      OR NOT has_function_privilege(current_user,routine,'EXECUTE')
      OR has_function_privilege(mobile_name,routine,'EXECUTE')
-     OR has_function_privilege('public',routine,'EXECUTE')
+     OR EXISTS(SELECT 1 FROM pg_proc p,
+       LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+       WHERE p.oid=routine AND a.grantee=0 AND a.privilege_type='EXECUTE')
   THEN RAISE EXCEPTION 'Managed admin status function EXECUTE boundary is unsafe'; END IF;
 
   denied:=false;
