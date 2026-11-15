@@ -25,5 +25,9 @@ test('settings submenu is permission scoped and navigates to real settings ancho
     'href="/admin/settings#access-settings"',
     'href="/admin/profile"'])
     assert.ok(frame.includes(marker),marker);
-  for(const id of ['website-settings','football-settings','access-settings'])assert.ok(settings.includes('id="'+id+'"'));
+  for(const id of ['website-settings','football-settings','access-settings','organization-settings'])
+    assert.ok(settings.includes('id="'+id+'"'));
+  assert.match(settings,/data-testid="admin-organization-settings"/);
+  assert.match(settings,/org\.id==='lefteria_fc'/);
+  assert.match(settings,/href="\/admin\/territories"/);
 });
