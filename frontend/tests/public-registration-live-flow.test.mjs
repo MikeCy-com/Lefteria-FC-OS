@@ -55,3 +55,22 @@ test('same-origin SvelteKit proxy strips credentials and bounds upload payload',
   assert.match(proxy,/status: 503/);
   assert.doesNotMatch(proxy,/request\.headers\.get\('cookie'\)|request\.headers\.get\('authorization'\)/i);
 });
+
+test('server-authorized Academy queue can show only minimal public intake data to the super admin',()=>{
+  const endpoint=load('../../backend/src/LefteriaFc.Api/Marketing/AcademyIntakeAdminEndpoints.cs');
+  const office=load('../src/routes/admin/academy-office/+page.svelte');
+  const migration=load('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115140000_AcademyPublicRegistrationSubmission.cs');
+  assert.match(program,/app\.MapAcademyIntakeAdmin\(\)/);
+  assert.match(endpoint,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(endpoint,/session\.User\.Role!="super_admin"/);
+  assert.match(endpoint,/academy:read/);
+  assert.match(endpoint,/read_admin_registration_queue/);
+  assert.match(migration,/identity\.lock_admin_club_authority/);
+  assert.match(migration,/v_role<>'super_admin'/);
+  assert.match(migration,/REVOKE ALL ON FUNCTION academy_intake\.read_admin_registration_queue/);
+  assert.match(office,/data-testid="academy-public-intake"/);
+  assert.match(office,/intakeAccess && \$auth\.session\?\.user\.role === 'super_admin'/);
+  assert.match(office,/request\.abort\(\)/);
+  assert.doesNotMatch(endpoint,/evidence_ciphertext|signature_data|allergies_details/);
+  assert.doesNotMatch(migration,/jsonb_build_object\([^)]*evidence_ciphertext/);
+});
