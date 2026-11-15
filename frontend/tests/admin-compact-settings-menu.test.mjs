@@ -12,8 +12,8 @@ test('all admin roles share compact visual sidebar and exactly one profile heade
   assert.match(frame,/data-testid="admin-settings-link"/);
   assert.match(frame,/data-testid="admin-settings-submenu"/);
   assert.match(css,/\.admin-app \.admin-sidebar\.admin-nav-section|\.admin-app \.admin-sidebar \.admin-nav-section/);
-  assert.match(css,/min-height:39px;padding:5px 11px/);
-  assert.match(css,/font-size:15px;white-space:normal/);
+  assert.match(css,/min-height:44px;padding:5px 11px/);
+  assert.match(css,/font-size:16px;white-space:normal/);
   assert.match(css,/@media\(max-width:720px\)/);
   assert.match(css,/\.admin-nav-settings-details summary:focus-visible/);
   assert.doesNotMatch(frame,/href="\/admin\/(?:schedule|matches|attendance|evaluations|documents)"/);
