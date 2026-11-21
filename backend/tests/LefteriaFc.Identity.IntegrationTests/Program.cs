@@ -70,6 +70,19 @@ internal static class TestRunner
                 return 1;
             }
         }
+        // Purely local feature-boundary checks run in every full identity CI
+        // suite before any disposable database or provider fixture is touched.
+        try
+        {
+            AcademyMvpBoundaryChecks.Run();
+            Console.WriteLine("PASS Academy MVP-only core/optional endpoint boundary.");
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine("FAIL Academy MVP-only endpoint boundary: "+error.Message);
+            return 1;
+        }
+
         var sectionsOnly = args.Length == 2 && args[0] == "--public-sections-fixture";
         var fixturePath = args.Length == 2 && (args[0] == "--fixture" || sectionsOnly)
             ? args[1] : args.Length == 0 ? Environment.GetEnvironmentVariable("LEFTERIA_TEST_FIXTURE") : null;
