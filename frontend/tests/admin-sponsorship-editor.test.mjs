@@ -63,8 +63,8 @@ test('public site consumes only approved sponsor/partner copy, leaving private i
   const adminGrants=read('ops/postgres/web-admin-auth-grants.sql');
   assert.match(repository,/read_published_sponsorship/);
   assert.doesNotMatch(repository,/sponsorship_editorial/);
-  assert.match(repository,/s with \{/);
-  assert.match(repository,/p with \{/);
+  assert.match(repository,/item with \{/);
+  assert.match(repository,/item with \{/);
   assert.match(repository,/LogoUrl = copy.ImageUrl/);
   assert.match(repository,/HeroImageUrl = copy.ImageUrl/);
   assert.match(migration,/published_json IS NOT NULL/);
