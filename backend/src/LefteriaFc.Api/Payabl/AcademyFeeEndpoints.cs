@@ -5,6 +5,7 @@ using LefteriaFc.Api.Identity;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.PublicContent;
 using LefteriaFc.Application.WebAdmin;
+using LefteriaFc.Api.Release;
 using LefteriaFc.Domain.AdminAuth;
 using LefteriaFc.Domain.Identity;
 using LefteriaFc.Infrastructure.Persistence;
@@ -207,13 +208,22 @@ public static class AcademyFeeEndpoints
 
         parent.MapPut("/preferences", async (
             ParentTrainingFeePreferenceCommand body,
-            HttpContext context,LefteriaDbContext database,CancellationToken ct) =>
+            HttpContext context,LefteriaDbContext database,
+            IConfiguration configuration,CancellationToken ct) =>
         {
             var session=MobilePrincipal.Read(context.User);
             if(session.Role!=MobileRole.Parent)return Results.Forbid();
             if(body.PreferredDay is < 1 or > 31 ||
                 (body.AutomaticCollectionRequested && !body.SaveCardRequested))
                 return Results.BadRequest();
+            // Manual fee due-date preferences remain available. The pilot
+            // cannot solicit card storage or automatic collections even as a
+            // 'request' while paid providers are unapproved.
+            if(AcademyMvpBoundary.Disabled(configuration["LEFTERIA_ACADEMY_MVP_ONLY"]) &&
+                (body.SaveCardRequested || body.AutomaticCollectionRequested))
+                return Results.Json(new {code="mvp_feature_disabled",
+                    detail="Card storage and automatic collections are not enabled in the Academy MVP."},
+                    statusCode:StatusCodes.Status503ServiceUnavailable);
             var db=database.Database.GetDbConnection();
             await database.Database.OpenConnectionAsync(ct);
             try
