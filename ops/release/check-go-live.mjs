@@ -22,7 +22,7 @@ const SOURCE_REPO='MikeCy-com/Lefteria-FC-OS';
 // disabled and excluded from the public release under mvp-deferred-features.
 export const MVP_REQUIRED_GATES=Object.freeze([
   'api-ci','academy-operations','calendar-and-fixtures','staff-admin',
-  'crm-and-documents','role-mobile-parity','communications','cms-publishing',
+  'crm-and-documents','role-mobile-parity','mvp-public-essentials',
   'finance-reconciliation','data-import','privacy-security',
   'media-and-assets','backups-restore','cutover-rollback',
   'operations-monitoring','identity-delivery','mvp-deferred-features'
