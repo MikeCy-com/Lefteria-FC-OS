@@ -14,7 +14,7 @@ public sealed record PlayerClassroomQuizzes(
     string? NextQuizTitle,string? NextQuizTopic);
 public sealed record PlayerClassroomSubject(
     string Topic,int PublishedQuizzes,int CompletedQuizzes,
-    int CorrectAnswers,int TotalAnswers);
+    int CorrectAnswers,int TotalAnswers,int ApprovedLessons,int CompletedLessons);
 public sealed record PlayerClassroomPage(
     string OrganizationId,string Audience,string VerifiedPosition,
     PlayerClassroomLessons Lessons,PlayerClassroomQuizzes Quizzes,
@@ -78,7 +78,10 @@ public sealed class MobilePlayerClassroomStore(LefteriaDbContext database)
                      item.CompletedQuizzes<0 ||
                      item.CompletedQuizzes>item.PublishedQuizzes ||
                      item.CorrectAnswers<0 || item.TotalAnswers<0 ||
-                     item.CorrectAnswers>item.TotalAnswers) ||
+                     item.CorrectAnswers>item.TotalAnswers ||
+                     item.ApprovedLessons is <0 or >100000 ||
+                     item.CompletedLessons<0 ||
+                     item.CompletedLessons>item.ApprovedLessons) ||
                    result.Subjects.Select(item=>item.Topic).Distinct().Count()!=Topics.Count)
                     throw Unavailable();
                 return result;
