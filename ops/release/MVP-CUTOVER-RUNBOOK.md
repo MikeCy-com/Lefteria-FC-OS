@@ -34,19 +34,19 @@ node ops/release/verify-exact-ci.mjs --sha=<exact-main-commit-sha> --require-pas
 To display all operator blockers without making network calls or deploying:
 
 ~~~bash
-node ops/release/check-go-live.mjs --sha=<exact-main-commit-sha>
+node ops/release/verify-release-authorization.mjs --sha=<exact-main-commit-sha> --profile=academy-mvp
 ~~~
 
 To request an independent GO decision check, which also performs authenticated read-only GitHub API verification:
 
 ~~~bash
 GITHUB_TOKEN=<read-only-actions-and-contents-token> \
-  node ops/release/check-go-live.mjs --sha=<exact-main-commit-sha> --require-ready
+  node ops/release/verify-release-authorization.mjs --sha=<exact-main-commit-sha> --profile=academy-mvp --require-ready
 ~~~
 
 Or open GitHub Actions → **Production MVP release candidate preflight (read-only)** → Run workflow → enter the exact 40-character current \`main\` commit SHA. The workflow has only \`contents:read\` and \`actions:read\`, no SSH, Hostinger, Payabl or production database credentials. A red result is expected while operational gates remain unverified. **A successful CI verification is not a deployment command.**
 
-The JSON manifest \`ops/release/go-live-gates.json\` stays blocked by default. To record a gate as \`verified\`, the authorized operator must attach non-secret, accessible HTTPS evidence, an exact SHA and a calendar date. Do **not** copy sensitive live records, credentials, phone numbers, bank/card data, private child names/photos or backups into GitHub. Link an access-controlled evidence location instead and confirm audit access. Release decision is an independent human entry with a change ticket and named approver. Static source checks cannot verify the authenticity of those operator claims; real-world inspection, two-person review and an isolated restore/cutover rehearsal remain mandatory.
+The JSON manifest \`ops/release/go-live-gates.json\` and independent human approval record \`ops/release/operator-release-approval.json\` both stay blocked by default. To record a gate as \`verified\`, the authorized operator must attach non-secret, accessible HTTPS evidence, an exact SHA and a calendar date. Do **not** copy sensitive live records, credentials, phone numbers, bank/card data, private child names/photos or backups into GitHub. Link an access-controlled evidence location instead and confirm audit access. Release decision requires a separate exact-SHA operator approval record with a change ticket and **five distinct named signoffs**: club owner, finance officer, privacy officer, infrastructure operator and HUB editor. Static source checks cannot verify the authenticity of those operator claims; real-world inspection, two-person review and an isolated restore/cutover rehearsal remain mandatory.
 
 ## Go-live rehearsal: minimum end-to-end scripts
 
@@ -65,6 +65,8 @@ If release preparation fails, leave production unchanged and record the blocker.
 
 ## What this change does and does not prove
 
-This PR improves the integrity of the **release authorization process**, not the number of completed product features. It rejects fabricated GitHub CI URLs, stale main SHAs, green PR checks mistaken for release checks, missing/failed jobs, absent operator approval, and missing production login/HUB/backup gates. It does not claim that Hostinger staging was audited, that production SMS or Payabl works, that data was reconciled, or that a backup restore has already passed. Those items remain explicitly **BLOCKED** until demonstrated.
+This PR improves the integrity of the **release authorization process**, not the number of completed product features. Its independent GO/NO-GO tool wraps the existing planning manifest, so the separate Academy MVP scope work can be reviewed and merged without conflicting edits. It rejects fabricated GitHub CI URLs, stale main SHAs, green PR checks mistaken for release checks, missing/failed jobs, absent operator approval, and missing production login/HUB/backup gates. It does not claim that Hostinger staging was audited, that production SMS or Payabl works, that data was reconciled, or that a backup restore has already passed. Those items remain explicitly **BLOCKED** until demonstrated.
+
+The Academy MVP gate profile is independently maintained in draft PR #411 and cannot be considered available on `main` until that PR is reviewed and merged. The final GO/NO-GO wrapper refuses Academy MVP authorization if the installed planning checker does not return the exact `academy-mvp` profile. This release-evidence PR does **not** silently override or merge that draft.
 
 **Never run migrations, connect production Payabl credentials, change DNS, or deploy from this document or its CI workflow.**
