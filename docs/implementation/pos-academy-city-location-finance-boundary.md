@@ -265,10 +265,24 @@ Two independent inventories currently exist for the same location and SKU:
 - `pos_cashier.stock` reserves items on checkout and decrements stock only
   after the cashier receipt is atomically issued.
 
-**These inventories are not yet one authoritative ledger.** The prior
-rollback-only cash test showed a verified paid sale/receipt decreases
-`pos_cashier.stock`, while the original `pos.location_stock` remains
-unchanged. A fiscal-policy approval alone must NOT launch production sales.
+**Previously these inventories were not synchronized.** The initial
+rollback-only acceptance test proved a paid cashier receipt decreased
+`pos_cashier.stock` while `pos.location_stock` remained unchanged. New
+migration `20261115956000_PosAtomicStockLedgerBridge` now links **future**
+paid cashier receipt movements to `pos.stock_movements` using a distinct
+`cashier_sale` type with an exact original cashier sale FK. The original
+POS stock trigger validates and updates the older ledger inside the
+**same transaction as cash verification, receipt and cashier inventory
+consumption**. Reviewed legacy purchases, opening entries, sales/returns and
+corrections mirror their movements back into cashier inventory, with a
+private append-only `pos_cashier.stock_bridge_events` audit trail.
+
+Both paths lock cashier stock before legacy stock in a consistent order.
+Any missing location assignment, initial historical mismatch, insufficient
+stock, double event or inconsistent movement fails the entire operation.
+A failed receipt therefore does not retain a verified cash payment or
+consume inventory. The movement bridge does not grant operators direct
+table access or enable cash settlement.
 
 This release adds migration
 `20261115955000_PosSiteStockReconciliationRead` and an authorized
@@ -294,17 +308,24 @@ runtimes automatically. The new route has an exact protected preview
 allowlist; no financial or stock writer was added.
 
 The disposable PostgreSQL acceptance test deliberately demonstrates
-`legacy_missing`, a temporarily equal synthetic SKU, and then a
-**two-unit divergence after one paid two-unit cash sale**. It also proves
+`legacy_missing`, a temporarily equal synthetic SKU, then **transaction
+failure when the legacy balance is intentionally divergent**. With
+matching stock, a two-unit paid cash sale and subsequently a two-unit
+stock purchase now update both ledgers exactly once; replay cannot
+duplicate either event. It also proves
 that a location manager cannot read a sibling site's stock, a manager
 from another city cannot read this site's stock, and a Cashier cannot
 open management reconciliation. All test data is rolled back.
 
 ### Before POS launch
 
-1. Agree on **one** authoritative inventory ledger, then make actual
-   receiving, reservations, paid-sale consumption, voiding and
-   approved return/restock atomic and traceable against that ledger.
+1. Verify the linked ledgers and source-of-truth policy on real
+   **isolated staging**, including receiving, transfer, reservation,
+   paid-sale consumption, voiding, approved returns/restocking, concurrent
+   cashier sessions, manual corrections and recovery after partial failure.
+   The new bridge covers documented movement kinds but does **not** claim
+   full physical inventory reconciliation or complete refund/credit note
+   readiness.
 2. Reconcile every physical opening SKU and location to both financial
    and stock movement histories; investigate differences and obtain
    an independent approval with immutable evidence.
@@ -313,5 +334,5 @@ open management reconciliation. All test data is rolled back.
 4. Only then consider narrowly reviewed fiscal-policy and cash checkout
    execution grants. Payabl/card settlement remains a separate gate.
 
-**No inventory migration, balance adjustment, real checkout grant, Payabl
+**No production inventory migration, historical balance adjustment, real checkout grant, Payabl
 capture, production Hostinger change or production cutover was performed.**
