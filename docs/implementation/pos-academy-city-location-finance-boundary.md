@@ -114,6 +114,42 @@ ID match. No new sale, verified payment, receipt, Payabl refund or stock
 movement occurs. Following a valid closure, the Super Admin can revoke
 the old terminal assignment and appoint a replacement cashier.
 
+**Independent second cash count (new Draft layer):** A separately
+authenticated **second Super Admin**, not the original cashier and not the
+first recovery closer, must independently count the physical cash for every
+emergency-closed shift. The Super Admin review queue lists only the organization,
+register, cashier identity, initial closer and review status; it deliberately
+does not expose the first counted amount or expected cash before the second
+reviewer submits their own result. The database then immutably records the
+second independent count, reviewer, unique request ID and one of:
+
+- `balanced_confirmed`: both physical counts agree with the immutable ledger.
+- `variance_flagged`: the two physical counts agree with one another, but
+  differ from the ledger; both the shortage/surplus and the review flag remain.
+  This **does not settle or write off any money**.
+- `count_disputed`: the physical counts disagree; the register remains under
+  an explicit operational hold pending a separately authorized incident
+  resolution (intentionally not yet implemented).
+
+An emergency-recovered register cannot start **any** new shift, even through
+an operator already assigned before suspension, nor receive an activated
+operator while its independent count is missing or disputed. Once a matching
+second physical count is entered (including a flagged ledger variance), normal
+register assignment and shift opening are permitted, but the recorded variance
+remains flagged for financial investigation. The review is once-per-shift,
+immutable, replay-safe, organization-local and requires an active distinct
+Super Admin session. It does not generate sales, payments, receipts or refunds.
+Existing location managers remain limited to their own location finance; they
+cannot read or submit organization-wide second-count reviews.
+
+The review queue and second-count functions, like the recovery close, are
+**default denied** at database level. The extended manual script
+`ops/postgres/pos-shift-recovery-admin-grants.sql` requires explicit staging
+approval and grants only specific SECURITY DEFINER functions to the admin
+runtime role, never raw ledger tables or the mobile app role. The disputed-count
+incident resolution, dual-device/physical custody verification and a formal
+financial variance investigation protocol remain pre-production blockers.
+
 The new function's EXECUTE permission remains private until explicit,
 reviewed *staging* approval using
 `ops/postgres/pos-shift-recovery-admin-grants.sql`. No production grant,
