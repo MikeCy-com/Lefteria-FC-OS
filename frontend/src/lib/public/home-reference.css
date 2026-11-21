@@ -736,3 +736,18 @@
     font-size:16px;
   }
 }
+
+/* Reference homepage places the ONE TEAM / ONE DREAM identity in the dark
+   breathing room immediately below the image tiles, BEFORE the CMS news.
+   Previously it was moved after news, changing the reference section rhythm. */
+@media(min-width:1200px){
+  .public-site .home-reference[data-testid="home-page"] .home-brand-interval{
+    min-height:clamp(260px,21vw,370px);
+    padding-bottom:18px;
+  }
+}
+@media(min-width:768px) and (max-width:1199px){
+  .public-site .home-reference[data-testid="home-page"] .home-brand-interval{
+    min-height:clamp(120px,16vw,200px);
+  }
+}
