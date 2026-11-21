@@ -96,7 +96,7 @@ def docker(*args: str, input_file=None, output_file=None, capture=False) -> str:
 
 
 def psql(owner: str, database: str, statement: str) -> str:
-    return docker("exec", CONTAINER, "psql", "-X", "-v", "ON_ERROR_STOP=1",
+    return docker("exec", CONTAINER, "psql", "-X", "-p", "54329", "-v", "ON_ERROR_STOP=1",
                   "-U", owner, "-d", database, "-A", "-t", "-c", statement,
                   capture=True)
 
@@ -150,16 +150,16 @@ def main() -> None:
                                       fingerprint_query(source_relations))
 
             with snapshot.open("wb") as archive:
-                docker("exec", CONTAINER, "pg_dump", "--format=custom",
+                docker("exec", CONTAINER, "pg_dump", "-p", "54329", "--format=custom",
                        "--no-owner", "-U", owner, "-d", ORIGINAL_DATABASE,
                        output_file=archive)
             if snapshot.stat().st_size < 4096:
                 raise RuntimeError("Unreasonably small PostgreSQL backup")
-            docker("exec", CONTAINER, "createdb", "-U", owner,
+            docker("exec", CONTAINER, "createdb", "-p", "54329", "-U", owner,
                    "--template=template0", RESTORED_DATABASE)
             restore_created = True
             with snapshot.open("rb") as archive:
-                docker("exec", "-i", CONTAINER, "pg_restore", "--exit-on-error",
+                docker("exec", "-i", CONTAINER, "pg_restore", "-p", "54329", "--exit-on-error",
                        "--no-owner", "-U", owner, "-d", RESTORED_DATABASE,
                        input_file=archive)
 
@@ -180,7 +180,7 @@ def main() -> None:
             # Both targets are positively identified disposable CI artifacts.
             # Never use --clean/--create against the authoritative source DB.
             if restore_created:
-                docker("exec", CONTAINER, "dropdb", "--if-exists",
+                docker("exec", CONTAINER, "dropdb", "-p", "54329", "--if-exists",
                        "-U", owner, RESTORED_DATABASE)
             if sentinel_created:
                 psql(owner, ORIGINAL_DATABASE,
