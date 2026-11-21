@@ -6,8 +6,8 @@
   type Coach={id:string;name:string;job_role:string;group_ids:string[]};
   type Page={organization_id:Owner;ready:true;offset:number;limit:number;total:number;coaches:Coach[]};
 
-  let {owner,actorId,groups,onExpired,onRevoked}: {
-    owner:Owner;actorId:string;groups:Group[];
+  let {owner,actorId,groups,revision=0,onExpired,onRevoked}: {
+    owner:Owner;actorId:string;groups:Group[];revision?:number;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -115,8 +115,8 @@
     const selectedOwner=owner;
     const selectedActor=actorId;
     const selectedOffset=offset;
-    const generation=refresh;
-    void selectedActor;void generation;
+    const generation=refresh,sourceRevision=revision;
+    void selectedActor;void generation;void sourceRevision;
     page=null;loading=false;unavailable=false;editing=null;selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
