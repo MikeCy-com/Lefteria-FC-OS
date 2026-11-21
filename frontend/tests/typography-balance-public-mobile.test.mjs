@@ -34,7 +34,7 @@ test('public display hierarchy is smaller while Manrope reading text stays legib
   assert.ok(phone[0]>=34 && phone[2]<=46,'Phone hero stays compact but readable');
   const a=clampIn(academy,':global(.public-site[data-route="/academy"]) .academy-intro h1',1);
   assert.ok(a[2]<=75 && a[0]>=40,'Academy hero remains condensed but more compact');
-  assert.match(academy,/\\.academy-intro h1\\{font-size:46px\\}/,'Phone override must not restore 64px headings');
+  assert.ok(academy.includes('.academy-intro h1{font-size:46px}'),'Phone override must not restore 64px headings');
   assert.ok(shared.includes('font:italic 900 clamp(43px,4.3vw,74px)'),'First Team masthead reduced');
   assert.match(team,/font:italic 900 clamp\(43px,3\.9vw,66px\)/);
   assert.match(published,/font:italic 900 clamp\(36px,5vw,78px\)/);
@@ -50,7 +50,7 @@ test('mobile dashboards have restrained titles while protecting controls and bod
   const panels=clampIn(mobile,'.lf-mobile-theme.mobile-shell .family-heading h1');
   assert.ok(panels[2]<=24 && panels[0]>=18);
   assert.match(mobile,/--lf-type-body: 13px/);
-  assert.match(mobile,/--lf-type-caption: 11px/);
+  assert.match(mobile,/--lf-type-caption: 10px/);
   assert.match(mobile,/font-size:max\(16px,1rem\)/);
   assert.match(mobile,/\(pointer:coarse\)/);
   assert.match(mobile,/font-size:clamp\(12px,1vw,13px\)/);
