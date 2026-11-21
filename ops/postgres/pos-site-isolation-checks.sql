@@ -23,6 +23,13 @@ DECLARE
   v_cashier_shift uuid;
   v_recovery_request uuid:=gen_random_uuid();
   v_pending_sale uuid:=gen_random_uuid();
+  v_checkout_product text;
+  v_checkout_category text;
+  v_checkout_sale uuid;
+  v_checkout_receipt uuid;
+  v_checkout_request uuid:=gen_random_uuid();
+  v_cash_request uuid:=gen_random_uuid();
+  v_cash_read jsonb;
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_local_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -230,6 +237,149 @@ BEGIN
   v_cashier_shift:=(v_result->>'shift_id')::uuid;
   IF v_cashier_shift IS NULL
   THEN RAISE EXCEPTION 'cashier_cannot_open_assigned_shift'; END IF;
+  -- Disposable, rollback-on-error acceptance: the named Cashier, not just a
+  -- manager, must be able to prepare an exact server-priced sale, tender
+  -- physically counted cash, issue the same atomic receipt, consume stock
+  -- once and reconcile the shift. Synthetic test policy is NEVER persisted.
+  -- The actual policies and function grants remain disabled for real users.
+  BEGIN
+    BEGIN
+      PERFORM pos_cashier.prepare_cashier_checkout(
+        v_cashier_token,'lefteria_fc_academy',v_register_a1,
+        v_cashier_shift,gen_random_uuid(),
+        '[{"product_id":"not-configured","variant_id":"unit","quantity":1}]'::jsonb);
+      RAISE EXCEPTION 'unapproved_checkout_was_enabled';
+    EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+
+    v_checkout_category:='ci-category-'||left(md5(v_cashier::text),12);
+    v_checkout_product:='ci-product-'||left(md5(v_cashier::text),12);
+    INSERT INTO pos.categories(organization_id,id,name)
+      VALUES('lefteria_fc_academy',v_checkout_category,'CI isolated product category');
+    INSERT INTO pos.products(organization_id,id,category_id,name)
+      VALUES('lefteria_fc_academy',v_checkout_product,v_checkout_category,
+        'CI isolated cash-only item');
+    INSERT INTO pos.product_variants(
+      organization_id,product_id,id,name,price_cents,cost_cents)
+    VALUES('lefteria_fc_academy',v_checkout_product,'unit','One',250,100);
+    INSERT INTO pos_cashier.stock(
+      organization_id,location_id,product_id,variant_id,on_hand)
+    VALUES('lefteria_fc_academy',v_pos_a1,v_checkout_product,'unit',3);
+    INSERT INTO pos_cashier.checkout_policies(
+      organization_id,enabled,tax_treatment,reviewed_by,reviewed_at,policy_reference)
+    VALUES('lefteria_fc_academy',true,'verified_exempt',v_super,
+      clock_timestamp()-interval '1 minute','CI synthetic only: never production');
+    INSERT INTO pos_cashier.receipt_policies(
+      organization_id,enabled,policy_version,policy_sha256,reviewed_by,reviewed_at)
+    VALUES('lefteria_fc_academy',true,'ci-disposable-only',
+      repeat('a',64),v_super,clock_timestamp()-interval '1 minute');
+
+    BEGIN
+      PERFORM pos_cashier.prepare_cashier_checkout(
+        v_local_token,'lefteria_fc_academy',v_register_a1,
+        v_cashier_shift,gen_random_uuid(),
+        jsonb_build_array(jsonb_build_object('product_id',v_checkout_product,
+          'variant_id','unit','quantity',2)));
+      RAISE EXCEPTION 'different_operator_prepared_cashier_shift_sale';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    v_result:=pos_cashier.prepare_cashier_checkout(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1,
+      v_cashier_shift,v_checkout_request,
+      jsonb_build_array(jsonb_build_object('product_id',v_checkout_product,
+        'variant_id','unit','quantity',2)));
+    v_checkout_sale:=(v_result->>'sale_id')::uuid;
+    IF (v_result->>'total_cents')::bigint<>500
+      OR v_result->>'status'<>'awaiting_payment'
+      OR (SELECT reserved FROM pos_cashier.stock WHERE
+          organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>2
+      OR (SELECT on_hand FROM pos_cashier.stock WHERE
+          organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>3
+    THEN RAISE EXCEPTION 'cashier_prepare_stock_reservation_invalid'; END IF;
+
+    v_result:=pos_cashier.prepare_cashier_checkout(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1,
+      v_cashier_shift,v_checkout_request,
+      jsonb_build_array(jsonb_build_object('product_id',v_checkout_product,
+        'variant_id','unit','quantity',2)));
+    IF NOT (v_result->>'replay')::boolean
+      OR (v_result->>'sale_id')::uuid<>v_checkout_sale
+    THEN RAISE EXCEPTION 'cashier_prepare_replay_not_idempotent'; END IF;
+    BEGIN
+      PERFORM pos_cashier.prepare_cashier_checkout(
+        v_cashier_token,'lefteria_fc_academy',v_register_a1,
+        v_cashier_shift,v_checkout_request,
+        jsonb_build_array(jsonb_build_object('product_id',v_checkout_product,
+          'variant_id','unit','quantity',1)));
+      RAISE EXCEPTION 'cashier_prepare_replay_changed_quantity';
+    EXCEPTION WHEN unique_violation THEN NULL; END;
+
+    v_result:=pos_cashier.settle_exact_cash_sale(
+      v_cashier_token,'lefteria_fc_academy',v_checkout_sale,v_cash_request,700);
+    v_checkout_receipt:=(v_result->>'receipt_id')::uuid;
+    IF v_checkout_receipt IS NULL OR (v_result->>'total_cents')::bigint<>500
+      OR (v_result->>'tendered_cents')::bigint<>700
+      OR (v_result->>'change_cents')::bigint<>200
+      OR (v_result->>'replay')::boolean
+      OR (SELECT status FROM pos_cashier.sales WHERE id=v_checkout_sale)<>'paid'
+      OR (SELECT on_hand FROM pos_cashier.stock WHERE
+          organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>1
+      OR (SELECT reserved FROM pos_cashier.stock WHERE
+          organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>0
+      OR (SELECT count(*) FROM pos_cashier.sale_reservations
+          WHERE sale_id=v_checkout_sale AND consumed_at IS NOT NULL)<>1
+    THEN RAISE EXCEPTION 'cashier_atomic_tender_receipt_stock_invalid'; END IF;
+
+    v_cash_read:=pos_cashier.read_assigned_cashier_receipt(
+      v_cashier_token,'lefteria_fc_academy',v_checkout_receipt);
+    IF v_cash_read->>'sale_id'<>v_checkout_sale::text
+      OR (v_cash_read->'receipt'->>'total_cents')::bigint<>500
+      OR jsonb_array_length(v_cash_read->'receipt'->'lines')<>1
+    THEN RAISE EXCEPTION 'cashier_own_receipt_not_readable_or_incomplete'; END IF;
+    BEGIN
+      PERFORM pos_cashier.read_assigned_cashier_receipt(
+        v_local_token,'lefteria_fc_academy',v_checkout_receipt);
+      RAISE EXCEPTION 'manager_read_other_cashier_original_receipt';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    v_result:=pos_cashier.settle_exact_cash_sale(
+      v_cashier_token,'lefteria_fc_academy',v_checkout_sale,v_cash_request,700);
+    IF NOT (v_result->>'replay')::boolean
+      OR (SELECT count(*) FROM pos_cashier.payment_events
+          WHERE sale_id=v_checkout_sale AND status='verified')<>1
+      OR (SELECT count(*) FROM pos_cashier.receipts
+          WHERE sale_id=v_checkout_sale)<>1
+    THEN RAISE EXCEPTION 'cashier_tender_replayed_duplicate_payment_or_receipt'; END IF;
+    BEGIN
+      PERFORM pos_cashier.settle_exact_cash_sale(
+        v_cashier_token,'lefteria_fc_academy',v_checkout_sale,v_cash_request,800);
+      RAISE EXCEPTION 'cashier_tender_replay_changed_cash_amount';
+    EXCEPTION WHEN unique_violation THEN NULL; END;
+    v_result:=pos_cashier.read_cashier_shift_reconciliation(
+      v_cashier_token,'lefteria_fc_academy',v_cashier_shift);
+    IF (v_result->>'cash_verified_cents')::bigint<>500
+      OR (v_result->>'expected_cash_cents')::bigint<>1700
+      OR (v_result->>'receipts_issued')::integer<>1
+      OR (v_result->>'active_reservations')::integer<>0
+    THEN RAISE EXCEPTION 'cashier_paid_shift_reconciliation_invalid'; END IF;
+
+    -- Deliberately abort the entire synthetic sale/payments/receipt/policies
+    -- subtransaction. Real checkout grants or fiscal policy never persist.
+    RAISE EXCEPTION 'pos_synthetic_cash_sale_rolled_back' USING ERRCODE='P0001';
+  EXCEPTION WHEN SQLSTATE 'P0001' THEN
+    IF SQLERRM<>'pos_synthetic_cash_sale_rolled_back' THEN RAISE; END IF;
+  END;
+  IF EXISTS(SELECT 1 FROM pos_cashier.checkout_policies
+      WHERE organization_id='lefteria_fc_academy')
+    OR EXISTS(SELECT 1 FROM pos_cashier.receipt_policies
+      WHERE organization_id='lefteria_fc_academy')
+    OR EXISTS(SELECT 1 FROM pos_cashier.payment_events
+      WHERE sale_id=v_checkout_sale)
+    OR EXISTS(SELECT 1 FROM pos_cashier.receipts
+      WHERE sale_id=v_checkout_sale)
+  THEN RAISE EXCEPTION 'synthetic_sale_or_policy_leaked_past_rollback'; END IF;
+
   v_result:=pos_cashier.close_admin_cashier_shift(
     v_cashier_token,'lefteria_fc_academy',v_cashier_shift,1200,gen_random_uuid());
   IF (v_result->>'variance_cents')::bigint<>0
