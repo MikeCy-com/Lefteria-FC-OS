@@ -198,6 +198,31 @@ BEGIN
     p.oid='pos_cashier.recover_suspended_admin_cashier_shift(text,text,uuid,bigint,uuid,text)'::regprocedure
       AND p.prosecdef)
   THEN RAISE EXCEPTION 'pos_shift_recovery_function_missing'; END IF;
+  -- Independent second count: private immutable record and no raw grants.
+  IF NOT EXISTS(SELECT 1 FROM pg_class cl
+      WHERE cl.oid='pos_cashier.shift_recovery_reviews'::regclass
+        AND cl.relrowsecurity)
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos_cashier.shift_recovery_reviews'::regclass
+        AND t.tgname='pos_recovery_reviews_immutable' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_constraint
+      WHERE conrelid='pos_cashier.transaction_audit'::regclass
+        AND conname='transaction_audit_action_check'
+        AND pg_get_constraintdef(oid) LIKE '%shift_recovery_review%')
+  THEN RAISE EXCEPTION 'pos_second_count_immutable_evidence_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos_cashier.read_admin_shift_recovery_review_queue(text,text)'::regprocedure,
+      'pos_cashier.review_recovered_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure
+    ) AND (NOT p.prosecdef OR EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_second_count_public_exposure'; END IF;
+  IF (SELECT count(*) FROM pg_proc p WHERE p.oid IN (
+      'pos_cashier.read_admin_shift_recovery_review_queue(text,text)'::regprocedure,
+      'pos_cashier.review_recovered_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure
+      ) AND p.prosecdef)<>2
+  THEN RAISE EXCEPTION 'pos_second_count_functions_missing'; END IF;
   IF NOT EXISTS(SELECT 1 FROM pg_constraint
     WHERE conrelid='pos.academy_football_location_links'::regclass
       AND contype='f')
