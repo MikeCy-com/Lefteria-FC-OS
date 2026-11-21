@@ -1,6 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
-  import {classroomLabels,playerClassroomPositionLabels} from '../mobile/player-classrooms.ts';
+  import {playerClassroomPositionLabels} from '../mobile/player-classrooms.ts';
   import type {QuizOrg} from './player-quiz-editorial.ts';
   import type {PlayerClassroomPosition} from '../mobile/player-classrooms.ts';
 
@@ -92,7 +92,7 @@
     const details=assignment,owner=organization,actor=actorId,player=selected;
     if(!details||!player||busy||loading||owner!==details.organization_id||
        !specialties[details.roster_position].includes(next)||
-       (next===details.specialization&&!details.needs_reverification)||
+       ((next==='all'?null:next)===details.specialization&&!details.needs_reverification)||
        reason.trim()!==reason||reason.length<8||reason.length>250||
        /[\x00-\x1f\x7f]/.test(reason))return;
     if(!confirm('Να καταχωριστεί η επαληθευμένη εκπαιδευτική θέση για αυτόν τον αθλητή;'))return;
@@ -172,7 +172,7 @@
         placeholder="Π.χ. επιβεβαιώθηκε από το τεχνικό επιτελείο στην τελευταία αξιολόγηση"
         disabled={busy}></textarea>
       <button type="button" class="save" disabled={busy||loading||
-        (next===assignment.specialization&&!assignment.needs_reverification)||
+        ((next==='all'?null:next)===assignment.specialization&&!assignment.needs_reverification)||
         reason.length<8||reason.length>250||reason.trim()!==reason}
         onclick={()=>void save()}>
         Αποθήκευση επαληθευμένης θέσης
