@@ -13,7 +13,7 @@ match events, attendance, registration, basic scoped finance/invoices,
 app-visible scheduling and explicitly approved announcements.
 
 The following are **not assumed to be production-ready** merely because code
-or screens exist: live Payabl capture/recurring billing, physical POS checkout,
+or screens exist: full drag-and-drop CMS editing, real-time chat/reactions/push campaigns, live Payabl capture/recurring billing, physical POS checkout,
 card refunds, fan subscriptions, automated AI publishing, bulk SMS campaigns,
 stock/warehouse reconciliation and optional marketing automation. They may
 remain unavailable in the first release only after independent evidence that
@@ -40,7 +40,7 @@ unverified planning report (expected BLOCKED). A release decision requires
 | Safeguarding: CRM, documents and privacy | Child/guardian permissions, protected files, consent, join/leave actions, denied cross-child/site probes, expiry and negative tests independently signed off |
 | Finance: finance-reconciliation | Only authorized manual cash/bank and legally reviewed invoices are enabled unless card capture/settlement fully verified; location totals reconcile to original source; no invented paid status |
 | Data: data-import and media-and-assets | Source snapshot provenance, exact current counts and IDs, guardian relationships, documents and media checksums reconciled; critical quarantined rows resolved |
-| Content and communications | Published website source, announcements, group scoping, attachment visibility and parental restrictions verified against preview; no unintended campaign sends |
+| MVP public essentials | Homepage, Academy, first-team, contact/news/fixture routes, safe scoped Academy announcements and content privacy verified in staging. The complete CMS editor and full chat/push suite may remain off for MVP |
 | Infrastructure: backups-restore, operations-monitoring | Encrypted DB and media backup verified by actual isolated restore; measured RPO/RTO, alert/rotation and credential lifecycle |
 | Release: cutover-rollback | Explicit deployment approval, pinned digest and commit, TTL/DNS/TWA plan, domain and cookie continuity, monitored canary, and a rehearsed recovery that does not overwrite old production |
 | Release: mvp-deferred-features | Independently demonstrate optional providers/routes/subscriptions are disabled; provider secrets remain isolated, no accidental payment, and misleading controls are absent |
