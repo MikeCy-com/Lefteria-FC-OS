@@ -1,4 +1,6 @@
 using LefteriaFc.Infrastructure.Persistence;
+using LefteriaFc.Infrastructure.WebAdmin;
+using Microsoft.Extensions.Options;
 
 namespace LefteriaFc.Api.Health;
 
@@ -20,18 +22,22 @@ public static class HealthEndpoints
 
     private static async Task<IResult> CheckReadiness(
         LefteriaDbContext database,
+        WebAdminConnections adminConnections,
+        IOptions<WebAdminOptions> adminOptions,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        budget.CancelAfter(TimeSpan.FromSeconds(2));
+        budget.CancelAfter(TimeSpan.FromSeconds(3));
         var logger = loggerFactory.CreateLogger("Readiness");
         try
         {
-            if (await database.Database.CanConnectAsync(budget.Token))
+            if (await RuntimeReadiness.CheckAsync(
+                database,adminConnections,adminOptions,budget.Token))
             {
                 return TypedResults.Ok(new HealthResponse("ready"));
             }
+            logger.LogWarning("Runtime database schema or least-privilege grants are not ready");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
