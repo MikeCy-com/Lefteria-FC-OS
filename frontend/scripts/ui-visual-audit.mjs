@@ -406,9 +406,10 @@ try {
         };
       });
       if (!typography.italicLoaded) failures.push(route.path + ' ' + viewport.name + ': real Greek italic font did not load');
-      // Original public website baseline, measured with Chromium at the
-      // same viewport: Manrope body 16px; catalog/group h1 38px on phones,
-      // 58px from tablets upward. This is typography parity, not a pixel diff.
+      // Lefteria-FC source public skin uses Fira Sans body and condensed Fira
+      // display: keep 16px reading baseline and 38px/58px catalog headings.
+      // A former live-screenshot snapshot used Manrope; the source-repository
+      // CSS is now the explicit migration reference.
       const publicFont = await page.evaluate(() => {
         const root = document.querySelector('.public-site');
         const headline = document.querySelector('[data-testid="academy-groups-hero"] h1, .catalog-heading h1');
@@ -419,8 +420,8 @@ try {
         } : null;
       });
       if(publicFont) {
-        if(!publicFont.family.startsWith('Manrope') || publicFont.size !== 16)
-          failures.push(route.path+' '+viewport.name+': public Manrope 16px mismatch: '+JSON.stringify(publicFont));
+        if(!publicFont.family.startsWith('Fira Sans') || publicFont.size !== 16)
+          failures.push(route.path+' '+viewport.name+': source public Fira Sans 16px mismatch: '+JSON.stringify(publicFont));
         if(publicFont.headlineSize !== null) {
           const originalSize = viewport.width <= 650 ? 38 : 58;
           if(Math.abs(publicFont.headlineSize-originalSize) > .5)
@@ -513,6 +514,7 @@ try {
             registrationSteps:rect('[data-testid="step-indicator"]'),
             registrationCard:rect('[data-testid="form-card"]'),
             hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
+            heroCopy:rect('.home-reference .public-hero-copy'),
             publicRail:rect('.public-rail'),
             publicTopbar:rect('.public-header'),
             homeFixture:rect('[data-testid="public-hero-fixture"]'),
@@ -528,7 +530,7 @@ try {
           return result;
         },route.name);
         if (route.name==='home') {
-          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+          const {hero,heroCopy:copy,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
             homeMotto:motto,homeNews:news}=referenceLayout;
           if(!hero||!rail||!top||!tiles||!motto||!news){
             failures.push('home 1672×941: one or more reference sections are missing');
@@ -541,8 +543,11 @@ try {
               failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
-            if(!fixture || fixture.width<300 || fixture.height<200)
-              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition '+JSON.stringify(fixture));
+            if(!fixture || !copy || fixture.width<290 || fixture.width>335 ||
+               fixture.height<200 || fixture.x < hero.x+hero.width*.65 ||
+               fixture.right < hero.right-100 || fixture.right > hero.right+2 ||
+               fixture.x < copy.right+12)
+              failures.push('home: compact next-match must remain on the right, without covering the headline or hero picture '+JSON.stringify({fixture,hero,copy}));
             if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
               failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
             if(motto.y<news.bottom-2||motto.y>news.bottom+32)
