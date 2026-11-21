@@ -177,6 +177,7 @@ export const reviewedHiddenAdminEntries = [
   ['post','/api/admin/access/users'],
   ['post','/api/admin/access/users/status'],
   ['post','/api/admin/access/users/role'],
+  ['post','/api/admin/staff/coaches'],
   ['get','/api/admin/academy/intake'],
   // Explicit private review routes; API and SQL independently require Academy Super Admin.
   ['get','/api/admin/academy/office/guardians'],
