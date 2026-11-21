@@ -1,6 +1,10 @@
 name: Browser UI visual audit
 
 on:
+  # Production release candidates require browser proof at the exact main
+  # commit SHA, including for backend-only and security-only changes.
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
     paths:

@@ -47,7 +47,7 @@
     data-testid="public-search-input" />
   {#if loading}<p role="status" data-testid="public-search-loading">Φόρτωση νέων…</p>{/if}
   {#if failed}<p role="alert" data-testid="public-search-error">Τα νέα δεν είναι προσωρινά διαθέσιμα στην αναζήτηση.</p>{/if}
-  <p class="public-search-count" role="status" aria-live="polite" data-testid="public-search-count">{loading ? 'Αναζήτηση δημοσιευμένων νέων…' : `${results.length} ${results.length === 1 ? 'αποτέλεσμα' : 'αποτελέσματα'}`}</p>
+  <p class="public-search-count" role="status" aria-live="polite" data-testid="public-search-count">{results.length} {results.length === 1 ? 'αποτέλεσμα' : 'αποτελέσματα'}{loading ? ' · Ενημερώνονται τα δημοσιευμένα νέα…' : ''}</p>
   <nav id="public-search-results" class="public-search-results" aria-label="Αποτελέσματα αναζήτησης" data-testid="public-search-results">{#each results as item (item.path)}<a href={item.path} onclick={close} data-testid={`public-search-result-${item.id}`}>{item.label}<Icon name="external" size={17} /></a>{/each}</nav>
   {#if !loading && !results.length}<p data-testid="public-search-empty">Δεν βρέθηκαν αποτελέσματα.</p>{/if}
   <button type="button" class="public-dialog-close" aria-label="Κλείσιμο αναζήτησης" onclick={close} data-testid="public-search-close"><Icon name="close" size={16} /></button>

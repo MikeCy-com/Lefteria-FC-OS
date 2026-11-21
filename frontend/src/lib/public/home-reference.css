@@ -493,3 +493,105 @@
   .public-site .home-reference .home-brand-interval::before,
   .public-site .home-reference .home-brand-interval::after{width:25px;height:35px}
 }
+
+
+/*
+ * Editorial typography balance, November 2026.
+ * Reduce overscaled display and card type without shrinking body copy or
+ * altering the hero artwork, carousel behavior, touch targets or content.
+ * The home-page test-id increases specificity over legacy reference rules.
+ */
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+  font-size:clamp(46px,3.55vw,78px);
+  line-height:.96;
+  min-height:0;
+  text-wrap:balance;
+  overflow-wrap:anywhere;
+}
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy .public-eyebrow {
+  font-size:clamp(16px,1.25vw,25px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+.public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+  font-size:clamp(22px,1.75vw,31px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-destination h2 {
+  font-size:clamp(18px,1.35vw,26px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-fixture-heading {
+  font-size:clamp(17px,1.3vw,25px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-countdown strong {
+  font-size:clamp(22px,1.4vw,32px);
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:first-child h3 {
+  font-size:clamp(23px,2vw,33px);
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:not(:first-child) h3 {
+  font-size:clamp(17px,1.2vw,22px);
+}
+.public-site .home-reference[data-testid="home-page"] .home-brand-motto {
+  font-size:clamp(20px,1.85vw,29px);
+}
+@media(max-width:767px) {
+  .public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+    font-size:clamp(34px,8.5vw,46px);
+    line-height:.99;
+    min-height:0;
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+  .public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+    font-size:clamp(21px,5.5vw,27px);
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-destination h2 {font-size:clamp(18px,5vw,22px);}
+  .public-site .home-reference[data-testid="home-page"] .public-news-card:first-child h3 {font-size:clamp(22px,6vw,27px);}
+}
+
+/* 2026-11 typography calibration: keep the reference composition and
+   Fira display face, but restore breathing room around long Greek headlines.
+   Body copy, links, inputs and clickable target geometry remain unchanged. */
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+  font-size:clamp(40px,3.05vw,67px);
+  line-height:1.03;
+  max-width:20ch;
+  min-height:0;
+}
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy .public-eyebrow {
+  font-size:clamp(15px,1.1vw,21px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+.public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+  font-size:clamp(21px,1.48vw,27px);
+  line-height:1.13;
+}
+.public-site .home-reference[data-testid="home-page"] .public-destination h2 {
+  font-size:clamp(18px,1.18vw,23px);
+  text-wrap:balance;
+  white-space:normal;
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:first-child h3 {
+  font-size:clamp(21px,1.76vw,29px);
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:not(:first-child) h3 {
+  font-size:clamp(17px,1.08vw,20px);
+}
+.public-site .home-reference[data-testid="home-page"] .home-brand-motto {
+  font-size:clamp(19px,1.55vw,25px);
+}
+@media(max-width:767px) {
+  .public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+    font-size:clamp(34px,7.7vw,40px);
+    max-width:100%;
+    line-height:1.04;
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+  .public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+    font-size:clamp(20px,5vw,24px);
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-destination h2 {
+    font-size:clamp(18px,4.65vw,21px);
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-news-card:first-child h3 {
+    font-size:clamp(21px,5.35vw,25px);
+  }
+}

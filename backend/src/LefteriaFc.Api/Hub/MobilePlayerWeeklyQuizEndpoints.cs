@@ -60,6 +60,21 @@ public static class MobilePlayerWeeklyQuizEndpoints
             .WithDescription("Save one private server-graded attempt for the current player quiz; no answer key or public ranking.")
             .Produces<PlayerWeeklyQuizScore>()
             .WithMobileErrors();
+        // Private class-room aggregate, not included in the frozen public
+        // client contract. Ingress reviews the exact route separately.
+        endpoints.MapGet("/api/mobile/hub/player-classrooms",
+            (string? organization_id,HttpContext context,
+             MobilePlayerClassroomStore store,CancellationToken token)=>
+            {
+                NoStore(context);
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.ReadAsync(MobilePrincipal.Read(context.User),
+                      Organization(organization_id,context),token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile education")
+            .WithName("GetMobilePlayerClassrooms")
+            .ExcludeFromDescription();
         return endpoints;
     }
 

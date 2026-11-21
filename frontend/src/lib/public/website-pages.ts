@@ -37,6 +37,35 @@ export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEM
 export const isHomepageEditorialSlug = (slug: string) =>
   isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug);
 
+export function websitePageParentLink(
+  organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
+): {href: string; label: string} {
+  const isAcademy = organization === 'lefteria_fc_academy';
+  // About and Contact accept organization_id; Events accepts scope instead.
+  // The current Shop is a shared first-team surface and must not pretend
+  // that an ignored organization_id parameter filters its catalog.
+  // Shared public routes support an explicit organization_id. Preserve the
+  // Academy context rather than silently falling back to the First Team.
+  const shared = (path: string) => isAcademy ? path + '?organization_id=lefteria_fc_academy' : path;
+  // Only a published page may reach this component. Return to the native,
+  // contextually correct public hub—not to an admin editor or a sibling org.
+  switch (parent) {
+    case 'club': return {href:shared('/about'),label:'Ο ΣΥΛΛΟΓΟΣ'};
+    case 'team': return {href:'/team',label:'ΠΡΩΤΗ ΟΜΑΔΑ'};
+    case 'academy': return {href:'/academy',label:'ΑΚΑΔΗΜΙΑ'};
+    case 'matches': return {href:'/team?tab=results',label:'ΑΓΩΝΕΣ'};
+    case 'news': return {href:isAcademy ? '/news?organization_id=lefteria_fc_academy' : '/news?organization_id=lefteria_fc',label:isAcademy ? 'ΝΕΑ ΑΚΑΔΗΜΙΑΣ' : 'ΝΕΑ ΠΡΩΤΗΣ ΟΜΑΔΑΣ'};
+    case 'events': return {href:isAcademy ? '/events?scope=academy' : '/events?scope=first_team',label:'ΕΚΔΗΛΩΣΕΙΣ'};
+    case 'shop': return {href:'/shop',label:'ΚΑΤΑΣΤΗΜΑ'};
+    case 'contact': return {href:shared('/contact'),label:'ΕΠΙΚΟΙΝΩΝΙΑ'};
+    case 'root':
+    case 'hidden':
+    default: return isAcademy
+      ? {href:'/academy',label:'ΑΚΑΔΗΜΙΑ'}
+      : {href:'/team',label:'ΠΡΩΤΗ ΟΜΑΔΑ'};
+  }
+}
+
 export function websitePagePath(slug: string, org: PublicOrganization): string {
   return '/pages/' + encodeURIComponent(slug) +
     (org === 'lefteria_fc_academy' ? '?organization_id=lefteria_fc_academy' : '');
@@ -50,8 +79,13 @@ export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug) ||
       !row.page || typeof row.page !== 'object' ||
       typeof row.page.title !== 'string' || !Array.isArray(row.page.blocks) ||
-      typeof row.page.menu_parent !== 'string' ||
-      !Number.isSafeInteger(row.page.menu_order)) return false;
+      !['hidden','root','club','team','academy','matches','news','events','shop','contact'].includes(row.page.menu_parent) ||
+      !Number.isSafeInteger(row.page.menu_order) || row.page.menu_order < 0 || row.page.menu_order > 1000 ||
+      row.page.title.length === 0 || row.page.title.length > 180 ||
+      typeof row.page.summary !== 'string' || row.page.summary.length > 500 ||
+      typeof row.page.seo_title !== 'string' || row.page.seo_title.length > 180 ||
+      typeof row.page.seo_description !== 'string' || row.page.seo_description.length > 300 ||
+      row.page.blocks.length < 1 || row.page.blocks.length > 40) return false;
   return row.page.blocks.every(block => block &&
     ['heading','paragraph','image','button'].includes(block.type) &&
     typeof block.text === 'string' &&

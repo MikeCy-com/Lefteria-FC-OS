@@ -179,7 +179,7 @@
   }
   .matches-reference-banner .public-eyebrow{margin:0;font:800 16px 'Fira Sans Extra Condensed',sans-serif}
   .matches-reference-banner h1{
-    font:italic 900 clamp(54px,4.7vw,78px)/.96 'Fira Sans Extra Condensed',sans-serif;
+    font:italic 900 clamp(43px,3.9vw,66px)/1.01 'Fira Sans Extra Condensed',sans-serif;
     letter-spacing:-.02em;margin:0;color:#fff;
   }
   .matches-reference-banner>p:last-child{margin:0;color:#eee;font-size:14px}
@@ -214,7 +214,7 @@
   }
   @media(max-width:780px){
     .matches-reference-banner{min-height:180px;padding:26px 19px}
-    .matches-reference-banner h1{font-size:61px}
+    .matches-reference-banner h1{font-size:49px}
     .matches-reference-tabs{padding:0 10px}
     .matches-reference-tabs :is(a,button){flex:1;min-height:44px;font-size:12px;padding:8px}
   }

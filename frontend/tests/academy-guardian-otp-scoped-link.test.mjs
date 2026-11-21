@@ -60,7 +60,9 @@ test('scope is granted to runtime functions, never raw minor tables or claim que
   assert.match(fixture,/Invalid OTP HMAC created guardian claim/);
   assert.match(fixture,/Different guardian phone accepted original OTP/);
   assert.match(fixture,/New original Parent cannot see exact authorized child/);
-  assert.match(fixture,/Original guardian created unanchored downstream grant/);
+  assert.match(fixture,/Verified Academy original guardian could not grant second parent/);
+  assert.match(fixture,/Delegated guardian fabricated an unanchored root/);
+  assert.match(fixture,/Original proof revoked but second guardian retained access/);
   assert.match(fixture,/Revoked original guardian retained child scope/);
   assert.match(fixture,/ROLLBACK;/);
 });

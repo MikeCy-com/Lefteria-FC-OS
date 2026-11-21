@@ -422,6 +422,37 @@ try {
         title:document.title,
         main:document.querySelectorAll('main').length
       }));
+      // Typography audit: source screenshots exposed oversized display type.
+      // Check actual computed CSS, not just tokens, at every viewport including
+      // phone and 4K. Body text and the fixed Academy groups baseline stay intact.
+      const displayType = await page.evaluate(kind => {
+        const selectors = {
+          home:'.home-reference .public-hero-copy h1',
+          academy:'.academy-intro h1',
+          'first-team':'.team-heading:not(.matches-reference-heading) > h1',
+          'team-schedule':'.matches-reference-banner h1',
+          'app-login':'.login-welcome h2'
+        };
+        const selector = selectors[kind];
+        if (!selector) return null;
+        const element = document.querySelector(selector);
+        return element ? {
+          selector,px:Math.round(parseFloat(getComputedStyle(element).fontSize)*10)/10,
+          text:element.textContent?.trim().slice(0,65)
+        } : {selector,px:null};
+      },route.name);
+      if(displayType) {
+        const caps = {
+          home:viewport.width<=767?47:80,
+          academy:viewport.width<=767?55:76,
+          'first-team':viewport.width<=767?55:76,
+          'team-schedule':viewport.width<=767?52:68,
+          'app-login':viewport.width<=720?35:57
+        };
+        const cap=caps[route.name];
+        if(displayType.px===null || !Number.isFinite(displayType.px) || displayType.px>cap)
+          failures.push(route.path+' '+viewport.name+': display typography '+JSON.stringify(displayType)+' exceeds '+cap+'px');
+      }
       // Source reference pictures are 1672×941. Measure actual browser
       // geometry against their major visible regions without pretending
       // that bounds alone establish photographic/pixel parity.
@@ -551,7 +582,7 @@ try {
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,referenceLayout,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);

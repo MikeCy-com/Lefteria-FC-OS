@@ -54,7 +54,10 @@ BEGIN
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active)
     VALUES(v_actor,'disposable-public-academy-'||v_actor::text,
       'Disposable preview manager','manager',true);
-  -- Creating an admin profile is the publishing eligibility transition.
+  -- Creation of a managerial profile alone is NOT consent to publish.
+  -- The secure default must hold even if an authorized manager populates
+  -- all public display fields. Only the next explicit visibility action
+  -- may make this group appear in the anonymous Academy directory.
   INSERT INTO club.academy_group_profiles(
     organization_id,group_id,age_range,description,training_schedule,
     max_players,season,banner_url,display_order,revision,updated_by
@@ -62,6 +65,22 @@ BEGIN
     'lefteria_fc_academy',v_id,'12–13','Manager updated public profile',
     'Monday 17:00',25,'2026/27','',2,1,v_actor
   );
+  IF EXISTS(SELECT 1 FROM club.academy_group_profiles p
+      WHERE p.organization_id='lefteria_fc_academy' AND p.group_id=v_id
+        AND p.is_public) THEN
+    RAISE EXCEPTION 'New Academy profile default accidentally published a minor group';
+  END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(
+      club.read_public_academy_group_directory()) AS unpublished(item)
+      WHERE unpublished.item->>'id'=v_id) THEN
+    RAISE EXCEPTION 'New Academy group appeared without explicit publication';
+  END IF;
+
+  -- The fixture emulates a separately authorized, audited manager approval;
+  -- the HTTP integration tests verify actual role, site and revision gates.
+  UPDATE club.academy_group_profiles SET is_public=true,revision=revision+1,
+    updated_by=v_actor
+    WHERE organization_id='lefteria_fc_academy' AND group_id=v_id;
   SELECT club.read_public_academy_group_directory() INTO v_directory;
   SELECT item INTO v_group
     FROM jsonb_array_elements(v_directory) AS x(item)

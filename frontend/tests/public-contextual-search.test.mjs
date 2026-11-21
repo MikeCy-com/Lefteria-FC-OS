@@ -8,7 +8,7 @@ import {withWebsitePages, websitePagePath} from '../src/lib/public/website-pages
 const page = (organization_id, slug, title, menu_parent='root') => ({
   organization_id,slug,published_at:'2026-11-15T12:00:00Z',
   page:{title,summary:'',seo_title:'',seo_description:'',
-    menu_parent,menu_order:0,blocks:[]}
+    menu_parent,menu_order:0,blocks:[{type:'paragraph',text:'Published page',url:null}]}
 });
 const academy='lefteria_fc_academy',team='lefteria_fc';
 const academyCms=page(academy,'academy-training-guide','Οδηγός Ακαδημίας');
@@ -96,6 +96,12 @@ test('search UI compiles, scopes backend news and announces keyboard-accessible 
   assert.match(search,/article\.organization_id === sourceOrganization/);
   assert.match(search,/AbortSignal\.any\(\[controller\.signal, AbortSignal\.timeout\(10000\)\]\)/);
   assert.match(search,/data-testid="public-search-count"/);
+  // Navigation and current search matches remain countable while the news
+  // request is pending. The loading message must not replace the live count.
+  assert.match(search,/\{results\.length\} \{results\.length === 1/);
+  assert.match(search,/\{loading \? ' · Ενημερώνονται τα δημοσιευμένα νέα…' : ''\}/);
+  assert.doesNotMatch(search,/loading \? 'Αναζήτηση δημοσιευμένων νέων…'/);
+  assert.match(search,/data-testid="public-search-loading"/);
   assert.match(search,/aria-live="polite"/);
   assert.match(search,/aria-controls="public-search-results"/);
   assert.match(search,/aria-label="Αποτελέσματα αναζήτησης"/);
