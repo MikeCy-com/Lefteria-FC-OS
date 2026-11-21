@@ -115,6 +115,11 @@ jobs:
           dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
           dotnet ef migrations has-pending-model-changes --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+      - name: Prove isolated PostgreSQL backup and restore preserves schema, RLS policies and synthetic data
+        run: |
+          # Script rejects any non-CI database or non-loopback PostgreSQL and
+          # destroys its archive and separate restore database on exit.
+          docker exec -e LEFTERIA_DISPOSABLE_RESTORE_ACK=ci-only             identity-postgres sh /opt/lefteria-postgres/disposable-backup-restore-drill.sh
       - name: Validate city-shared Academy catalogs and location-bound team isolation (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/football-city-location-catalog-checks.sql
