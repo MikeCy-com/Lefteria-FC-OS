@@ -21,7 +21,7 @@ function clampIn(source,selector) {
   const escaped=selector.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
   const rules=[...source.matchAll(new RegExp(escaped+'\\s*\\{([^}]+)\\}','g'))];
   assert.ok(rules.length,'missing selector '+selector);
-  const values=[...rules.at(-1)[1].matchAll(/font-size:\\s*clamp\\(\\s*(\\d+)px\\s*,\\s*([\\d.]+)vw\\s*,\\s*(\\d+)px\\s*\\)/g)];
+  const values=[...rules.at(-1)[1].matchAll(/font-size:\s*clamp\(\s*(\d+)px\s*,\s*([\d.]+)vw\s*,\s*(\d+)px\s*\)/g)];
   assert.ok(values.length,'missing font-size clamp in '+selector);
   return values.at(-1).slice(1).map(Number);
 }
@@ -31,13 +31,12 @@ test('public display hierarchy is smaller while Manrope reading text stays legib
   assert.ok(h[0]>=44 && h[2]<=80,'Home hero must fit a headline without 100px type');
   const a=clampIn(academy,':global(.public-site[data-route="/academy"]) .academy-intro h1');
   assert.ok(a[2]<=75 && a[0]>=40,'Academy hero remains condensed but more compact');
-  const t=clampIn(shared,'.public-site[data-route="/team"] .team-heading:not(.matches-reference-heading) > h1');
-  assert.ok(t[2]<=75,'First Team masthead reduced');
-  assert.match(team,/font:italic 900 clamp\\(43px,3\\.9vw,66px\\)/);
-  assert.match(published,/font:italic 900 clamp\\(36px,5vw,78px\\)/);
+  assert.ok(shared.includes('font:italic 900 clamp(43px,4.3vw,74px)'),'First Team masthead reduced');
+  assert.match(team,/font:italic 900 clamp\(43px,3\.9vw,66px\)/);
+  assert.match(published,/font:italic 900 clamp\(36px,5vw,78px\)/);
   assert.match(home,/public-news-card:first-child h3/);
-  assert.match(shared,/\\.public-group-card h3 \\{font-size:clamp\\(23px,1\\.9vw,29px\\)/);
-  assert.match(base,/:where\\(\\.public-site,\\.public-dialog\\) \\{[^\\n]*font-size:16px/);
+  assert.match(shared,/\.public-group-card h3 \{font-size:clamp\(23px,1\.9vw,29px\)/);
+  assert.match(base,/:where\(\.public-site,\.public-dialog\) \{[^\n]*font-size:16px/);
   assert.match(home,/text-wrap:balance/);
 });
 
@@ -48,11 +47,11 @@ test('mobile dashboards have restrained titles while protecting controls and bod
   assert.ok(panels[2]<=24 && panels[0]>=18);
   assert.match(mobile,/--lf-type-body: 13px/);
   assert.match(mobile,/--lf-type-caption: 11px/);
-  assert.match(mobile,/font-size:max\\(16px,1rem\\)/);
-  assert.match(mobile,/\\(pointer:coarse\\)/);
-  assert.match(mobile,/font-size:clamp\\(12px,1vw,13px\\)/);
-  assert.match(login,/font:italic 900 clamp\\(34px,3\\.7vw,56px\\)/);
-  assert.match(login,/\\.login-welcome h2\\{font-size:31px\\}/);
+  assert.match(mobile,/font-size:max\(16px,1rem\)/);
+  assert.match(mobile,/\(pointer:coarse\)/);
+  assert.match(mobile,/font-size:clamp\(12px,1vw,13px\)/);
+  assert.match(login,/font:italic 900 clamp\(34px,3\.7vw,56px\)/);
+  assert.match(login,/\.login-welcome h2\{font-size:31px\}/);
   assert.match(shell,/min-height:68px/);
   assert.match(app,/<MobileShell/);
 });
@@ -67,5 +66,5 @@ test('public and app templates still compile without replacing functional conten
   assert.match(team,/<PublicShell/);
   assert.match(published,/<WebsitePageBlocks/);
   assert.match(login,/onVerifyOtp/);
-  assert.doesNotMatch(shared,/(^|\\n)\\s*(?:\\.admin-|\\.mobile-|body\\s*\\{)/);
+  assert.doesNotMatch(shared,/(^|\n)\s*(?:\.admin-|\.mobile-|body\s*\{)/);
 });
