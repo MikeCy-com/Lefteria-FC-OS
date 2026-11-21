@@ -18,6 +18,16 @@ DECLARE
   proof_request uuid:=gen_random_uuid();
   otp_challenge uuid:=gen_random_uuid();
   original_parent_id uuid:=gen_random_uuid();
+  second_guardian_id uuid:=gen_random_uuid();
+  root_guardian_grant uuid:=gen_random_uuid();
+  nested_guardian_grant uuid:=gen_random_uuid();
+  renewed_guardian_grant uuid:=gen_random_uuid();
+  unrelated_parent_id uuid:=gen_random_uuid();
+  fee_for_child uuid:=gen_random_uuid();
+  verified_fee_issue uuid:=gen_random_uuid();
+  denied_fee_issue uuid:=gen_random_uuid();
+  fee_for_other_child uuid:=gen_random_uuid();
+  unrelated_player_id text:='ply_other_'||replace(gen_random_uuid()::text,'-','');
   otp_digest bytea:=decode(repeat('a',64),'hex');
   otp_issued_at timestamptz;
   confirmed int;
@@ -251,17 +261,194 @@ BEGIN
       clock_timestamp()+interval '1 hour'))
   THEN RAISE EXCEPTION 'Guardian could change signed phone to steal children'; END IF;
 
-  -- New guardians cannot create a fake canonical lineage root. Delegated
-  -- second-parent support needs a separate lineage/consent integration.
+  -- A parent's invoice is visible only if BOTH the payer identity and the
+  -- currently verified exact child match. A payer reference alone must not
+  -- expose a second active Academy player's private charge.
+  INSERT INTO club.players(
+    id,organization_id,name,number,position,team_type,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+  VALUES(unrelated_player_id,'lefteria_fc_academy','Other private child',
+    27,'Defender','Academy',true,false,false,true);
+  INSERT INTO finance.training_fee_issues(
+    id,organization_id,player_id,payer_identity_id,fee_month,
+    amount_cents,payer_phone,payer_email,payer_first_name,payer_last_name,issued_by)
+  VALUES
+    (fee_for_child,'lefteria_fc_academy',fixture_player_id,original_parent_id,
+      DATE '2026-11-01',4500,'+35799123456',
+      'original-fixture@example.invalid','First','Guardian',admin_id),
+    (fee_for_other_child,'lefteria_fc_academy',unrelated_player_id,original_parent_id,
+      DATE '2026-11-01',6500,'+35799123456',
+      'other-fixture@example.invalid','First','Guardian',admin_id);
+  INSERT INTO identity.mobile_identities(
+    id,normalized_phone,role,display_name,is_active,platform,created_at)
+  VALUES(unrelated_parent_id,'35799123457','parent','Other Parent',true,
+    'ios',clock_timestamp());
+
+  result:=finance.read_parent_training_fees(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>1
+    OR result->'fees'->0->>'id'<>fee_for_child::text
+    OR result->'fees'->0->>'player_id'<>fixture_player_id
+  THEN RAISE EXCEPTION 'Scoped parent wallet includes an unrelated player fee'; END IF;
+  result:=finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+  IF jsonb_array_length(result->'items')<>1
+    OR result->'items'->0->>'player_id'<>fixture_player_id
+    OR result->'items'->0->>'payer_identity_id'<>original_parent_id::text
+  THEN RAISE EXCEPTION 'Verified original guardian invoice PDF scope failed'; END IF;
+
+  -- All-or-nothing PDF retrieval: one unauthorized item rejects the entire
+  -- mixed batch even if a permitted child's invoice was also requested.
   BEGIN
-    PERFORM identity.issue_guardian_permission(original_parent_id,
-      '35799123456','parent',clock_timestamp()+interval '1 hour',
-      gen_random_uuid(),fixture_player_id,'35799123459',gen_random_uuid());
-    RAISE EXCEPTION 'Original guardian created unanchored downstream grant';
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',
+      ARRAY[fee_for_child,fee_for_other_child]);
+    RAISE EXCEPTION 'Mixed child PDF batch exposed unrelated payer data';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123457',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Wrong signed parent phone exposed invoice';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=finance.read_parent_training_fees(unrelated_parent_id,'35799123457',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>0
+  THEN RAISE EXCEPTION 'Other parent received original guardian wallet'; END IF;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(unrelated_parent_id,'35799123457',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Other parent received original guardian invoice';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Production-critical Academy billing: a new enrolled child has no
+  -- legacy imported guardian link. The Super Admin can deliberately issue
+  -- ONE selected month only after original proof+post-review phone OTP.
+  -- A delegated adult is not automatically made the financial payer.
+  result:=finance.issue_admin_training_fee(admin_digest,
+    'lefteria_fc_academy',verified_fee_issue,fixture_player_id,
+    DATE '2027-03-01',5000,'parent-fixture@example.invalid',
+    'Fixture','Parent');
+  IF result->>'created'<>'true'
+    OR result->>'player_id'<>fixture_player_id
+    OR (SELECT payer_identity_id FROM finance.training_fee_issues
+        WHERE id=verified_fee_issue)<>original_parent_id
+    OR (SELECT payer_phone FROM finance.training_fee_issues
+        WHERE id=verified_fee_issue)<>'+35799123456'
+    OR (SELECT count(*) FROM finance.training_fee_issues
+        WHERE player_id=fixture_player_id)<>2 THEN
+    RAISE EXCEPTION 'New Academy original guardian could not receive an exact month fee';
+  END IF;
+  result:=finance.issue_admin_training_fee(admin_digest,
+    'lefteria_fc_academy',verified_fee_issue,fixture_player_id,
+    DATE '2027-03-01',5000,'parent-fixture@example.invalid',
+    'Fixture','Parent');
+  IF result->>'created'<>'false' THEN
+    RAISE EXCEPTION 'Original guardian training fee replay created a duplicate';
+  END IF;
+  result:=finance.read_parent_training_fees(original_parent_id,
+    '35799123456','parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>2
+    OR NOT EXISTS(
+      SELECT 1 FROM jsonb_array_elements(result->'fees') fee(value)
+      WHERE fee.value->>'id'=verified_fee_issue::text
+        AND fee.value->>'fee_month'='2027-03-01') THEN
+    RAISE EXCEPTION 'Issued new Academy fee not visible to its exact verified payer';
+  END IF;
+  result:=finance.read_parent_invoice_pdf(original_parent_id,
+    '35799123456','parent',clock_timestamp()+interval '1 hour',
+    ARRAY[verified_fee_issue]);
+  IF result->'items'->0->>'payer_identity_id'<>original_parent_id::text
+    OR result->'items'->0->>'fee_month'<>'2027-03-01' THEN
+    RAISE EXCEPTION 'New Academy payer invoice PDF verification failed';
+  END IF;
+  -- Removing the disposable fee here preserves previous wallet fixture counts.
+  DELETE FROM finance.training_fee_issues WHERE id=verified_fee_issue;
+
+  -- A new original guardian can now share ONE explicitly verified child
+  -- with a second adult by phone; the phone alone is not a login.
+  -- Existing OTP sign-in is required separately before Parent creation.
+  IF identity.has_current_guardian_phone_grant('35799123459') THEN
+    RAISE EXCEPTION 'Unissued second-guardian phone already had child access'; END IF;
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',root_guardian_grant);
+  IF result->>'status'<>'granted' OR result->>'id'<>root_guardian_grant::text
+    OR result->>'organization_id'<>'lefteria_fc_academy'
+    OR NOT identity.has_current_guardian_phone_grant('35799123459')
+  THEN RAISE EXCEPTION 'Verified Academy original guardian could not grant second parent'; END IF;
+  IF (SELECT source_permission_id FROM identity.family_guardian_permissions
+      WHERE id=root_guardian_grant) IS NOT NULL THEN
+    RAISE EXCEPTION 'Original guardian shared through an invented ancestor'; END IF;
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',root_guardian_grant);
+  IF result->>'replay'<>'true'
+    OR (SELECT count(*) FROM identity.family_guardian_permissions
+       WHERE id=root_guardian_grant)<>1 THEN
+    RAISE EXCEPTION 'Original guardian grant replay is not idempotent'; END IF;
+  IF EXISTS(
+    SELECT 1 FROM identity.current_phone_granted_children(
+      gen_random_uuid(),'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'An unverified phone became a logged-in parent'; END IF;
+  INSERT INTO identity.mobile_identities(
+    id,normalized_phone,role,display_name,is_active,platform,created_at,
+    guardian_derived_parent)
+  VALUES(second_guardian_id,'35799123459','parent','Second verified guardian',
+    true,'ios',clock_timestamp(),true);
+  IF (SELECT count(*) FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour')
+      WHERE player_id=fixture_player_id AND organization_id='lefteria_fc_academy')<>1
+  THEN RAISE EXCEPTION 'Second verified parent not linked to exact child'; END IF;
+
+  -- A phone-delegated parent must reference their own permission ID. No
+  -- caller, even the DB owner, may silently manufacture another root.
+  BEGIN
+    INSERT INTO identity.family_guardian_permissions(
+      id,organization_id,player_id,issuer_identity_id,
+      source_permission_id,target_phone,status)
+    VALUES(gen_random_uuid(),'lefteria_fc_academy',fixture_player_id,
+      second_guardian_id,NULL,'35799123461','granted');
+    RAISE EXCEPTION 'Delegated guardian fabricated an unanchored root';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=identity.issue_guardian_permission(second_guardian_id,'35799123459',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123460',nested_guardian_grant);
+  IF result->>'status'<>'granted'
+    OR (SELECT source_permission_id FROM identity.family_guardian_permissions
+      WHERE id=nested_guardian_grant)<>root_guardian_grant
+    OR NOT identity.has_current_guardian_phone_grant('35799123460')
+  THEN RAISE EXCEPTION 'Nested second guardian lost revocation lineage'; END IF;
+
+  -- Parent can remove only a grant they issued; removal cascades through
+  -- all descendants for this child, never across unrelated family scopes.
+  IF NOT identity.revoke_issued_guardian_permission(original_parent_id,
+      '35799123456','parent',clock_timestamp()+interval '1 hour',
+      gen_random_uuid(),root_guardian_grant) THEN
+    RAISE EXCEPTION 'Original guardian failed to revoke second parent'; END IF;
   IF EXISTS(SELECT 1 FROM identity.family_guardian_permissions
-      WHERE issuer_identity_id=original_parent_id)
-  THEN RAISE EXCEPTION 'Rejected guardian delegation had a side effect'; END IF;
+      WHERE id IN (root_guardian_grant,nested_guardian_grant)
+        AND status='granted')
+    OR identity.has_current_guardian_phone_grant('35799123459')
+    OR identity.has_current_guardian_phone_grant('35799123460')
+    OR EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'Revoked second-guardian lineage remained authorized'; END IF;
+  -- A deliberate regrant produces a NEW auditable lineage, not a replay
+  -- of the old revoked grant. This one must die with the original proof.
+  result:=identity.issue_guardian_permission(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+    fixture_player_id,'35799123459',renewed_guardian_grant);
+  IF result->>'status'<>'granted'
+    OR NOT identity.has_current_guardian_phone_grant('35799123459') THEN
+    RAISE EXCEPTION 'Explicit second-guardian regrant failed'; END IF;
+  IF EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour')
+      WHERE player_id=unrelated_player_id)
+  THEN RAISE EXCEPTION 'Second guardian gained a child outside this claim'; END IF;
 
   result:=identity.admin_academy_guardian_proof(admin_digest,'revoke',
     jsonb_build_object('registration_id',application,'version',1));
@@ -282,9 +469,51 @@ BEGIN
       clock_timestamp()+interval '1 hour'))
     OR identity.has_current_guardian_phone_grant('35799123456')
   THEN RAISE EXCEPTION 'Revoked original guardian retained child scope'; END IF;
+  -- Original proof revocation also kills a freshly reissued grant:
+  -- no stale mobile token or surviving delegated Parent identity can revive it.
+  IF identity.has_current_guardian_phone_grant('35799123459')
+    OR EXISTS(SELECT 1 FROM identity.valid_guardian_phone_grants()
+      WHERE permission_id=renewed_guardian_grant)
+    OR EXISTS(SELECT 1 FROM identity.current_phone_granted_children(
+      second_guardian_id,'35799123459','parent',
+      clock_timestamp()+interval '1 hour'))
+  THEN RAISE EXCEPTION 'Original proof revoked but second guardian retained access'; END IF;
+  BEGIN
+    PERFORM identity.issue_guardian_permission(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',gen_random_uuid(),
+      fixture_player_id,'35799123458',gen_random_uuid());
+    RAISE EXCEPTION 'Revoked original guardian could issue a new grant';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   IF (SELECT count(*) FROM identity.academy_guardian_otp_claims
       WHERE registration_id=application)<>1 THEN
     RAISE EXCEPTION 'Revocation erased immutable OTP proof'; END IF;
+
+  -- Even an already authenticated and designated payer loses wallet and
+  -- PDF visibility the moment human guardianship proof is revoked.
+  result:=finance.read_parent_training_fees(original_parent_id,'35799123456',
+    'parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>0
+  THEN RAISE EXCEPTION 'Revoked guardian retained a private fee wallet'; END IF;
+  BEGIN
+    PERFORM finance.read_parent_invoice_pdf(original_parent_id,'35799123456',
+      'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
+    RAISE EXCEPTION 'Revoked guardian retained private PDF access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Revoked guardianship proof blocks NEW billing as well as private reads;
+  -- an old payer identity or existing phone claim is never sufficient.
+  BEGIN
+    PERFORM finance.issue_admin_training_fee(admin_digest,
+      'lefteria_fc_academy',denied_fee_issue,fixture_player_id,
+      DATE '2027-04-01',5000,'parent-fixture@example.invalid',
+      'Fixture','Parent');
+    RAISE EXCEPTION 'Revoked original guardian was assigned a new Academy fee';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM finance.training_fee_issues
+      WHERE id=denied_fee_issue) THEN
+    RAISE EXCEPTION 'Denied Academy fee issuance wrote a private record';
+  END IF;
 
   -- Loss of Academy grant after success prevents idempotent response replay.
   DELETE FROM identity.admin_organization_grants WHERE admin_account_id=admin_id;

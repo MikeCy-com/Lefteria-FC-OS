@@ -8,7 +8,7 @@ export type AdminSectionId = 'website' | 'hub' | 'app' | 'crm' | 'pos' | 'financ
 export interface AdminModule {
   id: string; name: string; description: string;
   status: 'live' | 'planned';
-  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/media' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
+  href?: '/admin/club' | '/admin/news' | '/admin/website-pages' | '/admin/media' | '/admin/sponsors' | '/admin/trials' | '/admin/pos' | '/admin/groups' | '/admin/announcements' | '/admin/communications' | '/admin/onboarding' | '/admin/leads' | '/admin/finance' | '/admin/attendance' | '/admin/evaluations' | '/admin/documents' | '/admin/hub' | '/admin/hub/subscriptions' | '/admin/schedule' | '/admin/academy-office' | '/admin/matches' | '/admin/staff' | '/admin/users' | '/admin/territories';
 }
 export interface AdminSection {
   id: AdminSectionId; name: string; description: string; modules: AdminModule[];
@@ -25,7 +25,7 @@ const catalog: readonly Section[] = [
     { id: 'pages', name: 'Σελίδες · Visual Builder', description: 'Δημιουργία σελίδων, οπτική προεπισκόπηση, διάταξη μενού και δημοσίευση με έγκριση ανά οργανισμό.', status: 'live', href: '/admin/website-pages', scope: 'any', anyPermission: ['news:read'] },
     { id: 'club', name: 'Προφίλ συλλόγου', description: 'Προβολή και επεξεργασία δημόσιων στοιχείων ανά οργανισμό.', status: 'live', href: '/admin/club', scope: 'any', anyPermission: ['settings:read'] },
     { id: 'news', name: 'Άρθρα & νέα', description: 'Επεξεργασία δημοσιευμένων άρθρων και ιδιωτικά πρόχειρα ανά οργανισμό. Νέα δημοσίευση και έγκριση εκκρεμούν.', status: 'live', href: '/admin/news', scope: 'any', anyPermission: ['news:read'] },
-    { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Δημόσιες συνεργασίες συλλόγου.', status: 'planned', scope: 'any', anyPermission: ['sponsors:read'] },
+    { id: 'sponsors', name: 'Χορηγοί & συνεργάτες', description: 'Επαληθευμένες και νέες εγγραφές ανά οργανισμό, με ιδιωτικά πρόχειρα, έγκριση, ιστορικό έκδοσης και ελεγχόμενη δημοσίευση. Συμβάσεις και πληρωμές παραμένουν ανενεργές.', status: 'live', href: '/admin/sponsors', scope: 'any', anyPermission: ['sponsors:read'] },
     { id: 'media', name: 'Βιβλιοθήκη εικόνων', description: 'Πραγματικό αρχείο ήδη δημοσιευμένων εικόνων ανά οργανισμό και ασφαλής επιλογή στον Visual Builder. Μεταφορτώσεις και διαγραφές παραμένουν ανενεργές.', status: 'live', href: '/admin/media', scope: 'any', anyPermission: ['gallery:read'] },
     { id: 'social', name: 'Social Control Centre', description: 'Επίσημοι κοινωνικοί λογαριασμοί.', status: 'planned', scope: 'any', anyPermission: ['social:write'] }
   ] },
@@ -67,7 +67,7 @@ const catalog: readonly Section[] = [
   ] },
   { id: 'operations', name: 'Οργάνωση & ρυθμίσεις', description: 'Προσωπικό, υποδομές και ασφαλής πρόσβαση.', modules: [
     { id: 'onboarding', name: 'Οδηγός διαχειριστή', description: 'Οδηγίες πρώτης χρήσης για διαχειριστές, προπονητές και προσωπικό, με βήματα ανά δικαίωμα.', status: 'live', href: '/admin/onboarding', scope: 'any', anyPermission: ['settings:read','teams:read','academy:read','staff:read','shop:read','messages:read','news:read'] },
-    { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένοι προπονητές και προστατευμένες αναθέσεις τμημάτων. Η δημιουργία λογαριασμού Coach γίνεται χωριστά από τον Super Admin· δεν δημιουργεί αυτόματα εγγραφή προσωπικού.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
+    { id: 'staff', name: 'Προσωπικό & προπονητές', description: 'Επαληθευμένοι προπονητές και προστατευμένες αναθέσεις τμημάτων. Ο Super Admin μπορεί να δημιουργεί κανονική εγγραφή προπονητή σε επαληθευμένη ομάδα/τοποθεσία και προαιρετικά να συνδέει υπάρχον λογαριασμό Coach. Ο λογαριασμός δημιουργείται χωριστά και δεν απονέμονται αυτόματα πρόσθετες άδειες.', status: 'live', href: '/admin/staff', scope: 'any', anyPermission: ['teams:write','academy:write'] },
     { id: 'facilities', name: 'Εγκαταστάσεις', description: 'Πραγματικοί κατάλογοι γηπέδων και βάσεων προπόνησης, μέσα από τη διαχείριση πόλεων και τοποθεσιών. Γήπεδα Ακαδημίας ανά πόλη, βάσεις ανά τοποθεσία· πρώτη ομάδα ανεξάρτητα.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
     { id: 'users', name: 'Χρήστες & δικαιώματα', description: 'Μόνο Super Admin: δημιουργία λογαριασμού με αρχικό κωδικό, προκαθορισμένο ρόλο και οργανισμούς· επαληθευμένος κατάλογος. Απενεργοποίηση, επανενεργοποίηση και ασφαλής αλλαγή ρόλου με ανάκληση συνεδριών. Απαιτείται πρώτα η κατάργηση υφιστάμενων αναθέσεων πόλης, τοποθεσίας, ομάδας ή προσωπικού και η ανάκληση ενεργών χειριστών POS.', status: 'live', href: '/admin/users', scope: 'any', anyPermission: ['users:read'] },
     { id: 'organization', name: 'Ρυθμίσεις οργανισμών', description: 'Ρυθμίσεις εκτός δημόσιου προφίλ.', status: 'planned', scope: 'any', anyPermission: ['settings:read'] }

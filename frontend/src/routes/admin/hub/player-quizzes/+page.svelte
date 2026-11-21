@@ -9,6 +9,7 @@
     type QuizOrg,type AdminQuizSummary,type AdminQuizDetail,
     type AdminQuizQuestionDraft,type AdminQuizDraft} from '../../../../lib/admin/player-quiz-editorial.ts';
   import AdminFrame from '../../../../lib/admin/AdminFrame.svelte';
+  import AdminVerifiedLearningPosition from '../../../../lib/admin/AdminVerifiedLearningPosition.svelte';
   import { scopedAdminOrganization } from '../../../../lib/admin/admin-organization.ts';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -281,6 +282,11 @@
             </section>
           {/if}
         </div>
+        {#if $auth.session.user.role==='super_admin' && organization}
+          {#key $auth.session.user.id+':'+organization}
+            <AdminVerifiedLearningPosition {organization} actorId={$auth.session.user.id}/>
+          {/key}
+        {/if}
       {:else}
         <p role="alert">Δεν υπάρχει επαληθευμένη άδεια διαχείρισης HUB.</p>
       {/if}

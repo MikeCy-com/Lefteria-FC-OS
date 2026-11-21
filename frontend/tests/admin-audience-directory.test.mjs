@@ -45,3 +45,15 @@ test('admin roster UI follows actual scoped server counts, not static or child-p
   assert.match(page,/Τα ταμεία|Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί/);
   assert.doesNotMatch(page,/\{@html|innerHTML|player\.name|phone|\/api\/admin\/messages\/.*(POST|send)/i);
 });
+
+test('empty roster never lies about other locations or offers global onboarding to managers',()=>{
+  assert.match(page,/data-testid="admin-audiences-unassigned-access"/);
+  assert.match(page,/data-testid="admin-audiences-verify-scope"/);
+  assert.match(page,/Δεν σημαίνει ότι ο οργανισμός δεν έχει ομάδες/);
+  assert.match(page,/role==='super_admin'/);
+  assert.match(page,/Η εποπτεία Super Admin περιλαμβάνει/);
+  assert.match(page,/Προσθήκη τμήματος στην τοποθεσία μου/);
+  assert.match(page,/if canCreate && organization==='lefteria_fc_academy'/);
+  assert.match(page,/href=\{`\/admin\/territories\?organization_id=\$\{encodeURIComponent\(organization\?\?''\)\}`\}/);
+  assert.doesNotMatch(page,/Συνολικά δεν υπάρχουν τμήματα/);
+});

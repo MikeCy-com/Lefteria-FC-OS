@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminCoachDirectoryPanel from '../../../lib/admin/AdminCoachDirectoryPanel.svelte';
+  import AdminNativeCoachForm from '../../../lib/admin/AdminNativeCoachForm.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
   type Group = {id:string;name:string;kind:'team'|'academy_group';active_players:number};
@@ -27,6 +28,7 @@
   let loading = $state(false);
   let error = $state('');
   let retry = $state(0);
+  let coachRevision = $state(0);
 
   function validDirectory(raw:unknown, expected:Owner): raw is Directory {
     if(!raw || typeof raw!=='object' || Array.isArray(raw))return false;
@@ -91,9 +93,11 @@
     <section class="staff-workspace" data-testid="admin-staff-workspace">
       <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ · ΠΡΟΣΩΠΙΚΟ & ΠΡΟΠΟΝΗΤΕΣ</p>
       <h1>Προσωπικό & προπονητές</h1>
-      <p class="admin-muted">Επαληθευμένος κατάλογος προπονητών και αναθέσεων στον επιλεγμένο οργανισμό.
+      <p class="admin-muted">Επαληθευμένος κατάλογος προπονητών και αναθέσεων.
+        Οι διαχειριστές βλέπουν μόνο τις δικές τους ομάδες και εγκαταστάσεις· ο Super Admin βλέπει τις συνολικές αναθέσεις του εξουσιοδοτημένου οργανισμού.
         Οι αλλαγές τμημάτων αποθηκεύονται μόνο μέσω των προστατευμένων API με έλεγχο σύγκρουσης.
-        Η δημιουργία εγγραφής προσωπικού, οι συμβάσεις και τα στοιχεία επικοινωνίας δεν υποστηρίζονται ακόμη.
+        Η δημιουργία νέας εγγραφής προπονητή είναι διαθέσιμη μόνο για Super Admin και απαιτεί επαληθευμένο τμήμα.
+        Η δημιουργία άλλων ειδικοτήτων προσωπικού, οι συμβάσεις και τα στοιχεία επικοινωνίας δεν υποστηρίζονται ακόμη.
         Η δημιουργία λογαριασμού χρήστη Coach δεν δημιουργεί αυτόματα εγγραφή προπονητή.</p>
       {#if $auth.session.user.role==='super_admin' && hasAdminPermission($auth.session.user.permissions,'users:read')}
         <p><a href="/admin/users" data-testid="admin-staff-account-creation">Δημιουργία νέου λογαριασμού Coach / προσωπικού</a></p>
@@ -120,7 +124,13 @@
           <button class="admin-secondary" type="button" onclick={()=>retry++}>Δοκίμασε ξανά</button>
         </div>
       {:else if owner==='lefteria_fc'||owner==='lefteria_fc_academy'}
+        {#if $auth.session.user.role==='super_admin'}
+          <AdminNativeCoachForm {owner} actorId={$auth.session.user.id} {groups}
+            onSaved={()=>coachRevision++}
+            onExpired={()=>auth.invalidateSession()} onRevoked={()=>void auth.bootstrap()} />
+        {/if}
         <AdminCoachDirectoryPanel {owner} actorId={$auth.session.user.id} {groups}
+          revision={coachRevision}
           onExpired={()=>auth.invalidateSession()} onRevoked={()=>void auth.bootstrap()} />
       {/if}
     </section>

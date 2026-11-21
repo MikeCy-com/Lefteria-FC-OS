@@ -6,8 +6,8 @@
   type Coach={id:string;name:string;job_role:string;group_ids:string[]};
   type Page={organization_id:Owner;ready:true;offset:number;limit:number;total:number;coaches:Coach[]};
 
-  let {owner,actorId,groups,onExpired,onRevoked}: {
-    owner:Owner;actorId:string;groups:Group[];
+  let {owner,actorId,groups,revision=0,onExpired,onRevoked}: {
+    owner:Owner;actorId:string;groups:Group[];revision?:number;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -64,7 +64,7 @@
       });
       if(owner!==selectedOwner || actorId!==selectedActor)return;
       if(response.status===401){onExpired();throw new Error('Η σύνδεση έληξε.');}
-      if(response.status===403){onRevoked();throw new Error('Η πρόσβαση άλλαξε.');}
+      if(response.status===403){onRevoked();throw new Error('Η ανάθεση δεν επιτρέπεται: ο προπονητής μπορεί να έχει τμήματα εκτός των δικαιωμάτων σας ή η πρόσβαση να έχει ανακληθεί. Για κοινό προσωπικό διαφορετικών τοποθεσιών χρειάζεται Super Admin.');}
       if(response.status===409){
         editing=null;refresh++;
         throw new Error('Η ανάθεση άλλαξε ή το τμήμα έχει ορισμένο βασικό προπονητή. Ανανέωση στοιχείων.');
@@ -115,8 +115,8 @@
     const selectedOwner=owner;
     const selectedActor=actorId;
     const selectedOffset=offset;
-    const generation=refresh;
-    void selectedActor;void generation;
+    const generation=refresh,sourceRevision=revision;
+    void selectedActor;void generation;void sourceRevision;
     page=null;loading=false;unavailable=false;editing=null;selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
@@ -150,7 +150,7 @@
     <div>
       <p class="admin-eyebrow">ΠΡΟΠΟΝΗΤΕΣ · ΕΠΑΛΗΘΕΥΜΕΝΕΣ ΑΝΑΘΕΣΕΙΣ</p>
       <h2 id="admin-coaches-heading">Προπονητές & τμήματα</h2>
-      <p class="admin-muted">Προβολή πραγματικών αναθέσεων από το προσωπικό του συλλόγου. Επιλέξτε πραγματικά τμήματα για κάθε προπονητή. Οι αλλαγές ελέγχονται και καταγράφονται.</p>
+      <p class="admin-muted">Εμφανίζονται μόνο οι προπονητές και οι αναθέσεις των ομάδων ή τοποθεσιών που επιτρέπεται να διαχειρίζεστε. Για προπονητή με επιπλέον αναθέσεις σε άλλη τοποθεσία, η συνολική αλλαγή γίνεται από εξουσιοδοτημένο Super Admin. Οι αλλαγές ελέγχονται και καταγράφονται.</p>
     </div>
     <button type="button" class="admin-secondary" disabled={loading}
       onclick={()=>refresh++}>Ανανέωση</button>

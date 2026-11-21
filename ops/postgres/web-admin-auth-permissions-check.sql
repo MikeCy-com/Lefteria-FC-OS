@@ -34,6 +34,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
+\ir admin-native-coach-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
 \ir app-announcement-publishing-boundary.sql
 
@@ -119,6 +120,7 @@ BEGIN
                   'identity.read_admin_own_profile_photo(text)'::regprocedure,
                   'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
+                   'public_content.current_sponsorship_exists(text,text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
@@ -126,6 +128,12 @@ BEGIN
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
                   'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
+                  'club.read_admin_first_team_profile(text,text)'::regprocedure,
+                  'club.write_admin_first_team_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_profile(text,text)'::regprocedure,
+                  'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
+                  'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure,
                    'club.read_admin_football_directory(text,text)'::regprocedure,
                    'club.create_admin_football_resource(text,text,text,jsonb)'::regprocedure,
                    'club.read_admin_football_access(text,text)'::regprocedure,
@@ -156,6 +164,7 @@ BEGIN
                   'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
+                  'club.create_admin_native_coach(text,text,uuid,text,text,text,uuid)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
                   'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
@@ -172,6 +181,10 @@ BEGIN
     'hub.read_admin_quarantined_image(text,text,uuid,uuid)'::regprocedure,
     'hub.reject_admin_hub_image(text,text,uuid,bigint,uuid)'::regprocedure,
     'hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure,
+                  'hub.read_admin_player_learning_position(text,text,text)'::regprocedure,
+                  'hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)'::regprocedure,
+                  'hub.read_admin_classroom_curriculum(text,text,integer,integer)'::regprocedure,
+                  'hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)'::regprocedure,
                   'hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)'::regprocedure,
                   'hub.list_admin_player_quizzes(text,text)'::regprocedure,
                   'hub.detail_admin_player_quiz(text,text,uuid)'::regprocedure,

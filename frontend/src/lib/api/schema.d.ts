@@ -1552,6 +1552,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/website/sponsorships": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListAdminSponsorshipEditorial"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/sponsorships/draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SaveAdminSponsorshipDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/sponsorships/native": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAdminNativeSponsorship"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/website/sponsorships/publication": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PublishAdminSponsorshipEditorial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health/live": {
         parameters: {
             query?: never;
@@ -2000,6 +2064,23 @@ export interface paths {
         };
         /** @description Only verified active coach's currently assigned players; no private contacts, guardian records or draft content. */
         get: operations["GetMobileCoachFeedbackTargets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/coach/players/{playerId}/development-goals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Verified exact-group read-only development goal summaries; no event notes, evaluation details, guardian records or documents. */
+        get: operations["GetMobileCoachPlayerDevelopmentGoals"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3467,6 +3548,24 @@ export interface components {
         };
         CoachFeedbackTargetsResult: {
             items: components["schemas"]["CoachFeedbackTarget"][];
+        };
+        CoachPlayerGoalSummary: {
+            category: string;
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            progress: number | string;
+            status: string;
+            /** Format: date */
+            target_date: null | string;
+            title: string;
+        };
+        CoachPlayerGoalSummaryResult: {
+            goals: components["schemas"]["CoachPlayerGoalSummary"][];
+            organization_id: string;
+            player_id: string;
+            /** Format: int32 */
+            total: number | string;
         };
         CreateCityCommand: {
             name: null | string;
@@ -5008,6 +5107,47 @@ export interface components {
         };
         RoleSwitchBody: {
             role: null | string;
+        };
+        SponsorshipAdminRecord: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            /** @default false */
+            is_native: boolean;
+            item_id: string;
+            kind: string;
+            organization_id: string;
+            published: null | components["schemas"]["SponsorshipEditorialCopy"];
+            /** Format: date-time */
+            published_at: null | string;
+            /** Format: date-time */
+            updated_at: null | string;
+            /** Format: int64 */
+            version: number | string;
+        };
+        SponsorshipDraftChange: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            /** Format: int64 */
+            expected_version: number | string;
+            item_id: string;
+            kind: string;
+        };
+        SponsorshipEditorialCopy: {
+            description: null | string;
+            /** Format: int32 */
+            display_order: number | string;
+            image_url: null | string;
+            name: string;
+            website_url: null | string;
+        };
+        SponsorshipNativeCreate: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            kind: string;
+        };
+        SponsorshipPublicationChange: {
+            /** Format: int64 */
+            expected_version: number | string;
+            item_id: string;
+            kind: string;
+            publish: boolean;
         };
         TrainingFeeSmsCommand: {
             /** Format: uuid */
@@ -11379,6 +11519,106 @@ export interface operations {
             };
         };
     };
+    ListAdminSponsorshipEditorial: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"][];
+                };
+            };
+        };
+    };
+    SaveAdminSponsorshipDraft: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipDraftChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
+                };
+            };
+        };
+    };
+    CreateAdminNativeSponsorship: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipNativeCreate"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
+                };
+            };
+        };
+    };
+    PublishAdminSponsorshipEditorial: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipPublicationChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
+                };
+            };
+        };
+    };
     GetLiveness: {
         parameters: {
             query?: never;
@@ -14012,6 +14252,93 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachFeedbackTargetsResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetMobileCoachPlayerDevelopmentGoals: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                playerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachPlayerGoalSummaryResult"];
                 };
             };
             /** @description Bad Request */

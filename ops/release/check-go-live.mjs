@@ -16,8 +16,21 @@ import process from 'node:process';
 const RELEASE_SHA=/^[0-9a-f]{40}$/;
 const RELEASE_STATUSES=new Set(['blocked','in_progress','verified']);
 const SOURCE_REPO='MikeCy-com/Lefteria-FC-OS';
+// An Academy-first MVP is not an exemption from identity, youth privacy,
+// data correctness, cash accounting, backups, or tested rollback.
+// Expensive ancillary modules may be delayed only when they are proven
+// disabled and excluded from the public release under mvp-deferred-features.
+export const MVP_REQUIRED_GATES=Object.freeze([
+  'api-ci','academy-operations','calendar-and-fixtures','staff-admin',
+  'crm-and-documents','role-mobile-parity','mvp-public-essentials',
+  'finance-reconciliation','data-import','privacy-security',
+  'media-and-assets','backups-restore','cutover-rollback',
+  'operations-monitoring','identity-delivery','mvp-deferred-features'
+]);
+const PROFILES=new Set(['full','academy-mvp']);
 
-export function checkReleaseReadiness(input, targetSha=null) {
+export function checkReleaseReadiness(input, targetSha=null, profile='full') {
+  if(!PROFILES.has(profile))throw new Error('Unknown release profile: fail closed.');
   if(!input || typeof input!=='object' || Array.isArray(input) ||
     input.schema_version!==1 || input.target_repository!==SOURCE_REPO ||
     !Array.isArray(input.gates) || input.gates.length<1) {
@@ -48,6 +61,17 @@ export function checkReleaseReadiness(input, targetSha=null) {
       reasons.push({id:gate.id,priority:gate.priority,reason:'missing_or_wrong_verification_evidence'});
     }
   }
+  if(profile==='academy-mvp') {
+    for(const id of MVP_REQUIRED_GATES)
+      if(!ids.has(id))throw new Error('Required Academy MVP gate missing: '+id);
+    const included=new Set(MVP_REQUIRED_GATES);
+    const blocked=reasons.filter(item=>included.has(item.id));
+    if(targetSha===null)
+      blocked.push({id:'candidate-release-sha',priority:'P0',
+        reason:'exact_release_sha_required'});
+    return {ready:blocked.length===0,profile,gate_count:included.size,
+      blocked_count:blocked.length,blocked};
+  }
   if(!ids.has('api-ci') || !ids.has('data-import') ||
     !ids.has('privacy-security')|| !ids.has('finance-reconciliation')||
     !ids.has('cutover-rollback')) throw new Error('Core release gates missing; fail closed.');
@@ -55,7 +79,7 @@ export function checkReleaseReadiness(input, targetSha=null) {
   // report, NEVER a go-live authorization, even if all gates were edited.
   if(targetSha===null)
     reasons.push({id:'candidate-release-sha',priority:'P0',reason:'exact_release_sha_required'});
-  return {ready:reasons.length===0,gate_count:ids.size,
+  return {ready:reasons.length===0,profile,gate_count:ids.size,
     blocked_count:reasons.length,blocked:reasons};
 }
 
@@ -63,17 +87,21 @@ function main() {
   const args=process.argv.slice(2);
   const requireReady=args.includes('--require-ready');
   const requested=args.filter(x=>x.startsWith('--sha='));
-  if(args.some(x=>x!=='--require-ready'&&!x.startsWith('--sha='))||
-    requested.length>1 || (requireReady&&requested.length!==1)) {
-    console.error('Usage: check-go-live.mjs [--require-ready --sha=<commit_sha>]');
+  const profiles=args.filter(x=>x.startsWith('--profile='));
+  if(args.some(x=>x!=='--require-ready'&&!x.startsWith('--sha=')&&
+      !x.startsWith('--profile='))||
+    requested.length>1 || profiles.length>1 || (requireReady&&requested.length!==1)) {
+    console.error('Usage: check-go-live.mjs [--profile=full|academy-mvp] [--require-ready --sha=<commit_sha>]');
     process.exitCode=2;
     return;
   }
   const expectedSha=requested.length?requested[0].slice(6):null;
+  const profile=profiles.length?profiles[0].slice('--profile='.length):'full';
   const data=JSON.parse(readFileSync(
     new URL('./go-live-gates.json',import.meta.url),'utf8'));
-  const report=checkReleaseReadiness(data,expectedSha);
-  console.log('Lefteria FC OS readiness:',report.ready?'VERIFIED':'BLOCKED');
+  const report=checkReleaseReadiness(data,expectedSha,profile);
+  console.log('Lefteria FC OS',report.profile,'readiness:',
+    report.ready?'VERIFIED':'BLOCKED');
   console.log('Audited gates:',report.gate_count,'Unverified:',report.blocked_count);
   for(const item of report.blocked)
     console.log(item.priority,item.id+':',item.reason);

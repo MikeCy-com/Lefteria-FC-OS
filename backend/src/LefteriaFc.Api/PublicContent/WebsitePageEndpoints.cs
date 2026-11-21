@@ -197,7 +197,7 @@ public static class WebsitePageEndpoints
         return rows;
     }
 
-    private static async Task<T> Authorized<T>(
+    internal static async Task<T> Authorized<T>(
         HttpContext context, string org, string capability,
         Func<NpgsqlConnection,NpgsqlTransaction,Guid,Guid,Task<T>> work,
         CancellationToken ct, bool requirePublisher = false)

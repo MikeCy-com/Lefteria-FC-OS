@@ -3,8 +3,8 @@
   "source_snapshot": "MikeCy-com/Lefteria-FC@91eafcc9efd01ad177b4f13a869cd5af7041e5b2",
   "target_repository": "MikeCy-com/Lefteria-FC-OS",
   "default_release_status": "BLOCKED",
-  "audited_at": "2026-11-10",
-  "notes": "A source snapshot is not proof of the live VPS revision. No status is approved/verified. All four POS+payments phases form one conjunctive release gate; upstream constituent gates remain blocked until evidence at an exact SHA. No production deployment.",
+  "audited_at": "2026-11-21",
+  "notes": "All release gates remain BLOCKED until independently verified against an exact reviewed SHA. Academy MVP is a narrower profile, NOT a waiver of identity delivery, guardian safety, financial accuracy, source import, backups or rollback. Full CMS editing, real-time chat, Payabl, fan subscriptions and POS may be deferred only if proven disabled and documented. No production deployment.",
   "gates": [
     {
       "id": "api-ci",
@@ -196,6 +196,33 @@
       "id": "operations-monitoring",
       "description": "Alerts, scheduled job leases, background tasks, support incident response",
       "priority": "P1",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "identity-delivery",
+      "description": "Real parent/player/coach OTP delivery, session recovery and administrative sign-in on exact staging build; no static test OTP or provider bypass",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "mvp-deferred-features",
+      "description": "Documented Academy MVP scope, disabled and non-billable Payabl/POS/fan-AI or subscription features where not verified, public UI not advertising unavailable actions, and tested scope separation",
+      "priority": "P0",
+      "status": "blocked",
+      "evidence": [],
+      "release_sha": null,
+      "verified_at": null
+    },
+    {
+      "id": "mvp-public-essentials",
+      "description": "MVP-only verified Greek homepage, Academy and first-team separation, contact/news/fixtures, safe approved Academy group announcements and no unapproved public/child content",
+      "priority": "P0",
       "status": "blocked",
       "evidence": [],
       "release_sha": null,
