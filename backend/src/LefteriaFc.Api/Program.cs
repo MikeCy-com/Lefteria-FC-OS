@@ -103,7 +103,10 @@ builder.Services.AddScoped<MobileFanPayablStore>();
 builder.Services.AddScoped<MobileFanLearningStore>();
 builder.Services.AddScoped<MobileFanLessonScheduleStore>();
 builder.Services.AddSingleton<HubFanLessonDeliverySettings>();
-builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
+// A deferred fan subscription must not keep dispatching old lessons in the
+// Academy-only pilot, even if a stale worker opt-in is still present.
+if (!AcademyMvpBoundary.Disabled(academyMvpMode))
+    builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
