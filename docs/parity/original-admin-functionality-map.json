@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "source_repository": "MikeCy-com/Lefteria-FC",
+  "source_file": "frontend/src/pages/AdminPanel.jsx",
+  "target_repository": "MikeCy-com/Lefteria-FC-OS",
+  "generated_from": "verified original main admin sidebar configuration, November 21 2026",
+  "scope": "58 original admin action IDs excluding section headers and dividers; page-level/mobile feature inventory remains separate",
+  "status_legend": {
+    "os_route_exists_parity_unverified": "An OS page exists, not proof that the original behavior, grants or backend workflows are fully migrated",
+    "not_ported_or_no_equivalent_admin_route": "Do not show fake links or claim parity; requires a guarded OS-native action"
+  },
+  "deployment_rule": "No release until independent role-grant tests, data reconciliation, rollback and exact-main CI evidence; NEVER touch legacy production to fill missing functionality",
+  "features": [
+    {
+      "source_id": "dashboard",
+      "owner": "admin",
+      "href": "/admin",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Operational dashboard needs real role-scoped action acceptance"
+    },
+    {
+      "source_id": "pos",
+      "owner": "finance",
+      "href": "/admin/pos",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Checkout, cash shifts, stock, refunds and legal receipts not production-approved"
+    },
+    {
+      "source_id": "livescore",
+      "owner": "group",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Live match timeline and editor submission not implemented"
+    },
+    {
+      "source_id": "players_crm",
+      "owner": "player",
+      "href": "/admin/groups",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Players, guardians, relationships and roster workflow not end-to-end accepted"
+    },
+    {
+      "source_id": "social_control",
+      "owner": "app",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Official social accounts, moderation and publishing missing"
+    },
+    {
+      "source_id": "teams",
+      "owner": "group",
+      "href": "/admin/groups",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Group/team roster creation and guarded assignment require acceptance"
+    },
+    {
+      "source_id": "fixtures",
+      "owner": "group",
+      "href": "/admin/groups",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Group match planning and results require acceptance"
+    },
+    {
+      "source_id": "trials",
+      "owner": "first_team",
+      "href": "/admin/trials",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "First Team trials currently restricted or closed"
+    },
+    {
+      "source_id": "club_opponents",
+      "owner": "first_team",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "First Team opponent lists must remain independent from Academy"
+    },
+    {
+      "source_id": "club_venues",
+      "owner": "first_team",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "First Team venue lists must remain independent from Academy"
+    },
+    {
+      "source_id": "academy",
+      "owner": "academy",
+      "href": "/admin/groups",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "City/location/group permissions and roster operations need acceptance"
+    },
+    {
+      "source_id": "registrations",
+      "owner": "academy",
+      "href": "/admin/academy-office",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Approved registrations do not automatically onboard roster"
+    },
+    {
+      "source_id": "academy_opponents",
+      "owner": "academy",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Academy opponents are city-level and shared by that city's locations"
+    },
+    {
+      "source_id": "academy_venues",
+      "owner": "academy",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Academy game fields are city-level, training bases location-level"
+    },
+    {
+      "source_id": "news",
+      "owner": "website",
+      "href": "/admin/news",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Authoring, drafts and publication approval need staging acceptance"
+    },
+    {
+      "source_id": "sponsors",
+      "owner": "website",
+      "href": "/admin/sponsors",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Scope by First Team and Academy and verify approvals"
+    },
+    {
+      "source_id": "partners",
+      "owner": "website",
+      "href": "/admin/sponsors",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Partner fields/approval and scoped presentation not fully accepted"
+    },
+    {
+      "source_id": "wall",
+      "owner": "app",
+      "href": "/admin/announcements",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Audience visibility and reader tracking need role acceptance"
+    },
+    {
+      "source_id": "messages",
+      "owner": "app",
+      "href": "/admin/communications",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Private/admin messaging and moderation not equivalent to original yet"
+    },
+    {
+      "source_id": "polls",
+      "owner": "app",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Poll creation, votes, eligibility and reporting not implemented"
+    },
+    {
+      "source_id": "reels",
+      "owner": "app",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Reels feeds, media rights and moderation not implemented"
+    },
+    {
+      "source_id": "marketing_dashboard",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Marketing dashboard metrics and scoped access missing"
+    },
+    {
+      "source_id": "marketing_campaigns",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Campaign authoring, approval and delivery missing"
+    },
+    {
+      "source_id": "marketing_leads",
+      "owner": "crm",
+      "href": "/admin/leads",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Lead list exists, marketing automation not equivalent"
+    },
+    {
+      "source_id": "marketing_media",
+      "owner": "website",
+      "href": "/admin/media",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Media library exists, uploads and removal are restricted"
+    },
+    {
+      "source_id": "marketing_social",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Social publishing calendar and scheduler missing"
+    },
+    {
+      "source_id": "marketing_reviews",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Reputation monitoring and reviews missing"
+    },
+    {
+      "source_id": "marketing_events",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Marketing events workflow missing"
+    },
+    {
+      "source_id": "marketing_referrals",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Referral attribution and tracking missing"
+    },
+    {
+      "source_id": "marketing_loyalty",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Loyalty programme and redemption missing"
+    },
+    {
+      "source_id": "marketing_settings",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Marketing integrations and settings missing"
+    },
+    {
+      "source_id": "marketing_analytics",
+      "owner": "marketing",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Marketing reporting and attribution missing"
+    },
+    {
+      "source_id": "settings_charges",
+      "owner": "finance",
+      "href": "/admin/finance",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Fee charges and receipts require ledger reconciliation; Payabl sandbox only"
+    },
+    {
+      "source_id": "expenses",
+      "owner": "finance",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Expense approvals and posting missing"
+    },
+    {
+      "source_id": "financial_dashboard",
+      "owner": "finance",
+      "href": null,
+      "phase": "mvp",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "City/location financial overview not yet accepted"
+    },
+    {
+      "source_id": "financial_reports",
+      "owner": "finance",
+      "href": null,
+      "phase": "mvp",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Location/organization reporting and reconciliation missing"
+    },
+    {
+      "source_id": "admin_users",
+      "owner": "settings",
+      "href": "/admin/users",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Provisioning and roles exist; tenant authorization needs acceptance"
+    },
+    {
+      "source_id": "player_documents",
+      "owner": "player",
+      "href": "/admin/groups",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Protected player documents must stay under athlete scope"
+    },
+    {
+      "source_id": "resources",
+      "owner": "settings",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Facilities and bases have city/location scope"
+    },
+    {
+      "source_id": "suggestions",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Member suggestions/review workflow missing"
+    },
+    {
+      "source_id": "changelog",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Original administrative change-log views missing"
+    },
+    {
+      "source_id": "video_analytics",
+      "owner": "group",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Match video analysis and player linkage missing"
+    },
+    {
+      "source_id": "drills",
+      "owner": "group",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Coach drill library and session integration missing"
+    },
+    {
+      "source_id": "shop_products",
+      "owner": "shop",
+      "href": "/admin/pos",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Inventory and catalog exist; no complete stock reconciliation"
+    },
+    {
+      "source_id": "shop_tickets",
+      "owner": "shop",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Ticket creation, allocations and fulfillment missing"
+    },
+    {
+      "source_id": "shop_orders",
+      "owner": "shop",
+      "href": "/admin/pos",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Orders/history exist partially; purchase/refund evidence missing"
+    },
+    {
+      "source_id": "settings_club",
+      "owner": "settings",
+      "href": "/admin/club",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Organization profile setup should be verified"
+    },
+    {
+      "source_id": "settings_staff",
+      "owner": "settings",
+      "href": "/admin/staff",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Staff/coach records and team assignment require acceptance"
+    },
+    {
+      "source_id": "settings_staff_compliance",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Staff compliance and safeguarding workflow missing"
+    },
+    {
+      "source_id": "settings_social",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Official social integrations missing"
+    },
+    {
+      "source_id": "settings_sms",
+      "owner": "settings",
+      "href": null,
+      "phase": "mvp",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Real OTP delivery and settings require verified provider isolation"
+    },
+    {
+      "source_id": "settings_storage",
+      "owner": "settings",
+      "href": "/admin/media",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Protected storage administration missing"
+    },
+    {
+      "source_id": "settings_apk",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Original Android APK management has no OS equivalent"
+    },
+    {
+      "source_id": "settings_stripe",
+      "owner": "finance",
+      "href": "/admin/finance",
+      "phase": "later",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Original Stripe provider substituted with Payabl sandbox; no live payment parity"
+    },
+    {
+      "source_id": "settings_seasons",
+      "owner": "settings",
+      "href": null,
+      "phase": "later",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Season rollover workflow and audit missing"
+    },
+    {
+      "source_id": "settings_venues",
+      "owner": "settings",
+      "href": "/admin/territories",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Field/venue scope must follow first team vs Academy city rules"
+    },
+    {
+      "source_id": "settings_backup",
+      "owner": "settings",
+      "href": null,
+      "phase": "mvp",
+      "status": "not_ported_or_no_equivalent_admin_route",
+      "acceptance_gap": "Restorable, verified staging backup and rollback drill required"
+    },
+    {
+      "source_id": "settings_security",
+      "owner": "settings",
+      "href": "/admin/users",
+      "phase": "mvp",
+      "status": "os_route_exists_parity_unverified",
+      "acceptance_gap": "Security roles and revocation require live role tests"
+    }
+  ]
+}
