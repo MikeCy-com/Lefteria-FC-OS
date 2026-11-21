@@ -83,8 +83,15 @@ def docker(*args: str, input_file=None, output_file=None, capture=False) -> str:
         stderr=subprocess.PIPE, check=False, timeout=180,
     )
     if result.returncode:
-        # Never surface container output: it can include SQL/connection data.
-        raise RuntimeError("Disposable restore drill command failed: " + args[0])
+        # Report only a short, printable diagnostic from this positively
+        # identified synthetic CI container. Never print SQL or credentials.
+        lines = result.stderr.decode("utf-8", "replace").splitlines()
+        hint = next((item for item in reversed(lines)
+                     if "ERROR:" in item or "error:" in item), "unknown SQL error")
+        hint = re.sub(r"[^A-Za-z0-9 _.:/-]", "?", hint)[:150]
+        command = next((x for x in args if x in
+                        ("psql", "pg_dump", "pg_restore", "createdb", "dropdb")), args[0])
+        raise RuntimeError("Disposable " + command + " operation failed: " + hint)
     return result.stdout.decode("utf-8").strip() if capture else ""
 
 
