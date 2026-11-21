@@ -379,6 +379,8 @@ jobs:
             printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
           done
       - run: docker compose --env-file .env.example config --quiet
+      - name: Test production sandbox payment and SMS release guards
+        run: python3 -B -m unittest deploy/production/test_verify_payment_configuration.py
       - name: Enforce production Compose least-privilege contract
         run: docker compose --profile tools --env-file .env.example config --format json | python3 -B deploy/production/verify-compose-security.py
       - run: docker compose --env-file .env.example build --pull
