@@ -2,7 +2,6 @@
   import type { Snippet } from 'svelte';
   import type { WebAdminSession } from './controller.ts';
   import AdminProfilePhoto from './AdminProfilePhoto.svelte';
-  import { canReadClub } from './club-controller.ts';
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
   import { ADMIN_ROLE_NAMES,isAdminRole } from './permissions.ts';
@@ -21,7 +20,9 @@
   const initials=$derived((user.name || user.username).trim().split(/\s+/u)
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
-  const hasWebsite=$derived(liveIds.has('pages')||liveIds.has('news')||liveIds.has('media')||liveIds.has('sponsors')||canReadClub(user));
+  // The club profile is reachable from Settings. An editorial menu is shown
+  // only when it contains at least one real, authorized editorial destination.
+  const hasWebsite=$derived(liveIds.has('pages')||liveIds.has('news')||liveIds.has('media')||liveIds.has('sponsors'));
 </script>
 
 <div class="admin-workspace">
