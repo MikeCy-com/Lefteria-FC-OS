@@ -21,6 +21,7 @@ internal sealed partial class WebAdminHttpChecks
         var manager=await database.SeedAsync(role:"manager",organizations:[fc,academy]);
         var coachAccount=await database.SeedAsync(role:"coach",organizations:[fc]);
         var academyCoachAccount=await database.SeedAsync(role:"coach",organizations:[academy]);
+        var sharedCoachAccount=await database.SeedAsync(role:"coach",organizations:[fc,academy]);
         var editor=await database.SeedAsync(role:"editor",organizations:[fc]);
         var roster=await database.SeedAudienceAsync();
         WebAdminDatabaseFixture.CoachFixture? imported=null;
@@ -64,6 +65,11 @@ internal sealed partial class WebAdminHttpChecks
                         name="Fictional foreign coach",job_role="Youth Coach",
                         group_id=roster.Group1,account_id=(Guid?)null});
                 await ExpectJsonAsync(denied,403,"not_authorized");
+                using var foreignShared=await CreateNativeCoachAsync(limitedClient,limitedLogin.Cookie,
+                    new {request_id=Guid.NewGuid(),organization_id=fc,
+                        name="Fictional shared Coach link",job_role="Youth Coach",
+                        group_id=roster.Team1,account_id=(Guid?)sharedCoachAccount.Id});
+                await ExpectJsonAsync(foreignShared,403,"native_coach_denied");
             }
 
             string staffId;
