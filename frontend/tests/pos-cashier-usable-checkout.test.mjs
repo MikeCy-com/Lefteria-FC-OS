@@ -37,7 +37,7 @@ test('fiscal policy is read-only UI gate and server-side transaction remains aut
   assert.match(checkout,/cashConfirmed/);
   assert.match(checkout,/tenderFrozen=true/);
   assert.match(checkout,/v.change_cents!==amount-sale.total_cents/);
-  assert.match(checkout,/checkout\.settle|payabl\.capture|window\.location/);
+  assert.doesNotMatch(checkout,/checkout\.settle|payabl\.capture|window\.location/);
 });
 test('cashier has exact location product picker and can cancel unpaid reservation',()=>{
   assert.match(endpoint,/MapGet\("\/registers\/\{registerId\}\/sellable-stock"/);
