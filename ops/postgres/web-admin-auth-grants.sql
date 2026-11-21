@@ -329,6 +329,13 @@ GRANT EXECUTE ON FUNCTION club.write_admin_roster_assignment(text,text,text,json
 -- Audited, manager-only coach assignment replace; no direct staff DML.
 REVOKE ALL ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) TO :"admin_auth_role";
+-- Super Admin may create one canonical staff entry, with an explicit
+-- existing-site assignment and optional verified Coach account link.
+-- No direct staff INSERT, UPDATE or identity linking grants.
+REVOKE ALL ON FUNCTION club.create_admin_native_coach(
+  text,text,uuid,text,text,text,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_native_coach(
+  text,text,uuid,text,text,text,uuid) TO :"admin_auth_role";
 -- Manager-only active coach/staff assignment projection; no direct staff SELECT.
 REVOKE ALL ON FUNCTION club.read_admin_coaches(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO :"admin_auth_role";
@@ -497,6 +504,7 @@ BEGIN
                    'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
+                  'club.create_admin_native_coach(text,text,uuid,text,text,text,uuid)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
                   'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
