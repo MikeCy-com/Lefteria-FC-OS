@@ -23,6 +23,8 @@ internal static class RuntimeReadiness
           AND to_regclass('identity.mobile_identities') IS NOT NULL
           AND to_regclass('identity.admin_accounts') IS NOT NULL
           AND has_table_privilege(current_user,'identity.mobile_identities','SELECT')
+          AND row_security_active('identity.mobile_identities')
+          AND row_security_active('club.calendar_responses')
           AND NOT has_column_privilege(current_user,'identity.admin_accounts','password_hash','SELECT')
           AND NOT has_table_privilege(current_user,'club.staff','SELECT')
           AND has_function_privilege(current_user,

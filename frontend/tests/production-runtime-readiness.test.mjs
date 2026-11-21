@@ -36,6 +36,8 @@ test('health readiness checks the active app role and optional independent admin
   assert.match(checks,/NOT EXISTS \(SELECT 1 FROM pg_auth_members/);
   assert.match(checks,/NOT has_column_privilege\(current_user,'identity\.admin_accounts','password_hash','SELECT'\)/);
   assert.match(checks,/identity\.runtime_schema_ready\(@last,@count\)/);
+  assert.match(checks,/row_security_active\('identity\.mobile_identities'\)/);
+  assert.match(checks,/row_security_active\('club\.calendar_responses'\)/);
   assert.match(checks,/club\.read_mobile_chat_groups/);
   assert.match(checks,/hub\.read_mobile_player_classrooms/);
   assert.match(checks,/if\(!adminOptions\.Value\.Enabled\)return true/);
