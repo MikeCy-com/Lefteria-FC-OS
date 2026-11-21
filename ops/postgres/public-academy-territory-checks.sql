@@ -48,6 +48,19 @@ BEGIN
     SELECT 'lefteria_fc_academy',id,'10–12','Verified publication',
       'Monday 17:00',25,'2026/27','',0,1,v_actor
     FROM club.academy_groups WHERE id IN (v_a1,v_a2,v_b1,v_legacy);
+
+  -- New profiles begin private despite populated display metadata.
+  IF (SELECT count(*) FROM club.academy_group_profiles
+      WHERE group_id IN (v_a1,v_a2,v_b1,v_legacy) AND NOT is_public)<>4
+     OR EXISTS(SELECT 1 FROM jsonb_array_elements(
+       club.read_public_academy_group_directory()) x(item)
+       WHERE x.item->>'id' IN (v_a1,v_a2,v_b1,v_legacy))
+  THEN RAISE EXCEPTION 'New Academy territory fixture bypassed private default'; END IF;
+  -- This fixture models an explicit manager publishing decision. Actual
+  -- permissions, revisions and audit are tested by the authenticated HTTP suite.
+  UPDATE club.academy_group_profiles
+    SET is_public=true,revision=revision+1,updated_by=v_actor
+    WHERE group_id IN (v_a1,v_a2,v_b1,v_legacy);
   INSERT INTO public_content.documents(kind,organization_id,id,data_json,display_order)
     VALUES('academy_group','lefteria_fc_academy',v_a1,
       jsonb_build_object('id',v_a1,'organization_id','lefteria_fc_academy','city','WRONG IMPORTED CITY',
