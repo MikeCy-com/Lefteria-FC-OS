@@ -56,6 +56,7 @@ public sealed class AdminNativeCoachRegistration : Migration
           OR _name IS NULL OR _name<>btrim(_name)
           OR length(_name) NOT BETWEEN 2 AND 200
           OR _name ~ '[[:cntrl:]]'
+          OR _job_role IS NULL
           OR _job_role NOT IN ('Head Coach','Assistant Coach','Goalkeeper Coach',
             'Fitness Coach','Youth Coach')
           OR _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
