@@ -199,6 +199,12 @@ jobs:
           # Validate immutable creation-time team/city/location provenance; no production data.
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/player-goal-origin-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/academy-crm-admin-grants.sql
+          # Academy MVP group creation is a required operational write.
+          # The following grant applies ONLY to the disposable CI database,
+          # never to a deployed environment or real member data.
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/admin-profiled-group-create-grants.sql
+          docker cp ops/release/academy-mvp-permission-preflight.sql identity-postgres:/tmp/academy-mvp-permission-preflight.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -v app_role="$DATABASE_APP_USER" -f /tmp/academy-mvp-permission-preflight.sql
           docker exec identity-postgres sh -c 'PGPASSWORD="$DATABASE_ADMIN_AUTH_PASSWORD" psql -X -h 127.0.0.1 -p 54329 -U "$DATABASE_ADMIN_AUTH_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/web-admin-auth-permissions-check.sql'
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-crm-inbox-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-registration-intake-security-checks.sql
@@ -317,7 +323,7 @@ jobs:
       - run: npm test
         working-directory: frontend
       - name: Verify that no unapproved OS release can pass the readiness gate
-        run: node --test ops/release/check-go-live.test.mjs
+        run: node --test ops/release/check-go-live.test.mjs ops/release/staging-mvp-preflight.test.mjs
       - run: npm run build
         working-directory: frontend
       - run: npm run smoke:web
