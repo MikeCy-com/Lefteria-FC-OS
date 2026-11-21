@@ -34,4 +34,51 @@ BEGIN
      OR public_content.current_sponsorship_exists('unknown_organization','sponsor','one')
   THEN RAISE EXCEPTION 'sponsorship_unknown_owner_must_fail_closed'; END IF;
 END $audit$;
+-- Real disposable-owner lifecycle: private draft, approved publication,
+-- later unsent edit, other-owner isolation and withdrawal. All writes roll back.
+DO $native_lifecycle$
+DECLARE
+  id constant text := 'cms-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  draft jsonb := jsonb_build_object('name','Disposable sponsor','description',null,
+    'image_url',null,'website_url',null,'display_order',0);
+  edited jsonb := jsonb_build_object('name','Private revised sponsor','description',null,
+    'image_url',null,'website_url',null,'display_order',0);
+  visible jsonb;
+BEGIN
+  INSERT INTO public_content.sponsorship_editorial
+    (organization_id,kind,item_id,draft_json,is_native)
+  VALUES('lefteria_fc','sponsor',id,draft,true);
+  SELECT jsonb_agg(e) INTO visible
+    FROM jsonb_array_elements(public_content.read_published_sponsorship('lefteria_fc')) e
+   WHERE e->>'item_id'=id;
+  IF visible IS NOT NULL THEN RAISE EXCEPTION 'private_native_draft_was_public'; END IF;
+  UPDATE public_content.sponsorship_editorial
+    SET published_json=draft_json,published_at=clock_timestamp(),version=version+1
+    WHERE organization_id='lefteria_fc' AND kind='sponsor' AND item_id=id;
+  SELECT e INTO visible
+    FROM jsonb_array_elements(public_content.read_published_sponsorship('lefteria_fc')) e
+    WHERE e->>'item_id'=id;
+  IF visible IS NULL OR visible->>'is_native'<>'true' OR
+    visible->'content'->>'name'<>'Disposable sponsor'
+  THEN RAISE EXCEPTION 'approved_native_sponsor_missing'; END IF;
+  IF EXISTS(SELECT 1
+    FROM jsonb_array_elements(public_content.read_published_sponsorship('lefteria_fc_academy')) e
+    WHERE e->>'item_id'=id)
+  THEN RAISE EXCEPTION 'first_team_sponsor_exposed_in_academy'; END IF;
+  UPDATE public_content.sponsorship_editorial
+    SET draft_json=edited,version=version+1
+    WHERE organization_id='lefteria_fc' AND kind='sponsor' AND item_id=id;
+  SELECT e INTO visible
+    FROM jsonb_array_elements(public_content.read_published_sponsorship('lefteria_fc')) e
+    WHERE e->>'item_id'=id;
+  IF visible->'content'->>'name'<>'Disposable sponsor'
+  THEN RAISE EXCEPTION 'unapproved_revision_leaked'; END IF;
+  UPDATE public_content.sponsorship_editorial
+    SET published_json=NULL,published_at=NULL,version=version+1
+    WHERE organization_id='lefteria_fc' AND kind='sponsor' AND item_id=id;
+  IF EXISTS(SELECT 1
+    FROM jsonb_array_elements(public_content.read_published_sponsorship('lefteria_fc')) e
+    WHERE e->>'item_id'=id)
+  THEN RAISE EXCEPTION 'unpublished_native_record_still_public'; END IF;
+END $native_lifecycle$;
 ROLLBACK;

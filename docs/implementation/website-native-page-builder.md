@@ -187,7 +187,32 @@ benefits, personnel, slugs and layouts are retained. The admin side has
 no cross-owner fallback and distinguishes an unavailable published source
 from a valid empty list.
 
-This slice does **not** implement sponsor creation, contract/payment lifecycle,
-invoicing, cancellation, files or public sign-up. Apply the EF migration and
+The next **native creation** slice adds `POST /api/admin/website/sponsorships/native`.
+Editors may create a new sponsor or partner only inside their current organization.
+The server generates an immutable `cms-<uuid>` ID and stores the record as a
+**private, never auto-published draft**. Native records do not mutate or replace
+any imported source document. An additional migration labels native editorial
+records, and the existing allowlisted public SQL projection exposes them only
+after a manager or Super Admin has explicitly published that version.
+Approved native sponsors and partners appear in the existing catalog and
+detail pages, with their scoped canonical links. Withdrawing a native
+publication removes the record from public catalog output but preserves its
+private draft. The public service never reads the native draft table.
+
+The first native creation supports five bounded presentation fields
+(name, short description, safe image, HTTPS site, display order). It
+does **not** implement contractual/legal relationships, sponsor commercial
+tiers, billing, native file upload, deletion, or automatic publication.
+Apply the EF migrations and
 separate least-privilege grants in an **isolated staging database** before
 testing. No automatic Hostinger or production deployment is performed.
+
+
+### Native sponsorship lifecycle and recovery
+- Server-generated IDs prevent clients from impersonating imported source IDs.
+- `is_native` is immutable to the web admin role: column UPDATE is never granted.
+- The original imported source identity checker remains mandatory for all non-native revisions.
+- Native drafts are bounded to 100 per organization and cannot be read anonymously.
+- The migration's reverse path refuses to destroy existing native drafts or their audit evidence.
+- The disposable PostgreSQL boundary probe confirms draft exclusion, isolated publication,
+  stable approved copy during later draft edits, and withdrawal.

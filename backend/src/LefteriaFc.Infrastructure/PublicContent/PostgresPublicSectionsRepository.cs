@@ -54,22 +54,46 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
             organizationId).SingleAsync(token);
         var approved = JsonSerializer.Deserialize<PublishedSponsorshipEditorial[]>(approvedJson, Json)
             ?? Array.Empty<PublishedSponsorshipEditorial>();
-        var sponsorCopies = approved.Where(e => e.Kind == "sponsor" && e.Content is not null && e.Content.Valid())
+        // Imported rows are overlays only. Native records are never allowed to
+        // override a signed imported identity, even if a future import collides.
+        var approvedImported = approved.Where(e => !e.IsNative && e.Content is not null && e.Content.Valid()).ToArray();
+        var sponsorCopies = approvedImported.Where(e => e.Kind == "sponsor")
             .GroupBy(e => e.ItemId, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First().Content, StringComparer.Ordinal);
-        var partnerCopies = approved.Where(e => e.Kind == "partner" && e.Content is not null && e.Content.Valid())
+        var partnerCopies = approvedImported.Where(e => e.Kind == "partner")
             .GroupBy(e => e.ItemId, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => g.First().Content, StringComparer.Ordinal);
-        var sponsors = Read<PublicSectionSponsor>("sponsor").Select(s =>
-            sponsorCopies.TryGetValue(s.Id, out var copy) ? s with {
+        var importedSponsors = Read<PublicSectionSponsor>("sponsor");
+        var importedPartners = Read<PublicSectionPartner>("partner");
+        // No new partner/sponsor appears without a manager-approved snapshot.
+        // The public projection carries neither private drafts nor unpublished names.
+        var approvedNative = approved.Where(e => e.IsNative && e.Content is not null && e.Content.Valid() &&
+            System.Text.RegularExpressions.Regex.IsMatch(e.ItemId, @"\Acms-[a-f0-9]{32}\z")).ToArray();
+        var sponsorIds = importedSponsors.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var partnerIds = importedPartners.Select(e => e.Id).ToHashSet(StringComparer.Ordinal);
+        var nativeSponsors = approvedNative.Where(e => e.Kind == "sponsor" && sponsorIds.Add(e.ItemId))
+            .Select(e => new PublicSectionSponsor(
+                e.ItemId, organizationId, e.Content.Name, e.Content.Description, e.Content.ImageUrl,
+                null, e.Content.WebsiteUrl, null, null, null, null, null,
+                "ΧΟΡΗΓΟΣ", "general", e.Content.DisplayOrder, []));
+        var nativePartners = approvedNative.Where(e => e.Kind == "partner" && partnerIds.Add(e.ItemId))
+            .Select(e => new PublicSectionPartner(
+                e.ItemId, organizationId, e.ItemId, e.Content.Name, "Συνεργάτης",
+                e.Content.Description, e.Content.ImageUrl, null, null, null, null,
+                [], [], [], e.Content.WebsiteUrl, [], null, null, null, null, null, null,
+                e.Content.DisplayOrder));
+        var sponsors = importedSponsors.Select(item =>
+            sponsorCopies.TryGetValue(item.Id, out var copy) ? item with {
                 Name = copy.Name, Description = copy.Description, LogoUrl = copy.ImageUrl,
                 Website = copy.WebsiteUrl, DisplayOrder = copy.DisplayOrder
-            } : s).OrderBy(s => s.DisplayOrder).ThenBy(s => s.Name, StringComparer.Ordinal).ToArray();
-        var partners = Read<PublicSectionPartner>("partner").Select(p =>
-            partnerCopies.TryGetValue(p.Id, out var copy) ? p with {
+            } : item).Concat(nativeSponsors)
+            .OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name, StringComparer.Ordinal).ToArray();
+        var partners = importedPartners.Select(item =>
+            partnerCopies.TryGetValue(item.Id, out var copy) ? item with {
                 Name = copy.Name, Tagline = copy.Description, HeroImageUrl = copy.ImageUrl,
                 WebsiteUrl = copy.WebsiteUrl, DisplayOrder = copy.DisplayOrder
-            } : p).OrderBy(p => p.DisplayOrder).ThenBy(p => p.Name, StringComparer.Ordinal).ToArray();
+            } : item).Concat(nativePartners)
+            .OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name, StringComparer.Ordinal).ToArray();
 
         var response = new PublicSectionsResult(organizationId, Read<PublicSectionPlayer>("player"), Read<PublicSectionStaff>("staff"), Read<PublicSectionGroup>("academy_group"),
             Read<PublicSectionStanding>("standing").OrderByDescending(row => row.Points).ThenByDescending(row => row.GoalDifference).ThenBy(row => row.TeamName, StringComparer.Ordinal).ToArray(),

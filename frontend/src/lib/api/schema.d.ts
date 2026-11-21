@@ -1584,6 +1584,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/website/sponsorships/native": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateAdminNativeSponsorship"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/website/sponsorships/publication": {
         parameters: {
             query?: never;
@@ -5059,6 +5075,8 @@ export interface components {
         };
         SponsorshipAdminRecord: {
             draft: components["schemas"]["SponsorshipEditorialCopy"];
+            /** @default false */
+            is_native: boolean;
             item_id: string;
             kind: string;
             organization_id: string;
@@ -5084,6 +5102,10 @@ export interface components {
             image_url: null | string;
             name: string;
             website_url: null | string;
+        };
+        SponsorshipNativeCreate: {
+            draft: components["schemas"]["SponsorshipEditorialCopy"];
+            kind: string;
         };
         SponsorshipPublicationChange: {
             /** Format: int64 */
@@ -11496,6 +11518,32 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SponsorshipDraftChange"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SponsorshipAdminRecord"];
+                };
+            };
+        };
+    };
+    CreateAdminNativeSponsorship: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SponsorshipNativeCreate"];
             };
         };
         responses: {
