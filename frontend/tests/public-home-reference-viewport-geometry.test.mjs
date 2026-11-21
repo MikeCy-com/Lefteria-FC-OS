@@ -13,7 +13,7 @@ test('homepage follows 1672×941 screenshot region order without hiding CMS and 
   assert.doesNotThrow(()=>compile(home,{filename:'routes/+page.svelte',generate:'server'}));
   const required=[
     '<HomeHero','<HomeDestinations',
-    '<HomeNews','data-testid="home-brand-interval"','<Fixtures','<HomeAcademySpotlight','<SidelineBanner'
+    'data-testid="home-brand-interval"','<HomeNews','<Fixtures','<HomeAcademySpotlight','<SidelineBanner'
   ];
   let cursor=-1;
   for(const marker of required){const index=home.indexOf(marker);assert.ok(index>cursor,'Missing/out-of-order '+marker);cursor=index;}
@@ -32,7 +32,7 @@ test('desktop geometry keeps the news visible without an empty brand gap and mob
   assert.match(base,/\.public-rail nav :is\(a,button\)/);
   assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
-  assert.match(css,/min-height:clamp\(70px,6vw,108px\)/);
+  assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
