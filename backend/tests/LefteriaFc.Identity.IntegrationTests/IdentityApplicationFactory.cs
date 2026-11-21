@@ -23,7 +23,8 @@ using LefteriaFc.Infrastructure.ClubCalendar;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bool enableLegacyBridge=false) : WebApplicationFactory<global::Program>
+internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bool enableLegacyBridge=false,
+    bool academyMvpMode=false) : WebApplicationFactory<global::Program>
 {
     public const string Issuer = "lefteria-identity-http-tests";
     public const string Audience = "lefteria-identity-http-test-client";
@@ -46,6 +47,7 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bo
             new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Postgres"] = fixture.AppConnectionString,
+                ["LEFTERIA_ACADEMY_MVP_ONLY"] = academyMvpMode ? "true" : "false",
                 ["MobileAuth:SigningKey"] = SigningKey,
                 ["MobileAuth:OtpKey"] = OtpKey,
                 ["MobileAuth:Issuer"] = Issuer,
