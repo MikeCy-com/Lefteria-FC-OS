@@ -30,7 +30,10 @@ test('global navigation has no standalone player or match tools; profile and set
   assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
   assert.match(frame,/href="\/admin\/profile"/);
   assert.match(frame,/href="\/admin\/settings"/);
-  assert.match(frame,/data-testid="admin-settings-submenu"/);
+  assert.match(frame,/data-testid="admin-settings-link"/);
+  assert.match(frame,/class="admin-nav-disclosure"/);
+  assert.doesNotMatch(frame,/data-testid="admin-settings-submenu"/);
+  assert.match(settings,/data-testid="admin-settings-guide"/);
   assert.doesNotMatch(frame,/\{#if hasWebsite \|\| liveIds\.has\('territories'\) \|\| hasOperations\}/);
   assert.match(profile,/data-testid="admin-self-password-form"/);
   assert.match(settings,/id="website-settings"/);

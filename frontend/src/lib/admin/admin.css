@@ -739,3 +739,185 @@
 @media(max-width:720px){
   .admin-app .admin-nav-settings-details{display:none}
 }
+
+/* MVP navigation: one level of permission-scoped disclosures. Category titles
+   must be visually LARGER than child links (the old 13px labels vs 17px links
+   reversed that hierarchy). Never hide routes behind role guesses. */
+.admin-app .admin-sidebar{
+  gap:8px;
+  padding:20px 14px 28px;
+}
+.admin-app .admin-sidebar .admin-nav-disclosure{
+  display:block;
+  min-width:0;
+  border-bottom:1px solid #30312d;
+  padding:0 0 7px;
+}
+.admin-app .admin-sidebar .admin-nav-category{
+  list-style:none;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:48px;
+  padding:11px 12px;
+  border:1px solid transparent;
+  border-left:4px solid transparent;
+  border-radius:0 8px 8px 0;
+  color:#f5f5f1;
+  background:transparent;
+  font:800 18px/1.28 'Fira Sans',sans-serif;
+  text-wrap:balance;
+  overflow-wrap:anywhere;
+  cursor:pointer;
+}
+.admin-app .admin-sidebar .admin-nav-category::-webkit-details-marker{display:none}
+.admin-app .admin-sidebar .admin-nav-category > span{
+  font:800 20px/1 'Fira Sans',sans-serif;
+  color:#ffd278;
+  transition:transform .15s ease;
+  flex-shrink:0;
+}
+.admin-app .admin-sidebar .admin-nav-disclosure[open] .admin-nav-category{
+  color:#ffda80;
+  background:#251e13;
+  border-left-color:var(--admin-gold);
+}
+.admin-app .admin-sidebar .admin-nav-disclosure[open] .admin-nav-category > span{
+  transform:rotate(180deg);
+}
+.admin-app .admin-sidebar .admin-nav-category:is(:hover,:focus-visible){
+  background:#302719;
+  border-color:#ad8545;
+  border-left-color:var(--admin-gold);
+}
+.admin-app .admin-sidebar .admin-nav-category:focus-visible{
+  outline:3px solid #ffca65;
+  outline-offset:2px;
+}
+.admin-app .admin-sidebar .admin-nav-links{
+  display:grid;
+  gap:2px;
+  min-width:0;
+  padding:5px 0 3px 12px;
+}
+.admin-app .admin-sidebar .admin-nav-disclosure:not([open]) > .admin-nav-links{
+  display:none;
+}
+.admin-app .admin-sidebar .admin-nav-links a{
+  min-height:44px;
+  padding:10px 11px;
+  font:600 15px/1.35 'Fira Sans',sans-serif;
+  color:#d6d9d7;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  border-left:3px solid transparent;
+}
+.admin-app .admin-sidebar .admin-nav-links a[aria-current='page']{
+  color:#14100a;
+  background:#f6bb38;
+  border-left-color:#fff0ba;
+  font-weight:800;
+}
+.admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){
+  display:flex;
+  align-items:center;
+  min-height:48px;
+  padding:11px 12px;
+  border:1px solid transparent;
+  border-left:4px solid transparent;
+  border-radius:0 8px 8px 0;
+  color:#f5f5f1;
+  font:800 18px/1.28 'Fira Sans',sans-serif;
+  white-space:normal;
+}
+.admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home)[aria-current='page']{
+  color:#14100a;
+  background:#f6bb38;
+  border-color:#edc570;
+  border-left-color:#fff0ba;
+}
+@media(min-width:2560px){
+  .admin-app .admin-sidebar .admin-nav-category,
+  .admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){font-size:19px}
+  .admin-app .admin-sidebar .admin-nav-links a{font-size:16px}
+}
+@media(max-width:720px){
+  /* Two-column compact index replaces a 20+ link horizontal scroller.
+     An expanded work area occupies full width and exposes only its links. */
+  .admin-app .admin-sidebar{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+    gap:7px;
+    padding:11px 12px 13px;
+    max-height:min(58dvh,500px);
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior-y:contain;
+    scroll-snap-type:none;
+    scrollbar-width:thin;
+  }
+  .admin-app .admin-sidebar > :is(.admin-nav-home,.admin-nav-settings-home){
+    min-width:0;
+    min-height:50px;
+    padding:10px 11px;
+    font-size:16px;
+    line-height:1.23;
+    white-space:normal;
+  }
+  .admin-app .admin-sidebar .admin-nav-disclosure{
+    min-width:0;
+    padding:0;
+    border:0;
+  }
+  .admin-app .admin-sidebar .admin-nav-category{
+    min-height:50px;
+    font-size:16px;
+    line-height:1.23;
+    padding:10px 9px 10px 11px;
+    background:#151716;
+    border-color:#383a35;
+  }
+  .admin-app .admin-sidebar .admin-nav-disclosure[open]{
+    grid-column:1/-1;
+    border:1px solid #847039;
+    border-radius:5px;
+  }
+  .admin-app .admin-sidebar .admin-nav-disclosure[open] .admin-nav-category{
+    border-color:transparent;
+    border-left-color:#f6bb38;
+  }
+  .admin-app .admin-sidebar .admin-nav-links{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:5px;
+    padding:7px;
+  }
+  .admin-app .admin-sidebar .admin-nav-links a{
+    min-width:0;
+    min-height:48px;
+    padding:10px 9px;
+    white-space:normal;
+    font-size:14px;
+    line-height:1.3;
+    background:#181b1a;
+    border:1px solid #393c36;
+    border-left:3px solid transparent;
+    border-radius:3px;
+  }
+  .admin-app .admin-sidebar .admin-nav-links a[aria-current='page']{
+    border-color:#ffc96b;
+  }
+}
+@media(max-width:360px){
+  .admin-app .admin-sidebar{grid-template-columns:1fr}
+  .admin-app .admin-sidebar .admin-nav-links{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){
+  .admin-app .admin-sidebar .admin-nav-category > span{transition:none}
+}
+@media(prefers-contrast:more){
+  .admin-app .admin-sidebar .admin-nav-category{color:#fff;border-color:#fff}
+  .admin-app .admin-sidebar .admin-nav-links a{color:#fff}
+  .admin-app .admin-sidebar .admin-nav-links a[aria-current='page']{color:#000}
+}

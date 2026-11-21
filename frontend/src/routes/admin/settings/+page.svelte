@@ -6,6 +6,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
+  import {adminSectionsFor} from '../../../lib/admin/module-catalog.ts';
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   const granted=$derived($auth.session?.user.organizations ?? []);
@@ -19,6 +20,8 @@
      hasAdminPermission($auth.session.user.permissions,'teams:write') && granted.some(x=>x.id==='lefteria_fc'))));
   const canUsers=$derived($auth.session?.user.role==='super_admin' &&
     hasAdminPermission($auth.session.user.permissions,'users:read'));
+  const canOnboard=$derived(Boolean($auth.session && adminSectionsFor($auth.session.user)
+    .some(section=>section.modules.some(module=>module.id==='onboarding'&&module.status==='live'))));
 </script>
 <svelte:head><title>Ρυθμίσεις | Λευτεριά FC OS</title></svelte:head>
 {#if $auth.status==='authenticated' && $auth.session}
@@ -70,7 +73,16 @@
             <p>Πρόσβαση σε οργανισμούς, πόλεις, τοποθεσίες και ομάδες με επαληθευμένο δικαίωμα.</p>
             {#if canStaff}<a class="admin-settings-link" href="/admin/staff">Προσωπικό & προπονητές <span aria-hidden="true">↗</span></a>{/if}
             {#if canUsers}<a class="admin-settings-link" href="/admin/users">Δημιουργία λογαριασμών & προβολή δικαιωμάτων <span aria-hidden="true">↗</span></a>{/if}
-            <p class="admin-settings-note">Η αλλαγή ρόλου δεν υποστηρίζεται ακόμη. Ο Super Admin μπορεί να απενεργοποιεί ή να επανενεργοποιεί λογαριασμούς από τη λίστα χρηστών. Οι αναθέσεις ομάδας και περιοχής γίνονται από τα αντίστοιχα προστατευμένα εργαλεία.</p>
+            <p class="admin-settings-note">Ο Super Admin μπορεί να αλλάζει ρόλο ή κατάσταση λογαριασμού από τους Χρήστες &amp; δικαιώματα. Πριν από αλλαγή ρόλου πρέπει να αφαιρεθούν οι υφιστάμενες αναθέσεις πόλης, τοποθεσίας, ομάδας και προσωπικού, καθώς και οι ενεργές βάρδιες POS. Η αλλαγή ανακαλεί τις ενεργές συνεδρίες.</p>
+          </section>
+        {/if}
+        {#if canOnboard}
+          <section class="admin-panel" id="help-settings" data-testid="admin-settings-onboarding">
+            <p class="admin-eyebrow">ΠΡΩΤΗ ΧΡΗΣΗ · ΛΕΙΤΟΥΡΓΙΕΣ</p>
+            <h2>Οδηγός διαχειριστή</h2>
+            <p>Οδηγίες ανά ρόλο για ομάδες, αθλητές, αναθέσεις, οικονομικά και την εφαρμογή.
+              Οι ενέργειες παραμένουν περιορισμένες στα επαληθευμένα δικαιώματά σας.</p>
+            <a class="admin-settings-link" href="/admin/onboarding" data-testid="admin-settings-guide">Οδηγός πρώτης χρήσης <span aria-hidden="true">↗</span></a>
           </section>
         {/if}
         <section class="admin-panel" id="personal-settings">
