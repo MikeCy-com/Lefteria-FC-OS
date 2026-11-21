@@ -400,6 +400,18 @@ GRANT EXECUTE ON FUNCTION hub.set_admin_player_learning_position(text,text,text,
 REVOKE ALL ON TABLE hub.player_learning_specializations,
   hub.player_learning_specialization_events FROM PUBLIC, :"app_role", :"admin_auth_role";
 
+-- Reviewed classroom curriculum classification is Super Admin-only in SQL.
+REVOKE ALL ON FUNCTION hub.read_admin_classroom_curriculum(text,text,integer,integer)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.read_admin_classroom_curriculum(text,text,integer,integer)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON TABLE hub.classroom_lesson_subjects,hub.classroom_lesson_subject_events
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+
 -- HUB editorial is exposed only through a scoped security-definer function.
 -- Never grant direct hub table access or callable access to the mobile role.
 REVOKE ALL ON FUNCTION hub.read_admin_editorial(text,text) FROM PUBLIC, :"app_role";
@@ -515,6 +527,8 @@ BEGIN
                   'hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure,
                   'hub.read_admin_player_learning_position(text,text,text)'::regprocedure,
                    'hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)'::regprocedure,
+                   'hub.read_admin_classroom_curriculum(text,text,integer,integer)'::regprocedure,
+                   'hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)'::regprocedure,
                    'hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)'::regprocedure,
                   'hub.list_admin_player_quizzes(text,text)'::regprocedure,
                   'hub.detail_admin_player_quiz(text,text,uuid)'::regprocedure,
