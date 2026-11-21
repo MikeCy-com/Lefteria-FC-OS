@@ -182,3 +182,74 @@ and fiscal configuration; this update does **not** activate live sales.
 - Do not enable terminal cash/card checkout, apply grants in production,
   connect production payment credentials, touch live Hostinger or merge
   this staging change based on source assertions alone.
+
+
+## Cash-only MVP acceptance slice — 21 November 2026
+
+A previously hidden end-to-end blocker was resolved: the original
+`issue_verified_internal_receipt` accepted only manager and Super Admin
+accounts, so a properly assigned named `cashier` could never finish
+`settle_exact_cash_sale`. Migration
+`20261115953000_PosCashierAtomicReceiptAuthority` accepts an authenticated
+named cashier **only when they still own the exact sale, their assigned
+register and the original open shift**. The authorization is rechecked
+after locking the sale, and the private function is not granted to the web
+or mobile runtime automatically. A closed shift, revoked cashier,
+cross-location or other operator remains denied. Earlier manager behavior
+is preserved.
+
+Migration `20261115954000_PosCashierScopedSellableStock` adds a private,
+bounded read-only catalog for an assigned operator's exact current shift,
+drawing from `pos_cashier.stock` instead of conflating it with the separate
+`pos.location_stock` inventory. It reports only product name, variant,
+available quantity and public sale price; never supplier costs, other
+sites' quantities, customer records or other operators' finances. Its
+manual reviewed grant is added to
+`ops/postgres/pos-cashier-shifts-admin-grants.sql`, while all sale
+preparation, cash collection and receipt-issuance function grants remain
+default **DENY** without separately approved fiscal controls.
+
+The cashier screen now exposes a server-priced item selector (maximum
+150 distinct sellable variants returned, up to 30 lines selected),
+idempotent stock reservation, cancellation of an unpaid sale, exact
+physically-counted cash and change, and a printable **stored** receipt.
+The original cashier can open their own already-issued receipt through
+`shop:operate`; no finance:read or finance:write capability is granted.
+
+An acceptance scenario in `ops/postgres/pos-site-isolation-checks.sql`
+uses synthetic items and a synthetic **exempt-only fiscal policy** in a
+rollback-on-error subtransaction. It verifies one complete paid sale,
+cash tender and change, immutable receipt, exact one-time reserved-stock
+consumption, replay mismatch, shift reconciliation and denial of another
+operator or city's inventory. Every synthetic payment, receipt, product,
+stock record and fiscal policy is rolled back. This is reproducible
+**disposable PostgreSQL test evidence, not permission to trade**.
+
+Remaining POS production blockers:
+
+- **Real VAT classifications:** the current checkout supports only a
+  separately reviewed `verified_exempt` policy; taxable Cyprus goods
+  need approved per-product VAT calculations and fiscal receipt details
+  before sale. Never treat the synthetic exempt fixture as approval.
+- **Stock ledger convergence:** `pos_cashier.stock` and the older
+  `pos.location_stock` are separate inventories; physical opening
+  counts, transfers, damage/restocking and source reconciliation must
+  be signed off to avoid duplicate or phantom stock.
+- **Independent sandbox UAT:** a realistic cashier/location manager
+  runs paid/unpaid/replay/refund-return/receipt and shift scenarios in
+  isolated staging, including consent and end-of-day reconciliation.
+  An explicit reviewed grant and valid fiscal policy are required;
+  this PR neither grants cash settlement nor changes live behavior.
+- **Fiscal refunds:** a pending return review/refund instruction is not
+  an executed cash refund, card reversal or compliant credit note.
+  Legal receipt/credit-note output requires review.
+- **Payabl:** merchant onboarding, signed server-side settlement,
+  refunds, sandbox acceptance and strict source/merchant reconciliation
+  are independent blockers. There is still no live Payabl card capture
+  through the cashier panel.
+- **Production readiness:** CI at exact SHA, two-person cash custody,
+  backup/isolated restore, physical register/stock acceptance and
+  operator sign-off are still required before any POS launch.
+
+**No changes were made to production Hostinger, live payments, legacy
+records or the live domain.**
