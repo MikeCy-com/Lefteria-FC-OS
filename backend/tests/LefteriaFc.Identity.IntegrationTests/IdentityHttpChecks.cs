@@ -38,6 +38,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Trusted proxy forwarding accepts one edge hop but ignores direct and forged forwarding headers", AcademyEnquiryProxyTrustChecks.RunAsync),
         ("Marketing runtime writer refuses unapproved function execution without data writes", database.AssertMarketingRuntimeWriterUnavailableAsync),
         ("Real HTTP health, authentication boundary and no-store headers", HttpBoundaryAsync),
+        ("Operational readiness proves compiled migrations with app-role privilege but no private history SELECT", OperationalReadinessProofAsync),
         ("Unknown verified phone consumes its proof before 404", UnknownPhoneAsync),
         ("Role picker has no token; neutral fan and exact-expiry role switch", RolePickerAndSwitchAsync),
         ("Revoked formal role exposes no links and can recover only active fan", RevocationAsync),
