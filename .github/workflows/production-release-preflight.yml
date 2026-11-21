@@ -7,6 +7,14 @@ on:
         description: "Exact 40-character current main commit SHA to audit; this workflow never deploys"
         type: string
         required: true
+      profile:
+        description: "Read-only release scope (never deploys)"
+        type: choice
+        required: true
+        default: academy-mvp
+        options:
+          - academy-mvp
+          - full
 
 permissions:
   contents: read
@@ -47,13 +55,14 @@ jobs:
         run: |
           set -euo pipefail
           node ops/release/verify-exact-ci.mjs "--sha=$CANDIDATE_SHA" --require-passing
-      - name: Enforce data/finance/OTP/backup/HUB and human cutover gates
+      - name: Enforce owner/finance/privacy/HUB approval and Academy MVP scope
         env:
           GITHUB_TOKEN: ${{ github.token }}
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          RELEASE_SCOPE: ${{ inputs.profile }}
         run: |
           set -euo pipefail
-          node ops/release/check-go-live.mjs "--sha=$CANDIDATE_SHA" --require-ready
+          node ops/release/verify-release-authorization.mjs "--sha=$CANDIDATE_SHA" "--profile=$RELEASE_SCOPE" --require-ready
 
 # No SSH, deployment, provider credentials, database connection, DNS, or
 # production/preview environment is accessible from this workflow.
