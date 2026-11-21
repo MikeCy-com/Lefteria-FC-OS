@@ -9,6 +9,7 @@
   } from '../../../lib/admin/hub-editorial.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
+  import AdminClassroomCurriculum from '../../../lib/admin/AdminClassroomCurriculum.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -506,6 +507,13 @@
             {/if}
           </section>
         </div>
+        {#if $auth.session.user.role==='super_admin' && organization}
+          {#key $auth.session.user.id+':'+organization}
+            <AdminClassroomCurriculum {organization} actorId={$auth.session.user.id}
+              onExpired={()=>auth.invalidateSession()}
+              onRevoked={()=>void auth.bootstrap()}/>
+          {/key}
+        {/if}
         <section class="panel fan-note" aria-labelledby="fan-title">
           <h2 id="fan-title">Συνδρομές HUB φιλάθλων</h2>
           {#if $auth.session.user.role==='super_admin'&&

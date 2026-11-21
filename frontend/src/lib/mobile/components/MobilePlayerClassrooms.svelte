@@ -10,7 +10,7 @@
   let page=$state<PlayerClassroomPage|null>(null);
   let busy=$state(true),error=$state<string|null>(null);
   let alive=false,generation=0;
-  const completedTopics=$derived(page?.subjects.filter(x=>x.completed_quizzes>0).length??0);
+  const completedTopics=$derived(page?.subjects.filter(x=>x.completed_quizzes>0||x.completed_lessons>0).length??0);
 
   onMount(()=>{
     alive=true;void refresh(organization);
@@ -97,8 +97,7 @@
     <div class="room-heading">
       <div>
         <h3>Αίθουσες ποδοσφαιρικών δεξιοτήτων</h3>
-        <p class="description">Οι θεματικές είναι ο χάρτης μάθησης. Μόνο εγκεκριμένα
-          και δημοσιευμένα κουίζ υπολογίζονται στην πρόοδο.</p>
+        <p class="description">Οι θεματικές είναι ο χάρτης μάθησης. Εμφανίζονται μόνο εγκεκριμένα και δημοσιευμένα μαθήματα και κουίζ, με ξεχωριστή ατομική πρόοδο.</p>
       </div>
       <span class="room-count" aria-label="Θεματικές με προσωπική πρόοδο">
         {completedTopics} / {page.subjects.length}
@@ -109,9 +108,9 @@
         <article class="room" data-topic={subject.topic}>
           <div class="room-top">
             <span class="symbol" aria-hidden="true">◇</span>
-            {#if subject.completed_quizzes>0}
+            {#if subject.completed_quizzes>0||subject.completed_lessons>0}
               <span class="mini-state">Έχεις προχωρήσει</span>
-            {:else if subject.published_quizzes>0}
+            {:else if subject.published_quizzes>0||subject.approved_lessons>0}
               <span class="mini-state">Εγκεκριμένο περιεχόμενο</span>
             {:else}
               <span class="mini-state awaiting">Σε προετοιμασία</span>
@@ -119,6 +118,14 @@
           </div>
           <h4>{classroomLabels[subject.topic].name}</h4>
           <p>{classroomLabels[subject.topic].description}</p>
+          {#if subject.approved_lessons>0}
+            <div class="room-progress" data-testid="hub-classroom-lesson-subject">
+              <strong>{subject.completed_lessons} / {subject.approved_lessons} μαθήματα</strong>
+              <progress value={subject.completed_lessons} max={Math.max(1,subject.approved_lessons)}
+                aria-label={'Πρόοδος μαθημάτων: '+classroomLabels[subject.topic].name}></progress>
+              <span>Η σειρά των μαθημάτων ξεκλειδώνει μόνο στην προσωπική διαδρομή.</span>
+            </div>
+          {/if}
           {#if subject.published_quizzes>0}
             <div class="room-progress">
               <strong>{subject.completed_quizzes} / {subject.published_quizzes} κουίζ</strong>
@@ -130,8 +137,8 @@
                   {subject.correct_answers} από {subject.total_answers}</span>
               {/if}
             </div>
-          {:else}
-            <p class="quiet">Δεν έχει δημοσιευθεί εγκεκριμένο κουίζ για αυτή τη θεματική.</p>
+          {:else if subject.approved_lessons===0}
+            <p class="quiet">Δεν έχει δημοσιευθεί εγκεκριμένο μάθημα ή κουίζ για αυτή τη θεματική.</p>
           {/if}
         </article>
       {/each}
