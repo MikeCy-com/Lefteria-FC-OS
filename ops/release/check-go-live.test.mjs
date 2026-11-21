@@ -94,7 +94,7 @@ test('independent CI evidence requires six named jobs and correct source, main S
 test('cannot delete mandatory production, identity, hub or backup gate',()=>{
   for(const omitted of [
     'api-ci','data-import','privacy-security','finance-reconciliation',
-    'cutover-rollback','backups-restore','role-mobile-parity','hub-education'
+    'cutover-rollback','backups-restore','role-mobile-parity','production-identity','hub-education'
   ]){
     const data=clone(gates);
     data.gates=data.gates.filter(x=>x.id!==omitted);
