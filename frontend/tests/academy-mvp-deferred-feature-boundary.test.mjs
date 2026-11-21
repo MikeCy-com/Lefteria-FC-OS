@@ -5,6 +5,7 @@ import {readFileSync} from 'node:fs';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const program=read('backend/src/LefteriaFc.Api/Program.cs');
 const boundary=read('backend/src/LefteriaFc.Api/Release/AcademyMvpBoundary.cs');
+const fees=read('backend/src/LefteriaFc.Api/Payabl/AcademyFeeEndpoints.cs');
 const settings=read('.env.example');
 const preflight=read('ops/release/staging-mvp-preflight.mjs');
 const release=read('ops/release/go-live-gates.json');
@@ -34,6 +35,10 @@ test('optional payment/POS/fan routes are denied but core finance, roster and gu
   ])assert.ok(boundary.includes(segment),'Missing opt-in MVP segment '+segment);
   assert.match(boundary,/segments\.Length == 2/);
   assert.match(boundary,/segments\[1\]\.Equals\("sms"/);
+  assert.match(fees,/AcademyMvpBoundary\.Disabled\(configuration\["LEFTERIA_ACADEMY_MVP_ONLY"\]\)/);
+  assert.match(fees,/body\.SaveCardRequested \|\| body\.AutomaticCollectionRequested/);
+  assert.match(fees,/statusCode:StatusCodes\.Status503ServiceUnavailable/);
+  assert.match(fees,/finance\.set_parent_fee_preferences/);
   assert.doesNotMatch(boundary, /StartsWithSegments\("\/api\/mobile\/finance"/);
   assert.doesNotMatch(boundary, /StartsWithSegments\("\/api\/admin\/football"/);
   assert.doesNotMatch(boundary, /StartsWithSegments\("\/api\/mobile\/family"/);
