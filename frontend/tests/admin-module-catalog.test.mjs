@@ -78,7 +78,8 @@ test('admin navigation exposes real operational destinations without five orphan
   const frame=read('AdminFrame.svelte');
   const source=read('module-catalog.ts');
   assert.match(frame,/adminSectionsFor\(user\)/);
-  assert.match(frame,/canReadClub\(user\)/);
+  assert.match(read('module-catalog.ts'),/canReadClub\(user\)/);
+  assert.match(frame,/adminSectionsFor\(user\)/);
   assert.match(frame,/canViewFirstTeamTrials\(user\)/);
   assert.match(frame,/href="\/admin\/profile"/);
   assert.match(frame,/href="\/admin\/profile#access"/);
