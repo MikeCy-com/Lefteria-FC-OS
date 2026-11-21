@@ -15,16 +15,16 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
     Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
       JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
       .map(([method])=>[method,path]));
-  assert.equal(guarded.length,114);
+  assert.equal(guarded.length,115);
   const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
-  assert.equal(reviewed.size,97);
+  assert.equal(reviewed.size,98);
   for(const [method,path] of reviewedAdminEntries){
     assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
     assert.equal(permitted(method.toUpperCase(),
       path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
       true,method+' '+path);
   }
-  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,114);
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,115);
   assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
     /handle @entry_get/);
 });
@@ -35,6 +35,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/football/groups/with-profile'],
     ['GET','/api/admin/website/sponsorships'],
     ['POST','/api/admin/website/sponsorships/draft'],
+    ['POST','/api/admin/website/sponsorships/native'],
     ['POST','/api/admin/website/sponsorships/publication'],
     ['GET','/api/admin/football/players'],
     ['GET','/api/admin/football/group-players'],

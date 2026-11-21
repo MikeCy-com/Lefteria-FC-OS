@@ -151,6 +151,8 @@ export const reviewedAdminEntries = [
   // Exact sponsor/partner draft and manager-publication APIs. Never wildcard.
   ['get','/api/admin/website/sponsorships'],
   ['post','/api/admin/website/sponsorships/draft'],
+  // Native creation can only produce an unpublished, owner-scoped draft.
+  ['post','/api/admin/website/sponsorships/native'],
   ['post','/api/admin/website/sponsorships/publication'],
   ['get','/api/admin/website/news'],
   ['get','/api/admin/website/news-drafts'],
