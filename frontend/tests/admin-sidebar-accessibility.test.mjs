@@ -54,7 +54,7 @@ test('visibility remains driven only by live modules, verified roles and organiz
   for(const check of [
     'adminSectionsFor(user)',"module.status==='live'","liveIds.has('groups')",
     "liveIds.has('pages')","liveIds.has('news')","liveIds.has('announcements')",
-    "liveIds.has('products')",'canReadClub(user)','canViewFirstTeamTrials(user)'
+    "liveIds.has('products')","liveIds.has('sponsors')",'canViewFirstTeamTrials(user)'
   ]) assert.ok(frame.includes(check),check);
   for(const id of ['admin-news-link','admin-announcements-link','admin-payabl-link',
     'admin-groups-link','admin-territories-link','admin-hub-subscriptions-link',
