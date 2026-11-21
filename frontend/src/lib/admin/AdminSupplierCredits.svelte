@@ -7,7 +7,8 @@
     credit_date:string;amount_cents:number;reason:string;
     requested_by:string;requested_at:string;
     status:'pending'|'approved_manual'|'rejected';
-    reviewed_at:string|null;review_note:string|null};
+    reviewed_at:string|null;review_note:string|null;
+    reviewed_by:string|null;reversed_manual:boolean};
   let {owner,sessionId,canWrite,canReview,bills,credits,onSaved}:{
     owner:string;sessionId:string;canWrite:boolean;canReview:boolean;
     bills:Bill[];credits:Credit[];onSaved:()=>void
@@ -170,7 +171,8 @@
       {#each credits as credit (credit.id)}
         <li>
           <strong>{credit.credit_reference} · {euro(credit.amount_cents)}</strong>
-          <span>{credit.status==='pending'?'Σε αναμονή ελέγχου':
+          <span>{credit.reversed_manual?'Αναστράφηκε κατόπιν ανεξάρτητου ελέγχου':
+            credit.status==='pending'?'Σε αναμονή ελέγχου':
             credit.status==='approved_manual'?'Εγκεκριμένο πιστωτικό':'Απορρίφθηκε'}
             · {credit.credit_date}</span>
           <small>{credit.reason}

@@ -1,0 +1,70 @@
+name: Production MVP release candidate preflight (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: "Exact 40-character current main commit SHA to audit; this workflow never deploys"
+        type: string
+        required: true
+      profile:
+        description: "Read-only release scope (never deploys)"
+        type: choice
+        required: true
+        default: academy-mvp
+        options:
+          - academy-mvp
+          - full
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  release-preflight:
+    name: Verify exact-SHA CI and all production release blockers
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Refuse stale/PR SHA and unreviewed release scripts
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Expected an exact lowercase commit SHA"
+            exit 2
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$CANDIDATE_SHA" ]]; then
+            echo "The selected release candidate is not the checked-out main head"
+            exit 1
+          fi
+      - name: Verify release evidence logic under synthetic fail-closed fixtures
+        run: node --test ops/release/*.test.mjs
+      - name: Verify latest required GitHub Actions at exact current main SHA
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          node ops/release/verify-exact-ci.mjs "--sha=$CANDIDATE_SHA" --require-passing
+      - name: Enforce owner/finance/privacy/HUB approval and Academy MVP scope
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          RELEASE_SCOPE: ${{ inputs.profile }}
+        run: |
+          set -euo pipefail
+          node ops/release/verify-release-authorization.mjs "--sha=$CANDIDATE_SHA" "--profile=$RELEASE_SCOPE" --require-ready
+
+# No SSH, deployment, provider credentials, database connection, DNS, or
+# production/preview environment is accessible from this workflow.
+# A red release-preflight is expected until operators verify ALL P0 gates,
+# reconcile real data, rehearse backup/rollback, and approve the exact SHA.

@@ -17,9 +17,13 @@ test('admin retains original Fira Sans/condensed and Lefteria gold rather than a
 
 test('admin visual refinements do not alter real role permissions or navigation',()=>{
   const frame=read('AdminFrame.svelte');
-  assert.match(frame,/canReadClub\(user\)/);
+  assert.match(read('module-catalog.ts'),/canReadClub\(user\)/);
+  assert.match(frame,/adminSectionsFor\(user\)/);
   assert.match(frame,/data-testid="admin-logout"/);
-  assert.match(frame,/href="\/admin\/settings#website-settings"/);
+  assert.match(frame,/href="\/admin\/settings"/);
+  const settings=readFileSync(new URL('../src/routes/admin/settings/+page.svelte',import.meta.url),'utf8');
+  assert.match(settings,/id="website-settings"/);
+  assert.match(settings,/href="\/admin\/club"/);
   assert.match(frame,/src="\/mobile\/club-logo.png"/);
   assert.match(frame,/id="admin-main"/);
 });

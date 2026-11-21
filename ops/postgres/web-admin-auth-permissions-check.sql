@@ -152,6 +152,8 @@ BEGIN
                     'finance.create_admin_supplier_credit_request(text,text,uuid,uuid,text,date,bigint,text)'::regprocedure,
                     'finance.review_admin_supplier_credit_request(text,text,uuid,boolean,text)'::regprocedure,
                     'finance.read_admin_supplier_payable_position(text,text,date)'::regprocedure,
+                    'finance.create_admin_supplier_approval_reversal(text,text,uuid,text,uuid,text)'::regprocedure,
+                    'finance.review_admin_supplier_approval_reversal(text,text,uuid,boolean,text)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,

@@ -48,8 +48,12 @@ test('super admin server guard executes before any account SQL',()=>{
 });
 test('staff and account directory navigation are independent role-first sections',()=>{
   assert.match(catalog,/id === 'users'.*super_admin/);
-  assert.match(frame,/href="\/admin\/users"/);
-  assert.match(frame,/data-testid="admin-users-link"/);
+  const settings=read('frontend/src/routes/admin/settings/+page.svelte');
+  assert.match(frame,/href="\/admin\/settings"/);
+  assert.match(frame,/data-testid="admin-settings-link"/);
+  assert.match(settings,/href="\/admin\/users"/);
+  assert.match(settings,/\{#if canUsers\}/);
+  assert.match(settings,/user\.role==='super_admin'/);
   assert.doesNotMatch(frame,/switchOrganization|admin-header-organization/);
 });
 

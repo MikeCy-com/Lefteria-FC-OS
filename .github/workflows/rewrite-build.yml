@@ -115,6 +115,12 @@ jobs:
           dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
           dotnet ef migrations has-pending-model-changes --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+      - name: Verify disposable PostgreSQL backup and isolated restore
+        env:
+          LEFTERIA_RESTORE_DRILL_DISPOSABLE_ONLY: "1"
+        run: |
+          python3 -m unittest ops/release/test_disposable_postgres_restore_drill.py
+          python3 ops/release/disposable-postgres-restore-drill.py
       - name: Validate city-shared Academy catalogs and location-bound team isolation (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/football-city-location-catalog-checks.sql
@@ -185,6 +191,8 @@ jobs:
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-payments-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-credits-grants.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-credits-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-reversal-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-reversal-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-attendance-admin-grants.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-lifecycle-checks.sql
@@ -328,6 +336,8 @@ jobs:
         run: node frontend/scripts/audit-original-parity.mjs
       - run: npm test
         working-directory: frontend
+      - name: Test fail-closed production release candidate evidence
+        run: node --test ops/release/*.test.mjs
       - name: Verify that no unapproved OS release can pass the readiness gate
         run: node --test ops/release/check-go-live.test.mjs ops/release/staging-mvp-preflight.test.mjs
       - run: npm run build
@@ -379,6 +389,8 @@ jobs:
             printf '%s=%s\n' "$setting" "$value" >> "$GITHUB_ENV"
           done
       - run: docker compose --env-file .env.example config --quiet
+      - name: Test production sandbox payment and SMS release guards
+        run: python3 -B -m unittest deploy/production/test_verify_payment_configuration.py
       - name: Enforce production Compose least-privilege contract
         run: docker compose --profile tools --env-file .env.example config --format json | python3 -B deploy/production/verify-compose-security.py
       - run: docker compose --env-file .env.example build --pull

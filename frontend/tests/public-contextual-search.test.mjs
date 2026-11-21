@@ -8,7 +8,7 @@ import {withWebsitePages, websitePagePath} from '../src/lib/public/website-pages
 const page = (organization_id, slug, title, menu_parent='root') => ({
   organization_id,slug,published_at:'2026-11-15T12:00:00Z',
   page:{title,summary:'',seo_title:'',seo_description:'',
-    menu_parent,menu_order:0,blocks:[]}
+    menu_parent,menu_order:0,blocks:[{type:'paragraph',text:'Published page',url:null}]}
 });
 const academy='lefteria_fc_academy',team='lefteria_fc';
 const academyCms=page(academy,'academy-training-guide','Οδηγός Ακαδημίας');

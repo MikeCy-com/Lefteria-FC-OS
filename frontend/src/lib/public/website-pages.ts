@@ -79,8 +79,13 @@ export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug) ||
       !row.page || typeof row.page !== 'object' ||
       typeof row.page.title !== 'string' || !Array.isArray(row.page.blocks) ||
-      typeof row.page.menu_parent !== 'string' ||
-      !Number.isSafeInteger(row.page.menu_order)) return false;
+      !['hidden','root','club','team','academy','matches','news','events','shop','contact'].includes(row.page.menu_parent) ||
+      !Number.isSafeInteger(row.page.menu_order) || row.page.menu_order < 0 || row.page.menu_order > 1000 ||
+      row.page.title.length === 0 || row.page.title.length > 180 ||
+      typeof row.page.summary !== 'string' || row.page.summary.length > 500 ||
+      typeof row.page.seo_title !== 'string' || row.page.seo_title.length > 180 ||
+      typeof row.page.seo_description !== 'string' || row.page.seo_description.length > 300 ||
+      row.page.blocks.length < 1 || row.page.blocks.length > 40) return false;
   return row.page.blocks.every(block => block &&
     ['heading','paragraph','image','button'].includes(block.type) &&
     typeof block.text === 'string' &&
