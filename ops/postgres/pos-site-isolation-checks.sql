@@ -264,6 +264,50 @@ BEGIN
     INSERT INTO pos_cashier.stock(
       organization_id,location_id,product_id,variant_id,on_hand)
     VALUES('lefteria_fc_academy',v_pos_a1,v_checkout_product,'unit',3);
+    -- The two inventories are intentionally separate today. The site
+    -- manager can diagnose missing ledger entries without writing either.
+    v_result:=pos_cashier.read_admin_site_stock_reconciliation(
+      v_local_token,'lefteria_fc_academy',v_pos_a1);
+    IF (v_result->>'total_skus')::integer<>1
+      OR (v_result->>'legacy_missing_skus')::integer<>1
+      OR (v_result->>'discrepant_skus')::integer<>1
+      OR (v_result->>'ledger_balances_match')::boolean
+      OR (v_result->>'physical_count_approved')::boolean
+      OR (v_result->>'stock_ready_for_trading')::boolean
+    THEN RAISE EXCEPTION 'pos_stock_missing_legacy_ledger_not_reported'; END IF;
+
+    BEGIN
+      PERFORM pos_cashier.read_admin_site_stock_reconciliation(
+        v_local_token,'lefteria_fc_academy',v_pos_a2);
+      RAISE EXCEPTION 'pos_manager_read_other_location_inventory';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+      PERFORM pos_cashier.read_admin_site_stock_reconciliation(
+        v_neighbor_token,'lefteria_fc_academy',v_pos_a1);
+      RAISE EXCEPTION 'pos_other_city_manager_read_inventory';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+      PERFORM pos_cashier.read_admin_site_stock_reconciliation(
+        v_cashier_token,'lefteria_fc_academy',v_pos_a1);
+      RAISE EXCEPTION 'pos_cashier_read_site_inventory_reconciliation';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+    -- Independent legacy product assignment and receiving evidence.
+    -- Synthetic only: these rows are rolled back with the nested block.
+    INSERT INTO pos.location_products(
+      organization_id,location_id,product_id,enabled)
+    VALUES('lefteria_fc_academy',v_pos_a1,v_checkout_product,true);
+    INSERT INTO pos.location_stock(
+      organization_id,location_id,product_id,variant_id,on_hand)
+    VALUES('lefteria_fc_academy',v_pos_a1,v_checkout_product,'unit',3);
+    v_result:=pos_cashier.read_admin_site_stock_reconciliation(
+      v_local_token,'lefteria_fc_academy',v_pos_a1);
+    IF (v_result->>'matched_skus')::integer<>1
+      OR (v_result->>'discrepant_skus')::integer<>0
+      OR NOT (v_result->>'ledger_balances_match')::boolean
+      OR (v_result->>'stock_ready_for_trading')::boolean
+    THEN RAISE EXCEPTION 'pos_stock_balances_match_wrong_or_approved'; END IF;
+
     v_result:=pos_cashier.read_assigned_cashier_sellable_stock(
       v_cashier_token,'lefteria_fc_academy',v_register_a1,v_cashier_shift);
     IF v_result->>'organization_id'<>'lefteria_fc_academy'
@@ -362,6 +406,17 @@ BEGIN
       OR (SELECT count(*) FROM pos_cashier.sale_reservations
           WHERE sale_id=v_checkout_sale AND consumed_at IS NOT NULL)<>1
     THEN RAISE EXCEPTION 'cashier_atomic_tender_receipt_stock_invalid'; END IF;
+
+    -- This is THE pre-launch stock blocker: existing cashier receipts
+    -- reduce only pos_cashier.stock, not the separate store ledger.
+    -- The auditor must expose the difference rather than call it reconciled.
+    v_result:=pos_cashier.read_admin_site_stock_reconciliation(
+      v_local_token,'lefteria_fc_academy',v_pos_a1);
+    IF (v_result->>'discrepant_skus')::integer<>1
+      OR (v_result->'lines'->0->>'status')<>'quantity_mismatch'
+      OR (v_result->'lines'->0->>'quantity_difference')::bigint<>2
+      OR (v_result->>'ledger_balances_match')::boolean
+    THEN RAISE EXCEPTION 'pos_completed_sale_stock_ledger_drift_hidden'; END IF;
 
     v_cash_read:=pos_cashier.read_assigned_cashier_receipt(
       v_cashier_token,'lefteria_fc_academy',v_checkout_receipt);
