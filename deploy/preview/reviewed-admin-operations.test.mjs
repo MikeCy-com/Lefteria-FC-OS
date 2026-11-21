@@ -15,16 +15,16 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
     Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
       JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
       .map(([method])=>[method,path]));
-  assert.equal(guarded.length,111);
+  assert.equal(guarded.length,115);
   const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
-  assert.equal(reviewed.size,94);
+  assert.equal(reviewed.size,98);
   for(const [method,path] of reviewedAdminEntries){
     assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
     assert.equal(permitted(method.toUpperCase(),
       path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
       true,method+' '+path);
   }
-  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,111);
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,115);
   assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
     /handle @entry_get/);
 });
@@ -33,6 +33,10 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['GET','/api/admin/football/audiences'],
     ['POST','/api/admin/football/groups'],
     ['POST','/api/admin/football/groups/with-profile'],
+    ['GET','/api/admin/website/sponsorships'],
+    ['POST','/api/admin/website/sponsorships/draft'],
+    ['POST','/api/admin/website/sponsorships/native'],
+    ['POST','/api/admin/website/sponsorships/publication'],
     ['GET','/api/admin/football/players'],
     ['GET','/api/admin/football/group-players'],
     ['PUT','/api/admin/football/assignments'],
@@ -45,12 +49,18 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/access/users'],
     ['POST','/api/admin/academy/office/registrations/enroll'],
     ['POST','/api/admin/access/users/status'],
+    ['POST','/api/admin/access/users/role'],
+    ['POST','/api/admin/staff/coaches'],
     ['GET','/api/admin/academy/training/plans'],
     ['POST','/api/admin/academy/training/plans'],
     ['POST','/api/admin/auth/profile/name'],
     ['POST','/api/admin/auth/profile/password'],
     ['GET','/api/admin/auth/profile/contact-email'],
     ['GET','/api/admin/hub/fan-subscriptions/overview'],
+    ['GET','/api/admin/hub/classroom-curriculum'],
+    ['PUT','/api/admin/hub/classroom-curriculum/11111111-1111-4111-8111-111111111111'],
+    ['GET','/api/admin/hub/players/ci-player/learning-position'],
+    ['PUT','/api/admin/hub/players/ci-player/learning-position'],
     ['POST','/api/admin/auth/profile/contact-email']
   ]){
     assert.equal(permitted(method,path),true,method+' '+path);
@@ -60,10 +70,11 @@ test('club administration operations are reached but never wrong verbs, trailing
   for(const method of ['GET','POST','PUT','PATCH','DELETE','OPTIONS']){
     for(const path of ['/api/admin/future','/api/admin/football/unknown',
       '/api/admin/football/territories/unknown','/api/admin/football/group-players/extra',
-      '/api/admin/access/users/delete','/api/health/live','/api/openapi/v1.json'])
+      '/api/admin/access/users/delete','/api/admin/website/sponsorships/unknown',
+      '/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,15);
+  assert.equal(reviewedHiddenAdminEntries.length,24);
 });
 test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
   const future=structuredClone(contract);
@@ -82,6 +93,7 @@ test('hidden admin routes are pinned to independently authorized source instead 
     'backend/src/LefteriaFc.Api/Audiences/AdminRosterPlayerEndpoints.cs',
     'backend/src/LefteriaFc.Api/WebAdmin/AdminUserDirectoryEndpoints.cs',
     'backend/src/LefteriaFc.Api/Marketing/AcademyIntakeAdminEndpoints.cs',
+    'backend/src/LefteriaFc.Api/Crm/AcademyGuardianProofEndpoints.cs',
     'backend/src/LefteriaFc.Api/WebAdmin/AdminSelfServiceEndpoints.cs',
     'backend/src/LefteriaFc.Api/Hub/AdminHubEndpoints.cs'
   ];
@@ -89,6 +101,7 @@ test('hidden admin routes are pinned to independently authorized source instead 
   for(const source of sources)assert.match(source,/RequireAuthorization\(WebAdminServices\.Policy\)/);
   for(const route of ['/api/admin/football/territories','/api/admin/football/group-players',
     '/api/admin/access/users','/api/admin/academy/intake',
+    '/api/admin/academy/office/guardians',
     '/api/admin/auth/profile/name','/api/admin/auth/profile/password',
     '/api/admin/hub/fan-subscriptions/overview'])
     assert.ok(sources.some(source=>source.includes(route)),'No secured source path '+route);

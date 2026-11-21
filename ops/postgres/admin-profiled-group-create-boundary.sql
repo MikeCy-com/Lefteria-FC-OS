@@ -15,7 +15,8 @@ BEGIN
       AND contype='p')
   THEN RAISE EXCEPTION 'profiled_group_request_uniqueness_missing'; END IF;
   FOREACH f IN ARRAY ARRAY[
-    'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure::oid
+    'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure::oid,
+    'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc WHERE oid=f AND prosecdef)
        OR EXISTS(

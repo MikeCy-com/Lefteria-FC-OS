@@ -1,6 +1,7 @@
 <script lang="ts">
   import { browser } from '$app/env';
   import AdminPlayerPrivateRecordsPanel from './AdminPlayerPrivateRecordsPanel.svelte';
+  import AdminPlayerDevelopmentGoals from './AdminPlayerDevelopmentGoals.svelte';
   import AdminGroupAttendancePanel from './AdminGroupAttendancePanel.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
@@ -8,9 +9,10 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
     allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGoalManagement?:boolean;
+    allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
   } = $props();
@@ -26,6 +28,7 @@
   let editing = $state<string|null>(null);
   let selectedGroups = $state<string[]>([]);
   let inspectedPlayer = $state<string|null>(null);
+  let inspectedGoals = $state<string|null>(null);
   let saving = $state(false);
   let saveError = $state<string|null>(null);
   let saveSuccess = $state<string|null>(null);
@@ -156,7 +159,8 @@
     const generation=refresh;
     void actor;void generation;
 
-    page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;selectedGroups=[];saveError=null;
+    page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;inspectedGoals=null;
+    selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
     loading=true;
@@ -238,6 +242,15 @@
                   href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
                   data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
               {/if}
+              {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
+                <button type="button" class="admin-secondary"
+                  data-testid="admin-manager-goal-reader-toggle"
+                  aria-expanded={inspectedGoals===player.id}
+                  disabled={saving||loading}
+                  onclick={()=>inspectedGoals=inspectedGoals===player.id?null:player.id}>
+                  {inspectedGoals===player.id?'Κλείσιμο στόχων':'Ατομικοί στόχοι · Προβολή'}
+                </button>
+              {/if}
               {#if allowPrivate && currentGroups(player).length>0}
                 <button type="button" class="admin-secondary"
                   aria-expanded={inspectedPlayer===player.id}
@@ -284,6 +297,14 @@
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
+            {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
+              currentGroups(player).includes(currentGroup)}
+              <div class="admin-player-individual-workspace"
+                data-testid="admin-manager-player-goals-workspace">
+                <AdminPlayerDevelopmentGoals {owner} playerId={player.id}
+                  playerName={player.name} {actorId} readOnly {onExpired} {onRevoked}/>
+              </div>
+            {/if}
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
               <div class="admin-player-individual-workspace" data-testid="admin-player-individual-workspace">
                 <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}

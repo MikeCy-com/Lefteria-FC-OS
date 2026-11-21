@@ -64,3 +64,12 @@ test('settings are capability-scoped and profile writes require verified self-se
   assert.match(profile,/email απαιτεί επαλήθευση/);
   assert.doesNotMatch(profile,/localStorage|sessionStorage|oninput=.*fetch/);
 });
+
+test('first-team creation shortcut matches the actual Super Admin-only group creation gate',()=>{
+  // A manager may manage assigned teams but must not be offered an action the
+  // group creation form explicitly denies. Academy managers retain their
+  // separately scoped creation route.
+  assert.match(home,/hasAdminPermission\(user\.permissions,'teams:write'\)\s*&&\s*user\.role==='super_admin'/);
+  assert.match(groups,/organization !== 'lefteria_fc' \|\| \$auth\.session\.user\.role==='super_admin'/);
+  assert.match(home,/hasAdminPermission\(user\.permissions,'academy:write'\)\s*&&\s*\['manager','super_admin'\]\.includes\(user\.role\)/);
+});

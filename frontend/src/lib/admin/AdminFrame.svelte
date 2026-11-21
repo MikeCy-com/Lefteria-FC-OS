@@ -11,7 +11,7 @@
     user:WebAdminSession['user'];
     active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
-      'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages';
+      'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages'|'media'|'sponsors';
     busy?:boolean;onLogout:()=>void;children:Snippet;
   }=$props();
   const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
@@ -22,7 +22,7 @@
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
   const hasOperations=$derived(liveIds.has('staff')||liveIds.has('users')||liveIds.has('onboarding'));
-  const hasWebsite=$derived(liveIds.has('news')||canReadClub(user));
+  const hasWebsite=$derived(liveIds.has('pages')||liveIds.has('news')||liveIds.has('media')||liveIds.has('sponsors')||canReadClub(user));
 </script>
 
 <div class="admin-workspace">
@@ -69,6 +69,8 @@
           <p class="admin-nav-label">ΙΣΤΟΣΕΛΙΔΑ</p>
           {#if liveIds.has('pages')}<a class="admin-nav-section" href="/admin/website-pages" aria-current={active==='pages'?'page':undefined}>Σελίδες · Visual Builder</a>{/if}
           {#if liveIds.has('news')}<a class="admin-nav-section" href="/admin/news" aria-current={active==='news'?'page':undefined} data-testid="admin-news-link">Άρθρα & νέα</a>{/if}
+          {#if liveIds.has('media')}<a class="admin-nav-tool" href="/admin/media" aria-current={active==='media'?'page':undefined} data-testid="admin-media-link">Βιβλιοθήκη εικόνων</a>{/if}
+          {#if liveIds.has('sponsors')}<a class="admin-nav-tool" href="/admin/sponsors" aria-current={active==='sponsors'?'page':undefined} data-testid="admin-sponsors-link">Χορηγοί & συνεργάτες</a>{/if}
           {#if canReadClub(user)}<a class="admin-nav-tool" href="/admin/settings#website-settings" aria-current={active==='club'?'page':undefined}>Ρυθμίσεις ιστοσελίδας</a>{/if}
         </div>
       {/if}

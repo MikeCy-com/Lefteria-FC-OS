@@ -422,6 +422,37 @@ try {
         title:document.title,
         main:document.querySelectorAll('main').length
       }));
+      // Typography audit: source screenshots exposed oversized display type.
+      // Check actual computed CSS, not just tokens, at every viewport including
+      // phone and 4K. Body text and the fixed Academy groups baseline stay intact.
+      const displayType = await page.evaluate(kind => {
+        const selectors = {
+          home:'.home-reference .public-hero-copy h1',
+          academy:'.academy-intro h1',
+          'first-team':'.team-heading:not(.matches-reference-heading) > h1',
+          'team-schedule':'.matches-reference-banner h1',
+          'app-login':'.login-welcome h2'
+        };
+        const selector = selectors[kind];
+        if (!selector) return null;
+        const element = document.querySelector(selector);
+        return element ? {
+          selector,px:Math.round(parseFloat(getComputedStyle(element).fontSize)*10)/10,
+          text:element.textContent?.trim().slice(0,65)
+        } : {selector,px:null};
+      },route.name);
+      if(displayType) {
+        const caps = {
+          home:viewport.width<=767?47:80,
+          academy:viewport.width<=767?55:76,
+          'first-team':viewport.width<=767?55:76,
+          'team-schedule':viewport.width<=767?52:68,
+          'app-login':viewport.width<=720?35:57
+        };
+        const cap=caps[route.name];
+        if(displayType.px===null || !Number.isFinite(displayType.px) || displayType.px>cap)
+          failures.push(route.path+' '+viewport.name+': display typography '+JSON.stringify(displayType)+' exceeds '+cap+'px');
+      }
       // Source reference pictures are 1672×941. Measure actual browser
       // geometry against their major visible regions without pretending
       // that bounds alone establish photographic/pixel parity.
@@ -551,13 +582,66 @@ try {
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,referenceLayout,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);
       if (metrics.scrollWidth > metrics.clientWidth + 2) failures.push(`${route.path} ${viewport.name}: horizontal overflow ${metrics.scrollWidth} > ${metrics.clientWidth}`);
       if (metrics.main < 1 && route.name !== 'app-login') failures.push(`${route.path} ${viewport.name}: missing main landmark`);
       if (!metrics.title.trim()) failures.push(`${route.path} ${viewport.name}: empty document title`);
+      // Real Chromium search check at phone + reference desktop widths.
+      // Search remains organization-specific even when the news API is absent.
+      if (['academy','first-team'].includes(route.name) &&
+          ['phone','reference'].includes(viewport.name)) {
+        // The audit navigates with DOMContentLoaded for screenshot speed.
+        // Wait for client hydration before exercising a real event handler,
+        // then retry a few times instead of mistaking SSR markup for a click.
+        await page.waitForLoadState('load',{timeout:12000}).catch(()=>{});
+        const trigger=page.getByTestId('public-search-open');
+        const dialog=page.getByTestId('public-search-dialog');
+        let opened=false;
+        for(let attempt=0;attempt<3 && !opened;attempt++){
+          await trigger.click();
+          try {await dialog.waitFor({state:'visible',timeout:2000});opened=true;}
+          catch { /* allow client hydration to complete */ }
+        }
+        if(!opened) {
+          failures.push(route.name+' '+viewport.name+': search did not open after client hydration');
+        }else{
+        const contextText=await page.getByTestId('public-search-context').innerText();
+        const input=page.getByTestId('public-search-input');
+        if(route.name==='academy'){
+          if(!contextText.includes('Ακαδημία'))
+            failures.push('Academy search context is not Academy-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==0)
+            failures.push('Academy search exposed First Team results on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==1)
+            failures.push('Academy search lost its age-group directory on '+viewport.name);
+        }else{
+          if(!contextText.includes('Πρώτη ομάδα'))
+            failures.push('First Team search context is not club-scoped on '+viewport.name);
+          await input.fill('ΑΠΟΤΕΛΕΣΜΑΤΑ');
+          if(await page.getByTestId('public-search-results').locator('a[href="/team?tab=results"]').count()!==1)
+            failures.push('First Team search lost verified match results link on '+viewport.name);
+          await input.fill('Ηλικιακά τμήματα');
+          if(await page.getByTestId('public-search-result-academy-groups').count()!==0)
+            failures.push('First Team search exposed Academy groups on '+viewport.name);
+        }
+        const countText=await page.getByTestId('public-search-count').innerText();
+        if(!/(?:αποτέλεσμα|αποτελέσματα)/u.test(countText))
+          failures.push('Search live result counter is absent on '+viewport.name);
+        // Preserve a real, inspectable screenshot of the open search surface.
+        await input.fill(route.name==='academy' ? 'Ηλικιακά τμήματα' : 'ΑΠΟΤΕΛΕΣΜΑΤΑ');
+        await page.screenshot({
+          path:path.join(artifacts,route.name+'-search-'+viewport.name+'.png'),
+          animations:'disabled',timeout:30000
+        });
+        await page.keyboard.press('Escape');
+        await page.getByTestId('public-search-dialog').waitFor({state:'hidden'});
+        }
+      }
       await page.close();
     }
     await context.close();

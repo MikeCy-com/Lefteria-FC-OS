@@ -20,6 +20,9 @@ public sealed record ManagedAdminCreateCommand(
 public sealed record ManagedAdminStatusCommand(
     Guid? Id, string? ExpectedRole, bool? ExpectedActive, bool? Active);
 
+public sealed record ManagedAdminRoleCommand(
+    Guid? Id, string? ExpectedRole, bool? ExpectedActive, string? NextRole);
+
 public static class AdminUserDirectoryEndpoints
 {
     private static readonly SemaphoreSlim PasswordHashQueue = new(2,2);
@@ -289,6 +292,82 @@ public static class AdminUserDirectoryEndpoints
         .WithName("SetManagedAdminStatus")
         .WithTags("Web administration")
         .Accepts<ManagedAdminStatusCommand>("application/json")
+        .ExcludeFromDescription();
+        // This endpoint does not delegate scope. The writer refuses to
+        // reinterpret any pre-existing city/location/team/staff assignment.
+        endpoints.MapPost("/api/admin/access/users/role", async (
+            ManagedAdminRoleCommand request,HttpContext context,
+            WebAdminService service,WebAdminConnections connections,
+            IWebAdminSecrets secrets,CancellationToken token) =>
+        {
+            context.Response.Headers.CacheControl="private, no-store";
+            context.Response.Headers.Pragma="no-cache";
+            var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+            var session=await service.CurrentAsync(cookie,token);
+            if(session is null)
+                throw new WebAdminException(401,"not_authenticated","Sign in again.");
+            if(session.User.Role!="super_admin")
+                throw new WebAdminException(403,"not_authorized","Super administrator required.");
+
+            var allowed=new HashSet<string>(StringComparer.Ordinal){
+                "manager","coach","editor","marketing","matchday_editor","accountant"
+            };
+            if(request.Id is null || request.Id==Guid.Empty ||
+                request.Id==session.User.Id ||
+                request.ExpectedRole is null || !allowed.Contains(request.ExpectedRole) ||
+                request.NextRole is null || !allowed.Contains(request.NextRole) ||
+                request.NextRole==request.ExpectedRole || request.ExpectedActive is null)
+                throw new WebAdminException(422,"managed_admin_role_invalid",
+                    "Choose another delegated account and a different permitted role.");
+
+            await using var connection=await connections.OpenAsync(token);
+            await using var cmd=new NpgsqlCommand(
+                "SELECT identity.change_managed_admin_role(@digest,@subject,@expected_role,@expected_active,@next_role)",
+                connection);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie!));
+            cmd.Parameters.AddWithValue("subject",request.Id.Value);
+            cmd.Parameters.AddWithValue("expected_role",request.ExpectedRole);
+            cmd.Parameters.AddWithValue("expected_active",request.ExpectedActive.Value);
+            cmd.Parameters.AddWithValue("next_role",request.NextRole);
+            try
+            {
+                if(await cmd.ExecuteScalarAsync(token) is not string persisted ||
+                   persisted!=request.NextRole)
+                    throw new WebAdminException(503,"managed_admin_role_unconfirmed",
+                        "The account role change was not confirmed.");
+            }
+            catch(PostgresException e) when(e.SqlState=="40001")
+            {
+                throw new WebAdminException(409,"managed_admin_role_conflict",
+                    "The account changed; refresh before choosing a role.");
+            }
+            catch(PostgresException e) when(e.SqlState=="23514")
+            {
+                throw new WebAdminException(409,"managed_admin_role_assignments_exist",
+                    "Revoke existing team, city, location and staff assignments first.");
+            }
+            catch(PostgresException e) when(e.SqlState=="42501")
+            {
+                throw new WebAdminException(403,"managed_admin_role_denied",
+                    "This account or its organizations cannot be managed here.");
+            }
+            catch(PostgresException e) when(e.SqlState=="22023")
+            {
+                throw new WebAdminException(422,"managed_admin_role_invalid",
+                    "The new role or expected state is invalid.");
+            }
+            catch(PostgresException e) when(e.SqlState is "42883" or "3F000")
+            {
+                throw new WebAdminException(503,"managed_admin_role_unavailable",
+                    "Safe account role management is not installed here.");
+            }
+            return Results.Json(new {id=request.Id,role=request.NextRole,
+                active=request.ExpectedActive});
+        })
+        .RequireAuthorization(WebAdminServices.Policy)
+        .WithName("ChangeManagedAdminRole")
+        .WithTags("Web administration")
+        .Accepts<ManagedAdminRoleCommand>("application/json")
         .ExcludeFromDescription();
         return endpoints;
     }

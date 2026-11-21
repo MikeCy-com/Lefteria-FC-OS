@@ -91,3 +91,128 @@ Shared root, club/news/events/shop/contact slots retain their existing
 organization-specific pages. Incompatible pre-existing snapshots remain
 available through their direct scoped URL but cannot appear in the wrong
 organization's public menu until corrected and republished.
+
+## Native page search indexing
+
+Indexable production sitemap discovery now includes only the anonymous,
+**published** CMS projection for each verified organization. The sitemap does
+not expose editor drafts, hidden menu entries, reserved homepage hero slots,
+or snapshots attached to a different organization's menu. It includes the
+publication date when valid. Non-production origins remain fully blocked from
+sitemap generation, before either CMS projection is requested.
+
+Academy CMS URLs keep `?organization_id=lefteria_fc_academy` in their canonical
+and social `og:url` metadata; First Team pages have the clean path. Untrusted
+query parameters and spoofed organization identifiers are dropped. Changes
+are code-only and require normal staging verification before deployment.
+
+## Accessible native block arrangement
+
+The CMS editor now provides an explicit drag handle for pointer-based block
+reordering, alongside the existing keyboard/mobile **up and down** controls.
+Dropping uses an in-session index only (never arbitrary external drag payloads)
+and is disabled for read-only users, homepage hero slots, and in-flight saves.
+Blocks can also be duplicated with one click, preserving text/URLs while
+respecting the 40-block content limit; all changes remain private drafts until
+separately saved and approved. Editor movement and duplication are pure,
+nonmutating operations with automated boundary tests. No untrusted HTML,
+plugins, or media uploads are introduced by this improvement.
+
+## Published media browser and image block picker
+
+The dedicated /admin/media page is an **owner-scoped, read-only browser** of
+already publicly visible image URLs from gallery, sponsors, partners and events.
+It uses only the anonymous public-sections DTO, never sensitive player records,
+families, original import evidence or document storage. Users must be signed in
+with gallery:read and a current grant for the selected organization. Every
+record is re-filtered by that owner, and only safe local or HTTPS image URLs are
+accepted. A failed/uninitialized publication is shown as an error, not as an
+invented empty library.
+
+In the native Visual Builder, an image block can open the same browser and
+populate its URL (plus optional alt text) without introducing a second upload
+store. The editor can still use a manually entered safe URL. Image selection
+changes **only the local private draft**; saving and manager publication stay
+separate and fully audited by the existing CMS backend.
+
+This does not claim to implement uploads, media deletion, private asset ACLs,
+license clearance, resizing or a media-publishing pipeline. Those remain
+separately gated follow-up work.
+
+## Canonical Academy spotlight editing
+
+The existing Academy spotlight on the public homepage has a separate fixed
+CMS editorial record: `homepage-academy-spotlight`, owned only by
+`lefteria_fc_academy`. Academy-granted editors can create/edit a private,
+hidden draft with exactly two text blocks: a three-phrase headline (using
+the existing highlighted middle-dot separators) and a description.
+The server independently rejects wrong-owner, reordered, extra, oversized
+or differently positioned blocks. A manager/super-admin must separately
+approve publication through the existing audited CMS flow.
+
+Only approved, structurally valid copy replaces the current spotlight text.
+Without it, the exact legacy headline and description are rendered. The
+background image, actual Academy group count, layout, styles, link and
+destination remain owned by their original dynamic components. This fixed
+slot cannot be opened as a public /pages URL or indexed in the sitemap;
+it is excluded from navigation even if an older record is malformed.
+There are no new database tables, permissions or Hostinger deployments.
+
+## Sponsor and partner publishing administration
+
+The first native sponsor/partner editorial slice is in `/admin/sponsors`.
+It lists **only current, already imported public sponsor/partner records**
+for each explicitly granted organization. It preserves their canonical
+source IDs and imported public details; it does not create a new independent
+sponsor catalog. Each editor can propose an audited, optimistic-concurrency
+draft (name, short description/tagline, sponsor logo/partner cover image,
+HTTPS website, display order). There is a visual preview and an image
+picker restricted to already published images from the same owner.
+
+A current `sponsors:read` + organization grant is needed to load records.
+`sponsors:write` authorizes drafts, and a manager/super-admin with the same
+current grant must separately approve publication or unpublish changes.
+Each request rechecks the real account, active credential-bound session,
+owner grant and imported record identity *inside the same locked transaction*.
+A conflicting version is rejected, never silently overwritten. Publication
+copies only an approved draft into a separate published snapshot and writes
+an actor/session/owner security audit event. Unpublishing restores the source
+record in the anonymous catalog; imported source and provenance are immutable.
+
+The public runtime cannot read private drafts or the new table; the narrow
+`read_published_sponsorship` security-definer function exposes only
+published fields to the existing First Team / Academy public-sections
+projection. The original sponsor and partner detail routes, related
+benefits, personnel, slugs and layouts are retained. The admin side has
+no cross-owner fallback and distinguishes an unavailable published source
+from a valid empty list.
+
+The next **native creation** slice adds `POST /api/admin/website/sponsorships/native`.
+Editors may create a new sponsor or partner only inside their current organization.
+The server generates an immutable `cms-<uuid>` ID and stores the record as a
+**private, never auto-published draft**. Native records do not mutate or replace
+any imported source document. An additional migration labels native editorial
+records, and the existing allowlisted public SQL projection exposes them only
+after a manager or Super Admin has explicitly published that version.
+Approved native sponsors and partners appear in the existing catalog and
+detail pages, with their scoped canonical links. Withdrawing a native
+publication removes the record from public catalog output but preserves its
+private draft. The public service never reads the native draft table.
+
+The first native creation supports five bounded presentation fields
+(name, short description, safe image, HTTPS site, display order). It
+does **not** implement contractual/legal relationships, sponsor commercial
+tiers, billing, native file upload, deletion, or automatic publication.
+Apply the EF migrations and
+separate least-privilege grants in an **isolated staging database** before
+testing. No automatic Hostinger or production deployment is performed.
+
+
+### Native sponsorship lifecycle and recovery
+- Server-generated IDs prevent clients from impersonating imported source IDs.
+- `is_native` is immutable to the web admin role: column UPDATE is never granted.
+- The original imported source identity checker remains mandatory for all non-native revisions.
+- Native drafts are bounded to 100 per organization and cannot be read anonymously.
+- The migration's reverse path refuses to destroy existing native drafts or their audit evidence.
+- The disposable PostgreSQL boundary probe confirms draft exclusion, isolated publication,
+  stable approved copy during later draft edits, and withdrawal.

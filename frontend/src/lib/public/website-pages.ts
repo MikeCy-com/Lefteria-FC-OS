@@ -30,6 +30,41 @@ export function websiteMenuParentAllowed(organization: PublicOrganization, paren
 }
 export const isHomeHeroSlug = (slug: string) =>
   slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
+export const HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG = 'homepage-academy-spotlight' as const;
+export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
+// Native slots are not routable standalone CMS pages, even if a legacy
+// record has an incompatible menu assignment.
+export const isHomepageEditorialSlug = (slug: string) =>
+  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug);
+
+export function websitePageParentLink(
+  organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
+): {href: string; label: string} {
+  const isAcademy = organization === 'lefteria_fc_academy';
+  // About and Contact accept organization_id; Events accepts scope instead.
+  // The current Shop is a shared first-team surface and must not pretend
+  // that an ignored organization_id parameter filters its catalog.
+  // Shared public routes support an explicit organization_id. Preserve the
+  // Academy context rather than silently falling back to the First Team.
+  const shared = (path: string) => isAcademy ? path + '?organization_id=lefteria_fc_academy' : path;
+  // Only a published page may reach this component. Return to the native,
+  // contextually correct public hub—not to an admin editor or a sibling org.
+  switch (parent) {
+    case 'club': return {href:shared('/about'),label:'Ο ΣΥΛΛΟΓΟΣ'};
+    case 'team': return {href:'/team',label:'ΠΡΩΤΗ ΟΜΑΔΑ'};
+    case 'academy': return {href:'/academy',label:'ΑΚΑΔΗΜΙΑ'};
+    case 'matches': return {href:'/team?tab=results',label:'ΑΓΩΝΕΣ'};
+    case 'news': return {href:isAcademy ? '/news?organization_id=lefteria_fc_academy' : '/news?organization_id=lefteria_fc',label:isAcademy ? 'ΝΕΑ ΑΚΑΔΗΜΙΑΣ' : 'ΝΕΑ ΠΡΩΤΗΣ ΟΜΑΔΑΣ'};
+    case 'events': return {href:isAcademy ? '/events?scope=academy' : '/events?scope=first_team',label:'ΕΚΔΗΛΩΣΕΙΣ'};
+    case 'shop': return {href:'/shop',label:'ΚΑΤΑΣΤΗΜΑ'};
+    case 'contact': return {href:shared('/contact'),label:'ΕΠΙΚΟΙΝΩΝΙΑ'};
+    case 'root':
+    case 'hidden':
+    default: return isAcademy
+      ? {href:'/academy',label:'ΑΚΑΔΗΜΙΑ'}
+      : {href:'/team',label:'ΠΡΩΤΗ ΟΜΑΔΑ'};
+  }
+}
 
 export function websitePagePath(slug: string, org: PublicOrganization): string {
   return '/pages/' + encodeURIComponent(slug) +
@@ -38,7 +73,9 @@ export function websitePagePath(slug: string, org: PublicOrganization): string {
 export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization): value is PublishedWebsitePage {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const row = value as Partial<PublishedWebsitePage>;
-  if (row.organization_id !== owner || typeof row.slug !== 'string' ||
+  if (row.organization_id !== owner || typeof row.published_at !== 'string' ||
+      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(row.published_at) ||
+      !Number.isFinite(Date.parse(row.published_at)) || typeof row.slug !== 'string' ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(row.slug) ||
       !row.page || typeof row.page !== 'object' ||
       typeof row.page.title !== 'string' || !Array.isArray(row.page.blocks) ||
@@ -57,7 +94,7 @@ export function withWebsitePages(
   const result = navigation.map(item => item.items ?
     {...item, items: [...item.items]} as PublicNavigationItem : {...item} as PublicNavigationItem);
   for (const row of [...pages].filter(p => p.organization_id === organization &&
-      isPublishedWebsitePage(p, organization) && !isHomeHeroSlug(p.slug) &&
+      isPublishedWebsitePage(p, organization) && !isHomepageEditorialSlug(p.slug) &&
       p.page.menu_parent !== 'hidden' && websiteMenuParentAllowed(organization, p.page.menu_parent))
       .sort((a,b) => a.page.menu_order-b.page.menu_order || a.slug.localeCompare(b.slug))) {
     const path = websitePagePath(row.slug, organization);

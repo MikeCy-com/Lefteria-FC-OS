@@ -26,6 +26,8 @@
   let accountRole=$state('coach'),selectedOwners=$state<string[]>([]);
   let createError=$state(''),createNotice=$state('');
   let statusPending=$state(''),statusError=$state(''),statusNotice=$state('');
+  let rolePending=$state(''),roleError=$state(''),roleNotice=$state('');
+  let roleDrafts=$state<Record<string,string>>({});
   let provisionedAccountId=$state(''),provisionedOwner=$state(''),provisionedRole=$state('');
   const availableOwners=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
@@ -86,7 +88,7 @@
 
 
   async function setAccountActive(account:Entry){
-    if(!browser||!permitted||statusPending||loading||!page ||
+    if(!browser||!permitted||statusPending||rolePending||loading||!page ||
       account.id===$auth.session?.user.id||account.role==='super_admin'||
       account.invitation_pending||!page.accounts.some(item=>item.id===account.id))return;
     const actor=$auth.session?.user.id;
@@ -117,6 +119,52 @@
       revision++;
     }catch(e){statusError=e instanceof Error?e.message:'Η αλλαγή κατάστασης απέτυχε.';}
     finally{statusPending='';}
+  }
+
+  async function changeAccountRole(account:Entry){
+    const nextRole=roleDrafts[account.id]??account.role;
+    if(!browser||!permitted||rolePending||statusPending||loading||!page ||
+      account.id===$auth.session?.user.id||account.role==='super_admin'||
+      account.invitation_pending||nextRole===account.role||
+      !roleChoices.some(([value])=>value===nextRole)||
+      !page.accounts.some(item=>item.id===account.id&&item.role===account.role&&
+        item.active===account.active))return;
+    const actor=$auth.session?.user.id;
+    if(!window.confirm('Αλλαγή ρόλου «'+account.name+'» από '+
+      account.role+' σε '+nextRole+'; Οι ενεργές συνεδρίες θα ανακληθούν. '+
+      'Εάν υπάρχουν αναθέσεις πόλης, τοποθεσίας, ομάδας, προσωπικού ή ενεργό POS, '+
+      'η αλλαγή θα απορριφθεί μέχρι να αφαιρεθούν χωριστά.'))return;
+    rolePending=account.id;roleError='';roleNotice='';
+    try{
+      const response=await fetch('/api/admin/access/users/role',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({id:account.id,expected_role:account.role,
+          expected_active:account.active,next_role:nextRole})
+      });
+      if(actor!==$auth.session?.user.id)return;
+      if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
+      if(response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση δεν επιτρέπεται για αυτόν τον λογαριασμό.');}
+      if(response.status===409){
+        const body:unknown=await response.json().catch(()=>null);
+        if(body&&typeof body==='object'&&'code' in body&&
+          body.code==='managed_admin_role_assignments_exist')
+          throw Error('Αφαιρέστε τις αναθέσεις πόλης, τοποθεσίας, ομάδας και προσωπικού και ανακαλέστε τυχόν ενεργούς χειριστές POS.');
+        revision++;throw Error('Ο λογαριασμός άλλαξε. Ανανεώστε και επιλέξτε ξανά ρόλο.');
+      }
+      if(response.status===503)throw Error('Η ασφαλής αλλαγή ρόλων δεν είναι διαθέσιμη.');
+      if(!response.ok)throw Error('Δεν ήταν δυνατή η αλλαγή ρόλου.');
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result)||
+        !('id' in result)||result.id!==account.id||
+        !('role' in result)||result.role!==nextRole||
+        !('active' in result)||result.active!==account.active)
+        throw Error('Ο νέος ρόλος δεν επαληθεύτηκε.');
+      roleDrafts={...roleDrafts,[account.id]:nextRole};
+      roleNotice='Ο ρόλος άλλαξε. Οι παλιές συνεδρίες ανακλήθηκαν και απαιτείται νέα σύνδεση.';
+      revision++;
+    }catch(e){roleError=e instanceof Error?e.message:'Η αλλαγή ρόλου απέτυχε.';}
+    finally{rolePending='';}
   }
 
   const organizationName=(id:string)=>id==='lefteria_fc'?'Lefteria FC':
@@ -192,7 +240,9 @@
       <h1>Χρήστες & δικαιώματα</h1>
       <p class="admin-muted">Δημιουργία χρηστών με ισχυρό αρχικό κωδικό, ρόλο και οργανισμούς.
         Μόνο Super Admin μπορεί να απενεργοποιεί ή επανενεργοποιεί υπάρχοντες λογαριασμούς.
-        Η αλλαγή ρόλου και η πρόσκληση παραμένουν εκτός λειτουργίας.
+        Αλλαγή ρόλου επιτρέπεται αφού αφαιρεθούν οι παλιές αναθέσεις πόλης,
+        τοποθεσίας, ομάδας και προσωπικού και ανακληθούν οι ενεργοί χειριστές POS. Οι συνεδρίες ανακαλούνται αυτόματα.
+        Η πρόσκληση παραμένει εκτός λειτουργίας.
         Ο κατάλογος και τα σύνολα περιλαμβάνουν μόνο λογαριασμούς των οποίων
         όλοι οι οργανισμοί καλύπτονται από τις δικές σας εξουσιοδοτήσεις.</p>
       {#if !permitted}
@@ -260,6 +310,8 @@
             </form>
           {/if}
         </section>
+        {#if roleError}<p role="alert" class="access-create-error" data-testid="admin-account-role-error">{roleError}</p>{/if}
+        {#if roleNotice}<p role="status" class="access-create-success" data-testid="admin-account-role-success">{roleNotice}</p>{/if}
         {#if statusError}<p role="alert" class="access-create-error" data-testid="admin-account-status-error">{statusError}</p>{/if}
         {#if statusNotice}<p role="status" class="access-create-success" data-testid="admin-account-status-success">{statusNotice}</p>{/if}
         <div class="access-toolbar">
@@ -291,10 +343,32 @@
                         account.id!==$auth.session.user.id}
                         <button type="button" class="admin-secondary access-status-button"
                           data-testid="admin-account-status-toggle"
-                          disabled={!!statusPending||loading}
+                          disabled={!!statusPending||!!rolePending||loading}
                           onclick={()=>void setAccountActive(account)}>
                           {statusPending===account.id?'Αποθήκευση…':account.active?'Απενεργοποίηση':'Επανενεργοποίηση'}
                         </button>
+                        <div class="access-role-controls">
+                          <label for={'change-role-'+account.id}>Αλλαγή ρόλου</label>
+                          <select id={'change-role-'+account.id}
+                            data-testid="admin-account-role-select"
+                            value={roleDrafts[account.id]??account.role}
+                            disabled={!!rolePending||!!statusPending||loading}
+                            onchange={e=>{
+                              roleDrafts={...roleDrafts,[account.id]:e.currentTarget.value};
+                              roleError='';roleNotice='';
+                            }}>
+                            {#each roleChoices as [value,label] (value)}
+                              <option value={value}>{label}</option>
+                            {/each}
+                          </select>
+                          <button type="button" class="admin-secondary access-status-button"
+                            data-testid="admin-account-role-submit"
+                            disabled={!!rolePending||!!statusPending||loading||
+                              (roleDrafts[account.id]??account.role)===account.role}
+                            onclick={()=>void changeAccountRole(account)}>
+                            {rolePending===account.id?'Αποθήκευση…':'Αποθήκευση ρόλου'}
+                          </button>
+                        </div>
                       {/if}
                     </div>
                     <div class="access-organizations">
@@ -337,6 +411,9 @@
   .access-list span{font-size:14px;color:#c4c9c9}
   .access-status span:first-child{color:#f1c65d}
   .access-status-button{justify-self:start;margin-top:5px;min-height:44px;font-size:13px}
+  .access-role-controls{display:grid;gap:6px;min-width:0;margin-top:9px}
+  .access-role-controls label{color:#d0d6d7;font-size:13px;font-weight:700}
+  .access-role-controls select{width:100%;max-width:250px;min-height:44px;background:#172024;color:#fff;border:1px solid #667477;border-radius:6px;padding:7px}
   .access-pages span{margin-right:auto}
   @media(max-width:690px){.access-list li{grid-template-columns:1fr 1fr}.access-organizations{grid-column:1/-1}}
   @media(max-width:390px){.access-list li{grid-template-columns:1fr}.access-organizations{grid-column:auto}}

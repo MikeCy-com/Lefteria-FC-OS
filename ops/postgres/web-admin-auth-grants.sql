@@ -125,10 +125,24 @@ REVOKE ALL ON public_content.website_pages FROM PUBLIC, :"app_role";
 GRANT SELECT, INSERT ON public_content.website_pages TO :"admin_auth_role";
 GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
   ON public_content.website_pages TO :"admin_auth_role";
+-- Sponsor and partner editorial drafts stay private, with narrow publication rights.
+REVOKE ALL ON public_content.sponsorship_editorial FROM PUBLIC, :"app_role";
+GRANT SELECT,INSERT ON public_content.sponsorship_editorial TO :"admin_auth_role";
+GRANT UPDATE (draft_json,published_json,published_at,version,updated_at)
+  ON public_content.sponsorship_editorial TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION public_content.read_published_sponsorship(text)
+  FROM PUBLIC, :"admin_auth_role";
+REVOKE ALL ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
+  FROM PUBLIC, :"admin_auth_role", :"app_role";
+GRANT EXECUTE ON FUNCTION public_content.current_sponsorship_exists(text,text,text)
+  TO :"admin_auth_role";
+
 REVOKE ALL ON FUNCTION identity.lock_admin_club_authority(text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.founding_admin_setup_available(), identity.create_founding_admin(uuid,text,text,text) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.admin_academy_office(text,text,jsonb) FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION identity.admin_academy_guardian_proof(text,text,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.admin_academy_guardian_proof(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.enroll_admin_academy_registration(text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.admin_academy_office(text,text,jsonb) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION identity.founding_admin_setup_available() TO :"admin_auth_role";
@@ -144,6 +158,11 @@ GRANT EXECUTE ON FUNCTION identity.create_managed_admin(text,uuid,text,text,text
 REVOKE ALL ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
   FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION identity.set_managed_admin_status(text,uuid,text,boolean,boolean)
+  TO :"admin_auth_role";
+-- Delegated role transitions never grant raw account UPDATE rights.
+REVOKE ALL ON FUNCTION identity.change_managed_admin_role(text,uuid,text,boolean,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.change_managed_admin_role(text,uuid,text,boolean,text)
   TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION identity.lock_admin_login_account(uuid,text,text)
   FROM PUBLIC, :"app_role";
@@ -266,6 +285,43 @@ GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_r
 -- the reviewed function. No SELECT/INSERT rights on club player/team tables.
 REVOKE ALL ON FUNCTION club.create_admin_group(text,text,text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.create_admin_group(text,text,text,text) TO :"admin_auth_role";
+-- Original profiled First Team creation and the new exact Academy location
+-- transaction are separate reviewed functions. Both recheck the live
+-- session and current permissions before any canonical insert.
+REVOKE ALL ON FUNCTION club.create_admin_group_with_profile(
+  text,text,text,text,uuid,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_group_with_profile(
+  text,text,text,text,uuid,jsonb) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.create_admin_academy_location_group_with_profile(
+  text,text,text,uuid,jsonb,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_academy_location_group_with_profile(
+  text,text,text,uuid,jsonb,uuid) TO :"admin_auth_role";
+-- Exact team/location checks are performed by the current SQL profile
+-- boundary, NOT by broad runtime table access.
+REVOKE ALL ON FUNCTION club.read_admin_first_team_profile(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_first_team_profile(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.write_admin_first_team_profile(text,text,bigint,jsonb)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_first_team_profile(text,text,bigint,jsonb)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_admin_academy_group_profile(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_profile(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.write_admin_academy_group_profile(text,text,bigint,jsonb)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_admin_academy_group_profile(text,text,bigint,jsonb)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.read_admin_academy_group_publicity(text,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_academy_group_publicity(text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.set_admin_academy_group_publicity(text,text,bigint,boolean)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.set_admin_academy_group_publicity(text,text,bigint,boolean)
+  TO :"admin_auth_role";
 -- Only an audited, per-player version-checked membership transaction is callable.
 -- No raw roster or group table write privileges are granted.
 REVOKE ALL ON FUNCTION club.write_admin_roster_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
@@ -273,6 +329,11 @@ GRANT EXECUTE ON FUNCTION club.write_admin_roster_assignment(text,text,text,json
 -- Audited, manager-only coach assignment replace; no direct staff DML.
 REVOKE ALL ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.write_admin_coach_assignment(text,text,text,jsonb,jsonb) TO :"admin_auth_role";
+-- Super Admin-only registration: no raw staff or account writes.
+REVOKE ALL ON FUNCTION club.create_admin_native_coach(
+  text,text,uuid,text,text,text,uuid) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.create_admin_native_coach(
+  text,text,uuid,text,text,text,uuid) TO :"admin_auth_role";
 -- Manager-only active coach/staff assignment projection; no direct staff SELECT.
 REVOKE ALL ON FUNCTION club.read_admin_coaches(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO :"admin_auth_role";
@@ -328,6 +389,33 @@ GRANT EXECUTE ON FUNCTION hub.withdraw_admin_player_quiz(text,text,uuid)
 REVOKE ALL ON TABLE hub.player_quizzes,hub.player_quiz_questions,
   hub.player_quiz_tracks,hub.player_quiz_attempts,
   hub.player_quiz_review_events FROM PUBLIC, :"app_role", :"admin_auth_role";
+
+-- Verified player learning specialty may be changed by an active, exactly
+-- organization-granted Super Admin only. Mobile has no writer privileges.
+REVOKE ALL ON FUNCTION hub.assert_admin_learning_position_authority(text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.read_admin_player_learning_position(text,text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.read_admin_player_learning_position(text,text,text)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON TABLE hub.player_learning_specializations,
+  hub.player_learning_specialization_events FROM PUBLIC, :"app_role", :"admin_auth_role";
+
+-- Reviewed classroom curriculum classification is Super Admin-only in SQL.
+REVOKE ALL ON FUNCTION hub.read_admin_classroom_curriculum(text,text,integer,integer)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+REVOKE ALL ON FUNCTION hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.read_admin_classroom_curriculum(text,text,integer,integer)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)
+  TO :"admin_auth_role";
+REVOKE ALL ON TABLE hub.classroom_lesson_subjects,hub.classroom_lesson_subject_events
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
 
 -- HUB editorial is exposed only through a scoped security-definer function.
 -- Never grant direct hub table access or callable access to the mobile role.
@@ -395,9 +483,11 @@ BEGIN
                 AND p.oid NOT IN ('identity.founding_admin_setup_available()'::regprocedure,
                   'identity.admin_academy_office(text,text,jsonb)'::regprocedure,
                   'identity.enroll_admin_academy_registration(text,jsonb)'::regprocedure,
+                  'identity.admin_academy_guardian_proof(text,text,jsonb)'::regprocedure,
                   'identity.create_founding_admin(uuid,text,text,text)'::regprocedure,
                   'identity.create_managed_admin(text,uuid,text,text,text,text,text[])'::regprocedure,
                   'identity.set_managed_admin_status(text,uuid,text,boolean,boolean)'::regprocedure,
+                  'identity.change_managed_admin_role(text,uuid,text,boolean,text)'::regprocedure,
                   'identity.lock_admin_login_account(uuid,text,text)'::regprocedure,
                    'identity.write_admin_own_name(text,text,text)'::regprocedure,
                    'identity.write_admin_own_password(text,text,text)'::regprocedure,
@@ -406,15 +496,25 @@ BEGIN
                    'identity.read_admin_own_profile_photo(text)'::regprocedure,
                    'identity.write_admin_own_profile_photo(text,bytea)'::regprocedure,
                   'identity.lock_admin_club_authority(text,text)'::regprocedure,
+                   'public_content.current_sponsorship_exists(text,text,text)'::regprocedure,
                   'pos.read_admin_catalog(text,text)'::regprocedure,
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
+                  'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
+                  'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
+                  'club.read_admin_first_team_profile(text,text)'::regprocedure,
+                  'club.write_admin_first_team_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_profile(text,text)'::regprocedure,
+                  'club.write_admin_academy_group_profile(text,text,bigint,jsonb)'::regprocedure,
+                  'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
+                  'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
                    'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
+                  'club.create_admin_native_coach(text,text,uuid,text,text,text,uuid)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
                   'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
@@ -431,7 +531,11 @@ BEGIN
                   'hub.read_admin_quarantined_image(text,text,uuid,uuid)'::regprocedure,
                   'hub.reject_admin_hub_image(text,text,uuid,bigint,uuid)'::regprocedure,
                   'hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure,
-                  'hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)'::regprocedure,
+                  'hub.read_admin_player_learning_position(text,text,text)'::regprocedure,
+                   'hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)'::regprocedure,
+                   'hub.read_admin_classroom_curriculum(text,text,integer,integer)'::regprocedure,
+                   'hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)'::regprocedure,
+                   'hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)'::regprocedure,
                   'hub.list_admin_player_quizzes(text,text)'::regprocedure,
                   'hub.detail_admin_player_quiz(text,text,uuid)'::regprocedure,
                   'hub.approve_admin_player_quiz(text,text,uuid)'::regprocedure,
@@ -457,16 +561,17 @@ BEGIN
       OR (target.nspname='identity' AND target.relname='admin_accounts' AND target.attname IN
           ('id','username','display_name','role','is_active','invite_pending','otp2fa_enabled','password_hash'))
       OR (target.nspname='club' AND target.relname='organizations' AND target.attname IN ('id','name'));
-    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages'));
+    can_select := can_select OR (target.nspname='public_content' AND target.relname IN ('documents','import_state','edits','news_drafts','website_pages','sponsorship_editorial'));
     can_insert := (target.nspname='identity' AND target.relname IN ('admin_sessions','admin_auth_rate_buckets'))
       OR (target.nspname='audit' AND target.relname='security_events');
-    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages'));
+    can_insert := can_insert OR (target.nspname='public_content' AND target.relname IN ('edits','news_drafts','website_pages','sponsorship_editorial'));
     can_update := (target.nspname='identity' AND target.relname='admin_sessions' AND target.attname='revoked_at')
       OR (target.nspname='identity' AND target.relname='admin_auth_rate_buckets' AND target.attname IN ('tokens','updated_at'));
     can_update := can_update OR (target.nspname='public_content' AND
       (target.relname='edits' AND target.attname IN ('data_json','version') OR
        target.relname='news_drafts' AND target.attname IN ('data_json','version','updated_at') OR
-       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
+       target.relname='website_pages' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at') OR
+        target.relname='sponsorship_editorial' AND target.attname IN ('draft_json','published_json','published_at','version','updated_at')));
     IF has_column_privilege(auth_name,target.oid,target.attnum,'SELECT')<>can_select
         OR has_column_privilege(auth_name,target.oid,target.attnum,'INSERT')<>can_insert
         OR has_column_privilege(auth_name,target.oid,target.attnum,'UPDATE')<>can_update

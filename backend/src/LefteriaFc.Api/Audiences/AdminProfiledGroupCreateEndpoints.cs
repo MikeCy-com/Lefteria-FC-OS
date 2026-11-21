@@ -33,7 +33,8 @@ public static class AdminProfiledGroupCreateEndpoints
         [property:JsonPropertyName("name")] string Name,
         [property:JsonPropertyName("request_id")] Guid RequestId,
         [property:JsonPropertyName("team_profile")] TeamProfile? TeamProfile,
-        [property:JsonPropertyName("academy_profile")] AcademyProfile? AcademyProfile);
+        [property:JsonPropertyName("academy_profile")] AcademyProfile? AcademyProfile,
+        [property:JsonPropertyName("location_id")] Guid? LocationId);
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -64,6 +65,7 @@ public static class AdminProfiledGroupCreateEndpoints
                 var permission=organization_id=="lefteria_fc" ?
                     "teams:write" : "academy:write";
                 if(session.User.Role is not ("manager" or "super_admin") ||
+                    (organization_id=="lefteria_fc" && session.User.Role!="super_admin") ||
                     !AdminPermissions.Has(session.User.Role,permission) ||
                     !session.User.Organizations.Any(o=>o.Id==organization_id))
                     throw new WebAdminException(403,"not_authorized",
@@ -89,8 +91,10 @@ public static class AdminProfiledGroupCreateEndpoints
                     request.Name!=request.Name.Trim() ||
                     request.Name.Any(char.IsControl) ||
                     (organization_id=="lefteria_fc" ?
-                        request.TeamProfile is null || request.AcademyProfile is not null :
-                        request.AcademyProfile is null || request.TeamProfile is not null))
+                        request.TeamProfile is null || request.AcademyProfile is not null ||
+                          request.LocationId is not null :
+                        request.AcademyProfile is null || request.TeamProfile is not null ||
+                          request.LocationId is null || request.LocationId==Guid.Empty))
                     throw new WebAdminException(422,"invalid_group_profile",
                         "Group name, selected organization or profile is invalid.");
 
@@ -99,15 +103,21 @@ public static class AdminProfiledGroupCreateEndpoints
                     JsonSerializer.Serialize(request.AcademyProfile,Json);
                 var id="grp_"+Guid.NewGuid().ToString("N");
                 await using var connection=await connections.OpenAsync(ct);
-                await using var command=new NpgsqlCommand(
-                    "SELECT club.create_admin_group_with_profile(@digest,@owner,@id,@name,@request,@profile)::text",
-                    connection);
+                // Academy creation is always site-specific. Exact active city,
+                // location and delegated write grants are rechecked in SQL.
+                var scopedAcademy=organization_id=="lefteria_fc_academy";
+                var sql=scopedAcademy
+                    ? "SELECT club.create_admin_academy_location_group_with_profile(@digest,@id,@name,@request,@profile,@location)::text"
+                    : "SELECT club.create_admin_group_with_profile(@digest,@owner,@id,@name,@request,@profile)::text";
+                await using var command=new NpgsqlCommand(sql,connection);
                 command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie!));
                 command.Parameters.AddWithValue("owner",organization_id);
                 command.Parameters.AddWithValue("id",id);
                 command.Parameters.AddWithValue("name",request.Name);
                 command.Parameters.AddWithValue("request",request.RequestId);
                 command.Parameters.AddWithValue("profile",NpgsqlDbType.Jsonb,profile);
+                if(scopedAcademy)
+                    command.Parameters.AddWithValue("location",request.LocationId!.Value);
                 try
                 {
                     var saved=await command.ExecuteScalarAsync(ct) as string;
@@ -119,7 +129,13 @@ public static class AdminProfiledGroupCreateEndpoints
                         root.GetProperty("kind").GetString()!=(organization_id=="lefteria_fc"?"team":"academy_group") ||
                         root.GetProperty("active_players").GetInt32()!=0 ||
                         root.GetProperty("profile").ValueKind!=JsonValueKind.Object ||
-                        !root.GetProperty("id").GetString()!.StartsWith("grp_",StringComparison.Ordinal))
+                        !root.GetProperty("id").GetString()!.StartsWith("grp_",StringComparison.Ordinal) ||
+                        (scopedAcademy && (
+                          !root.TryGetProperty("location_id",out var savedLocation) ||
+                          savedLocation.GetGuid()!=request.LocationId ||
+                          !root.TryGetProperty("city_id",out var savedCity) ||
+                          savedCity.ValueKind!=JsonValueKind.String ||
+                          !Guid.TryParse(savedCity.GetString(),out _))))
                         throw new WebAdminException(503,"group_response_invalid",
                             "The created group response is invalid.");
                     return Results.Content(saved,"application/json",Encoding.UTF8,200);
@@ -138,6 +154,11 @@ public static class AdminProfiledGroupCreateEndpoints
                 {
                     throw new WebAdminException(422,"invalid_group_profile",
                         "The group details are invalid.");
+                }
+                catch(PostgresException ex) when(ex.SqlState is "P0001" or "57014" or "55P03")
+                {
+                    throw new WebAdminException(503,"group_creation_unavailable",
+                        "Group creation was rolled back or temporarily unavailable.");
                 }
                 catch(PostgresException ex) when(ex.SqlState is "42883" or "3F000" or "55000" or "54000")
                 {

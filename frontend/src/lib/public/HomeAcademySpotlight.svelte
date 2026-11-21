@@ -1,8 +1,10 @@
 <script lang="ts">
   import type {PublicGroup,PublicSite} from './types';
+  import type {WebsitePageContent} from './website-pages.ts';
   import {publicImages} from './images';
   import Icon from './PublicIcon.svelte';
-  let {site,groups=[]}:{site:PublicSite|null;groups?:PublicGroup[]}=$props();
+  let {site,groups=[],editorial=null}:{site:PublicSite|null;groups?:PublicGroup[];editorial?:WebsitePageContent|null}=$props();
+  const spotlightWords=$derived(editorial?.blocks[0]?.text.split('·').map(word=>word.trim()) ?? null);
   const sections=$derived((groups.length ? groups : (site?.academy_groups??[]))
     .filter(group => group.organization_id === 'lefteria_fc_academy'));
 </script>
@@ -13,9 +15,16 @@
     style:background-image={`linear-gradient(90deg,#080a0add 0%,#080a0aa0 50%,#080a0a16 100%),url("${publicImages.hero}")`}></div>
   <div class="home-academy-content">
     <p class="home-academy-eyebrow">ΛΕΥΤΕΡΙΑ FC <span>ACADEMY</span></p>
-    <h2 id="home-academy-title">ΑΝΑΠΤΥΞΗ <span>·</span> ΠΑΙΔΕΙΑ <span>·</span> ΟΝΕΙΡΑ</h2>
-    <p>Κάθε παιδί έχει τη δική του διαδρομή. Γνώρισε τα τμήματα,
-      τους ανθρώπους και την ποδοσφαιρική φιλοσοφία της Ακαδημίας μας.</p>
+    {#if spotlightWords}
+      <h2 id="home-academy-title" data-testid="home-academy-approved-title">
+        {#each spotlightWords as word, index (index)}{#if index>0} <span>·</span> {/if}{word}{/each}
+      </h2>
+      <p data-testid="home-academy-approved-copy">{editorial?.blocks[1]?.text}</p>
+    {:else}
+      <h2 id="home-academy-title">ΑΝΑΠΤΥΞΗ <span>·</span> ΠΑΙΔΕΙΑ <span>·</span> ΟΝΕΙΡΑ</h2>
+      <p>Κάθε παιδί έχει τη δική του διαδρομή. Γνώρισε τα τμήματα,
+        τους ανθρώπους και την ποδοσφαιρική φιλοσοφία της Ακαδημίας μας.</p>
+    {/if}
     {#if sections.length}
       <p class="home-academy-groups">{sections.length} {sections.length===1?'τμήμα':'τμήματα'}
         στο πρόγραμμα της Ακαδημίας</p>

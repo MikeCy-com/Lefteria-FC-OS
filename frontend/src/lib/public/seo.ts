@@ -4,6 +4,8 @@ import { articleLink } from './content.ts';
 import { academyGroupLink } from './navigation.ts';
 import { catalogHref } from './PublicCatalog.ts';
 import { personPublicLink, fixturePublicLink } from './public-urls.ts';
+import { isHomepageEditorialSlug, isPublishedWebsitePage, websiteMenuParentAllowed, websitePagePath } from './website-pages.ts';
+import type { PublishedWebsitePage } from './website-pages.ts';
 
 // Only the verified public host may advertise an indexable sitemap.
 // Preview, localhost and host-header aliases must never list canonical content.
@@ -35,6 +37,8 @@ export type PublicSitemapData = {
   groups: readonly PublicGroup[];
   sites: readonly { organization_id: string; fixtures: readonly PublicFixture[] }[];
   sections: readonly PublicSections[];
+  // Optional for older callers; supplied by the indexable sitemap endpoint.
+  websitePages?: readonly PublishedWebsitePage[];
 };
 
 type SitemapRow = { loc: string; lastmod?: string; frequency: 'daily' | 'weekly' | 'monthly'; priority: string };
@@ -120,6 +124,19 @@ export function buildPublicSitemap(data: PublicSitemapData): string {
       if (season.organization_id === section.organization_id && safeId(season.id))
         add(catalogHref('seasons', season, season.season_name));
     }
+  }
+
+  // Only explicitly published, correctly scoped and publicly navigable native
+  // pages enter search indexing. Drafts, hidden hero slots and cross-owner
+  // legacy menu assignments are never advertised in the sitemap.
+  for (const record of data.websitePages ?? []) {
+    const org = record.organization_id;
+    if ((org !== 'lefteria_fc' && org !== 'lefteria_fc_academy')
+      || !isPublishedWebsitePage(record, org)
+      || isHomepageEditorialSlug(record.slug)
+      || record.page.menu_parent === 'hidden'
+      || !websiteMenuParentAllowed(org, record.page.menu_parent)) continue;
+    add(websitePagePath(record.slug, org), 'monthly', '0.6', validLastMod(record.published_at));
   }
 
   const entries = [...rows.values()].sort((a, b) => a.loc.localeCompare(b.loc, 'en'));

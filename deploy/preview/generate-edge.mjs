@@ -54,7 +54,7 @@ const entryOperations = [
 ];
 
 // A fixed reviewed snapshot, not automatic publication of all future APIs.
-// These 90 existing WebAdmin-only operations were absent from the old preview
+// This explicit, reviewed WebAdmin-only inventory includes the new sponsorship APIs;
 // edge list, so even healthy APIs failed with an edge 404. Every entry's exact
 // method, path, mandatory parameters and WebAdmin security is rechecked
 // against the immutable contract; new routes must be explicitly reviewed.
@@ -148,6 +148,12 @@ export const reviewedAdminEntries = [
   ['post','/api/admin/website/pages'],
   ['put','/api/admin/website/pages/{slug}'],
   ['post','/api/admin/website/pages/{slug}/publication'],
+  // Exact sponsor/partner draft and manager-publication APIs. Never wildcard.
+  ['get','/api/admin/website/sponsorships'],
+  ['post','/api/admin/website/sponsorships/draft'],
+  // Native creation can only produce an unpublished, owner-scoped draft.
+  ['post','/api/admin/website/sponsorships/native'],
+  ['post','/api/admin/website/sponsorships/publication'],
   ['get','/api/admin/website/news'],
   ['get','/api/admin/website/news-drafts'],
   ['post','/api/admin/website/news-drafts'],
@@ -161,6 +167,10 @@ export const reviewedAdminEntries = [
 // and the preview routing review test pins that source policy. No wildcards.
 export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/hub/fan-subscriptions/overview'],
+  ['get','/api/admin/hub/classroom-curriculum'],
+  ['put','/api/admin/hub/classroom-curriculum/{contentId}'],
+  ['get','/api/admin/hub/players/{playerId}/learning-position'],
+  ['put','/api/admin/hub/players/{playerId}/learning-position'],
   ['get','/api/admin/football/territories'],
   ['post','/api/admin/football/territories'],
   ['get','/api/admin/football/territories/access'],
@@ -170,7 +180,13 @@ export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/access/users'],
   ['post','/api/admin/access/users'],
   ['post','/api/admin/access/users/status'],
+  ['post','/api/admin/access/users/role'],
+  ['post','/api/admin/staff/coaches'],
   ['get','/api/admin/academy/intake'],
+  // Explicit private review routes; API and SQL independently require Academy Super Admin.
+  ['get','/api/admin/academy/office/guardians'],
+  ['post','/api/admin/academy/office/guardians/verify'],
+  ['post','/api/admin/academy/office/guardians/revoke'],
   ['post','/api/admin/auth/profile/name'],
   ['post','/api/admin/auth/profile/password'],
   // Future self-service contact address is still an admin-cookie operation;
@@ -269,12 +285,24 @@ export function protectedOperations(document) {
   return operations.sort((left, right) => left.method.localeCompare(right.method) || left.path.localeCompare(right.path));
 }
 
+// Explicitly reviewed internal Mobile GET. Never expose a generic path prefix.
+export const reviewedHiddenMobileEntries = [
+  ['get','/api/mobile/hub/player-classrooms']
+];
+
 export function bearerRouteGroups(document) {
   const groups = new Map();
   for (const operation of protectedOperations(document)) {
     const group = groups.get(operation.method) ?? [];
     group.push(operation.expression);
     groups.set(operation.method, group);
+  }
+  for(const [method,path] of reviewedHiddenMobileEntries){
+    if(document?.paths?.[path]?.[method])
+      throw new Error('Promote newly documented private Mobile route to contract review.');
+    const expressions=groups.get(method.toUpperCase())??[];
+    expressions.push('/'+entryPattern(path));
+    groups.set(method.toUpperCase(),expressions);
   }
   return [...groups].map(([method, expressions]) => ({ method, expression: `^(?:${expressions.join('|')})$` }));
 }
