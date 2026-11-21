@@ -24,6 +24,9 @@ test('native staff creation is a reviewed, Super Admin-only audited transaction'
   assert.match(sql,/identity\.admin_staff_links/);
   assert.match(sql,/v_subject_role IS DISTINCT FROM 'coach'/);
   assert.match(sql,/native_coach_account_denied/);
+  assert.match(sql,/native_coach_foreign_subject_owner/);
+  assert.match(sql,/FOR v_subject_owner IN/);
+  assert.match(sql,/ag\.admin_account_id=v_actor/);
   assert.match(sql,/club\.academy_group_location_assignments/);
   assert.match(sql,/club\.football_locations/);
   assert.match(sql,/club\.football_operational_scopes/);
