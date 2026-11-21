@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {requireIsolatedStagingOrigin,checkStagingMvp,STAGING_CHECKS}
   from './staging-mvp-preflight.mjs';
 
@@ -82,4 +83,18 @@ test('failed preflight fetch is a blocked result rather than an exception or fab
   assert.equal(report.ready,false);
   assert.ok(report.evidence.some(x=>x.reason==='request_failed'));
   assert.ok(!JSON.stringify(report).includes('private credential'));
+});
+
+test('staging permission readiness queries have no database writes and pin core CRUD grants',()=>{
+  const sql=readFileSync(new URL('./academy-mvp-permission-preflight.sql',import.meta.url),'utf8');
+  const code=sql.split('\n').filter(line=>!line.trimStart().startsWith('--')).join('\n');
+  assert.match(code,/BEGIN TRANSACTION READ ONLY/);
+  assert.match(code,/ROLLBACK;/);
+  assert.match(code,/has_function_privilege\(v_admin,v_oid,'EXECUTE'\)/);
+  assert.match(code,/has_function_privilege\(v_mobile,v_oid,'EXECUTE'\)/);
+  assert.match(code,/read_admin_academy_training_attendance/);
+  assert.match(code,/create_admin_academy_location_group_with_profile/);
+  assert.match(code,/record_admin_academy_training_attendance/);
+  assert.match(code,/issue_guardian_permission/);
+  assert.doesNotMatch(code,/\b(?:GRANT|REVOKE|TRUNCATE|INSERT INTO|UPDATE |DELETE FROM|ALTER TABLE|DROP TABLE)\b/i);
 });
