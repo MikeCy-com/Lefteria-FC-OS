@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkReleaseReadiness } from './check-go-live.mjs';
+import { checkReleaseReadiness, MVP_REQUIRED_GATES } from './check-go-live.mjs';
 import { readFileSync } from 'node:fs';
 
 const productionSha='a'.repeat(40);
@@ -46,4 +46,40 @@ test('missing or duplicate core controls and unknown status fail closed',()=>{
   unknown.gates[0].status='looks_ready';
   assert.throws(()=>checkReleaseReadiness(unknown));
   assert.throws(()=>checkReleaseReadiness(gates,'not-a-sha'));
+});
+
+test('Academy MVP cannot be approved without all critical identity, finance and recovery gates',()=>{
+  const report=checkReleaseReadiness(gates,productionSha,'academy-mvp');
+  assert.equal(report.ready,false);
+  assert.equal(report.profile,'academy-mvp');
+  assert.equal(report.gate_count,MVP_REQUIRED_GATES.length);
+  assert.ok(report.blocked.some(g=>g.id==='identity-delivery'));
+  assert.ok(report.blocked.some(g=>g.id==='mvp-deferred-features'));
+  assert.ok(report.blocked.some(g=>g.id==='backups-restore'));
+  assert.ok(report.blocked.some(g=>g.id==='cutover-rollback'));
+  assert.ok(report.blocked.some(g=>g.id==='finance-reconciliation'));
+  assert.ok(!report.blocked.some(g=>g.id==='pos-payments-unified'));
+});
+test('a narrower MVP requires an exact reviewed SHA and verifiable evidence',()=>{
+  const data=clone(gates);
+  for(const gate of data.gates){
+    if(!MVP_REQUIRED_GATES.includes(gate.id))continue;
+    gate.status='verified';
+    gate.release_sha=productionSha;
+    gate.verified_at='2026-11-21';
+    gate.evidence=['https://github.com/MikeCy-com/Lefteria-FC-OS/actions/runs/123'];
+  }
+  assert.equal(checkReleaseReadiness(data,productionSha,'academy-mvp').ready,true);
+  assert.equal(checkReleaseReadiness(data,productionSha,'full').ready,false);
+  const withoutSha=checkReleaseReadiness(data,null,'academy-mvp');
+  assert.equal(withoutSha.ready,false);
+  assert.ok(withoutSha.blocked.some(g=>g.id==='candidate-release-sha'));
+  assert.equal(checkReleaseReadiness(data,'b'.repeat(40),'academy-mvp').ready,false);
+  const missing=clone(data);
+  missing.gates=missing.gates.filter(g=>g.id!=='identity-delivery');
+  assert.throws(()=>checkReleaseReadiness(missing,productionSha,'academy-mvp'));
+  assert.throws(()=>checkReleaseReadiness(data,productionSha,'unsafe-shortcut'));
+  const notDisabled=clone(data);
+  notDisabled.gates.find(g=>g.id==='mvp-deferred-features').status='blocked';
+  assert.equal(checkReleaseReadiness(notDisabled,productionSha,'academy-mvp').ready,false);
 });
