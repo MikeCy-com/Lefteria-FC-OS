@@ -165,6 +165,8 @@ export const reviewedAdminEntries = [
 // and the preview routing review test pins that source policy. No wildcards.
 export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/hub/fan-subscriptions/overview'],
+  ['get','/api/admin/hub/players/{playerId}/learning-position'],
+  ['put','/api/admin/hub/players/{playerId}/learning-position'],
   ['get','/api/admin/football/territories'],
   ['post','/api/admin/football/territories'],
   ['get','/api/admin/football/territories/access'],

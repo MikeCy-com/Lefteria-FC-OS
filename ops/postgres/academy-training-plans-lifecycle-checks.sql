@@ -14,6 +14,11 @@ DECLARE
   v_digest text:=repeat('d',64);
   v_group text:='ci_plan_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
+  -- Relative future Cyprus-local dates keep the approval test valid all year;
+  -- live policy still rejects actual past training sessions.
+  v_day1 date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+4;
+  v_day2 date:=v_day1+1;
+  v_day3 date:=v_day1+2;
 BEGIN
   INSERT INTO club.roster_import_state(
     id,digest,source_repository,source_commit,environment,
@@ -47,7 +52,7 @@ BEGIN
 
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
-    DATE '2026-11-19',TIME '17:00',75,'Original private plan',
+    v_day1,TIME '17:00',75,'Original private plan',
     'Disposable pitch','No child names',0,false);
   IF v_result->>'status'<>'draft' OR (v_result->>'version')::integer<>1 THEN
     RAISE EXCEPTION 'Training plan draft create failed';
@@ -56,7 +61,7 @@ BEGIN
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
       v_digest,v_owner,v_other,v_group,
-      DATE '2026-11-19',TIME '17:30',60,'Conflicting group plan',
+      v_day1,TIME '17:30',60,'Conflicting group plan',
       'Disposable pitch','',0,false);
     RAISE EXCEPTION 'Overlapping Academy draft was accepted';
   EXCEPTION WHEN unique_violation THEN NULL;
@@ -65,7 +70,7 @@ BEGIN
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
       v_digest,v_owner,v_other,v_group,
-      DATE '2026-11-20',TIME '23:30',90,'Overnight plan',
+      v_day2,TIME '23:30',90,'Overnight plan',
       'Disposable pitch','',0,false);
     RAISE EXCEPTION 'Overnight training draft was accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL;
@@ -90,7 +95,7 @@ BEGIN
     RAISE EXCEPTION 'Human-approved distribution preview exposed private youth data';
   END IF;
   v_result:=club.read_admin_academy_training_plan_approvals(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF jsonb_array_length(v_result->'approvals')<>1
     OR (v_result->'approvals'->0->>'approved_version')::integer<>1 THEN
     RAISE EXCEPTION 'Approval list missed manager review';
@@ -102,7 +107,7 @@ BEGIN
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
   v_result:=club.read_admin_academy_training_plans(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF (v_result->>'total')::integer<>1
     OR v_result->'plans'->0->>'title'<>'Original private plan' THEN
     RAISE EXCEPTION 'Private training plan read failed';
@@ -110,21 +115,21 @@ BEGIN
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
       v_digest,v_owner,v_id,v_group,
-      DATE '2026-11-21',TIME '17:30',90,'Stale plan',
+      v_day3,TIME '17:30',90,'Stale plan',
       'Disposable pitch','',2,false);
     RAISE EXCEPTION 'Stale plan version accepted';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
-    DATE '2026-11-21',TIME '17:30',90,'Updated private plan',
+    v_day3,TIME '17:30',90,'Updated private plan',
     'Disposable pitch','Coach planning note',1,false);
   IF (v_result->>'version')::integer<>2
     OR v_result->>'title'<>'Updated private plan' THEN
     RAISE EXCEPTION 'Private training plan update failed';
   END IF;
   v_result:=club.read_admin_academy_training_plan_approvals(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF jsonb_array_length(v_result->'approvals')<>0 THEN
     RAISE EXCEPTION 'Editing an approved draft preserved stale approval';
   END IF;
@@ -153,7 +158,7 @@ BEGIN
   END IF;
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
-    DATE '2026-11-21',TIME '17:30',90,'Updated private plan',
+    v_day3,TIME '17:30',90,'Updated private plan',
     'Disposable pitch','Coach planning note',2,true);
   IF (v_result->>'version')::integer<>3
     OR v_result->>'status'<>'archived' THEN
@@ -162,7 +167,7 @@ BEGIN
   -- After archiving, the group/day/time slot is no longer occupied.
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_other,v_group,
-    DATE '2026-11-21',TIME '18:00',60,'Available after archive',
+    v_day3,TIME '18:00',60,'Available after archive',
     'Disposable pitch','',0,false);
   IF v_result->>'status'<>'draft'
     OR (v_result->>'version')::integer<>1 THEN
@@ -210,14 +215,14 @@ BEGIN
     RAISE EXCEPTION 'Native Academy training publication was not group-scoped';
   END IF;
   v_result:=club.read_admin_academy_training_publications(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF jsonb_array_length(v_result->'publications')<>1
      OR v_result->'publications'->0->>'event_id'<>
         v_published->>'event_id' THEN
     RAISE EXCEPTION 'Native training publication status not retrievable';
   END IF;
   v_result:=club.read_admin_academy_training_sessions(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_result->'sessions') it
     WHERE it->>'id'=v_published->>'event_id') THEN
     RAISE EXCEPTION 'Canonical published training missing from Academy register';
@@ -247,7 +252,7 @@ BEGIN
   END;
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
-      v_digest,v_owner,v_other,v_group,DATE '2026-11-21',
+      v_digest,v_owner,v_other,v_group,v_day3,
       TIME '18:00',60,'Edited after publication',
       'Disposable pitch','',1,false);
     RAISE EXCEPTION 'Published plan could still be edited';
@@ -262,7 +267,7 @@ BEGIN
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
       v_digest,v_owner,v_id,v_group,
-      DATE '2026-11-21',TIME '17:30',90,'Edited archived plan',
+      v_day3,TIME '17:30',90,'Edited archived plan',
       'Disposable pitch','',3,false);
     RAISE EXCEPTION 'Archived plan was editable';
   EXCEPTION WHEN unique_violation THEN NULL;
@@ -301,7 +306,7 @@ BEGIN
     RAISE EXCEPTION 'Cancellation hid event or rewrote historical member RSVP';
   END IF;
   v_result:=club.read_admin_academy_training_publications(
-    v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+    v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
   IF jsonb_array_length(v_result->'publications')<>1
     OR v_result->'publications'->0->>'is_cancelled'<>'true'
     OR v_result->'publications'->0->>'cancel_reason'<>
@@ -342,7 +347,7 @@ BEGIN
   END;
   BEGIN
     PERFORM club.read_admin_academy_training_plans(
-      v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-30');
+      v_digest,v_owner,v_group,(v_day1-1),(v_day3+1));
     RAISE EXCEPTION 'Revoked manager could read drafts';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
