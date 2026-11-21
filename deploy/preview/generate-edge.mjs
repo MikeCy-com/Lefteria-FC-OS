@@ -123,6 +123,9 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/pos/cashier/finance-handoff'],
   ['get','/api/admin/pos/cashier/receipts/{receiptId}'],
   ['get','/api/admin/pos/cashier/registers'],
+  // Read-only shift-scoped stock: API + private SQL reauthorize the named cashier.
+  // NO grants to tender, receipt writer, card capture or arbitrary stock updates.
+  ['get','/api/admin/pos/cashier/registers/{registerId}/sellable-stock'],
   ['post','/api/admin/pos/cashier/registers/{registerId}/sales/prepare'],
   ['post','/api/admin/pos/cashier/registers/{registerId}/shifts'],
   ['post','/api/admin/pos/cashier/returns/{returnId}/refund-requests'],
