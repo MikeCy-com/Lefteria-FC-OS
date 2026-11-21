@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/env';
   import AdminPosRecoveryReviewPanel from './AdminPosRecoveryReviewPanel.svelte';
+  import AdminPosStockReconciliationPanel from './AdminPosStockReconciliationPanel.svelte';
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Site={pos_location_id:string;name:string;city_name:string;
     academy_city_id:string|null;academy_location_id:string|null};
@@ -398,6 +399,10 @@
     {:else}
       <p class="admin-muted">Δεν έχετε ανατεθειμένη τοποθεσία POS. Η διαχείριση πρόσβασης γίνεται από τον Super Admin.</p>
     {/if}
+  {/if}
+  {#if selectedSite}
+    <AdminPosStockReconciliationPanel {owner} {actorId}
+      locationId={selectedSite.pos_location_id} {onExpired} {onRevoked} />
   {/if}
   {#if reportError}<p role="alert">{reportError}</p>{/if}
   {#if finances}
