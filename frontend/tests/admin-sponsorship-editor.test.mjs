@@ -40,7 +40,8 @@ test('admin Svelte screen is real, scope-controlled and distinguishes draft vs a
 test('API always checks current source identity, exact admin owner and manager publication rights',()=>{
   const api=read('backend/src/LefteriaFc.Api/PublicContent/AdminSponsorshipEndpoints.cs');
   const auth=read('backend/src/LefteriaFc.Api/PublicContent/WebsitePageEndpoints.cs');
-  assert.match(api,/RequireImported\(db,tx,owner,change\.Kind,change\.ItemId,ct\)/);
+  assert.match(api,/RequireWritableIdentity\(db,tx,owner,change\.Kind,change\.ItemId,ct\)/);
+  assert.match(api,/await RequireImported\(db,tx,org,kind,id,ct\)/);
   assert.match(api,/WebsitePageEndpoints\.Authorized\(context,owner,"sponsors:write"/);
   assert.match(api,/WebsitePageEndpoints\.Authorized\(context, owner, "sponsors:read"/);
   assert.match(api,/requirePublisher:true/);
@@ -62,8 +63,8 @@ test('public site consumes only approved sponsor/partner copy, leaving private i
   const adminGrants=read('ops/postgres/web-admin-auth-grants.sql');
   assert.match(repository,/read_published_sponsorship/);
   assert.doesNotMatch(repository,/sponsorship_editorial/);
-  assert.match(repository,/s with \{/);
-  assert.match(repository,/p with \{/);
+  assert.match(repository,/item with \{/);
+  assert.match(repository,/item with \{/);
   assert.match(repository,/LogoUrl = copy.ImageUrl/);
   assert.match(repository,/HeroImageUrl = copy.ImageUrl/);
   assert.match(migration,/published_json IS NOT NULL/);
@@ -85,4 +86,38 @@ test('contracts bound editable fields and exclude source IDs, contracts and mone
     assert.doesNotMatch(dto,new RegExp('\\b'+disallowed+'\\b'));
   assert.match(dto,/uri\.Scheme == Uri\.UriSchemeHttps/);
   assert.match(dto,/Clean\(Name\)/);
+});
+
+test('native record creation never permits a supplied source ID or anonymous publication',()=>{
+  const api=read('backend/src/LefteriaFc.Api/PublicContent/AdminSponsorshipEndpoints.cs');
+  const repository=read('backend/src/LefteriaFc.Infrastructure/PublicContent/PostgresPublicSectionsRepository.cs');
+  const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261121900000_NativeSponsorshipDrafts.cs');
+  const ui=read('frontend/src/routes/admin/sponsors/+page.svelte');
+  const gateway=read('deploy/preview/generate-edge.mjs');
+  assert.match(api,/sealed record SponsorshipNativeCreate\(string Kind, SponsorshipEditorialCopy Draft\)/);
+  assert.match(api,/group.MapPost\("\/native"/);
+  assert.match(api,/WebsitePageEndpoints.Authorized\(context, owner, "sponsors:write"/);
+  assert.match(api,/Guid.NewGuid\(\).ToString\("N"\)/);
+  assert.match(api,/is_native,draft_json/);
+  assert.match(api,/WHERE NOT public_content.current_sponsorship_exists/);
+  assert.match(api,/admin\.sponsorship\.create/);
+  assert.match(api,/await RequireWritableIdentity/);
+  assert.match(api,/SELECT is_native FROM public_content.sponsorship_editorial/);
+  assert.match(api,/WHERE organization_id=@org AND kind=@kind AND item_id=@id/);
+  assert.match(repository,/approvedNative = approved.Where\(e => e.IsNative/);
+  assert.match(repository,/!e.IsNative/);
+  assert.match(repository,/Concat\(nativeSponsors\)/);
+  assert.match(repository,/Concat\(nativePartners\)/);
+  assert.match(migration,/ADD COLUMN is_native boolean NOT NULL DEFAULT false/);
+  assert.match(migration,/ck_sponsorship_native_identity/);
+  assert.match(migration,/WHERE organization_id=_org AND published_json IS NOT NULL/);
+  assert.match(migration,/native_sponsorship_requires_forward_recovery/);
+  assert.match(gateway,/\['post','\/api\/admin\/website\/sponsorships\/native'\]/);
+  assert.match(ui,/data-testid="sponsorship-create"/);
+  assert.match(ui,/credentials:'same-origin'/);
+  assert.match(ui,/if\(!validRow\(payload,owner\)\|\|!payload.is_native/);
+  assert.match(ui,/selected.is_native\?/);
+  assert.match(ui,/createOpen/);
+  assert.doesNotMatch(ui,/\{@html\}|innerHTML|localStorage|FormData/);
+  assert.doesNotThrow(()=>compile(ui,{filename:'admin/sponsors/+page.svelte',generate:'server'}));
 });

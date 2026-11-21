@@ -25,7 +25,7 @@ const sample=()=>({
   quizzes:{started:true,completed_weeks:1,current_week:2,next_quiz_title:null,next_quiz_topic:null},
   subjects:classroomTopics.map(topic=>({
     topic,published_quizzes:1,completed_quizzes:0,
-    correct_answers:0,total_answers:0
+    correct_answers:0,total_answers:0,approved_lessons:0,completed_lessons:0
   }))
 });
 
@@ -38,6 +38,7 @@ test('classroom DTO rejects cross-owner, parent, inflated score, duplicate skill
     x=>x.verified_position='arbitrary',
     x=>x.subjects[0].completed_quizzes=2,
     x=>x.subjects[0].correct_answers=5,
+    x=>x.subjects[0].completed_lessons=1,
     x=>x.subjects[0].total_answers=4,
     x=>x.subjects[1].topic='positioning',
     x=>x.lessons.completed=4,

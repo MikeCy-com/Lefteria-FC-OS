@@ -32,6 +32,8 @@ export interface PlayerClassroomSubject {
   completed_quizzes:number;
   correct_answers:number;
   total_answers:number;
+  approved_lessons:number;
+  completed_lessons:number;
 }
 export interface PlayerClassroomPage {
   organization_id:PlayerClassroomOrganization;
@@ -86,6 +88,9 @@ export function validPlayerClassroomPage(value:unknown,expected:PlayerClassroomO
        seen.has(String(subject.topic))||!int(subject.published_quizzes,520)||
        !int(subject.completed_quizzes,520)||
        (subject.completed_quizzes as number)>(subject.published_quizzes as number)||
+       !int(subject.approved_lessons,100000)||
+       !int(subject.completed_lessons,100000)||
+       (subject.completed_lessons as number)>(subject.approved_lessons as number)||
        !int(subject.correct_answers,10400)||!int(subject.total_answers,10400)||
        (subject.correct_answers as number)>(subject.total_answers as number)||
        (subject.completed_quizzes===0&&

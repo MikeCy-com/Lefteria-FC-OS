@@ -40,4 +40,4 @@ public sealed record SponsorshipEditorialCopy(
 }
 
 // JSON returned by the fixed SQL definer function. No draft/version fields.
-public sealed record PublishedSponsorshipEditorial(string Kind, string ItemId, SponsorshipEditorialCopy Content);
+public sealed record PublishedSponsorshipEditorial(string Kind, string ItemId, SponsorshipEditorialCopy Content, bool IsNative = false);

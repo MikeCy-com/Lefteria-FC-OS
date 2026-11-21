@@ -109,7 +109,7 @@ internal sealed partial class WebAdminDatabaseFixture
               ON p.organization_id=g.organization_id AND p.group_id=g.id
             WHERE g.organization_id='lefteria_fc_academy' AND g.id=@id
               AND m.city_id=@city AND m.location_id=@location
-              AND p.revision=1
+              AND p.revision=1 AND NOT p.is_public
             """,con);
         cmd.Parameters.AddWithValue("id",groupId);
         cmd.Parameters.AddWithValue("city",city);
@@ -117,6 +117,28 @@ internal sealed partial class WebAdminDatabaseFixture
         if((int)(await cmd.ExecuteScalarAsync())! !=1)
             throw new InvalidOperationException(
               "Cohort, site assignment and original profile were not atomic.");
+        await using var publicView=new NpgsqlCommand(
+            "SELECT club.read_public_academy_group_directory()::text",con);
+        var json=(string?)await publicView.ExecuteScalarAsync() ?? "";
+        if(json.Contains(groupId,StringComparison.Ordinal))
+            throw new InvalidOperationException(
+              "A newly created unapproved Academy group reached the public directory.");
+    }
+
+    public async Task<bool> AcademyGroupVisiblePubliclyAsync(string groupId)
+    {
+        if(!System.Text.RegularExpressions.Regex.IsMatch(groupId,"^grp_[0-9a-f]{32}$"))
+            throw new InvalidOperationException("Refusing unverified Academy public fixture ID.");
+        await using var con=await OwnerAsync();
+        await using var cmd=new NpgsqlCommand("""
+            SELECT EXISTS(
+              SELECT 1 FROM jsonb_array_elements(
+                club.read_public_academy_group_directory()) AS item(value)
+              WHERE item.value->>'id'=@id
+            )
+            """,con);
+        cmd.Parameters.AddWithValue("id",groupId);
+        return (bool)(await cmd.ExecuteScalarAsync())!;
     }
 
     public async Task CleanupScopedAcademyGroupsAsync(Account actor,

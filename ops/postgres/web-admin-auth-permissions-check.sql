@@ -181,6 +181,8 @@ BEGIN
     'hub.request_admin_ai_education(text,text,uuid,text,smallint,smallint,text,text)'::regprocedure,
                   'hub.read_admin_player_learning_position(text,text,text)'::regprocedure,
                   'hub.set_admin_player_learning_position(text,text,text,text,bigint,text,text)'::regprocedure,
+                  'hub.read_admin_classroom_curriculum(text,text,integer,integer)'::regprocedure,
+                  'hub.set_admin_classroom_lesson_subject(text,text,uuid,uuid,bigint,text,text)'::regprocedure,
                   'hub.create_admin_player_quiz(text,text,uuid,integer,text,text,text,jsonb)'::regprocedure,
                   'hub.list_admin_player_quizzes(text,text)'::regprocedure,
                   'hub.detail_admin_player_quiz(text,text,uuid)'::regprocedure,

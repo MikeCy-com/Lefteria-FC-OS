@@ -9182,6 +9182,10 @@
           "draft": {
             "$ref": "#/components/schemas/SponsorshipEditorialCopy"
           },
+          "is_native": {
+            "default": false,
+            "type": "boolean"
+          },
           "item_id": {
             "type": "string"
           },
@@ -9303,6 +9307,22 @@
           "image_url",
           "website_url",
           "display_order"
+        ],
+        "type": "object"
+      },
+      "SponsorshipNativeCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "draft": {
+            "$ref": "#/components/schemas/SponsorshipEditorialCopy"
+          },
+          "kind": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "draft"
         ],
         "type": "object"
       },
@@ -18448,6 +18468,50 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/SponsorshipDraftChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SponsorshipAdminRecord"
+                }
+              }
+            },
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Website administration"
+        ]
+      }
+    },
+    "/api/admin/website/sponsorships/native": {
+      "post": {
+        "operationId": "CreateAdminNativeSponsorship",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SponsorshipNativeCreate"
               }
             }
           },

@@ -16,7 +16,7 @@
   type Copy = {name:string;description:string|null;image_url:string|null;
     website_url:string|null;display_order:number};
   type Item = {organization_id:PublicOrganization;kind:Kind;item_id:string;version:number;
-    draft:Copy;published:Copy|null;published_at:string|null;updated_at:string|null};
+    draft:Copy;published:Copy|null;published_at:string|null;updated_at:string|null;is_native:boolean};
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const allowed=$derived($auth.status==='authenticated'&&$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'sponsors:read')?
@@ -33,6 +33,10 @@
   let query=$state('');
   let tab=$state<'all'|Kind>('all');
   let mediaOpen=$state(false);
+  let createOpen=$state(false);
+  let newKind=$state<Kind>('sponsor');
+  let newName=$state('');
+  let createError=$state('');
   const selected=$derived(items.find(item=>item.kind+':'+item.item_id===selectedKey)??null);
   const canWrite=$derived(!!organization&&$auth.status==='authenticated'&&!!$auth.session&&
     hasAdminPermission($auth.session.user.permissions,'sponsors:write')&&
@@ -95,19 +99,20 @@
       Number.isSafeInteger(row.version)&&Number(row.version)>=0&&validCopy(row.draft)&&
       (row.published===null||validCopy(row.published))&&
       (row.published_at===null||typeof row.published_at==='string')&&
-      (row.updated_at===null||typeof row.updated_at==='string');
+      (row.updated_at===null||typeof row.updated_at==='string')&&
+      typeof row.is_native==='boolean'&&(!row.is_native||/^cms-[0-9a-f]{32}$/.test(row.item_id));
   }
   function setOrganization(value:PublicOrganization){
-    if(value===organization||!allowed.some(o=>o.id===value))return;
+    if(saving||value===organization||!allowed.some(o=>o.id===value))return;
     if(dirty&&!window.confirm('Υπάρχουν μη αποθηκευμένες αλλαγές. Αλλαγή οργανισμού;'))return;
-    organization=value;resetEditor();items=[];
+    organization=value;resetEditor();items=[];createOpen=false;newName='';createError='';
   }
   function selectItem(item:Item){
-    if(item.organization_id!==organization)return;
+    if(saving||item.organization_id!==organization)return;
     if(dirty&&!window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     selectedKey=item.kind+':'+item.item_id;
     draft=structuredClone(item.draft);
-    notice='';error='';mediaOpen=false;
+    notice='';error='';mediaOpen=false;createOpen=false;createError='';
   }
   function validateDraft(value:Copy|null):boolean{
     if(!value)return false;
@@ -141,6 +146,40 @@
     draft=structuredClone(item.draft);
     mediaOpen=false;
   }
+  function toggleNew(){
+    if(!canWrite||saving)return;
+    if(dirty&&!window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    createOpen=!createOpen;
+    createError='';
+    if(createOpen){selectedKey=null;draft=null;newName='';notice='';error='';}
+  }
+  async function createNative(){
+    if(!canWrite||!organization||saving||newName.trim().length===0||newName.length>160)return;
+    const owner=organization,kind=newKind;
+    saving=true;createError='';notice='';error='';
+    try{
+      const response=await fetch('/api/admin/website/sponsorships/native?organization_id='+owner,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1',Accept:'application/json'},
+        body:JSON.stringify({kind,draft:{
+          name:newName.trim(),description:null,image_url:null,website_url:null,display_order:items.length
+        }})
+      });
+      if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
+      if(response.status===403){void auth.bootstrap();throw Error('Δεν έχετε δικαίωμα δημιουργίας σε αυτόν τον οργανισμό.');}
+      if(response.status===409)throw Error('Δεν ήταν δυνατή η νέα εγγραφή. Ανανεώστε και επαναλάβετε.');
+      if(!response.ok)throw Error('Η δημιουργία ιδιωτικού πρόχειρου απορρίφθηκε.');
+      const payload:unknown=await response.json();
+      if(!validRow(payload,owner)||!payload.is_native||payload.kind!==kind||
+        payload.version!==1||payload.published!==null)
+        throw Error('Η νέα ιδιωτική εγγραφή δεν επαληθεύτηκε.');
+      if(owner!==organization)return;
+      items=[payload,...items];tab=kind;query='';selectedKey=kind+':'+payload.item_id;
+      draft=structuredClone(payload.draft);createOpen=false;newName='';mediaOpen=false;
+      notice='Η εγγραφή δημιουργήθηκε ως ιδιωτικό πρόχειρο. Ολοκληρώστε τα στοιχεία και ζητήστε έγκριση δημοσίευσης.';
+    }catch(cause){createError=cause instanceof Error?cause.message:'Αποτυχία δημιουργίας.';}
+    finally{saving=false;}
+  }
   async function save(){
     if(!canWrite||!selected||!organization||!draft||saving)return;
     if(!validateDraft(draft)){error='Ελέγξτε όνομα, κείμενο, HTTPS εικόνα/ιστοσελίδα και σειρά εμφάνισης.';return;}
@@ -155,6 +194,7 @@
   async function publish(publishNext:boolean){
     if(!canPublish||!selected||selected.version<1||dirty||saving)return;
     if(!window.confirm(publishNext?'Δημοσίευση εγκεκριμένου περιεχομένου στην ιστοσελίδα;':
+      selected.is_native?'Απόσυρση της νέας εγγραφής από την ιστοσελίδα; Το πρόχειρο θα διατηρηθεί.':
       'Απόσυρση αλλαγών και επιστροφή στα αρχικά δημοσιευμένα στοιχεία;'))return;
     saving=true;error='';notice='';
     try{
@@ -162,6 +202,7 @@
         expected_version:selected.version,publish:publishNext});
       accept(row);
       notice=publishNext?'Το εγκεκριμένο περιεχόμενο δημοσιεύτηκε.':
+        selected.is_native?'Η νέα εγγραφή αποσύρθηκε από την ιστοσελίδα. Το ιδιωτικό πρόχειρο διατηρήθηκε.':
         'Οι αλλαγές αποσύρθηκαν. Εμφανίζονται τα αρχικά εισαγμένα στοιχεία.';
     }catch(cause){error=cause instanceof Error?cause.message:'Η δημοσίευση απέτυχε.';}
     finally{saving=false;}
@@ -185,7 +226,7 @@
         <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ · ΣΥΝΕΡΓΑΣΙΕΣ</p>
         <h1>Χορηγοί & συνεργάτες</h1>
         <p class="admin-muted">Διαχείριση εγκεκριμένων συνεργασιών Πρώτης Ομάδας και Ακαδημίας με χωριστές άδειες, ιδιωτικά πρόχειρα και ελεγχόμενη δημοσίευση.</p>
-        <p class="sponsorship-safety">Πρώτη λειτουργική έκδοση: επεξεργασία ήδη εισαγμένων εγγραφών. Δημιουργία, λήξη σύμβασης, διαγραφή και πληρωμές δεν έχουν ενεργοποιηθεί.</p>
+        <p class="sponsorship-safety">Νέοι χορηγοί και συνεργάτες δημιουργούνται ιδιωτικά και εμφανίζονται δημόσια μόνο μετά από έγκριση. Συμβάσεις, οικονομικά, μεταφορτώσεις και διαγραφή δεν έχουν ενεργοποιηθεί.</p>
       </header>
       {#if allowed.length&&organization}
         <section class="admin-panel sponsorship-target">
@@ -199,7 +240,33 @@
         </section>
         <div class="sponsorship-grid">
           <aside class="admin-panel sponsorship-list" aria-label="Υφιστάμενοι χορηγοί και συνεργάτες">
-            <h2>Εγκεκριμένος κατάλογος</h2>
+            <h2>Χορηγοί & συνεργάτες</h2>
+            {#if canWrite}
+              <button type="button" class="admin-primary sponsorship-new" disabled={saving||loading}
+                aria-expanded={createOpen} onclick={toggleNew} data-testid="sponsorship-new">
+                {createOpen?'Ακύρωση νέας εγγραφής':'＋ Νέος χορηγός ή συνεργάτης'}
+              </button>
+              {#if createOpen}
+                <form class="sponsorship-create" data-testid="sponsorship-create"
+                  onsubmit={e=>{e.preventDefault();void createNative();}}>
+                  <h3>Νέο ιδιωτικό πρόχειρο · {title}</h3>
+                  <label>Είδος εγγραφής
+                    <select bind:value={newKind} disabled={saving}>
+                      <option value="sponsor">Χορηγός</option>
+                      <option value="partner">Συνεργάτης</option>
+                    </select>
+                  </label>
+                  <label>Επωνυμία
+                    <input required maxlength="160" bind:value={newName}
+                      autocomplete="off" placeholder="Επωνυμία συνεργασίας" disabled={saving}/>
+                  </label>
+                  {#if createError}<p role="alert" class="sponsorship-error">{createError}</p>{/if}
+                  <button class="admin-secondary" type="submit"
+                    disabled={saving||!newName.trim()||newName.length>160}>Δημιουργία ιδιωτικού πρόχειρου</button>
+                  <p class="admin-muted">Καμία νέα εγγραφή δεν εμφανίζεται στον δημόσιο ιστότοπο πριν από ξεχωριστή έγκριση Manager.</p>
+                </form>
+              {/if}
+            {/if}
             <label>Αναζήτηση <input type="search" bind:value={query} placeholder="Όνομα χορηγού…"/></label>
             <label>Είδος <select bind:value={tab}>
               <option value="all">Όλα</option>
@@ -220,7 +287,8 @@
                   onclick={()=>selectItem(item)}>
                   <span>{item.kind==='sponsor'?'ΧΟΡΗΓΟΣ':'ΣΥΝΕΡΓΑΤΗΣ'}</span>
                   <strong>{item.draft.name}</strong>
-                  <small>{item.published?'Δημοσιευμένη αλλαγή':item.version>0?'Ιδιωτικό πρόχειρο':'Αρχική καταχώριση'}</small>
+                  <small>{item.published?(item.is_native?'Δημοσιευμένη νέα εγγραφή':'Δημοσιευμένη αλλαγή'):
+                    item.is_native?'Νέο ιδιωτικό πρόχειρο':item.version>0?'Ιδιωτικό πρόχειρο':'Αρχική καταχώριση'}</small>
                 </button>
               {/each}
             </nav>
@@ -232,7 +300,7 @@
                   <div>
                     <p class="admin-eyebrow">{selected.kind==='sponsor'?'ΧΟΡΗΓΟΣ':'ΣΥΝΕΡΓΑΤΗΣ'} · {title}</p>
                     <h2>{draft.name}</h2>
-                    <p class="admin-muted">Έκδοση {selected.version} · {selected.published_at?'Δημοσιευμένη ενημέρωση':'Χωρίς δημοσιευμένη ενημέρωση'}</p>
+                    <p class="admin-muted">Έκδοση {selected.version} · {selected.is_native?'Εγγραφή OS':'Εισαγμένη εγγραφή'} · {selected.published_at?'Δημοσιευμένη ενημέρωση':'Χωρίς δημοσιευμένη ενημέρωση'}</p>
                   </div>
                   {#if selected.published}<a class="admin-secondary" href={href(selected)}
                     target="_blank" rel="noopener noreferrer">Δημόσια προβολή</a>{/if}
@@ -266,7 +334,7 @@
                   <label>Σειρά εμφάνισης <input type="number" min="0" max="10000" step="1"
                     value={draft.display_order} oninput={e=>{if(draft)draft.display_order=e.currentTarget.valueAsNumber;}}
                     disabled={!canWrite||saving}/></label>
-                  <p class="admin-muted">Η ταυτότητα της εγγραφής, τα επιπλέον στοιχεία συνεργασίας και η αρχική εισαγωγή παραμένουν ανέπαφα.</p>
+                  <p class="admin-muted">{selected.is_native?'Η νέα εγγραφή παραμένει ιδιωτική μέχρι την έγκριση.':'Η εισαγμένη ταυτότητα και τα ιστορικά στοιχεία παραμένουν ανέπαφα.'}</p>
                   {#if error}<p role="alert" class="sponsorship-error">{error}</p>{/if}
                   {#if notice}<p role="status" class="sponsorship-notice">{notice}</p>{/if}
                   <div class="sponsorship-actions">
@@ -301,7 +369,7 @@
             {:else}
               <section class="admin-panel sponsorship-intro">
                 <h2>Διαχείριση συνεργασιών ανά οργανισμό</h2>
-                <p>Επιλέξτε χορηγό ή συνεργάτη για να δείτε τα πραγματικά δημοσιευμένα στοιχεία του και να διαμορφώσετε ένα ιδιωτικό πρόχειρο.</p>
+                <p>Δημιουργήστε νέα ιδιωτική συνεργασία ή επιλέξτε υπάρχουσα εγγραφή για να ετοιμάσετε αλλαγές χωρίς να επηρεάσετε τον δημόσιο ιστότοπο.</p>
                 <p class="admin-muted">Η δημοσίευση γίνεται χωριστά, με αρμοδιότητα Manager ή Super Admin.</p>
               </section>
             {/if}
@@ -326,6 +394,10 @@
 .sponsorship-grid{display:grid;grid-template-columns:minmax(230px,310px) minmax(0,1fr);align-items:start;gap:18px}
 .sponsorship-list{display:grid;gap:12px;padding:17px;min-width:0}
 .sponsorship-list h2{font-size:21px;margin:0}
+.sponsorship-new{width:100%;text-align:center;min-height:44px}
+.sponsorship-create{display:grid;gap:12px;padding:15px;border:1px solid #d6a546;border-radius:7px;background:#252317}
+.sponsorship-create h3{font-size:16px;margin:0;color:#f1c15c}
+.sponsorship-create .admin-muted{font-size:12px;margin:0}
 .sponsorship-admin label{display:grid;gap:7px;font-size:12px;font-weight:750;color:#e8e7e1}
 .sponsorship-admin :is(input,select,textarea){min-width:0;width:100%;background:#111617;border:1px solid #68675e;color:#fff;border-radius:5px;padding:11px 12px;font:400 14px/1.45 'Fira Sans',sans-serif}
 .sponsorship-admin :is(button,input,textarea,select,a):focus-visible{outline:3px solid #f5c55e;outline-offset:2px}

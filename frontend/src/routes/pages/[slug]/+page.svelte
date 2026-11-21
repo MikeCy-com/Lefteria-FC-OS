@@ -96,7 +96,7 @@
   .website-page-header h1{
     max-width:1050px;
     margin:0;
-    font:italic 900 clamp(42px,6.5vw,100px)/.96 'Fira Sans Extra Condensed',sans-serif;
+    font:italic 900 clamp(36px,5vw,78px)/1 'Fira Sans Extra Condensed',sans-serif;
     text-wrap:balance;overflow-wrap:anywhere;
     text-shadow:0 8px 25px rgb(0 0 0 / 40%);
   }
@@ -136,7 +136,7 @@
   @media(max-width:650px){
     .website-page-header-inner{padding:29px 18px 43px;}
     .website-page-breadcrumbs{margin-bottom:27px;}
-    .website-page-header h1{font-size:clamp(42px,11vw,67px);}
+    .website-page-header h1{font-size:clamp(36px,9vw,54px);}
     .website-page-content{padding:32px 18px 64px;}
     .website-page-return a{width:100%;justify-content:center;white-space:normal;}
   }

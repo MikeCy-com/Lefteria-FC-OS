@@ -8,6 +8,8 @@ using Npgsql;
 namespace LefteriaFc.Api.PublicContent;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record SponsorshipNativeCreate(string Kind, SponsorshipEditorialCopy Draft);
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record SponsorshipDraftChange(
     string Kind, string ItemId, long ExpectedVersion, SponsorshipEditorialCopy Draft);
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -16,10 +18,10 @@ public sealed record SponsorshipPublicationChange(
 public sealed record SponsorshipAdminRecord(
     string OrganizationId, string Kind, string ItemId, long Version,
     SponsorshipEditorialCopy Draft, SponsorshipEditorialCopy? Published,
-    DateTimeOffset? PublishedAt, DateTimeOffset? UpdatedAt);
+    DateTimeOffset? PublishedAt, DateTimeOffset? UpdatedAt, bool IsNative = false);
 
-/// <summary>Imported sponsor/partner identity stays immutable. Editors save only
-/// private draft copy; a current owner-approved manager must publish it.</summary>
+/// <summary>Imported sponsor/partner identity remains immutable. New owner-scoped
+/// records are private until an authorized manager approves a versioned draft.</summary>
 public static class AdminSponsorshipEndpoints
 {
     private static readonly JsonSerializerOptions Json = new()
@@ -44,6 +46,45 @@ public static class AdminSponsorshipEndpoints
         }).WithName("ListAdminSponsorshipEditorial")
           .Produces<IReadOnlyList<SponsorshipAdminRecord>>();
 
+        // Native creation always starts as a private draft. The server owns the
+        // stable ID: callers cannot nominate imported or cross-owner identities.
+        group.MapPost("/native", async (string? organization_id, HttpContext context, CancellationToken ct) =>
+        {
+            var owner = Owner(organization_id);
+            var body = await Parse<SponsorshipNativeCreate>(context, ct);
+            if (body is null || body.Draft is null || !body.Draft.Valid() ||
+                body.Kind is not ("sponsor" or "partner")) throw Invalid();
+            return Results.Ok(await WebsitePageEndpoints.Authorized(context, owner, "sponsors:write",
+                async (db, tx, actor, session) =>
+                {
+                    await using (var count = new NpgsqlCommand("""
+                        SELECT count(*) FROM public_content.sponsorship_editorial
+                        WHERE organization_id=@org AND is_native
+                        """, db, tx))
+                    {
+                        count.Parameters.AddWithValue("org", owner);
+                        if ((long)(await count.ExecuteScalarAsync(ct) ?? 0L) >= 100L)
+                            throw new WebAdminException(409,"sponsorship_limit",
+                                "Native sponsorship capacity reached for this organization.");
+                    }
+                    var id = "cms-" + Guid.NewGuid().ToString("N");
+                    var json = JsonSerializer.Serialize(body.Draft, Json);
+                    await using var cmd = new NpgsqlCommand("""
+                        INSERT INTO public_content.sponsorship_editorial
+                          (organization_id,kind,item_id,is_native,draft_json)
+                        SELECT @org,@kind,@id,true,@draft::jsonb
+                        WHERE NOT public_content.current_sponsorship_exists(@org,@kind,@id)
+                        ON CONFLICT DO NOTHING
+                        """, db, tx);
+                    Bind(cmd,owner,body.Kind,id);
+                    cmd.Parameters.AddWithValue("draft",json);
+                    if(await cmd.ExecuteNonQueryAsync(ct) != 1) throw Conflict();
+                    await Audit(db,tx,owner,actor,session,"admin.sponsorship.create",ct);
+                    return await ReadSaved(db,tx,owner,body.Kind,id,ct);
+                },ct));
+        }).WithName("CreateAdminNativeSponsorship")
+          .Accepts<SponsorshipNativeCreate>("application/json").Produces<SponsorshipAdminRecord>();
+
         group.MapPost("/draft", async (string? organization_id, HttpContext context, CancellationToken ct) =>
         {
             var owner = Owner(organization_id);
@@ -53,7 +94,7 @@ public static class AdminSponsorshipEndpoints
             return Results.Ok(await WebsitePageEndpoints.Authorized(context,owner,"sponsors:write",
                 async (db,tx,actor,session) =>
                 {
-                    await RequireImported(db,tx,owner,change.Kind,change.ItemId,ct);
+                    await RequireWritableIdentity(db,tx,owner,change.Kind,change.ItemId,ct);
                     var json = JsonSerializer.Serialize(change.Draft,Json);
                     var inserted = 0;
                     if(change.ExpectedVersion == 0)
@@ -98,7 +139,7 @@ public static class AdminSponsorshipEndpoints
             return Results.Ok(await WebsitePageEndpoints.Authorized(context,owner,"sponsors:write",
                 async (db,tx,actor,session) =>
                 {
-                    await RequireImported(db,tx,owner,change.Kind,change.ItemId,ct);
+                    await RequireWritableIdentity(db,tx,owner,change.Kind,change.ItemId,ct);
                     await using var cmd = new NpgsqlCommand("""
                         UPDATE public_content.sponsorship_editorial
                           SET published_json=CASE WHEN @publish THEN draft_json ELSE NULL END,
@@ -128,7 +169,7 @@ public static class AdminSponsorshipEndpoints
         if(published.OrganizationId!=owner) throw new WebAdminException(503,"sponsorship_source_invalid","Organization mismatch.");
         var existing=new Dictionary<(string,string),SponsorshipAdminRecord>();
         await using(var cmd=new NpgsqlCommand("""
-            SELECT kind,item_id,version,draft_json::text,published_json::text,published_at,updated_at
+            SELECT kind,item_id,version,draft_json::text,published_json::text,published_at,updated_at,is_native
             FROM public_content.sponsorship_editorial WHERE organization_id=@org
             ORDER BY kind,item_id LIMIT 400
             """,db,tx))
@@ -156,6 +197,11 @@ public static class AdminSponsorshipEndpoints
             results.Add(existing.TryGetValue(("partner",partner.Id),out var state)?state:
                 new(owner,"partner",partner.Id,0,original,null,null,null));
         }
+        // Published native rows are already in the public collection. Include
+        // unpublished native drafts as well, but never invent imported entries.
+        var visibleIds = results.Select(item => (item.Kind,item.ItemId)).ToHashSet();
+        foreach(var row in existing.Values.Where(item=>item.IsNative))
+            if(visibleIds.Add((row.Kind,row.ItemId))) results.Add(row);
         return results.OrderBy(s=>s.Kind,StringComparer.Ordinal).ThenBy(s=>s.Draft.DisplayOrder)
             .ThenBy(s=>s.Draft.Name,StringComparer.Ordinal).Take(400).ToList();
     }
@@ -165,13 +211,13 @@ public static class AdminSponsorshipEndpoints
             JsonSerializer.Deserialize<SponsorshipEditorialCopy>(reader.GetString(3),Json)!,
             reader.IsDBNull(4)?null:JsonSerializer.Deserialize<SponsorshipEditorialCopy>(reader.GetString(4),Json),
             reader.IsDBNull(5)?null:reader.GetFieldValue<DateTimeOffset>(5),
-            reader.GetFieldValue<DateTimeOffset>(6));
+            reader.GetFieldValue<DateTimeOffset>(6),reader.GetBoolean(7));
 
     private static async Task<SponsorshipAdminRecord> ReadSaved(
         NpgsqlConnection db,NpgsqlTransaction tx,string owner,string kind,string id,CancellationToken ct)
     {
         await using var cmd=new NpgsqlCommand("""
-            SELECT kind,item_id,version,draft_json::text,published_json::text,published_at,updated_at
+            SELECT kind,item_id,version,draft_json::text,published_json::text,published_at,updated_at,is_native
             FROM public_content.sponsorship_editorial
             WHERE organization_id=@org AND kind=@kind AND item_id=@id
             """,db,tx);
@@ -181,6 +227,20 @@ public static class AdminSponsorshipEndpoints
         return Saved(owner,reader);
     }
 
+    private static async Task RequireWritableIdentity(NpgsqlConnection db,NpgsqlTransaction tx,
+        string org,string kind,string id,CancellationToken ct)
+    {
+        // Existing native records are owned by the exact same organization and
+        // cannot be invented by supplying a forged ID in a draft/publication call.
+        await using var cmd = new NpgsqlCommand("""
+            SELECT is_native FROM public_content.sponsorship_editorial
+            WHERE organization_id=@org AND kind=@kind AND item_id=@id
+            """,db,tx);
+        Bind(cmd,org,kind,id);
+        if(await cmd.ExecuteScalarAsync(ct) is true) return;
+        // Imported identities must still exist in the current signed snapshot.
+        await RequireImported(db,tx,org,kind,id,ct);
+    }
     private static async Task RequireImported(NpgsqlConnection db,NpgsqlTransaction tx,
         string org,string kind,string id,CancellationToken ct)
     {

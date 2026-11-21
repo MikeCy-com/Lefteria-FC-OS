@@ -151,6 +151,8 @@ export const reviewedAdminEntries = [
   // Exact sponsor/partner draft and manager-publication APIs. Never wildcard.
   ['get','/api/admin/website/sponsorships'],
   ['post','/api/admin/website/sponsorships/draft'],
+  // Native creation can only produce an unpublished, owner-scoped draft.
+  ['post','/api/admin/website/sponsorships/native'],
   ['post','/api/admin/website/sponsorships/publication'],
   ['get','/api/admin/website/news'],
   ['get','/api/admin/website/news-drafts'],
@@ -165,6 +167,8 @@ export const reviewedAdminEntries = [
 // and the preview routing review test pins that source policy. No wildcards.
 export const reviewedHiddenAdminEntries = [
   ['get','/api/admin/hub/fan-subscriptions/overview'],
+  ['get','/api/admin/hub/classroom-curriculum'],
+  ['put','/api/admin/hub/classroom-curriculum/{contentId}'],
   ['get','/api/admin/hub/players/{playerId}/learning-position'],
   ['put','/api/admin/hub/players/{playerId}/learning-position'],
   ['get','/api/admin/football/territories'],

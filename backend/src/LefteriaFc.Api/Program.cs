@@ -221,6 +221,7 @@ app.MapAdminAnnouncementDrafts();
 app.MapAdminHub();
 app.MapAdminPlayerWeeklyQuiz();
 app.MapAdminPlayerLearningPositions();
+app.MapAdminClassroomCurriculum();
 app.MapMobileHubPublished();
 app.MapMobileLessonSchedules();
 app.MapMobilePlayerWeeklyQuiz();

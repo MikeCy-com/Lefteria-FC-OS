@@ -147,7 +147,7 @@
 }
 .lf-mobile-theme.mobile-shell .parent-greeting h1,
 .lf-mobile-theme.mobile-shell .role-home .hero h1 {
-  font-size: clamp(30px, 5vw, 48px);
+  font-size: clamp(27px, 4vw, 40px);
   font-weight: 800;
   font-style: italic;
   line-height: 1.06;
@@ -182,7 +182,7 @@
 .lf-mobile-theme.mobile-shell .parent-shortcuts > h2,
 .lf-mobile-theme.mobile-shell .role-home .panel h2,
 .lf-mobile-theme.mobile-shell .family-heading h1 {
-  font-size: clamp(21px, 2.6vw, 28px);
+  font-size: clamp(19px, 2.2vw, 24px);
   font-style: italic;
   font-weight: 800;
 }
@@ -216,7 +216,7 @@
   box-shadow: inset 0 -1px #f6bb3833;
 }
 .lf-mobile-theme.mobile-shell .role-home .shortcut strong,
-.lf-mobile-theme.mobile-shell .parent-shortcut-grid strong { font-family: var(--lf-heading); font-size: 18px; }
+.lf-mobile-theme.mobile-shell .parent-shortcut-grid strong { font-family: var(--lf-heading); font-size: 16px; }
 .lf-mobile-theme.mobile-shell .role-home .shortcut span { color: var(--lf-gold); }
 .lf-mobile-theme.mobile-shell .role-home .shortcut:hover:not(:disabled),
 .lf-mobile-theme.mobile-shell .parent-shortcut-grid > button:hover:not(:disabled) { border-color: var(--lf-gold); background: #252117; }
@@ -240,7 +240,7 @@
 }
 @media (max-width: 420px) {
   .lf-mobile-theme.mobile-shell .mobile-header { gap: 7px; padding-inline: 10px; }
-  .lf-mobile-theme.mobile-shell .brand-lockup p { font-size: 22px; }
+  .lf-mobile-theme.mobile-shell .brand-lockup p { font-size: 20px; }
   .lf-mobile-theme.mobile-shell .parent-greeting,
   .lf-mobile-theme.mobile-shell .role-home .hero { padding: 22px 18px; }
   .lf-mobile-theme.mobile-shell .parent-child-card { flex-wrap: wrap; }
@@ -250,3 +250,36 @@
 
 .lf-mobile-theme.mobile-shell .role-home > .panel { min-width: 0; overflow-wrap: anywhere; }
 .lf-mobile-theme.mobile-shell .role-home .panel-heading { flex-wrap: wrap; }
+
+/* Mobile typography audit: headings are visual hierarchy, not decoration.
+   Keep already-compact 13–15px paragraphs; do not reduce data, instructions,
+   accessible buttons, or label text below their current readable sizes. */
+.lf-mobile-theme.mobile-shell .parent-greeting h1,
+.lf-mobile-theme.mobile-shell .role-home .hero h1 {
+  max-width:22ch;
+  font-size:clamp(27px,4vw,40px);
+  line-height:1.13;
+  text-wrap:balance;
+}
+.lf-mobile-theme.mobile-shell .parent-section-heading h2,
+.lf-mobile-theme.mobile-shell .parent-shortcuts > h2,
+.lf-mobile-theme.mobile-shell .role-home .panel h2,
+.lf-mobile-theme.mobile-shell .family-heading h1 {
+  font-size:clamp(19px,2.2vw,24px);
+  line-height:1.2;
+  text-wrap:balance;
+}
+.lf-mobile-theme.mobile-shell .brand-lockup p {font-size:clamp(19px,2vw,22px);}
+.lf-mobile-theme.mobile-shell .bottom-items > button > span {
+  font-size:clamp(12px,1vw,13px);
+  line-height:1.2;
+  overflow-wrap:anywhere;
+  text-align:center;
+}
+/* iOS Safari otherwise zooms when a 13px form input receives focus.
+   This is deliberate readability protection, not a reduction of form text. */
+@media(max-width:767px) and (pointer:coarse) {
+  .lf-mobile-theme :is(input,select,textarea):not([type="checkbox"]):not([type="radio"]) {
+    font-size:max(16px,1rem);
+  }
+}
