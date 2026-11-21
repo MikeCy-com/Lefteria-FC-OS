@@ -101,6 +101,7 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
         ("Admin coach directory preserves owner-scoped canonical staff relations", AdminCoachDirectoryAsync),
         ("Admin coach assignment writes are owner-scoped and preserve designated coach links", AdminCoachAssignmentsAsync),
         ("Delegated coach identities and assignment writes stay inside exact team, city and location grants", AdminCoachTerritoryAsync),
+        ("Super Admin creates real Coaches once with verified squad, Academy site and optional existing account", AdminNativeCoachRegistrationAsync),
         ("Admin announcement drafts are audited, owner scoped and never delivered", AdminAnnouncementDraftsAsync)
     ];
 
