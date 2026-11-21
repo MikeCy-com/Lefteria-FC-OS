@@ -42,8 +42,7 @@ public static class AdminNativeCoachEndpoints
                 !session.User.Organizations.Any(o=>o.Id==owner))
                 throw new WebAdminException(403,"not_authorized",
                     "This organization is not assigned to this administrator.");
-            if(request.RequestId is null or { } && request.RequestId==Guid.Empty ||
-               request.RequestId is null ||
+            if(request.RequestId is null || request.RequestId==Guid.Empty ||
                name is not {Length:>=2 and <=200} ||
                name.Any(char.IsControl) ||
                !AllowedRoles.Contains(request.JobRole??"") ||
@@ -79,7 +78,7 @@ public static class AdminNativeCoachEndpoints
                     saved.GetProperty("name").GetString()!=name ||
                     saved.GetProperty("job_role").GetString()!=request.JobRole ||
                     saved.GetProperty("group_id").GetString()!=request.GroupId ||
-                    saved.GetProperty("account_id").ValueKind==JsonValueKind.Null !=
+                    (saved.GetProperty("account_id").ValueKind==JsonValueKind.Null) !=
                         (request.AccountId is null) ||
                     (request.AccountId is Guid desired &&
                         saved.GetProperty("account_id").GetGuid()!=desired) ||
