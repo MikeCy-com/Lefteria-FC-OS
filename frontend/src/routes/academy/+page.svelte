@@ -287,7 +287,7 @@
 
   .academy-public-reviews{background:#0a0a0a;border-top:1px solid #65501f}
   .academy-reviews-heading{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:28px}
-  .academy-reviews-heading h2{font:900 clamp(29px,3vw,48px)/1.1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-reviews-heading h2{font:900 clamp(25px,2.5vw,40px)/1.12 'Fira Sans Extra Condensed',sans-serif}
   .academy-reviews-heading p:not(.public-eyebrow){color:#bdbdbd;margin-top:8px}
   .academy-reviews-summary{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
   .academy-reviews-summary strong{font:900 36px/1 'Fira Sans Extra Condensed',sans-serif;color:#ffce65}
@@ -308,10 +308,10 @@
   .academy-key-figures{background:#090a0b;border-block:1px solid #3c3528}
   .academy-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
   .academy-stats-grid>div{padding:25px 15px;border-left:2px solid #c99732;background:#151515;display:flex;flex-direction:column;gap:7px}
-  .academy-stats-grid strong{color:#f6bb38;font:900 clamp(38px,4vw,65px)/1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-stats-grid strong{color:#f6bb38;font:900 clamp(32px,3.3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif}
   .academy-stats-grid span{color:#d2d2d2;font-size:13px;font-weight:700}
   .academy-philosophy{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:45px;align-items:center;background:#101111}
-  .academy-philosophy h2,.academy-enquiry h2{font:900 clamp(32px,3.5vw,58px)/1.1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-philosophy h2,.academy-enquiry h2{font:900 clamp(27px,2.75vw,45px)/1.12 'Fira Sans Extra Condensed',sans-serif}
   .academy-philosophy em{color:#f6bb38}
   .academy-philosophy-copy>p:not(.public-eyebrow),.academy-enquiry p:not(.public-eyebrow){line-height:1.7;color:#d0d0d0;max-width:67ch;margin:20px 0}
   .academy-philosophy ul{padding:0;list-style:none;display:grid;gap:14px;margin:24px 0}
@@ -336,7 +336,7 @@
   }
   :global(.public-site[data-route="/academy"]) .academy-intro .public-eyebrow{font-size:19px;margin-bottom:6px}
   :global(.public-site[data-route="/academy"]) .academy-intro h1{
-    font-size:clamp(61px,5.6vw,89px);line-height:.93;letter-spacing:-.025em;
+    font-size:clamp(44px,4.6vw,74px);line-height:.93;letter-spacing:-.025em;
   }
   .academy-hero-motto{font-size:clamp(17px,1.75vw,25px);margin:10px 0}
   :global(.public-site[data-route="/academy"]) .academy-description{
@@ -364,7 +364,7 @@
   .academy-program-facts strong{display:block;font:400 11px/1.4 'Fira Sans',sans-serif;color:#ddd;overflow-wrap:anywhere}
   .academy-age-groups{background:#101111;padding:18px clamp(20px,2.7vw,43px) 22px}
   .academy-age-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #3c3429;padding-bottom:12px}
-  .academy-age-heading h2{font:900 clamp(21px,1.8vw,29px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
+  .academy-age-heading h2{font:900 clamp(20px,1.6vw,26px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
   .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:#ffcb4a;font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
   .academy-landing-city-index{
     display:flex;align-items:center;flex-wrap:wrap;gap:9px;
@@ -410,7 +410,7 @@
   }
   .academy-unassigned-block h3{
     margin:0 0 8px;color:#f6bb38;
-    font:800 clamp(21px,2vw,29px)/1.16 'Fira Sans Extra Condensed',sans-serif;
+    font:800 clamp(19px,1.75vw,26px)/1.16 'Fira Sans Extra Condensed',sans-serif;
   }
   .academy-unassigned-block>p{font-size:13px;line-height:1.6;color:#ded8cc;max-width:75ch;margin:0 0 16px}
   .academy-city-block{margin-top:12px}
@@ -422,7 +422,7 @@
   .academy-age-card>:global(img){position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.72)}
   .academy-age-card::before{content:"";pointer-events:none;position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,#050606f2,transparent 83%),linear-gradient(0deg,#0506069a,transparent 45%)}
   .academy-age-caption{position:relative;z-index:2;min-height:143px;padding:12px 14px 9px;display:flex;flex-direction:column;align-items:flex-start}
-  .academy-age-caption h5{font:900 clamp(37px,3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 4px}
+  .academy-age-caption h5{font:900 clamp(29px,2.3vw,40px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 4px}
   .academy-age-caption h5>a{color:#fff;text-decoration:none}
   .academy-age-caption h5 span{font-size:16px;color:#ffca45}
   .academy-age-caption strong{font:900 15px 'Fira Sans Extra Condensed',sans-serif;color:#ffbf3c}
