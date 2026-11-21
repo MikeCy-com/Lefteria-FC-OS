@@ -921,3 +921,35 @@
   .admin-app .admin-sidebar .admin-nav-links a{color:#fff}
   .admin-app .admin-sidebar .admin-nav-links a[aria-current='page']{color:#000}
 }
+
+/* Source Lefteria FC admin: Manrope text, condensed headings and 14px
+   sidebar items. Keep one-level OS permission-scoped work areas. */
+.admin-app{
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:15px;line-height:1.55;
+}
+.admin-app :is(h1,h2,h3,.admin-brand){
+  font-family:'Fira Sans Extra Condensed','Fira Sans',sans-serif;
+}
+.admin-app h1{font-size:clamp(30px,2.8vw,43px);line-height:1.12}
+.admin-app h2{font-size:clamp(21px,1.9vw,27px);line-height:1.2}
+.admin-app .admin-sidebar .admin-nav-category,
+.admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){
+  font:800 17px/1.3 'Fira Sans Extra Condensed','Fira Sans',sans-serif;
+  letter-spacing:.015em;text-transform:uppercase;
+}
+.admin-app .admin-sidebar .admin-nav-links a{
+  font:600 14px/1.4 'Manrope',sans-serif;
+  letter-spacing:0;text-transform:none;color:#e5e5e2;
+}
+.admin-app .admin-sidebar .admin-nav-category > span{font-family:'Fira Sans',sans-serif}
+@media(min-width:2560px){
+  .admin-app .admin-sidebar .admin-nav-category,
+  .admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){font-size:18px}
+  .admin-app .admin-sidebar .admin-nav-links a{font-size:15px}
+}
+@media(max-width:720px){
+  .admin-app .admin-sidebar .admin-nav-category,
+  .admin-app .admin-sidebar > :is(.admin-nav-home,.admin-nav-settings-home){font-size:16px}
+  .admin-app .admin-sidebar .admin-nav-links a{font-size:14px;line-height:1.4}
+}
