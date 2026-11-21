@@ -264,6 +264,32 @@ BEGIN
     INSERT INTO pos_cashier.stock(
       organization_id,location_id,product_id,variant_id,on_hand)
     VALUES('lefteria_fc_academy',v_pos_a1,v_checkout_product,'unit',3);
+    v_result:=pos_cashier.read_assigned_cashier_sellable_stock(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1,v_cashier_shift);
+    IF v_result->>'organization_id'<>'lefteria_fc_academy'
+      OR v_result->>'location_id'<>v_pos_a1
+      OR (v_result->>'fiscal_policies_approved')::boolean
+      OR jsonb_array_length(v_result->'items')<>1
+      OR (v_result->'items'->0->>'available')::integer<>3
+      OR (v_result->'items'->0->>'price_cents')::bigint<>250
+      OR (v_result->'items'->0 ? 'cost_cents')
+    THEN RAISE EXCEPTION 'cashier_stock_read_is_not_private_or_policy_gated'; END IF;
+    BEGIN
+      PERFORM pos_cashier.read_assigned_cashier_sellable_stock(
+        v_cashier_token,'lefteria_fc_academy',v_register_b1,v_cashier_shift);
+      RAISE EXCEPTION 'cashier_read_other_city_stock';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+      PERFORM pos_cashier.read_assigned_cashier_sellable_stock(
+        v_local_token,'lefteria_fc_academy',v_register_a1,v_cashier_shift);
+      RAISE EXCEPTION 'manager_borrowed_other_cashier_shift_stock';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+    BEGIN
+      PERFORM pos_cashier.read_assigned_cashier_sellable_stock(
+        v_cashier_token,'lefteria_fc',v_register_a1,v_cashier_shift);
+      RAISE EXCEPTION 'cashier_read_other_organization_stock';
+    EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
     INSERT INTO pos_cashier.checkout_policies(
       organization_id,enabled,tax_treatment,reviewed_by,reviewed_at,policy_reference)
     VALUES('lefteria_fc_academy',true,'verified_exempt',v_super,
@@ -272,6 +298,11 @@ BEGIN
       organization_id,enabled,policy_version,policy_sha256,reviewed_by,reviewed_at)
     VALUES('lefteria_fc_academy',true,'ci-disposable-only',
       repeat('a',64),v_super,clock_timestamp()-interval '1 minute');
+
+    v_result:=pos_cashier.read_assigned_cashier_sellable_stock(
+      v_cashier_token,'lefteria_fc_academy',v_register_a1,v_cashier_shift);
+    IF NOT (v_result->>'fiscal_policies_approved')::boolean
+    THEN RAISE EXCEPTION 'cashier_stock_fiscal_approval_not_reported'; END IF;
 
     BEGIN
       PERFORM pos_cashier.prepare_cashier_checkout(
