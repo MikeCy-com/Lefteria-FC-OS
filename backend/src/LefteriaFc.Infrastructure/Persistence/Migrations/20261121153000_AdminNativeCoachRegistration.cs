@@ -47,7 +47,7 @@ public sealed class AdminNativeCoachRegistration : Migration
       SET search_path=pg_catalog,pg_temp AS $native_coach$
       DECLARE
         v_actor uuid;v_session uuid;v_role text;v_id text;
-        v_scope uuid;v_location uuid;v_subject_role text;
+        v_scope uuid;v_location uuid;v_subject_role text;v_subject_owner text;
         v_old club.admin_native_coach_requests%ROWTYPE;
       BEGIN
         IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
@@ -142,6 +142,23 @@ public sealed class AdminNativeCoachRegistration : Migration
             SELECT 1 FROM identity.admin_staff_links
               WHERE admin_account_id=_account)
           THEN RAISE EXCEPTION 'native_coach_account_denied' USING ERRCODE='42501'; END IF;
+
+          -- Every organization carried by this identity must belong to
+          -- the creator too. A one-organization Super Admin must not link
+          -- a dual-owner identity just because one owner matches.
+          FOR v_subject_owner IN
+            SELECT sg.organization_id
+            FROM identity.admin_organization_grants sg
+            WHERE sg.admin_account_id=_account
+            ORDER BY sg.organization_id FOR SHARE
+          LOOP
+            PERFORM 1 FROM identity.admin_organization_grants ag
+              WHERE ag.admin_account_id=v_actor
+                AND ag.organization_id=v_subject_owner FOR SHARE;
+            IF NOT FOUND THEN
+              RAISE EXCEPTION 'native_coach_foreign_subject_owner' USING ERRCODE='42501';
+            END IF;
+          END LOOP;
         END IF;
 
         v_id='stf_admin_'||replace(gen_random_uuid()::text,'-','');
