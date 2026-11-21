@@ -25,7 +25,7 @@ test('homepage follows 1672×941 screenshot region order without hiding CMS and 
   assert.doesNotMatch(home,/Math\.random|dummy|fake fixture/);
 });
 
-test('desktop geometry keeps the news visible without an empty brand gap and mobile remains accessible',()=>{
+test('desktop geometry restores source brand interval before news and mobile remains accessible',()=>{
   assert.match(base,/@media\(min-width:1200px\)/);
   assert.match(base,/--public-rail:154px/);
   assert.match(base,/--public-header:64px/);
@@ -36,7 +36,7 @@ test('desktop geometry keeps the news visible without an empty brand gap and mob
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
-  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y>900'])
+  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y<900'])
     assert.ok(audit.includes(text),'No browser measurement: '+text);
   assert.match(nav,/data-testid="public-sidebar"/);
   assert.match(nav,/data-testid="public-menu-drawer"/);
