@@ -88,6 +88,12 @@ public static class AdminNativeCoachEndpoints
                         "Unexpected coach registration confirmation.");
                 return Results.Content(raw,"application/json",statusCode:201);
             }
+            catch(PostgresException e) when(e.SqlState=="P0001" &&
+                e.MessageText=="admin_club_session_lock_missing")
+            {throw new WebAdminException(401,"not_authenticated","Sign in again.");}
+            catch(PostgresException e) when(e.SqlState=="P0001" &&
+                e.MessageText=="admin_club_grant_lock_missing")
+            {throw new WebAdminException(403,"not_authorized","Organization access changed.");}
             catch(PostgresException e) when(e.SqlState=="23505")
             {throw new WebAdminException(409,"native_coach_conflict",
                 "This registration was already used with different information.");}
