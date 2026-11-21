@@ -69,11 +69,12 @@ test('actual restore is independent, format-checked and cleans its test archive'
 });
 
 test('full PostgreSQL restore drill runs directly after migration recovery in the CI identity job',()=>{
-  const start=workflow.indexOf('name: Migration apply, rollback and reapply');
+  const migrated=workflow.indexOf('name: Migration apply, rollback and reapply');
+  const roleProvisioned=workflow.indexOf('name: Provision and check restricted runtime role');
   const restore=workflow.indexOf('name: Prove isolated PostgreSQL backup and restore');
-  const later=workflow.indexOf('name: Validate city-shared Academy catalogs');
-  assert.ok(start>=0&&restore>start&&later>restore);
+  const later=workflow.indexOf('name: Verify Payabl finance schema');
+  assert.ok(migrated>=0&&roleProvisioned>migrated&&restore>roleProvisioned&&later>restore);
   assert.match(workflow,/docker exec -e LEFTERIA_DISPOSABLE_RESTORE_ACK=ci-only/);
-  assert.match(workflow,/identity-postgres sh \/opt\/lefteria-postgres\/disposable-backup-restore-drill\.sh/);
+  assert.match(workflow,/identity-postgres[\\s\\S]*?sh \\/opt\\/lefteria-postgres\\/disposable-backup-restore-drill\\.sh/);
   assert.match(workflow,/postgres:18\.6-alpine -c listen_addresses=127\.0\.0\.1 -p 54329/);
 });
