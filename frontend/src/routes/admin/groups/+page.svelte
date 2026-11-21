@@ -516,8 +516,43 @@
               <span class="admin-audiences-caption">Ενημέρωση από το ρόστερ</span>
             </div>
             {#if directory.groups.length === 0}
-              <p class="admin-muted" data-testid="admin-audiences-empty">Δεν υπάρχουν τμήματα στο επαληθευμένο ρόστερ αυτού του οργανισμού.</p>
-              {#if canCreate}<button type="button" class="admin-secondary" onclick={()=>{showCreate=true;}} data-testid="admin-first-group-button">Δημιουργία πρώτου τμήματος</button>{/if}
+              {#if $auth.session.user.role==='super_admin'}
+                <p class="admin-muted" data-testid="admin-audiences-empty">
+                  Δεν υπάρχουν τμήματα στο επαληθευμένο ρόστερ αυτού του οργανισμού.
+                  Η εποπτεία Super Admin περιλαμβάνει και τμήματα χωρίς ανάθεση.
+                </p>
+                {#if canCreate}
+                  <button type="button" class="admin-secondary"
+                    onclick={()=>{showCreate=true;}} data-testid="admin-first-group-button">
+                    Δημιουργία πρώτου τμήματος
+                  </button>
+                {/if}
+              {:else}
+                <section class="admin-panel admin-scoped-empty" role="status"
+                  data-testid="admin-audiences-unassigned-access">
+                  <h3>Δεν εμφανίζονται ανατεθειμένα τμήματα</h3>
+                  <p class="admin-muted">
+                    Η λίστα εμφανίζει μόνο ομάδες και τμήματα στα οποία έχετε ενεργή
+                    εξουσιοδότηση. Δεν σημαίνει ότι ο οργανισμός δεν έχει ομάδες.
+                    Αν αναμένετε να βλέπετε κάποιο τμήμα, ζητήστε από τον Super Admin
+                    να ελέγξει την ανάθεση πόλης, τοποθεσίας ή Πρώτης Ομάδας.
+                  </p>
+                  <a class="admin-secondary" data-testid="admin-audiences-verify-scope"
+                    href={`/admin/territories?organization_id=${encodeURIComponent(organization??'')}`}>
+                    Έλεγχος των εξουσιοδοτημένων τοποθεσιών
+                  </a>
+                  {#if canCreate && organization==='lefteria_fc_academy'}
+                    <p class="admin-muted">
+                      Για νέο τμήμα Ακαδημίας απαιτείται ενεργή, εξουσιοδοτημένη τοποθεσία.
+                      Η δημιουργία επιβεβαιώνει την άδεια ξανά στη βάση δεδομένων.
+                    </p>
+                    <button type="button" class="admin-secondary"
+                      onclick={()=>{showCreate=true;}} data-testid="admin-first-group-button">
+                      Προσθήκη τμήματος στην τοποθεσία μου
+                    </button>
+                  {/if}
+                </section>
+              {/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
                 {#each directory.groups as group (group.id)}
@@ -585,6 +620,9 @@
   .admin-group-create-actions{display:flex;flex-wrap:wrap;gap:9px}
   .admin-group-error{color:#ffd29b;margin-top:12px}
   .admin-audiences-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:0 0 16px}
+  .admin-scoped-empty{display:grid;gap:12px;justify-items:start;margin:12px 0 18px}
+  .admin-scoped-empty h3,.admin-scoped-empty p{margin:0}
+  .admin-scoped-empty a.admin-secondary{display:inline-flex;align-items:center;min-height:44px;text-decoration:none}
   .admin-audiences-stats>div{padding:16px;background:#121415;border:1px solid #303335;border-radius:12px;display:flex;flex-direction:column;gap:7px}
   .admin-audiences-stats span,.admin-audiences-caption,.admin-audiences-count span{font-size:12px;color:#aab0b3}
   .admin-audiences-stats strong{font-family:'Fira Sans Extra Condensed',sans-serif;font-size:29px;color:#ffca46}
