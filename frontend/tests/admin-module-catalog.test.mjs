@@ -171,8 +171,13 @@ test('live workflows are reachable in contextual groups and authorized standalon
   // advertised as standalone modules in the administration information architecture.
   for(const href of ['/admin/schedule','/admin/attendance','/admin/evaluations','/admin/documents','/admin/matches'])
     assert.match(readFileSync(new URL('../src/routes'+href+'/+page.svelte',import.meta.url),'utf8'),/ADMIN_AUTH_CONTEXT/);
-  for(const href of ['/admin/hub','/admin/academy-office','/admin/staff','/admin/groups'])
+  for(const href of ['/admin/hub','/admin/academy-office','/admin/groups'])
     assert.ok(frame.includes('href="'+href+'"'),href);
+  const settings=readFileSync(new URL('../src/routes/admin/settings/+page.svelte',import.meta.url),'utf8');
+  assert.match(frame,/href="\/admin\/settings"/);
+  assert.match(settings,/href="\/admin\/staff"/);
+  assert.match(settings,/href="\/admin\/users"/);
+  assert.match(settings,/href="\/admin\/onboarding"/);
   const groupsPage=readFileSync(new URL('../src/routes/admin/groups/+page.svelte',import.meta.url),'utf8');
   const groupWorkspace=read('AdminGroupWorkspace.svelte');
   assert.match(groupsPage,/AdminGroupWorkspace/);
