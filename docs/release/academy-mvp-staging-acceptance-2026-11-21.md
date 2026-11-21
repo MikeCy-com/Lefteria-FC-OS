@@ -1,0 +1,55 @@
+# Academy-first MVP: isolated staging acceptance record (2026-11-21)
+
+Status: **NOT RUN / RELEASE BLOCKED**. This is an execution and evidence record, not evidence of passing checks. Never use the legacy production Hostinger containers, DB, certificates, DNS, or real families. No production deployment is authorized here.
+
+## Candidate and environment evidence
+
+- Source repository: `MikeCy-com/Lefteria-FC-OS`.
+- CMS PR #417 merged as `2b4ae253d8ac2576b0f33c9047d4f23a904a166a` after exact-PR-head Rewrite build and Browser UI visual audit succeeded. A merge SHA is **not** an exact-main CI or preview-image verification.
+- Staging hostname: NOT VERIFIED; preview Compose project: `lefteria-os-preview` (documented target, not observed); container IDs, network, database host/name, PostgreSQL volume, object storage, secrets, provider endpoints and feature flags: NOT VERIFIED.
+- Separate environment owner/operator, date/time, redacted command outputs, and release image manifest/SHA256SUMS: NOT RECORDED.
+- All evidence below must be gathered against the **same pinned candidate SHA and isolated preview environment**.
+
+## Stop conditions (G0)
+
+Before issuing **any** mutating command, independently compare the preview hostname/DNS, project name, Docker container IDs, volumes, PostgreSQL host and DB, TLS path, image labels, credential sources, callbacks and backups against the legacy production inventory. Stop if any connection, mount, credential, or external provider overlaps production or cannot be demonstrated distinct. Synthetic people and fake financial data only. Do not put tokens/passwords, children's details, DB dumps or private financial rows in CI artifacts or GitHub.
+
+The existing authoritative procedure is `deploy/preview/README.md`; follow it for pinned image provenance, root-only environment management and safe migration. A deployment of a new commit must not silently overwrite existing staging configuration. No destructive down migration on CMS tables with content/audit history.
+
+## Executable acceptance matrix
+
+| ID | Scenario and expected observable result | Evidence needed | Status |
+| --- | --- | --- | --- |
+| G0 | Verify *independent* preview VPS services, Compose project, DB, TLS, volumes, media paths, webhooks and disabled providers | Redacted inventory and two-person signoff | NOT RUN |
+| CI | Exact **main** candidate SHA: Rewrite build, browser audit, API contract, ASP.NET, SvelteKit, PostgreSQL identities, Docker; verify release manifest labels and checksum | Workflow URLs, SHA, manifest digest | NOT RUN |
+| DB | Back up staging; inspect archive and independently restore into disposable, isolated PostgreSQL; compare counts/schema/checksums | Archive checksum, restore exit code, comparative probes, cleanup | NOT RUN |
+| MIG | Run only the versioned migrations and reviewed role grants against isolated staging; prove runtime permissions | Migration IDs, `identity-app-permissions-check.sql`, `web-admin-auth-permissions-check.sql`, denied-table probes | NOT RUN |
+| CMS-1 | Academy Editor creates draft; anonymous/public API cannot see it; Editor cannot publish; First Team owner cannot read it | HTTP statuses and redacted security audit | NOT RUN |
+| CMS-2 | Academy Manager publishes, only Academy public URL/nav/sitemap updates; edit draft without republishing leaves public snapshot identical | Before/after public snapshots, audit IDs | NOT RUN |
+| CMS-3 | Version race, revoked session, wrong-owner forged request and failed manager capability deny; unpublish removes public result without erasing draft | 403/409 responses, audit proof and published-row projection | NOT RUN |
+| GEO | Super Admin sees all Academy cities/sites; city manager sees only own city; location manager only own site; each coach only assigned groups | Separate synthetic role sessions; denied requests | NOT RUN |
+| FIN-1 | With synthetic invoices, check issued/paid/outstanding, cash receipt and card settlement totals by city/site against ledger; unallocated issues must not disappear | Redacted totals, invariant comparison, ledger event IDs | NOT RUN |
+| FIN-2 | Re-run `ops/postgres/academy-location-finance-checks.sql`, `ops/postgres/finance-global-role-checks.sql` and relevant POS cashier checks in a disposable PostgreSQL fixture; demonstrate forged cross-location denial | SQL probe exit codes and denial assertions | NOT RUN |
+| FIN-3 | Payment provider remains sandbox/disabled until signed callbacks, idempotency, refunds and receipts reconcile; never treat browser return as payment | Provider sandbox proof and non-duplicate entries, or disabled-feature proof | NOT RUN |
+| MEDIA | CMS image URL and ownership, safe HTTPS/local source, alt text and publication separation; no private youth asset in public media browser | Public response and denied asset requests | NOT RUN |
+| REC | Snapshot staging DB and media; rehearse app image rollback; restore disposable DB and prove schema/finance/access invariants; if a non-reversible migration exists choose tested forward recovery, not destructive down migration | Recovery timestamps, image IDs, restore diff, operator signoff | NOT RUN |
+| OBS | Health endpoint, errors, logs, monitoring/alerts and synthetic identity checks; safe shutdown/disable switches | Observation window, links and thresholds | NOT RUN |
+
+## Required evidence protocol
+
+For each row record: `candidate_sha`, `preview_environment_id`, `executed_at_utc`, `operator`, exact redacted command/test identifier, `PASS/FAIL/BLOCKED/NOT RUN`, observed result and private evidence location. Record failure/denial paths as well as success. Never mark PASS based solely on source-level tests. Store secrets and backup archives only in protected infrastructure, not this repository.
+
+For finances, verify *both* accounting identities and arithmetic: issued minus reversals minus settled payments equals remaining balance, with refunds and duplicate callbacks separately accounted for; compare each permitted location's subtotal with the authoritative server ledger and the cross-site aggregate. If legacy/unallocated entries cannot be assigned with proof, classify them explicitly as reconciliation exceptions. Do not invent missing payment records.
+
+## Restore and rollback decision
+
+1. Before migrations, take and checksum root-only preview DB/media backups; prove archive can be restored into a disposable **different** database and cross-check table counts, ledger totals and user/permission boundaries.
+2. Capture previous immutable image IDs, env/config integrity fingerprints (never contents), schema migration ID, container start times and production read-only inventory.
+3. Rehearse old-image rollback on isolated preview **only** with a compatible database; if schema is incompatible, use a tested forward fix or full **staging-only** restore of the prior snapshot, with rehearsed recovery time and data-loss window.
+4. Confirm canonical CMS published snapshots and financial ledgers after recovery, re-run G0, verify no production service/config changed, and require two-person signoff.
+
+## Release decision
+
+**NO-GO until all required Academy MVP gates in `ops/release/check-go-live.mjs --profile=academy-mvp` are verified against the exact release SHA, and an authorized staging operator has attached the evidence above.** Use `node ops/release/check-go-live.mjs --profile=academy-mvp --require-ready --sha=<exact-sha>` as the final non-deploying check. A passing check does not itself deploy or authorize production cutover.
+
+After staging passes, require a separate written production cutover approval, verified protected backups, explicit rollback ownership, health observation and payment/provider authorization. Never infer release readiness from CI green alone.
