@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import AdminPosRecoveryReviewPanel from './AdminPosRecoveryReviewPanel.svelte';
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Site={pos_location_id:string;name:string;city_name:string;
     academy_city_id:string|null;academy_location_id:string|null};
@@ -569,6 +570,9 @@
       </div>
     {/if}
   </section>
+  {#if canProvision}
+    <AdminPosRecoveryReviewPanel {owner} {actorId} {refresh} {onExpired} {onRevoked}/>
+  {/if}
 {/if}
 
 <style>
