@@ -34,6 +34,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
 \ir admin-coach-assignment-boundary.sql
+\ir admin-native-coach-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
 \ir app-announcement-publishing-boundary.sql
 
@@ -161,6 +162,7 @@ BEGIN
                   'club.update_admin_player_development_goal(text,text,text,uuid,uuid,integer,integer,boolean,text)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
+                  'club.create_admin_native_coach(text,text,uuid,text,text,text,uuid)'::regprocedure,
                   'club.write_admin_coach_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'hub.read_admin_editorial(text,text)'::regprocedure,
                   'hub.read_admin_fan_subscription_overview(text,text)'::regprocedure,
