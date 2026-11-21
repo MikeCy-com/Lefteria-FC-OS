@@ -19,6 +19,51 @@ def require(ok, message):
         raise SystemExit("Production Compose security check failed: " + message)
 
 
+def verify_provider_wiring(services):
+    """Never expose credentials, and never accept a live Payabl switch."""
+    api = services["api"].get("environment") or {}
+    web = services["web"].get("environment") or {}
+    keys = (
+        "Payabl__Enabled", "Payabl__Sandbox", "Payabl__MerchantId",
+        "Payabl__Secret", "Payabl__PublicOrigin",
+        "TwilioPaymentSms__Enabled", "TwilioPaymentSms__AccountSid",
+        "TwilioPaymentSms__AuthToken", "TwilioPaymentSms__MessagingServiceSid",
+    )
+    require(all(key in api for key in keys),
+            "sandbox payment settings are not forwarded to API")
+
+    def switch(key):
+        value = str(api.get(key, "")).lower()
+        require(value in ("true", "false"), key + " must be an explicit boolean")
+        return value == "true"
+
+    payment_enabled = switch("Payabl__Enabled")
+    sms_enabled = switch("TwilioPaymentSms__Enabled")
+    require(switch("Payabl__Sandbox"), "live Payabl configuration is not supported")
+    require(not sms_enabled or payment_enabled,
+            "payment-link SMS requires an approved sandbox gateway")
+
+    if payment_enabled:
+        from urllib.parse import urlsplit
+        origin = str(api.get("Payabl__PublicOrigin", ""))
+        expected = str(web.get("ORIGIN", ""))
+        parts = urlsplit(origin)
+        require(parts.scheme == "https" and bool(parts.hostname)
+                and not parts.username and not parts.password
+                and not parts.query and not parts.fragment
+                and parts.path in ("", "/")
+                and origin.rstrip("/") == expected.rstrip("/"),
+                "sandbox callback origin must match the public HTTPS site")
+        require(bool(str(api.get("Payabl__MerchantId", "")))
+                and len(str(api.get("Payabl__Secret", ""))) >= 16,
+                "sandbox Payabl merchant credentials are not configured")
+    if sms_enabled:
+        require(bool(str(api.get("TwilioPaymentSms__AccountSid", "")))
+                and bool(str(api.get("TwilioPaymentSms__MessagingServiceSid", "")))
+                and len(str(api.get("TwilioPaymentSms__AuthToken", ""))) >= 20,
+                "sandbox payment SMS service credentials are not configured")
+
+
 def main():
     configuration = json.load(sys.stdin)
     services = configuration.get("services", {})
@@ -54,6 +99,7 @@ def main():
             "migration tool must be opt-in")
     require("public" in services["proxy"].get("networks", {}),
             "only edge service should bind a public network")
+    verify_provider_wiring(services)
     print("Production Compose least-privilege configuration verified.")
 
 
