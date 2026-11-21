@@ -248,36 +248,57 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
       assert.equal(response?.status(),200);
       const sidebar = page.getByTestId('admin-structured-navigation');
       await sidebar.waitFor({state:'visible',timeout:20000});
+      // The new sidebar is deliberately compact: only work-area headers show
+      // until a user opens a permission-scoped, single-level disclosure.
+      const websiteCategory = page.getByTestId('admin-website-category');
+      await websiteCategory.waitFor({state:'visible'});
+      assert.equal(await page.getByTestId('admin-news-link').isVisible(),false,
+        'Collapsed website category must hide its child links');
+      await websiteCategory.click();
       await page.getByTestId('admin-news-link').waitFor({state:'visible'});
+      assert.equal(await page.getByTestId('admin-hub-link').isVisible(),false,
+        'Unselected sections should remain collapsed by default');
       await page.evaluate(() => document.fonts.ready);
       const values = await sidebar.evaluate(nav => {
         const tool = nav.querySelector('[data-testid="admin-news-link"]');
-        const section = nav.querySelector('.admin-nav-section');
-        const label = nav.querySelector('.admin-nav-label');
-        if (!tool || !section || !label) throw new Error('Missing authorized navigation elements');
+        const section = nav.querySelector('[data-testid="admin-website-navigation"] .admin-nav-section');
+        const category = nav.querySelector('[data-testid="admin-website-category"]');
+        if (!tool || !section || !category) throw new Error('Missing authorized navigation elements');
         const linkCss = getComputedStyle(tool), navCss = getComputedStyle(nav);
         const navRect = nav.getBoundingClientRect();
         return {
           fontSize:parseFloat(linkCss.fontSize),
           sectionSize:parseFloat(getComputedStyle(section).fontSize),
-          labelSize:parseFloat(getComputedStyle(label).fontSize),
+          categorySize:parseFloat(getComputedStyle(category).fontSize),
           linkHeight:tool.getBoundingClientRect().height,
+          categoryHeight:category.getBoundingClientRect().height,
           linkColor:linkCss.color,navColor:navCss.backgroundColor,
           sidebarWidth:navRect.width,
           sidebarScrollWidth:nav.scrollWidth, sidebarClientWidth:nav.clientWidth,
           pageWidth:document.documentElement.scrollWidth,viewportWidth:document.documentElement.clientWidth,
-          linkCount:nav.querySelectorAll('a').length
+          linkCount:nav.querySelectorAll('a').length,
+          openCount:nav.querySelectorAll('details[open]').length
         };
       });
-      assert.ok(values.fontSize >= 16,viewport.name + ' nav tool font is too small');
-      assert.ok(values.sectionSize >= 17,viewport.name + ' nav section heading is too small');
-      if (viewport.width > 720) assert.ok(values.labelSize >= 13,viewport.name + ' nav label is too small');
-      assert.ok(values.linkHeight >= 44,viewport.name + ' link target must reach 44px');
+      assert.ok(values.fontSize >= (viewport.width <= 720 ? 14 : 15),
+        viewport.name+' nav child link font is too small');
+      assert.ok(values.sectionSize >= (viewport.width <= 720 ? 14 : 15),
+        viewport.name+' nav section link font is too small');
+      assert.ok(values.categorySize >= (viewport.width <= 720 ? 16 : 18),
+        viewport.name+' nav category heading is too small');
+      assert.ok(values.categorySize > values.fontSize,
+        viewport.name+' category heading must be larger than its links');
+      assert.ok(values.linkHeight >= 44 && values.categoryHeight >= 44,
+        viewport.name+' navigation targets must reach 44px');
+      assert.equal(values.openCount,1,viewport.name+' only the selected work area should be open');
       assert.ok(values.linkCount >= 12,'All granted admin modules should remain reachable');
-      assert.ok(textContrast(values.linkColor,values.navColor) >= 4.5,viewport.name + ' navigation contrast below WCAG AA');
-      assert.ok(values.pageWidth <= values.viewportWidth + 2,viewport.name + ' authenticated admin overflows document');
-      if (viewport.width <= 720) assert.ok(values.sidebarScrollWidth > values.sidebarClientWidth,
-        'Mobile navigation must scroll horizontally to reveal all granted links');
+      assert.ok(textContrast(values.linkColor,values.navColor) >= 4.5,
+        viewport.name+' navigation contrast below WCAG AA');
+      assert.ok(values.pageWidth <= values.viewportWidth + 2,
+        viewport.name+' authenticated admin overflows document');
+      if (viewport.width <= 720)
+        assert.ok(values.sidebarScrollWidth <= values.sidebarClientWidth + 2,
+          'Mobile admin menu should not depend on an overflowing horizontal link rail');
       else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
       const news = page.getByTestId('admin-news-link');
       await news.focus();
@@ -307,6 +328,7 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
       contentType:'application/json',body:JSON.stringify(new URL(route.request().url()).pathname==='/api/admin/auth/me'?editor:{code:'unavailable'})
     }));
     await page.goto(base+'/admin',{waitUntil:'domcontentloaded'});
+    await page.getByTestId('admin-website-category').click();
     await page.getByTestId('admin-news-link').waitFor({state:'visible'});
     assert.equal(await page.getByTestId('admin-payabl-link').count(),0,'Editor must not see finance');
     assert.equal(await page.getByTestId('admin-groups-link').count(),0,'Editor must not see Academy groups without grants');
