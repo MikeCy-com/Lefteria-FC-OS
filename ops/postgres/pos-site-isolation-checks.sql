@@ -408,15 +408,11 @@ BEGIN
     UPDATE pos_cashier.shift_recovery_reviews SET disposition='balanced_confirmed'
       WHERE shift_id=v_cashier_shift;
     RAISE EXCEPTION 'second_count_evidence_edited';
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM='second_count_evidence_edited' THEN RAISE; END IF;
-  END;
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
     DELETE FROM pos_cashier.shift_recovery_reviews WHERE shift_id=v_cashier_shift;
     RAISE EXCEPTION 'second_count_evidence_deleted';
-  EXCEPTION WHEN OTHERS THEN
-    IF SQLERRM='second_count_evidence_deleted' THEN RAISE; END IF;
-  END;
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   -- Once independently reviewed, normal use can resume without removing
   -- the recorded ten-cent shortage or touching immutable financial rows.
