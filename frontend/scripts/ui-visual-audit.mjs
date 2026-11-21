@@ -301,7 +301,12 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
           'Mobile admin menu should not depend on an overflowing horizontal link rail');
       else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
       const news = page.getByTestId('admin-news-link');
+      // :focus-visible intentionally follows keyboard modality. A synthetic
+      // focus() call immediately after clicking the disclosure is pointer
+      // modality in Chromium, not an accessible keyboard interaction.
       await news.focus();
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Shift+Tab');
       const focus = await news.evaluate(link => {
         const css = getComputedStyle(link);
         return {focused:document.activeElement === link, outlineWidth:parseFloat(css.outlineWidth),outlineStyle:css.outlineStyle};
