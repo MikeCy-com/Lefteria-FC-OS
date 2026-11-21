@@ -76,6 +76,6 @@ test('full PostgreSQL restore drill runs directly after migration recovery in th
   assert.ok(migrated>=0&&roleProvisioned>migrated&&restore>roleProvisioned&&later>restore);
   assert.match(workflow,/docker exec -e LEFTERIA_DISPOSABLE_RESTORE_ACK=ci-only/);
   assert.match(workflow,/identity-postgres/);
-  assert.match(workflow,/sh \\/opt\\/lefteria-postgres\\/disposable-backup-restore-drill\\.sh/);
+  assert.ok(workflow.includes('sh /opt/lefteria-postgres/disposable-backup-restore-drill.sh'));
   assert.match(workflow,/postgres:18\.6-alpine -c listen_addresses=127\.0\.0\.1 -p 54329/);
 });
