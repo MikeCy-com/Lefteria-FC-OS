@@ -44,3 +44,22 @@ test('API enforces same owner guard for writes and admin only shows valid option
   assert.match(admin,/visibleParents\.some/);
   assert.match(admin,/each visibleParents as parent/);
 });
+
+test('public CMS projection rejects malformed page metadata before navigation',()=>{
+  for(const mutate of [
+    p=>{p.page.menu_parent='unknown';},
+    p=>{p.page.menu_order=-1;},
+    p=>{p.page.menu_order=1001;},
+    p=>{p.page.title='';},
+    p=>{p.page.title='X'.repeat(181);},
+    p=>{p.page.summary=undefined;},
+    p=>{p.page.seo_title='X'.repeat(181);},
+    p=>{p.page.seo_description='X'.repeat(301);},
+    p=>{p.page.blocks=[];},
+    p=>{p.page.blocks=Array.from({length:41},()=>({type:'paragraph',text:'Hello',url:null}));}
+  ]){
+    const entry=page('lefteria_fc_academy','academy');
+    mutate(entry);
+    assert.deepEqual(withWebsitePages(nav,[entry],'lefteria_fc_academy'),nav);
+  }
+});
