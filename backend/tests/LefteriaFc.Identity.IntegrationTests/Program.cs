@@ -115,6 +115,17 @@ internal static class TestRunner
             return 1;
         }
 
+        try
+        {
+            await AcademyMvpHttpChecks.RunAsync(fixture);
+            Console.WriteLine("PASS Academy MVP optional paid/POS/fan HTTP denial and core route preservation.");
+        }
+        catch(Exception error)
+        {
+            Console.Error.WriteLine("FAIL Academy MVP HTTP boundary: "+error.GetType().Name+": "+error.Message);
+            return 1;
+        }
+
         var factory = new IdentityApplicationFactory(fixture);
         var database = new TestDatabase(fixture, factory.OtpKey);
         var failures = 0;
