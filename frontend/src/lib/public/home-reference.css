@@ -546,3 +546,52 @@
   .public-site .home-reference[data-testid="home-page"] .public-destination h2 {font-size:clamp(18px,5vw,22px);}
   .public-site .home-reference[data-testid="home-page"] .public-news-card:first-child h3 {font-size:clamp(22px,6vw,27px);}
 }
+
+/* 2026-11 typography calibration: keep the reference composition and
+   Fira display face, but restore breathing room around long Greek headlines.
+   Body copy, links, inputs and clickable target geometry remain unchanged. */
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+  font-size:clamp(40px,3.05vw,67px);
+  line-height:1.03;
+  max-width:20ch;
+  min-height:0;
+}
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy .public-eyebrow {
+  font-size:clamp(15px,1.1vw,21px);
+}
+.public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+.public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+  font-size:clamp(21px,1.48vw,27px);
+  line-height:1.13;
+}
+.public-site .home-reference[data-testid="home-page"] .public-destination h2 {
+  font-size:clamp(18px,1.18vw,23px);
+  text-wrap:balance;
+  white-space:normal;
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:first-child h3 {
+  font-size:clamp(21px,1.76vw,29px);
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:not(:first-child) h3 {
+  font-size:clamp(17px,1.08vw,20px);
+}
+.public-site .home-reference[data-testid="home-page"] .home-brand-motto {
+  font-size:clamp(19px,1.55vw,25px);
+}
+@media(max-width:767px) {
+  .public-site .home-reference[data-testid="home-page"] .public-hero-copy h1 {
+    font-size:clamp(30px,7.7vw,40px);
+    max-width:100%;
+    line-height:1.04;
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+  .public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2 {
+    font-size:clamp(20px,5vw,24px);
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-destination h2 {
+    font-size:clamp(18px,4.65vw,21px);
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-news-card:first-child h3 {
+    font-size:clamp(21px,5.35vw,25px);
+  }
+}
