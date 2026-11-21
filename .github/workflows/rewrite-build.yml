@@ -299,6 +299,27 @@ jobs:
           node-version-file: .nvmrc
       - run: npm ci --no-audit --no-fund
         working-directory: frontend
+      # Temporary dependency-lock diagnostic: keep the audited npm CI check unchanged.
+      # Print only changed lockfile entries, never credentials or all dependencies.
+      - name: Inspect patched SvelteKit lockfile metadata (temporary, no commit)
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          trap 'git checkout -- package.json package-lock.json' EXIT
+          npm install --package-lock-only --save-exact --ignore-scripts --no-audit --no-fund @sveltejs/kit@3.4.0 @sveltejs/adapter-node@6.0.5
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import cp from 'node:child_process';
+          const previous=JSON.parse(cp.execFileSync('git',['show','HEAD:frontend/package-lock.json'],{encoding:'utf8'}));
+          const next=JSON.parse(fs.readFileSync('package-lock.json','utf8'));
+          const changes={};
+          for(const name of new Set([...Object.keys(previous.packages),...Object.keys(next.packages)])){
+            if(JSON.stringify(previous.packages[name])!==JSON.stringify(next.packages[name]))
+              changes[name]=next.packages[name]??null;
+          }
+          const manifest=JSON.parse(fs.readFileSync('package.json','utf8'));
+          console.log('LEFTERIA_SVELTE_PATCH_START'+JSON.stringify({manifest,changes})+'LEFTERIA_SVELTE_PATCH_END');
+          NODE
       - run: npm audit --audit-level=high
         working-directory: frontend
       - run: npm ci --prefix tools/api-client --no-audit --no-fund
