@@ -35,7 +35,15 @@ BEGIN
     PERFORM club.create_admin_native_coach(
       repeat('0',64),'lefteria_fc',gen_random_uuid(),
       'Fictional coach','Head Coach','fake_team',NULL);
-  EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
+  EXCEPTION
+    WHEN insufficient_privilege THEN denied:=true;
+    WHEN raise_exception THEN
+      IF SQLERRM='admin_club_session_lock_missing' THEN
+        denied:=true;
+      ELSE
+        RAISE;
+      END IF;
+  END;
   IF NOT denied THEN
     RAISE EXCEPTION 'Forged session was accepted for staff provisioning';
   END IF;
