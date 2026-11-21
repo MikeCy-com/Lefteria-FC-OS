@@ -21,12 +21,17 @@ public static class HealthEndpoints
     }
 
     private static async Task<IResult> CheckReadiness(
+        HttpContext context,
         LefteriaDbContext database,
         WebAdminConnections adminConnections,
         IOptions<WebAdminOptions> adminOptions,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        // Never let a proxy cache a previously ready container after a schema
+        // revocation or during a release/migration transition.
+        context.Response.Headers.CacheControl="no-store, max-age=0";
+        context.Response.Headers.Pragma="no-cache";
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         budget.CancelAfter(TimeSpan.FromSeconds(3));
         var logger = loggerFactory.CreateLogger("Readiness");
