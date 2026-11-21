@@ -324,10 +324,10 @@ BEGIN
     v_super_token,'lefteria_fc_academy',v_month);
   IF jsonb_array_length(v_report->'locations')<>3
     OR NOT EXISTS (
-      SELECT 1 FROM jsonb_array_elements(v_report->'locations') loc(row)
-      WHERE (loc.row->>'location_id')::uuid=v_site_b
-        AND (loc.row->>'gross_amount_cents')::bigint=24000
-        AND (loc.row->>'remaining_cents')::bigint=24000)
+      SELECT 1 FROM jsonb_array_elements(v_report->'locations') loc(item)
+      WHERE (loc.item->>'location_id')::uuid=v_site_b
+        AND (loc.item->>'gross_amount_cents')::bigint=24000
+        AND (loc.item->>'remaining_cents')::bigint=24000)
     OR v_report::text LIKE '%CI First Team Private Vendor%'
   THEN RAISE EXCEPTION 'academy_reversal_changed_first_team_or_other_city'; END IF;
 
