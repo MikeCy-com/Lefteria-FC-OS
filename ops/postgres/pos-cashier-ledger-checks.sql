@@ -198,6 +198,17 @@ BEGIN
     p.oid='pos_cashier.recover_suspended_admin_cashier_shift(text,text,uuid,bigint,uuid,text)'::regprocedure
       AND p.prosecdef)
   THEN RAISE EXCEPTION 'pos_shift_recovery_function_missing'; END IF;
+  -- The transactional receipt issuer allows an assigned named cashier only
+  -- under an active exact shift, while keeping runtime access private.
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.issue_verified_internal_receipt(text,text,uuid,uuid)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%receipt_cashier_scope_changed%'
+      AND pg_get_functiondef(p.oid) LIKE '%receipt_cashier_shift_closed%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_named_cashier_atomic_receipt_authority_missing'; END IF;
   -- Independent second count: private immutable record and no raw grants.
   IF NOT EXISTS(SELECT 1 FROM pg_class cl
       WHERE cl.oid='pos_cashier.shift_recovery_reviews'::regclass
