@@ -42,6 +42,11 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bo
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        // Minimal-hosting Program reads the MVP flag from initial host
+        // configuration before deferred ConfigureAppConfiguration callbacks.
+        // UseSetting supplies this explicit test-only value at host setup.
+        builder.UseSetting("LEFTERIA_ACADEMY_MVP_ONLY",
+            academyMvpMode ? "true" : "false");
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
