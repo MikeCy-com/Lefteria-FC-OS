@@ -109,7 +109,7 @@ BEGIN
     PERFORM hub.set_admin_classroom_lesson_subject(
       v_foreign_digest,'lefteria_fc_academy',v_content,v_revision,0,
       'defending','This club is not granted');
-  EXCEPTION WHEN insufficient_privilege THEN v_denied:=true; END;
+  EXCEPTION WHEN insufficient_privilege OR raise_exception THEN v_denied:=true; END;
   IF NOT v_denied THEN RAISE EXCEPTION 'foreign_super_admin_curriculum_write'; END IF;
   v_denied:=false;
   BEGIN
@@ -230,7 +230,7 @@ BEGIN
   BEGIN
     PERFORM hub.read_admin_classroom_curriculum(
       v_digest,'lefteria_fc_academy',0,20);
-  EXCEPTION WHEN insufficient_privilege THEN v_denied:=true; END;
+  EXCEPTION WHEN insufficient_privilege OR raise_exception THEN v_denied:=true; END;
   IF NOT v_denied THEN RAISE EXCEPTION 'revoked_curriculum_admin_read'; END IF;
 END $classroom_curriculum_check$;
 ROLLBACK;
