@@ -17,7 +17,7 @@ const SHA=/^[0-9a-f]{40}$/;
 const STATUS=new Set(['blocked','in_progress','verified']);
 const CORE=new Set([
   'api-ci','data-import','privacy-security','finance-reconciliation',
-  'cutover-rollback','backups-restore','role-mobile-parity','hub-education'
+  'cutover-rollback','backups-restore','role-mobile-parity','production-identity','hub-education'
 ]);
 function validDate(value){
   return typeof value==='string'&&/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&
