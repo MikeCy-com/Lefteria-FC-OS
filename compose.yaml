@@ -110,6 +110,17 @@ services:
       Twilio__AccountSid: ${TWILIO_ACCOUNT_SID:-}
       Twilio__AuthToken: ${TWILIO_AUTH_TOKEN:-}
       Twilio__FromNumber: ${TWILIO_FROM_NUMBER:-}
+      # Sandbox-only provider adapters. Unset or false means no merchant
+      # requests or payment-link SMS; these are NEVER live card credentials.
+      Payabl__Enabled: "${Payabl__Enabled:-false}"
+      Payabl__Sandbox: "${Payabl__Sandbox:-true}"
+      Payabl__MerchantId: ${Payabl__MerchantId:-}
+      Payabl__Secret: ${Payabl__Secret:-}
+      Payabl__PublicOrigin: ${Payabl__PublicOrigin:-}
+      TwilioPaymentSms__Enabled: "${TwilioPaymentSms__Enabled:-false}"
+      TwilioPaymentSms__AccountSid: ${TwilioPaymentSms__AccountSid:-}
+      TwilioPaymentSms__AuthToken: ${TwilioPaymentSms__AuthToken:-}
+      TwilioPaymentSms__MessagingServiceSid: ${TwilioPaymentSms__MessagingServiceSid:-}
       WebPush__Enabled: "${WEB_PUSH_ENABLED:-false}"
       WebPush__VapidPublicKey: ${WEB_PUSH_VAPID_PUBLIC_KEY:-}
       WebPush__VapidPrivateKey: ${WEB_PUSH_VAPID_PRIVATE_KEY:-}
