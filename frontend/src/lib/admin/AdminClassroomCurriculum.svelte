@@ -71,7 +71,7 @@
     const selectedLesson=selected,owner=organization,actor=actorId;
     if(!selectedLesson||busy||loading||!items.some(x=>x.id===selectedLesson.id)||
       !(subject==='unassigned'||topics.has(subject))||
-      (subject===selectedLesson.topic&&!selectedLesson.needs_reverification)||
+      ((subject==='unassigned'?null:subject)===selectedLesson.topic&&!selectedLesson.needs_reverification)||
       reason.trim()!==reason||reason.length<8||reason.length>250||
       /[\x00-\x1f\x7f]/.test(reason))return;
     if(!confirm('Να καταχωριστεί η ελεγμένη εκπαιδευτική θεματική; Δεν γίνεται νέα δημοσίευση.'))return;
@@ -160,7 +160,7 @@
       <textarea id="classroom-topic-reason" rows="3" maxlength="250" bind:value={reason}
         disabled={busy} placeholder="Επιβεβαιώθηκε η θεματική μετά τον ανθρώπινο έλεγχο περιεχομένου"></textarea>
       <button class="primary" type="button" disabled={busy||loading||
-        (subject===selected.topic&&!selected.needs_reverification)||
+        ((subject==='unassigned'?null:subject)===selected.topic&&!selected.needs_reverification)||
         reason.length<8||reason.trim()!==reason}
         onclick={()=>void save()}>Αποθήκευση με ιστορικό</button>
     </div>
