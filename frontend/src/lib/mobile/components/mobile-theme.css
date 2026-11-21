@@ -283,3 +283,32 @@
     font-size:max(16px,1rem);
   }
 }
+
+/* App typography calibration. Existing 13px body and 12px labels are already
+   compact: reduce only oversized headings/branding, without compromising
+   legibility, input focus sizing or the 44px touch targets. */
+.lf-mobile-theme.mobile-shell .parent-greeting h1,
+.lf-mobile-theme.mobile-shell .role-home .hero h1 {
+  font-size:clamp(25px,3.3vw,34px);
+  line-height:1.16;
+  max-width:24ch;
+  text-wrap:balance;
+}
+.lf-mobile-theme.mobile-shell .parent-section-heading h2,
+.lf-mobile-theme.mobile-shell .parent-shortcuts > h2,
+.lf-mobile-theme.mobile-shell .role-home .panel h2,
+.lf-mobile-theme.mobile-shell .family-heading h1 {
+  font-size:clamp(18px,1.9vw,21px);
+  line-height:1.24;
+}
+.lf-mobile-theme.mobile-shell .brand-lockup p {
+  font-size:clamp(18px,1.8vw,20px);
+}
+.lf-mobile-theme.mobile-shell .role-home .shortcut strong,
+.lf-mobile-theme.mobile-shell .parent-shortcut-grid strong {
+  font-size:15px;
+}
+@media(max-width:420px){
+  .lf-mobile-theme.mobile-shell .parent-greeting h1,
+  .lf-mobile-theme.mobile-shell .role-home .hero h1 {font-size:clamp(25px,6.8vw,29px);}
+}
