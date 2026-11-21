@@ -15,6 +15,7 @@ test('Academy MVP mode is explicit, validates exact configuration and blocks bef
   assert.match(program,/if \(AcademyMvpBoundary\.Disabled\(academyMvpMode\)\)/);
   assert.match(program,/AcademyMvpBoundary\.IsOptionalEndpoint\(context\.Request\.Path\)/);
   assert.match(program,/code = "mvp_feature_disabled"/);
+  assert.match(program,/if \(!AcademyMvpBoundary\.Disabled\(academyMvpMode\)\)\s+builder\.Services\.AddHostedService<HubFanLessonDeliveryWorker>\(\)/);
   assert.match(program,/StatusCodes\.Status503ServiceUnavailable/);
   assert.match(program,/CacheControl = "private, no-store"/);
   assert.ok(program.indexOf('AcademyMvpBoundary.IsOptionalEndpoint')<
