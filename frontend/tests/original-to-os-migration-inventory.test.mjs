@@ -25,14 +25,15 @@ test('source admin action inventory accounts for all 58 nonheading original acti
   assert.ok(original.deployment_rule.includes('NEVER touch legacy production'));
 });
 
-test('homepage restores Fira type and compact right-hand angled original fixture', () => {
+test('homepage restores Fira type and compact right-hand rectangular original fixture', () => {
   assert.match(base,/body:has\(\.public-site\) \{ font-family:'Fira Sans'/);
   assert.match(base,/\.public-site, \.public-dialog \{[^\n]*font-family:'Fira Sans'/);
   assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(0,320px\)/);
   assert.match(css,/grid-column:2/);
   assert.match(css,/max-width:320px/);
   assert.match(css,/justify-self:end/);
-  assert.match(css,/clip-path:polygon\(14px 0/);
+  assert.match(css,/width:clamp\(285px,18vw,320px\)/);
+  assert.match(css,/clip-path:none/);
   assert.match(css,/font:italic 900 clamp\(48px,3\.5vw,58px\)/);
   assert.match(audit,/fixture\.width>335/);
   assert.match(audit,/fixture\.x < copy\.right\+12/);
