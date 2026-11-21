@@ -73,6 +73,33 @@ unexpected page content blocks the report. It does **not** establish the
 deployed binary SHA, backup success, OTP delivery, correct private content
 or payment-provider status.
 
+## Why an admin screen may render but its actions are denied
+
+PostgreSQL runtime roles execute security-definer functions through explicit
+reviewed `GRANT EXECUTE` statements. A UI button existing in source does not
+mean that the preview's runtime database role received the matching grant.
+The disposable CI suite now explicitly exercises Academy location group
+creation alongside roster, training-plan, attendance, Academy CRM and
+guardian grant availability. **CI grants do not update staging or production.**
+
+After deploying an approved candidate to an **isolated staging database**,
+run the separate read-only audit using your exact runtime role names:
+
+```sh
+psql -X -v ON_ERROR_STOP=1 \
+  -v admin_auth_role=<isolated-admin-db-role> \
+  -v app_role=<isolated-mobile-db-role> \
+  -f ops/release/academy-mvp-permission-preflight.sql
+```
+
+It fails on a missing Academy group-creation, coach/training scheduling,
+attendance, CRM or parent/guardian permission grant, or on accidental
+mobile execution of an admin function. It never applies grants. If it
+fails, repair and re-review the **individual scoped grant** in the isolated
+environment; never grant table-wide permissions or bypass authorization.
+This check does not replace tests for actual user roles and city/location
+boundaries, nor does it claim that all app features are available.
+
 ## Deployment decision and rollback
 
 1. Record the immutable candidate Git SHA, image manifest SHA256/digests,
