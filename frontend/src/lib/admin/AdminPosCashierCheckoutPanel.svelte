@@ -153,7 +153,6 @@
         Number(v.total_cents)>100000000||typeof v.replay!=='boolean')
         throw Error('Απορρίφθηκε μη έγκυρη οικονομική απόκριση.');
       prepared={sale_id:v.sale_id as string,total_cents:v.total_cents as number};
-      cashAmount=euro(v.total_cents as number).replace(/[^0-9,.]/g,'').trim();
       cashAmount=((v.total_cents as number)/100).toFixed(2);
       cashConfirmed=false;tenderId='';cancelId='';tenderFrozen=false;
       notice='Η παραγγελία δεσμεύτηκε. Δεν έχει ληφθεί πληρωμή ή εκδοθεί απόδειξη.';
