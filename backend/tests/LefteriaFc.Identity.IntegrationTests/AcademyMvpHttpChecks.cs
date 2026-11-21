@@ -61,7 +61,8 @@ internal static class AcademyMvpHttpChecks
     private static async Task ExpectDisabledAsync(HttpResponseMessage response,string path)
     {
         Check.Equal(HttpStatusCode.ServiceUnavailable,response.StatusCode,
-            "Optional action was not blocked by the MVP feature guard: "+path);
+            "Optional action was not blocked by the MVP feature guard: "+path+
+                " (HTTP "+(int)response.StatusCode+")");
         Check.Equal(true,response.Headers.CacheControl?.NoStore==true,
             "Disabled optional endpoint was cacheable: "+path);
         using var json=System.Text.Json.JsonDocument.Parse(
