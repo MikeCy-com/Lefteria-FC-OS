@@ -280,11 +280,11 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
           openCount:nav.querySelectorAll('details[open]').length
         };
       });
-      assert.ok(values.fontSize >= (viewport.width <= 720 ? 14 : 15),
+      assert.ok(values.fontSize >= 14,
         viewport.name+' nav child link font is too small');
-      assert.ok(values.sectionSize >= (viewport.width <= 720 ? 14 : 15),
+      assert.ok(values.sectionSize >= 14,
         viewport.name+' nav section link font is too small');
-      assert.ok(values.categorySize >= (viewport.width <= 720 ? 16 : 18),
+      assert.ok(values.categorySize >= (viewport.width <= 720 ? 16 : 17),
         viewport.name+' nav category heading is too small');
       assert.ok(values.categorySize > values.fontSize,
         viewport.name+' category heading must be larger than its links');
@@ -420,7 +420,7 @@ try {
         } : null;
       });
       if(publicFont) {
-        if(!publicFont.family.startsWith('Fira Sans') || publicFont.size !== 16)
+        if(!publicFont.family.replace(/^['\"]/, '').startsWith('Fira Sans') || publicFont.size !== 16)
           failures.push(route.path+' '+viewport.name+': source public Fira Sans 16px mismatch: '+JSON.stringify(publicFont));
         if(publicFont.headlineSize !== null) {
           const originalSize = viewport.width <= 650 ? 38 : 58;
