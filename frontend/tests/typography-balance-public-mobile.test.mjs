@@ -32,8 +32,9 @@ test('public display hierarchy is smaller while Manrope reading text stays legib
   const phone=clampIn(home,selector);
   assert.ok(h[0]>=44 && h[2]<=80,'Desktop hero must fit a headline without 100px type');
   assert.ok(phone[0]>=34 && phone[2]<=46,'Phone hero stays compact but readable');
-  const a=clampIn(academy,':global(.public-site[data-route="/academy"]) .academy-intro h1');
+  const a=clampIn(academy,':global(.public-site[data-route="/academy"]) .academy-intro h1',1);
   assert.ok(a[2]<=75 && a[0]>=40,'Academy hero remains condensed but more compact');
+  assert.match(academy,/\\.academy-intro h1\\{font-size:46px\\}/,'Phone override must not restore 64px headings');
   assert.ok(shared.includes('font:italic 900 clamp(43px,4.3vw,74px)'),'First Team masthead reduced');
   assert.match(team,/font:italic 900 clamp\(43px,3\.9vw,66px\)/);
   assert.match(published,/font:italic 900 clamp\(36px,5vw,78px\)/);
