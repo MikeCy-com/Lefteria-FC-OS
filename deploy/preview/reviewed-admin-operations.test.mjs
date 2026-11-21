@@ -31,6 +31,7 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
 test('club administration operations are reached but never wrong verbs, trailing paths or unknown APIs',()=>{
   for(const [method,path] of [
     ['GET','/api/admin/football/audiences'],
+    ['GET','/api/admin/pos/sites/ci-allowed/stock-reconciliation'],
     ['GET','/api/admin/pos/cashier/registers/ci-restricted/sellable-stock'],
     ['POST','/api/admin/football/groups'],
     ['POST','/api/admin/football/groups/with-profile'],
@@ -75,7 +76,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,24);
+  assert.equal(reviewedHiddenAdminEntries.length,25);
 });
 test('new shift-stock GET is reviewed by exact path, verb and current WebAdmin session',()=>{
   const path='/api/admin/pos/cashier/registers/{registerId}/sellable-stock';
@@ -94,6 +95,14 @@ test('new shift-stock GET is reviewed by exact path, verb and current WebAdmin s
   assert.throws(()=>entryRouteGroups(unauthorized),/Reviewed application entry security changed/);
 });
 
+test('stock reconciler proxy permits only the exact hidden authenticated read',()=>{
+  const p='/api/admin/pos/sites/site-xyz/stock-reconciliation';
+  assert.equal(permitted('GET',p),true);
+  for(const verb of ['POST','PUT','PATCH','DELETE','OPTIONS'])
+    assert.equal(permitted(verb,p),false);
+  assert.equal(permitted('GET',p+'/other'),false);
+  assert.equal(permitted('GET','/api/admin/pos/sites/site-xyz/inventory-write'),false);
+});
 test('new/ambiguous admin APIs require explicit security and route review before publication',()=>{
   const future=structuredClone(contract);
   future.paths['/api/admin/forgotten-unreviewed']={get:{security:[{WebAdmin:[]}]}};
