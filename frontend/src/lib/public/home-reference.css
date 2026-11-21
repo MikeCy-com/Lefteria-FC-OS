@@ -600,8 +600,8 @@
  * Original Lefteria FC hero parity (source: Lefteria-FC/club-site/public.css).
  * The fixture is a narrow, right-edge match panel (287–325px in the source),
  * not the 345–540px centred poster introduced by reference overrides.
- * Keep the real match/empty-state content and carousel untouched. Cut corners
- * reflect the club's angled black/gold surface language.
+ * Keep the real match/empty-state content and carousel untouched. The
+ * supplied reference screenshot has straight square corners and a fine border.
  */
 @media(min-width:1200px){
   .public-site .home-reference .public-hero-stage{
@@ -622,15 +622,15 @@
     justify-self:end;
     align-self:center;
     flex:none;
-    width:min(100%,320px);
+    width:clamp(285px,18vw,320px);
     max-width:320px;
     margin:0;
     padding:13px 15px 15px;
     border:1px solid #aa8751;
     border-radius:0;
-    clip-path:polygon(14px 0,100% 0,100% calc(100% - 15px),calc(100% - 15px) 100%,0 100%,0 14px);
+    clip-path:none;
     background:linear-gradient(135deg,#161718ed,#090a0af2 75%,#2a210fe6);
-    box-shadow:none;
+    box-shadow:0 6px 22px #0008;
   }
   .public-site .home-reference .public-fixture-heading{
     font-size:16px;
@@ -674,7 +674,7 @@
     align-self:center;
     padding:12px;
     border-radius:0;
-    clip-path:polygon(10px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 10px);
+    clip-path:none;
   }
   .public-site .home-reference .public-hero-copy{min-width:0}
 }
@@ -686,7 +686,7 @@
     margin:22px 0 0 auto;
     padding:13px 15px;
     border-radius:0;
-    clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);
+    clip-path:none;
   }
 }
 /*
