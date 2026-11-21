@@ -210,6 +210,12 @@ jobs:
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-registration-intake-security-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-office-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-enrollment-checks.sql
+      - name: Prove isolated PostgreSQL backup and restore preserves schema, RLS policies and synthetic data
+        run: |
+          # The runtime role and RLS policies exist before taking this snapshot.
+          # The disposable archive, source canary and restored DB are removed.
+          docker exec -e LEFTERIA_DISPOSABLE_RESTORE_ACK=ci-only identity-postgres \
+            sh /opt/lefteria-postgres/disposable-backup-restore-drill.sh
       - name: Verify Payabl finance schema, segregated grants and no raw ledger access
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
