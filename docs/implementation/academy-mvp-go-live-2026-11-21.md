@@ -120,7 +120,10 @@ With `true`, the API returns non-cacheable 503 JSON
 - Academy and First Team POS admin endpoints, including cashier and sales.
 - Payabl hosted payment requests and incoming Payabl webhooks.
 - Optional fan subscription checkout/plans and fan lesson delivery.
-- Optional training-fee SMS sending.
+- Optional training-fee SMS sending. Parent requests to save a card or enable
+automatic collections are also rejected with a stable disabled-feature error;
+an ordinary preferred payment day remains editable without starting billing.
+The optional fan lesson delivery background worker is not started in this mode.
 
 **Still functional** (subject to existing exact role/city/site/guardian grants):
 Academy training-fee issuance and readback, invoice PDFs, manual accounting,
