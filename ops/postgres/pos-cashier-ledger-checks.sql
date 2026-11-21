@@ -198,6 +198,14 @@ BEGIN
     p.oid='pos_cashier.recover_suspended_admin_cashier_shift(text,text,uuid,bigint,uuid,text)'::regprocedure
       AND p.prosecdef)
   THEN RAISE EXCEPTION 'pos_shift_recovery_function_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.read_assigned_cashier_sellable_stock(text,text,text,uuid)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%cashier_catalog_shift_not_owned%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_cashier_site_inventory_private_reader_missing'; END IF;
   -- The transactional receipt issuer allows an assigned named cashier only
   -- under an active exact shift, while keeping runtime access private.
   IF NOT EXISTS(SELECT 1 FROM pg_proc p
