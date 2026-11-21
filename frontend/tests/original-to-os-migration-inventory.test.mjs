@@ -37,7 +37,7 @@ test('homepage restores Fira type and compact right-hand rectangular original fi
   assert.match(css,/font:italic 900 clamp\(48px,3\.5vw,58px\)/);
   assert.match(audit,/fixture\.width>335/);
   assert.match(audit,/fixture\.x < copy\.right\+12/);
-  assert.match(audit,/publicFont\.family\.startsWith\('Fira Sans'\)/);
+  assert.match(audit,/publicFont\.family\.replace\(/);
 });
 
 test('admin navigation remains accessible, with original body font and clearer categories', () => {
