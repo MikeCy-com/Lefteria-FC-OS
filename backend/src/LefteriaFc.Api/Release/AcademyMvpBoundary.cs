@@ -30,7 +30,7 @@ public static class AcademyMvpBoundary
         // Fee issuance, ledger readback and PDF invoices are core Academy
         // finance operations. Only the optional outbound SMS action is off.
         if (path.StartsWithSegments("/api/admin/finance/payabl/training-fees",
-                out var remaining, StringComparison.OrdinalIgnoreCase))
+                StringComparison.OrdinalIgnoreCase, out var remaining))
         {
             var segments = (remaining.Value ?? string.Empty).Split('/',
                 StringSplitOptions.RemoveEmptyEntries);
