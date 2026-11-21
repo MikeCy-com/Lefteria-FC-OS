@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {verifyExactMainCi,RELEASE_REPOSITORY,REQUIRED_WORKFLOWS}
   from './verify-exact-ci.mjs';
 
@@ -144,4 +145,30 @@ test('validates candidate SHA and token before any external request',async()=>{
     fetchImpl,token:'untrusted\r\nhost: elsewhere'
   }),/token/);
   assert.equal(calls,0);
+});
+
+test('exact-main release browser coverage runs for every main push, even backend-only',()=>{
+  const workflow=readFileSync(
+    new URL('../../.github/workflows/browser-ui-visual-audit.yml',import.meta.url),
+    'utf8');
+  assert.match(workflow,/on:\s*\n\s*#.*\n\s*#.*\n\s*push:\s*\n\s*branches: \[main\]/);
+  assert.match(workflow,/pull_request:\s*\n\s*branches: \[main\]\s*\n\s*paths:/);
+  // The browser audit on main must not have a paths filter;
+  // otherwise backend-only release candidates have no exact-SHA proof.
+  const push=workflow.slice(workflow.indexOf('  push:'),workflow.indexOf('  pull_request:'));
+  assert.doesNotMatch(push,/paths:/);
+  assert.match(workflow,/workflow_dispatch:/);
+});
+
+test('manual release audit has no deployments or privileged environment credentials',()=>{
+  const workflow=readFileSync(
+    new URL('../../.github/workflows/production-release-preflight.yml',import.meta.url),
+    'utf8');
+  assert.match(workflow,/permissions:\s*\n\s*contents: read\s*\n\s*actions: read/);
+  assert.match(workflow,/persist-credentials: false/);
+  assert.match(workflow,/ref: main/);
+  assert.match(workflow,/verify-exact-ci[.]mjs/);
+  assert.match(workflow,/verify-release-authorization[.]mjs/);
+  assert.doesNotMatch(workflow,/^\s*environment:\s*(?:production|live)\s*$/m);
+  assert.doesNotMatch(workflow,/^\s*-\s*run:\s*(?:docker\s+compose\s+up|ssh|scp|kubectl|helm)/m);
 });
