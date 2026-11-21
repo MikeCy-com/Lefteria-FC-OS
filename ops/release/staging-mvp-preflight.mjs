@@ -17,8 +17,14 @@ export const STAGING_CHECKS=Object.freeze([
   {path:'/api/health/ready',status:200,kind:'json',bodyStatus:'ready'},
   {path:'/',status:200,kind:'html'},
   {path:'/admin/login',status:200,kind:'html'},
+  // MVP-disabled features must be proven blocked by the backend itself,
+  // not merely hidden behind an anonymous 401 or a missing provider key.
   {path:'/api/admin/pos/sites?organization_id=lefteria_fc_academy',
-    status:[401,403],kind:'deny'},
+    status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
+  {path:'/api/admin/finance/payabl/payment-requests?organization_id=lefteria_fc_academy',
+    status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
+  {path:'/api/mobile/hub/fan-subscription/plans',
+    status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
   {path:'/api/mobile/family',status:[401,403],kind:'deny'},
   {path:'/api/mobile/players-list',status:[401,403],kind:'deny'}
 ]);
@@ -70,6 +76,12 @@ export async function checkStagingMvp({
         const body=await response.json();
         ok=body?.status===check.bodyStatus;
       }catch{ok=false;}
+    }else if(ok&&check.kind==='disabled'){
+      try {
+        const body=await response.json();
+        ok=body?.code===check.bodyCode &&
+          (response.headers?.get('content-type')??'').includes('application/json');
+      }catch{ok=false;}
     }else if(ok&&check.kind==='html'){
       ok=(response.headers?.get('content-type')??'').toLowerCase().includes('text/html');
     }
@@ -81,7 +93,8 @@ export async function checkStagingMvp({
     checks:evidence.length,passed:evidence.filter(x=>x.ok).length,
     origin:base,evidence,
     warnings:['No deployment performed','Does not prove deployed commit SHA',
-      'Does not verify real OTP, backup/restore, private role workflows or financial reconciliation']};
+      'Does not verify real OTP, backup/restore, private role workflows or financial reconciliation',
+      'Optional payment, POS and fan routes must remain deliberately disabled for this MVP profile']};
 }
 
 function main(){
