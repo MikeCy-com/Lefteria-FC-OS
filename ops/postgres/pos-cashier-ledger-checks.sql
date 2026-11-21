@@ -215,6 +215,32 @@ BEGIN
         SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
         WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
   THEN RAISE EXCEPTION 'pos_site_stock_reconciliation_privacy_guard_missing'; END IF;
+  -- Both inventories are forward-linked only for verified stock movement.
+  -- Never allow anonymous callers to alter bridged balances or audit evidence.
+  IF NOT EXISTS(SELECT 1 FROM pg_class cl
+      WHERE cl.oid='pos_cashier.stock_bridge_events'::regclass
+        AND cl.relrowsecurity)
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos_cashier.stock_bridge_events'::regclass
+        AND t.tgname='pos_stock_bridge_events_immutable' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_constraint con
+      WHERE con.conrelid='pos.stock_movements'::regclass
+        AND con.conname='ck_pos_stock_origin_bridge')
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos.stock_movements'::regclass
+        AND t.tgname='pos_a_cashier_mirror_guard' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos.stock_movements'::regclass
+        AND t.tgname='pos_z_cashier_mirror_commit' AND t.tgenabled='O')
+  THEN RAISE EXCEPTION 'pos_stock_bridge_immutability_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos_cashier.guard_legacy_stock_mirror()'::regprocedure,
+      'pos_cashier.commit_legacy_stock_mirror()'::regprocedure
+    ) AND (NOT p.prosecdef OR EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_stock_bridge_callable_publicly'; END IF;
   -- The transactional receipt issuer allows an assigned named cashier only
   -- under an active exact shift, while keeping runtime access private.
   IF NOT EXISTS(SELECT 1 FROM pg_proc p
