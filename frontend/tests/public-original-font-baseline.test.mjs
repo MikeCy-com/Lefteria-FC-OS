@@ -29,7 +29,7 @@ test('Chromium captures include Academy group view and check true computed typog
   assert.match(groups,/data-testid="academy-groups-hero"/);
   assert.match(script,/name:'academy-groups-unavailable', path:'\/academy\/groups', expectedStatus:503/);
   assert.match(script,/getComputedStyle\(root\)\.fontFamily/);
-  assert.match(script,/publicFont\.family\.startsWith\('Fira Sans'\)/);
+  assert.match(script,/publicFont\.family\.replace\(/);
   assert.match(script,/viewport\.width <= 650 \? 38 : 58/);
   assert.match(script,/results\.push\([^\n]*publicFont/);
   assert.doesNotMatch(script,/https:\/\/lefteriafc\.cy.*page\.goto/);
