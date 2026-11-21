@@ -77,6 +77,28 @@ public static class AdminPosSiteEndpoints
             return await Query(command,ct);
         }).WithName("ReadAdminPosExactSiteSaleHistory").ExcludeFromDescription();
 
+        // Read-only reconciliation compares independent stock ledgers for
+        // the exact active city/location grant. Never silently imports,
+        // approves physical counts or mutates either inventory.
+        routes.MapGet("/{locationId}/stock-reconciliation", async (
+            string locationId, string? organization_id, WebAdminService auth,
+            WebAdminConnections connections, IWebAdminSecrets secrets,
+            HttpContext context, CancellationToken ct) =>
+        {
+            ValidLocation(locationId);
+            var (cookie, owner) = await Authorized(auth, organization_id,
+                context, false, false, true, ct);
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.read_admin_site_stock_reconciliation(" +
+                "@digest,@owner,@location)::text", connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("location", locationId);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosExactSiteStockReconciliation")
+          .ExcludeFromDescription();
+
         routes.MapPost("/academy-locations", async (
             string? organization_id, EnsureAcademySite input,
             WebAdminService auth, WebAdminConnections connections,
