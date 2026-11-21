@@ -847,3 +847,37 @@
   .public-site .public-contact h2 {font-size:clamp(21px,5.25vw,24px);}
   .public-site .public-city-banner > strong {font-size:clamp(35px,8.8vw,45px);}
 }
+
+/* Source-repository public typography parity. Headings use the condensed
+   Fira face while Greek reading copy inherits Fira Sans from public.css. */
+.public-site{
+  --public-title-size:58px;
+  --public-section-title-size:18px;
+}
+.public-site .public-page-heading:not(.academy-intro):not(.team-heading) h1,
+.public-site .catalog-heading h1,
+.public-site .journey-content h1{
+  font-size:clamp(38px,3.5vw,58px);
+  font-family:'Fira Sans Extra Condensed',sans-serif;
+  line-height:1.04;
+  overflow-wrap:break-word;
+  text-wrap:balance;
+}
+.public-site .public-group-card h3{
+  font:800 clamp(20px,1.5vw,24px)/1.2 'Fira Sans Extra Condensed',sans-serif;
+}
+.public-site .public-club-story h2{font-size:clamp(24px,2.1vw,32px);}
+.public-site .public-news-grid .news-card-body h3{
+  font:700 clamp(17px,1.25vw,20px)/1.35 'Fira Sans',sans-serif;
+}
+.public-site .public-contact h2{font-size:clamp(20px,1.6vw,24px);}
+.public-site .public-city-banner > strong{font-size:clamp(39px,3.5vw,58px);}
+.public-site .public-markdown h2{font-size:clamp(22px,1.8vw,29px);}
+.public-site .public-markdown h3{font-size:clamp(19px,1.4vw,23px);}
+@media(max-width:767px){
+  .public-site{--public-title-size:38px;}
+  .public-site .public-page-heading:not(.academy-intro):not(.team-heading) h1{
+    font-size:38px;
+    line-height:1.05;
+  }
+}

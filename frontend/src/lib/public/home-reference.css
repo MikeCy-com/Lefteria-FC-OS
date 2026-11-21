@@ -595,3 +595,159 @@
     font-size:clamp(21px,5.35vw,25px);
   }
 }
+
+/*
+ * Original Lefteria FC hero parity (source: Lefteria-FC/club-site/public.css).
+ * The fixture is a narrow, right-edge match panel (287–325px in the source),
+ * not the 345–540px centred poster introduced by reference overrides.
+ * Keep the real match/empty-state content and carousel untouched. The
+ * supplied reference screenshot has straight square corners and a fine border.
+ */
+@media(min-width:1200px){
+  .public-site .home-reference .public-hero-stage{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,320px);
+    column-gap:clamp(16px,2vw,30px);
+    align-items:center;
+  }
+  .public-site .home-reference .public-hero-copy{
+    grid-column:1;
+    width:100%;
+    max-width:640px;
+    justify-self:start;
+    min-width:0;
+  }
+  .public-site .home-reference .public-hero-fixture{
+    grid-column:2;
+    justify-self:end;
+    align-self:center;
+    flex:none;
+    width:clamp(285px,18vw,320px);
+    max-width:320px;
+    margin:0;
+    padding:13px 15px 15px;
+    border:1px solid #aa8751;
+    border-radius:0;
+    clip-path:none;
+    background:linear-gradient(135deg,#161718ed,#090a0af2 75%,#2a210fe6);
+    box-shadow:0 6px 22px #0008;
+  }
+  .public-site .home-reference .public-fixture-heading{
+    font-size:16px;
+    line-height:1.2;
+    font-style:normal;
+  }
+  .public-site .home-reference .public-fixture-heading svg{width:19px;height:19px}
+  .public-site .home-reference .public-fixture-teams{
+    gap:7px;
+    padding:6px 0 9px;
+  }
+  .public-site .home-reference .public-fixture-teams>div>div{
+    width:58px;height:58px;
+  }
+  .public-site .home-reference .public-fixture-teams strong{
+    font-size:16px;line-height:1.16;margin-top:5px;
+  }
+  .public-site .home-reference .fixture-versus{font-size:24px}
+  .public-site .home-reference .public-fixture-meta{gap:6px;padding:7px 0}
+  .public-site .home-reference .public-countdown{gap:5px;margin:6px 0 10px}
+  .public-site .home-reference .public-countdown>div{
+    padding:6px 2px;border-radius:2px;
+  }
+  .public-site .home-reference .public-countdown strong{font-size:25px}
+  .public-site .home-reference .public-fixture-details{
+    font-size:15px;min-height:44px;padding:9px 10px;
+  }
+  .public-site .home-reference .public-hero-fixture-empty{
+    min-height:230px;
+  }
+  .public-site .home-reference .public-fixture-empty-copy strong{
+    font-size:clamp(18px,1.4vw,22px);
+  }
+}
+@media(min-width:768px) and (max-width:1199px){
+  .public-site .home-reference .public-hero-fixture{
+    flex:0 0 min(39%,285px);
+    width:min(39%,285px);
+    max-width:285px;
+    margin-left:auto;
+    align-self:center;
+    padding:12px;
+    border-radius:0;
+    clip-path:none;
+  }
+  .public-site .home-reference .public-hero-copy{min-width:0}
+}
+@media(max-width:767px){
+  .public-site .home-reference .public-hero-fixture{
+    align-self:flex-end;
+    width:min(100%,360px);
+    max-width:360px;
+    margin:22px 0 0 auto;
+    padding:13px 15px;
+    border-radius:0;
+    clip-path:none;
+  }
+}
+/*
+ * Original source uses 58px public hero display, 18px section titles,
+ * 17px desktop destination labels and a 15px news headline. Keep the
+ * brand type family but do not shrink real explanatory text below 14px.
+ */
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy h1{
+  font:italic 900 clamp(48px,3.5vw,58px)/1 'Fira Sans Extra Condensed',sans-serif;
+  min-height:0;
+  max-width:590px;
+  text-wrap:balance;
+  overflow-wrap:normal;
+}
+.public-site .home-reference[data-testid="home-page"] .public-hero-copy .public-eyebrow{
+  font:700 16px/1.25 'Fira Sans Extra Condensed',sans-serif;
+}
+.public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+.public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2{
+  font:800 clamp(19px,1.25vw,22px)/1.2 'Fira Sans Extra Condensed',sans-serif;
+}
+.public-site .home-reference[data-testid="home-page"] .public-destination h2{
+  font:800 17px/1.2 'Fira Sans Extra Condensed',sans-serif;
+  white-space:normal;
+  text-wrap:balance;
+}
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card h3,
+.public-site .home-reference[data-testid="home-page"] [data-testid="public-home-news"] .public-news-card:first-child h3{
+  font:700 clamp(16px,1.1vw,19px)/1.35 'Fira Sans',sans-serif;
+}
+.public-site .home-reference[data-testid="home-page"] .public-hero-description,
+.public-site .home-reference[data-testid="home-page"] .public-news-body p{
+  font-size:14px;
+  line-height:1.5;
+}
+@media(max-width:767px){
+  .public-site .home-reference[data-testid="home-page"] .public-hero-copy h1{
+    font-size:clamp(34px,8.6vw,40px);
+    line-height:1.04;
+    max-width:100%;
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-section-heading h2,
+  .public-site .home-reference[data-testid="home-page"] .public-news-section .public-section-heading h2{
+    font-size:20px;
+  }
+  .public-site .home-reference[data-testid="home-page"] .public-destination h2{
+    font-size:16px;
+  }
+}
+
+/* Reference homepage places the ONE TEAM / ONE DREAM identity in the dark
+   breathing room immediately below the image tiles, BEFORE the CMS news.
+   Previously it was moved after news, changing the reference section rhythm. */
+@media(min-width:1200px){
+  .public-site .home-reference[data-testid="home-page"] .home-brand-interval{
+    min-height:clamp(260px,21vw,370px);
+    padding-bottom:18px;
+  }
+}
+@media(min-width:768px) and (max-width:1199px){
+  .public-site .home-reference[data-testid="home-page"] .home-brand-interval{
+    min-height:clamp(120px,16vw,200px);
+  }
+}

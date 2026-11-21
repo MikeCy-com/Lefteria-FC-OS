@@ -26,7 +26,7 @@ function clampIn(source,selector,index=-1) {
   return values.at(-1).slice(1).map(Number);
 }
 
-test('public display hierarchy is smaller while Manrope reading text stays legible',()=>{
+test('public display hierarchy matches source Fira while body text stays legible',()=>{
   const selector='.public-site .home-reference[data-testid="home-page"] .public-hero-copy h1';
   const h=clampIn(home,selector,0);
   const phone=clampIn(home,selector);

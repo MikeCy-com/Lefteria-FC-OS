@@ -12,7 +12,7 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   assert.match(css,/--public-black:#080808/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
-  assert.match(css,/body:has\(\.public-site\) \{ font-family:Manrope/);
+  assert.match(css,/body:has\(\.public-site\) \{ font-family:'Fira Sans'/);
   assert.doesNotMatch(css,/fonts\.googleapis/,'Public fonts are self-hosted.');
   assert.match(read('lib/public/fonts.ts'),/@fontsource\/manrope[\s\S]*@fontsource\/bebas-neue[\s\S]*@fontsource\/fira-sans-extra-condensed/);
   assert.deepEqual([...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]), ['public.css','club-polish.css']);
