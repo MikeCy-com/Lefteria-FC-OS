@@ -316,6 +316,8 @@ jobs:
         run: node frontend/scripts/audit-original-parity.mjs
       - run: npm test
         working-directory: frontend
+      - name: Test fail-closed production release candidate evidence
+        run: node --test ops/release/*.test.mjs
       - name: Verify that no unapproved OS release can pass the readiness gate
         run: node --test ops/release/check-go-live.test.mjs
       - run: npm run build
