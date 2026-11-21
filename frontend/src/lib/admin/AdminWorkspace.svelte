@@ -38,7 +38,7 @@
   const creationActions=$derived([
     ...(has('groups')&&hasOrganization('lefteria_fc')&&
       hasAdminPermission(user.permissions,'teams:write')&&
-      ['manager','super_admin'].includes(user.role)
+      user.role==='super_admin'
       ? [{id:'first-team',label:'Νέα ομάδα πρώτης ομάδας',
           href:'/admin/groups?organization_id=lefteria_fc&new=1'}] : []),
     ...(has('groups')&&hasOrganization('lefteria_fc_academy')&&
