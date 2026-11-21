@@ -253,3 +253,65 @@ Remaining POS production blockers:
 
 **No changes were made to production Hostinger, live payments, legacy
 records or the live domain.**
+
+
+## Inventory convergence audit — 21 November 2026
+
+Two independent inventories currently exist for the same location and SKU:
+
+- `pos.location_stock` receives inventory through the older auditable
+  `pos.stock_movements` ledger. Its ordinary product/location assignments
+  are tracked in `pos.location_products`.
+- `pos_cashier.stock` reserves items on checkout and decrements stock only
+  after the cashier receipt is atomically issued.
+
+**These inventories are not yet one authoritative ledger.** The prior
+rollback-only cash test showed a verified paid sale/receipt decreases
+`pos_cashier.stock`, while the original `pos.location_stock` remains
+unchanged. A fiscal-policy approval alone must NOT launch production sales.
+
+This release adds migration
+`20261115955000_PosSiteStockReconciliationRead` and an authorized
+`GET /api/admin/pos/sites/{locationId}/stock-reconciliation` that compare
+both inventories with a FULL OUTER JOIN **only at the caller's exact
+authorized site**. Each SKU exposes original POS and cashier quantities,
+reserved/available units, missing records, disabled location assignment
+and quantity difference. The manager screen presents discrepancies and
+the number of open shifts. A zero-SKU site is not considered reconciled.
+No cross-city/organization data or supplier cost is returned.
+
+A match of the two electronic balances is **not** physical-count evidence.
+The response intentionally sets `physical_count_approved=false` and
+`stock_ready_for_trading=false` until the separately reviewed opening
+count, receiving/sales/returns stock movement mapping and human
+approval are implemented and tested. Never silently initialize cashier
+stock from the other ledger or directly overwrite a mismatch.
+
+The site-specific read grant is listed in
+`ops/postgres/pos-academy-site-admin-grants.sql` for manually approved
+isolated staging use only; migrations still grant nothing to admin/mobile
+runtimes automatically. The new route has an exact protected preview
+allowlist; no financial or stock writer was added.
+
+The disposable PostgreSQL acceptance test deliberately demonstrates
+`legacy_missing`, a temporarily equal synthetic SKU, and then a
+**two-unit divergence after one paid two-unit cash sale**. It also proves
+that a location manager cannot read a sibling site's stock, a manager
+from another city cannot read this site's stock, and a Cashier cannot
+open management reconciliation. All test data is rolled back.
+
+### Before POS launch
+
+1. Agree on **one** authoritative inventory ledger, then make actual
+   receiving, reservations, paid-sale consumption, voiding and
+   approved return/restock atomic and traceable against that ledger.
+2. Reconcile every physical opening SKU and location to both financial
+   and stock movement histories; investigate differences and obtain
+   an independent approval with immutable evidence.
+3. Verify transfer/damaged/returned goods, concurrent cashiers and
+   refund/credit notes under isolated staging data.
+4. Only then consider narrowly reviewed fiscal-policy and cash checkout
+   execution grants. Payabl/card settlement remains a separate gate.
+
+**No inventory migration, balance adjustment, real checkout grant, Payabl
+capture, production Hostinger change or production cutover was performed.**
