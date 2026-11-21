@@ -55,10 +55,13 @@ test('Academy MVP cannot be approved without all critical identity, finance and 
   assert.equal(report.gate_count,MVP_REQUIRED_GATES.length);
   assert.ok(report.blocked.some(g=>g.id==='identity-delivery'));
   assert.ok(report.blocked.some(g=>g.id==='mvp-deferred-features'));
+  assert.ok(report.blocked.some(g=>g.id==='mvp-public-essentials'));
   assert.ok(report.blocked.some(g=>g.id==='backups-restore'));
   assert.ok(report.blocked.some(g=>g.id==='cutover-rollback'));
   assert.ok(report.blocked.some(g=>g.id==='finance-reconciliation'));
   assert.ok(!report.blocked.some(g=>g.id==='pos-payments-unified'));
+  assert.ok(!report.blocked.some(g=>g.id==='communications'));
+  assert.ok(!report.blocked.some(g=>g.id==='cms-publishing'));
 });
 test('a narrower MVP requires an exact reviewed SHA and verifiable evidence',()=>{
   const data=clone(gates);
