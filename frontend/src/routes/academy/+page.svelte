@@ -464,7 +464,7 @@
   }
   @media(max-width:700px){
     :global(.public-site[data-route="/academy"]) .academy-intro{min-height:430px;padding:23px 17px 0}
-    :global(.public-site[data-route="/academy"]) .academy-intro h1{font-size:64px}
+    :global(.public-site[data-route="/academy"]) .academy-intro h1{font-size:46px}
     .academy-program-overview{padding:20px 16px;gap:10px}
     .academy-program-facts{grid-template-columns:1fr;gap:9px}
     .academy-program-facts>div{padding:8px 0;border-left:0;border-top:1px solid #444}
