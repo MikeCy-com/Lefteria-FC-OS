@@ -25,7 +25,7 @@ public sealed class PosAtomicStockLedgerBridge : Migration
       ALTER TABLE pos.stock_movements
         DROP CONSTRAINT stock_movements_reason_check;
       ALTER TABLE pos.stock_movements
-        DROP CONSTRAINT stock_movements_check;
+        DROP CONSTRAINT stock_movements_check1;
       ALTER TABLE pos.stock_movements
         ADD CONSTRAINT ck_pos_stock_reason_bridge
         CHECK(reason IN ('opening','purchase','sale','return','correction','cashier_sale'));
@@ -348,7 +348,7 @@ public sealed class PosAtomicStockLedgerBridge : Migration
         ADD CONSTRAINT stock_movements_reason_check
         CHECK(reason IN ('opening','purchase','sale','return','correction'));
       ALTER TABLE pos.stock_movements
-        ADD CONSTRAINT stock_movements_check
+        ADD CONSTRAINT stock_movements_check1
         CHECK((reason IN ('sale','return'))=(sale_id IS NOT NULL));
       ALTER TABLE pos.stock_movements DROP COLUMN cashier_sale_id;
     """);
