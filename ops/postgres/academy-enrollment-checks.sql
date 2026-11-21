@@ -24,6 +24,8 @@ DECLARE
   renewed_guardian_grant uuid:=gen_random_uuid();
   unrelated_parent_id uuid:=gen_random_uuid();
   fee_for_child uuid:=gen_random_uuid();
+  verified_fee_issue uuid:=gen_random_uuid();
+  denied_fee_issue uuid:=gen_random_uuid();
   fee_for_other_child uuid:=gen_random_uuid();
   unrelated_player_id text:='ply_other_'||replace(gen_random_uuid()::text,'-','');
   otp_digest bytea:=decode(repeat('a',64),'hex');
@@ -318,6 +320,50 @@ BEGIN
     RAISE EXCEPTION 'Other parent received original guardian invoice';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- Production-critical Academy billing: a new enrolled child has no
+  -- legacy imported guardian link. The Super Admin can deliberately issue
+  -- ONE selected month only after original proof+post-review phone OTP.
+  -- A delegated adult is not automatically made the financial payer.
+  result:=finance.issue_admin_training_fee(admin_digest,
+    'lefteria_fc_academy',verified_fee_issue,fixture_player_id,
+    DATE '2027-03-01',5000,'parent-fixture@example.invalid',
+    'Fixture','Parent');
+  IF result->>'created'<>'true'
+    OR result->>'player_id'<>fixture_player_id
+    OR (SELECT payer_identity_id FROM finance.training_fee_issues
+        WHERE id=verified_fee_issue)<>original_parent_id
+    OR (SELECT payer_phone FROM finance.training_fee_issues
+        WHERE id=verified_fee_issue)<>'+35799123456'
+    OR (SELECT count(*) FROM finance.training_fee_issues
+        WHERE player_id=fixture_player_id)<>2 THEN
+    RAISE EXCEPTION 'New Academy original guardian could not receive an exact month fee';
+  END IF;
+  result:=finance.issue_admin_training_fee(admin_digest,
+    'lefteria_fc_academy',verified_fee_issue,fixture_player_id,
+    DATE '2027-03-01',5000,'parent-fixture@example.invalid',
+    'Fixture','Parent');
+  IF result->>'created'<>'false' THEN
+    RAISE EXCEPTION 'Original guardian training fee replay created a duplicate';
+  END IF;
+  result:=finance.read_parent_training_fees(original_parent_id,
+    '35799123456','parent',clock_timestamp()+interval '1 hour');
+  IF jsonb_array_length(result->'fees')<>2
+    OR NOT EXISTS(
+      SELECT 1 FROM jsonb_array_elements(result->'fees') fee(value)
+      WHERE fee.value->>'id'=verified_fee_issue::text
+        AND fee.value->>'fee_month'='2027-03-01') THEN
+    RAISE EXCEPTION 'Issued new Academy fee not visible to its exact verified payer';
+  END IF;
+  result:=finance.read_parent_invoice_pdf(original_parent_id,
+    '35799123456','parent',clock_timestamp()+interval '1 hour',
+    ARRAY[verified_fee_issue]);
+  IF result->'items'->0->>'payer_identity_id'<>original_parent_id::text
+    OR result->'items'->0->>'fee_month'<>'2027-03-01' THEN
+    RAISE EXCEPTION 'New Academy payer invoice PDF verification failed';
+  END IF;
+  -- Removing the disposable fee here preserves previous wallet fixture counts.
+  DELETE FROM finance.training_fee_issues WHERE id=verified_fee_issue;
+
   -- A new original guardian can now share ONE explicitly verified child
   -- with a second adult by phone; the phone alone is not a login.
   -- Existing OTP sign-in is required separately before Parent creation.
@@ -454,6 +500,20 @@ BEGIN
       'parent',clock_timestamp()+interval '1 hour',ARRAY[fee_for_child]);
     RAISE EXCEPTION 'Revoked guardian retained private PDF access';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Revoked guardianship proof blocks NEW billing as well as private reads;
+  -- an old payer identity or existing phone claim is never sufficient.
+  BEGIN
+    PERFORM finance.issue_admin_training_fee(admin_digest,
+      'lefteria_fc_academy',denied_fee_issue,fixture_player_id,
+      DATE '2027-04-01',5000,'parent-fixture@example.invalid',
+      'Fixture','Parent');
+    RAISE EXCEPTION 'Revoked original guardian was assigned a new Academy fee';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM finance.training_fee_issues
+      WHERE id=denied_fee_issue) THEN
+    RAISE EXCEPTION 'Denied Academy fee issuance wrote a private record';
+  END IF;
 
   -- Loss of Academy grant after success prevents idempotent response replay.
   DELETE FROM identity.admin_organization_grants WHERE admin_account_id=admin_id;
