@@ -48,6 +48,29 @@ public static class AdminPosCashierEndpoints
             return await Query(command, ct);
         }).WithName("ReadAdminPosCashierRegisters");
 
+        // Bounded, location-specific stock for the exact logged-in cashier's
+        // OPEN shift. No raw table, supplier costs, other sites or billing.
+        // SQL EXECUTE remains private until separately reviewed.
+        group.MapGet("/registers/{registerId}/sellable-stock", async (
+            string registerId, Guid? shift_id, string? organization_id,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (!ValidRegister(registerId) || shift_id is null || shift_id==Guid.Empty)
+                throw new WebAdminException(400, "pos_cashier_stock_shift_invalid",
+                    "Choose an assigned register and exact open shift.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.read_assigned_cashier_sellable_stock(" +
+                "@digest,@owner,@register,@shift)::text", connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("register", registerId);
+            command.Parameters.AddWithValue("shift", shift_id.Value);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosAssignedShiftSellableStock");
+
         group.MapPost("/registers/{registerId}/shifts", async (string registerId,
             string? organization_id, OpenShiftRequest body,
             WebAdminService auth, WebAdminConnections connections,
