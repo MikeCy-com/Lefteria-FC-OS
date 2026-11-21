@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "scope": "academy-mvp",
+  "status": "blocked",
+  "candidate_sha": null,
+  "decision_at": null,
+  "change_ticket": null,
+  "notes": "No production authorization. Operational identity, live provider, source-to-OS reconciliation, private youth/finance scoping, protected backups and rehearsed rollback still need separately signed evidence. This file is never changed automatically by passing CI.",
+  "signoffs": []
+}
