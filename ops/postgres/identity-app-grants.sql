@@ -116,6 +116,13 @@ BEGIN
 END
 $columns$;
 
+-- Read-only release-schema proof: the application has no permission to
+-- inspect the private EF migration history directly. A SECURITY DEFINER
+-- function returns only yes/no for the compiled migration baseline.
+REVOKE ALL ON FUNCTION identity.runtime_schema_ready(text,integer)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION identity.runtime_schema_ready(text,integer)
+  TO :"app_role";
 GRANT SELECT, INSERT ON identity.mobile_identities TO :"app_role";
 GRANT SELECT ON public_content.documents,public_content.import_state TO :"app_role";
 -- No public table access: only human-approved snapshots through this fixed projection.
