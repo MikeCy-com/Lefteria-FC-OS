@@ -219,6 +219,7 @@ app.MapAdminCoachAssignments();
 app.MapAdminAnnouncementDrafts();
 app.MapAdminHub();
 app.MapAdminPlayerWeeklyQuiz();
+app.MapAdminPlayerLearningPositions();
 app.MapMobileHubPublished();
 app.MapMobileLessonSchedules();
 app.MapMobilePlayerWeeklyQuiz();
