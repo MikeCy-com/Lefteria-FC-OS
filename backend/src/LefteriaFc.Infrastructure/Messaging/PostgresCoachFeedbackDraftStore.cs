@@ -11,6 +11,65 @@ namespace LefteriaFc.Infrastructure.Messaging;
 /// fresh server-side coach/player/team membership check in PostgreSQL.</summary>
 public sealed class PostgresCoachFeedbackDraftStore(LefteriaDbContext database)
 {
+    /// <summary>Only a currently bound coach may see a limited summary of
+    /// active/completed goals for a player in their exact verified group.</summary>
+    public async Task<CoachPlayerGoalSummaryResult> PlayerGoalsAsync(
+        MobileSession actor,string owner,string playerId,CancellationToken token)
+    {
+        if(actor.Role!=MobileRole.Coach ||
+            owner is not ("lefteria_fc" or "lefteria_fc_academy") ||
+            string.IsNullOrEmpty(playerId) || playerId.Length>128 ||
+            !playerId.All(c=>char.IsAsciiLetterOrDigit(c)||c is '_' or '-'))
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid coach player goal scope.");
+        try
+        {
+            await database.Database.OpenConnectionAsync(token);
+            try
+            {
+                await using var command=new NpgsqlCommand("""
+                    SELECT club.read_mobile_coach_player_goals(
+                      @identity,@phone,@role,@expires,@owner,@player)::text
+                    """,(NpgsqlConnection)database.Database.GetDbConnection());
+                command.Parameters.AddWithValue("identity",actor.IdentityId);
+                command.Parameters.AddWithValue("phone",actor.NormalizedPhone);
+                command.Parameters.AddWithValue("role","coach");
+                command.Parameters.AddWithValue("expires",actor.ExpiresAt);
+                command.Parameters.AddWithValue("owner",owner);
+                command.Parameters.AddWithValue("player",playerId);
+                var raw=await command.ExecuteScalarAsync(token) as string;
+                var result=raw is null?null:JsonSerializer.Deserialize<CoachPlayerGoalSummaryResult>(
+                    raw,new JsonSerializerOptions{PropertyNamingPolicy=JsonNamingPolicy.SnakeCaseLower});
+                if(result?.Goals is null || result.OrganizationId!=owner ||
+                   result.PlayerId!=playerId || result.Total!=result.Goals.Count ||
+                   result.Total is <0 or >50 ||
+                   result.Goals.Select(goal=>goal.Id).Distinct().Count()!=result.Goals.Count ||
+                   result.Goals.Any(goal=>goal.Id==Guid.Empty ||
+                     string.IsNullOrWhiteSpace(goal.Title) || goal.Title.Length>200 ||
+                     goal.Category is not ("general" or "physical" or "technical"
+                       or "tactical" or "mental" or "social") ||
+                     goal.Status is not ("active" or "completed") ||
+                     goal.Progress is <0 or >100 || goal.Progress%10!=0))
+                    throw Unavailable();
+                return result;
+            }
+            finally {await database.Database.CloseConnectionAsync();}
+        }
+        catch(PostgresException error)
+        {
+            throw error.SqlState switch
+            {
+                "42501" => new MobileAuthException(MobileAuthFaultKind.Forbidden,
+                    MobileAuthErrorCode.RoleUnavailable,"Coach/player group access denied."),
+                "54000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.AccountUnavailable,"Too many player goals."),
+                "55000" => new MobileAuthException(MobileAuthFaultKind.ServiceUnavailable,
+                    MobileAuthErrorCode.RosterUnavailable,"Coach roster is not ready."),
+                _ => Unavailable()
+            };
+        }
+    }
+
     public async Task<CoachFeedbackTargetsResult> TargetsAsync(
         MobileSession actor,CancellationToken token)
     {
@@ -309,3 +368,9 @@ public sealed record CoachFeedbackInboxResult(IReadOnlyList<CoachFeedbackInboxIt
 
 public sealed record CoachFeedbackTarget(string Id,string OrganizationId,string Name);
 public sealed record CoachFeedbackTargetsResult(IReadOnlyList<CoachFeedbackTarget> Items);
+
+public sealed record CoachPlayerGoalSummary(Guid Id,string Title,string Category,
+    int Progress,string Status,DateOnly? TargetDate);
+public sealed record CoachPlayerGoalSummaryResult(
+    string OrganizationId,string PlayerId,int Total,
+    IReadOnlyList<CoachPlayerGoalSummary> Goals);

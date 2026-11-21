@@ -16,6 +16,7 @@ import {validFanHubPlans,validFanHubStatus,validFanHubCheckout,validFanHubLesson
   type FanHubAudience,type FanHubStatus,type FanHubCheckout,
   type FanHubLessonPage,type FanHubLessonCompleted} from './fan-payabl.ts';
 
+import {validCoachGoalPage,type CoachPlayerGoalPage,type CoachGoalOwner} from './coach-player-goals.ts';
 import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachSend,
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
@@ -1474,6 +1475,19 @@ export function createMobileAuthController(options: {
         !('subscribed' in raw)||raw.subscribed!==false)
         throw new Error('Unverified device unsubscribe.');
       return true;
+    },
+    async getCoachPlayerGoals(owner:CoachGoalOwner,playerId:string):
+      Promise<CoachPlayerGoalPage> {
+      if(state.user?.role!=='coach'||!state.user.current_role_available||
+        (owner!=='lefteria_fc'&&owner!=='lefteria_fc_academy')||
+        !/^[A-Za-z0-9_-]{1,128}$/.test(playerId))
+        throw new Error('Verified coach and player selection required.');
+      const path='/api/mobile/coach/players/'+encodeURIComponent(playerId)+
+        '/development-goals?organization_id='+encodeURIComponent(owner);
+      const result=await chatRequest(path);
+      if(!validCoachGoalPage(result,owner,playerId))
+        throw new Error('Unverified private coach goal summary.');
+      return result;
     },
     async getCoachFeedbackTargets():Promise<CoachFeedbackTargets> {
       if(state.user?.role!=='coach'||!state.user.current_role_available)

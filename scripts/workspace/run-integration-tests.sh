@@ -34,7 +34,7 @@ run() { local name="$1"; shift; echo "### $name"; if "$@"; then pass=$((pass+1))
 sql() { PGPASSWORD="$POSTGRES_PASSWORD" "$PGBIN/psql" -X -q -h 127.0.0.1 -p "$LEFTERIA_PG_PORT" -U "$LEFTERIA_PG_OWNER" -d "$LEFTERIA_PG_DATABASE" \
   -v ON_ERROR_STOP=1 -v app_role="$LEFTERIA_APP_ROLE" -v admin_auth_role="$LEFTERIA_ADMIN_AUTH_ROLE" -f "$REPO/ops/postgres/$1" >/dev/null; }
 
-for f in founding-admin-checks.sql academy-private-evaluation-guards-checks.sql private-document-quarantine-checks.sql \
+for f in founding-admin-checks.sql academy-private-evaluation-guards-checks.sql private-document-quarantine-checks.sql mobile-coach-goal-read-checks.sql \
   pos-location-ledger-checks.sql pos-cashier-ledger-checks.sql pos-site-isolation-checks.sql hub-recipient-learning-checks.sql hub-player-classroom-checks.sql hub-player-learning-position-checks.sql hub-classroom-curriculum-checks.sql hub-fan-overview-checks.sql academy-attendance-checks.sql \
   academy-attendance-lifecycle-checks.sql academy-training-plans-checks.sql academy-training-plans-lifecycle-checks.sql \
   player-birthday-lifecycle-checks.sql academy-crm-inbox-checks.sql academy-registration-intake-security-checks.sql \

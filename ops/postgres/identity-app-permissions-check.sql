@@ -244,6 +244,17 @@ BEGIN
     RAISE EXCEPTION 'Current coach signoff function is unavailable';
   END IF;
   IF NOT has_function_privilege(current_user,
+       'club.read_mobile_coach_player_goals(uuid,text,text,timestamptz,text,text)',
+       'EXECUTE')
+    OR has_table_privilege(current_user,'club.player_development_goals',
+       'SELECT,INSERT,UPDATE,DELETE')
+    OR has_table_privilege(current_user,'club.player_development_goal_events',
+       'SELECT,INSERT,UPDATE,DELETE')
+    OR has_schema_privilege(current_user,'academy_private','USAGE')
+  THEN
+    RAISE EXCEPTION 'Mobile coach goals read-only boundary unsafe';
+  END IF;
+  IF NOT has_function_privilege(current_user,
        'club.read_mobile_coach_feedback_targets(uuid,text,text,timestamptz)',
        'EXECUTE') THEN
     RAISE EXCEPTION 'Coach feedback scoped target directory unavailable';
