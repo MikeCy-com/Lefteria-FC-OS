@@ -29,6 +29,7 @@ DECLARE
   v_checkout_receipt uuid;
   v_checkout_request uuid:=gen_random_uuid();
   v_cash_request uuid:=gen_random_uuid();
+  v_stock_receipt_request uuid:=gen_random_uuid();
   v_cash_read jsonb;
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_city_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
@@ -389,6 +390,28 @@ BEGIN
       RAISE EXCEPTION 'cashier_prepare_replay_changed_quantity';
     EXCEPTION WHEN unique_violation THEN NULL; END;
 
+    -- A stale/incorrect legacy balance MUST abort the complete cash,
+    -- numbered receipt and stock transaction without any verified payment.
+    BEGIN
+      UPDATE pos.location_stock SET on_hand=4
+        WHERE organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit';
+      BEGIN
+        PERFORM pos_cashier.settle_exact_cash_sale(
+          v_cashier_token,'lefteria_fc_academy',v_checkout_sale,
+          v_cash_request,700);
+        RAISE EXCEPTION 'cash_sale_paid_with_diverged_legacy_stock';
+      EXCEPTION WHEN unique_violation THEN NULL; END;
+      IF EXISTS(SELECT 1 FROM pos_cashier.payment_events
+          WHERE sale_id=v_checkout_sale)
+        OR EXISTS(SELECT 1 FROM pos_cashier.receipts
+          WHERE sale_id=v_checkout_sale)
+      THEN RAISE EXCEPTION 'diverged_cash_tender_left_partial_payment'; END IF;
+      RAISE EXCEPTION 'pos_diverged_stock_test_rolled_back' USING ERRCODE='P0001';
+    EXCEPTION WHEN SQLSTATE 'P0001' THEN
+      IF SQLERRM<>'pos_diverged_stock_test_rolled_back' THEN RAISE; END IF;
+    END;
+
     v_result:=pos_cashier.settle_exact_cash_sale(
       v_cashier_token,'lefteria_fc_academy',v_checkout_sale,v_cash_request,700);
     v_checkout_receipt:=(v_result->>'receipt_id')::uuid;
@@ -407,16 +430,56 @@ BEGIN
           WHERE sale_id=v_checkout_sale AND consumed_at IS NOT NULL)<>1
     THEN RAISE EXCEPTION 'cashier_atomic_tender_receipt_stock_invalid'; END IF;
 
-    -- This is THE pre-launch stock blocker: existing cashier receipts
-    -- reduce only pos_cashier.stock, not the separate store ledger.
-    -- The auditor must expose the difference rather than call it reconciled.
+    -- An actual paid cashier receipt now writes an immutable legacy
+    -- cashier_sale movement and consumes BOTH ledgers in ONE transaction.
     v_result:=pos_cashier.read_admin_site_stock_reconciliation(
       v_local_token,'lefteria_fc_academy',v_pos_a1);
-    IF (v_result->>'discrepant_skus')::integer<>1
-      OR (v_result->'lines'->0->>'status')<>'quantity_mismatch'
-      OR (v_result->'lines'->0->>'quantity_difference')::bigint<>2
-      OR (v_result->>'ledger_balances_match')::boolean
-    THEN RAISE EXCEPTION 'pos_completed_sale_stock_ledger_drift_hidden'; END IF;
+    IF (v_result->>'discrepant_skus')::integer<>0
+      OR (v_result->'lines'->0->>'status')<>'matched'
+      OR NOT (v_result->>'ledger_balances_match')::boolean
+      OR (v_result->>'stock_ready_for_trading')::boolean
+      OR (SELECT on_hand FROM pos.location_stock
+        WHERE organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>1
+      OR (SELECT count(*) FROM pos.stock_movements
+        WHERE cashier_sale_id=v_checkout_sale AND reason='cashier_sale'
+          AND delta=-2)<>1
+      OR (SELECT count(*) FROM pos_cashier.stock_bridge_events e
+        JOIN pos.stock_movements m ON m.id=e.movement_id
+        WHERE m.cashier_sale_id=v_checkout_sale)<>1
+    THEN RAISE EXCEPTION 'pos_completed_sale_not_atomically_mirrored'; END IF;
+
+    -- A reviewed purchase receipt uses the old immutable POS movement and
+    -- now automatically increments cashier stock by the SAME amount.
+    v_result:=pos.receive_admin_stock(
+      v_super_token,'lefteria_fc_academy',v_pos_a1,
+      v_checkout_product,'unit',2,v_stock_receipt_request);
+    IF (v_result->>'after_quantity')::bigint<>3 OR
+      (v_result->>'replay')::boolean
+      OR (SELECT on_hand FROM pos.location_stock
+        WHERE organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>3
+      OR (SELECT on_hand FROM pos_cashier.stock
+        WHERE organization_id='lefteria_fc_academy' AND location_id=v_pos_a1
+          AND product_id=v_checkout_product AND variant_id='unit')<>3
+      OR (SELECT count(*) FROM pos_cashier.stock_bridge_events e
+          WHERE e.organization_id='lefteria_fc_academy'
+            AND e.location_id=v_pos_a1 AND e.product_id=v_checkout_product)<>2
+    THEN RAISE EXCEPTION 'pos_purchase_did_not_mirror_both_ledgers'; END IF;
+    v_result:=pos.receive_admin_stock(
+      v_super_token,'lefteria_fc_academy',v_pos_a1,
+      v_checkout_product,'unit',2,v_stock_receipt_request);
+    IF NOT (v_result->>'replay')::boolean OR
+      (SELECT count(*) FROM pos_cashier.stock_bridge_events e
+          WHERE e.organization_id='lefteria_fc_academy'
+            AND e.location_id=v_pos_a1 AND e.product_id=v_checkout_product)<>2
+    THEN RAISE EXCEPTION 'pos_purchase_replay_doubled_inventory'; END IF;
+    v_result:=pos_cashier.read_admin_site_stock_reconciliation(
+      v_local_token,'lefteria_fc_academy',v_pos_a1);
+    IF (v_result->>'discrepant_skus')::integer<>0
+      OR (v_result->'lines'->0->>'cashier_on_hand')::bigint<>3
+      OR (v_result->'lines'->0->>'legacy_on_hand')::bigint<>3
+    THEN RAISE EXCEPTION 'pos_post_receiving_inventory_not_reconciled'; END IF;
 
     v_cash_read:=pos_cashier.read_assigned_cashier_receipt(
       v_cashier_token,'lefteria_fc_academy',v_checkout_receipt);
