@@ -8,6 +8,11 @@ BEGIN;
 DO $site_scope$
 DECLARE
   v_super uuid:=gen_random_uuid();
+  v_second_super uuid:=gen_random_uuid();
+  v_second_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
+  v_second_request uuid:=gen_random_uuid();
+  v_regular_shift uuid;
+  v_disputed_shift uuid;
   v_city_manager uuid:=gen_random_uuid();
   v_local_manager uuid:=gen_random_uuid();
   v_neighbor_manager uuid:=gen_random_uuid();
@@ -47,6 +52,8 @@ BEGIN
   VALUES
     (v_super,'ci-pos-super-'||left(md5(v_super::text),8),
       'CI POS Super Admin','super_admin',true,'ci-fixture-hash',false,false),
+    (v_second_super,'ci-pos-second-super-'||left(md5(v_second_super::text),8),
+      'CI POS Second Super Admin','super_admin',true,'ci-fixture-hash',false,false),
     (v_city_manager,'ci-pos-city-'||left(md5(v_city_manager::text),8),
       'CI POS City Manager','manager',true,'ci-fixture-hash',false,false),
     (v_local_manager,'ci-pos-local-'||left(md5(v_local_manager::text),8),
@@ -61,6 +68,7 @@ BEGIN
     (admin_account_id,organization_id)
   VALUES
     (v_super,'lefteria_fc'),(v_super,'lefteria_fc_academy'),
+    (v_second_super,'lefteria_fc_academy'),
     (v_city_manager,'lefteria_fc_academy'),
     (v_local_manager,'lefteria_fc_academy'),
     (v_neighbor_manager,'lefteria_fc_academy'),
@@ -70,6 +78,8 @@ BEGIN
     (id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
   VALUES
     (gen_random_uuid(),v_super_token,v_super,repeat('a',64),
+      clock_timestamp(),clock_timestamp()+interval '1 day'),
+    (gen_random_uuid(),v_second_super_token,v_second_super,repeat('9',64),
       clock_timestamp(),clock_timestamp()+interval '1 day'),
     (gen_random_uuid(),v_city_token,v_city_manager,repeat('b',64),
       clock_timestamp(),clock_timestamp()+interval '1 day'),
@@ -325,6 +335,99 @@ BEGIN
     OR EXISTS(SELECT 1 FROM pos_cashier.payment_events WHERE organization_id='lefteria_fc_academy')
   THEN RAISE EXCEPTION 'supervisor_recovery_fabricated_payment_or_receipt'; END IF;
 
+  -- The next shift cannot begin while a recovered shift lacks an
+  -- independent physical count. Even an already assigned manager is blocked.
+  BEGIN
+    PERFORM pos_cashier.open_admin_cashier_shift(
+      v_local_token,'lefteria_fc_academy',v_register_a1,500,gen_random_uuid());
+    RAISE EXCEPTION 'unreviewed_recovery_allowed_new_shift';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.set_admin_terminal_operator(
+      v_super_token,'lefteria_fc_academy',v_register_a1,v_local_manager,true);
+    RAISE EXCEPTION 'unreviewed_recovery_allowed_operator_enable';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+
+  v_result:=pos_cashier.read_admin_shift_recovery_review_queue(
+    v_second_super_token,'lefteria_fc_academy');
+  IF NOT EXISTS(
+    SELECT 1 FROM jsonb_array_elements(v_result->'shifts') AS q
+    WHERE q->>'shift_id'=v_cashier_shift::text
+      AND q->>'disposition' IS NULL)
+    OR v_result::text LIKE '%first_count_cents%'
+    OR v_result::text LIKE '%expected_cash_cents%'
+  THEN RAISE EXCEPTION 'second_count_queue_exposes_or_misses_initial_count'; END IF;
+  BEGIN
+    PERFORM pos_cashier.read_admin_shift_recovery_review_queue(
+      v_city_token,'lefteria_fc_academy');
+    RAISE EXCEPTION 'city_manager_read_supervisor_queue';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.review_recovered_cashier_shift(
+      v_super_token,'lefteria_fc_academy',v_cashier_shift,1190,v_second_request);
+    RAISE EXCEPTION 'first_supervisor_approved_own_cash_count';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.review_recovered_cashier_shift(
+      v_city_token,'lefteria_fc_academy',v_cashier_shift,1190,v_second_request);
+    RAISE EXCEPTION 'city_manager_approved_cash_count';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.review_recovered_cashier_shift(
+      v_second_super_token,'lefteria_fc',v_cashier_shift,1190,v_second_request);
+    RAISE EXCEPTION 'independent_reviewer_crossed_organization';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Second person independently confirms 11.90 against a 12.00 expectation:
+  -- financial variance is flagged, not zeroed or written as a payment.
+  v_result:=pos_cashier.review_recovered_cashier_shift(
+    v_second_super_token,'lefteria_fc_academy',v_cashier_shift,1190,v_second_request);
+  IF v_result->>'reviewer_id'<>v_second_super::text
+    OR v_result->>'disposition'<>'variance_flagged'
+    OR NOT (v_result->>'requires_investigation')::boolean
+    OR (v_result->>'terminal_hold')::boolean
+    OR (v_result->>'replay')::boolean
+    OR (v_result->>'variance_cents')::bigint<>-10
+    OR (v_result->>'difference_between_counts_cents')::bigint<>0
+    OR (SELECT count(*) FROM pos_cashier.shift_recovery_reviews
+        WHERE shift_id=v_cashier_shift AND reviewer_id=v_second_super)<>1
+  THEN RAISE EXCEPTION 'two_person_count_variance_evidence_invalid'; END IF;
+  v_result:=pos_cashier.review_recovered_cashier_shift(
+    v_second_super_token,'lefteria_fc_academy',v_cashier_shift,1190,v_second_request);
+  IF NOT (v_result->>'replay')::boolean
+    OR (SELECT count(*) FROM pos_cashier.transaction_audit
+        WHERE organization_id='lefteria_fc_academy'
+          AND request_id=v_second_request AND action='shift_recovery_review')<>1
+  THEN RAISE EXCEPTION 'second_count_replay_not_idempotent'; END IF;
+  BEGIN
+    PERFORM pos_cashier.review_recovered_cashier_shift(
+      v_second_super_token,'lefteria_fc_academy',v_cashier_shift,1180,v_second_request);
+    RAISE EXCEPTION 'second_count_mutable_on_replay';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    UPDATE pos_cashier.shift_recovery_reviews SET disposition='balanced_confirmed'
+      WHERE shift_id=v_cashier_shift;
+    RAISE EXCEPTION 'second_count_evidence_edited';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM='second_count_evidence_edited' THEN RAISE; END IF;
+  END;
+  BEGIN
+    DELETE FROM pos_cashier.shift_recovery_reviews WHERE shift_id=v_cashier_shift;
+    RAISE EXCEPTION 'second_count_evidence_deleted';
+  EXCEPTION WHEN OTHERS THEN
+    IF SQLERRM='second_count_evidence_deleted' THEN RAISE; END IF;
+  END;
+
+  -- Once independently reviewed, normal use can resume without removing
+  -- the recorded ten-cent shortage or touching immutable financial rows.
+  v_regular_shift:=(pos_cashier.open_admin_cashier_shift(
+    v_local_token,'lefteria_fc_academy',v_register_a1,500,gen_random_uuid())
+    ->>'shift_id')::uuid;
+  v_result:=pos_cashier.close_admin_cashier_shift(
+    v_local_token,'lefteria_fc_academy',v_regular_shift,500,gen_random_uuid());
+  IF (v_result->>'variance_cents')::bigint<>0
+  THEN RAISE EXCEPTION 'reviewed_shift_blocked_regular_cashier'; END IF;
+
   -- Recovery completes before removal of a formerly stranded assignment.
   v_result:=pos_cashier.set_admin_terminal_operator(
     v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,false);
@@ -333,6 +436,41 @@ BEGIN
       WHERE organization_id='lefteria_fc_academy' AND register_id=v_register_a1
         AND admin_account_id=v_cashier AND is_active)
   THEN RAISE EXCEPTION 'recovered_shift_terminal_revocation_failed'; END IF;
+  -- A different, independent physical count puts this exact register on hold.
+  -- There is no automatic override for disputed custody: human incident
+  -- investigation must precede further operation or assignment.
+  UPDATE identity.admin_accounts SET is_active=true WHERE id=v_cashier;
+  PERFORM pos_cashier.set_admin_terminal_operator(
+    v_super_token,'lefteria_fc_academy',v_register_a1,v_cashier,true);
+  v_disputed_shift:=(pos_cashier.open_admin_cashier_shift(
+    v_cashier_token,'lefteria_fc_academy',v_register_a1,750,gen_random_uuid())
+    ->>'shift_id')::uuid;
+  UPDATE identity.admin_accounts SET is_active=false WHERE id=v_cashier;
+  PERFORM pos_cashier.recover_suspended_admin_cashier_shift(
+    v_super_token,'lefteria_fc_academy',v_disputed_shift,750,gen_random_uuid(),
+    'account_suspended');
+  v_result:=pos_cashier.review_recovered_cashier_shift(
+    v_second_super_token,'lefteria_fc_academy',v_disputed_shift,740,gen_random_uuid());
+  IF v_result->>'disposition'<>'count_disputed'
+    OR NOT (v_result->>'terminal_hold')::boolean
+    OR (v_result->>'difference_between_counts_cents')::bigint<>-10
+  THEN RAISE EXCEPTION 'disputed_second_count_not_held'; END IF;
+  BEGIN
+    PERFORM pos_cashier.open_admin_cashier_shift(
+      v_local_token,'lefteria_fc_academy',v_register_a1,250,gen_random_uuid());
+    RAISE EXCEPTION 'disputed_cash_count_register_reopened';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+  BEGIN
+    PERFORM pos_cashier.set_admin_terminal_operator(
+      v_super_token,'lefteria_fc_academy',v_register_a1,v_local_manager,true);
+    RAISE EXCEPTION 'disputed_cash_count_operator_reactivated';
+  EXCEPTION WHEN SQLSTATE '55000' THEN NULL; END;
+  IF EXISTS(SELECT 1 FROM pos_cashier.sales
+      WHERE organization_id='lefteria_fc_academy')
+    OR EXISTS(SELECT 1 FROM pos_cashier.payment_events
+      WHERE organization_id='lefteria_fc_academy')
+  THEN RAISE EXCEPTION 'second_count_fabricated_ledger_entries'; END IF;
+
 
   v_result:=pos_cashier.read_admin_pos_sites(v_local_token,'lefteria_fc_academy');
   IF jsonb_array_length(v_result->'sites')<>1
