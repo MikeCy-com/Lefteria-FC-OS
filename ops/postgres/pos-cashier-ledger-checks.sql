@@ -206,6 +206,15 @@ BEGIN
         SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
         WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
   THEN RAISE EXCEPTION 'pos_cashier_site_inventory_private_reader_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.read_admin_site_stock_reconciliation(text,text,text)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%pos_cashier.authorize_site_finances%'
+      AND pg_get_functiondef(p.oid) LIKE '%stock_ready_for_trading%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_site_stock_reconciliation_privacy_guard_missing'; END IF;
   -- The transactional receipt issuer allows an assigned named cashier only
   -- under an active exact shift, while keeping runtime access private.
   IF NOT EXISTS(SELECT 1 FROM pg_proc p
