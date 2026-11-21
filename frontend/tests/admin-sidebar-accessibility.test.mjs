@@ -11,8 +11,8 @@ const compact=css.split(marker)[1];
 
 test('admin navigation uses larger work-area labels than links, not inverted typography',()=>{
   assert.ok(compact,'MVP navigation overrides must follow the legacy CSS layers');
-  assert.match(compact,/font:800 18px\/1\.28 'Fira Sans'/);
-  assert.match(compact,/font:600 15px\/1\.35 'Fira Sans'/);
+  assert.match(css,/font:800 17px\/1\.3 'Fira Sans Extra Condensed'/);
+  assert.match(css,/font:600 14px\/1\.4 'Manrope'/);
   assert.match(compact,/font-size:19px/);
   assert.match(compact,/font-size:16px/);
   assert.match(compact,/font-size:14px/);
