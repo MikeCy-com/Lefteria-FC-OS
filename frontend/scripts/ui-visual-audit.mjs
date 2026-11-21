@@ -548,12 +548,12 @@ try {
                fixture.right < hero.right-100 || fixture.right > hero.right+2 ||
                fixture.x < copy.right+12)
               failures.push('home: compact next-match must remain on the right, without covering the headline or hero picture '+JSON.stringify({fixture,hero,copy}));
-            if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
-              failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
-            if(motto.y<news.bottom-2||motto.y>news.bottom+32)
-              failures.push('home: compact club motto should immediately follow CMS news');
-            if(news.y>900)
-              failures.push('home: CMS news must be visible above the desktop reference fold');
+            if(motto.y<tiles.bottom-2 || motto.y>tiles.bottom+4 || motto.height<250 || motto.height>380)
+              failures.push('home: original dark brand interval must follow four tiles before news '+JSON.stringify(motto));
+            if(news.y<motto.bottom-2||news.y>motto.bottom+100)
+              failures.push('home: CMS news must follow the club motto and preserve source image section order '+JSON.stringify({news,motto}));
+            if(news.y<900)
+              failures.push('home: source reference places news below the cinematic hero and club identity band');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
           }
