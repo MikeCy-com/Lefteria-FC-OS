@@ -317,7 +317,7 @@ jobs:
       - run: npm test
         working-directory: frontend
       - name: Verify that no unapproved OS release can pass the readiness gate
-        run: node --test ops/release/check-go-live.test.mjs
+        run: node --test ops/release/check-go-live.test.mjs ops/release/staging-mvp-preflight.test.mjs
       - run: npm run build
         working-directory: frontend
       - run: npm run smoke:web
