@@ -58,10 +58,33 @@ test('staging grant opens only private scoped read, not sale or financial write'
 test('database acceptance exposes intentional drift after a completed cash sale and rejects other sites',()=>{
   assert.match(fixture,/pos_stock_missing_legacy_ledger_not_reported/);
   assert.match(fixture,/pos_stock_balances_match_wrong_or_approved/);
-  assert.match(fixture,/pos_completed_sale_stock_ledger_drift_hidden/);
+  assert.match(fixture,/pos_completed_sale_not_atomically_mirrored/);
+  assert.match(fixture,/pos_purchase_did_not_mirror_both_ledgers/);
+  assert.match(fixture,/pos_purchase_replay_doubled_inventory/);
+  assert.match(fixture,/diverged_cash_tender_left_partial_payment/);
   assert.match(fixture,/pos_manager_read_other_location_inventory/);
   assert.match(fixture,/pos_other_city_manager_read_inventory/);
   assert.match(fixture,/pos_cashier_read_site_inventory_reconciliation/);
   assert.match(fixture,/synthetic_sale_or_policy_leaked_past_rollback/);
   assert.doesNotMatch(fixture,/DELETE FROM pos_cashier\.sales/);
+});
+
+test('new immutable bridge mirrors future purchase and receipt movement, refusing historical drift',()=>{
+  const bridge=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115956000_PosAtomicStockLedgerBridge.cs');
+  assert.match(bridge,/cashier_sale_id uuid/);
+  assert.match(bridge,/REFERENCES pos_cashier.sales\(organization_id,id\)/);
+  assert.match(bridge,/CREATE UNIQUE INDEX uq_pos_cashier_sale_stock_movement/);
+  assert.match(bridge,/CREATE TABLE pos_cashier.stock_bridge_events/);
+  assert.match(bridge,/pos_stock_bridge_events_immutable/);
+  assert.match(bridge,/pos_cashier.guard_legacy_stock_mirror/);
+  assert.match(bridge,/pos_cashier.commit_legacy_stock_mirror/);
+  assert.match(bridge,/pos_stock_bridge_initial_count_required/);
+  assert.match(bridge,/pos_stock_bridge_balance_conflict/);
+  assert.match(bridge,/pos_cashier.fulfill_receipt_reserved_inventory/);
+  assert.match(bridge,/NEW.sale_id,'cashier_sale',-v_row.quantity/);
+  assert.match(bridge,/v_before,v_before-v_row.quantity/);
+  assert.match(bridge,/pos_stock_bridge_history_requires_forward_recovery/);
+  assert.match(bridge,/REVOKE ALL ON FUNCTION pos_cashier.guard_legacy_stock_mirror/);
+  assert.match(bridge,/REVOKE ALL ON FUNCTION pos_cashier.commit_legacy_stock_mirror/);
+  assert.doesNotMatch(bridge,/GRANT EXECUTE|GRANT (INSERT|UPDATE|DELETE)/);
 });
