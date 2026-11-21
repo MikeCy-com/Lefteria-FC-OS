@@ -19,7 +19,7 @@
   --lf-type-card: 14px;
   --lf-type-body: 13px;
   --lf-type-label: 12px;
-  --lf-type-caption: 11px;
+  --lf-type-caption: 10px;
   --lf-brand-edge: #b98228;
   font-size: var(--lf-type-body);
   line-height: 1.45;
