@@ -20,6 +20,27 @@ public static class MobileCoachFeedbackEndpoints
 
     public static IEndpointRouteBuilder MapMobileCoachFeedback(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/mobile/coach/players/{playerId}/development-goals",
+            (string playerId,string? organization_id,HttpContext context,
+             PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                if(context.Request.Query["organization_id"].Count!=1 ||
+                    organization_id is not ("lefteria_fc" or "lefteria_fc_academy"))
+                    throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                        MobileAuthErrorCode.InvalidInput,"Invalid goal organization.");
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.PlayerGoalsAsync(MobilePrincipal.Read(context.User),
+                        organization_id,playerId,token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile coach player development")
+            .WithName("GetMobileCoachPlayerDevelopmentGoals")
+            .WithDescription("Verified exact-group read-only development goal summaries; no event notes, evaluation details, guardian records or documents.")
+            .Produces<CoachPlayerGoalSummaryResult>()
+            .WithMobileErrors();
+
         endpoints.MapGet("/api/mobile/coach/feedback/targets",
             (HttpContext context,PostgresCoachFeedbackDraftStore store,CancellationToken token) =>
             {

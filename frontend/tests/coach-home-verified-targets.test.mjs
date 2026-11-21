@@ -9,7 +9,7 @@ const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',impo
 test('coach target panel is a strict private, current-assignment read',()=>{
   assert.match(component,/controller\.getCoachFeedbackTargets\(\)/);
   assert.match(component,/target\.organization_id==='lefteria_fc_academy'/);
-  assert.match(component,/return\(\)=>\{alive=false;revision\+\+;targets=\[\];\}/);
+  assert.match(component,/return\(\)=>\{alive=false;revision\+\+;goalRevision\+\+;targets=\[\];goals=\[\];\}/);
   assert.match(controller,/state\.user\?\.role!=='coach'/);
   assert.match(controller,/validCoachFeedbackTargets\(result\)/);
   assert.doesNotMatch(component,/fetch\(|localStorage|mockPlayer|playerPhone|birthday|date_of_birth/);
