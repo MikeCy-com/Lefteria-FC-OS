@@ -239,7 +239,7 @@
           {/if}
           <AdminPosCashierCheckoutPanel {owner} {actorId}
             registerId={selectedRegister.id} shiftId={selectedRegister.shift_id}
-            {onExpired} onFinished={()=>{report=null;reportError='';revision++;}} />
+            {onExpired} onFinished={()=>{report=null;reportError='';}} />
           <label>Μετρημένα μετρητά κατά το κλείσιμο (€)
             <input type="text" inputmode="decimal" bind:value={counted}
               placeholder="0.00" maxlength="10" oninput={()=>pendingCloseId=''} />
