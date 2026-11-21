@@ -114,7 +114,7 @@ def main() -> None:
     # Do not touch a similarly named container on a real Docker host.
     image = docker("inspect", "--format", "{{.Config.Image}}", CONTAINER,
                    capture=True)
-    if not re.fullmatch(r"postgres:18(?:\\.[0-9]+)?-alpine", image):
+    if not re.fullmatch(r"postgres:18(?:\.[0-9]+)?-alpine", image):
         raise ValueError("Unexpected Docker image; refusing unsafe restore")
     if psql(owner, "postgres", "SELECT EXISTS(SELECT 1 FROM pg_database "
             f"WHERE datname={quote_literal(RESTORED_DATABASE)});") != "f":
