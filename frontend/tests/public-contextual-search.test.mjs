@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 import {publicSearch, publicNavigation, academyGroupLink} from '../src/lib/public/navigation.ts';
-import {withWebsitePages, websitePagePath} from '../src/lib/public/website-pages.ts';
+import {withWebsitePages, websiteSectionPath} from '../src/lib/public/website-pages.ts';
 
 const page = (organization_id, slug, title, menu_parent='root') => ({
   organization_id,slug,published_at:'2026-11-15T12:00:00Z',
@@ -44,11 +44,11 @@ test('search includes only published CMS pages from the current organization',()
   const academyNav=withWebsitePages(publicNavigation,[teamCms,academyCms],academy);
   const firstNav=withWebsitePages(publicNavigation,[academyCms,teamCms],team);
   const a=publicSearch('Οδηγός Ακαδημίας',[],[],{organization:academy,navigation:academyNav});
-  assert.deepEqual(a.map(item=>item.path),[websitePagePath(academyCms.slug,academy)]);
+  assert.deepEqual(a.map(item=>item.path),[websiteSectionPath(academyCms.slug,academy,academyCms.page.menu_parent)]);
   assert.deepEqual(publicSearch('Οδηγός Ακαδημίας',[],[],{organization:team,navigation:firstNav}),[]);
   assert.deepEqual(publicSearch('Ιστορία Πρώτης Ομάδας',[],[],{
     organization:team,navigation:firstNav
-  }).map(item=>item.path),[websitePagePath(teamCms.slug,team)]);
+  }).map(item=>item.path),[websiteSectionPath(teamCms.slug,team,teamCms.page.menu_parent)]);
   assert.deepEqual(publicSearch('Ιστορία Πρώτης Ομάδας',[],[],{
     organization:academy,navigation:academyNav
   }),[]);
