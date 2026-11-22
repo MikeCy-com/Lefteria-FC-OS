@@ -2,14 +2,19 @@
   import {DEFAULT_BLOCK_LAYOUT,DEFAULT_PAGE_LAYOUT,validBlockLayout,validPageLayout, type WebsiteBlock, type WebsitePageLayout} from './website-pages';
   import PublicImage from './PublicImage.svelte';
   let {blocks,pageLayout}: {blocks: readonly WebsiteBlock[];pageLayout?:WebsitePageLayout|null} = $props();
-  const resolvedPage=$derived(validPageLayout(pageLayout) && pageLayout ? pageLayout : DEFAULT_PAGE_LAYOUT);
+  // A page only writes the settings it overrides. All remaining values are
+  // inherited from the published organization theme on its PublicShell.
+  const dimension=(key:keyof typeof DEFAULT_PAGE_LAYOUT,token:string)=>
+    validPageLayout(pageLayout) && pageLayout?.[key]!=null
+      ? pageLayout[key]+'px'
+      : 'var(--lf-layout-'+token+', '+DEFAULT_PAGE_LAYOUT[key]+'px)';
   const blockLayout=(block:WebsiteBlock)=>validBlockLayout(block.layout) && block.layout ? block.layout : DEFAULT_BLOCK_LAYOUT;
   // No raw HTML or arbitrary CSS is ever rendered. All text is escaped by Svelte.
   const safe = (url: string|null) => url && !url.includes('\\') &&
     (url.startsWith('/') && !url.startsWith('//') || /^https:\/\//i.test(url)) ? url : null;
 </script>
 <div class="website-blocks" data-testid="website-block-layout"
-  style={`--cms-max-width:${resolvedPage.max_width}px;--cms-gap:${resolvedPage.gap}px;--cms-side:${resolvedPage.side_padding}px`}>
+  style={`--cms-max-width:${dimension('max_width','page-max-width')};--cms-gap:${dimension('gap','page-gap')};--cms-side:${dimension('side_padding','page-side-padding')};--cms-page-top:${dimension('margin_top','page-margin-top')};--cms-page-bottom:${dimension('margin_bottom','page-margin-bottom')}`}>
   {#each blocks as block, index (index)}
     <div class="website-block-wrap" data-width={blockLayout(block).width}
       style={`--cms-min-height:${blockLayout(block).min_height}px;--cms-mt:${blockLayout(block).margin_top}px;--cms-mb:${blockLayout(block).margin_bottom}px`}>
@@ -30,7 +35,7 @@
   {/each}
 </div>
 <style>
-.website-blocks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--cms-gap);max-width:var(--cms-max-width);margin-inline:auto;padding-inline:var(--cms-side);line-height:1.7;min-width:0}
+.website-blocks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--cms-gap);max-width:var(--cms-max-width);margin-inline:auto;margin-block:var(--cms-page-top) var(--cms-page-bottom);padding-inline:var(--cms-side);line-height:1.7;min-width:0}
 .website-block-wrap{grid-column:span 6;min-width:0;min-height:var(--cms-min-height);margin-top:var(--cms-mt);margin-bottom:var(--cms-mb)}
 @media(min-width:768px){.website-block-wrap[data-width="half"]{grid-column:span 3}.website-block-wrap[data-width="third"]{grid-column:span 2}}
 @media(max-width:767px){.website-blocks{grid-template-columns:minmax(0,1fr)}.website-block-wrap{grid-column:span 1}}
