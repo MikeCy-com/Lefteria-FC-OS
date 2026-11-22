@@ -45,6 +45,59 @@ const viewports = [
   { name:'4k', width:3840, height:2160 }
 ];
 
+/* No production content or API mutation: simulate a validated published
+ * WYSIWYG theme in a throwaway Chromium context and inspect computed CSS. */
+async function verifyPublishedThemeControls(browser, base) {
+  const context = await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+  try {
+    const page=await context.newPage();
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    const computed=await page.evaluate(()=>{
+      const site=document.querySelector('[data-testid="public-site"]');
+      const tile=document.querySelector('[data-testid="public-destinations"] .public-destination');
+      const tiles=document.querySelector('[data-testid="public-destinations"]');
+      const button=document.querySelector('.public-hero-actions .public-button');
+      const motto=document.querySelector('[data-testid="home-brand-interval"]');
+      const header=document.querySelector('.public-header');
+      const heading=document.querySelector('.public-hero-copy h1');
+      if(!site||!tile||!tiles||!button||!motto||!header||!heading)throw Error('missing real public UI nodes');
+      site.setAttribute('data-global-design','true');
+      for(const [key,value] of Object.entries({
+        '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
+        '--lf-color-accent':'#145db3','--lf-color-surface':'#ffffff',
+        '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
+        '--lf-color-link':'#145db3','--lf-layout-card-radius':'24px',
+        '--lf-layout-button-radius':'16px','--lf-layout-card-gap':'40px',
+        '--lf-layout-motto-height':'160px','--lf-h1-family':'Georgia,serif',
+        '--lf-h1-desktop':'44px','--lf-h1-mobile':'30px',
+        '--lf-h1-weight':'700','--lf-h1-line':'1.2'
+      }))site.style.setProperty(key,value);
+      const style=x=>getComputedStyle(x);
+      return {
+        tileRadius:style(tile).borderTopLeftRadius,
+        tilesGap:style(tiles).columnGap,
+        buttonRadius:style(button).borderTopLeftRadius,
+        mottoHeight:style(motto).minHeight,
+        headingSize:style(heading).fontSize,
+        headingFamily:style(heading).fontFamily,
+        headerBackground:style(header).backgroundColor,
+        accent:style(site).getPropertyValue('--public-gold').trim(),
+        bodyBackground:style(site).backgroundColor
+      };
+    });
+    assert.equal(computed.tileRadius,'24px','Published card radius must override redesign');
+    assert.equal(computed.tilesGap,'40px','Published card spacing must override redesign');
+    assert.equal(computed.buttonRadius,'16px','Published button radius must override redesign');
+    assert.equal(computed.mottoHeight,'160px','Published motto height must override redesign');
+    assert.equal(computed.headingSize,'44px','Published H1 size must override redesign');
+    assert.match(computed.headingFamily,/Georgia/,'Published H1 family must override redesign');
+    assert.equal(computed.bodyBackground,'rgb(245, 245, 240)');
+    assert.ok(computed.accent.includes('#145db3')||computed.accent.includes('20, 93, 179'),
+      'Brand accent must resolve from published WYSIWYG setting');
+    return computed;
+  } finally { await context.close(); }
+}
+
 async function verifyAppInstall(browser, base, artifacts) {
   const checks = [];
   const context = await browser.newContext({ viewport:{width:390,height:844}, reducedMotion:'reduce', locale:'el-GR' });
@@ -756,13 +809,16 @@ try {
     }
     await context.close();
   }
+  let publishedTheme={};
+  try {publishedTheme=await verifyPublishedThemeControls(browser,base);}
+  catch(error){failures.push('Published WYSIWYG theme override: '+(error.stack??error.message));}
   let installation = [];
   try { installation = await verifyAppInstall(browser, base, artifacts); }
   catch (error) { failures.push('App installation: ' + (error.stack ?? error.message)); }
   let adminNavigation=[];
   try { adminNavigation=await verifyAuthenticatedAdminNavigation(browser,base,artifacts); }
   catch(error) { failures.push('Authenticated admin sidebar visual check: '+(error.stack ?? error.message)); }
-  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, installation, adminNavigation, failures }, null, 2) + '\n');
+  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, publishedTheme, installation, adminNavigation, failures }, null, 2) + '\n');
   console.log(JSON.stringify({results:results.length,installation,failures},null,2));
   assert.equal(failures.length,0,'UI viewport smoke detected regressions; inspect results.json and screenshots');
 } finally {
