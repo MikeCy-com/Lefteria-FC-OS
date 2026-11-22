@@ -1,11 +1,18 @@
 <script lang="ts">
-  import {parseNavigationDesign,NAVIGATION_PARENTS,type NavigationEntry,type NavigationParent}
+  import {NAVIGATION_PARENTS,type NavigationEntry,type NavigationParent}
     from '../public/navigation-design.ts';
   import type {PublicOrganization} from '../public/types.ts';
   let {value,organization,onChange,disabled=false}:{
     value:string;organization:PublicOrganization;onChange:(text:string)=>void;disabled?:boolean
   }=$props();
-  const config=$derived(parseNavigationDesign(value,organization)??{links:[]});
+  // Keep in-progress text edits visible even when the unsaved draft is invalid.
+  // Save/publish still uses the strict owner-aware parser and backend policy.
+  const config=$derived((()=>{
+    try {
+      const candidate=JSON.parse(value) as {links?:NavigationEntry[]};
+      return Array.isArray(candidate?.links)?{links:candidate.links}:{links:[]};
+    } catch {return {links:[] as NavigationEntry[]};}
+  })());
   const parentNames:Record<NavigationParent,string>={
     root:'Κύριο μενού',club:'Σύλλογος',team:'Πρώτη ομάδα',academy:'Ακαδημία',
     matches:'Αγώνες',news:'Νέα',events:'Εκδηλώσεις',shop:'Κατάστημα',contact:'Επικοινωνία'
