@@ -26,11 +26,11 @@
   const organizations=$derived($auth.session?.user.organizations.filter(
     o=>o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
   const authorized=$derived(['super_admin','manager','accountant'].includes($auth.session?.user.role??''));
-  const canReview=$derived($auth.session?.user.role==='super_admin'&&reviewsAvailable);
   let owner=$state<Owner|null>(null),response=$state<Response|null>(null);
   let products=$state<CatalogProduct[]>([]);
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
   let reviews=$state<VatReview[]>([]),reviewsAvailable=$state(false);
+  const canReview=$derived($auth.session?.user.role==='super_admin'&&reviewsAvailable);
   let reviewTarget=$state<string|null>(null),reviewNote=$state(''),reviewSaving=$state(false);
   let productId=$state(''),variantId=$state(''),code=$state('standard_19');
   let effectiveFrom=$state(''),reference=$state(''),reason=$state('');
