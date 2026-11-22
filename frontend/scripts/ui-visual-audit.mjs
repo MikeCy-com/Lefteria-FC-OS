@@ -280,6 +280,27 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
           openCount:nav.querySelectorAll('details[open]').length
         };
       });
+      // Every authenticated admin route uses the same full-width content rail.
+      // The usable pane must not stop at an arbitrary 1200–1800px cap or have
+      // unequal left/right padding. Validate on phone, tablet, desktop and 4K.
+      const contentMetrics = await page.locator('#admin-main').evaluate(main => {
+        const parent=main.parentElement;
+        const rect=main.getBoundingClientRect();
+        const parentRect=parent.getBoundingClientRect();
+        const css=getComputedStyle(main);
+        return {
+          width:rect.width, availableWidth:parentRect.right - rect.left,
+          padLeft:parseFloat(css.paddingLeft),padRight:parseFloat(css.paddingRight),
+          rightGap:parentRect.right - rect.right,
+          boxSizing:css.boxSizing
+        };
+      });
+      assert.ok(Math.abs(contentMetrics.rightGap)<=2,
+        viewport.name+' admin content does not fill its available width');
+      assert.ok(Math.abs(contentMetrics.padLeft-contentMetrics.padRight)<=1,
+        viewport.name+' admin left and right gutters differ');
+      assert.equal(contentMetrics.boxSizing,'border-box');
+      assert.ok(contentMetrics.width>0);
       assert.ok(values.fontSize >= 14,
         viewport.name+' nav child link font is too small');
       assert.ok(values.sectionSize >= 14,
@@ -299,7 +320,13 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
       if (viewport.width <= 720)
         assert.ok(values.sidebarScrollWidth <= values.sidebarClientWidth + 2,
           'Mobile admin menu should not depend on an overflowing horizontal link rail');
-      else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
+      else assert.ok(values.sidebarWidth >= (viewport.width <= 920 ? 250 : 260),
+        'Sidebar rail became too narrow');
+      if (viewport.width > 720) {
+        const expectedWidth = viewport.width >= 2560 ? 280 : viewport.width <= 920 ? 250 : 260;
+        assert.ok(Math.abs(values.sidebarWidth - expectedWidth) <= 2,
+          viewport.name+' admin sidebar width no longer matches shared compact rail');
+      }
       const news = page.getByTestId('admin-news-link');
       // :focus-visible intentionally follows keyboard modality. A synthetic
       // focus() call immediately after clicking the disclosure is pointer
