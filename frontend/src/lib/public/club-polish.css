@@ -84,16 +84,22 @@
   text-wrap:balance;
   overflow-wrap:anywhere;
 }
+/* Exactly one gold stroke BEFORE each section title. Older public.css
+   also styles this pseudo-element; the later loaded skin owns its final
+   shape and deliberately removes the doubled shadow/underlining effect. */
 .public-site :is(.public-section-heading,.section-heading) h2::before {
   content:"";
-  display:inline-block;
+  display:block;
+  flex:0 0 5px;
   width:5px;
-  height:.8em;
-  margin-right:12px;
+  height:24px;
+  min-height:0;
+  margin:0;
   background:var(--public-gold);
   transform:skew(-18deg);
-  box-shadow:5px 0 0 rgb(246 187 56 / 15%);
-  vertical-align:-.03em;
+  box-shadow:none;
+  vertical-align:baseline;
+  align-self:center;
 }
 .public-site .public-section {scroll-margin-top:calc(var(--public-header) + 12px);}
 .public-site .public-empty {
