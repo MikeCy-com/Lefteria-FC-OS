@@ -265,6 +265,9 @@ BEGIN
 
   -- Enroll siblings 2-5; verify after counts 2, 4 and 5, not just 3.
   -- Child 2 is assigned to a separate Academy CITY/LOCATION.
+  -- Enrollment writes its audit event after the status update. Restore the
+  -- deferrable audit constraint after the first fixture used IMMEDIATE.
+  SET CONSTRAINTS ALL DEFERRED;
   FOR sibling_index IN 2..5 LOOP
     sibling_registration:=sibling_ids[sibling_index-1];
     sibling_request:=gen_random_uuid();
@@ -304,6 +307,7 @@ BEGIN
         WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+1
     THEN RAISE EXCEPTION 'Family % child documents count wrong',processed; END IF;
   END LOOP;
+  SET CONSTRAINTS ALL IMMEDIATE;
   BEGIN
     PERFORM academy_private.read_admin_player_document_metadata(
       manager_digest,'lefteria_fc_academy',second_player);
