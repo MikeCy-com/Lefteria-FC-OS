@@ -475,7 +475,11 @@ public static class WebsitePageEndpoints
                     throw Invalid();
             }
             var bg = colors.GetProperty("background").GetString()!;
-            if (ColorContrast(bg, colors.GetProperty("foreground").GetString()!) < 4.5 ||
+            var surface = colors.GetProperty("surface").GetString()!;
+            if (ColorContrast(surface, colors.GetProperty("foreground").GetString()!) < 4.5 ||
+                ColorContrast(surface, colors.GetProperty("muted").GetString()!) < 4.5 ||
+                ColorContrast(surface, colors.GetProperty("link").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("foreground").GetString()!) < 4.5 ||
                 ColorContrast(bg, colors.GetProperty("muted").GetString()!) < 4.5 ||
                 ColorContrast(bg, colors.GetProperty("link").GetString()!) < 4.5 ||
                 ColorContrast(bg, colors.GetProperty("accent").GetString()!) < 3.0)
