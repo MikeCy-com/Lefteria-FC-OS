@@ -729,7 +729,7 @@
                 {#each visibleGroups as group (group.id)}
                   <li class:admin-audience-selected={focusedGroupId===group.id}>
                     <div class="admin-audience-card-title">
-                      <span class="admin-audiences-type">{group.kind === 'team' ? 'ΠΡΩΤΗ ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
+                      <span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
                       <strong>{group.name}</strong>
                     </div>
                     <div class="admin-audiences-count">
