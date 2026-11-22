@@ -155,7 +155,7 @@ async function verifyNativeThemePages(browser, base) {
       {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'},
       {route:'/about',selector:'.source-about .max-w-7xl',property:'maxWidth',expected:'1120px'},
       {route:'/shop',selector:'.shop-container',property:'width',expected:'1120px'},
-      {route:'/team',selector:'.public-section.team-section',property:'paddingLeft',min:88}
+      {route:'/team',selector:'.public-page-heading.team-heading',property:'paddingLeft',min:88}
     ]) {
       await page.goto(base+route,{waitUntil:'domcontentloaded'});
       const actual=await page.evaluate(({selector,property})=>{
