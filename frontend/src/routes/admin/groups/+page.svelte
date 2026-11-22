@@ -14,6 +14,7 @@
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
   type Directory = {organization_id: Organization; ready: true; unassigned_players: number; groups: Audience[]};
   type CreationLocation = {id:string;city_id:string;label:string};
+  type CreationCity = {id:string;name:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
   const assignments = $derived(
@@ -55,6 +56,18 @@
   let lastCreatedOrganization=$state<Organization|null>(null);
   let lastCreatedLocation=$state<CreationLocation|null>(null);
   let creationLocations=$state<CreationLocation[]>([]);
+  let creationCities=$state<CreationCity[]>([]);
+  let creationCityId=$state('');
+  let locationReload=$state(0);
+  let pendingLocationId=$state('');
+  let showInlineLocation=$state(false);
+  let locationName=$state('');
+  let locationSlug=$state('');
+  let locationAddress=$state('');
+  let locationMapsUrl=$state('');
+  let locationSaving=$state(false);
+  let locationCreateError=$state('');
+  const cityLocations=$derived(creationLocations.filter(site=>site.city_id===creationCityId));
   let creationLocationId=$state('');
   let creationLocationsLoading=$state(false);
   let creationLocationsError=$state('');
@@ -88,6 +101,7 @@
   // selector does not infer city/site authority from any editable text or URL.
   $effect(() => {
     const owner=organization,active=showCreate,actor=$auth.session?.user.id;
+    const generation=locationReload;void generation;
     creationLocations=[];creationLocationId='';creationLocationsError='';
     creationLocationsLoading=false;
     if(!browser || !active || owner!=='lefteria_fc_academy' || !canCreate)return;
@@ -118,6 +132,9 @@
           .filter(s=>s.organization_id==='lefteria_fc_academy' &&
             typeof s.academy_city_id==='string')
           .map(s=>s.academy_city_id as string));
+        const authorizedCities:CreationCity[]=[...cities]
+          .filter(([id])=>scopedCities.has(id))
+          .map(([id,name])=>({id,name}));
         const options:CreationLocation[]=[];
         for(const row of data.locations as Record<string,unknown>[]){
           if(typeof row.id!=='string' || !/^[0-9a-f-]{36}$/i.test(row.id) ||
@@ -129,12 +146,18 @@
         }
         if(controller.signal.aborted || organization!==owner ||
           $auth.session?.user.id!==actor)return;
+        creationCities=authorizedCities;
         creationLocations=options;
-        const requested=page.url.searchParams.get('location_id');
-        creationLocationId=options.find(l=>l.id===requested)?.id ??
-          (options.length===1?options[0].id:'');
-        if(!options.length)creationLocationsError=
-          'Δεν υπάρχουν ενεργές τοποθεσίες στις οποίες έχετε δικαίωμα δημιουργίας.';
+        const requested=pendingLocationId||page.url.searchParams.get('location_id')||'';
+        const preferred=options.find(l=>l.id===requested) ??
+          (options.length===1?options[0]:null);
+        if(preferred)creationCityId=preferred.city_id;
+        else if(!authorizedCities.some(c=>c.id===creationCityId))
+          creationCityId=authorizedCities.length===1?authorizedCities[0].id:'';
+        creationLocationId=preferred?.id ?? '';
+        pendingLocationId='';
+        if(!authorizedCities.length)creationLocationsError=
+          'Δεν υπάρχουν εξουσιοδοτημένες ενεργές πόλεις.';
       }catch{
         if(!controller.signal.aborted)creationLocationsError=
           'Δεν επιβεβαιώθηκαν οι εξουσιοδοτημένες τοποθεσίες. Ανανέωση και νέα προσπάθεια.';
@@ -142,6 +165,53 @@
     })();
     return ()=>controller.abort();
   });
+
+  async function createInlineLocation() {
+    if(!browser || !canCreate || organization!=='lefteria_fc_academy' ||
+      !creationCities.some(city=>city.id===creationCityId) ||
+      locationSaving || saving || creationLocationsLoading)return;
+    const name=locationName.trim(), slug=locationSlug.trim().toLowerCase();
+    if(!name || name.length>120 || /[\\x00-\\x1f\\x7f]/.test(name) ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length>120 ||
+      locationAddress.length>500 || locationMapsUrl.length>2048 ||
+      (locationMapsUrl && !/^https:\/\/(?:www\\.)?(?:google\\.[a-z.]+\/maps|maps\\.app\\.goo\\.gl\/)/i.test(locationMapsUrl))){
+      locationCreateError='Συμπληρώστε έγκυρο όνομα, slug και προαιρετικό Google Maps HTTPS URL.';
+      return;
+    }
+    const city=creationCityId, actor=$auth.session?.user.id;
+    locationSaving=true;locationCreateError='';
+    try {
+      const response=await fetch('/api/admin/football/territories?organization_id=lefteria_fc_academy',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({kind:'location',data:{
+          city_id:city,name,slug,address:locationAddress,
+          google_maps_url:locationMapsUrl}})
+      });
+      if(actor!==$auth.session?.user.id || organization!=='lefteria_fc_academy')return;
+      if(response.status===401||response.status===403){
+        void auth.bootstrap();
+        throw new Error('Δεν επιτρέπεται η δημιουργία τοποθεσίας με τα τρέχοντα δικαιώματα.');
+      }
+      if(!response.ok)throw new Error(response.status===409
+        ?'Η τοποθεσία υπάρχει ήδη ή άλλαξαν τα στοιχεία της πόλης.'
+        :'Η τοποθεσία δεν αποθηκεύτηκε. Ελέγξτε τα στοιχεία και τα δικαιώματά σας.');
+      const raw:unknown=await response.json();
+      if(!raw || typeof raw!=='object' || Array.isArray(raw) ||
+        (raw as Record<string,unknown>).kind!=='location' ||
+        (raw as Record<string,unknown>).organization_id!=='lefteria_fc_academy' ||
+        typeof (raw as Record<string,unknown>).id!=='string' ||
+        !/^[0-9a-f-]{36}$/i.test((raw as Record<string,unknown>).id as string))
+        throw new Error('Η νέα τοποθεσία δεν επαληθεύτηκε. Ανανεώστε τον κατάλογο.');
+      pendingLocationId=(raw as Record<string,unknown>).id as string;
+      showInlineLocation=false;
+      locationName='';locationSlug='';locationAddress='';locationMapsUrl='';
+      createRequestId='';
+      locationReload++;
+    }catch(error){
+      locationCreateError=error instanceof Error?error.message:'Αποτυχία δημιουργίας τοποθεσίας.';
+    }finally{locationSaving=false;}
+  }
 
   async function createGroup() {
     if (!browser || !canCreate || !organization || !directory || loading ||
@@ -156,7 +226,8 @@
     const actor = $auth.session?.user.id;
     const selectedLocation=selected==='lefteria_fc_academy'
       ?creationLocations.find(item=>item.id===creationLocationId)??null:null;
-    if(selected==='lefteria_fc_academy' && (!selectedLocation || creationLocationsLoading)){
+    if(selected==='lefteria_fc_academy' && (!selectedLocation ||
+      selectedLocation.city_id!==creationCityId || creationLocationsLoading || locationSaving)){
       createError='Επιλέξτε μία επαληθευμένη πόλη και τοποθεσία πριν από τη δημιουργία.';
       return;
     }
@@ -444,16 +515,64 @@
                         oninput={() => createRequestId=''}/>
                     </label>
                   {:else}
-                    <label>Πόλη · τοποθεσία Ακαδημίας (υποχρεωτική)
-                      <select bind:value={creationLocationId} disabled={saving || creationLocationsLoading}
-                        required data-testid="admin-group-verified-location"
-                        onchange={() => createRequestId=''}>
-                        <option value="">Επιλέξτε εξουσιοδοτημένη τοποθεσία</option>
-                        {#each creationLocations as site (site.id)}
-                          <option value={site.id}>{site.label}</option>
-                        {/each}
-                      </select>
-                    </label>
+                    <div class="admin-academy-placement">
+                      <label>Πόλη Ακαδημίας *
+                        <select bind:value={creationCityId}
+                          disabled={saving || locationSaving || creationLocationsLoading}
+                          required data-testid="admin-group-city"
+                          onchange={() => {creationLocationId='';createRequestId='';showInlineLocation=false;}}>
+                          <option value="">Επιλέξτε πόλη</option>
+                          {#each creationCities as city (city.id)}
+                            <option value={city.id}>{city.name}</option>
+                          {/each}
+                        </select>
+                      </label>
+                      <label>Τοποθεσία Ακαδημίας *
+                        <select bind:value={creationLocationId}
+                          disabled={saving || locationSaving || creationLocationsLoading || !creationCityId}
+                          required data-testid="admin-group-verified-location"
+                          onchange={() => createRequestId=''}>
+                          <option value="">Επιλέξτε τοποθεσία</option>
+                          {#each cityLocations as site (site.id)}
+                            <option value={site.id}>{site.label}</option>
+                          {/each}
+                        </select>
+                      </label>
+                      <button type="button" class="admin-secondary admin-location-toggle"
+                        data-testid="admin-group-add-location"
+                        disabled={saving || locationSaving || !creationCityId}
+                        onclick={() => {showInlineLocation=!showInlineLocation;locationCreateError='';}}>
+                        {showInlineLocation?'Κλείσιμο δημιουργίας':'+ Νέα τοποθεσία'}
+                      </button>
+                      {#if showInlineLocation}
+                        <div class="admin-inline-location" data-testid="admin-group-inline-location">
+                          <h3>Νέα τοποθεσία στην επιλεγμένη πόλη</h3>
+                          <p class="admin-muted">Η ομάδα δεν θα αποθηκευτεί μέχρι να επιλέξετε επαληθευμένη τοποθεσία.</p>
+                          <label>Όνομα τοποθεσίας *
+                            <input bind:value={locationName} maxlength="120" disabled={locationSaving || saving}/>
+                          </label>
+                          <label>URL slug *
+                            <input bind:value={locationSlug} maxlength="120" placeholder="pafos-centre"
+                              disabled={locationSaving || saving}/>
+                          </label>
+                          <label>Διεύθυνση
+                            <input bind:value={locationAddress} maxlength="500" disabled={locationSaving || saving}/>
+                          </label>
+                          <label>Google Maps URL (HTTPS)
+                            <input type="url" bind:value={locationMapsUrl} maxlength="2048"
+                              placeholder="https://maps.app.goo.gl/..."
+                              disabled={locationSaving || saving}/>
+                          </label>
+                          {#if locationCreateError}
+                            <p role="alert" class="admin-group-error">{locationCreateError}</p>
+                          {/if}
+                          <button type="button" class="admin-secondary" disabled={locationSaving || saving}
+                            onclick={() => void createInlineLocation()}>
+                            {locationSaving?'Αποθήκευση τοποθεσίας…':'Δημιουργία & επιλογή τοποθεσίας'}
+                          </button>
+                        </div>
+                      {/if}
+                    </div>
                     {#if creationLocationsLoading}
                       <p role="status" class="admin-muted">Επαλήθευση τοποθεσιών…</p>
                     {:else if creationLocationsError}
@@ -498,7 +617,7 @@
                   <div class="admin-group-create-actions">
                     <button type="submit" class="admin-secondary"
                       disabled={saving || (organization==='lefteria_fc_academy' &&
-                        (!creationLocationId || creationLocationsLoading || !!creationLocationsError))}>
+                        (!creationCityId || !creationLocationId || locationSaving || creationLocationsLoading || !!creationLocationsError))}>
                       {saving ? 'Δημιουργία…' : 'Δημιουργία'}</button>
                     <button type="button" class="admin-secondary" disabled={saving}
                       onclick={() => {showCreate=false;createError=null;}}>Ακύρωση</button>
@@ -618,6 +737,16 @@
   .admin-group-create-form input,.admin-group-create-form textarea{width:100%}
   .admin-group-create-form label{display:grid;gap:5px}
   .admin-group-create-actions{display:flex;flex-wrap:wrap;gap:9px}
+  .admin-academy-placement{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+    padding:14px;border:1px solid #4b3b20;border-radius:10px;background:#161714}
+  .admin-academy-placement label,.admin-inline-location label{display:grid;gap:6px;font-size:12px;color:#cfd0cc}
+  .admin-academy-placement select,.admin-inline-location input{width:100%;min-width:0}
+  .admin-location-toggle{grid-column:1/-1;justify-self:start}
+  .admin-inline-location{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;padding:15px;border:1px solid #62502a;border-radius:8px;background:#111313}
+  .admin-inline-location h3,.admin-inline-location p,.admin-inline-location button{grid-column:1/-1;margin:0}
+  .admin-inline-location button{justify-self:start}
+  @media(max-width:620px){.admin-academy-placement,.admin-inline-location{grid-template-columns:1fr}}
   .admin-group-error{color:#ffd29b;margin-top:12px}
   .admin-audiences-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:0 0 16px}
   .admin-scoped-empty{display:grid;gap:12px;justify-items:start;margin:12px 0 18px}
