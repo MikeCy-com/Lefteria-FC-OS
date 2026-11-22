@@ -84,3 +84,72 @@
 .public-site[data-global-design="true"] :is(.public-button,.public-search-trigger) {
   border-radius:var(--lf-layout-button-radius,5px);
 }
+
+/* Global defaults for all native public pages. Keep the established page
+ * geometry in the default palette; custom published values are tenant-scoped.
+ * Individual WebsitePageBlocks use independent --cms-* overrides. */
+.public-site[data-global-design="true"] {
+  --public-content-width:var(--lf-layout-page-max-width,1280px);
+  --public-page-gutter:var(--lf-layout-page-side-padding,16px);
+  --public-page-inset:max(var(--public-page-gutter),calc((100% - var(--public-content-width)) / 2));
+}
+.public-site[data-global-design="true"] .home-reference {
+  --home-gutter:var(--lf-layout-page-side-padding,16px);
+}
+.public-site[data-global-design="true"] :is(
+  .public-page-heading,.public-section:not(.public-embedded-page),
+  .catalog,.person-content,.match-detail
+) {
+  border-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-reference-fees,.academy-key-figures,
+  .academy-public-reviews,.academy-reviews-summary,.academy-review-card,
+  .academy-group-preview,.academy-player-preview,.registration-card,
+  .registration-child,.registration-choice-card,.registration-costs,
+  .registration-koa,.contact-info-card,.contact-message-form,
+  .roster-filters,.catalog-filters,.event-chip-filters,
+  .team-section .public-team-overview,.public-empty
+) {
+  background-color:var(--lf-color-surface);
+  border-color:var(--lf-color-border);
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-review-card,.registration-card,
+  .registration-child,.registration-costs,.contact-info-card,
+  .contact-message-form,.person-card,.venue-card
+) {
+  border-radius:var(--lf-layout-card-radius,9px);
+}
+.public-site[data-global-design="true"] :is(
+  .registration-card,.registration-child,.contact-message-form,.roster-filters
+) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  background-color:var(--lf-color-bg);
+  color:var(--lf-color-text);
+  border-color:var(--lf-color-border);
+  border-radius:var(--lf-layout-button-radius,5px);
+}
+.public-site[data-global-design="true"] :is(
+  .contact-info-card p,.contact-section-caption,.contact-form-note,
+  .academy-description,.academy-review-body,.registration-note,
+  .registration-family-note,.registration-notice
+) {
+  color:var(--lf-color-muted);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-enquiry,.academy-directory,.contact-original-layout
+) {
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] .website-page {
+  background:var(--lf-color-bg);
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] .website-page-content {
+  max-width:var(--lf-layout-page-max-width,1280px);
+  padding-inline:var(--lf-layout-page-side-padding,16px);
+}
+.public-site[data-global-design="true"] .website-page-return {
+  border-top-color:var(--lf-color-border);
+}
