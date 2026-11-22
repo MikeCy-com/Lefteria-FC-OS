@@ -7,6 +7,7 @@
     season?: string | null; returnTeamId?: string | null
   } = $props();
   const person = $derived(player ?? staff!);
+  const nameParts=$derived(person.name.trim().split(/\s+/));
   const isAcademyPlayer = $derived(player?.organization_id === 'lefteria_fc_academy');
   const clubTeamLabel = $derived(
     player?.team_type === 'First Team' ? 'ΠΡΩΤΗ ΟΜΑΔΑ'
@@ -20,8 +21,22 @@
       ? '&team_id=' + encodeURIComponent(returnTeamId) : '');
   const facts = $derived(player ? [['ΘΕΣΗ', player.position], ['ΗΛΙΚΙΑ', player.age], ['ΕΘΝΙΚΟΤΗΤΑ', player.nationality], ['ΥΨΟΣ', player.height], ['ΒΑΡΟΣ', player.weight], ['ΠΟΔΙ', player.preferred_foot]] : [['ΡΟΛΟΣ', staff?.role], ['ΕΘΝΙΚΟΤΗΤΑ', staff?.nationality]]);
 </script>
+{#if player}
+  <nav class="person-breadcrumbs" aria-label="Διαδρομή προφίλ">
+    <a href="/">ΑΡΧΙΚΗ</a><span aria-hidden="true">/</span>
+    <a href={isAcademyPlayer ? '/academy/groups' : '/team?tab=roster'+teamQuery}>
+      {isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : 'ΠΡΩΤΗ ΟΜΑΔΑ'}
+    </a><span aria-hidden="true">/</span>
+    <span aria-current="page">{person.name}</span>
+  </nav>
+{/if}
 <section class="person-hero" class:player-profile-hero={!!player} data-testid={player ? "player-hero" : undefined}>
-  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : clubTeamLabel) : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff' + teamQuery)}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
+  <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : clubTeamLabel) : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1 data-testid={player ? 'player-name' : undefined}>
+  {#if player}
+    {#if nameParts.length>1}<span>{nameParts.slice(0,-1).join(' ')}</span>{/if}
+    <span class="person-name-highlight">{nameParts.at(-1)}</span>
+  {:else}{person.name}{/if}
+</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff' + teamQuery)}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
   <div class="person-portrait" data-testid={player ? 'player-hero-photo' : undefined}><PublicImage src={person.image_url} alt={person.name} eager /></div>
   {#if player}
     <aside class="person-stat-bars" data-testid="player-stat-bars" aria-label="Δημοσιευμένα στατιστικά παίκτη">
@@ -70,6 +85,11 @@
 </section>
 
 <style>
+  .person-breadcrumbs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding:14px clamp(20px,4vw,58px);font-size:12px;color:#bbb;background:#080909}
+  .person-breadcrumbs a{color:var(--public-gold);text-decoration:none}
+  .person-breadcrumbs a:focus-visible{outline:2px solid var(--public-gold);outline-offset:4px}
+  :global(.public-site) .person-name-highlight{display:block;color:var(--public-gold)}
   /* Source PlayerProfilePage.jsx: photograph / name / published stat rails.
      The underlying shared staff profile remains unchanged. */
   :global(.public-site) .player-profile-hero {
