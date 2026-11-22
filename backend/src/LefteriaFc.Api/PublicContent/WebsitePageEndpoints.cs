@@ -462,7 +462,8 @@ public static class WebsitePageEndpoints
         {
             using var json = JsonDocument.Parse(content.Blocks[0].Text);
             var root = json.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 2 ||
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is not (2 or 3) ||
+                (root.EnumerateObject().Count() == 3 && !root.TryGetProperty("layout", out _)) ||
                 !root.TryGetProperty("text", out var styles) || styles.ValueKind != JsonValueKind.Object ||
                 !root.TryGetProperty("colors", out var colors) || colors.ValueKind != JsonValueKind.Object ||
                 colors.EnumerateObject().Count() != 7 ||
@@ -498,6 +499,27 @@ public static class WebsitePageEndpoints
                     !t.TryGetProperty("line_height", out var line) ||
                     !line.TryGetDouble(out var h) || h is not (1.0 or 1.15 or 1.2 or 1.35 or 1.5 or 1.6 or 1.8))
                     throw Invalid();
+            }
+            // Optional six-key design layout is backward compatible with the
+            // original two-key published themes. Unknown keys/CSS are refused.
+            if (root.TryGetProperty("layout", out var layout))
+            {
+                if (layout.ValueKind != JsonValueKind.Object || layout.EnumerateObject().Count() != 6)
+                    throw Invalid();
+                foreach (var item in new[]
+                {
+                    (Name: "gutter", Choices: new[] {12,16,20,24,28,32,40,48,56,64}),
+                    (Name: "section_gap", Choices: new[] {12,16,20,24,32,40,48,64,80}),
+                    (Name: "card_gap", Choices: new[] {8,12,16,20,24,32,40}),
+                    (Name: "card_radius", Choices: new[] {0,4,6,9,12,16,20,24}),
+                    (Name: "button_radius", Choices: new[] {0,4,5,8,12,16,24}),
+                    (Name: "motto_height", Choices: new[] {80,100,120,160,240,320,360})
+                })
+                {
+                    if (!layout.TryGetProperty(item.Name, out var token) ||
+                        !token.TryGetInt32(out var number) || !item.Choices.Contains(number))
+                        throw Invalid();
+                }
             }
         }
         catch (JsonException) { throw Invalid(); }
