@@ -65,11 +65,12 @@ node ops/release/staging-mvp-preflight.mjs \
 
 If the preview is protected by an upstream edge authentication gate,
 set `LEFTERIA_PREVIEW_GATE_AUTHORIZATION` through a secret-aware environment
-mechanism, **not** a command-line argument or checked-in file. The tool
-checks public liveness/readiness, homepage/admin login, and that anonymous
-requests for Academy POS site data, family data and roster data receive a
-401/403 rather than a 200. Any timeout, redirect, 503, private-data leak or
-unexpected page content blocks the report. It does **not** establish the
+mechanism, **not** a command-line argument or checked-in file. The tool checks public liveness/readiness and homepage/admin login. It
+requires a stable **503 JSON `mvp_feature_disabled`** for each optional
+Academy POS, Payabl hosted payment-request and fan-subscription surface.
+A generic outage 503 or anonymous 401 does **not** prove feature disablement.
+Private family and roster endpoints must still deny anonymous reads with
+401/403. Any unexpected status, redirect or private-data leak blocks the report. It does **not** establish the
 deployed binary SHA, backup success, OTP delivery, correct private content
 or payment-provider status.
 
@@ -99,6 +100,43 @@ fails, repair and re-review the **individual scoped grant** in the isolated
 environment; never grant table-wide permissions or bypass authorization.
 This check does not replace tests for actual user roles and city/location
 boundaries, nor does it claim that all app features are available.
+
+
+## Strict server-side Academy MVP-only feature boundary
+
+In **isolated staging only**, explicitly set:
+
+```sh
+LEFTERIA_ACADEMY_MVP_ONLY=true
+Payabl__Enabled=false
+TwilioPaymentSms__Enabled=false
+```
+
+The setting accepts only the exact strings `true` or `false`; invalid values
+fail API startup. It is **not** switched on automatically by merging source.
+With `true`, the API returns non-cacheable 503 JSON
+`{"code":"mvp_feature_disabled", ...}` *before* calling the handlers for:
+
+- Academy and First Team POS admin endpoints, including cashier and sales.
+- Payabl hosted payment requests and incoming Payabl webhooks.
+- Optional fan subscription checkout/plans and fan lesson delivery.
+- Optional training-fee SMS sending. Parent requests to save a card or enable
+automatic collections are also rejected with a stable disabled-feature error;
+an ordinary preferred payment day remains editable without starting billing.
+The optional fan lesson delivery background worker is not started in this mode.
+
+**Still functional** (subject to existing exact role/city/site/guardian grants):
+Academy training-fee issuance and readback, invoice PDFs, manual accounting,
+the roster, sessions, attendance, CRM, guardians, private educational HUB and
+approved public pages. This feature flag is not permission escalation.
+
+The launch preflight verifies the denied optional routes with unauthenticated,
+read-only GET requests. It must be run against a real isolated staging build;
+checking the configuration file or a mock alone never proves deployed behavior.
+The UI must also be verified not to advertise disabled paid checkout; retain
+the `mvp-deferred-features` gate as BLOCKED until that review and financial
+sign-off. To expand the pilot, disable MVP mode **only after** separately
+approving and testing merchant/POS/fan readiness and user-facing controls.
 
 ## Deployment decision and rollback
 

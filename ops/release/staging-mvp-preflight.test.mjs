@@ -18,6 +18,10 @@ const mock=(changes={})=>async (url,options)=>{
   if(path==='/'||path==='/admin/login')
     return new Response('<html>Preview</html>',{status:200,
       headers:{'content-type':'text/html; charset=utf-8'}});
+  if(['/api/admin/pos/sites','/api/admin/finance/payabl/payment-requests',
+    '/api/mobile/hub/fan-subscription/plans'].includes(path))
+    return Response.json({code:'mvp_feature_disabled',
+      detail:'Optional pilot feature not approved'}, {status:503});
   return new Response('{}',{status:401,headers:{'content-type':'application/json'}});
 };
 
@@ -97,4 +101,20 @@ test('staging permission readiness queries have no database writes and pin core 
   assert.match(code,/record_admin_academy_training_attendance/);
   assert.match(code,/issue_guardian_permission/);
   assert.doesNotMatch(code,/\b(?:GRANT|REVOKE|TRUNCATE|INSERT INTO|UPDATE |DELETE FROM|ALTER TABLE|DROP TABLE)\b/i);
+});
+
+test('Academy MVP preflight requires a real disabled-feature code, never a generic 503 or 401',async()=>{
+  for(const url of ['/api/admin/pos/sites',
+    '/api/admin/finance/payabl/payment-requests',
+    '/api/mobile/hub/fan-subscription/plans']){
+    for(const response of [
+      Response.json({code:'service_unavailable'}, {status:503}),
+      Response.json({code:'not_authenticated'}, {status:401}),
+      Response.json({plans:[]}, {status:200})
+    ]){
+      const report=await checkStagingMvp({origin:validOrigin,fetcher:mock({[url]:response})});
+      assert.equal(report.ready,false,'Optional feature was not proven disabled: '+url);
+      assert.ok(report.evidence.some(row=>row.path.startsWith(url) && !row.ok));
+    }
+  }
 });

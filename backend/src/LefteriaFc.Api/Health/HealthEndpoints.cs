@@ -1,4 +1,6 @@
 using LefteriaFc.Infrastructure.Persistence;
+using LefteriaFc.Infrastructure.WebAdmin;
+using Microsoft.Extensions.Options;
 
 namespace LefteriaFc.Api.Health;
 
@@ -19,19 +21,28 @@ public static class HealthEndpoints
     }
 
     private static async Task<IResult> CheckReadiness(
+        HttpContext context,
         LefteriaDbContext database,
+        WebAdminConnections adminConnections,
+        IOptions<WebAdminOptions> adminOptions,
         ILoggerFactory loggerFactory,
         CancellationToken cancellationToken)
     {
+        // Never let a proxy cache a previously ready container after a schema
+        // revocation or during a release/migration transition.
+        context.Response.Headers.CacheControl="no-store, max-age=0";
+        context.Response.Headers.Pragma="no-cache";
         using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        budget.CancelAfter(TimeSpan.FromSeconds(2));
+        budget.CancelAfter(TimeSpan.FromSeconds(3));
         var logger = loggerFactory.CreateLogger("Readiness");
         try
         {
-            if (await database.Database.CanConnectAsync(budget.Token))
+            if (await RuntimeReadiness.CheckAsync(
+                database,adminConnections,adminOptions,budget.Token))
             {
                 return TypedResults.Ok(new HealthResponse("ready"));
             }
+            logger.LogWarning("Runtime database schema or least-privilege grants are not ready");
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {

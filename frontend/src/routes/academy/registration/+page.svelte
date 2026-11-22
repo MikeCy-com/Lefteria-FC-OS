@@ -3,7 +3,7 @@
   import Icon from '../../../lib/public/PublicIcon.svelte';
   import type { PublicPageData } from '../../../lib/public/types';
 
-  let { data }: { data: PublicPageData } = $props();
+  let { data }: { data: PublicPageData & {editorialLead:string|null} } = $props();
   const steps = [
     { label: 'Παίκτης', icon: 'user' }, { label: 'Γονέας', icon: 'users' },
     { label: 'Ιατρικά', icon: 'heart' }, { label: 'Όροι', icon: 'file' },
@@ -135,7 +135,7 @@
         <header class="registration-heading">
           <p class="registration-badge">Ακαδημία Ποδοσφαίρου</p>
           <h1>Έντυπο <span>Εγγραφής</span></h1>
-          <p>Συμπληρώστε τη φόρμα για να αιτηθείτε την εγγραφή του αθλητή στην ακαδημία.</p>
+          <p>{data.editorialLead ?? 'Συμπληρώστε τη φόρμα για να αιτηθείτε την εγγραφή του αθλητή στην ακαδημία.'}</p>
         </header>
         <ol class="registration-steps" aria-label="Βήματα εγγραφής" data-testid="step-indicator">
           {#each steps as step,index (step.label)}

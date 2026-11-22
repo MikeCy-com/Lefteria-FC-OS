@@ -12,10 +12,13 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   assert.match(css,/--public-black:#080808/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
-  assert.match(css,/body:has\(\.public-site\) \{ font-family:Manrope/);
+  assert.match(css,/body:has\(\.public-site\) \{ font-family:'Fira Sans'/);
   assert.doesNotMatch(css,/fonts\.googleapis/,'Public fonts are self-hosted.');
   assert.match(read('lib/public/fonts.ts'),/@fontsource\/manrope[\s\S]*@fontsource\/bebas-neue[\s\S]*@fontsource\/fira-sans-extra-condensed/);
-  assert.deepEqual([...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]), ['public.css','club-polish.css']);
+  assert.deepEqual([...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]), ['public.css','club-polish.css','global-design.css']);
+  assert.match(shell,/data-global-design=\{globalTheme \? "true" : undefined\}/);
+  assert.match(shell,/publishedGlobalDesign\(page\.data\?\.websitePages/);
+  assert.match(read('lib/public/global-design.css'),/\.public-site\[data-global-design="true"\]/);
   assert.match(css, /--public-title-size: 58px/);
 });
 
@@ -37,7 +40,7 @@ test('native main/public menu preserves original nine categories and restores ke
   assert.match(menu,/aria-expanded=\{menuOpen/);
 });
 
-test('mobile roles retain original Fira font sizes and same logo asset',()=>{
+test('mobile roles retain original Fira font sizes with the organization logo',()=>{
   const mobile=read('lib/mobile/components/mobile-theme.css');
   const shell=read('lib/mobile/components/MobileShell.svelte');
   for(const [name,value] of Object.entries({
@@ -46,7 +49,7 @@ test('mobile roles retain original Fira font sizes and same logo asset',()=>{
   }))assert.ok(mobile.includes('--lf-type-'+name+': '+value),name);
   assert.match(mobile,/--lf-gold: #f6bb38/);
   assert.match(mobile,/Fira Sans Extra Condensed/);
-  assert.match(shell,/src="\/mobile\/club-logo\.png"/);
+  assert.match(shell,/src=\{clubLogoUrl\}/);
   for(const testid of ['mobile-app','bottom-nav','role-switcher','mobile-notifications','mobile-profile'])
     assert.ok(shell.includes(testid),testid);
 });

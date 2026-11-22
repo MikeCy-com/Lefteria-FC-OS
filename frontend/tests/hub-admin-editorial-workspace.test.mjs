@@ -36,6 +36,6 @@ test('editorial DTO validator rejects cross-organization details and unverified 
  assert.match(policy,/d\.visuals\.every/);
  assert.match(policy,/d\.version===version\+1/);
  assert.match(catalog,/hub_editorial.*status: 'live', href: '\/admin\/hub'/);
- assert.match(workspace,/id:'hub_editorial'/);
- assert.match(workspace,/href:'\/admin\/hub'/);
+ assert.doesNotMatch(workspace,/id:'hub_editorial'|href:'\/admin\/hub'/);
+ assert.match(catalog,/hub_editorial.*status: 'live', href: '\/admin\/hub'/);
 });

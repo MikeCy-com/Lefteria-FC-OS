@@ -72,6 +72,7 @@ internal sealed partial class WebAdminHttpChecks(WebAdminApplicationFactory fact
 
     private IReadOnlyList<(string Name, Func<Task> Check)> Cases =>
     [
+        ("Enabled web-admin runtime health requires separate locked role and current granted operations", EnabledAdminReadinessAsync),
         ("Web-admin opaque secure cookie and digest-backed 24-hour/30/60/90-day sessions", CookieAndLifetimesAsync),
         ("Web-admin exact credentials, uniform failures and unavailable two-factor fail closed", CredentialFailuresAsync),
         ("Web-admin mutation origins, JSON types, methods and bounded streamed bodies", RequestBoundaryAsync),

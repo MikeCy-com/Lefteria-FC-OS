@@ -4,7 +4,7 @@
   import AdminProfilePhoto from './AdminProfilePhoto.svelte';
   import { canViewFirstTeamTrials } from './trials-access.ts';
   import { adminSectionsFor } from './module-catalog.ts';
-  import { ADMIN_ROLE_NAMES,isAdminRole } from './permissions.ts';
+  import { ADMIN_ROLE_NAMES,isAdminRole,hasAdminPermission } from './permissions.ts';
 
   let {user,active='account',busy=false,onLogout,children}:{
     user:WebAdminSession['user'];
@@ -20,6 +20,10 @@
   const initials=$derived((user.name || user.username).trim().split(/\s+/u)
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
+  const canManagePlayerCrm=$derived(hasGroupHub &&
+    ['manager','super_admin'].includes(user.role) &&
+    (hasAdminPermission(user.permissions,'academy:write') ||
+      hasAdminPermission(user.permissions,'teams:write')));
   // The club profile is reachable from Settings. An editorial menu is shown
   // only when it contains at least one real, authorized editorial destination.
   const hasWebsite=$derived(liveIds.has('pages')||liveIds.has('news')||liveIds.has('media')||liveIds.has('sponsors'));
@@ -30,7 +34,7 @@
   <header class="admin-header">
     <a class="admin-brand" href="/admin" aria-label="Λευτεριά FC · Κέντρο διαχείρισης">
       <img src="/mobile/club-logo.png" alt="" width="42" height="48"/>
-      <span>ΛΕΥΤΕΡΙΑ FC <small>ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</small></span>
+      <span>ΛΕΥΤΕΡΙΑ FC <small>CMS</small></span>
     </a>
     <div class="admin-actions">
       <a class="admin-public-link" href="/" aria-label="Δημόσια ιστοσελίδα">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
@@ -71,6 +75,10 @@
               <a class="admin-nav-section" href="/admin/groups"
                 aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)?'page':undefined}
                 data-testid="admin-groups-link">Ομάδες & τμήματα</a>
+              {#if canManagePlayerCrm}
+                <a class="admin-nav-tool" href="/admin/groups?view=players"
+                  data-testid="admin-player-crm-link">Παίκτες CRM</a>
+              {/if}
             {/if}
             {#if liveIds.has('territories')}
               <a class="admin-nav-tool" href="/admin/territories" aria-current={active==='territories'?'page':undefined}
@@ -86,7 +94,7 @@
 
       {#if hasWebsite}
         <details class="admin-nav-disclosure"
-          open={['pages','news','media','sponsors','club'].includes(active)}
+          open={['pages','news','media','sponsors'].includes(active)}
           data-testid="admin-website-navigation">
           <summary class="admin-nav-category" data-testid="admin-website-category">
             Ιστοσελίδα <span aria-hidden="true">⌄</span>
@@ -186,7 +194,7 @@
            configuration are reachable from the one permission-scoped Settings
            landing page, rather than duplicated in multiple nested menus. -->
       <a class="admin-nav-settings-home" href="/admin/settings"
-        aria-current={['settings','staff','users','onboarding'].includes(active)?'page':undefined}
+        aria-current={['settings','club','staff','users','onboarding'].includes(active)?'page':undefined}
         data-testid="admin-settings-link">Ρυθμίσεις & πρόσβαση</a>
     </nav>
     <main class="admin-content" id="admin-main" tabindex="-1">{@render children()}</main>

@@ -3,6 +3,7 @@
   import { page } from '$app/state';
   import { publicNavigation, categoryLinks, navigationActive, navigationLinkCurrent } from './navigation';
   import { withWebsitePages, type WebsiteNavigationData } from './website-pages';
+  import {publishedNavigationDesign,withNavigationDesign} from './navigation-design';
   import type { PublicClub, PublicGroup, PublicOrganization } from './types';
   import Icon from './PublicIcon.svelte';
   import PublicImage from './PublicImage.svelte';
@@ -14,7 +15,9 @@
   let unlockScroll: (() => void) | null = null;
   const publishedPages = $derived(((page.data as {websitePages?: WebsiteNavigationData} | undefined)?.websitePages ??
     {lefteria_fc:[],lefteria_fc_academy:[]})[organization] ?? []);
-  const websiteNavigation = $derived(withWebsitePages(publicNavigation, publishedPages, organization));
+  const websiteNavigation = $derived(withNavigationDesign(
+    withWebsitePages(publicNavigation, publishedPages, organization),
+    publishedNavigationDesign(publishedPages,organization)));
   const category = $derived(websiteNavigation.find(item => item.id === selectedCategory));
   const items = $derived(category ? categoryLinks(category, groups) : []);
   const name = $derived(club?.name || 'ΛΕΥΤΕΡΙΑ FC');

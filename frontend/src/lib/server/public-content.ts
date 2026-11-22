@@ -1,6 +1,7 @@
 import { INTERNAL_API_ORIGIN } from '$app/env/private';
 import { error } from '@sveltejs/kit';
 import { createApiClient } from '../api/client';
+import { verifiedPublicSite } from '../public/verified-site';
 import type { PublicArticle, PublicHomeData, PublicNews, PublicNewsScope, PublicOrganization, PublicPageData, PublicSite } from '../public/types';
 
 export function publicOrganization(url: URL, fixed?: PublicOrganization): PublicOrganization {
@@ -64,12 +65,14 @@ export async function loadPublicSite(url: URL, fixed?: PublicOrganization): Prom
   // Shared public navigation needs Academy groups even on an FC page. They
   // remain a separate explicit public request, never injected into FC site data.
   const navigationTask = organization === 'lefteria_fc_academy' ? resultTask : requestSite('lefteria_fc_academy');
-  // The source public shell always uses the FC /club branding. Page content
-  // retains its explicit organization; this never widens a private grant.
-  const brandingTask = organization === 'lefteria_fc' ? resultTask : requestSite('lefteria_fc');
-  const [result, navigation, branding] = await Promise.all([resultTask, navigationTask, brandingTask]);
-  return { site: result.value, available: result.status === 200 && result.value !== null, organization,
-    branding: branding.value?.club ?? null, navigationGroups: navigation.value?.academy_groups ?? [] };
+  // Organization branding is canonical to the page's selected organization.
+  // Never substitute the First Team logo, contact details or social accounts
+  // for Academy pages. Each organization's public profile is independently edited.
+  const [result, navigation] = await Promise.all([resultTask, navigationTask]);
+  const site = verifiedPublicSite(result.value, organization);
+  const academyNavigation = verifiedPublicSite(navigation.value, 'lefteria_fc_academy');
+  return { site, available: result.status === 200 && site !== null, organization,
+    branding: site?.club ?? null, navigationGroups: academyNavigation?.academy_groups ?? [] };
 }
 
 export async function loadPublicHome(url: URL): Promise<PublicHomeData> {

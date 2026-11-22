@@ -99,6 +99,12 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
   const hooks = installPublicModuleHooks('http://127.0.0.1:' + server.address().port);
   try {
     const { loadPublicHome, loadPublicNews, loadPublicArticle } = await import('../src/lib/server/public-content.ts');
+    const { verifiedPublicSite } = await import('../src/lib/public/verified-site.ts');
+    assert.equal(verifiedPublicSite(fcSite, 'lefteria_fc'), fcSite, 'Valid unbranded site remains readable');
+    assert.equal(verifiedPublicSite(fcSite, 'lefteria_fc_academy'), null, 'Reject wrong public site owner');
+    assert.equal(verifiedPublicSite({...fcSite, club:{organization_id:'lefteria_fc_academy',name:'Foreign club'}},'lefteria_fc'),null,
+      'Reject other-organization branding inside a correctly scoped site');
+    assert.equal(verifiedPublicSite({...fcSite,club:{organization_id:'lefteria_fc',name:'FC'}},'lefteria_fc')?.club.name,'FC');
     const home = await loadPublicHome(new URL('https://preview.test/'));
     assert.equal(home.available, true, JSON.stringify(requests));
     assert.equal(home.organization, 'lefteria_fc');

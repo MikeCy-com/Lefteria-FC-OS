@@ -28,10 +28,10 @@
   <AdminFrame user={$auth.session.user} active="settings" busy={$auth.busy}
     onLogout={()=>void auth.logout()}>
     <div class="admin-settings-home" data-testid="admin-settings-home">
-      <header><p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ · ΛΕΥΤΕΡΙΑ FC</p>
+      <header>
         <h1>Ρυθμίσεις συλλόγου</h1>
-        <p class="admin-muted">Οι ρυθμίσεις χωρίζονται ανά λειτουργία και οργανισμό.
-          Οι σύνδεσμοι ανοίγουν τα πραγματικά, προστατευμένα εργαλεία.</p>
+        <p class="admin-muted">Ενιαίο κέντρο διαχείρισης ταυτότητας, επικοινωνίας, υποδομών, προσβάσεων και διασυνδέσεων.
+          Επιλέξτε την αντίστοιχη ενότητα για τις πραγματικές, προστατευμένες ρυθμίσεις.</p>
       </header>
       <div class="admin-settings-grid">
         {#if organizations.length}
@@ -50,10 +50,14 @@
         {#if canClub}
           <section class="admin-panel" id="website-settings">
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ</p>
-            <h2>Ρυθμίσεις ιστοσελίδας</h2>
-            <p>Ταυτότητα, περιγραφή, στοιχεία επικοινωνίας και δημόσιες σελίδες κάθε οργανισμού.</p>
-            <a class="admin-settings-link" href="/admin/club" data-testid="admin-settings-club">Προφίλ & δημόσια στοιχεία <span aria-hidden="true">↗</span></a>
-            <p class="admin-settings-note">Οι αλλαγές εφαρμόζονται στον επιλεγμένο οργανισμό, όχι αυτόματα και στους δύο.</p>
+            <h2>Ταυτότητα & στοιχεία οργανισμών</h2>
+            <p>Λογότυπα, ονόματα, τηλέφωνα, email, διευθύνσεις, πόλεις και κοινωνικά δίκτυα
+              της Πρώτης Ομάδας και της Ακαδημίας. Κάθε οργανισμός διατηρεί ξεχωριστό λογαριασμό και στοιχεία.</p>
+            <a class="admin-settings-link" href="/admin/club" data-testid="admin-settings-club">
+              Επεξεργασία λογότυπου & επαφών <span aria-hidden="true">↗</span></a>
+            <a class="admin-settings-link" href="/admin/website-pages">
+              Δημόσιες σελίδες & παρουσίαση <span aria-hidden="true">↗</span></a>
+            <p class="admin-settings-note">Οι αλλαγές καταχωρίζονται ανά εξουσιοδοτημένο οργανισμό και χρησιμοποιούνται από τις δημόσιες προβολές. Δεν αντιγράφονται από την Πρώτη Ομάδα στην Ακαδημία.</p>
           </section>
         {/if}
         {#if canTerritories}
@@ -72,8 +76,22 @@
             <p class="admin-eyebrow">ΡΟΛΟΙ & ΠΡΟΣΒΑΣΗ</p><h2>Χρήστες & αναθέσεις</h2>
             <p>Πρόσβαση σε οργανισμούς, πόλεις, τοποθεσίες και ομάδες με επαληθευμένο δικαίωμα.</p>
             {#if canStaff}<a class="admin-settings-link" href="/admin/staff">Προσωπικό & προπονητές <span aria-hidden="true">↗</span></a>{/if}
-            {#if canUsers}<a class="admin-settings-link" href="/admin/users">Δημιουργία λογαριασμών & προβολή δικαιωμάτων <span aria-hidden="true">↗</span></a>{/if}
+            {#if canUsers}
+              <a class="admin-settings-link" href="/admin/users">Χρήστες & δικαιώματα <span aria-hidden="true">↗</span></a>
+              <a class="admin-settings-link" href="/admin/users?new=1"
+                data-testid="admin-settings-new-user">Νέος χρήστης & ρόλος <span aria-hidden="true">＋</span></a>
+            {/if}
             <p class="admin-settings-note">Ο Super Admin μπορεί να αλλάζει ρόλο ή κατάσταση λογαριασμού από τους Χρήστες &amp; δικαιώματα. Πριν από αλλαγή ρόλου πρέπει να αφαιρεθούν οι υφιστάμενες αναθέσεις πόλης, τοποθεσίας, ομάδας και προσωπικού, καθώς και οι ενεργές βάρδιες POS. Η αλλαγή ανακαλεί τις ενεργές συνεδρίες.</p>
+          </section>
+        {/if}
+        {#if $auth.session.user.role==='super_admin'}
+          <section class="admin-panel" id="integration-settings" data-testid="admin-provider-settings-entry">
+            <p class="admin-eyebrow">ΔΙΑΣΥΝΔΕΣΕΙΣ · ΠΑΡΟΧΟΙ</p>
+            <h2>SMS / OTP & Πληρωμές</h2>
+            <p>Επαληθευμένη διαμόρφωση Twilio και payabl. με απόκρυψη μυστικών, κατάσταση παρόχου και ελεγχόμενη πρόσβαση.</p>
+            <a class="admin-settings-link" href="/admin/settings/providers"
+              data-testid="admin-settings-provider-link">Άνοιγμα ρυθμίσεων παρόχων <span aria-hidden="true">↗</span></a>
+            <p class="admin-settings-note">Η αλλαγή διαπιστευτηρίων απαιτεί ξεχωριστή ασφαλή διαδικασία. Δεν ενεργοποιούνται πραγματικά SMS ή πληρωμές από αυτόν τον σύνδεσμο.</p>
           </section>
         {/if}
         {#if canOnboard}
@@ -98,7 +116,7 @@
     error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
-  .admin-settings-home{display:grid;gap:24px;max-width:1300px}
+  .admin-settings-home{display:grid;gap:20px;width:100%;min-width:0}
   .admin-settings-home header{display:grid;gap:6px}
   .admin-settings-home header h1{margin:0}
   .admin-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}

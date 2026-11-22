@@ -18,7 +18,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['pages', '/admin/website-pages'], ['club', '/admin/club'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
+    ['pages', '/admin/website-pages'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['club', '/admin/club'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   const planned = modules(all).filter(module => module.status === 'planned');
   assert.ok(planned.length >= 10, 'remaining placeholder modules are explicitly planned');
@@ -50,7 +50,7 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(groups(user(['news:*', 'gallery:*'], ['lefteria_fc_academy'], 'editor')), ['website','hub']);
   assert.deepEqual(legacyIds(user(['news:*'], ['lefteria_fc_academy'], 'editor')), ['pages','news']);
   assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc_academy'], 'editor')), ['club', 'organization']);
-  assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['club', 'trials', 'organization']);
+  assert.deepEqual(legacyIds(user(['settings:read'], ['lefteria_fc'], 'editor')), ['trials', 'club', 'organization']);
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
   assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), []);
   assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
@@ -88,8 +88,8 @@ test('admin navigation exposes real operational destinations without five orphan
   for(const orphan of ['schedule','attendance','matches','evaluations','documents']){
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
   }
-  assert.match(workspace,/data-testid="admin-quick-navigation"/);
-  assert.match(workspace,/item\.status==='live'/);
+  assert.doesNotMatch(workspace,/data-testid="admin-quick-navigation"/);
+  assert.match(workspace,/AdminClubMetrics/);
   assert.doesNotMatch(workspace,/admin-overview-stats|Under Developments|admin-account-grid|admin-tool-planned/);
   assert.doesNotMatch(source,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
   assert.doesNotMatch(workspace,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
@@ -160,7 +160,7 @@ test('application communications are isolated from the public website and CRM',(
 test('live workflows are reachable in contextual groups and authorized standalone routes',()=>{
   const workspace=read('AdminWorkspace.svelte');
   const frame=read('AdminFrame.svelte');
-  assert.match(workspace,/\{#each actions as item/);
+  assert.doesNotMatch(workspace,/\{#each actions as item/);
   const all=modules(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
   for(const id of ['leads','registrations','staff','users']){
     const entry=all.find(m=>m.id===id);

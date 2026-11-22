@@ -921,3 +921,81 @@
   .admin-app .admin-sidebar .admin-nav-links a{color:#fff}
   .admin-app .admin-sidebar .admin-nav-links a[aria-current='page']{color:#000}
 }
+
+/* Source Lefteria FC admin: Manrope text, condensed headings and 14px
+   sidebar items. Keep one-level OS permission-scoped work areas. */
+.admin-app{
+  font-family:'Manrope',-apple-system,BlinkMacSystemFont,sans-serif;
+  font-size:15px;line-height:1.55;
+}
+.admin-app :is(h1,h2,h3,.admin-brand){
+  font-family:'Fira Sans Extra Condensed','Fira Sans',sans-serif;
+}
+.admin-app h1{font-size:clamp(30px,2.8vw,43px);line-height:1.12}
+.admin-app h2{font-size:clamp(21px,1.9vw,27px);line-height:1.2}
+.admin-app .admin-sidebar .admin-nav-category,
+.admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){
+  font:800 17px/1.3 'Fira Sans Extra Condensed','Fira Sans',sans-serif;
+  letter-spacing:.015em;text-transform:uppercase;
+}
+.admin-app .admin-sidebar .admin-nav-links a{
+  font:600 14px/1.4 'Manrope',sans-serif;
+  letter-spacing:0;text-transform:none;color:#e5e5e2;
+}
+.admin-app .admin-sidebar .admin-nav-category > span{font-family:'Fira Sans',sans-serif}
+@media(min-width:2560px){
+  .admin-app .admin-sidebar .admin-nav-category,
+  .admin-app .admin-sidebar :is(.admin-nav-home,.admin-nav-settings-home){font-size:18px}
+  .admin-app .admin-sidebar .admin-nav-links a{font-size:15px}
+}
+@media(max-width:720px){
+  .admin-app .admin-sidebar .admin-nav-category,
+  .admin-app .admin-sidebar > :is(.admin-nav-home,.admin-nav-settings-home){font-size:16px}
+  .admin-app .admin-sidebar .admin-nav-links a{font-size:14px;line-height:1.4}
+}
+
+/* Unified admin content gutters: remove the old 1200–1800px width caps that
+   leave an arbitrary empty strip on the right of wide admin viewports.
+   Shared AdminFrame wraps every authenticated web-admin role and route. */
+.admin-app .admin-workspace-body > .admin-content {
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin-inline:0;
+  padding-block:28px 48px;
+  padding-inline:clamp(16px,2vw,36px);
+}
+@media(min-width:2560px) {
+  .admin-app .admin-workspace-body > .admin-content {
+    width:100%;
+    max-width:none;
+    padding-inline:clamp(36px,2vw,72px);
+  }
+}
+@media(max-width:720px) {
+  .admin-app .admin-workspace-body > .admin-content {
+    width:100%;
+    max-width:none;
+    padding-block:18px 36px;
+    padding-inline:14px;
+  }
+}
+
+/* Compact navigation rail reserves more room for team, CRM and finance work.
+   These final cascade rules intentionally override historic 300–340px rails. */
+@media(min-width:921px) and (max-width:2559px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:260px minmax(0,1fr);
+  }
+}
+@media(min-width:721px) and (max-width:920px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:250px minmax(0,1fr);
+  }
+}
+@media(min-width:2560px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:280px minmax(0,1fr);
+  }
+}

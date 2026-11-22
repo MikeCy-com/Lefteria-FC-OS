@@ -11,7 +11,7 @@
   import OrganizationSponsorStrip from '../../lib/public/OrganizationSponsorStrip.svelte';
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import type { PublicIconName } from '../../lib/public/icon-types';
-  let { data }: { data: PublicSectionPageData } = $props();
+  let { data }: { data: PublicSectionPageData & { editorialLead: string|null } } = $props();
   const academyBanner = $derived(
     data.site?.academy_groups.find(group=>group.organization_id==='lefteria_fc_academy'&&group.banner_url)?.banner_url
     || publicImages.academy);
@@ -54,7 +54,7 @@
     <PublicImage src={academyBanner} alt="" class="academy-hero-image" />
     <div class="academy-intro-copy"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p><h1>ΑΚΑΔΗΜΙΑ</h1>
       <p class="academy-hero-motto">ΔΙΑΠΛΑΣΗ <span>·</span> ΑΝΑΠΤΥΞΗ <span>·</span> ΟΝΕΙΡΑ</p>
-      <p class="academy-description">{data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.'}</p>
+      <p class="academy-description">{data.editorialLead ?? (data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.')}</p>
       <div class="academy-actions"><a class="public-button" href="/academy/registration" data-testid="academy-hero-register">ΕΓΓΡΑΦΗ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/academy/groups" data-testid="academy-hero-groups">ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
     </div>
 

@@ -25,6 +25,16 @@ BEGIN
   IF NOT row_security_active('identity.mobile_identities') THEN
     RAISE EXCEPTION 'Mobile identity RLS is not active for the runtime role';
   END IF;
+  -- Runtime may ask for a boolean migration compatibility proof but must
+  -- never inspect, forge or enumerate the EF history or private schema.
+  IF NOT has_function_privilege(current_user,
+       'identity.runtime_schema_ready(text,integer)','EXECUTE')
+     OR has_table_privilege(current_user,
+       'public."__EFMigrationsHistory"','SELECT')
+     OR identity.runtime_schema_ready('20991231235959_NotInstalled',9999)
+  THEN
+    RAISE EXCEPTION 'Runtime readiness proof exceeds least-privilege boundary';
+  END IF;
   IF has_column_privilege(current_user,'identity.admin_accounts','password_hash','SELECT') THEN
     RAISE EXCEPTION 'Mobile API runtime can read imported credentials';
   END IF;

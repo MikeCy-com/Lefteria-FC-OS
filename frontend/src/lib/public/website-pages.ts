@@ -1,12 +1,41 @@
 import type { PublicNavigationItem, PublicMenuLink } from './navigation';
 import type { PublicOrganization } from './types';
 
-export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null };
+// Only curated responsive layout tokens are persisted; arbitrary CSS is forbidden.
+export type WebsiteBlockLayout = {
+  width: 'full'|'half'|'third';
+  min_height: 0|120|240|360|480;
+  margin_top: 0|8|16|24|32|48|64;
+  margin_bottom: 0|8|16|24|32|48|64;
+};
+export type WebsitePageLayout = {
+  max_width: 960|1120|1280|1440;
+  gap: 8|16|24|32|48;
+  side_padding: 12|16|24|32|48;
+};
+export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null; level?: 2|3|4|5|6|null; layout?: WebsiteBlockLayout|null };
+export function validHeadingLevel(block:WebsiteBlock):boolean {
+  return block.type==='heading' ? (block.level==null || [2,3,4,5,6].includes(block.level)) : block.level==null;
+}
 export type WebsitePageContent = {
   title: string; summary: string; seo_title: string; seo_description: string;
   menu_parent: 'hidden'|'root'|'club'|'team'|'academy'|'matches'|'news'|'events'|'shop'|'contact';
-  menu_order: number; blocks: WebsiteBlock[];
+  menu_order: number; blocks: WebsiteBlock[]; layout?: WebsitePageLayout|null;
 };
+export const DEFAULT_BLOCK_LAYOUT:WebsiteBlockLayout={width:'full',min_height:0,margin_top:0,margin_bottom:0};
+export const DEFAULT_PAGE_LAYOUT:WebsitePageLayout={max_width:1280,gap:24,side_padding:16};
+const VALID_WIDTHS=['full','half','third'];
+const VALID_HEIGHTS=[0,120,240,360,480];
+const VALID_MARGINS=[0,8,16,24,32,48,64];
+export function validBlockLayout(value:WebsiteBlockLayout|null|undefined):boolean {
+  return value == null || (VALID_WIDTHS.includes(value.width) &&
+    VALID_HEIGHTS.includes(value.min_height) && VALID_MARGINS.includes(value.margin_top) &&
+    VALID_MARGINS.includes(value.margin_bottom));
+}
+export function validPageLayout(value:WebsitePageLayout|null|undefined):boolean {
+  return value == null || ([960,1120,1280,1440].includes(value.max_width) &&
+    [8,16,24,32,48].includes(value.gap) && [12,16,24,32,48].includes(value.side_padding));
+}
 export type WebsitePageRecord = {
   organization_id: PublicOrganization; slug: string; version: number;
   draft: WebsitePageContent; published: WebsitePageContent|null;
@@ -31,11 +60,41 @@ export function websiteMenuParentAllowed(organization: PublicOrganization, paren
 export const isHomeHeroSlug = (slug: string) =>
   slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
 export const HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG = 'homepage-academy-spotlight' as const;
+export const CANONICAL_ABOUT_INTRO_SLUG = 'canonical-about-intro' as const;
+export const CANONICAL_CONTACT_LEAD_SLUG = 'canonical-contact-lead' as const;
+export const CANONICAL_ABOUT_HISTORY_SLUG = 'canonical-about-history' as const;
+export const CANONICAL_ACADEMY_INTRO_SLUG = 'canonical-academy-intro' as const;
+export const CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG = 'canonical-academy-philosophy-lead' as const;
+export const CANONICAL_ACADEMY_GROUPS_LEAD_SLUG = 'canonical-academy-groups-lead' as const;
+export const CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG = 'canonical-academy-registration-lead' as const;
+export const CANONICAL_SHOP_LEAD_SLUG = 'canonical-shop-lead' as const;
+export const CANONICAL_GLOBAL_DESIGN_SLUG = 'canonical-global-design' as const;
+export const CANONICAL_NAVIGATION_DESIGN_SLUG = 'canonical-navigation-design' as const;
+export const NATIVE_EDITORIAL_REGIONS = {
+  'canonical-team-roster-sections':'lefteria_fc',
+  'canonical-team-schedule-sections':'lefteria_fc',
+  'canonical-team-results-sections':'lefteria_fc',
+  'canonical-team-statistics-sections':'lefteria_fc',
+  'canonical-news-sections':'both',
+  'canonical-sponsors-sections':'both'
+} as const;
+export type NativeEditorialRegion = keyof typeof NATIVE_EDITORIAL_REGIONS;
+export function nativeEditorialOwnerAllowed(slug:string, org:PublicOrganization):slug is NativeEditorialRegion {
+  return Object.prototype.hasOwnProperty.call(NATIVE_EDITORIAL_REGIONS,slug) &&
+    (NATIVE_EDITORIAL_REGIONS[slug as NativeEditorialRegion]==='both' ||
+     NATIVE_EDITORIAL_REGIONS[slug as NativeEditorialRegion]===org);
+}
+
 export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
 // Native slots are not routable standalone CMS pages, even if a legacy
 // record has an incompatible menu assignment.
 export const isHomepageEditorialSlug = (slug: string) =>
-  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug);
+  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug) || slug === CANONICAL_ABOUT_INTRO_SLUG || slug === CANONICAL_CONTACT_LEAD_SLUG ||
+  slug === CANONICAL_ABOUT_HISTORY_SLUG ||
+  slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG ||
+  slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ||
+  slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG || slug === CANONICAL_SHOP_LEAD_SLUG || slug === CANONICAL_GLOBAL_DESIGN_SLUG || slug === CANONICAL_NAVIGATION_DESIGN_SLUG ||
+  Object.prototype.hasOwnProperty.call(NATIVE_EDITORIAL_REGIONS,slug);
 
 export function websitePageParentLink(
   organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
@@ -89,7 +148,7 @@ export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization
   return row.page.blocks.every(block => block &&
     ['heading','paragraph','image','button'].includes(block.type) &&
     typeof block.text === 'string' &&
-    (block.url === null || typeof block.url === 'string'));
+    (block.url === null || typeof block.url === 'string') && validHeadingLevel(block));
 }
 
 export function withWebsitePages(

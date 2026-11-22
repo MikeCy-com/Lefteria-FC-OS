@@ -15,6 +15,10 @@ export function duplicateWebsiteBlock(blocks: readonly WebsiteBlock[], index: nu
   if (!Number.isInteger(index) || index < 0 || index >= blocks.length || blocks.length >= 40)
     return [...blocks];
   const block = blocks[index];
-  const duplicate: WebsiteBlock = { type:block.type, text:block.text, url:block.url };
+  const duplicate: WebsiteBlock = {
+    type:block.type,text:block.text,url:block.url,
+    ...(block.layout ? {layout:{...block.layout}} : {}),
+    ...(block.type==='heading' && block.level!=null ? {level:block.level} : {})
+  };
   return [...blocks.slice(0,index+1), duplicate, ...blocks.slice(index+1)];
 }

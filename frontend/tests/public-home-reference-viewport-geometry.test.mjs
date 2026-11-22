@@ -13,7 +13,7 @@ test('homepage follows 1672×941 screenshot region order without hiding CMS and 
   assert.doesNotThrow(()=>compile(home,{filename:'routes/+page.svelte',generate:'server'}));
   const required=[
     '<HomeHero','<HomeDestinations',
-    '<HomeNews','data-testid="home-brand-interval"','<Fixtures','<HomeAcademySpotlight','<SidelineBanner'
+    'data-testid="home-brand-interval"','<HomeNews','<Fixtures','<HomeAcademySpotlight','<SidelineBanner'
   ];
   let cursor=-1;
   for(const marker of required){const index=home.indexOf(marker);assert.ok(index>cursor,'Missing/out-of-order '+marker);cursor=index;}
@@ -25,18 +25,18 @@ test('homepage follows 1672×941 screenshot region order without hiding CMS and 
   assert.doesNotMatch(home,/Math\.random|dummy|fake fixture/);
 });
 
-test('desktop geometry keeps the news visible without an empty brand gap and mobile remains accessible',()=>{
+test('desktop geometry restores source brand interval before news and mobile remains accessible',()=>{
   assert.match(base,/@media\(min-width:1200px\)/);
   assert.match(base,/--public-rail:154px/);
   assert.match(base,/--public-header:64px/);
   assert.match(base,/\.public-rail nav :is\(a,button\)/);
   assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
-  assert.match(css,/min-height:clamp\(70px,6vw,108px\)/);
+  assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
-  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y>900'])
+  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y<900'])
     assert.ok(audit.includes(text),'No browser measurement: '+text);
   assert.match(nav,/data-testid="public-sidebar"/);
   assert.match(nav,/data-testid="public-menu-drawer"/);

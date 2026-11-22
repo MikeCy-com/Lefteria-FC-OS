@@ -146,6 +146,7 @@ BEGIN
                     'finance.create_admin_supplier_bill(text,text,uuid,text,text,text,text,date,bigint,uuid)'::regprocedure,
                     'finance.read_admin_supplier_bills(text,text,date)'::regprocedure,
                     'finance.read_admin_supplier_site_totals(text,text,date)'::regprocedure,
+                    'finance.read_admin_supplier_site_payables(text,text,date)'::regprocedure,
                     'finance.create_admin_supplier_payment_request(text,text,uuid,uuid,bigint,date,text,text)'::regprocedure,
                     'finance.review_admin_supplier_payment_request(text,text,uuid,boolean,text)'::regprocedure,
                     'finance.read_admin_supplier_payment_register(text,text,date)'::regprocedure,

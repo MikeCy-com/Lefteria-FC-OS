@@ -62,7 +62,7 @@ async function verifyAppInstall(browser, base, artifacts) {
       padding:document.body.style.getPropertyValue('padding-right')
     }));
     await install.click();
-    const dialog = page.getByRole('dialog', { name:'Η επίσημη εφαρμογή Λευτεριά FC' });
+    const dialog = page.getByRole('dialog', { name:'Η επίσημη εφαρμογή Λευτεριά FC OS' });
     await dialog.waitFor({state:'visible'});
     assert.equal(await dialog.getByRole('link', { name:'Συνέχεια στην εφαρμογή →' }).getAttribute('href'), '/app');
     assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
@@ -116,6 +116,9 @@ async function verifyAppInstall(browser, base, artifacts) {
     assert.match(manifestResponse.headers()['content-type'] ?? '', /application\/(?:manifest\+json|json)/);
     const manifest = await manifestResponse.json();
     assert.equal(manifest.start_url, '/app'); assert.equal(manifest.scope, '/');
+    assert.equal(manifest.id,'/lefteria-fc-os');
+    assert.ok(manifest.icons.some(icon => icon.sizes==='192x192' && icon.src==='/os/icon-192.png'));
+    assert.ok(manifest.icons.some(icon => icon.sizes==='512x512' && icon.src==='/os/icon-512.png'));
     const worker = await context.request.get(base + '/app-service-worker.js');
     assert.equal(worker.status(), 200);
     assert.match(worker.headers()['content-type'] ?? '', /(?:text|application)\/javascript/);
@@ -144,7 +147,7 @@ async function verifyAppInstall(browser, base, artifacts) {
     await page.getByTestId('consent-decline').click();
     await page.getByTestId('cookie-consent').waitFor({state:'hidden'});
     await page.getByTestId('official-app-install').click();
-    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
+    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC OS'});
     await dialog.waitFor({state:'visible'});
     assert.match(await dialog.innerText(), /Safari/);
     assert.match(await dialog.innerText(), /Προσθήκη στην οθόνη Αφετηρίας/);
@@ -174,19 +177,12 @@ async function verifyAppInstall(browser, base, artifacts) {
       window.dispatchEvent(event);
     });
     await page.getByTestId('official-app-install').click();
-    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
-    await dialog.waitFor({state:'visible'});
-    const apk = page.getByTestId('official-android-apk');
-    assert.equal(await apk.getAttribute('href'), 'https://lefteriafc.cy/api/app/android');
-    assert.match(await apk.innerText(), /lefteriafc.cy/);
-    assert.equal(await page.evaluate(() => window.installPromptCalls), 0);
-    assert.equal(officialRequests, 0);
-    await page.screenshot({path:path.join(artifacts,'app-install-android-choices.png'),fullPage:true});
-    await page.getByTestId('current-site-install').click();
-    await dialog.waitFor({state:'hidden'});
+    await page.waitForFunction(() => !document.querySelector('[data-testid="official-app-install"]').disabled);
     assert.equal(await page.evaluate(() => window.installPromptCalls), 1);
+    assert.equal(await page.getByTestId('official-android-apk').count(), 0);
     assert.equal(officialRequests, 0);
-    checks.push('Android official APK choice and separate current-site native install without production requests');
+    await page.screenshot({path:path.join(artifacts,'app-install-android-os.png'),fullPage:true});
+    checks.push('Android prompts native installation of current OS app without legacy APK or production requests');
   } finally { await android.close(); }
 
   return checks;
@@ -280,11 +276,32 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
           openCount:nav.querySelectorAll('details[open]').length
         };
       });
-      assert.ok(values.fontSize >= (viewport.width <= 720 ? 14 : 15),
+      // Every authenticated admin route uses the same full-width content rail.
+      // The usable pane must not stop at an arbitrary 1200–1800px cap or have
+      // unequal left/right padding. Validate on phone, tablet, desktop and 4K.
+      const contentMetrics = await page.locator('#admin-main').evaluate(main => {
+        const parent=main.parentElement;
+        const rect=main.getBoundingClientRect();
+        const parentRect=parent.getBoundingClientRect();
+        const css=getComputedStyle(main);
+        return {
+          width:rect.width, availableWidth:parentRect.right - rect.left,
+          padLeft:parseFloat(css.paddingLeft),padRight:parseFloat(css.paddingRight),
+          rightGap:parentRect.right - rect.right,
+          boxSizing:css.boxSizing
+        };
+      });
+      assert.ok(Math.abs(contentMetrics.rightGap)<=2,
+        viewport.name+' admin content does not fill its available width');
+      assert.ok(Math.abs(contentMetrics.padLeft-contentMetrics.padRight)<=1,
+        viewport.name+' admin left and right gutters differ');
+      assert.equal(contentMetrics.boxSizing,'border-box');
+      assert.ok(contentMetrics.width>0);
+      assert.ok(values.fontSize >= 14,
         viewport.name+' nav child link font is too small');
-      assert.ok(values.sectionSize >= (viewport.width <= 720 ? 14 : 15),
+      assert.ok(values.sectionSize >= 14,
         viewport.name+' nav section link font is too small');
-      assert.ok(values.categorySize >= (viewport.width <= 720 ? 16 : 18),
+      assert.ok(values.categorySize >= (viewport.width <= 720 ? 16 : 17),
         viewport.name+' nav category heading is too small');
       assert.ok(values.categorySize > values.fontSize,
         viewport.name+' category heading must be larger than its links');
@@ -299,7 +316,13 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
       if (viewport.width <= 720)
         assert.ok(values.sidebarScrollWidth <= values.sidebarClientWidth + 2,
           'Mobile admin menu should not depend on an overflowing horizontal link rail');
-      else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
+      else assert.ok(values.sidebarWidth >= (viewport.width <= 920 ? 250 : 260),
+        'Sidebar rail became too narrow');
+      if (viewport.width > 720) {
+        const expectedWidth = viewport.width >= 2560 ? 280 : viewport.width <= 920 ? 250 : 260;
+        assert.ok(Math.abs(values.sidebarWidth - expectedWidth) <= 2,
+          viewport.name+' admin sidebar width no longer matches shared compact rail');
+      }
       const news = page.getByTestId('admin-news-link');
       // :focus-visible intentionally follows keyboard modality. A synthetic
       // focus() call immediately after clicking the disclosure is pointer
@@ -406,9 +429,10 @@ try {
         };
       });
       if (!typography.italicLoaded) failures.push(route.path + ' ' + viewport.name + ': real Greek italic font did not load');
-      // Original public website baseline, measured with Chromium at the
-      // same viewport: Manrope body 16px; catalog/group h1 38px on phones,
-      // 58px from tablets upward. This is typography parity, not a pixel diff.
+      // Lefteria-FC source public skin uses Fira Sans body and condensed Fira
+      // display: keep 16px reading baseline and 38px/58px catalog headings.
+      // A former live-screenshot snapshot used Manrope; the source-repository
+      // CSS is now the explicit migration reference.
       const publicFont = await page.evaluate(() => {
         const root = document.querySelector('.public-site');
         const headline = document.querySelector('[data-testid="academy-groups-hero"] h1, .catalog-heading h1');
@@ -419,8 +443,8 @@ try {
         } : null;
       });
       if(publicFont) {
-        if(!publicFont.family.startsWith('Manrope') || publicFont.size !== 16)
-          failures.push(route.path+' '+viewport.name+': public Manrope 16px mismatch: '+JSON.stringify(publicFont));
+        if(!publicFont.family.replace(/^['\"]/, '').startsWith('Fira Sans') || publicFont.size !== 16)
+          failures.push(route.path+' '+viewport.name+': source public Fira Sans 16px mismatch: '+JSON.stringify(publicFont));
         if(publicFont.headlineSize !== null) {
           const originalSize = viewport.width <= 650 ? 38 : 58;
           if(Math.abs(publicFont.headlineSize-originalSize) > .5)
@@ -513,6 +537,7 @@ try {
             registrationSteps:rect('[data-testid="step-indicator"]'),
             registrationCard:rect('[data-testid="form-card"]'),
             hero:rect('.public-hero-stage,.home-hero,.hero,.public-hero'),
+            heroCopy:rect('.home-reference .public-hero-copy'),
             publicRail:rect('.public-rail'),
             publicTopbar:rect('.public-header'),
             homeFixture:rect('[data-testid="public-hero-fixture"]'),
@@ -528,7 +553,7 @@ try {
           return result;
         },route.name);
         if (route.name==='home') {
-          const {hero,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
+          const {hero,heroCopy:copy,homeFixture:fixture,publicRail:rail,publicTopbar:top,homeTiles:tiles,
             homeMotto:motto,homeNews:news}=referenceLayout;
           if(!hero||!rail||!top||!tiles||!motto||!news){
             failures.push('home 1672×941: one or more reference sections are missing');
@@ -541,14 +566,17 @@ try {
               failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
-            if(!fixture || fixture.width<300 || fixture.height<200)
-              failures.push('home: next-match / unavailable schedule panel should preserve the hero composition '+JSON.stringify(fixture));
-            if(news.y<tiles.bottom-2||news.y>tiles.bottom+100)
-              failures.push('home: CMS news should follow the four image tiles without a blank 300px band');
-            if(motto.y<news.bottom-2||motto.y>news.bottom+32)
-              failures.push('home: compact club motto should immediately follow CMS news');
-            if(news.y>900)
-              failures.push('home: CMS news must be visible above the desktop reference fold');
+            if(!fixture || !copy || fixture.width<290 || fixture.width>335 ||
+               fixture.height<200 || fixture.x < hero.x+hero.width*.65 ||
+               fixture.right < hero.right-100 || fixture.right > hero.right+2 ||
+               fixture.x < copy.right+12)
+              failures.push('home: compact next-match must remain on the right, without covering the headline or hero picture '+JSON.stringify({fixture,hero,copy}));
+            if(motto.y<tiles.bottom-2 || motto.y>tiles.bottom+4 || motto.height<250 || motto.height>380)
+              failures.push('home: original dark brand interval must follow four tiles before news '+JSON.stringify(motto));
+            if(news.y<motto.bottom-2||news.y>motto.bottom+100)
+              failures.push('home: CMS news must follow the club motto and preserve source image section order '+JSON.stringify({news,motto}));
+            if(news.y<900)
+              failures.push('home: source reference places news below the cinematic hero and club identity band');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
           }

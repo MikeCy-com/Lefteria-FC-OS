@@ -76,8 +76,8 @@
 
 
 /* Public-only skin: never targets the CMS, standalone PWA, or their portals. */
-body:has(.public-site) { font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif; line-height:1.6; }
-.public-site, .public-dialog { --public-gold:#f6bb38; --public-black:#080808; --public-muted:#a6a6a6; --public-line:#292929; --public-rail:116px; --public-header:76px; font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif; color:#fff; letter-spacing:0; }
+body:has(.public-site) { font-family:'Fira Sans',-apple-system,BlinkMacSystemFont,sans-serif; line-height:1.6; }
+.public-site, .public-dialog { --public-gold:#f6bb38; --public-black:#080808; --public-muted:#a6a6a6; --public-line:#292929; --public-rail:116px; --public-header:76px; font-family:'Fira Sans',-apple-system,BlinkMacSystemFont,sans-serif; color:#fff; letter-spacing:0; }
 .public-site { min-height:100vh; background:#080808; }
 .public-site *, .public-dialog * { letter-spacing:0 !important; }
 .public-site :is(h1,h2,h3,h4,[class*="Bebas_Neue"]),.public-dialog :is(h1,h2,h3) { font-family:'Fira Sans Extra Condensed',sans-serif !important; font-weight:700; }
@@ -90,7 +90,7 @@ body:has(.public-site) { font-family:Manrope,-apple-system,BlinkMacSystemFont,sa
 .public-site :is(.btn-primary,.btn-secondary,.admin-btn-primary,.admin-btn-secondary) { font-family:'Fira Sans Extra Condensed',sans-serif; font-weight:700; font-size:16px; min-height:44px; box-shadow:none; border-radius:0; max-width:100%; text-align:center; }
 .public-site .btn-primary:hover { background:#ffd36d; color:#000; transform:none; box-shadow:none; }
 .public-site .btn-secondary:hover { background:#fff; color:#000; border-color:#fff; }
-.public-site input:not([type="checkbox"]):not([type="radio"]), .public-site select, .public-site textarea, .public-dialog input { border-radius:0; font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif; min-height:44px; border-color:#414141; max-width:100%; }
+.public-site input:not([type="checkbox"]):not([type="radio"]), .public-site select, .public-site textarea, .public-dialog input { border-radius:0; font-family:'Fira Sans',-apple-system,BlinkMacSystemFont,sans-serif; min-height:44px; border-color:#414141; max-width:100%; }
 .public-site :is(input,textarea)::placeholder { color:#929292; }
 .public-site .card { background:#111; border-color:#242424; }
 .public-site .card:hover { border-color:var(--public-gold); }

@@ -31,6 +31,7 @@ using LefteriaFc.Api.Football;
 using LefteriaFc.Api.Finance;
 using LefteriaFc.Api.Marketing;
 using LefteriaFc.Infrastructure.MobileChat;
+using LefteriaFc.Api.Release;
 
 if (args.SequenceEqual(["--check-avatar-codec"], StringComparer.Ordinal))
 {
@@ -66,6 +67,11 @@ if (args.Contains("--healthcheck", StringComparer.Ordinal))
 }
 
 var builder = WebApplication.CreateBuilder(args);
+// MVP-only must be an exact, deliberate operator setting. Unknown values
+// cannot silently turn on unverified payments, POS or fan subscriptions.
+var academyMvpMode = builder.Configuration["LEFTERIA_ACADEMY_MVP_ONLY"];
+if (!AcademyMvpBoundary.ValidMode(academyMvpMode))
+    throw new InvalidOperationException("LEFTERIA_ACADEMY_MVP_ONLY must be exactly true or false.");
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole();
 builder.Services.AddProblemDetails();
@@ -97,7 +103,10 @@ builder.Services.AddScoped<MobileFanPayablStore>();
 builder.Services.AddScoped<MobileFanLearningStore>();
 builder.Services.AddScoped<MobileFanLessonScheduleStore>();
 builder.Services.AddSingleton<HubFanLessonDeliverySettings>();
-builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
+// A deferred fan subscription must not keep dispatching old lessons in the
+// Academy-only pilot, even if a stale worker opt-in is still present.
+if (!AcademyMvpBoundary.Disabled(academyMvpMode))
+    builder.Services.AddHostedService<HubFanLessonDeliveryWorker>();
 builder.Services.AddScoped<PostgresMobilePushStore>();
 builder.Services.AddSingleton(new WebPushDeliverySettings(builder.Configuration));
 builder.Services.AddHttpClient("web-push",client=>
@@ -149,6 +158,26 @@ builder.Services.ConfigureHttpJsonOptions(options => options.SerializerOptions.P
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseForwardedHeaders();
+if (AcademyMvpBoundary.Disabled(academyMvpMode))
+{
+    // Preserve routes and API contracts for a later, independently approved
+    // feature rollout, but fail closed before any optional handler executes.
+    app.Use(async (context, next) =>
+    {
+        if (!AcademyMvpBoundary.IsOptionalEndpoint(context.Request.Path))
+        {
+            await next(context);
+            return;
+        }
+        context.Response.Headers.CacheControl = "private, no-store";
+        context.Response.Headers.Pragma = "no-cache";
+        await Results.Json(new
+        {
+            code = "mvp_feature_disabled",
+            detail = "This optional feature is not enabled in the Academy MVP."
+        }, statusCode: StatusCodes.Status503ServiceUnavailable).ExecuteAsync(context);
+    });
+}
 // Authenticated mobile and web-admin API responses may contain account,
 // roster, child, financial or session data. Never let shared intermediaries or
 // the browser store them, including auth failures and error responses.
@@ -185,6 +214,7 @@ app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();
 app.MapWebAdmin();
 app.MapAdminUserDirectory();
+app.MapAdminProviderSettings();
 app.MapAdminNativeCoach();
 app.MapPayabl();
 app.MapAcademyFees();

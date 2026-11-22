@@ -193,6 +193,8 @@ jobs:
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-credits-checks.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-reversal-grants.sql
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-reversal-checks.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/finance-supplier-site-payables-grants.sql
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-supplier-site-payables-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" -f /opt/lefteria-postgres/academy-attendance-admin-grants.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-checks.sql
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-attendance-lifecycle-checks.sql

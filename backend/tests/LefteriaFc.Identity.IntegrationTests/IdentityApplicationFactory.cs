@@ -23,7 +23,8 @@ using LefteriaFc.Infrastructure.ClubCalendar;
 
 namespace LefteriaFc.Identity.IntegrationTests;
 
-internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bool enableLegacyBridge=false) : WebApplicationFactory<global::Program>
+internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bool enableLegacyBridge=false,
+    bool academyMvpMode=false) : WebApplicationFactory<global::Program>
 {
     public const string Issuer = "lefteria-identity-http-tests";
     public const string Audience = "lefteria-identity-http-test-client";
@@ -41,11 +42,17 @@ internal sealed class IdentityApplicationFactory(FixtureConfiguration fixture,bo
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
+        // Minimal-hosting Program reads the MVP flag from initial host
+        // configuration before deferred ConfigureAppConfiguration callbacks.
+        // UseSetting supplies this explicit test-only value at host setup.
+        builder.UseSetting("LEFTERIA_ACADEMY_MVP_ONLY",
+            academyMvpMode ? "true" : "false");
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 ["ConnectionStrings:Postgres"] = fixture.AppConnectionString,
+                ["LEFTERIA_ACADEMY_MVP_ONLY"] = academyMvpMode ? "true" : "false",
                 ["MobileAuth:SigningKey"] = SigningKey,
                 ["MobileAuth:OtpKey"] = OtpKey,
                 ["MobileAuth:Issuer"] = Issuer,
