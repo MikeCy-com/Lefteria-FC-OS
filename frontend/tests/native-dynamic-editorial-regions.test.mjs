@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 import {nativeEditorialBlocks} from '../src/lib/public/native-editorial-regions.ts';
 import {isHomepageEditorialSlug,nativeEditorialOwnerAllowed,withWebsitePages,
-  type NativeEditorialRegion} from '../src/lib/public/website-pages.ts';
+  } from '../src/lib/public/website-pages.ts';
 
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const api=read('backend/src/LefteriaFc.Api/PublicContent/WebsitePageEndpoints.cs');
