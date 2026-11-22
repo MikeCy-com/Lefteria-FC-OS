@@ -44,10 +44,19 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // Only commit-backed receipts may be shown as success, and never echo
     // server internals or user-submitted medical data to the browser.
     if (response.status === 202) {
-      const verified = parseAcademyRegistrationReceipts(
-        await response.json().catch(() => null));
-      if (verified)
-        return json(verified, { status: 202, headers });
+      const result = await response.json().catch(() => null);
+      // Preserve PR #463's strict receipt validation (including sparse,
+      // duplicate and mismatched sibling IDs) before accepting upload tokens.
+      const verified = parseAcademyRegistrationReceipts(result);
+      if (verified && Array.isArray(result?.upload_tokens) &&
+        result.upload_tokens.length === verified.receipts.length &&
+        Array.from({length: result.upload_tokens.length}, (_, i) => i)
+          .every(index => Object.hasOwn(result.upload_tokens, index) &&
+            typeof result.upload_tokens[index] === 'string' &&
+            /^[0-9a-f]{64}$/.test(result.upload_tokens[index])) &&
+        new Set(result.upload_tokens).size === result.upload_tokens.length)
+        return json({...verified, upload_tokens: result.upload_tokens},
+          {status: 202, headers});
     }
     const status = [400, 403, 413, 415, 422, 429].includes(response.status) ? response.status : 503;
     return json({ code: status === 429 ? 'rate_limited' : status === 422 ? 'invalid_registration' : 'registration_unavailable' }, { status, headers });

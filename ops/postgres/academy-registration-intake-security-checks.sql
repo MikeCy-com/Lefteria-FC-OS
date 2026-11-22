@@ -12,7 +12,10 @@ BEGIN
     RAISE EXCEPTION 'private registration schema missing';
   END IF;
   FOREACH tbl IN ARRAY ARRAY['registrations','registration_consents',
-                              'registration_sealed_evidence','registration_review_events']
+                              'registration_sealed_evidence','registration_review_events',
+                              'registration_upload_capabilities',
+                              'registration_document_escrow',
+                              'registration_document_promotions']
   LOOP
     IF NOT EXISTS (
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
@@ -35,6 +38,25 @@ BEGIN
       RAISE EXCEPTION 'Unexpected runtime schema access for %',role_name;
     END IF;
   END LOOP;
+  -- New public intake endpoints must remain deny-by-default until an
+  -- operator separately authorizes the *isolated staging* runtime role.
+  FOR role_name IN SELECT rolname FROM pg_roles
+    WHERE rolname IN ('lefteria_identity_tests_app','lefteria_admin_auth_tests')
+  LOOP
+    IF has_function_privilege(role_name,
+       'academy_intake.submit_public_registration_with_upload(uuid,jsonb,bytea,text,text,text,text,text)',
+       'EXECUTE')
+      OR has_function_privilege(role_name,
+       'academy_intake.store_public_registration_document(uuid,text,uuid,text,date,text,bigint,text,text,bytea,bytea,bytea)',
+       'EXECUTE')
+    THEN RAISE EXCEPTION 'Unapproved public registration upload grant for %',role_name;
+    END IF;
+  END LOOP;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname='promote_registration_documents_at_placement'
+      AND tgenabled='O'
+  ) THEN RAISE EXCEPTION 'Player document promotion trigger missing'; END IF;
   FOREACH tg IN ARRAY ARRAY['consent_history_append_only',
                              'review_events_append_only',
                              'registration_status_audit',
