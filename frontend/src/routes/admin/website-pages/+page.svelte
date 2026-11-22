@@ -10,6 +10,7 @@
   import { publishedMediaUrl, type PublishedMediaAsset } from '../../../lib/admin/published-media.ts';
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
+  import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
   import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
@@ -52,6 +53,15 @@
   let dropTarget = $state<number|null>(null);
   let blockMessage = $state('');
   let mediaPickerIndex = $state<number|null>(null);
+  let selectedCanvasBlock=$state<number|null>(null);
+  const canonicalPages=[
+    {name:'Αρχική σελίδα',href:'/',editor:'Επεξεργασία Hero / Spotlight παρακάτω'},
+    {name:'Σύλλογος · Επικοινωνία',href:'/admin/club',editor:'Ταυτότητα & στοιχεία συλλόγου'},
+    {name:'Πρώτη ομάδα',href:'/admin/groups?organization_id=lefteria_fc',editor:'Ομάδες, ρόστερ, αγώνες'},
+    {name:'Ακαδημία',href:'/admin/groups?organization_id=lefteria_fc_academy',editor:'Τμήματα, προπονήσεις, περιεχόμενο'},
+    {name:'Νέα',href:'/admin/news',editor:'Άρθρα & νέα'},
+    {name:'Χορηγοί',href:'/admin/sponsors',editor:'Χορηγοί & συνεργάτες'}
+  ] as const;
   const selected = $derived(records.find(p=>p.slug===picked) ?? null);
   const canWrite = $derived(!!organization && $auth.status==='authenticated' && !!$auth.session &&
     hasAdminPermission($auth.session.user.permissions,'news:write') &&
@@ -148,6 +158,16 @@
       ]};
     notice='';problem='';
   }
+  function insertBlock(index:number,type:WebsiteBlock['type']){
+    if(!canWrite||saving||isLockedRegion||draft.blocks.length>=40||
+      index<0||index>draft.blocks.length)return;
+    const next={type,text:type==='heading'?'Νέα ενότητα':'',
+      url:type==='image'||type==='button'?'':null} as WebsiteBlock;
+    draft.blocks=[...draft.blocks.slice(0,index),next,...draft.blocks.slice(index)];
+    selectedCanvasBlock=index;
+    mediaPickerIndex=null;
+    blockMessage='Προστέθηκε νέα ενότητα '+(index+1)+'.';
+  }
   function addBlock(type: WebsiteBlock['type']) {
     if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40)return;
     mediaPickerIndex=null;
@@ -170,6 +190,24 @@
     draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
     mediaPickerIndex=null;
     blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
+  }
+  function selectCanvasBlock(index:number){
+    selectedCanvasBlock=index;
+    if(index>=0&&index<draft.blocks.length){
+      blockMessage='Επιλέχθηκε η ενότητα '+(index+1)+'.';
+    }
+  }
+  function editCanvasText(index:number,text:string){
+    if(!canWrite||saving||index<0||index>=draft.blocks.length)return;
+    if(draft.blocks[index].type!=='heading'&&draft.blocks[index].type!=='paragraph')return;
+    draft.blocks[index].text=text;
+  }
+  function moveCanvasBlock(from:number,to:number){
+    if(!canWrite||saving||isLockedRegion||from<0||to<0||
+       from>=draft.blocks.length||to>=draft.blocks.length)return;
+    draft.blocks=moveWebsiteBlock(draft.blocks,from,to);
+    selectedCanvasBlock=to;
+    blockMessage='Η ενότητα '+(from+1)+' μετακινήθηκε στη θέση '+(to+1)+'.';
   }
   function clearBlockDrag() {
     draggingBlock=null;dropTarget=null;
@@ -289,8 +327,8 @@
     <div class="cms" data-testid="website-page-builder">
       <header class="cms-header">
         <div><p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ · NATIVE CMS</p>
-          <h1>Σελίδες · Visual Builder</h1>
-          <p class="admin-muted">Δημιουργήστε σελίδες χωρίς plugins, τοποθετήστε τις σε ενότητες του μενού και δείτε αμέσως την εμφάνιση. Η αποθήκευση είναι ιδιωτική· η δημοσίευση απαιτεί έγκριση.</p>
+          <h1>Visual Page Builder</h1>
+          <p class="admin-muted">Επιλέξτε ή δημιουργήστε σελίδα, επεξεργαστείτε κείμενο απευθείας στον καμβά, προσθέστε και σύρετε ενότητες. Οι αλλαγές αποθηκεύονται πρώτα ως ιδιωτικό πρόχειρο.</p>
         </div>
         <div class="cms-header-actions">
           <a class="admin-secondary" href="/admin/club">Προφίλ συλλόγου</a>
@@ -332,6 +370,16 @@
               {/each}
             </nav>
             <button type="button" class="admin-secondary" onclick={()=>retry++} disabled={loading}>Ανανέωση λίστας</button>
+            <section class="cms-canonical-routes" aria-label="Υπάρχουσες σελίδες του ιστοτόπου"
+              data-testid="cms-canonical-pages">
+              <h3>Ήδη υπάρχουσες σελίδες</h3>
+              <p class="admin-muted">Ανοίξτε τον πραγματικό διαχειριστή κάθε δυναμικής ενότητας χωρίς να χάσετε τις ζωντανές λειτουργίες της.</p>
+              {#each canonicalPages as destination (destination.href)}
+                <a href={destination.href} class="cms-canonical-link">
+                  <strong>{destination.name}</strong><small>{destination.editor} ↗</small>
+                </a>
+              {/each}
+            </section>
           </aside>
           <div class="cms-workspace">
             {#if editing}
@@ -455,7 +503,13 @@
                     <p class="admin-muted">Προεπισκόπηση κειμένου Spotlight · η πραγματική εικόνα, τα τμήματα και το CTA διατηρούνται.</p>
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
-                  {:else}<WebsitePageBlocks blocks={draft.blocks}/>{/if}
+                  {:else}
+                    <WebsiteVisualCanvas blocks={draft.blocks}
+                      editable={canWrite} locked={isLockedRegion} busy={saving}
+                      onEdit={editCanvasText} onMove={moveCanvasBlock}
+                      onInsert={insertBlock} onSelect={selectCanvasBlock}/>
+                    <p class="admin-muted">Η οπτική επεξεργασία ενημερώνει το ίδιο ιδιωτικό πρόχειρο. Αποθήκευση και δημοσίευση παραμένουν ξεχωριστές ενέργειες.</p>
+                  {/if}
                 </section>
               {/if}
             {:else}
@@ -488,7 +542,7 @@
 .cms-header-actions a,.cms-action-row a{display:inline-flex;align-items:center;text-decoration:none}
 .cms-organization{display:flex;flex-wrap:wrap;align-items:end;gap:18px;margin-bottom:18px}
 .cms-organization label{min-width:min(300px,100%);max-width:400px}
-.cms-grid{display:grid;grid-template-columns:minmax(230px,290px) minmax(0,1fr);gap:17px;align-items:start}
+.cms-grid{display:grid;grid-template-columns:minmax(210px,245px) minmax(0,1fr);gap:14px;align-items:start}
 .cms-library{position:sticky;top:12px;padding:17px}
 .cms-library-heading,.cms-editor-head,.cms-block-heading,.cms-block-tools,.cms-preview-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .cms-library-heading h2,.cms-editor-head h2,.cms-start h2{margin:0;font:italic 850 27px/1.15 'Fira Sans Extra Condensed',sans-serif}
@@ -496,7 +550,15 @@
 .cms-page-list button{text-align:start;display:grid;gap:6px;border:1px solid #534b38;background:#1a1d1f;color:#fff;padding:13px;cursor:pointer}
 .cms-page-list button.cms-selected{border-color:#ffd36d;background:#312b1c}
 .cms-page-list small{color:#c0c2c0}
-.cms-workspace{display:grid;gap:17px;min-width:0}
+.cms-workspace{display:grid;grid-template-columns:minmax(330px,.9fr) minmax(420px,1.1fr);gap:14px;min-width:0;align-items:start}
+.cms-workspace>.cms-preview{position:sticky;top:12px;max-height:calc(100dvh - 24px);overflow:auto}
+.cms-canonical-routes{display:grid;gap:7px;margin-top:18px;padding-top:12px;border-top:1px solid #43484a}
+.cms-canonical-routes h3{font-size:17px;margin:0}
+.cms-canonical-routes p{font-size:11px}
+.cms-canonical-link{display:grid;gap:3px;padding:9px 11px;border:1px solid #3d4140;border-radius:6px;
+  background:#141718;color:#f3e5be;text-decoration:none}
+.cms-canonical-link strong{font-size:12px}
+.cms-canonical-link small{font-size:10.5px;color:#a8acae}
 .cms-editor,.cms-preview,.cms-start{padding:clamp(16px,2vw,26px)}
 .cms-editor form{display:grid;gap:18px;margin-top:20px}
 .cms label{display:grid;gap:7px;font-size:13px;font-weight:700;color:#eee}
@@ -534,6 +596,8 @@
 .cms-start{display:grid;justify-items:start;gap:16px}
 .cms button:disabled{opacity:.5;cursor:not-allowed}
 .cms :is(button,a,input,textarea,select,summary):focus-visible{outline:2px solid #ffce63;outline-offset:3px}
+@media(max-width:1480px){.cms-workspace{grid-template-columns:1fr}
+.cms-workspace>.cms-preview{position:static;max-height:none;overflow:visible}}
 @media(max-width:1000px){.cms-grid{grid-template-columns:1fr}.cms-library{position:static}.cms-page-list{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}}
 @media(max-width:630px){.cms-field-grid{grid-template-columns:1fr}.cms-header-actions{width:100%}.cms-editor-head{align-items:start;flex-direction:column}}
 </style>
