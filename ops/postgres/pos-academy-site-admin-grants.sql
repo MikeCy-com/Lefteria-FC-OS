@@ -28,6 +28,7 @@ BEGIN
     'pos_cashier.read_admin_pos_sites(text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_pos_site_finances(text,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_pos_site_sales(text,text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_site_stock_reconciliation(text,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_terminal_setup(text,text)'::regprocedure::oid,
     'pos_cashier.ensure_admin_academy_pos_site(text,uuid)'::regprocedure::oid,
     'pos_cashier.create_admin_terminal(text,text,text,text)'::regprocedure::oid,
@@ -54,6 +55,9 @@ GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_pos_site_finances(text,text,tex
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_pos_site_sales(text,text,text)
   TO :"admin_auth_role";
+-- Review-only, no stock or financial write access.
+GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_site_stock_reconciliation(
+  text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_terminal_setup(text,text)
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.ensure_admin_academy_pos_site(text,uuid)
@@ -72,6 +76,7 @@ BEGIN
     'pos_cashier.read_admin_pos_sites(text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_pos_site_finances(text,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_pos_site_sales(text,text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_site_stock_reconciliation(text,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_terminal_setup(text,text)'::regprocedure::oid,
     'pos_cashier.ensure_admin_academy_pos_site(text,uuid)'::regprocedure::oid,
     'pos_cashier.create_admin_terminal(text,text,text,text)'::regprocedure::oid,

@@ -148,7 +148,7 @@ public static class AdminUserDirectoryEndpoints
             var owners=request.Organizations;
             var granted=session.User.Organizations.Select(o=>o.Id).ToHashSet(StringComparer.Ordinal);
             var permittedRoles=new HashSet<string>(StringComparer.Ordinal){
-                "manager","editor","marketing","coach","matchday_editor","accountant"
+                "manager","editor","marketing","coach","matchday_editor","accountant","cashier"
             };
             int bytes=0;
             try {if(password is not null)bytes=new UTF8Encoding(false,true).GetByteCount(password);}

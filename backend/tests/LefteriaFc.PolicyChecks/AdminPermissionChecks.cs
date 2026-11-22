@@ -51,6 +51,20 @@ internal static class AdminPermissionChecks
             })
                 Require(!AdminPermissions.Has("accountant", capability));
         });
+        yield return ("Cashier can operate only an explicitly assigned terminal", () =>
+        {
+            Require(AdminPermissions.IsKnownRole("cashier"));
+            Require(AdminPermissions.Has("cashier", "shop:operate"));
+            foreach (var capability in new[]
+            {
+                "shop:read", "shop:write", "finance:read", "finance:write",
+                "academy:read", "academy:write", "teams:read", "teams:write",
+                "users:read", "users:write", "staff:write", "settings:read",
+                "news:read", "messages:read", "training:read_assigned",
+                "fixtures:read"
+            })
+                Require(!AdminPermissions.Has("cashier", capability));
+        });
         yield return ("CMS permission projections cannot mutate the shared role matrix", () =>
         {
             var values = (IList<string>)AdminPermissions.ForRole("manager");

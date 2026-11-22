@@ -1152,6 +1152,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/pos/cashier/registers/{registerId}/sellable-stock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminPosAssignedShiftSellableStock"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/pos/cashier/registers/{registerId}/shifts": {
         parameters: {
             query?: never;
@@ -9984,6 +10000,29 @@ export interface operations {
                 "application/json": components["schemas"]["PrepareSaleRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminPosAssignedShiftSellableStock: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+                shift_id?: string;
+            };
+            header?: never;
+            path: {
+                registerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

@@ -48,6 +48,29 @@ public static class AdminPosCashierEndpoints
             return await Query(command, ct);
         }).WithName("ReadAdminPosCashierRegisters");
 
+        // Bounded, location-specific stock for the exact logged-in cashier's
+        // OPEN shift. No raw table, supplier costs, other sites or billing.
+        // SQL EXECUTE remains private until separately reviewed.
+        group.MapGet("/registers/{registerId}/sellable-stock", async (
+            string registerId, Guid? shift_id, string? organization_id,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            if (!ValidRegister(registerId) || shift_id is null || shift_id==Guid.Empty)
+                throw new WebAdminException(400, "pos_cashier_stock_shift_invalid",
+                    "Choose an assigned register and exact open shift.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.read_assigned_cashier_sellable_stock(" +
+                "@digest,@owner,@register,@shift)::text", connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("register", registerId);
+            command.Parameters.AddWithValue("shift", shift_id.Value);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosAssignedShiftSellableStock");
+
         group.MapPost("/registers/{registerId}/shifts", async (string registerId,
             string? organization_id, OpenShiftRequest body,
             WebAdminService auth, WebAdminConnections connections,
@@ -251,7 +274,7 @@ public static class AdminPosCashierEndpoints
             WebAdminService auth, WebAdminConnections connections,
             IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
         {
-            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct, managerOnly: true);
             if (returnId == Guid.Empty || body.RequestId == Guid.Empty)
                 throw new WebAdminException(400, "pos_return_review_invalid",
                     "Select one valid return and review request.");
@@ -273,7 +296,7 @@ public static class AdminPosCashierEndpoints
             WebAdminService auth, WebAdminConnections connections,
             IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
         {
-            var (cookie, owner) = await Authority(auth, organization_id, context, ct);
+            var (cookie, owner) = await Authority(auth, organization_id, context, ct, managerOnly: true);
             if (returnId == Guid.Empty || body.RequestId == Guid.Empty ||
                 body.PaymentEventId == Guid.Empty ||
                 body.AmountCents is < 1 or > 100000000)
@@ -302,7 +325,7 @@ public static class AdminPosCashierEndpoints
         {
             var (cookie, owner) = await Authority(auth, organization_id, context, ct);
             var session = await auth.CurrentAsync(cookie, ct);
-            if (session is null ||
+            if (session is null || session.User.Role != "super_admin" ||
                 !AdminPermissions.Has(session.User.Role, "finance:read"))
                 throw new WebAdminException(403, "pos_finance_handoff_access_denied",
                     "Financial reconciliation requires a manager finance grant.");
@@ -323,7 +346,8 @@ public static class AdminPosCashierEndpoints
         value.All(ch => char.IsAsciiLetterOrDigit(ch) || ch is '_' or '-');
 
     private static async Task<(string Cookie, string Owner)> Authority(
-        WebAdminService auth, string? organization, HttpContext context, CancellationToken ct)
+        WebAdminService auth, string? organization, HttpContext context,
+        CancellationToken ct, bool managerOnly = false)
     {
         context.Response.Headers.CacheControl = "private, no-store";
         context.Response.Headers.Pragma = "no-cache";
@@ -335,11 +359,16 @@ public static class AdminPosCashierEndpoints
         var session = await auth.CurrentAsync(cookie, ct);
         if (session is null)
             throw new WebAdminException(401, "not_authenticated", "Sign in again.");
-        if (session.User.Role is not ("manager" or "super_admin") ||
-            !AdminPermissions.Has(session.User.Role, "shop:write") ||
+        if (!(session.User.Role is "cashier"
+                ? AdminPermissions.Has(session.User.Role, "shop:operate")
+                : session.User.Role is "manager" or "super_admin" &&
+                  AdminPermissions.Has(session.User.Role, "shop:write")) ||
             !session.User.Organizations.Any(o => o.Id == organization))
             throw new WebAdminException(403, "pos_cashier_access_denied",
                 "Cashier management requires an authorized organization and role.");
+        if (managerOnly && session.User.Role is not ("manager" or "super_admin"))
+            throw new WebAdminException(403, "pos_cashier_supervision_required",
+                "Only management can review returns and request refunds.");
         return (cookie!, organization);
     }
 

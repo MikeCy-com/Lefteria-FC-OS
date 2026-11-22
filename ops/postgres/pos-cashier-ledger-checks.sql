@@ -178,6 +178,105 @@ BEGIN
        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
   THEN RAISE EXCEPTION 'pos_site_boundary_exposed'; END IF;
+  -- Supervised recovery remains SECURITY DEFINER, private and requires
+  -- evidence on the closed shift; an unapproved environment has no runtime grants.
+  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE
+    conrelid='pos_cashier.shifts'::regclass AND
+    conname='ck_pos_shift_recovery_evidence')
+    OR NOT EXISTS(SELECT 1 FROM pg_constraint WHERE
+    conrelid='pos_cashier.transaction_audit'::regclass
+    AND conname='transaction_audit_action_check'
+    AND pg_get_constraintdef(oid) LIKE '%shift_recovery_close%')
+  THEN RAISE EXCEPTION 'pos_shift_recovery_evidence_guard_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.recover_suspended_admin_cashier_shift(text,text,uuid,bigint,uuid,text)'::regprocedure
+      AND (NOT p.prosecdef OR EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_shift_recovery_public_exposure'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p WHERE
+    p.oid='pos_cashier.recover_suspended_admin_cashier_shift(text,text,uuid,bigint,uuid,text)'::regprocedure
+      AND p.prosecdef)
+  THEN RAISE EXCEPTION 'pos_shift_recovery_function_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.read_assigned_cashier_sellable_stock(text,text,text,uuid)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%cashier_catalog_shift_not_owned%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_cashier_site_inventory_private_reader_missing'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.read_admin_site_stock_reconciliation(text,text,text)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%pos_cashier.authorize_site_finances%'
+      AND pg_get_functiondef(p.oid) LIKE '%stock_ready_for_trading%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_site_stock_reconciliation_privacy_guard_missing'; END IF;
+  -- Both inventories are forward-linked only for verified stock movement.
+  -- Never allow anonymous callers to alter bridged balances or audit evidence.
+  IF NOT EXISTS(SELECT 1 FROM pg_class cl
+      WHERE cl.oid='pos_cashier.stock_bridge_events'::regclass
+        AND cl.relrowsecurity)
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos_cashier.stock_bridge_events'::regclass
+        AND t.tgname='pos_stock_bridge_events_immutable' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_constraint con
+      WHERE con.conrelid='pos.stock_movements'::regclass
+        AND con.conname='ck_pos_stock_origin_bridge')
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos.stock_movements'::regclass
+        AND t.tgname='pos_a_cashier_mirror_guard' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos.stock_movements'::regclass
+        AND t.tgname='pos_z_cashier_mirror_commit' AND t.tgenabled='O')
+  THEN RAISE EXCEPTION 'pos_stock_bridge_immutability_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos_cashier.guard_legacy_stock_mirror()'::regprocedure,
+      'pos_cashier.commit_legacy_stock_mirror()'::regprocedure
+    ) AND (NOT p.prosecdef OR EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_stock_bridge_callable_publicly'; END IF;
+  -- The transactional receipt issuer allows an assigned named cashier only
+  -- under an active exact shift, while keeping runtime access private.
+  IF NOT EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid='pos_cashier.issue_verified_internal_receipt(text,text,uuid,uuid)'::regprocedure
+      AND p.prosecdef
+      AND pg_get_functiondef(p.oid) LIKE '%receipt_cashier_scope_changed%'
+      AND pg_get_functiondef(p.oid) LIKE '%receipt_cashier_shift_closed%'
+      AND NOT EXISTS(
+        SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+        WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE'))
+  THEN RAISE EXCEPTION 'pos_named_cashier_atomic_receipt_authority_missing'; END IF;
+  -- Independent second count: private immutable record and no raw grants.
+  IF NOT EXISTS(SELECT 1 FROM pg_class cl
+      WHERE cl.oid='pos_cashier.shift_recovery_reviews'::regclass
+        AND cl.relrowsecurity)
+    OR NOT EXISTS(SELECT 1 FROM pg_trigger t
+      WHERE t.tgrelid='pos_cashier.shift_recovery_reviews'::regclass
+        AND t.tgname='pos_recovery_reviews_immutable' AND t.tgenabled='O')
+    OR NOT EXISTS(SELECT 1 FROM pg_constraint
+      WHERE conrelid='pos_cashier.transaction_audit'::regclass
+        AND conname='transaction_audit_action_check'
+        AND pg_get_constraintdef(oid) LIKE '%shift_recovery_review%')
+  THEN RAISE EXCEPTION 'pos_second_count_immutable_evidence_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM pg_proc p
+    WHERE p.oid IN (
+      'pos_cashier.read_admin_shift_recovery_review_queue(text,text)'::regprocedure,
+      'pos_cashier.review_recovered_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure
+    ) AND (NOT p.prosecdef OR EXISTS(
+      SELECT 1 FROM aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) acl
+      WHERE acl.grantee=0 AND acl.privilege_type='EXECUTE')))
+  THEN RAISE EXCEPTION 'pos_second_count_public_exposure'; END IF;
+  IF (SELECT count(*) FROM pg_proc p WHERE p.oid IN (
+      'pos_cashier.read_admin_shift_recovery_review_queue(text,text)'::regprocedure,
+      'pos_cashier.review_recovered_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure
+      ) AND p.prosecdef)<>2
+  THEN RAISE EXCEPTION 'pos_second_count_functions_missing'; END IF;
   IF NOT EXISTS(SELECT 1 FROM pg_constraint
     WHERE conrelid='pos.academy_football_location_links'::regclass
       AND contype='f')

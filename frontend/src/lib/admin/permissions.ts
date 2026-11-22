@@ -1,6 +1,6 @@
 export const ADMIN_ROLE_NAMES = {
   super_admin: 'Super Admin', manager: 'Manager', editor: 'Editor', marketing: 'Marketing',
-  coach: 'Coach', matchday_editor: 'Match-day Editor', accountant: 'Accountant'
+  coach: 'Coach', matchday_editor: 'Match-day Editor', accountant: 'Accountant', cashier: 'Cashier'
 } as const;
 
 export type AdminRole = keyof typeof ADMIN_ROLE_NAMES;

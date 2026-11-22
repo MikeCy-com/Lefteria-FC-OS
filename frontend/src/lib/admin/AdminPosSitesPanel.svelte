@@ -1,5 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import AdminPosRecoveryReviewPanel from './AdminPosRecoveryReviewPanel.svelte';
+  import AdminPosStockReconciliationPanel from './AdminPosStockReconciliationPanel.svelte';
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Site={pos_location_id:string;name:string;city_name:string;
     academy_city_id:string|null;academy_location_id:string|null};
@@ -17,8 +19,11 @@
     total_cents:number;created_at:string;paid_at:string|null;
     receipt_number:number|null;receipt_id:string|null};
   type History={organization_id:Owner;pos_location_id:string;limit:50;sales:Sale[]};
+  type OpenShift={id:string;cashier_id:string;cashier_name:string;
+    cashier_active:boolean;opened_at:string;opening_cash_cents:number};
   type Terminal={id:string;label:string;location_id:string;location_name:string;
-    active:boolean;operators:{admin_account_id:string;name:string;active:boolean}[]};
+    active:boolean;open_shift:OpenShift|null;
+    operators:{admin_account_id:string;name:string;active:boolean}[]};
   type Account={id:string;name:string;role:string};
   type AcademyLocation={academy_city_id:string;academy_location_id:string;
     city_name:string;location_name:string;pos_location_id:string|null};
@@ -36,6 +41,11 @@
   let terminalName=$state('');
   let terminalId=$state('');
   let accountId=$state('');
+  let recoveryCount=$state('');
+  let recoveryReason=$state<'account_suspended'|'security_incident'|'operator_unavailable'>('account_suspended');
+  let recoveryConfirmed=$state(false);
+  let recoveryRequestId=$state('');
+  let recoveryFingerprint=$state('');
   let finances=$state<SiteFinances|null>(null);
   let history=$state<History|null>(null);
   let loading=$state(false);
@@ -58,6 +68,12 @@
   }[value]);
   const selectedTerminal=$derived(setup?.terminals.find(t=>t.id===terminalId));
   const selectedAccount=$derived(selectedTerminal?.operators.find(o=>o.admin_account_id===accountId));
+  const countedCents=(value:string):number|null=>{
+    if(!/^\d{1,6}(?:[.,]\d{1,2})?$/.test(value))return null;
+    const [whole,dec='']=value.replace(',','.').split('.');
+    const cents=Number(whole)*100+Number(dec.padEnd(2,'0'));
+    return Number.isSafeInteger(cents)&&cents<=100000000?cents:null;
+  };
   const euro=(cents:number)=>new Intl.NumberFormat('el-CY',{
     style:'currency',currency:'EUR'}).format(cents/100);
   const validId=(x:unknown)=>typeof x==='string'&&/^[A-Za-z0-9_-]{1,80}$/.test(x);
@@ -119,6 +135,16 @@
         const x=t as Record<string,unknown>;
         return validId(x.id)&&validId(x.location_id)&&typeof x.label==='string'&&
           typeof x.location_name==='string'&&typeof x.active==='boolean'&&
+          (x.open_shift===null||!!x.open_shift&&
+            typeof x.open_shift==='object'&&!Array.isArray(x.open_shift)&&
+            uuid((x.open_shift as Record<string,unknown>).id)&&
+            uuid((x.open_shift as Record<string,unknown>).cashier_id)&&
+            typeof (x.open_shift as Record<string,unknown>).cashier_name==='string'&&
+            typeof (x.open_shift as Record<string,unknown>).cashier_active==='boolean'&&
+            typeof (x.open_shift as Record<string,unknown>).opened_at==='string'&&
+            !Number.isNaN(Date.parse(String((x.open_shift as Record<string,unknown>).opened_at)))&&
+            Number.isSafeInteger((x.open_shift as Record<string,unknown>).opening_cash_cents)&&
+            Number((x.open_shift as Record<string,unknown>).opening_cash_cents)>=0)&&
           Array.isArray(x.operators)&&x.operators.length<=100&&
           x.operators.every((p:unknown)=>!!p&&typeof p==='object'&&!Array.isArray(p)&&
             uuid((p as Record<string,unknown>).admin_account_id)&&
@@ -240,6 +266,63 @@
     }finally{historyLoading=false;}
   }
 
+  async function recoverShift(){
+    const register=selectedTerminal,shift=register?.open_shift;
+    if(!browser||!canProvision||writing||!register||!shift||
+      shift.cashier_active||!recoveryConfirmed)return;
+    const cents=countedCents(recoveryCount);
+    if(cents===null){
+      setupError='Εισαγάγετε τα πραγματικά μετρημένα μετρητά σε ευρώ.';
+      return;
+    }
+    const expectedOwner=owner,expectedActor=actorId,expectedShift=shift.id;
+    const fingerprint=JSON.stringify([expectedOwner,expectedActor,register.id,
+      expectedShift,cents,recoveryReason]);
+    if(recoveryFingerprint!==fingerprint||!uuid(recoveryRequestId)){
+      recoveryRequestId=crypto.randomUUID();
+      recoveryFingerprint=fingerprint;
+    }
+    const requestId=recoveryRequestId,reasonCode=recoveryReason;
+    writing=true;setupError='';notice='';
+    try{
+      const response=await fetch('/api/admin/pos/sites/shifts/'+encodeURIComponent(expectedShift)+
+        '/recover-close?'+query(expectedOwner),{
+          method:'POST',credentials:'same-origin',cache:'no-store',
+          headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+          body:JSON.stringify({requestId,countedCashCents:cents,reasonCode})
+        });
+      if(owner!==expectedOwner||actorId!==expectedActor||
+        selectedTerminal?.open_shift?.id!==expectedShift)return;
+      if(responseScope(response.status))return;
+      if(!response.ok)throw Error(response.status===409
+        ?'Η βάρδια έχει εκκρεμείς συναλλαγές ή έχει ήδη κλείσει. Ελέγξτε τη συμφωνία.'
+        :'Δεν επιτρέπεται ασφαλές κλείσιμο. Βεβαιωθείτε ότι ο ταμίας είναι απενεργοποιημένος.');
+      const raw:unknown=await response.json();
+      if(!raw||typeof raw!=='object'||Array.isArray(raw))
+        throw Error('Μη επαληθευμένη απάντηση ανάκτησης βάρδιας.');
+      const v=raw as Record<string,unknown>;
+      if(v.organization_id!==expectedOwner||v.register_id!==register.id||
+        v.shift_id!==expectedShift||v.cashier_id!==shift.cashier_id||
+        v.closed_by!==expectedActor||v.reason!==reasonCode||
+        v.counted_cash_cents!==cents||
+        !Number.isSafeInteger(v.expected_cash_cents)||Number(v.expected_cash_cents)<0||
+        !Number.isSafeInteger(v.variance_cents)||
+        v.variance_cents!==cents-Number(v.expected_cash_cents)||
+        v.requires_review!==(v.variance_cents!==0)||
+        typeof v.replay!=='boolean')
+        throw Error('Η επιβεβαίωση κλεισίματος απέτυχε.');
+      notice='Καταγράφηκε ασφαλές κλείσιμο βάρδιας από Super Admin. '+
+        (v.requires_review
+          ?'Διαφορά '+euro(Number(v.variance_cents))+' · απαιτείται ανθρώπινος οικονομικός έλεγχος.'
+          :'Τα μετρημένα μετρητά συμφωνούν με την αναμενόμενη κατάσταση.');
+      recoveryCount='';recoveryConfirmed=false;recoveryRequestId='';recoveryFingerprint='';
+      refresh++;
+    }catch(e){
+      if(owner===expectedOwner&&actorId===expectedActor)
+        setupError=e instanceof Error?e.message:'Η ανάκτηση βάρδιας απέτυχε.';
+    }finally{writing=false;}
+  }
+
   async function write(kind:'site'|'terminal'|'operator',enabled=true){
     if(!browser||!canProvision||!setup||writing)return;
     const expectedOwner=owner,expectedActor=actorId;
@@ -316,6 +399,10 @@
     {:else}
       <p class="admin-muted">Δεν έχετε ανατεθειμένη τοποθεσία POS. Η διαχείριση πρόσβασης γίνεται από τον Super Admin.</p>
     {/if}
+  {/if}
+  {#if selectedSite}
+    <AdminPosStockReconciliationPanel {owner} {actorId}
+      locationId={selectedSite.pos_location_id} {onExpired} {onRevoked} />
   {/if}
   {#if reportError}<p role="alert">{reportError}</p>{/if}
   {#if finances}
@@ -444,8 +531,53 @@
           <p class="admin-muted">Χρειάζεται ένα ταμείο και λογαριασμός διαχειριστή με συγκεκριμένη ανάθεση τοποθεσίας.</p>
         {/if}
       </div>
+      <div class="pos-config-block" data-testid="pos-shift-supervisor-recovery">
+        <h3>4. Ασφαλής ανάκτηση βάρδιας</h3>
+        <p class="admin-muted">Αποκλειστικά για Super Admin όταν ο συγκεκριμένος
+          ταμίας έχει απενεργοποιηθεί. Απαιτείται φυσική καταμέτρηση,
+          αιτιολόγηση και μηδενικές εκκρεμείς συναλλαγές. Δεν δημιουργείται
+          πληρωμή, απόδειξη ή πλασματική συμφωνία.</p>
+        {#if selectedTerminal?.open_shift}
+          <p class="admin-muted">
+            Βάρδια: {selectedTerminal.open_shift.cashier_name} ·
+            {formatDate(selectedTerminal.open_shift.opened_at)} ·
+            αρχικό ποσό {euro(selectedTerminal.open_shift.opening_cash_cents)}
+          </p>
+          {#if selectedTerminal.open_shift.cashier_active}
+            <p role="status">Ο ταμίας παραμένει ενεργός. Πρώτα απαιτείται
+              εξουσιοδοτημένη απενεργοποίηση του λογαριασμού μέσω Διαχείρισης Χρηστών.</p>
+          {:else}
+            <form class="pos-recovery-form" onsubmit={event=>{event.preventDefault();void recoverShift();}}>
+              <label>Φυσικά μετρημένα μετρητά (€)
+                <input type="text" inputmode="decimal" maxlength="10"
+                  bind:value={recoveryCount} placeholder="π.χ. 12,00" required disabled={writing}/>
+              </label>
+              <label>Λόγος έκτακτου κλεισίματος
+                <select bind:value={recoveryReason} disabled={writing}>
+                  <option value="account_suspended">Απενεργοποιημένος λογαριασμός</option>
+                  <option value="security_incident">Περιστατικό ασφαλείας</option>
+                  <option value="operator_unavailable">Μη διαθέσιμος χειριστής</option>
+                </select>
+              </label>
+              <label class="pos-recovery-confirm">
+                <input type="checkbox" bind:checked={recoveryConfirmed} disabled={writing}/>
+                Επιβεβαιώνω ότι καταμέτρησα φυσικά τα μετρητά και έλεγξα τις εκκρεμότητες.
+              </label>
+              <button type="submit" class="admin-secondary"
+                disabled={writing||!recoveryConfirmed||countedCents(recoveryCount)===null}>
+                {writing?'Καταχώριση…':'Καταγραφή έκτακτου κλεισίματος'}
+              </button>
+            </form>
+          {/if}
+        {:else}
+          <p class="admin-muted">Δεν υπάρχει ανοιχτή βάρδια στο επιλεγμένο τερματικό.</p>
+        {/if}
+      </div>
     {/if}
   </section>
+  {#if canProvision}
+    <AdminPosRecoveryReviewPanel {owner} {actorId} {refresh} {onExpired} {onRevoked}/>
+  {/if}
 {/if}
 
 <style>
@@ -461,6 +593,9 @@
   .pos-finance-grid strong{font-size:1.4rem;font-variant-numeric:tabular-nums}
   .pos-config-block{display:grid;justify-items:start;gap:12px;padding:16px;border:1px solid #444;border-radius:12px}
   .pos-config-buttons{display:flex;gap:8px;flex-wrap:wrap}
+  .pos-recovery-form{display:grid;gap:12px;width:min(100%,460px)}
+  .pos-recovery-confirm{display:flex!important;flex-direction:row;align-items:start;gap:10px}
+  .pos-recovery-confirm input{width:auto!important;min-width:auto;margin-top:4px}
   .pos-sales-history{display:grid;gap:10px}
   .pos-sales-scroll{overflow-x:auto;max-width:100%}
   .pos-sales-scroll table{width:100%;border-collapse:collapse;font-size:.87rem}

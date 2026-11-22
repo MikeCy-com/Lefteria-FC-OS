@@ -17,6 +17,8 @@ public static class AdminPosSiteEndpoints
     public sealed record EnsureAcademySite(Guid AcademyLocationId);
     public sealed record CreateTerminal(string? LocationId, string? Label);
     public sealed record AssignOperator(Guid AdminAccountId, bool Enabled);
+    public sealed record RecoverSuspendedShift(Guid RequestId, long CountedCashCents, string? ReasonCode);
+    public sealed record IndependentShiftCount(Guid RequestId, long IndependentlyCountedCashCents);
 
     public static IEndpointRouteBuilder MapAdminPosSites(this IEndpointRouteBuilder endpoints)
     {
@@ -74,6 +76,28 @@ public static class AdminPosSiteEndpoints
             command.Parameters.AddWithValue("location", locationId);
             return await Query(command,ct);
         }).WithName("ReadAdminPosExactSiteSaleHistory").ExcludeFromDescription();
+
+        // Read-only reconciliation compares independent stock ledgers for
+        // the exact active city/location grant. Never silently imports,
+        // approves physical counts or mutates either inventory.
+        routes.MapGet("/{locationId}/stock-reconciliation", async (
+            string locationId, string? organization_id, WebAdminService auth,
+            WebAdminConnections connections, IWebAdminSecrets secrets,
+            HttpContext context, CancellationToken ct) =>
+        {
+            ValidLocation(locationId);
+            var (cookie, owner) = await Authorized(auth, organization_id,
+                context, false, false, true, ct);
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.read_admin_site_stock_reconciliation(" +
+                "@digest,@owner,@location)::text", connection);
+            command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner", owner);
+            command.Parameters.AddWithValue("location", locationId);
+            return await Query(command, ct);
+        }).WithName("ReadAdminPosExactSiteStockReconciliation")
+          .ExcludeFromDescription();
 
         routes.MapPost("/academy-locations", async (
             string? organization_id, EnsureAcademySite input,
@@ -156,6 +180,74 @@ public static class AdminPosSiteEndpoints
             return await Query(command,ct);
         }).WithName("AssignAdminPosTerminalOperator").ExcludeFromDescription();
 
+        // Deliberately separate from cashier self-service. A real Super Admin
+        // must count physical cash and provide an idempotency key and reason.
+        routes.MapPost("/shifts/{shiftId:guid}/recover-close", async (
+            Guid shiftId, string? organization_id, RecoverSuspendedShift input,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authorized(auth, organization_id,
+                context, true, true, true, ct);
+            if (shiftId == Guid.Empty || input.RequestId == Guid.Empty ||
+                input.CountedCashCents is < 0 or > 100000000 ||
+                input.ReasonCode is not ("account_suspended" or "security_incident" or "operator_unavailable"))
+                throw new WebAdminException(422,"pos_shift_recovery_invalid",
+                    "Select a suspended cashier shift, counted cash and a recovery reason.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.recover_suspended_admin_cashier_shift(" +
+                "@digest,@owner,@shift,@counted,@request,@reason)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("shift",shiftId);
+            command.Parameters.AddWithValue("counted",input.CountedCashCents);
+            command.Parameters.AddWithValue("request",input.RequestId);
+            command.Parameters.AddWithValue("reason",input.ReasonCode!);
+            return await Query(command,ct);
+        }).WithName("RecoverSuspendedAdminPosCashierShift").ExcludeFromDescription();
+
+        // A second authenticated Super Admin sees recovery identity and
+        // terminal location, but NOT the first physical cash count beforehand.
+        routes.MapGet("/recovery-review-queue", async (
+            string? organization_id, WebAdminService auth,
+            WebAdminConnections connections, IWebAdminSecrets secrets,
+            HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authorized(auth,organization_id,
+                context,false,true,true,ct);
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.read_admin_shift_recovery_review_queue(@digest,@owner)::text",
+                connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            return await Query(command,ct);
+        }).WithName("ReadAdminPosIndependentCountQueue").ExcludeFromDescription();
+
+        routes.MapPost("/shifts/{shiftId:guid}/independent-count", async (
+            Guid shiftId, string? organization_id, IndependentShiftCount input,
+            WebAdminService auth, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var (cookie, owner) = await Authorized(auth,organization_id,
+                context,true,true,true,ct);
+            if (shiftId==Guid.Empty || input.RequestId==Guid.Empty ||
+                input.IndependentlyCountedCashCents is < 0 or > 100000000)
+                throw new WebAdminException(422,"pos_shift_second_count_invalid",
+                    "Supply a shift, unique request and independently counted cash.");
+            await using var connection = await connections.OpenAsync(ct);
+            await using var command = new NpgsqlCommand(
+                "SELECT pos_cashier.review_recovered_cashier_shift(" +
+                "@digest,@owner,@shift,@counted,@request)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",owner);
+            command.Parameters.AddWithValue("shift",shiftId);
+            command.Parameters.AddWithValue("counted",input.IndependentlyCountedCashCents);
+            command.Parameters.AddWithValue("request",input.RequestId);
+            return await Query(command,ct);
+        }).WithName("ReviewAdminPosSuspendedCashierRecovery").ExcludeFromDescription();
+
         return endpoints;
     }
 
@@ -198,9 +290,9 @@ public static class AdminPosSiteEndpoints
             return content is null ? Results.Problem(statusCode:503)
                 : Results.Content(content,"application/json",Encoding.UTF8,200);
         } catch(PostgresException error) when(error.SqlState is
-            "42501" or "22023" or "23505" or "23514" or "54000") {
+            "42501" or "22023" or "23505" or "23514" or "54000" or "55000" or "40001") {
             var status=error.SqlState switch {
-                "42501"=>403,"22023"=>422,"23505"=>409,"23514"=>409,_=>413
+                "42501"=>403,"22023"=>422,"23505"=>409,"23514"=>409,"55000"=>409,"40001"=>409,_=>413
             };
             throw new WebAdminException(status,"pos_site_operation_unavailable",
                 "The selected location or current permissions have changed.");

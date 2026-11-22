@@ -28,6 +28,7 @@ BEGIN
 
   FOREACH f IN ARRAY ARRAY[
     'pos_cashier.read_admin_cashier_registers(text,text)'::regprocedure::oid,
+    'pos_cashier.read_assigned_cashier_sellable_stock(text,text,text,uuid)'::regprocedure::oid,
     'pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
     'pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
   ] LOOP
@@ -49,6 +50,10 @@ END $check$;
 GRANT USAGE ON SCHEMA pos_cashier TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_cashier_registers(text,text)
   TO :"admin_auth_role";
+-- Private scoped stock read only; sale reservation/cash/receipt execution
+-- remains independently denied pending certified fiscal policies and review.
+GRANT EXECUTE ON FUNCTION pos_cashier.read_assigned_cashier_sellable_stock(
+  text,text,text,uuid) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)
@@ -62,6 +67,7 @@ DECLARE
 BEGIN
   FOREACH f IN ARRAY ARRAY[
     'pos_cashier.read_admin_cashier_registers(text,text)'::regprocedure::oid,
+    'pos_cashier.read_assigned_cashier_sellable_stock(text,text,text,uuid)'::regprocedure::oid,
     'pos_cashier.open_admin_cashier_shift(text,text,text,bigint,uuid)'::regprocedure::oid,
     'pos_cashier.close_admin_cashier_shift(text,text,uuid,bigint,uuid)'::regprocedure::oid
   ] LOOP

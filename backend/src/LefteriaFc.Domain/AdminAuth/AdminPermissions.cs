@@ -22,6 +22,8 @@ public static class AdminPermissions
                     "marketing:*", "social:write"),
                 // Accounting has no roster, messaging, CMS, or user privileges.
                 ["accountant"] = Permissions("finance:read", "finance:write"),
+                // A cashier can access assigned POS register operations only.
+                ["cashier"] = Permissions("shop:operate"),
                 ["coach"] = Permissions("teams:read_assigned", "academy:read_assigned", "training:read_assigned",
                     "training:write_assigned", "attendance:read_assigned", "attendance:write_assigned", "messages:write_assigned", "fixtures:read"),
                 ["matchday_editor"] = Permissions("live_score:*", "match_reports:*", "fixtures:read", "teams:read")

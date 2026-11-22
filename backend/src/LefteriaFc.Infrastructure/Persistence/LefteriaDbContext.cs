@@ -97,7 +97,7 @@ public sealed class LefteriaDbContext(DbContextOptions<LefteriaDbContext> option
 
         var admins = modelBuilder.Entity<AdminAccountRecord>();
         admins.ToTable("admin_accounts", table => table.HasCheckConstraint(
-            "ck_admin_account_role", "role IN ('super_admin','manager','editor','marketing','coach','matchday_editor','accountant')"));
+            "ck_admin_account_role", "role IN ('super_admin','manager','editor','marketing','coach','matchday_editor','accountant','cashier')"));
         admins.HasKey(x => x.Id);
         admins.Property(x => x.Id).ValueGeneratedNever();
         admins.Property(x => x.Username).HasMaxLength(80).UseCollation("C").IsRequired();

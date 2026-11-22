@@ -111,5 +111,11 @@ test('real PostgreSQL POS site isolation is executed in CI and workspace staging
   assert.match(sql,/city_manager_read_other_city_finances/);
   assert.match(sql,/revoked_manager_still_owns_assigned_cashier_register/);
   assert.match(sql,/revoked_admin_session_still_read_pos_site_directory/);
-  assert.doesNotMatch(sql,/INSERT INTO pos_cashier\.(sales|payment_events|receipts|refund_events)/);
+  // One unpaid sale proves recovery refusal inside a rollback-on-error block.
+  // Sales are immutable: a synthetic fixture must NEVER be deleted.
+  assert.match(sql,/INSERT INTO pos_cashier\.sales\(/);
+  assert.match(sql,/synthetic_pending_sale_subtransaction_not_rolled_back/);
+  assert.doesNotMatch(sql,/DELETE FROM pos_cashier\.sales/);
+  assert.match(sql,/supervisor_recovered_shift_with_pending_sale/);
+  assert.doesNotMatch(sql,/INSERT INTO pos_cashier\.(payment_events|receipts|refund_events)/);
 });

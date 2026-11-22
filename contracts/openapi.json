@@ -16353,6 +16353,49 @@
         ]
       }
     },
+    "/api/admin/pos/cashier/registers/{registerId}/sellable-stock": {
+      "get": {
+        "operationId": "ReadAdminPosAssignedShiftSellableStock",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "registerId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "shift_id",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "POS cashier administration"
+        ]
+      }
+    },
     "/api/admin/pos/cashier/registers/{registerId}/shifts": {
       "post": {
         "operationId": "OpenAdminPosCashierShift",

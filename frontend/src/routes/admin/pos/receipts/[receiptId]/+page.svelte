@@ -26,8 +26,10 @@
   const assigned=$derived($auth.session?.user.organizations.filter(o=>
     o.id==='lefteria_fc'||o.id==='lefteria_fc_academy').map(o=>o.id as Org)??[]);
   const allowed=$derived($auth.status==='authenticated'&&!!$auth.session&&
-    ['manager','super_admin'].includes($auth.session.user.role)&&
-    hasAdminPermission($auth.session.user.permissions,'shop:write'));
+    ($auth.session.user.role==='cashier'
+      ? hasAdminPermission($auth.session.user.permissions,'shop:operate')
+      : ['manager','super_admin'].includes($auth.session.user.role)&&
+        hasAdminPermission($auth.session.user.permissions,'shop:write')));
   let owner=$state<Org>('lefteria_fc');
   let receipt=$state<Receipt|null>(null);
   let loading=$state(false);

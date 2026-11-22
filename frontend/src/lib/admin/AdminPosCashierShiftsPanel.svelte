@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import AdminPosCashierCheckoutPanel from './AdminPosCashierCheckoutPanel.svelte';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Register={
@@ -236,6 +237,9 @@
               {/if}
             </div>
           {/if}
+          <AdminPosCashierCheckoutPanel {owner} {actorId}
+            registerId={selectedRegister.id} shiftId={selectedRegister.shift_id}
+            {onExpired} onFinished={()=>{report=null;reportError='';}} />
           <label>Μετρημένα μετρητά κατά το κλείσιμο (€)
             <input type="text" inputmode="decimal" bind:value={counted}
               placeholder="0.00" maxlength="10" oninput={()=>pendingCloseId=''} />
@@ -260,7 +264,7 @@
     {/if}
   {/if}
   {#if notice}<p role="status">{notice}</p>{/if}
-  <p class="admin-muted">Δεν υπάρχει ακόμη ενεργή πώληση, επαλήθευση Payabl ή επίσημη έκδοση απόδειξης από αυτή την οθόνη.</p>
+  <p class="admin-muted">Οι πωλήσεις απαιτούν ξεχωριστή φορολογική έγκριση και περιορισμένα δικαιώματα στη βάση. Η κάρτα Payabl και οι ζωντανές επιστροφές παραμένουν ανενεργές.</p>
 </section>
 <style>
 .pos-cashier-shifts{display:grid;gap:12px;margin:16px 0}

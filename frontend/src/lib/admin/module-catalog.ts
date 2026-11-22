@@ -90,6 +90,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
       if (item.id === 'registrations') return ['manager','super_admin'].includes(user.role) &&
         organizations.includes('lefteria_fc_academy');
+      if (item.id === 'registers' && user.role==='cashier') return hasAdminPermission(user.permissions,'shop:operate');
       if (item.id === 'orders') return ['manager','super_admin'].includes(user.role) &&
         hasAdminPermission(user.permissions,'shop:read') &&
         hasAdminPermission(user.permissions,'finance:read');

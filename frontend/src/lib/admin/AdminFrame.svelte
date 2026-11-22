@@ -171,7 +171,7 @@
         </details>
       {/if}
 
-      {#if liveIds.has('payabl') || liveIds.has('products')}
+      {#if liveIds.has('payabl') || liveIds.has('products') || liveIds.has('registers')}
         <details class="admin-nav-disclosure" open={['finance','pos'].includes(active)}
           data-testid="admin-commerce-navigation">
           <summary class="admin-nav-category" data-testid="admin-commerce-category">
@@ -182,9 +182,9 @@
               <a class="admin-nav-section" href="/admin/finance" aria-current={active==='finance'?'page':undefined}
                 data-testid="admin-payabl-link">Χρεώσεις & εισπράξεις</a>
             {/if}
-            {#if liveIds.has('products')}
+            {#if liveIds.has('products') || liveIds.has('registers')}
               <a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined}
-                data-testid="admin-pos-link">Ταμεία, βάρδιες & προϊόντα</a>
+                data-testid="admin-pos-link">{user.role === 'cashier' ? 'Το ταμείο μου' : 'Ταμεία, βάρδιες & προϊόντα'}</a>
             {/if}
           </div>
         </details>

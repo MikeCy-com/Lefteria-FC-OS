@@ -28,6 +28,14 @@
           org.id === 'lefteria_fc' || org.id === 'lefteria_fc_academy')
       : []
   );
+  // Cashiers receive no catalog or finance capability. Their one linked
+  // organization is fixed when the Super Admin creates the credential.
+  const cashierOwner = $derived(
+    $auth.status === 'authenticated' && $auth.session?.user.role === 'cashier'
+      ? ($auth.session.user.organizations.find(org =>
+          org.id === 'lefteria_fc' || org.id === 'lefteria_fc_academy')?.id as Organization | undefined) ?? null
+      : null
+  );
   let owner = $state<Organization | null>(null);
   let catalog = $state<Catalog | null>(null);
   let busy = $state(false);
@@ -372,7 +380,22 @@
 
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="pos" busy={$auth.busy} onLogout={() => void auth.logout()}>
-    {#if assignments.length}
+    {#if $auth.session.user.role === 'cashier'}
+      <section class="admin-panel" data-testid="admin-pos-cashier-only">
+        <p class="admin-eyebrow">POS · ΠΡΟΣΩΠΙΚΟ ΤΑΜΕΙΟΥ</p>
+        <h1>Το ταμείο μου</h1>
+        <p class="admin-muted">Μόνο το ταμείο που σας ανέθεσε ο Super Admin.
+          Δεν παρέχονται δικαιώματα τιμολόγησης, αποθήκης, διαχείρισης παιδιών,
+          αλλαγής τοποθεσίας ή έγκρισης επιστροφών.</p>
+      </section>
+      {#if cashierOwner}
+        <AdminPosCashierShiftsPanel owner={cashierOwner}
+          actorId={$auth.session.user.id}
+          onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+      {:else}
+        <section class="admin-panel" role="alert">Δεν υπάρχει ενεργή ανάθεση οργανισμού για ταμείο.</section>
+      {/if}
+    {:else if assignments.length}
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>POS & κατάστημα</h1>
