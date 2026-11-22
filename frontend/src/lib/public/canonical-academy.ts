@@ -1,8 +1,9 @@
-import { CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG,
+import { CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG,
   isPublishedWebsitePage, type PublishedWebsitePage } from './website-pages.ts';
 
 type AcademyEditorialSlot =
-  typeof CANONICAL_ACADEMY_INTRO_SLUG | typeof CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG;
+  typeof CANONICAL_ACADEMY_INTRO_SLUG | typeof CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG |
+  typeof CANONICAL_ACADEMY_GROUPS_LEAD_SLUG;
 
 /** Academy-only approved introductory copy, with no untrusted HTML, links,
  * native data replacement or cross-organization fallback. */
