@@ -36,7 +36,8 @@ test('actual club form renders safe public fields, scoped choices, read-only per
     const { default: Workspace } = await import('../src/lib/admin/AdminWorkspace.svelte');
     const session = { user, expires_at: '2099-01-01T00:00:00Z' };
     const workspace = render(Workspace, { props: { session, onLogout() {}, onRefresh() {} } }).body;
-    assert.match(workspace, /data-testid="admin-dashboard-club"/);
+    assert.match(workspace, /href="\/admin\/settings"/);
+    assert.doesNotMatch(workspace,/data-testid="admin-dashboard-club"/);
     for (const patch of [{ permissions: ['news:*'] }, { organizations: [] }]) {
       const hidden = render(Workspace, { props: { session: { ...session, user: { ...user, ...patch } }, onLogout() {}, onRefresh() {} } }).body;
       assert.doesNotMatch(hidden, /data-testid="admin-dashboard-club"/);
