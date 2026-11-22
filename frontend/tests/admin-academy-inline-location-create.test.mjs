@@ -25,6 +25,8 @@ test('inline location creation uses existing authenticated territory endpoint', 
   assert.match(ui, /city_id:city,name,slug,address:locationAddress/);
   assert.match(ui, /pendingLocationId=/);
   assert.match(ui, /locationReload\+\+/);
+  assert.match(ui, /if\(newlyCreatedId && !requestedSite\)creationLocationsError=/);
+  assert.match(ui, /!newlyCreatedId && options\.length===1/);
   assert.match(ui, /const mayCreateLocation=\$derived\(creationCities\.some\(city=>/);
   assert.match(ui, /scope\.can_write_catalog===true/);
   assert.match(ui, /!mayCreateLocation/);
