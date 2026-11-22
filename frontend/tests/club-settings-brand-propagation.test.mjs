@@ -29,7 +29,7 @@ test('club profile is managed centrally, preserving existing audited per-org sav
 });
 
 test('public shell always uses the selected public organization rather than inherited First Team identity',()=>{
-  assert.match(publicContent,/branding: result\.value\?\.club \?\? null/);
+  assert.match(publicContent,/branding: site\?\.club \?\? null/);
   assert.doesNotMatch(publicContent,/brandingTask = organization === 'lefteria_fc'/);
   assert.match(publicContent,/requestSite\('lefteria_fc_academy'\)/);
 });
