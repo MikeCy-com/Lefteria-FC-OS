@@ -34,6 +34,9 @@ test('About history accepts only owner-scoped approved heading plus three paragr
   assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,blocks:[fc.page.blocks[0],{type:'image',text:'x',url:'/x'},...fc.page.blocks.slice(2)]}}],'lefteria_fc'),null);
   assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],text:'Unexpected\nnewline'},...fc.page.blocks.slice(1)]}}],'lefteria_fc'),null);
   assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],url:'/danger'},...fc.page.blocks.slice(1)]}}],'lefteria_fc'),null);
+  assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],text:'   '},...fc.page.blocks.slice(1)]}}],'lefteria_fc'),null);
+  assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,blocks:[...fc.page.blocks.slice(0,2),{...fc.page.blocks[2],text:' '},fc.page.blocks[3]]}}],'lefteria_fc'),null);
+  assert.equal(canonicalAboutHistory([{...fc,page:{...fc.page,menu_order:1}}],'lefteria_fc'),null);
 });
 
 test('history is a hidden non-routable native editorial region with API enforcement',()=>{
@@ -52,6 +55,8 @@ test('native About keeps crest, values and venue and edits only the history sect
   assert.match(about,/Οι Αξιες μας/);
   assert.match(about,/Γηπεδο Αετου/);
   assert.match(admin,/data-testid="edit-canonical-about-history"/);
+  assert.ok(admin.includes("draft.blocks[0].url!==null || !draft.blocks[0].text.trim()"));
+  assert.ok(admin.includes(String.raw`/[\r\n]/.test(draft.blocks[0].text)`));
   assert.match(admin,/expected_version:selected\.version,publish/);
   assert.ok(compile(about,{filename:'about/+page.svelte',generate:'server'}).js.code.length>100);
   assert.ok(compile(admin,{filename:'admin/website-pages/+page.svelte',generate:'server'}).js.code.length>100);
