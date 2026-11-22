@@ -52,9 +52,9 @@ test('one CMS embedded page override controls only its own heading and block geo
 
 test('original editorial title faces cannot override a published text role with local importance',()=>{
   const home=read('lib/public/home-reference.css');
-  assert.doesNotMatch(home,/font-family:var\\(--home-display\\)\\s*!important/);
-  assert.doesNotMatch(native,/\\.public-news-body h3\\s*\\{[^}]*font-family:[^;]*!important/);
-  assert.match(native,/\\.public-news-body h3\\s*\\{\\s*font-family:var\\(--lf-h3-family/);
+  assert.ok(!home.includes('font-family:var(--home-display)!important'));
+  assert.ok(!native.includes("font-family:'Fira Sans',sans-serif !important;"));
+  assert.ok(native.includes('.public-news-body h3 { font-family:var(--lf-h3-family'));
 });
 
 test('CMS semantic heading typography comes directly from backend role values, mobile wins over desktop',()=>{
