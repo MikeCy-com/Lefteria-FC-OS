@@ -154,7 +154,7 @@
   .contact-message-form :is(input,select,textarea):focus-visible,.contact-info-card a:focus-visible,.contact-other-links a:focus-visible{outline:3px solid var(--public-gold);outline-offset:2px}
   .contact-send-button{min-height:50px;width:100%;justify-content:center;display:flex;align-items:center;gap:10px;margin-top:15px}
   .contact-send-button:disabled{opacity:.5;cursor:not-allowed}
-  .contact-compose-status{padding:15px;background:var(--lf-feedback-success,#171b17);border-left:3px solid var(--lf-feedback-success,#b1cd9b);color:var(--lf-color-text,#f0f0f0);line-height:1.6}
+  .contact-compose-status{padding:15px;background:var(--lf-feedback-success-surface,#171b17);border-left:3px solid var(--lf-feedback-success,#b1cd9b);color:var(--lf-color-text,#f0f0f0);line-height:1.6}
   .contact-unavailable{color:var(--lf-color-accent,#e1c390);line-height:1.6}
   .contact-form-note{font-size:12px;color:var(--lf-color-muted,#a7a7a7);line-height:1.6;margin-top:12px}
   @media(max-width:950px){.contact-original-layout{grid-template-columns:1fr}.contact-page-heading{padding-bottom:28px}}
