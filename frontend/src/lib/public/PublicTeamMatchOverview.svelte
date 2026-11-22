@@ -39,7 +39,7 @@
     <a class="view-all" href={moreHref}>ΟΛΟ ΤΟ ΠΡΟΓΡΑΜΜΑ <Icon name="arrow" size={17}/></a>
   </header>
   <div class="match-overview-grid">
-    <article class="match-panel next-match" data-testid="team-featured-next-match" style:background-image={`linear-gradient(125deg,#0b0d0de8,#0e1111e0 76%),url("${publicImages.pitch}")`}>
+    <article class="match-panel next-match" data-testid="team-featured-next-match" style:background-image={`linear-gradient(125deg,color-mix(in srgb,var(--lf-color-bg,#0b0d0d) 90.98%,transparent),color-mix(in srgb,var(--lf-color-bg,#0e1111) 87.843%,transparent) 76%),url("${publicImages.pitch}")`}>
       <h3><Icon name="calendar" size={20}/> ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</h3>
       {#if next}
         <p class="competition">{next.competition||'ΑΓΩΝΑΣ'}</p>
