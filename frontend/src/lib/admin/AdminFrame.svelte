@@ -28,9 +28,9 @@
 <div class="admin-workspace">
   <a class="admin-skip" href="#admin-main">Μετάβαση στο περιεχόμενο</a>
   <header class="admin-header">
-    <a class="admin-brand" href="/admin" aria-label="Λευτεριά FC · Κέντρο διαχείρισης">
+    <a class="admin-brand" href="/admin" aria-label="Λευτεριά FC">
       <img src="/mobile/club-logo.png" alt="" width="42" height="48"/>
-      <span>ΛΕΥΤΕΡΙΑ FC <small>ΚΕΝΤΡΟ ΔΙΑΧΕΙΡΙΣΗΣ</small></span>
+      <span>ΛΕΥΤΕΡΙΑ FC</span>
     </a>
     <div class="admin-actions">
       <a class="admin-public-link" href="/" aria-label="Δημόσια ιστοσελίδα">Ιστοσελίδα <span aria-hidden="true">↗</span></a>
