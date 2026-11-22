@@ -177,3 +177,22 @@ test('contextual destinations highlight only their own role-specific parent sect
   assert.equal(contextualBottomTabFor('announcements', 'fan'), null);
   assert.equal(contextualBottomTabFor('hub', 'fan'), null);
 });
+
+test('cross-role deep links never select or highlight a destination outside the active role', () => {
+  const privateDestinations = ['children', 'squad', 'teams', 'financials', 'education'];
+  for (const role of roles) {
+    for (const tab of privateDestinations) {
+      const expected = allowedTabs(role).includes(tab) ? tab : 'home';
+      for (const location of [
+        { pathname: `/app/${tab}`, search: '' },
+        { pathname: '/app/home', search: `?tab=${tab}` }
+      ]) {
+        const resolved = tabFromLocation(location, role);
+        assert.equal(resolved, expected, `${role} must scope ${tab}`);
+        const highlighted = contextualBottomTabFor(resolved, role);
+        assert.ok(highlighted === null || primaryTabs(role).includes(highlighted),
+          `${role} must not highlight a foreign tab for ${tab}`);
+      }
+    }
+  }
+});
