@@ -53,7 +53,7 @@ node ops/release/verify-preview-runtime-images.mjs \
   --observations=/private/path/to/preview-runtime-observations.json
 ~~~
 
-Require exit code 0 **and** `verified:true`. It rejects stale/future observations (older than 30 minutes), incorrect project, missing/extra services, duplicate service labels, stopped/unhealthy containers, a writable root filesystem, wrong OCI revision/source, wrong image ID/reference and mismatched source manifest. Invalid evidence never echoes the supplied private fields.
+Require exit code 0 **and** `verified:true`. It rejects stale/future observations (older than 30 minutes), incorrect project, missing/extra services, duplicate service labels, stopped/unhealthy containers, a writable root filesystem, wrong OCI revision/source, wrong image ID/reference and mismatched source manifest. The preview bootstrap deliberately sets `PREVIEW_API_IMAGE` and `PREVIEW_WEB_IMAGE` to **immutable `sha256:` image IDs**, so the captured Docker `.Config.Image` may be that exact ID rather than the manifest's named tag. Both representations must resolve to the same manifest image ID; `latest` is never accepted. Invalid evidence never echoes the supplied private fields.
 
 A PASS establishes only that the **operator-captured API/web labels and image IDs agree with the chosen published manifest**. It does not authenticate the origin of the input file, verify PostgreSQL/images/permissions end-to-end, inspect a separate live installation, or prove a backup can be restored. Archive checksums, image labels, G0 isolation, real HTTP staging preflight, authorized synthetic five-role journeys, and recovery rehearsal must each have separate evidence.
 
