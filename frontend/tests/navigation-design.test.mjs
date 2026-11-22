@@ -54,6 +54,20 @@ test('built-in category order is persisted while all nine native routes survive'
   assert.match(editor,/data-testid="cms-menu-category-order"/);
   assert.match(editor,/function moveCategory/);
 });
+test('builtin names are customizable but identity and destinations are immutable',()=>{
+  const renamed={...config,category_labels:{team:'ΠΡΩΤΗ ΟΜΑΔΑ',news:'ΕΙΔΗΣΕΙΣ'}};
+  assert.deepEqual(parseNavigationDesign(JSON.stringify(renamed),'lefteria_fc'),renamed);
+  const nav=withNavigationDesign(publicNavigation,renamed);
+  assert.equal(nav.find(x=>x.id==='team')?.label,'ΠΡΩΤΗ ΟΜΑΔΑ');
+  assert.equal(nav.find(x=>x.id==='team')?.items?.[0]?.[2],publicNavigation.find(x=>x.id==='team')?.items?.[0]?.[2]);
+  assert.equal(nav.find(x=>x.id==='home')?.path,'/');
+  for(const bad of [
+    {admin:'Untrusted'}, {team:''},{team:'X'.repeat(41)},{team:'   '}
+  ]) assert.equal(parseNavigationDesign(JSON.stringify({...config,category_labels:bad}),'lefteria_fc'),null);
+  assert.match(api,/root.TryGetProperty\("category_labels"/);
+  assert.match(editor,/function renameCategory/);
+  assert.match(editor,/Ετικέτα κατηγορίας/);
+});
 test('owner boundaries and private routes fail closed',()=>{
   assert.equal(parseNavigationDesign(JSON.stringify(config),'lefteria_fc_academy'),null);
   for(const path of ['/admin','/api/public','/app','//evil','/login','javascript:alert(1)','/academy','/team?tab=roster#x']){
