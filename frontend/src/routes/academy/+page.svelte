@@ -219,7 +219,7 @@
     display:flex;flex-direction:column;justify-content:flex-end;
     padding:clamp(38px,4.5vw,72px) clamp(18px,4.6vw,78px) 0;
     overflow:hidden;background:#090b0c;
-    border-bottom:1px solid #a57b2c;
+    border-bottom:1px solid var(--public-gold);
   }
   :global(.public-site[data-route="/academy"]) .academy-intro>.academy-hero-image {
     position:absolute;inset:0;z-index:-2;
@@ -247,14 +247,14 @@
     font:800 clamp(17px,1.9vw,30px)/1.22 'Fira Sans Extra Condensed',sans-serif;
     color:#fff;margin:15px 0 20px;
   }
-  .academy-hero-motto span{color:#ffc547}
+  .academy-hero-motto span{color:var(--public-gold)}
   :global(.public-site[data-route="/academy"]) .academy-description{
     max-width:53ch;color:#eee;font-size:clamp(15px,1.15vw,19px);
     line-height:1.5;text-shadow:0 2px 10px #000;
   }
   :global(.public-site[data-route="/academy"]) .academy-intro .public-subnav{
     position:relative;z-index:1;display:flex;align-items:center;
-    flex-wrap:wrap;gap:0;border-top:1px solid #a57b2c;
+    flex-wrap:wrap;gap:0;border-top:1px solid var(--public-gold);
     border-bottom:0;max-width:100%;
   }
   :global(.public-site[data-route="/academy"]) .academy-intro .public-subnav a{
@@ -291,24 +291,24 @@
   .academy-reviews-heading h2{font:900 clamp(25px,2.5vw,40px)/1.12 'Fira Sans Extra Condensed',sans-serif}
   .academy-reviews-heading p:not(.public-eyebrow){color:#bdbdbd;margin-top:8px}
   .academy-reviews-summary{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
-  .academy-reviews-summary strong{font:900 36px/1 'Fira Sans Extra Condensed',sans-serif;color:#ffce65}
+  .academy-reviews-summary strong{font:900 36px/1 'Fira Sans Extra Condensed',sans-serif;color:var(--public-gold)}
   .academy-reviews-summary span{color:#bdbdbd;font-size:12px}
   .academy-review-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
   .academy-review-card{display:flex;flex-direction:column;gap:14px;min-width:0;padding:27px 24px;margin:0;background:#181818;border:1px solid #5e4d2d}
-  .academy-review-stars{color:#ffca57;font-size:23px;letter-spacing:.06em}
+  .academy-review-stars{color:var(--public-gold);font-size:23px;letter-spacing:.06em}
   .academy-review-card h3{font:800 24px/1.15 'Fira Sans Extra Condensed',sans-serif}
   .academy-review-body{font-size:15px;line-height:1.7;color:#ececec;overflow-wrap:anywhere}
   .academy-review-card footer{margin-top:auto;border-top:1px solid #444;padding-top:14px;display:flex;flex-direction:column;gap:5px}
   .academy-review-card footer strong{color:#fff;font-size:14px}
   .academy-review-card footer span{color:#bbb;font-size:12px}
-  .academy-review-response{padding:14px;background:#101010;border-left:3px solid #e5b94e}
+  .academy-review-response{padding:14px;background:#101010;border-left:3px solid var(--public-gold)}
   .academy-review-response strong{font-size:11px;letter-spacing:.05em;color:var(--public-gold)}
   .academy-review-response p{margin-top:6px;color:#ccc;font-size:13px;line-height:1.6}
   @media(max-width:1000px){.academy-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:650px){.academy-review-grid{grid-template-columns:1fr}.academy-reviews-heading{align-items:flex-start;flex-direction:column}.academy-reviews-summary{align-items:flex-start}.academy-review-card{padding:21px 18px}}
   .academy-key-figures{background:#090a0b;border-block:1px solid #3c3528}
   .academy-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
-  .academy-stats-grid>div{padding:25px 15px;border-left:2px solid #c99732;background:#151515;display:flex;flex-direction:column;gap:7px}
+  .academy-stats-grid>div{padding:25px 15px;border-left:2px solid var(--public-gold);background:#151515;display:flex;flex-direction:column;gap:7px}
   .academy-stats-grid strong{color:var(--public-gold);font:900 clamp(32px,3.3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif}
   .academy-stats-grid span{color:#d2d2d2;font-size:13px;font-weight:700}
   .academy-philosophy{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:45px;align-items:center;background:#101111}
@@ -316,7 +316,7 @@
   .academy-philosophy em{color:var(--public-gold)}
   .academy-philosophy-copy>p:not(.public-eyebrow),.academy-enquiry p:not(.public-eyebrow){line-height:1.7;color:#d0d0d0;max-width:67ch;margin:20px 0}
   .academy-philosophy ul{padding:0;list-style:none;display:grid;gap:14px;margin:24px 0}
-  .academy-philosophy li{border-left:3px solid #e7b341;padding-left:15px;font-size:15px;line-height:1.5;color:#e7e7e7}
+  .academy-philosophy li{border-left:3px solid var(--public-gold);padding-left:15px;font-size:15px;line-height:1.5;color:#e7e7e7}
   .academy-philosophy-art{overflow:hidden;min-height:300px;align-self:stretch}
   .academy-philosophy-art :global(img){width:100%;height:100%;object-fit:cover}
   .academy-enquiry{background:linear-gradient(130deg,#12110d,#080808);border-block:1px solid #80662b;display:flex;justify-content:space-between;align-items:center;gap:30px}
@@ -367,7 +367,7 @@
   .academy-age-groups{background:#101111;padding:18px clamp(20px,2.7vw,43px) 22px}
   .academy-age-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;border-bottom:1px solid #3c3429;padding-bottom:12px}
   .academy-age-heading h2{font:900 clamp(20px,1.6vw,26px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0}
-  .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:#ffcb4a;font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
+  .academy-age-heading>a{display:flex;align-items:center;gap:9px;color:var(--public-gold);font:800 13px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
   .academy-landing-city-index{
     display:flex;align-items:center;flex-wrap:wrap;gap:9px;
     padding:14px 0 5px;margin:0;
@@ -416,7 +416,7 @@
   }
   .academy-unassigned-block>p{font-size:13px;line-height:1.6;color:#ded8cc;max-width:75ch;margin:0 0 16px}
   .academy-city-block{margin-top:12px}
-  .academy-city-label{font:800 14px 'Fira Sans Extra Condensed',sans-serif;color:#f5b835;margin:0 0 9px}
+  .academy-city-label{font:800 14px 'Fira Sans Extra Condensed',sans-serif;color:var(--public-gold);margin:0 0 9px}
   .academy-location-block{margin:0 0 10px}
   .academy-location-block>h4{font-size:12px;margin:0 0 7px;color:#ececec}
   .academy-age-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
@@ -426,12 +426,12 @@
   .academy-age-caption{position:relative;z-index:2;min-height:143px;padding:12px 14px 9px;display:flex;flex-direction:column;align-items:flex-start}
   .academy-age-caption h5{font:900 clamp(29px,2.3vw,40px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0 0 4px}
   .academy-age-caption h5>a{color:#fff;text-decoration:none}
-  .academy-age-caption h5 span{font-size:16px;color:#ffca45}
-  .academy-age-caption strong{font:900 15px 'Fira Sans Extra Condensed',sans-serif;color:#ffbf3c}
+  .academy-age-caption h5 span{font-size:16px;color:var(--public-gold)}
+  .academy-age-caption strong{font:900 15px 'Fira Sans Extra Condensed',sans-serif;color:var(--public-gold)}
   .academy-age-caption>span{font:500 12px 'Fira Sans',sans-serif;color:#fff}
   .academy-card-arrow{display:grid;place-items:center;margin-top:auto;width:34px;height:26px;border:1px solid #fff;color:#fff!important;text-decoration:none}
   .academy-age-details{position:relative;z-index:2;padding:7px 14px;font-size:12px;background:#0b0b0bf5}
-  .academy-age-details summary{cursor:pointer;color:#ffca45}
+  .academy-age-details summary{cursor:pointer;color:var(--public-gold)}
   .academy-age-details p{margin:6px 0;color:#ddd}
   .academy-published-empty{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:18px 0}
   .academy-published-empty p{color:#bbb;font-size:13px;margin:0}
@@ -449,7 +449,7 @@
   .academy-reference-fees{
     display:grid;grid-template-columns:minmax(0,.42fr) minmax(0,1fr);
     min-height:132px;margin:0;padding:0;border-top:1px solid var(--public-gold);
-    background:linear-gradient(110deg,#ffb82d,#f5ae1e);color:#070707;
+    background:linear-gradient(110deg,var(--public-gold),var(--public-gold));color:#070707;
   }
   .academy-fees-art{position:relative;overflow:hidden;clip-path:polygon(0 0,100% 0,90% 100%,0 100%)}
   .academy-fees-art :global(img){width:100%;height:100%;object-fit:cover;filter:saturate(.8)}
