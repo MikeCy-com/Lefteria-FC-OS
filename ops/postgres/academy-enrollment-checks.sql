@@ -48,6 +48,8 @@ DECLARE
   second_scope uuid:=gen_random_uuid();
   second_group text:='grp_other_'||replace(gen_random_uuid()::text,'-','');
   second_player text;
+  document_status text;
+  primary_photo uuid:=gen_random_uuid();
   processed integer:=1;
   fixture_player_id text:='ply_'||replace(request_id::text,'-','');
   payload jsonb;
@@ -120,6 +122,43 @@ BEGIN
       'id_passport',DATE '2032-01-01','image/png',32,'fixture-vault',
       repeat('b',64),decode(repeat('cd',32),'hex'),
       decode(repeat('33',12),'hex'),decode(repeat('44',16),'hex'));
+  -- Parent-upload grant is unique per child and never grants access to
+  -- another sibling. The server supplies the 256-bit token digest and an
+  -- AES-GCM sealed file; SQL never stores the raw bearer secret.
+  INSERT INTO academy_intake.registration_upload_capabilities(
+    registration_id,token_digest,expires_at)
+  VALUES(application,repeat('7',64),clock_timestamp()+interval '30 minutes');
+  BEGIN
+    PERFORM academy_intake.store_public_registration_document(
+      application,repeat('8',64),primary_photo,'passport_photo',
+      NULL,'image/png',32,'fixture-vault',repeat('f',64),
+      decode(repeat('ed',32),'hex'),decode(repeat('aa',12),'hex'),
+      decode(repeat('bb',16),'hex'));
+    RAISE EXCEPTION 'Wrong document token accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  document_status:=academy_intake.store_public_registration_document(
+    application,repeat('7',64),primary_photo,'passport_photo',
+    NULL,'image/png',32,'fixture-vault',repeat('f',64),
+    decode(repeat('ed',32),'hex'),decode(repeat('aa',12),'hex'),
+    decode(repeat('bb',16),'hex'));
+  IF document_status<>'stored' THEN
+    RAISE EXCEPTION 'Valid private document capability did not store'; END IF;
+  document_status:=academy_intake.store_public_registration_document(
+    application,repeat('7',64),gen_random_uuid(),'passport_photo',
+    NULL,'image/png',32,'fixture-vault',repeat('f',64),
+    decode(repeat('ed',32),'hex'),decode(repeat('aa',12),'hex'),
+    decode(repeat('bb',16),'hex'));
+  IF document_status<>'replay' THEN
+    RAISE EXCEPTION 'Private document retry was not idempotent'; END IF;
+  BEGIN
+    PERFORM academy_intake.store_public_registration_document(
+      application,repeat('7',64),gen_random_uuid(),'passport_photo',
+      NULL,'image/png',32,'fixture-vault',repeat('0',64),
+      decode(repeat('ed',32),'hex'),decode(repeat('aa',12),'hex'),
+      decode(repeat('bb',16),'hex'));
+    RAISE EXCEPTION 'Conflicting private document slot accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+
   -- Siblings 2-5 each have separate registration ownership. Neither a
   -- common guardian phone nor the same season can mix document storage.
   FOR sibling_index IN 2..5 LOOP
@@ -155,6 +194,15 @@ BEGIN
       jsonb_build_object('id',sibling_registration,'status','under_review',
         'version',1));
   END LOOP;
+
+  BEGIN
+    PERFORM academy_intake.store_public_registration_document(
+      sibling_ids[1],repeat('7',64),gen_random_uuid(),'passport_photo',
+      NULL,'image/png',32,'fixture-vault',repeat('f',64),
+      decode(repeat('ef',32),'hex'),decode(repeat('ab',12),'hex'),
+      decode(repeat('bc',16),'hex'));
+    RAISE EXCEPTION 'Child 1 document token accessed child 2';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   -- Alternate location deliberately has no manager grant for original city.
   INSERT INTO club.football_cities(id,name,slug)
@@ -244,7 +292,7 @@ BEGIN
   -- player's encrypted Documents in the enrollment transaction.
   IF (SELECT count(*) FROM academy_private.player_documents
       WHERE organization_id='lefteria_fc_academy'
-        AND player_id=fixture_player_id)<>2
+        AND player_id=fixture_player_id)<>3
     OR EXISTS(
       SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=application AND
@@ -252,7 +300,7 @@ BEGIN
          promoted_document_id IS NULL OR ciphertext IS NOT NULL OR
          nonce IS NOT NULL OR auth_tag IS NOT NULL))
     OR (SELECT count(*) FROM academy_intake.registration_document_promotions
-      WHERE registration_id=application AND player_id=fixture_player_id)<>2
+      WHERE registration_id=application AND player_id=fixture_player_id)<>3
     OR EXISTS(SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=ANY(sibling_ids) AND promoted_at IS NOT NULL)
   THEN RAISE EXCEPTION 'Child 1 document promotion leaked sibling evidence'; END IF;
@@ -304,7 +352,7 @@ BEGIN
        sibling_index; END IF;
     IF processed IN (2,4,5)
       AND (SELECT count(*) FROM academy_intake.registration_document_promotions
-        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+1
+        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+2
     THEN RAISE EXCEPTION 'Family % child documents count wrong',processed; END IF;
   END LOOP;
   SET CONSTRAINTS ALL IMMEDIATE;
