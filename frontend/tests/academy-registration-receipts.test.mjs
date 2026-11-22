@@ -19,7 +19,7 @@ test('rejects mismatched first receipt, opaque content, invalid shape and excess
     null,{},[],{receipt:ids[0],receipts:[]},
     {receipt:ids[0],receipts:ids.concat(ids[0])},
     {receipt:ids[4],receipts:[ids[0],ids[1]]},
-    {receipt:ids[0].toUpperCase(),receipts:[ids[0]]},
+    {receipt:ids[0].slice(0,31)+'A',receipts:[ids[0]]},
     {receipt:'x'.repeat(32),receipts:['x'.repeat(32)]},
     {receipt:ids[0],receipts:[ids[0],false]},
     {receipt:ids[0],receipts:'not an array'}
