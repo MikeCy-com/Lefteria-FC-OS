@@ -30,10 +30,11 @@ test('separate zero and exempt plus all other Cyprus treatment codes are proposa
 });
 test('two layers of scoped authenticated finance permissions with audit and replay safety',()=>{
   assert.match(api,/AdminPermissions.Has\(session.User.Role,"finance:write"\)/);
+  assert.match(api,/session.User.Role is not \("super_admin" or "accountant"\)/);
   assert.match(api,/session.User.Organizations.Any\(o=>o.Id==owner\)/);
   assert.match(migration,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
   assert.match(migration,/identity\.admin_organization_grants g/);
-  assert.match(migration,/v_role NOT IN \('super_admin','manager','accountant'\)/);
+  assert.match(migration,/v_role NOT IN \('super_admin','accountant'\)/);
   assert.match(migration,/pos_vat_proposal_replay_conflict/);
   assert.match(migration,/INSERT INTO audit\.security_events/);
   assert.match(migration,/REVOKE ALL ON pos_cashier\.vat_classification_proposals FROM PUBLIC/);
