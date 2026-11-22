@@ -120,14 +120,14 @@ public static class AcademyRegistrationEndpoints
                 byte[] evidence=JsonSerializer.SerializeToUtf8Bytes(new {
                     FamilyId=familyId, FamilyChildCount=children.Count,
                     FamilyMonthlyFeeEur=monthly, RegistrationFeeEur=20,
-                    KitFeeEur=child.OfficialKitRequested?140:0,
-                    PrintingFeeEur=child.OfficialKitRequested&&child.KitPrintingRequested?10:0,
+                    KitFeeEur=140,
+                    PrintingFeeEur=10,
                     child.PlayerGender,child.PlayerAddress,child.PlayerCity,child.PlayerPostalCode,
                     child.EmergencyName,child.EmergencyPhone,child.EmergencyRelationship,
                     child.HasAllergies,child.AllergiesDetails,child.HasConditions,child.ConditionsDetails,
                     child.HasMedication,child.MedicationDetails,
                     child.PreferredNumber,child.PreferredPrintName,
-                    child.OfficialKitRequested,child.KitPrintingRequested,
+                    OfficialKitMandatory=true,PrintingMandatory=true,
                     child.PaymentMethod,child.SignatureData,child.SignatureDate,
                     child.CommEmail,child.CommSms
                 });
@@ -200,7 +200,6 @@ public static class AcademyRegistrationEndpoints
         HasConditions=child.HasConditions,ConditionsDetails=child.ConditionsDetails,
         HasMedication=child.HasMedication,MedicationDetails=child.MedicationDetails,
         PreferredNumber=child.PreferredNumber,PreferredPrintName=child.PreferredPrintName,
-        OfficialKitRequested=child.OfficialKitRequested,KitPrintingRequested=child.KitPrintingRequested,
         ParentName=family.ParentName,ParentRelationship=family.ParentRelationship,
         ParentPhone=family.ParentPhone,ParentEmail=family.ParentEmail,
         EmergencyName=family.EmergencyName,EmergencyPhone=family.EmergencyPhone,
@@ -213,11 +212,10 @@ public static class AcademyRegistrationEndpoints
         SignatureData=family.SignatureData,SignatureDate=family.SignatureDate
     };
     private static bool ValidKit(AcademyRegistrationRequest child) =>
-        (string.IsNullOrEmpty(child.PreferredNumber) ||
-         System.Text.RegularExpressions.Regex.IsMatch(child.PreferredNumber,@"^[0-9]{1,2}$")) &&
-        (string.IsNullOrEmpty(child.PreferredPrintName) ||
-         child.PreferredPrintName.Length<=32 && !child.PreferredPrintName.Any(char.IsControl)) &&
-        (!child.KitPrintingRequested || child.OfficialKitRequested);
+        !string.IsNullOrWhiteSpace(child.PreferredPrintName) &&
+        child.PreferredPrintName.Length<=32 &&
+        !child.PreferredPrintName.Any(char.IsControl) &&
+        System.Text.RegularExpressions.Regex.IsMatch(child.PreferredNumber,@"^[0-9]{1,2}$");
 
     private static bool Validate(AcademyRegistrationRequest b,out DateOnly birth)
     {
@@ -260,8 +258,6 @@ public sealed class AcademyRegistrationRequest
     public List<AcademyRegistrationAdditionalPlayer>? AdditionalPlayers {get;set;}
     public string PreferredNumber {get;set;} = "";
     public string PreferredPrintName {get;set;} = "";
-    public bool OfficialKitRequested {get;set;}
-    public bool KitPrintingRequested {get;set;}
     public string PlayerFirstName {get;set;} = "";
     public string PlayerLastName {get;set;} = "";
     public string PlayerDob {get;set;} = "";
@@ -313,6 +309,4 @@ public sealed class AcademyRegistrationAdditionalPlayer
     public string MedicationDetails {get;set;} = "";
     public string PreferredNumber {get;set;} = "";
     public string PreferredPrintName {get;set;} = "";
-    public bool OfficialKitRequested {get;set;}
-    public bool KitPrintingRequested {get;set;}
 }
