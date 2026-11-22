@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -364,6 +364,22 @@ public static class WebsitePageEndpoints
             content.Blocks[0].Url is not null ||
             string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
             content.Blocks[0].Text.Length > 500)
+            throw Invalid();
+    }
+    // Native About history supports heading plus three editorial paragraphs.
+    // Crest, venue and other existing native components remain untouched.
+    private static void ValidateCanonicalAboutHistory(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-about-history") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 4 || content.Blocks[0].Type != "heading" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 180 ||
+            content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n') ||
+            content.Blocks.Skip(1).Any(block => block.Type != "paragraph" ||
+                block.Url is not null || string.IsNullOrWhiteSpace(block.Text) ||
+                block.Text.Length > 800))
             throw Invalid();
     }
     private static string Owner(string? org) =>
