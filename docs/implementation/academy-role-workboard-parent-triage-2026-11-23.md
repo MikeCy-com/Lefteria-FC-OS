@@ -21,6 +21,10 @@ The dashboard does not show fake outstanding tasks or cross-city counts. Every U
 
 `/admin/academy-office?queue=action` opens a **working inbox** with status filtering, search, accessible status labels, next-step guidance, and per-page summary. Filters only operate on the data already returned by the existing authorized endpoint. Counts say **current loaded page**, not global Academy numbers. No parent identity is inferred from a phone number or an approved registration; the existing Super Admin proof-review, parental consent and atomic enrollment checks are retained. No enrollment, external contact or guardian approval happens automatically.
 
+### Mobile player dashboard
+
+Players now see an optional "Training attendance" action list only from their **own** validated role/identity/month calendar. This is independent of the existing next-match response. Activities with a missing or ambiguous RSVP snapshot are not treated as confirmed pending items. A player cannot see a coach's, manager's, parent's, other organization or another athlete's schedule through the queue; no implicit identity switch is supported. Attendance replies use the existing verified callback, not a new direct endpoint.
+
 ### Mobile parent dashboard
 
 The parent dashboard now has a concise unanswered RSVP queue for **the currently selected, verified child only**, using the existing guardian-authorized calendar and existing `onRespond` callback. A stale calendar, wrong role, different organization, absent/revoked child or different month produces **no action queue**. Parent replies are never optimistically marked as confirmed; they update only after the controller confirms and reloads the data.
@@ -32,8 +36,9 @@ The quick shortcut to Calendar now follows `activeChild.id` rather than always o
 1. Run `npm run check`, `npm test`, `npm run build` and existing .NET/DB/contract pipelines.
 2. Verify Admin landing page for all eight admin roles with and without organization grants, including read-only manager and accountant.
 3. Verify registration search, page-local summary, new/under-review/needs-info/approved/rejected filters, next-step copy and existing guardian proof form in staging.
-4. Verify parent with two linked children: switching child changes which schedule/calendar shortcut is used. Confirm no stale RSVP queue for a different child or revoked guardian.
-5. Confirm no extra API requests in the role task board and no pending/disabled feature advertised as a live action.
+4. Verify player self-calendar with unanswered upcoming training and existing match RSVP; coach/manager calendars must never show player actions.
+5. Verify parent with two linked children: switching child changes which schedule/calendar shortcut is used. Confirm no stale RSVP queue for a different child or revoked guardian.
+6. Confirm no extra API requests in the role task board and no pending/disabled feature advertised as a live action.
 
 ## Explicitly not covered
 
