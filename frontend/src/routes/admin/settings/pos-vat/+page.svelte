@@ -36,6 +36,7 @@
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
   let reviews=$state<VatReview[]>([]),reviewsAvailable=$state(false);
   let assignments=$state<VatAssignment[]>([]),assignmentsError=$state('');
+  let assignmentsLoaded=$state(false);
   const canReview=$derived($auth.session?.user.role==='super_admin'&&reviewsAvailable);
   let reviewTarget=$state<string|null>(null),reviewNote=$state(''),reviewSaving=$state(false);
   let productId=$state(''),variantId=$state(''),code=$state('standard_19');
@@ -167,7 +168,7 @@
   });
   $effect(()=>{
     const current=owner;void refresh;
-    assignments=[];assignmentsError='';
+    assignments=[];assignmentsError='';assignmentsLoaded=false;
     if(!browser||!authorized||!current)return;
     const controller=new AbortController();
     void(async()=>{
@@ -202,11 +203,15 @@
             typeof x.authority_reference==='string';
         });
         if(!valid)throw Error('Ασυμβατότητα καταχωρισμένων ταξινομήσεων.');
-        if(!controller.signal.aborted&&owner===current)
+        if(!controller.signal.aborted&&owner===current){
           assignments=value.assignments as VatAssignment[];
+          assignmentsLoaded=true;
+        }
       }catch(e){
-        if(!controller.signal.aborted)
+        if(!controller.signal.aborted){
           assignmentsError=e instanceof Error?e.message:'Σφάλμα φόρτωσης.';
+          assignmentsLoaded=true;
+        }
       }
     })();
     return()=>controller.abort();
@@ -335,11 +340,11 @@
               </label>
               <label class="wide">Νομική / λογιστική τεκμηρίωση
                 <textarea required maxlength="500" minlength="10" rows="2"
-                  bind:value={reference} oninput={resetRequest}/>
+                  bind:value={reference} oninput={resetRequest}></textarea>
               </label>
               <label class="wide">Αιτιολόγηση για αυτό το προϊόν
                 <textarea required maxlength="500" minlength="10" rows="2"
-                  bind:value={reason} oninput={resetRequest}/>
+                  bind:value={reason} oninput={resetRequest}></textarea>
               </label>
               <button type="submit" class="admin-primary" disabled={!canSubmit||saving}>
                 {saving?'Αποθήκευση…':'Αποθήκευση πρότασης για έλεγχο'}
@@ -377,10 +382,11 @@
             <p class="admin-muted">Οι καταχωρισμένες αναθεωρήσεις είναι αποθηκευμένες
               ανά οργανισμό, προϊόν και παραλλαγή. Η κατάσταση «Ανενεργή»
               σημαίνει ότι δεν ισχύει ακόμη για ταμείο, παραστατικά ή πληρωμές.</p>
+            {#if !assignmentsLoaded}<p role="status">Ανάκτηση ταξινομήσεων…</p>{/if}
             {#if assignmentsError}<p role="alert">{assignmentsError}</p>{/if}
-            {#if !assignmentsError&&!assignments.length}
+            {#if assignmentsLoaded&&!assignmentsError&&!assignments.length}
               <p>Δεν έχουν καταχωριστεί ελεγμένες ταξινομήσεις.</p>
-            {:else}
+            {:else if assignments.length}
               <div class="vat-list">
                 {#each assignments as item (item.product_id+'-'+item.variant_id)}
                   <article>
@@ -401,7 +407,7 @@
               <h2>Ανεξάρτητη απόφαση Super Admin</h2>
               <p class="admin-muted">Δεν επιτρέπεται αυτοέγκριση. Ελέγξτε πραγματική νομοθεσία και τεκμηρίωση του προϊόντος. Η έγκριση αποθηκεύει ανενεργή αναθεώρηση ΦΠΑ και δεν επιτρέπει φορολογικές αποδείξεις ή Payabl.</p>
               <label>Αιτιολόγηση απόφασης
-                <textarea bind:value={reviewNote} rows="3" minlength="10" maxlength="500"/>
+                <textarea bind:value={reviewNote} rows="3" minlength="10" maxlength="500"></textarea>
               </label>
               <div class="vat-review-actions">
                 <button type="button" disabled={reviewSaving||reviewNote.trim().length<10}
