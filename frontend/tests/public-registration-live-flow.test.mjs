@@ -69,6 +69,7 @@ test('same-origin SvelteKit proxy strips credentials and bounds upload payload',
   assert.match(proxy,/credentials: 'omit'/);
   assert.match(proxy,/cache: 'no-store'/);
   assert.match(proxy,/response\.status === 202/);
+  assert.match(proxy,/parseAcademyRegistrationReceipts/);
   assert.match(proxy,/status: 503/);
   assert.doesNotMatch(proxy,/request\.headers\.get\('cookie'\)|request\.headers\.get\('authorization'\)/i);
 });
