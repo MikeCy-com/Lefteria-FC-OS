@@ -1,6 +1,7 @@
 <script lang="ts">
   import {getContext,untrack} from 'svelte';
   import {browser} from '$app/env';
+  import {page} from '$app/state';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
@@ -155,6 +156,17 @@
       Array.isArray(x.documents)&&x.documents.length===(x.total as number)&&
       x.documents.every(validDocument);
   }
+  // Staff deep-link from an approved Academy enrollment. The query string
+  // only selects the UI; the existing API and DB re-check the current manager
+  // and exact player/city/location authority before any metadata/upload.
+  $effect(()=>{
+    const direct=page.url.searchParams.get('player_id');
+    const owner=page.url.searchParams.get('organization_id');
+    if(!browser||!permitted||selected||owner!==organization||!validId(direct))return;
+    playerId=direct;
+    selected=direct;
+    reload++;
+  });
   function choosePlayer(){
     if(!validId(playerId)){error='Εισάγετε έγκυρο αναγνωριστικό αθλητή.';return;}
     selected=playerId;uploadFile=null;uploadMessage='';uploadRequestId='';reload++;
