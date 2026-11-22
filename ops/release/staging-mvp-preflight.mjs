@@ -11,6 +11,7 @@
  */
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
+import {readBoundedResponse} from './read-bounded-response.mjs';
 
 export const STAGING_CHECKS=Object.freeze([
   {path:'/api/health/live',status:200,kind:'json',bodyStatus:'live'},
@@ -76,28 +77,25 @@ export async function checkStagingMvp({
     }
     const expected=Array.isArray(check.status)?check.status:[check.status];
     let ok=expected.includes(response.status);
-    if(ok&&check.kind==='json'){
-      try{
-        const body=await response.json();
-        ok=body?.status===check.bodyStatus;
-      }catch{ok=false;}
-    }else if(ok&&check.kind==='disabled'){
-      try {
-        const body=await response.json();
-        ok=body?.code===check.bodyCode &&
-          (response.headers?.get('content-type')??'').includes('application/json');
-      }catch{ok=false;}
-    }else if(ok&&check.kind==='html'){
-      // A proxy's text/html 200 alone could be an empty page, not a rendered
-      // site. Do not log or return the response body in the evidence report.
+    if(ok&&(check.kind==='json'||check.kind==='disabled')){
       try{
         const type=(response.headers?.get('content-type')??'').toLowerCase();
-        const length=Number(response.headers?.get('content-length')??0);
-        if(!type.includes('text/html')||
-           !Number.isFinite(length)||length>1024*1024)ok=false;
+        if(!type.includes('application/json'))ok=false;
         else{
-          const html=await response.text();
-          ok=html.length>0&&html.length<=1024*1024&&
+          const body=JSON.parse(await readBoundedResponse(response,8192));
+          ok=check.kind==='json'?body?.status===check.bodyStatus:
+            body?.code===check.bodyCode;
+        }
+      }catch{ok=false;}
+    }else if(ok&&check.kind==='html'){
+      // A chunked or lying-content-length 200 may contain an enormous body.
+      // Stream at most 1 MiB and NEVER log any response bytes.
+      try{
+        const type=(response.headers?.get('content-type')??'').toLowerCase();
+        if(!type.includes('text/html'))ok=false;
+        else{
+          const html=await readBoundedResponse(response,1024*1024);
+          ok=html.length>0&&
             /<(?:!doctype\s+html|html\b)/i.test(html);
         }
       }catch{ok=false;}
