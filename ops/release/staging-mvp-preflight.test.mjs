@@ -118,3 +118,31 @@ test('Academy MVP preflight requires a real disabled-feature code, never a gener
     }
   }
 });
+
+test('a successful HTML status without a document is not staging page acceptance',async()=>{
+  for(const bad of [
+    new Response('',{status:200,headers:{'content-type':'text/html'}}),
+    new Response('Maintenance only',{status:200,headers:{'content-type':'text/html'}}),
+    new Response('{"status":"ready"}',{status:200,headers:{'content-type':'text/html'}})
+  ]){
+    const report=await checkStagingMvp({origin:validOrigin,
+      fetcher:mock({'/admin/login':bad})});
+    assert.equal(report.ready,false);
+    assert.ok(report.evidence.some(item=>
+      item.path==='/admin/login'&&!item.ok));
+  }
+});
+
+test('private Academy enrollment and roster APIs must deny anonymous staging access',async()=>{
+  for(const protectedRoute of [
+    '/api/admin/academy/intake',
+    '/api/admin/football/players'
+  ]){
+    const report=await checkStagingMvp({origin:validOrigin,fetcher:mock({
+      [protectedRoute]:Response.json({children:[],players:[]},{status:200})
+    })});
+    assert.equal(report.ready,false);
+    assert.ok(report.evidence.some(item=>
+      item.path.startsWith(protectedRoute)&&!item.ok));
+  }
+});
