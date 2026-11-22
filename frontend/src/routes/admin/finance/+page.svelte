@@ -212,6 +212,10 @@
     <div class="admin-workspace-intro" data-testid="payabl-admin-sandbox">
       <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ · ΟΙΚΟΝΟΜΙΚΑ</p>
       <h1>Οικονομικά & λογιστήριο</h1>
+      {#if $auth.session.user.role==='super_admin'||$auth.session.user.role==='accountant'||$auth.session.user.role==='manager'}
+        <a class="admin-secondary" href="/admin/settings/pos-vat"
+          data-testid="finance-vat-settings-link">ΦΠΑ προϊόντων · ταξινόμηση και προτάσεις</a>
+      {/if}
       <p class="admin-muted">Ξεχωριστά οικονομικά Πρώτης Ομάδας και Ακαδημίας. Τα ιστορικά
         στοιχεία προέρχονται από επαληθευμένα μητρώα, ενώ το Payabl παραμένει sandbox.</p>
     </div>
