@@ -50,7 +50,8 @@ test('Academy Office registration triage compiles and preserves parent proof bou
     'academy-inbox-no-filter-results','academy-registration-triage-card',
     'AcademyGuardianProofReview','onboarded_player_id']) assert.ok(page.includes(marker),marker);
   assert.match(page,/page\.url\.searchParams\.get\('queue'\)==='action'/);
-  assert.match(page,/filterRegistrations\(entries,applicationFilter,applicationQuery\)/);
-  assert.match(page,/registrationPageSummary\(entries\)/);
+  assert.match(page,/registrationPageItems = \$derived\(entries\.slice\(0,25\)\)/);
+  assert.match(page,/filterRegistrations\(registrationPageItems,applicationFilter,applicationQuery\)/);
+  assert.match(page,/registrationPageSummary\(registrationPageItems\)/);
   assert.match(page,/\$auth\.session\.user\.role === 'super_admin'/);
 });
