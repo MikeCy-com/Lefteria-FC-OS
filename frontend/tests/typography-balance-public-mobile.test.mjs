@@ -35,7 +35,7 @@ test('public display hierarchy matches source Fira while body text stays legible
   const a=clampIn(academy,':global(.public-site[data-route="/academy"]) .academy-intro h1',1);
   assert.ok(a[2]<=75 && a[0]>=40,'Academy hero remains condensed but more compact');
   assert.ok(academy.includes('.academy-intro h1{font-size:46px}'),'Phone override must not restore 64px headings');
-  assert.ok(shared.includes('font:italic 900 clamp(43px,4.3vw,74px)'),'First Team masthead reduced');
+  assert.ok(shared.includes('font:italic 900 clamp(38px,3.6vw,58px)'),'First Team masthead reduced');
   assert.match(team,/font:italic 900 clamp\(43px,3\.9vw,66px\)/);
   assert.match(published,/font:italic 900 clamp\(36px,5vw,78px\)/);
   assert.match(home,/public-news-card:first-child h3/);
