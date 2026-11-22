@@ -1,0 +1,24 @@
+/* Approved tenant design tokens only. No arbitrary CSS is accepted. */
+.public-site[data-global-design="true"]{background:var(--lf-color-bg);color:var(--lf-color-text)}
+.public-site[data-global-design="true"] .public-main{color:var(--lf-color-text)}
+.public-site[data-global-design="true"] .public-main h1{font-family:var(--lf-h1-family)!important;font-size:var(--lf-h1-desktop)!important;font-weight:var(--lf-h1-weight)!important;line-height:var(--lf-h1-line)!important}
+.public-site[data-global-design="true"] .public-main h2{font-family:var(--lf-h2-family)!important;font-size:var(--lf-h2-desktop)!important;font-weight:var(--lf-h2-weight)!important;line-height:var(--lf-h2-line)!important}
+.public-site[data-global-design="true"] .public-main h3{font-family:var(--lf-h3-family)!important;font-size:var(--lf-h3-desktop)!important;font-weight:var(--lf-h3-weight)!important;line-height:var(--lf-h3-line)!important}
+.public-site[data-global-design="true"] .public-main h4{font-family:var(--lf-h4-family)!important;font-size:var(--lf-h4-desktop)!important;font-weight:var(--lf-h4-weight)!important;line-height:var(--lf-h4-line)!important}
+.public-site[data-global-design="true"] .public-main h5{font-family:var(--lf-h5-family)!important;font-size:var(--lf-h5-desktop)!important;font-weight:var(--lf-h5-weight)!important;line-height:var(--lf-h5-line)!important}
+.public-site[data-global-design="true"] .public-main h6{font-family:var(--lf-h6-family)!important;font-size:var(--lf-h6-desktop)!important;font-weight:var(--lf-h6-weight)!important;line-height:var(--lf-h6-line)!important}
+.public-site[data-global-design="true"] .public-main p{font-family:var(--lf-p-family)!important;font-size:var(--lf-p-desktop)!important;font-weight:var(--lf-p-weight)!important;line-height:var(--lf-p-line)!important}
+.public-site[data-global-design="true"] .public-button,.public-site[data-global-design="true"] .public-main button{font-family:var(--lf-button-family)!important;font-size:var(--lf-button-desktop)!important;font-weight:var(--lf-button-weight)!important;line-height:var(--lf-button-line)!important}
+.public-site[data-global-design="true"] nav a{font-family:var(--lf-nav-family)!important;font-size:var(--lf-nav-desktop)!important;font-weight:var(--lf-nav-weight)!important;line-height:var(--lf-nav-line)!important}
+.public-site[data-global-design="true"] .public-eyebrow{color:var(--lf-color-accent)!important}
+@media(max-width:767px){
+.public-site[data-global-design="true"] .public-main h1{font-size:var(--lf-h1-mobile)!important}
+.public-site[data-global-design="true"] .public-main h2{font-size:var(--lf-h2-mobile)!important}
+.public-site[data-global-design="true"] .public-main h3{font-size:var(--lf-h3-mobile)!important}
+.public-site[data-global-design="true"] .public-main h4{font-size:var(--lf-h4-mobile)!important}
+.public-site[data-global-design="true"] .public-main h5{font-size:var(--lf-h5-mobile)!important}
+.public-site[data-global-design="true"] .public-main h6{font-size:var(--lf-h6-mobile)!important}
+.public-site[data-global-design="true"] .public-main p{font-size:var(--lf-p-mobile)!important}
+.public-site[data-global-design="true"] .public-button,.public-site[data-global-design="true"] .public-main button{font-size:var(--lf-button-mobile)!important}
+.public-site[data-global-design="true"] nav a{font-size:var(--lf-nav-mobile)!important}
+}
