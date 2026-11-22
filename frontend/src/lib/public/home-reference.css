@@ -404,7 +404,7 @@
   }
   .public-site .home-reference .public-hero-stage::after{
     content:"";position:absolute;z-index:-1;inset:0;pointer-events:none;
-    background:linear-gradient(113deg,transparent 7%,color-mix(in srgb,var(--lf-feedback-error,#b67910) 4.7059%,transparent) 7% 10%,
+    background:linear-gradient(113deg,transparent 7%,color-mix(in srgb,var(--lf-color-accent,#b67910) 4.7059%,transparent) 7% 10%,
       color-mix(in srgb,var(--lf-color-accent,#d8991c) 18.8235%,transparent) 10% 11%,transparent 12% 60%,color-mix(in srgb,var(--lf-color-accent,#ffdb6b) 7.8431%,transparent) 61% 62%,transparent 65%);
   }
   .public-site .home-reference .public-hero-copy{
