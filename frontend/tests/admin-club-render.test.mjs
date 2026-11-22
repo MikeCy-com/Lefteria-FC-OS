@@ -36,11 +36,14 @@ test('actual club form renders safe public fields, scoped choices, read-only per
     const { default: Workspace } = await import('../src/lib/admin/AdminWorkspace.svelte');
     const session = { user, expires_at: '2099-01-01T00:00:00Z' };
     const workspace = render(Workspace, { props: { session, onLogout() {}, onRefresh() {} } }).body;
-    assert.match(workspace, /data-testid="admin-dashboard-club"/);
+    assert.match(workspace, /data-testid="admin-dashboard-heading"/);
+    assert.doesNotMatch(workspace, /data-testid="admin-dashboard-club"|admin-quick-navigation/);
     for (const patch of [{ permissions: ['news:*'] }, { organizations: [] }]) {
       const hidden = render(Workspace, { props: { session: { ...session, user: { ...user, ...patch } }, onLogout() {}, onRefresh() {} } }).body;
-      assert.doesNotMatch(hidden, /data-testid="admin-dashboard-club"/);
+      assert.doesNotMatch(hidden, /data-testid="admin-dashboard-club"|admin-quick-navigation/);
     }
+    const settings = readFileSync(new URL('../src/routes/admin/settings/+page.svelte',import.meta.url),'utf8');
+    assert.match(settings, /data-testid="admin-settings-club"/);
     controller.dispose();
   } finally { hooks.deregister(); }
 });
