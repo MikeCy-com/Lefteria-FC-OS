@@ -15,6 +15,61 @@
   let receipt = $state('');
   let submissionError = $state('');
   let errors = $state<Record<string, string>>({});
+  type ChildDocuments={
+    kind:''|'identity'|'birth';front:File|null;back:File|null;
+    birth:File|null;expiry:string;
+  };
+  const emptyDocuments=():ChildDocuments=>({
+    kind:'',front:null,back:null,birth:null,expiry:''
+  });
+  let childDocuments=$state<ChildDocuments[]>([emptyDocuments()]);
+  let documentUploadStatus=$state<'none'|'uploading'|'complete'|'incomplete'>('none');
+  let documentUploadError=$state('');
+  let committedReceipts=$state<string[]>([]);
+  let uploadTokens=$state<string[]>([]);
+  const validUpload=(file:File|null):boolean=>!!file&&file.size>0&&
+    file.size<=10*1024*1024&&['application/pdf','image/jpeg','image/png','image/webp'].includes(file.type);
+  function documentsValid(index:number):boolean{
+    const docs=childDocuments[index];
+    return !!docs&&(docs.kind==='birth'?validUpload(docs.birth):
+      docs.kind==='identity'&&validUpload(docs.front)&&validUpload(docs.back)&&
+        /^\\d{4}-\\d{2}-\\d{2}$/.test(docs.expiry));
+  }
+  async function uploadDocuments(){
+    if(!committedReceipts.length||committedReceipts.length!==childDocuments.length||
+       uploadTokens.length!==committedReceipts.length||documentUploadStatus==='uploading')
+      return;
+    documentUploadStatus='uploading';documentUploadError='';
+    try{
+      for(const [index,docs] of childDocuments.entries()){
+        const files=docs.kind==='birth'
+          ?[{slot:'birth_certificate',file:docs.birth}]
+          :[{slot:'id_front',file:docs.front},{slot:'id_back',file:docs.back}];
+        for(const item of files){
+          if(!validUpload(item.file))throw Error('missing_private_file');
+          const payload=new FormData();
+          payload.append('file',item.file!);
+          payload.append('slot',item.slot);
+          payload.append('upload_token',uploadTokens[index]);
+          if(docs.kind==='identity')payload.append('expiry_date',docs.expiry);
+          const response=await fetch(
+            '/api/public/academy/registration/'+committedReceipts[index]+'/documents',{
+              method:'POST',credentials:'omit',cache:'no-store',body:payload
+            });
+          const result=await response.json().catch(()=>null);
+          if(response.status!==202||result?.status!=='quarantined'||
+             result?.slot!==item.slot)
+            throw Error('document_upload_unconfirmed');
+        }
+      }
+      documentUploadStatus='complete';
+      uploadTokens=[];
+    }catch{
+      documentUploadStatus='incomplete';
+      documentUploadError='Η αίτηση καταχωρίστηκε, αλλά ένα ή περισσότερα έγγραφα δεν επιβεβαιώθηκαν στον ιδιωτικό φάκελο. Μπορείτε να δοκιμάσετε ξανά τώρα. Αν δεν ολοκληρωθεί, επικοινωνήστε με την Ακαδημία αναφέροντας τον κωδικό παραλαβής.';
+    }
+  }
+
   type AdditionalPlayer = {
     player_first_name:string;player_last_name:string;player_dob:string;
     player_gender:string;player_address:string;player_city:string;player_postal_code:string;
@@ -34,6 +89,7 @@
   const initialTotal = $derived(monthlyFee+registrationFees+kitAndPrintingFees);
   function addPlayer(){
     if(pending||additionalPlayers.length>=4)return;
+    childDocuments=[...childDocuments,emptyDocuments()];
     additionalPlayers=[...additionalPlayers,{
       player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
       player_address:form.player_address,player_city:form.player_city,
@@ -46,6 +102,7 @@
   function removePlayer(index:number){
     if(pending)return;
     additionalPlayers=additionalPlayers.filter((_,i)=>i!==index);
+    childDocuments=childDocuments.filter((_,i)=>i!==index+1);
     errors={};
   }
   let drawing = false;
@@ -75,6 +132,9 @@
       must('preferred_number',numberValid(form.preferred_number));
       must('preferred_print_name',printNameValid(form.preferred_print_name));
       must('koa_health_card_status',['yes','no'].includes(form.koa_health_card_status));
+      for(let index=0;index<playerCount;index++)
+        if(!documentsValid(index))
+          issues['documents_'+index]='Ανεβάστε πιστοποιητικό γέννησης ή και τις δύο όψεις της ταυτότητας (με ημερομηνία λήξης), έως 10 MB ανά αρχείο.';
       for(const [i,child] of additionalPlayers.entries()){
         for(const key of ['player_first_name','player_last_name','player_address','player_city','preferred_print_name'] as const)
           if(!required(child[key]))issues['child_'+i+'_'+key]='Υποχρεωτικό πεδίο';
@@ -166,8 +226,15 @@
       });
       const result=await response.json().catch(()=>null);
       if(response.status===202 && typeof result?.receipt==='string' && result.receipt &&
-        Array.isArray(result.receipts) && result.receipts.length===playerCount){
-        receipt=result.receipt;submitted=true;
+        Array.isArray(result.receipts) && result.receipts.length===playerCount &&
+        result.receipts.every((id:unknown)=>typeof id==='string'&&/^[0-9a-f]{32}$/.test(id)) &&
+        Array.isArray(result.upload_tokens)&&result.upload_tokens.length===playerCount &&
+        result.upload_tokens.every((token:unknown)=>typeof token==='string'&&/^[0-9a-f]{64}$/.test(token))){
+        receipt=result.receipt;
+        committedReceipts=result.receipts;
+        uploadTokens=result.upload_tokens;
+        submitted=true;
+        await uploadDocuments();
       }else if(response.status===429){
         submissionError='Πολλές προσπάθειες εγγραφής. Δοκιμάστε αργότερα.';
       }else if(response.status===422){
