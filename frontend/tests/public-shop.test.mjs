@@ -117,7 +117,7 @@ test('real SSR shop uses only safe public API and exposes tickets and merchandis
     assert.doesNotMatch(html, /hidden-CRM-contact|data-testid="tickets-section"|checkout-submit/);
     assert.ok(requests.length > 0);
     assert.ok(requests.every(row => row.cookie === undefined && row.authorization === undefined));
-    assert.ok(requests.every(row => ['/api/public/site','/api/public/sections'].includes(row.path)));
+    assert.ok(requests.every(row => ['/api/public/site','/api/public/sections','/api/public/website/pages'].includes(row.path)));
     assert.ok(requests.every(row => ['lefteria_fc','lefteria_fc_academy'].includes(row.org)));
 
     academyUnavailable = true;
