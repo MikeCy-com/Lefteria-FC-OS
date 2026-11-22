@@ -111,7 +111,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateGlobalDesign(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -134,7 +134,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateGlobalDesign(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -447,6 +447,50 @@ public static class WebsitePageEndpoints
         // existing URL/length validation and the separately approved publisher.
         if (content.Blocks.Any(block => block.Type is not ("heading" or "paragraph" or "image" or "button")))
             throw Invalid();
+    }
+    // Published global design is data, not CSS. Require an exact JSON schema and
+    // bounded numeric/color tokens. Privileged publication remains unchanged.
+    private static void ValidateGlobalDesign(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-global-design") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null || content.Blocks[0].Text.Length > 5000)
+            throw Invalid();
+        try
+        {
+            using var json = JsonDocument.Parse(content.Blocks[0].Text);
+            var root = json.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 2 ||
+                !root.TryGetProperty("text", out var styles) || styles.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("colors", out var colors) || colors.ValueKind != JsonValueKind.Object ||
+                colors.EnumerateObject().Count() != 3 ||
+                styles.EnumerateObject().Count() != 9)
+                throw Invalid();
+            foreach (var name in new[] { "background", "foreground", "accent" })
+            {
+                if (!colors.TryGetProperty(name, out var color) || color.ValueKind != JsonValueKind.String ||
+                    !Regex.IsMatch(color.GetString() ?? "", @"\A#[0-9A-Fa-f]{6}\z"))
+                    throw Invalid();
+            }
+            foreach (var name in new[] { "h1", "h2", "h3", "h4", "h5", "h6", "p", "button", "nav" })
+            {
+                if (!styles.TryGetProperty(name, out var t) || t.ValueKind != JsonValueKind.Object ||
+                    t.EnumerateObject().Count() != 5 ||
+                    !t.TryGetProperty("family", out var family) ||
+                    family.ValueKind != JsonValueKind.String ||
+                    family.GetString() is not ("condensed" or "sans" or "serif") ||
+                    !t.TryGetProperty("desktop", out var desktop) || !desktop.TryGetInt32(out var d) || d is < 12 or > 80 ||
+                    !t.TryGetProperty("mobile", out var mobile) || !mobile.TryGetInt32(out var m) || m is < 12 or > 80 ||
+                    !t.TryGetProperty("weight", out var weight) || !weight.TryGetInt32(out var w) ||
+                    w is not (400 or 500 or 600 or 700 or 800) ||
+                    !t.TryGetProperty("line_height", out var line) ||
+                    !line.TryGetDouble(out var h) || h is not (1.0 or 1.15 or 1.2 or 1.35 or 1.5 or 1.6 or 1.8))
+                    throw Invalid();
+            }
+        }
+        catch (JsonException) { throw Invalid(); }
+        catch (InvalidOperationException) { throw Invalid(); }
     }
     private static string Owner(string? org) =>
         org is "lefteria_fc" or "lefteria_fc_academy" ? org :
