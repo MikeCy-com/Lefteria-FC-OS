@@ -296,8 +296,8 @@
   function valid():boolean {
     if(isAboutHistory && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==4 || draft.blocks[0].type!=='heading' ||
-      draft.blocks[0].url!==null || draft.blocks[0].text.length>180 ||
-      /[\r\n]/.test(draft.blocks[0].text) ||
+      draft.blocks[0].url!==null || !draft.blocks[0].text.trim() ||
+      draft.blocks[0].text.length>180 || /[\r\n]/.test(draft.blocks[0].text) ||
       draft.blocks.slice(1).some(b=>b.type!=='paragraph' || b.url!==null ||
         !b.text.trim() || b.text.length>800)))return false;
     if(isContactLead && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
@@ -308,7 +308,7 @@
       draft.blocks[1].type!=='paragraph' ||
       draft.blocks[0].url!==null || draft.blocks[1].url!==null ||
       draft.blocks[0].text.length>180 || draft.blocks[1].text.length>500 ||
-      /[\\r\\n]/.test(draft.blocks[0].text)))return false;
+      /[\r\n]/.test(draft.blocks[0].text)))return false;
     if(isSpotlight && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
       draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
