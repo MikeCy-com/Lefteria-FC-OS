@@ -222,7 +222,7 @@ body:has(.public-site) { font-family:'Fira Sans',-apple-system,BlinkMacSystemFon
 .public-news-body > div { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-bottom:9px; }
 .public-news-category { background:var(--public-gold); color:var(--lf-color-bg,#000000); font-family:'Fira Sans Extra Condensed',sans-serif; font-size:11px; font-weight:700; padding:2px 7px; text-transform:uppercase; }
 .public-news-body time { font-size:10px; color:var(--lf-color-muted,#bbbbbb); }
-.public-news-body h3 { font-family:'Fira Sans',sans-serif !important; font-size:15px; text-transform:none; line-height:1.4; font-weight:500; margin-bottom:12px; }
+.public-news-body h3 { font-family:var(--lf-h3-family,'Fira Sans',sans-serif); font-size:15px; text-transform:none; line-height:1.4; font-weight:500; margin-bottom:12px; }
 .public-news-body p { font-size:12px; color:var(--lf-color-muted,#aaaaaa); line-height:1.5; margin-bottom:16px; }
 .public-news-read { font-size:12px; color:var(--public-gold); display:flex; gap:12px; align-items:center; margin-top:auto; padding-top:8px; }
 .public-news-quote { padding:20px 12px; border-left:1px solid var(--lf-color-border,#252525); align-self:stretch; }
