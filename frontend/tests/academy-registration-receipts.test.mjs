@@ -25,3 +25,11 @@ test('rejects mismatched first receipt, opaque content, invalid shape and excess
     {receipt:ids[0],receipts:'not an array'}
   ])assert.equal(parseAcademyRegistrationReceipts(payload),null);
 });
+
+test('rejects sparse receipt arrays even when the first identifier is valid',()=>{
+  const missingSecond=[ids[0],,];
+  assert.equal(missingSecond.length,2);
+  assert.equal(parseAcademyRegistrationReceipts(result(missingSecond)),null);
+  const missingMiddle=[ids[0],,ids[2]];
+  assert.equal(parseAcademyRegistrationReceipts(result(missingMiddle)),null);
+});
