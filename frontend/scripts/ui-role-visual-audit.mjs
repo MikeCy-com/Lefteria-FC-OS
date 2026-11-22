@@ -20,7 +20,12 @@ assert.ok(artifacts, 'Set LEFTERIA_UI_ARTIFACTS to an isolated CI artifact direc
 assert.ok(!existsSync(auditRoute), 'Refusing to overwrite an existing application route.');
 assert.ok(path.resolve(auditRoute).startsWith(path.resolve(frontend, 'src', 'routes') + path.sep));
 const roles = ['parent', 'player', 'coach', 'fan', 'management'];
-const viewports = [{name:'phone',width:390,height:844},{name:'tablet',width:768,height:1024}];
+const viewports = [
+  {name:'small-phone',width:320,height:640},
+  {name:'phone',width:390,height:844},
+  {name:'tablet',width:768,height:1024},
+  {name:'desktop',width:1280,height:800}
+];
 let server;
 let browser;
 const results = [];

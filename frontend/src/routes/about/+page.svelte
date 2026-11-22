@@ -122,3 +122,17 @@
     </section>
   </div>
 </PublicShell>
+
+<style>
+  /* About used a legacy text-4xl utility without a matching public sizing
+     rule, leaving section H2 at 16–18px. Use the shared Academy section
+     hierarchy, without changing body copy, imagery or page layout. */
+  .source-about h2 {
+    font-family:'Fira Sans Extra Condensed',sans-serif;
+    font-size:clamp(22px,2vw,29px);
+    font-weight:700;
+    line-height:1.2;
+    text-wrap:balance;
+    overflow-wrap:anywhere;
+  }
+</style>

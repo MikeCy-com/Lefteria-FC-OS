@@ -322,6 +322,15 @@
               <p>{row.applicant_birth_date} · {row.guardian_name} ({row.guardian_relationship}) · {row.guardian_phone} · {row.guardian_email}</p>
               {#if row.status === 'approved'}
                 <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
+                {#if row.onboarded_player_id && canEnroll}
+                  <a class="admin-secondary" data-testid="approved-player-documents"
+                    href={'/admin/documents?'+new URLSearchParams({
+                      organization_id:'lefteria_fc_academy',
+                      player_id:row.onboarded_player_id
+                    }).toString()}>
+                    <span aria-hidden="true">▣</span> Προστατευμένα έγγραφα {row.applicant_first_name}
+                  </a>
+                {/if}
                 {#if $auth.session.user.role === 'super_admin' &&
                     row.onboarded_player_id && row.submission_source === 'website'}
                   <button type="button" class="admin-secondary" disabled={busy}

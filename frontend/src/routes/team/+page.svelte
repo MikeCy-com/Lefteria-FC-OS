@@ -222,7 +222,7 @@
   }
   @media(max-width:780px){
     .matches-reference-banner{min-height:180px;padding:26px 19px}
-    .matches-reference-banner h1{font-size:49px}
+    .matches-reference-banner h1{font-size:clamp(34px,9.8vw,38px)}
     .matches-reference-tabs{padding:0 10px}
     .matches-reference-tabs :is(a,button){flex:1;min-height:44px;font-size:12px;padding:8px}
   }

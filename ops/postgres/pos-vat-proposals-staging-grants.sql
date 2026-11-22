@@ -26,6 +26,7 @@ BEGIN
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
     'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_assignments(text,text)'::regprocedure::oid,
     'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang
@@ -45,6 +46,8 @@ GRANT EXECUTE ON FUNCTION pos_cashier.propose_admin_variant_vat(
   text,text,uuid,text,text,text,date,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_vat_reviews(text,text)
   TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_vat_assignments(text,text)
+  TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.review_admin_variant_vat(
   text,text,uuid,boolean,text) TO :"admin_auth_role";
 DO $verify$
@@ -56,6 +59,7 @@ BEGIN
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
     'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_assignments(text,text)'::regprocedure::oid,
     'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(a,f,'EXECUTE') OR

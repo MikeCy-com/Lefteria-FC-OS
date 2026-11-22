@@ -122,3 +122,19 @@ export function fanPublicDestination(tab: string, role: MobileRole | null): stri
     default: return null;
   }
 }
+
+// A secondary destination may highlight its *own* parent section, but never
+// borrow another role's tab. Header destinations remain intentionally unselected.
+const CONTEXTUAL_PRIMARY_TABS: Readonly<Partial<Record<MobileRole, Partial<Record<MobileTab, MobileTab>>>>> = {
+  parent: { financials: 'more', education: 'more', hub: 'more', announcements: 'chat' },
+  coach: { announcements: 'chat' },
+  management: { announcements: 'more' }
+};
+
+export function contextualBottomTabFor(activeTab: MobileTab, role: MobileRole): MobileTab | null {
+  const direct = bottomTabFor(activeTab, role);
+  if (direct) return direct;
+  if (!allowedTabs(role).includes(activeTab)) return null;
+  const contextual = CONTEXTUAL_PRIMARY_TABS[role]?.[activeTab];
+  return contextual && primaryTabs(role).includes(contextual) ? contextual : null;
+}

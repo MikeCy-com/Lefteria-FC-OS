@@ -1,6 +1,7 @@
 <script lang="ts">
   import {getContext,untrack} from 'svelte';
   import {browser} from '$app/env';
+  import {page} from '$app/state';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../lib/admin/controller.ts';
   import {hasAdminPermission} from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
@@ -45,6 +46,83 @@
   let listing=$state<Listing|null>(null);
   let loading=$state(false);
   let error=$state('');
+  const canUpload=$derived(permitted&&!!$auth.session&&
+    hasAdminPermission($auth.session.user.permissions,
+      organization==='lefteria_fc'?'teams:write':'academy:write'));
+  let uploadFile=$state<File|null>(null);
+  let uploadType=$state('birth_certificate');
+  let uploadTitle=$state('');
+  let uploadIssueDate=$state('');
+  let uploadExpiryDate=$state('');
+  let uploadBusy=$state(false);
+  let uploadMessage=$state('');
+  let uploadRequestId=$state('');
+  let uploadInput:HTMLInputElement;
+  const uploadTypes=[
+    {value:'birth_certificate',label:'Πιστοποιητικό γέννησης'},
+    {value:'id_passport',label:'Ταυτότητα / διαβατήριο'},
+    {value:'photo',label:'Φωτογραφία τύπου διαβατηρίου'},
+    {value:'medical_cert',label:'Ιατρικό / Δελτίο Υγείας ΚΟΑ'},
+    {value:'registration_form',label:'Αίτηση εγγραφής'}
+  ];
+  async function uploadDocument(event:SubmitEvent){
+    event.preventDefault();
+    if(uploadBusy||!canUpload||!validId(selected)||!uploadFile)return;
+    if(uploadFile.size<1||uploadFile.size>10*1024*1024||
+       !['application/pdf','image/jpeg','image/png','image/webp'].includes(uploadFile.type)){
+      error='Ανεβάστε PDF, JPG, PNG ή WebP έως 10 MB.';return;
+    }
+    if(uploadTitle.trim().length<1||uploadTitle.length>200||
+       !uploadTypes.some(x=>x.value===uploadType)||
+       (['id_passport','medical_cert'].includes(uploadType)&&!uploadExpiryDate)){
+      error='Ελέγξτε τον τίτλο, τον τύπο και την ημερομηνία λήξης.';return;
+    }
+    if(uploadIssueDate&&uploadExpiryDate&&uploadIssueDate>uploadExpiryDate){
+      error='Η λήξη πρέπει να είναι μετά την έκδοση.';return;
+    }
+    const actor=$auth.session?.user.id,owner=organization,player=selected;
+    uploadRequestId ||=crypto.randomUUID();
+    const payload=new FormData();
+    payload.append('file',uploadFile);
+    payload.append('request_id',uploadRequestId);
+    payload.append('document_type',uploadType);
+    payload.append('title',uploadTitle.trim());
+    if(uploadIssueDate)payload.append('issue_date',uploadIssueDate);
+    if(uploadExpiryDate)payload.append('expiry_date',uploadExpiryDate);
+    uploadBusy=true;error='';uploadMessage='';
+    try{
+      const response=await fetch('/api/admin/club/players/'+encodeURIComponent(player)+
+        '/documents?'+new URLSearchParams({organization_id:owner}),{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'X-Lefteria-Admin':'1'},body:payload
+      });
+      if($auth.session?.user.id!==actor||organization!==owner||selected!==player||!canUpload)
+        return;
+      if(response.status===401||response.status===403){
+        void auth.bootstrap();
+        throw new Error('Η εξουσιοδότησή σας έληξε ή άλλαξε.');
+      }
+      if(!response.ok)
+        throw new Error('Η ασφαλής μεταφόρτωση δεν ολοκληρώθηκε. Δοκιμάστε ξανά.');
+      const result:unknown=await response.json();
+      if(!result||typeof result!=='object'||Array.isArray(result))
+        throw new Error('Δεν επιβεβαιώθηκε η αποθήκευση.');
+      const data=result as Record<string,unknown>;
+      if(data.organization_id!==owner||data.player_id!==player||
+         data.scan_status!=='quarantined'||typeof data.id!=='string'||
+         !/^[0-9a-f-]{36}$/.test(data.id))
+        throw new Error('Δεν επιβεβαιώθηκε το σωστό αρχείο αθλητή.');
+      uploadMessage='Το αρχείο αποθηκεύτηκε κρυπτογραφημένο στα ιδιωτικά έγγραφα του αθλητή και παραμένει σε καραντίνα ελέγχου.';
+      uploadFile=null;uploadTitle='';uploadIssueDate='';uploadExpiryDate='';
+      uploadRequestId='';
+      if(uploadInput)uploadInput.value='';
+      reload++;
+    }catch(e){
+      if($auth.session?.user.id===actor&&organization===owner&&selected===player)
+        error=e instanceof Error?e.message:'Ασφαλής μεταφόρτωση μη διαθέσιμη.';
+    }finally{uploadBusy=false;}
+  }
+
   const validId=(x:unknown):x is string=>typeof x==='string'&&
     x.length>=1&&x.length<=128&&!/[\x00-\x1f\x7f]/.test(x);
   const types=new Set([
@@ -78,9 +156,20 @@
       Array.isArray(x.documents)&&x.documents.length===(x.total as number)&&
       x.documents.every(validDocument);
   }
+  // Staff deep-link from an approved Academy enrollment. The query string
+  // only selects the UI; the existing API and DB re-check the current manager
+  // and exact player/city/location authority before any metadata/upload.
+  $effect(()=>{
+    const direct=page.url.searchParams.get('player_id');
+    const owner=page.url.searchParams.get('organization_id');
+    if(!browser||!permitted||selected||owner!==organization||!validId(direct))return;
+    playerId=direct;
+    selected=direct;
+    reload++;
+  });
   function choosePlayer(){
     if(!validId(playerId)){error='Εισάγετε έγκυρο αναγνωριστικό αθλητή.';return;}
-    selected=playerId;reload++;
+    selected=playerId;uploadFile=null;uploadMessage='';uploadRequestId='';reload++;
   }
   $effect(()=>{
     const actor=$auth.session?.user.id;
@@ -120,8 +209,7 @@
       <p class="text-xs uppercase tracking-widest text-amber-500">Ομάδες · Προστατευμένα αρχεία</p>
       <h1 class="text-2xl font-bold">Έγγραφα αθλητών</h1>
       <p class="text-sm text-zinc-400">
-        Προβάλλονται μόνο κατηγορίες, ημερομηνίες και κατάσταση λήξης. Τα ίδια τα αρχεία,
-        οι μεταφορτώσεις και οι λήψεις δεν έχουν ακόμη ενεργοποιηθεί.
+        Προβάλλονται μόνο κατηγορίες, ημερομηνίες και κατάσταση λήξης. Οι εξουσιοδοτημένοι διαχειριστές μπορούν να μεταφορτώνουν κρυπτογραφημένα αρχεία σε καραντίνα. Η λήψη και η δημόσια πρόσβαση παραμένουν ανενεργές.
       </p>
       <AdminSessionStatus unavailable={isUnavailable} busy={$auth.busy} error={$auth.error}
     onRetry={() => void auth.bootstrap()} onLogout={() => void auth.logout()}/>
@@ -137,6 +225,52 @@
         </form>
         {#if loading}<p role="status">Φόρτωση μεταδεδομένων…</p>{/if}
         {#if error}<p role="alert" class="text-red-400">{error}</p>{/if}
+        {#if canUpload&&validId(selected)}
+          <form data-testid="player-private-document-upload" onsubmit={uploadDocument}
+            class="rounded-xl border border-amber-700/60 bg-zinc-900 p-5 space-y-4">
+            <h2 class="text-lg font-semibold">Ασφαλής μεταφόρτωση στον φάκελο αθλητή</h2>
+            <p class="text-sm text-zinc-300">Τα έγγραφα ταυτότητας, πιστοποιητικά γέννησης και
+              φωτογραφίες καταχωρίζονται αποκλειστικά στον επιλεγμένο αθλητή.
+              Είναι κρυπτογραφημένα και σε καραντίνα μέχρι τον απαιτούμενο έλεγχο.
+              Δεν δημοσιεύονται στην ιστοσελίδα ή στην εφαρμογή.</p>
+            <div class="grid gap-3 md:grid-cols-2">
+              <label class="flex flex-col gap-2 text-sm">Κατηγορία αρχείου
+                <select bind:value={uploadType} disabled={uploadBusy}
+                  class="rounded-lg border border-zinc-600 bg-zinc-950 p-3">
+                  {#each uploadTypes as type (type.value)}
+                    <option value={type.value}>{type.label}</option>
+                  {/each}
+                </select>
+              </label>
+              <label class="flex flex-col gap-2 text-sm">Τίτλος εγγράφου
+                <input bind:value={uploadTitle} maxlength="200" required disabled={uploadBusy}
+                  placeholder="π.χ. Πιστοποιητικό γέννησης" class="rounded-lg border border-zinc-600 bg-zinc-950 p-3"/>
+              </label>
+              <label class="flex flex-col gap-2 text-sm">Ημερομηνία έκδοσης
+                <input type="date" bind:value={uploadIssueDate} disabled={uploadBusy}
+                  class="rounded-lg border border-zinc-600 bg-zinc-950 p-3"/>
+              </label>
+              <label class="flex flex-col gap-2 text-sm">Ημερομηνία λήξης
+                {#if ['id_passport','medical_cert'].includes(uploadType)}<span class="text-amber-400 text-xs">Υποχρεωτική για την επιλεγμένη κατηγορία</span>{/if}
+                <input type="date" bind:value={uploadExpiryDate} disabled={uploadBusy}
+                  required={['id_passport','medical_cert'].includes(uploadType)}
+                  class="rounded-lg border border-zinc-600 bg-zinc-950 p-3"/>
+              </label>
+            </div>
+            <label class="flex flex-col gap-2 text-sm">Σαρωμένο αρχείο / φωτογραφία (PDF, JPG, PNG, WebP · έως 10 MB)
+              <input bind:this={uploadInput} type="file" name="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp"
+                required disabled={uploadBusy}
+                onchange={event=>{uploadFile=event.currentTarget.files?.[0]??null;uploadRequestId='';}}
+                class="rounded-lg border border-zinc-600 bg-zinc-950 p-3"/>
+            </label>
+            <button type="submit" disabled={uploadBusy||!uploadFile||!uploadTitle.trim()}
+              class="min-h-11 rounded-lg bg-amber-500 px-5 py-3 font-semibold text-black disabled:opacity-50">
+              {uploadBusy?'Κρυπτογράφηση και αποθήκευση…':'Αποθήκευση στα έγγραφα του αθλητή'}
+            </button>
+            {#if uploadMessage}<p role="status" class="text-emerald-300">{uploadMessage}</p>{/if}
+          </form>
+        {/if}
         {#if listing}
           <p class="text-sm text-zinc-400">Έγγραφα: {listing.total}</p>
           {#each listing.documents as document (document.id)}
