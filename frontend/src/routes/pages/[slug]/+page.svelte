@@ -10,8 +10,8 @@
   const canonicalPath = $derived(websitePagePath(data.published.slug, data.organization));
   const parentLink = $derived(websitePageParentLink(data.organization, content.menu_parent));
   const localLayout=$derived(validPageLayout(content.layout)?content.layout:null);
-  const localPageWidth=$derived(localLayout?.max_width!=null?localLayout.max_width+'px':'var(--lf-layout-page-max-width,1280px)');
-  const localPageSide=$derived(localLayout?.side_padding!=null?localLayout.side_padding+'px':'var(--lf-layout-page-side-padding,16px)');
+  const localPageWidth=$derived(localLayout?.max_width!=null?localLayout.max_width+'px':'var(--lf-layout-page-max-width,1200px)');
+  const localPageSide=$derived(localLayout?.side_padding!=null?localLayout.side_padding+'px':'var(--lf-layout-page-side-padding,clamp(20px,4.5vw,64px))');
 </script>
 <svelte:head>
   <title>{content.seo_title || content.title} | ΛΕΥΤΕΡΙΑ FC</title>
@@ -113,9 +113,9 @@
     overflow-wrap:anywhere;
   }
   .website-page-content{
-    max-width:1200px;
+    max-width:var(--lf-page-content-max-width,1200px);
     margin:0 auto;
-    padding:clamp(28px,4.5vw,68px) clamp(20px,4.5vw,64px) clamp(60px,7vw,108px);
+    padding:clamp(28px,4.5vw,68px) var(--lf-page-content-side,clamp(20px,4.5vw,64px)) clamp(60px,7vw,108px);
   }
   .website-page-return{
     margin-top:clamp(38px,5vw,70px);
