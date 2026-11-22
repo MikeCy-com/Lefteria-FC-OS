@@ -16,7 +16,7 @@ export function canonicalAboutIntro(
   const heading=page.blocks[0].text;
   const description=page.blocks[1].text;
   if(!heading.trim() || !description.trim() || heading.length>180 ||
-    description.length>500 || /[\\r\\n]/.test(heading) ||
+    description.length>500 || /[\r\n]/.test(heading) ||
     page.blocks[0].url!==null || page.blocks[1].url!==null) return null;
   return {heading,description};
 }
