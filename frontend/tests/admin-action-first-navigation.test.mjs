@@ -12,7 +12,7 @@ const groups=read('routes/admin/groups/+page.svelte');
 const groupWorkspace=read('lib/admin/AdminGroupWorkspace.svelte');
 const matches=read('routes/admin/matches/+page.svelte');
 
-test('new sidebar, action dashboard, settings and private profile compile as genuine Svelte routes',()=>{
+test('new sidebar, compact dashboard, settings and private profile compile as genuine Svelte routes',()=>{
   for(const [name,source] of Object.entries({frame,home,settings,profile,groups,matches})){
     assert.doesNotThrow(()=>compile(source,{filename:name+'.svelte',generate:'server'}),name);
   }
@@ -29,7 +29,8 @@ test('top-right account entry owns profile and session, without dashboard clutte
   assert.match(profile,/roleName/);
   assert.doesNotMatch(home,/id="account"|id="session"|id="access"|admin-overview-stats/);
   assert.doesNotMatch(home,/plannedCount|liveCount|Under Developments/);
-  assert.match(home,/id:'groups',label:'Ομάδες & τμήματα'/);
+  assert.match(home,/data-testid="admin-dashboard-metrics"/);
+  assert.doesNotMatch(home,/admin-creation-shortcuts|admin-quick-navigation|Οι εργασίες μου/);
   assert.match(home,/adminOrganizationsFor\(user\)/);
 });
 
@@ -65,11 +66,9 @@ test('settings are capability-scoped and profile writes require verified self-se
   assert.doesNotMatch(profile,/localStorage|sessionStorage|oninput=.*fetch/);
 });
 
-test('first-team creation shortcut matches the actual Super Admin-only group creation gate',()=>{
-  // A manager may manage assigned teams but must not be offered an action the
-  // group creation form explicitly denies. Academy managers retain their
-  // separately scoped creation route.
-  assert.match(home,/hasAdminPermission\(user\.permissions,'teams:write'\)\s*&&\s*user\.role==='super_admin'/);
+test('first-team and Academy group creation remain permission-gated in their own module',()=>{
   assert.match(groups,/organization !== 'lefteria_fc' \|\| \$auth\.session\.user\.role==='super_admin'/);
-  assert.match(home,/hasAdminPermission\(user\.permissions,'academy:write'\)\s*&&\s*\['manager','super_admin'\]\.includes\(user\.role\)/);
+  assert.match(groups,/data-testid="admin-group-create"/);
+  assert.match(groups,/data-testid="admin-group-verified-location"/);
+  assert.doesNotMatch(home,/new=1|create-city|create-location/);
 });
