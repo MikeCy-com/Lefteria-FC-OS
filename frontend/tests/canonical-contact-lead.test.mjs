@@ -41,7 +41,7 @@ test('canonical Contact slot stays out of menus, routes and public contact data'
 test('admin edits the Contact intro via actual scoped draft and separately approved publication',()=>{
   assert.match(admin,/data-testid="edit-canonical-contact-lead"/);
   assert.match(admin,/openCanonicalContactLead/);
-  assert.match(admin,/isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead/);
+  assert.match(admin,/isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead \|\| isShopLead/);
   assert.match(admin,/expected_version:selected\?\.version,page:draft/);
   assert.match(admin,/expected_version:selected\.version,publish/);
   assert.match(admin,/\/contact\?organization_id=lefteria_fc_academy/);
