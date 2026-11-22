@@ -289,3 +289,93 @@
     --ui-hairline:var(--ui-border);
   }
 }
+
+
+/*
+ * LEFTERIA EDITORIAL FINISH
+ * Juventus-like hierarchy, sculpted premium panels, precision-crafted
+ * details. Every tint and measurement derives from the published brand
+ * palette/layout. Original imagery, typography, words and interactions
+ * remain solely owned by existing page components and the WYSIWYG editor.
+ */
+.public-site[data-ui-refresh="2026"] .public-header {
+  backdrop-filter:blur(14px) saturate(1.18);
+  -webkit-backdrop-filter:blur(14px) saturate(1.18);
+  box-shadow:0 1px 0 var(--ui-emphasis),0 16px 36px color-mix(in srgb,var(--ui-bg) 26%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-menu-dialog {
+  background:linear-gradient(150deg,var(--ui-raised),var(--ui-bg));
+  box-shadow:inset -1px 0 var(--ui-hairline),26px 0 50px color-mix(in srgb,var(--ui-bg) 42%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-page-heading:not(.academy-intro):not(.team-heading) {
+  background:linear-gradient(115deg,var(--ui-surface),var(--ui-bg) 78%);
+  box-shadow:inset 0 -2px 0 var(--ui-emphasis);
+}
+.public-site[data-ui-refresh="2026"] :is(.section-heading,.public-section-heading) {
+  border-bottom-color:var(--ui-emphasis);
+  box-shadow:inset 0 -1px 0 var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.person-card,.venue-card,
+  .academy-destination,.academy-review-card,.academy-age-card,
+  .shop-product,.contact-info-card
+) {
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ui-ink) 7%,transparent),
+    0 18px 45px color-mix(in srgb,var(--ui-bg) 23%,transparent);
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.person-card,.venue-card,
+  .academy-destination,.academy-review-card,.academy-age-card,
+  .shop-product,.contact-info-card
+):is(:hover,:focus-within) {
+  box-shadow:inset 0 2px 0 var(--ui-emphasis),
+    0 19px 47px color-mix(in srgb,var(--ui-bg) 32%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
+  box-shadow:inset 3px 0 color-mix(in srgb,var(--ui-accent) 36%,transparent),
+    0 11px 28px color-mix(in srgb,var(--ui-bg) 18%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row:is(:hover,:focus-within) {
+  box-shadow:inset 3px 0 var(--ui-accent),
+    0 15px 36px color-mix(in srgb,var(--ui-bg) 32%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-button:not(.public-button-outline) {
+  background:linear-gradient(132deg,var(--ui-accent),
+    color-mix(in srgb,var(--ui-accent) 83%,var(--ui-surface)));
+  border-color:var(--ui-accent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ui-ink) 18%,transparent),
+    0 8px 22px color-mix(in srgb,var(--ui-accent) 14%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-button-outline {
+  border-color:var(--ui-emphasis);
+  box-shadow:inset 0 0 0 1px var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] .public-button-outline:is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+  box-shadow:inset 0 0 0 1px var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-card,.registration-costs,.registration-child,
+  .contact-message-form,.roster-filters,.catalog-filters
+) {
+  box-shadow:inset 0 1px color-mix(in srgb,var(--ui-ink) 8%,transparent),
+    0 12px 36px color-mix(in srgb,var(--ui-bg) 19%,transparent);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.catalog-filters,.roster-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] .public-footer {
+  box-shadow:inset 0 2px 0 var(--ui-emphasis);
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-site[data-ui-refresh="2026"] :is(
+    .public-news-card,.catalog-card,.person-card,.venue-card,
+    .academy-destination,.academy-review-card,.academy-age-card,
+    .shop-product,.contact-info-card
+  ) {
+    transition:none;
+  }
+}
