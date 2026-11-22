@@ -118,7 +118,7 @@
     margin:8px 0 12px;text-transform:uppercase;
   }
   :global(.public-site) .player-profile-hero .person-role{
-    margin:0 0 20px;color:#f6bb38;font-weight:700;font-size:16px;
+    margin:0 0 20px;color:var(--public-gold);font-weight:700;font-size:16px;
   }
   :global(.public-site) .player-profile-hero .person-stat-bars{
     grid-column:3;grid-row:1;min-width:0;padding-bottom:24px;
