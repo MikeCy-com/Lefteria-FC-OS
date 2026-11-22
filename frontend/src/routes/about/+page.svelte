@@ -4,7 +4,7 @@
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import type { PublicIconName } from '../../lib/public/icon-types';
   import type { PublicPageData } from '../../lib/public/types';
-  let { data }: { data: PublicPageData } = $props();
+  let { data }: { data: PublicPageData & {aboutIntro: {heading:string;description:string}|null} } = $props();
   const values: {icon: PublicIconName;title:string;desc:string}[] = [{"title": "Αριστεία", "desc": "Επιδιώκουμε την αριστεία σε όλα όσα κάνουμε, εντός και εκτός γηπέδου.", "icon": "trophy"}, {"title": "Πάθος", "desc": "Το ποδόσφαιρο είναι περισσότερο από ένα παιχνίδι - είναι το πάθος και ο τρόπος ζωής μας.", "icon": "heart"}, {"title": "Φιλοδοξία", "desc": "Θέτουμε υψηλούς στόχους και εργαζόμαστε ακούραστα για να τους επιτύχουμε.", "icon": "target"}];
 </script>
 <svelte:head><title>Σχετικά με τη ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Η ιστορία, οι αξίες και η έδρα της Λευτεριάς FC." /></svelte:head>
@@ -15,11 +15,10 @@
       <div class="max-w-7xl mx-auto">
         <span class="badge badge-secondary mb-4">Η Ιστορια μας</span>
         <h1 class="font-['Bebas_Neue'] text-4xl md:text-5xl text-white mb-6">
-          Σχετικα με την <span class="text-[#F6BB38]">ΛΕΥΤΕΡΙΑ FC</span>
+          {#if data.aboutIntro}{data.aboutIntro.heading}{:else}Σχετικα με την <span class="text-[#F6BB38]">ΛΕΥΤΕΡΙΑ FC</span>{/if}
         </h1>
         <p class="text-xl text-zinc-300 max-w-3xl">
-          Ιδρύθηκε το 2024, η ΛΕΥΤΕΡΙΑ FC ενσαρκώνει το πνεύμα του πάθους, της αριστείας
-          και της κοινότητας στο κυπριακό ποδόσφαιρο.
+          {data.aboutIntro?.description ?? 'Ιδρύθηκε το 2024, η ΛΕΥΤΕΡΙΑ FC ενσαρκώνει το πνεύμα του πάθους, της αριστείας και της κοινότητας στο κυπριακό ποδόσφαιρο.'}
         </p>
       </div>
     </section>
