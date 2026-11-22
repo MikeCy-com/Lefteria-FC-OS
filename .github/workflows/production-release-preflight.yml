@@ -55,6 +55,13 @@ jobs:
         run: |
           set -euo pipefail
           node ops/release/verify-exact-ci.mjs "--sha=$CANDIDATE_SHA" --require-passing
+      - name: Require protected main and enforced release CI checks
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          node ops/release/verify-main-protection.mjs "--sha=$CANDIDATE_SHA" --require-passing
       - name: Enforce owner/finance/privacy/HUB approval and Academy MVP scope
         env:
           GITHUB_TOKEN: ${{ github.token }}
