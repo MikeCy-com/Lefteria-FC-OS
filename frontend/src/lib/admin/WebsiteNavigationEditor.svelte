@@ -11,9 +11,10 @@
     try {
       const candidate=JSON.parse(value) as NavigationDesign;
       return Array.isArray(candidate?.links)?{links:candidate.links,
-        category_order:validBuiltinCategoryOrder(candidate.category_order)?candidate.category_order:[...BUILTIN_CATEGORY_IDS]}
-        :{links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS]};
-    } catch {return {links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS]};}
+        category_order:validBuiltinCategoryOrder(candidate.category_order)?candidate.category_order:[...BUILTIN_CATEGORY_IDS],
+        category_labels:candidate.category_labels??{}}
+        :{links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Record<string,string>};
+    } catch {return {links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Record<string,string>};}
   })());
   const parentNames:Record<NavigationParent,string>={
     root:'Κύριο μενού',club:'Σύλλογος',team:'Πρώτη ομάδα',academy:'Ακαδημία',
@@ -28,6 +29,12 @@
   }
   function remove(index:number){
     onChange(JSON.stringify({...config,links:config.links.filter((_,i)=>i!==index)}));
+  }
+  function renameCategory(id:BuiltinCategoryId,label:string){
+    if(disabled)return;
+    const next=structuredClone(config);
+    next.category_labels={...next.category_labels,[id]:label};
+    onChange(JSON.stringify(next));
   }
   function moveCategory(index:number,direction:-1|1){
     if(disabled)return;
@@ -57,7 +64,12 @@
     <ol class="category-order">
       {#each config.category_order as id,index (id)}
         <li>
-          <span>{parentNames[id as NavigationParent]??'Αρχική'}</span>
+          <label class="category-label">
+            <span>{id}</span>
+            <input aria-label={'Ετικέτα κατηγορίας '+id} maxlength="40" disabled={disabled}
+              value={config.category_labels[id]??(parentNames[id as NavigationParent]??'Αρχική')}
+              oninput={e=>renameCategory(id,e.currentTarget.value)}/>
+          </label>
           <button type="button" disabled={disabled||index===0}
             aria-label={'Μετακίνηση '+id+' πάνω'} onclick={()=>moveCategory(index,-1)}>↑</button>
           <button type="button" disabled={disabled||index===config.category_order.length-1}
@@ -99,6 +111,8 @@
 .menu-editor{display:grid;gap:12px;border:1px solid #594a2d;border-radius:10px;padding:14px}
 .menu-editor .category-order{display:grid;gap:6px;list-style:none;padding:0;margin:8px 0}
 .menu-editor .category-order li{display:flex;align-items:center;gap:8px}
+.menu-editor .category-order .category-label{flex:1;display:flex;align-items:center;gap:8px;min-width:0}
+.menu-editor .category-order .category-label span{font-size:10px;min-width:55px}
 .menu-editor .category-order li span{flex:1}
 .menu-editor .category-order li button{min-width:38px}
 .menu-editor fieldset{border:1px solid #525252;border-radius:7px;padding:12px;min-width:0}
