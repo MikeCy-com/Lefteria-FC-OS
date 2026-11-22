@@ -517,60 +517,60 @@
 <style>
   .registration-card h2{font-size:clamp(23px,2vw,30px);margin:0 0 5px}
   .registration-card h3{font-size:22px;margin:8px 0}
-  .registration-card>form>div>p{font-size:14px;color:#a1a1aa;margin:4px 0 22px}
+  .registration-card>form>div>p{font-size:14px;color:var(--lf-color-muted,#a1a1aa);margin:4px 0 22px}
   .registration-card :is(input[type=checkbox],input[type=radio]){width:18px;min-width:18px;min-height:18px;accent-color:var(--public-gold)}
   .registration-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
   .registration-full{grid-column:1/-1}
   .registration-fields label{display:block;min-width:0}
   .registration-fields :is(input,select){display:block}
-  .registration-choice-card{margin:18px 0;padding:18px;border:1px solid #333;background:#0d0d0d;border-radius:7px;display:flex;flex-wrap:wrap;gap:16px}
-  .registration-choice-card legend{font-weight:700;color:#fff;padding:0 8px}
-  .registration-choice-card label,.registration-consents label,.registration-payment label{display:inline-flex;align-items:center;gap:10px;line-height:1.5;color:#ececec}
-  .registration-choice-card textarea{width:100%;min-height:88px;padding:12px;border:1px solid #555;background:#101010;color:white}
+  .registration-choice-card{margin:18px 0;padding:18px;border:1px solid var(--lf-color-border,#333333);background:var(--lf-color-bg,#0d0d0d);border-radius:7px;display:flex;flex-wrap:wrap;gap:16px}
+  .registration-choice-card legend{font-weight:700;color:var(--lf-color-text,#ffffff);padding:0 8px}
+  .registration-choice-card label,.registration-consents label,.registration-payment label{display:inline-flex;align-items:center;gap:10px;line-height:1.5;color:var(--lf-color-text,#ececec)}
+  .registration-choice-card textarea{width:100%;min-height:88px;padding:12px;border:1px solid var(--lf-color-border,#555555);background:var(--lf-color-bg,#101010);color:white}
   .registration-consents{display:grid;gap:19px;border:0;padding:0}
   .registration-consents>label{align-items:flex-start}
   .registration-consent-channels,.registration-payment{display:flex;gap:18px;flex-wrap:wrap}
-  .registration-notice{font-size:13px;color:#b1b1b1}
+  .registration-notice{font-size:13px;color:var(--lf-color-muted,#b1b1b1)}
   .registration-card a:not(.public-button){text-decoration:underline;text-underline-offset:3px;color:var(--public-gold)}
   .registration-signature-label{display:block;margin:18px 0 8px}
-  .registration-signature{display:block;width:100%;height:150px;max-width:100%;background:#0d0d0d;border:1px solid #535353;touch-action:none;cursor:crosshair;border-radius:7px}
+  .registration-signature{display:block;width:100%;height:150px;max-width:100%;background:var(--lf-color-bg,#0d0d0d);border:1px solid var(--lf-color-border,#535353);touch-action:none;cursor:crosshair;border-radius:7px}
   .registration-clear{color:var(--public-gold);font-size:13px;margin-top:8px}
-  .registration-errors{border-left:3px solid #eaaa38;padding:12px;margin:18px 0;background:#291e0d;color:#ffe5b9}
-  .registration-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid #313131}
-  .registration-actions button:not(.public-button){color:#eee;min-height:44px}
+  .registration-errors{border-left:3px solid var(--lf-color-accent,#eaaa38);padding:12px;margin:18px 0;background:var(--lf-color-surface,#291e0d);color:var(--lf-color-accent,#ffe5b9)}
+  .registration-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:28px;padding-top:20px;border-top:1px solid var(--lf-color-border,#313131)}
+  .registration-actions button:not(.public-button){color:var(--lf-color-text,#eeeeee);min-height:44px}
   .registration-step-icon{cursor:pointer;color:inherit}
   .registration-step-icon:disabled{cursor:default}
   .registration-steps .completed .registration-step-icon{border-color:var(--public-gold);color:var(--public-gold)}
   .registration-child-documents{display:flex;flex-direction:column;align-items:flex-start;
-    gap:12px;padding:clamp(15px,2vw,22px);margin:16px 0;border:1px solid #695127;
-    border-radius:10px;background:linear-gradient(135deg,#211a0c,#101010)}
+    gap:12px;padding:clamp(15px,2vw,22px);margin:16px 0;border:1px solid var(--lf-color-border,#695127);
+    border-radius:10px;background:linear-gradient(135deg,var(--lf-color-surface,#211a0c),var(--lf-color-bg,#101010))}
   .registration-child-documents h3{margin:0;font-size:20px;color:var(--public-gold)}
-  .registration-child-documents>p{margin:0;color:#d5d5d5;font-size:13px;line-height:1.65}
+  .registration-child-documents>p{margin:0;color:var(--lf-color-muted,#d5d5d5);font-size:13px;line-height:1.65}
   .registration-child-documents>label{display:flex;align-items:center;gap:10px;min-height:44px}
   .registration-child-documents .registration-document-file{width:100%;align-items:stretch;flex-direction:column}
   .registration-child-documents input[type=file]{width:100%;min-height:48px;padding:11px;
-    border:1px solid #6e6250;border-radius:7px;background:#0d0d0d;color:white}
-  .registration-doc-error{color:#ffb7b7}
-  .registration-doc-success{color:#b9ebc8}
-  .registration-child{margin:22px 0;border:1px solid #49402a;border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,#171510,#0e0e0e)}
+    border:1px solid var(--lf-color-border,#6e6250);border-radius:7px;background:var(--lf-color-bg,#0d0d0d);color:white}
+  .registration-doc-error{color:var(--lf-feedback-error,#ffb7b7)}
+  .registration-doc-success{color:var(--lf-feedback-success,#b9ebc8)}
+  .registration-child{margin:22px 0;border:1px solid var(--lf-color-border,#49402a);border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,var(--lf-color-surface,#171510),var(--lf-color-bg,#0e0e0e))}
   .registration-child-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
   .registration-child-head h3{margin:0}
-  .registration-child-head button{color:var(--public-gold);padding:10px 12px;min-height:44px;border:1px solid #77602f;border-radius:6px}
-  .registration-add-child{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;margin:18px 0;padding:12px 18px;border:1px dashed var(--public-gold);border-radius:9px;background:#241d0d;color:var(--public-gold);font-weight:800;cursor:pointer}
-  .registration-add-child:hover,.registration-add-child:focus-visible{background:#35270e;outline-offset:3px}
-  .registration-note,.registration-family-note{font-size:13px;line-height:1.65;color:#d4cbb4}
-  .registration-koa{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border:1px solid #65502e;border-radius:9px;padding:16px;margin:16px 0}
+  .registration-child-head button{color:var(--public-gold);padding:10px 12px;min-height:44px;border:1px solid var(--lf-color-border,#77602f);border-radius:6px}
+  .registration-add-child{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;margin:18px 0;padding:12px 18px;border:1px dashed var(--public-gold);border-radius:9px;background:var(--lf-color-surface,#241d0d);color:var(--public-gold);font-weight:800;cursor:pointer}
+  .registration-add-child:hover,.registration-add-child:focus-visible{background:color-mix(in srgb,var(--lf-color-accent,#f6bb38) 12%,var(--lf-color-bg,#35270e));outline-offset:3px}
+  .registration-note,.registration-family-note{font-size:13px;line-height:1.65;color:var(--lf-color-muted,#d4cbb4)}
+  .registration-koa{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border:1px solid var(--lf-color-border,#65502e);border-radius:9px;padding:16px;margin:16px 0}
   .registration-koa legend{padding:0 8px;font-weight:700;color:var(--public-gold)}
   .registration-koa label{display:inline-flex;align-items:center;gap:8px;min-height:44px}
   .registration-koa>p{width:100%;margin:0}
-  .registration-medical-child{margin:20px 0 12px;padding:12px 16px;border-left:4px solid var(--public-gold);background:#191710}
-  .registration-costs{padding:clamp(16px,3vw,26px);background:#121212;border:1px solid #59451e;border-radius:12px;margin:24px 0}
+  .registration-medical-child{margin:20px 0 12px;padding:12px 16px;border-left:4px solid var(--public-gold);background:var(--lf-color-surface,#191710)}
+  .registration-costs{padding:clamp(16px,3vw,26px);background:var(--lf-color-surface,#121212);border:1px solid var(--lf-color-border,#59451e);border-radius:12px;margin:24px 0}
   .registration-costs h3{margin:0 0 18px}
-  .registration-costs>div{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:11px 0;border-bottom:1px solid #303030}
+  .registration-costs>div{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:11px 0;border-bottom:1px solid var(--lf-color-border,#303030)}
   .registration-costs strong{font-variant-numeric:tabular-nums;white-space:nowrap}
   .registration-costs .registration-total{border-top:2px solid var(--public-gold);border-bottom:0;margin-top:10px;font-weight:800}
   .registration-costs .registration-total strong{color:var(--public-gold);font-size:24px}
-  .registration-costs>p{margin:15px 0 0;color:#bfbfbf;font-size:13px;line-height:1.6}
+  .registration-costs>p{margin:15px 0 0;color:var(--lf-color-muted,#bfbfbf);font-size:13px;line-height:1.6}
   .registration-card input:focus-visible,.registration-card select:focus-visible,
   .registration-card textarea:focus-visible{outline:2px solid var(--public-gold);outline-offset:2px}
   .registration-success{text-align:center;margin-top:40px}
