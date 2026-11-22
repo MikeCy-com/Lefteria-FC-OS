@@ -102,7 +102,7 @@
 {#if $auth.status==='authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="settings" busy={$auth.busy}
     onLogout={()=>void auth.logout()}>
-    <main class="provider-settings" data-testid="admin-provider-settings">
+    <div class="provider-settings" data-testid="admin-provider-settings">
       <header class="provider-title">
         <div>
           <h1>SMS / OTP & Πληρωμές</h1>
@@ -184,13 +184,13 @@
             <h3>ΔΙΑΠΙΣΤΕΥΤΗΡΙΑ ΚΑΙ ΕΓΚΡΙΣΗ</h3>
             <p>Τα μυστικά API, οι υπογραφές callback και τα στοιχεία merchant δεν επιστρέφονται στον browser.
               Η πραγματική είσπραξη, οι επιστροφές και οι παραγωγικές συναλλαγές παραμένουν ξεχωριστά κλειδωμένες.</p>
-            <a class="provider-link" href="/admin/finance?organization_id=lefteria_fc_academy"
+            <a class="provider-link" href={"/admin/finance?organization_id="+encodeURIComponent(paymentOwner??"lefteria_fc_academy")}
               data-testid="admin-provider-payabl-finance">Άνοιγμα οικονομικών / payabl. sandbox ↗</a>
           </div>
         </section>
         <p class="admin-muted provider-footnote">Αυτή η σελίδα δείχνει μόνο επαληθευμένη κατάσταση, χωρίς διαρροή διαπιστευτηρίων ή ενεργοποίηση παρόχου. Η αποθήκευση ρυθμίσεων απαιτεί ασφαλή διαχείριση μυστικών και έλεγχο αλλαγών.</p>
       {/if}
-    </main>
+    </div>
   </AdminFrame>
 {:else}
   <AdminSessionStatus unavailable={$auth.status==='unavailable'} busy={$auth.busy}
