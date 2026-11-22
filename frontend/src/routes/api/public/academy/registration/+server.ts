@@ -1,7 +1,7 @@
 import { INTERNAL_API_ORIGIN } from '$app/env/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import {parseAcademyRegistrationReceipts} from '$lib/academy/registration-receipts';
+import {parseAcademyRegistrationReceipts} from '../../../../../lib/academy/registration-receipts';
 
 // Same-origin web adapter: no client-selected upstream, no cookies or
 // Authorization forwarded, no sensitive form data logged or stored in SSR.
