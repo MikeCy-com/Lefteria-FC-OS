@@ -16,6 +16,19 @@ const exact=(value:unknown,names:readonly string[])=>!!value&&typeof value==='ob
   Object.keys(value).length===names.length&&Object.keys(value).every(key=>names.includes(key));
 const size=(x:unknown)=>typeof x==='number'&&Number.isInteger(x)&&x>=12&&x<=80;
 const hex=(x:unknown)=>typeof x==='string'&&/^#[0-9a-fA-F]{6}$/.test(x);
+// Enforce readable color pairings before a theme can be published.
+export function colorContrast(a:string,b:string):number {
+  const luminance=(hexColor:string)=>{
+    const linear=[1,3,5].map(pos=>{
+      const c=parseInt(hexColor.slice(pos,pos+2),16)/255;
+      return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+    });
+    return linear[0]*0.2126+linear[1]*0.7152+linear[2]*0.0722;
+  };
+  const x=luminance(a),y=luminance(b);
+  return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
+}
+
 export function parseGlobalDesign(text:string):GlobalDesign|null {
   if(typeof text!=='string'||text.length>5000)return null;
   let value:unknown;try{value=JSON.parse(text)}catch{return null}
@@ -23,6 +36,10 @@ export function parseGlobalDesign(text:string):GlobalDesign|null {
   const theme=value as GlobalDesign;
   if(!exact(theme.text,TEXT_ROLES)||!exact(theme.colors,['background','foreground','accent','surface','muted','border','link'])||
     !hex(theme.colors.background)||!hex(theme.colors.foreground)||!hex(theme.colors.accent)||!hex(theme.colors.surface)||!hex(theme.colors.muted)||!hex(theme.colors.border)||!hex(theme.colors.link))return null;
+  if(colorContrast(theme.colors.background,theme.colors.foreground)<4.5 ||
+     colorContrast(theme.colors.background,theme.colors.muted)<4.5 ||
+     colorContrast(theme.colors.background,theme.colors.link)<4.5 ||
+     colorContrast(theme.colors.background,theme.colors.accent)<3)return null;
   for(const role of TEXT_ROLES) {
     const t=theme.text[role];
     if(!exact(t,['family','desktop','mobile','weight','line_height'])||
