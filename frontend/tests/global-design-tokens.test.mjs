@@ -33,6 +33,13 @@ test('global theme requires all nine HTML text roles with exact safe values',()=
   bad.colors.accent='#f6bb38';
   bad.text.h3.extra='unexpected';
   assert.equal(parseGlobalDesign(JSON.stringify(bad)),null);
+  const inaccessible=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  inaccessible.colors.foreground='#101010';
+  assert.equal(parseGlobalDesign(JSON.stringify(inaccessible)),null,'body text must remain readable');
+  inaccessible.colors.foreground='#ffffff';
+  inaccessible.colors.link='#090909';
+  assert.equal(parseGlobalDesign(JSON.stringify(inaccessible)),null,'links must remain readable');
+  assert.match(api,/ColorContrast\(bg, colors\.GetProperty\("foreground"\)/);
   assert.equal(parseGlobalDesign('{invalid}'),null);
   assert.equal(parseGlobalDesign('a'.repeat(5001)),null);
 });
