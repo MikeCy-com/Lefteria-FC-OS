@@ -975,7 +975,7 @@ dialog.public-dialog::backdrop { background:color-mix(in srgb,var(--lf-color-bg,
 .cookie-consent-actions{display:flex;gap:8px}
 .cookie-consent-actions button{padding:10px 20px;border-radius:6px;font-size:14px;line-height:20px;white-space:nowrap;cursor:pointer;font-family:inherit;transition:background-color .15s,color .15s,border-color .15s}
 .cookie-consent-accept{background:var(--public-gold);color:var(--lf-color-bg,#000000);font-weight:600;border:0}
-.cookie-consent-accept:hover{background:var(--lf-feedback-error,#ff8c00)}
+.cookie-consent-accept:hover{background:var(--lf-color-accent,#ff8c00)}
 .cookie-consent-decline{background:none;border:1px solid var(--lf-color-border,#262626);color:var(--lf-color-muted,#a1a1aa)}
 .cookie-consent-decline:hover{color:var(--lf-color-text,#ffffff);border-color:var(--lf-color-border,#3a3a3a)}
 @media(min-width:768px){.cookie-consent{padding:24px}.cookie-consent-card{flex-direction:row;align-items:flex-start;gap:24px;padding:24px}.cookie-consent-card>div:first-child{flex:1}.cookie-consent-actions{flex-direction:column;align-items:stretch}}
