@@ -14,7 +14,7 @@
   import './global-design.css';
   let { site, branding, organization = 'lefteria_fc', navigationGroups = [], canonicalPath, children }: { site: PublicSite | null; branding?: PublicClub | null; organization?: PublicOrganization; navigationGroups?: PublicGroup[]; canonicalPath?: string; children: Snippet } = $props();
   const club = $derived(branding === undefined ? site?.club ?? null : branding);
-  const globalTheme=$derived(publishedGlobalDesign(page.data.websitePages?.[organization]??[],organization));
+  const globalTheme=$derived(publishedGlobalDesign(page.data?.websitePages?.[organization]??[],organization));
 </script>
 <svelte:head>
   <link rel="canonical" href={publicCanonicalHref(canonicalPath ?? page.url.pathname)} />
