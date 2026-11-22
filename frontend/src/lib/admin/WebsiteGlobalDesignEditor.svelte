@@ -3,6 +3,7 @@
     type GlobalDesign,type GlobalDesignLayout,type TextRole,type TextStyle} from '../public/global-design.ts';
   let {value,onChange,disabled=false}:{value:string;onChange:(text:string)=>void;disabled?:boolean}=$props();
   const theme=$derived(parseGlobalDesign(value)??DEFAULT_GLOBAL_DESIGN);
+  const previewFonts={condensed:"'Fira Sans Extra Condensed',sans-serif",sans:"'Fira Sans',Arial,sans-serif",serif:'Georgia,serif'} as const;
   const titles:Record<TextRole,string>={h1:'H1 · Τίτλος σελίδας',h2:'H2 · Ενότητα',h3:'H3 · Υποενότητα',
     h4:'H4',h5:'H5',h6:'H6',p:'Παράγραφος',button:'Κουμπιά',nav:'Πλοήγηση',caption:'Μικρό κείμενο',label:'Ετικέτες',card:'Κάρτες'};
   function updateRole(role:TextRole,key:keyof TextStyle,value:string|number){
@@ -88,10 +89,10 @@
       </label>
     {/each}
   </div>
-  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+(theme.layout??DEFAULT_GLOBAL_LAYOUT).card_radius+'px'}>
+  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+(theme.layout??DEFAULT_GLOBAL_LAYOUT).card_radius+'px;--preview-h1-desktop:'+theme.text.h1.desktop+'px;--preview-h1-mobile:'+theme.text.h1.mobile+'px;--preview-p-desktop:'+theme.text.p.desktop+'px;--preview-p-mobile:'+theme.text.p.mobile+'px'}>
     <span style={'color:'+theme.colors.accent}>LEFTERIA FC · LIVE DRAFT PREVIEW</span>
-    <strong style={'font-size:'+theme.text.h1.desktop+'px;line-height:'+theme.text.h1.line_height}>Η ΟΜΑΔΑ ΜΑΣ</strong>
-    <p>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
+    <strong style={'font-family:'+previewFonts[theme.text.h1.family]+';font-weight:'+theme.text.h1.weight+';line-height:'+theme.text.h1.line_height}>Η ΟΜΑΔΑ ΜΑΣ</strong>
+    <p style={'font-family:'+previewFonts[theme.text.p.family]+';font-weight:'+theme.text.p.weight+';line-height:'+theme.text.p.line_height}>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
   </div>
 </section>
 <style>
@@ -102,6 +103,7 @@
 .design-inputs label{display:grid;gap:5px;font-size:12px}
 .design-inputs select,.design-inputs input{width:100%;max-width:100%;min-width:0;min-height:40px;background:#191919;color:#fff;border:1px solid #777;border-radius:5px;padding:5px}
 .design-preview{padding:20px;border-radius:8px;display:grid;gap:12px;overflow:hidden}
-.design-preview strong{overflow-wrap:anywhere}
-@media(max-width:767px){.design-preview strong{font-size:clamp(18px,8vw,36px)!important}}
+.design-preview strong{overflow-wrap:anywhere;font-size:var(--preview-h1-desktop)}
+.design-preview p{font-size:var(--preview-p-desktop)}
+@media(max-width:767px){.design-preview strong{font-size:var(--preview-h1-mobile)}.design-preview p{font-size:var(--preview-p-mobile)}}
 </style>
