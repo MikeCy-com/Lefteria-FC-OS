@@ -39,6 +39,9 @@ public sealed class PosVatClassificationProposals : Migration
           organization_id, requested_at DESC, id);
       ALTER TABLE pos_cashier.vat_classification_proposals ENABLE ROW LEVEL SECURITY;
       REVOKE ALL ON pos_cashier.vat_classification_proposals FROM PUBLIC;
+      CREATE TRIGGER pos_vat_proposal_immutable
+        BEFORE UPDATE OR DELETE ON pos_cashier.vat_classification_proposals
+        FOR EACH ROW EXECUTE FUNCTION pos.reject_private_pos_ledger_change();
 
       CREATE FUNCTION pos_cashier.propose_admin_variant_vat(
         _digest text,_owner text,_id uuid,_product text,_variant text,
