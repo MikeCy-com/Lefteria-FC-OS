@@ -523,7 +523,7 @@ CREATE OR REPLACE FUNCTION finance.read_admin_academy_unallocated_issues(
           )
         );
       END $unallocated$;
-    """);
+""");
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
 DO $guard_recovery$ BEGIN
@@ -949,5 +949,5 @@ CREATE OR REPLACE FUNCTION finance.read_admin_academy_unallocated_issues(
        ALTER TABLE finance.training_fee_issues DROP CONSTRAINT training_fee_issues_status_check;
        ALTER TABLE finance.training_fee_issues ADD CONSTRAINT training_fee_issues_status_check
          CHECK(status IN ('issued','paid','review_required'));
-    """);
+""");
 }
