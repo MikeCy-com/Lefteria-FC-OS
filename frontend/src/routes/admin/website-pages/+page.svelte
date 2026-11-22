@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -72,7 +72,8 @@
   const isHero = $derived(organization !== null && slug === HOMEPAGE_HERO_SLUGS[organization]);
   const isSpotlight = $derived(organization === 'lefteria_fc_academy' && slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
   const isAboutIntro = $derived(slug === CANONICAL_ABOUT_INTRO_SLUG);
-  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro);
+  const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
+  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -127,6 +128,17 @@
   function newPage() {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
+  }
+  function openCanonicalContactLead() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_CONTACT_LEAD_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_CONTACT_LEAD_SLUG;mediaPickerIndex=null;
+    draft={title:'Εισαγωγή · Επικοινωνία',summary:'Κείμενο πάνω από τα επίσημα στοιχεία επικοινωνίας',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:'Εδώ θα βρείτε τους επίσημους τρόπους επικοινωνίας με τη Λευτεριά FC και την Ακαδημία.',url:null}]};
+    notice='';problem='';
   }
   function openCanonicalAboutIntro() {
     if(!organization || !canWrite || saving)return;
@@ -265,6 +277,9 @@
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
+    if(isContactLead && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+      draft.blocks[0].url!==null || draft.blocks[0].text.length>500))return false;
     if(isAboutIntro && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
       draft.blocks[1].type!=='paragraph' ||
@@ -374,6 +389,10 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalContactLead}
+              disabled={loading || saving} data-testid="edit-canonical-contact-lead">
+              Επεξεργασία εισαγωγής · Επικοινωνία
+            </button>{/if}
             {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalAboutIntro}
               disabled={loading || saving} data-testid="edit-canonical-about-intro">
               Επεξεργασία εισαγωγής · Σχετικά με τον σύλλογο
@@ -510,7 +529,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
