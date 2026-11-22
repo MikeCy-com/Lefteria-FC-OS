@@ -612,6 +612,7 @@
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
               groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
+                $auth.session.user.role==='super_admin' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
               onExpired={()=>auth.invalidateSession()}
               onRevoked={()=>void auth.bootstrap()} onChanged={()=>retry++}/>
