@@ -25,7 +25,7 @@
   ];
   const organizations=$derived($auth.session?.user.organizations.filter(
     o=>o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
-  const authorized=$derived(['super_admin','manager','accountant'].includes($auth.session?.user.role??''));
+  const authorized=$derived(['super_admin','accountant'].includes($auth.session?.user.role??''));
   let owner=$state<Owner|null>(null),response=$state<Response|null>(null);
   let products=$state<CatalogProduct[]>([]);
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
