@@ -72,7 +72,7 @@ public sealed class PosVatClassificationProposals : Migration
           AND s.expires_at>clock_timestamp()
           AND a.is_active AND NOT a.invite_pending
           AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL;
-        IF NOT FOUND OR v_role NOT IN ('super_admin','manager','accountant')
+        IF NOT FOUND OR v_role NOT IN ('super_admin','accountant')
         THEN RAISE EXCEPTION 'pos_vat_proposal_denied' USING ERRCODE='42501'; END IF;
 
         IF NOT EXISTS(SELECT 1 FROM pos.product_variants
@@ -124,7 +124,7 @@ public sealed class PosVatClassificationProposals : Migration
           AND s.expires_at>clock_timestamp()
           AND a.is_active AND NOT a.invite_pending
           AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL;
-        IF NOT FOUND OR v_role NOT IN ('super_admin','manager','accountant')
+        IF NOT FOUND OR v_role NOT IN ('super_admin','accountant')
         THEN RAISE EXCEPTION 'pos_vat_proposal_denied' USING ERRCODE='42501'; END IF;
         RETURN jsonb_build_object('organization_id',_owner,
           'checkout_enabled',false,'approval_available',false,
