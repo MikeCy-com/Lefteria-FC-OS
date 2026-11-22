@@ -26,7 +26,7 @@ test('approved About intro uses only a scoped published two-block snapshot',()=>
   assert.equal(canonicalAboutIntro([{...fc,published_at:null}],'lefteria_fc'),null);
   assert.equal(canonicalAboutIntro([{...fc,page:{...fc.page,menu_parent:'root'}}],'lefteria_fc'),null);
   assert.equal(canonicalAboutIntro([{...fc,page:{...fc.page,blocks:[...fc.page.blocks,{type:'image',text:'x',url:'/x'}]}}],'lefteria_fc'),null);
-  assert.equal(canonicalAboutIntro([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],text:'Bad\\nheading'},fc.page.blocks[1]]}}],'lefteria_fc'),null);
+  assert.equal(canonicalAboutIntro([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],text:'Bad\nheading'},fc.page.blocks[1]]}}],'lefteria_fc'),null);
   assert.equal(canonicalAboutIntro([{...fc,page:{...fc.page,blocks:[{...fc.page.blocks[0],url:'/admin'},fc.page.blocks[1]]}}],'lefteria_fc'),null);
   assert.equal(canonicalAboutIntro([page('lefteria_fc_academy')],'lefteria_fc'),null);
   assert.equal(canonicalAboutIntro([page('lefteria_fc_academy')],'lefteria_fc_academy')?.heading,'Our Club');
