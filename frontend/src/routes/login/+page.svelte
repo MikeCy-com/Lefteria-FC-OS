@@ -37,11 +37,11 @@
   .club-access-panel h2 span { color:var(--public-gold); }
   .club-access-panel>p { color:#bfc0bb; font-size:14px; }
   .club-access-audiences { display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:24px 0; list-style:none; }
-  .club-access-audiences li { border:1px solid #8b703c; padding:10px 14px; color:#f6bb38; font-family:'Fira Sans Extra Condensed',sans-serif; font-size:18px; font-weight:700; }
-  .club-access-panel .club-access-action { width:100%; justify-content:space-between; min-height:54px; font-size:21px; background:linear-gradient(120deg,#ffd65b,#f6bb38); color:#080808; border-radius:6px; }
+  .club-access-audiences li { border:1px solid #8b703c; padding:10px 14px; color:var(--public-gold); font-family:'Fira Sans Extra Condensed',sans-serif; font-size:18px; font-weight:700; }
+  .club-access-panel .club-access-action { width:100%; justify-content:space-between; min-height:54px; font-size:21px; background:linear-gradient(120deg,#ffd65b,var(--public-gold)); color:#080808; border-radius:6px; }
   .club-access-note { margin-top:16px; }
   .club-access-family { border-top:1px solid #6a5835; margin-top:28px; padding-top:22px; }
-  .club-access-family strong { font-family:'Fira Sans Extra Condensed',sans-serif; color:#f6bb38; font-size:21px; }
+  .club-access-family strong { font-family:'Fira Sans Extra Condensed',sans-serif; color:var(--public-gold); font-size:21px; }
   .club-access-family p { color:#bfc0bb; font-size:14px; margin-top:8px; }
   @media(max-width:900px) { .club-access { grid-template-columns:1fr; padding:20px 16px 36px; gap:20px; } .club-access-welcome { min-height:340px; background-position:center 35%; } .club-access-welcome h1 { font-size:42px; } }
   @media(max-width:380px) { .club-access-welcome h1 { font-size:34px; } .club-access-panel { padding:22px; } }
