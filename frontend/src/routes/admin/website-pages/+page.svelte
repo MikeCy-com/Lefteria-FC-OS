@@ -384,7 +384,7 @@
     if(!canWrite || saving || isLockedRegion)return;
     const next:WebsitePageLayout={...draft.layout};
     if(value===null)delete next[key];
-    else next[key]=value;
+    else (next as unknown as Record<string,number|null|undefined>)[key]=value;
     if(validPageLayout(next))draft.layout=Object.keys(next).length?next:null;
   }
   function setBlockLayout(index:number,next:WebsiteBlockLayout) {
