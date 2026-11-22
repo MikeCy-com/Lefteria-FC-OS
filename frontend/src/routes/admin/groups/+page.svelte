@@ -9,6 +9,7 @@
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
+  import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -29,6 +30,7 @@
   let directory = $state<Directory | null>(null);
   let focusedGroupId = $state('');
   let groupSearch = $state('');
+  let directoryView=$state<'groups'|'players'>('groups');
   const visibleGroups = $derived((directory?.groups ?? []).filter(group=>
     group.name.toLocaleLowerCase('el-GR').includes(groupSearch.trim().toLocaleLowerCase('el-GR'))));
   const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
@@ -85,6 +87,12 @@
   });
   let appliedInitialOrganization=false;
   let openedRequestedCreate=false;
+  let appliedRequestedView=false;
+  $effect(()=>{
+    if(!browser||appliedRequestedView||!canCreate)return;
+    appliedRequestedView=true;
+    if(page.url.searchParams.get('view')==='players')directoryView='players';
+  });
   $effect(()=>{
     const choices=assignments;
     if(!browser||appliedInitialOrganization||$auth.status!=='authenticated'||!choices.length)return;
@@ -468,6 +476,25 @@
               <div data-testid="admin-audiences-scoped"><span>Πεδίο πρόσβασης</span><strong class="admin-audiences-scope-text">Μόνο ανατεθειμένα τμήματα</strong></div>
             {/if}
           </div>
+          {#if canCreate}
+            <div class="admin-directory-switch" role="group" aria-label="Ενότητες διαχείρισης">
+              <button type="button" aria-pressed={directoryView==='groups'}
+                data-testid="admin-directory-teams"
+                onclick={()=>directoryView='groups'}>Ομάδες & τμήματα</button>
+              <button type="button" aria-pressed={directoryView==='players'}
+                data-testid="admin-directory-players"
+                onclick={()=>directoryView='players'}>Παίκτες CRM</button>
+            </div>
+          {/if}
+          {#if canCreate && directoryView==='players' && $auth.session}
+            <AdminRosterPlayersPanel owner={organization} actorId={$auth.session.user.id}
+              groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              allowFinance={organization==='lefteria_fc_academy' &&
+                hasAdminPermission($auth.session.user.permissions,'finance:read')}
+              onExpired={()=>auth.invalidateSession()}
+              onRevoked={()=>void auth.bootstrap()} onChanged={()=>retry++}/>
+          {/if}
+          {#if directoryView==='groups'}
           {#if lastCreatedGroupId && lastCreatedOrganization===organization}
             <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
               <p class="admin-eyebrow">ΤΟ ΤΜΗΜΑ ΑΠΟΘΗΚΕΥΤΗΚΕ</p>
@@ -745,6 +772,7 @@
               {/if}
             {/if}
           </section>
+          {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
       </div>
@@ -762,6 +790,11 @@
 
 <style>
   .admin-audiences{max-width:1440px}
+  .admin-directory-switch{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+  .admin-directory-switch button{min-height:40px;padding:9px 15px;border:1px solid #3c4140;
+    background:#161818;color:#d5dad8;border-radius:7px;font:700 13px/1.3 'Fira Sans',sans-serif}
+  .admin-directory-switch button[aria-pressed='true']{color:#fbd076;background:#241d10;border-color:#bd8528}
+
   .admin-audiences h1{font-size:clamp(23px,2.1vw,30px);line-height:1.2}
   .admin-audience-search{display:grid;gap:7px;max-width:440px;margin:17px 0 8px;
     font-size:12px;color:#bfc3c6}
