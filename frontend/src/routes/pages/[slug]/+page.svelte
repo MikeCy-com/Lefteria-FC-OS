@@ -72,9 +72,9 @@
     background:linear-gradient(90deg,transparent 0 35%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 14%,transparent) 35% 44%,transparent 44% 61%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 8%,transparent) 61% 75%,transparent 75%);
   }
   .website-page-header-inner{
-    max-width:1200px;
+    max-width:var(--lf-page-content-max-width,1200px);
     margin:0 auto;
-    padding:clamp(38px,5vw,82px) clamp(20px,4.5vw,64px) clamp(42px,5vw,78px);
+    padding:clamp(38px,5vw,82px) var(--lf-page-content-side,clamp(20px,4.5vw,64px)) clamp(42px,5vw,78px);
   }
   .website-page-breadcrumbs{
     display:flex;align-items:center;flex-wrap:wrap;column-gap:11px;row-gap:6px;
@@ -115,9 +115,12 @@
   .website-page-content{
     max-width:var(--lf-page-content-max-width,1200px);
     margin:0 auto;
-    padding:clamp(28px,4.5vw,68px) var(--lf-page-content-side,clamp(20px,4.5vw,64px)) clamp(60px,7vw,108px);
+    /* The WYSIWYG block grid owns side padding; the outer wrapper must not
+       apply it again, or every published page gets doubled margins. */
+    padding:clamp(28px,4.5vw,68px) 0 clamp(60px,7vw,108px);
   }
   .website-page-return{
+    margin-inline:var(--lf-page-content-side,clamp(20px,4.5vw,64px));
     margin-top:clamp(38px,5vw,70px);
     padding-top:22px;border-top:1px solid color-mix(in srgb,var(--lf-color-accent,#f6bb38) 25%,transparent);
   }
