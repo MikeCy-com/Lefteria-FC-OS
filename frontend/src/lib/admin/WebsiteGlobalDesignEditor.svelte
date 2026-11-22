@@ -3,6 +3,7 @@
     type GlobalDesign,type GlobalDesignLayout,type TextRole,type TextStyle} from '../public/global-design.ts';
   let {value,onChange,disabled=false}:{value:string;onChange:(text:string)=>void;disabled?:boolean}=$props();
   const theme=$derived(parseGlobalDesign(value)??DEFAULT_GLOBAL_DESIGN);
+  const resolvedLayout=$derived({...DEFAULT_GLOBAL_LAYOUT,...theme.layout});
   const previewFonts={condensed:"'Fira Sans Extra Condensed',sans-serif",sans:"'Fira Sans',Arial,sans-serif",serif:'Georgia,serif'} as const;
   const titles:Record<TextRole,string>={h1:'H1 · Τίτλος σελίδας',h2:'H2 · Ενότητα',h3:'H3 · Υποενότητα',
     h4:'H4',h5:'H5',h6:'H6',p:'Παράγραφος',button:'Κουμπιά',nav:'Πλοήγηση',caption:'Μικρό κείμενο',label:'Ετικέτες',card:'Κάρτες'};
@@ -17,7 +18,12 @@
     card_gap:'Απόσταση καρτών',
     card_radius:'Στρογγύλεμα καρτών',
     button_radius:'Στρογγύλεμα κουμπιών',
-    motto_height:'Ύψος ζώνης ONE TEAM ● ONE DREAM'
+    motto_height:'Ύψος ζώνης ONE TEAM ● ONE DREAM',
+    page_max_width:'Προεπιλεγμένο μέγιστο πλάτος σελίδας',
+    page_gap:'Προεπιλεγμένο κενό μεταξύ blocks',
+    page_side_padding:'Προεπιλεγμένο πλευρικό περιθώριο',
+    page_margin_top:'Προεπιλεγμένο πάνω περιθώριο σελίδας',
+    page_margin_bottom:'Προεπιλεγμένο κάτω περιθώριο σελίδας'
   };
   function updateLayout(key:keyof GlobalDesignLayout,value:number){
     const next:GlobalDesign=structuredClone(theme);
@@ -76,11 +82,11 @@
     {/each}
   </div>
   <h3>Γενική διάταξη · αποστάσεις &amp; γωνίες</h3>
-  <p>Οι τιμές εφαρμόζονται σε όλες τις δημόσιες σελίδες του αντίστοιχου οργανισμού. Η διάταξη κάθε μπλοκ στο WYSIWYG παραμένει ανεξάρτητη.</p>
+  <p>Οι τιμές είναι κοινές προεπιλογές για τις δημόσιες σελίδες του οργανισμού. Μπορείτε να αλλάξετε ένα πεδίο σε συγκεκριμένη σελίδα, χωρίς να αλλάξουν οι υπόλοιπες. Η διάταξη των blocks παραμένει ανεξάρτητη.</p>
   <div class="design-inputs" data-testid="global-design-layout-controls">
     {#each Object.keys(GLOBAL_LAYOUT_CHOICES) as key (key)}
       <label>{layoutLabels[key as keyof GlobalDesignLayout]}
-        <select disabled={disabled} value={(theme.layout??DEFAULT_GLOBAL_LAYOUT)[key as keyof GlobalDesignLayout]}
+        <select disabled={disabled} value={resolvedLayout[key as keyof GlobalDesignLayout]}
           onchange={e=>updateLayout(key as keyof GlobalDesignLayout,Number(e.currentTarget.value))}>
           {#each GLOBAL_LAYOUT_CHOICES[key as keyof GlobalDesignLayout] as option (option)}
             <option value={option}>{option}px</option>
@@ -89,7 +95,7 @@
       </label>
     {/each}
   </div>
-  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+(theme.layout??DEFAULT_GLOBAL_LAYOUT).card_radius+'px;--preview-h1-desktop:'+theme.text.h1.desktop+'px;--preview-h1-mobile:'+theme.text.h1.mobile+'px;--preview-p-desktop:'+theme.text.p.desktop+'px;--preview-p-mobile:'+theme.text.p.mobile+'px'}>
+  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+resolvedLayout.card_radius+'px;--preview-h1-desktop:'+theme.text.h1.desktop+'px;--preview-h1-mobile:'+theme.text.h1.mobile+'px;--preview-p-desktop:'+theme.text.p.desktop+'px;--preview-p-mobile:'+theme.text.p.mobile+'px'}>
     <span style={'color:'+theme.colors.accent}>LEFTERIA FC · LIVE DRAFT PREVIEW</span>
     <strong style={'font-family:'+previewFonts[theme.text.h1.family]+';font-weight:'+theme.text.h1.weight+';line-height:'+theme.text.h1.line_height}>Η ΟΜΑΔΑ ΜΑΣ</strong>
     <p style={'font-family:'+previewFonts[theme.text.p.family]+';font-weight:'+theme.text.p.weight+';line-height:'+theme.text.p.line_height}>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
