@@ -100,3 +100,57 @@ test('design settings use existing private draft approval with exact API validat
   assert.ok(compile(editor,{filename:'WebsiteGlobalDesignEditor.svelte',generate:'server'}).js.code.length>100);
   assert.ok(compile(shell,{filename:'PublicShell.svelte',generate:'server'}).js.code.length>100);
 });
+
+test('published WYSIWYG layout choices are typed, strict, organization-scoped and legacy compatible',()=>{
+  const oldTheme={text:DEFAULT_GLOBAL_DESIGN.text,colors:DEFAULT_GLOBAL_DESIGN.colors};
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(oldTheme)),oldTheme,'Old published themes must continue working');
+  assert.match(globalDesignCssVars(oldTheme),/--lf-layout-motto-height:120px/);
+  const changed=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  changed.layout.gutter=64;
+  changed.layout.card_gap=40;
+  changed.layout.card_radius=24;
+  changed.layout.button_radius=16;
+  changed.layout.motto_height=360;
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(changed)),changed);
+  const result=globalDesignCssVars(changed);
+  for(const token of [
+    '--lf-layout-gutter:64px','--lf-layout-card-gap:40px',
+    '--lf-layout-card-radius:24px','--lf-layout-button-radius:16px',
+    '--lf-layout-motto-height:360px'
+  ])assert.ok(result.includes(token),token);
+  for(const [key,value] of [
+    ['gutter',999],['section_gap',500],['card_gap',-1],
+    ['card_radius',3],['button_radius','999px'],['motto_height',999]
+  ]) {
+    const invalid=structuredClone(changed);invalid.layout[key]=value;
+    assert.equal(parseGlobalDesign(JSON.stringify(invalid)),null,key);
+  }
+  const injected=structuredClone(changed);
+  injected.layout['css']='display:none';
+  assert.equal(parseGlobalDesign(JSON.stringify(injected)),null);
+  assert.match(api,/layout\.EnumerateObject\(\)\.Count\(\) != 6/);
+  assert.match(api,/root\.TryGetProperty\("layout", out var layout\)/);
+  assert.match(api,/item\.Choices\.Contains\(number\)/);
+  assert.match(editor,/data-testid="global-design-layout-controls"/);
+  assert.match(editor,/updateLayout\(key as keyof GlobalDesignLayout/);
+  assert.match(editor,/--preview-h1-mobile/);
+  assert.doesNotMatch(editor,/clamp\(18px,8vw,36px\)!important/);
+});
+
+test('redesign consumes the published palette and layout instead of hardcoded values',()=>{
+  const skin=read('frontend/src/lib/public/ui-refresh.css');
+  const palette=read('frontend/src/lib/public/global-design.css');
+  for(const key of [
+    'bg','text','accent','surface','muted','border','link'
+  ]) assert.ok((skin+palette).includes('--lf-color-'+key),'not wired: '+key);
+  for(const key of [
+    'gutter','section-gap','card-gap','card-radius','button-radius','motto-height'
+  ]) assert.ok(skin.includes('--lf-layout-'+key),'layout not wired: '+key);
+  assert.match(palette,/--public-gold:var\(--lf-color-accent\)/);
+  assert.match(palette,/--public-panel:var\(--lf-color-surface\)/);
+  assert.doesNotMatch(skin,/rgb\(246[, ]+187[, ]+56/i);
+  assert.doesNotMatch(skin,/(?:background|border-color|color)\s*:\s*#[a-f0-9]{3,8}\b/i);
+  // Native CMS per-block WYSIWYG spacing must not be overwritten by new skin.
+  assert.doesNotMatch(skin,/\.website-block-wrap\b|\.website-blocks\b|--cms-(?:gap|side|max-width|mt|mb)/);
+  assert.match(read('frontend/src/lib/public/WebsitePageBlocks.svelte'),/--cms-gap:\$\{resolvedPage\.gap\}px/);
+});
