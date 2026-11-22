@@ -84,11 +84,11 @@
   }
   .website-page-breadcrumbs a:hover{text-decoration:underline;text-underline-offset:4px}
   .website-page-breadcrumbs a:focus-visible,.website-page-return a:focus-visible{
-    outline:3px solid #f6bb38;outline-offset:4px;
+    outline:3px solid var(--public-gold);outline-offset:4px;
   }
   .website-page-breadcrumbs>span:last-child{font-weight:650;color:#eee;max-width:65ch}
   .website-page-header .public-eyebrow{
-    color:#f6bb38;
+    color:var(--public-gold);
     font:800 15px/1.25 'Fira Sans Extra Condensed',sans-serif;
     letter-spacing:.07em;
     margin:0 0 14px;
@@ -126,7 +126,7 @@
     font:800 15px/1.35 'Fira Sans Extra Condensed',sans-serif;
   }
   .website-page-return a:hover{
-    color:#12100a;background:#f6bb38;border-color:#f6bb38;
+    color:#12100a;background:var(--public-gold);border-color:var(--public-gold);
   }
   .website-page[data-organization="lefteria_fc_academy"] .website-page-header{
     background:
