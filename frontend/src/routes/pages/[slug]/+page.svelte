@@ -83,7 +83,7 @@
     overflow-wrap:anywhere;
   }
   .website-page-breadcrumbs a{
-    color:#ffce64;font-weight:800;letter-spacing:.035em;
+    color:var(--public-gold);font-weight:800;letter-spacing:.035em;
     text-decoration:none;min-height:42px;display:inline-flex;align-items:center;
   }
   .website-page-breadcrumbs a:hover{text-decoration:underline;text-underline-offset:4px}
@@ -124,9 +124,9 @@
   .website-page-return a{
     display:inline-flex;align-items:center;min-height:48px;
     padding:10px 17px;
-    border:1px solid #b48c41;border-radius:0 9px 0 7px;
+    border:1px solid var(--public-gold);border-radius:0 9px 0 7px;
     background:rgb(246 187 56 / 6%);
-    color:#ffce71;text-decoration:none;
+    color:var(--public-gold);text-decoration:none;
     font:800 15px/1.35 'Fira Sans Extra Condensed',sans-serif;
   }
   .website-page-return a:hover{
