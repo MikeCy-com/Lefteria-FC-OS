@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {join,relative} from 'node:path';
 import {compile} from 'svelte/compiler';
 
 const read=path=>readFileSync(new URL('../src/'+path,import.meta.url),'utf8');
@@ -63,5 +65,37 @@ test('CMS semantic heading typography comes directly from backend role values, m
   assert.match(browser,/Original generic cards must inherit global card radius/);
   for(const [name,component] of [['PublicShell',shell],['WebsitePageBlocks',blocks],['standalone CMS',standalone]]){
     assert.ok(compile(component,{filename:name+'.svelte',generate:'server'}).js.code.length>100,name);
+  }
+});
+
+
+test('every public route stylesheet (not just the seven showcase pages) inherits the palette',()=>{
+  const routesRoot=fileURLToPath(new URL('../src/routes/',import.meta.url));
+  const pages=[];
+  function visit(directory){
+    for(const entry of readdirSync(directory,{withFileTypes:true})){
+      const pathname=join(directory,entry.name);
+      if(entry.isDirectory())visit(pathname);
+      else if(entry.name==='+page.svelte'){
+        const route=relative(routesRoot,pathname).replaceAll('\\','/');
+        if(!route.startsWith('admin/')&&!route.startsWith('app/'))pages.push({route,pathname});
+      }
+    }
+  }
+  visit(routesRoot);
+  assert.ok(pages.length>=35,'The full public route tree must be audited, not only showcase pages');
+  for(const {route,pathname} of pages){
+    const source=readFileSync(pathname,'utf8');
+    const pos=source.indexOf('<style');
+    if(pos<0)continue;
+    const css=source.slice(pos);
+    const normalized=css.replace(
+      /var\(--(?:lf-(?:color-[\w-]+|feedback-[\w-]+)|public-gold)\s*,\s*#[\da-fA-F]{6}\)/g,
+      'THEME_FALLBACK'
+    );
+    assert.doesNotMatch(normalized,/#[\da-fA-F]{3,8}\b/,
+      route+' contains a literal paint color outside a validated theme token');
+    assert.doesNotMatch(css,/(?:background(?:-color)?|border-color|color)\s*:\s*(?:white|black)\b/i,
+      route+' contains fixed white/black instead of a published semantic color');
   }
 });
