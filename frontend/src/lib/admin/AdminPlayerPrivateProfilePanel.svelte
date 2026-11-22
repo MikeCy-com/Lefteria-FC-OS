@@ -190,7 +190,7 @@
           </label>
           <label>Προτιμώμενος αριθμός
             <input bind:value={preferredNumber} inputmode="numeric"
-              pattern="[0-9]{1,2}" maxlength="2"
+              pattern="[0-9][0-9]?" maxlength="2"
               disabled={!allowWrite||saving||uploading} placeholder="1–99"/>
           </label>
         </div>
