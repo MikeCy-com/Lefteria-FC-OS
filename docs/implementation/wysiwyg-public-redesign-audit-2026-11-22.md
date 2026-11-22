@@ -80,3 +80,45 @@ Luxury Juventus editorial photography + Ferrari-like precision: crisp typographi
 ### Rollout
 
 Backend and frontend schema changes (including nullable page overrides) **must ship together**, after green builds and browser testing. Leave PR #467 a draft until a real published CMS staging theme has been tested for both organizations and the screenshots have been reviewed.
+
+
+## Native-page cascade cleanup (follow-up)
+
+Several layers previously assigned different geometry to the same public
+`.public-section` and `.public-page-heading` elements. In particular, the
+published max-width could be correct on `.public-site` while an old 28px
+section padding from the premium skin bypassed centered content width. The
+authoritative native-page inset now resolves:
+
+```css
+padding-inline:max(var(--lf-layout-gutter,28px), var(--public-page-inset,24px));
+```
+
+`--public-page-inset` is computed from **the published global page max width
+and side gutter**. `ui-refresh.css` no longer sets those two elements' horizontal
+padding; it retains presentation-only gradients, borders, focus and shadows.
+
+The About, catalog, player, match, sponsor and shop *page containers* now
+consume published max-width / gutter tokens. Narrow article columns, forms,
+cards and imagery retain their intentional size constraints. Without an approved
+published theme, the original **1200px** narrower match/story widths and
+**1400px** standard native content widths remain in effect.
+
+Standalone WYSIWYG articles no longer receive horizontal padding from both the
+parent and nested block grid. An embedded CMS section likewise owns its local
+header width, side padding **and block gap** independently; other published
+sections are not touched. The original About page's fixed `text-white`,
+`text-zinc-300`, `bg-[#0a0a0a]` and `text-[#F6BB38]` utility classes have
+been replaced by semantic theme colors, without changing words or the real
+stadium and crest images.
+
+Regression protection now covers all 35 public route templates' CSS **and
+markup paint classes**, native container widths, and computed browser geometry
+under an injected non-default published theme (About, Shop and Team).
+`global-design.css` remains the sole source of published geometry: an
+unpublished draft never changes the live public UI.
+
+Remaining limit: native feature pages are token-driven and inherit global
+layout, but only CMS page/block records expose independent per-page WYSIWYG
+overrides. Making every business-logic page's full layout editable requires a
+separate native-page settings schema/editor, not a risky second CSS overlay.
