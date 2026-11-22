@@ -100,7 +100,11 @@
   .website-page-header h1{
     max-width:1050px;
     margin:0;
-    font:italic 900 clamp(36px,5vw,78px)/1 'Fira Sans Extra Condensed',sans-serif;
+    font-style:italic;
+    font-family:var(--lf-h1-family,'Fira Sans Extra Condensed',sans-serif);
+    font-size:var(--lf-h1-desktop,clamp(36px,5vw,78px));
+    font-weight:var(--lf-h1-weight,900);
+    line-height:var(--lf-h1-line,1);
     text-wrap:balance;overflow-wrap:anywhere;
     text-shadow:0 8px 25px color-mix(in srgb,var(--lf-color-bg,#000000) 40%,transparent);
   }
@@ -141,10 +145,10 @@
       linear-gradient(121deg,var(--lf-color-surface,#171a17) 0%,var(--lf-color-bg,#070809) 82%);
   }
   @media(max-width:650px){
-    .website-page-header-inner{padding:29px 18px 43px;}
+    .website-page-header-inner{padding:29px var(--lf-page-content-side,18px) 43px;}
     .website-page-breadcrumbs{margin-bottom:27px;}
-    .website-page-header h1{font-size:clamp(36px,9vw,54px);}
-    .website-page-content{padding:32px 18px 64px;}
+    .website-page-header h1{font-size:var(--lf-h1-mobile,clamp(36px,9vw,54px));}
+    .website-page-content{padding:32px 0 64px;}
     .website-page-return a{width:100%;justify-content:center;white-space:normal;}
   }
   @media(prefers-reduced-motion:reduce){
