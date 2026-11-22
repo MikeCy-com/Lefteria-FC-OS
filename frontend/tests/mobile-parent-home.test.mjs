@@ -5,7 +5,8 @@ import { fileURLToPath } from 'node:url';
 import { registerHooks } from 'node:module';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
-import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule } from '../src/lib/mobile/parent-home.ts';
+import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule,
+  parentHomePendingResponses } from '../src/lib/mobile/parent-home.ts';
 
 const today = '2026-11-07';
 const identityId = '11111111-1111-4111-8111-111111111111';
@@ -141,4 +142,50 @@ test('parent home is role-gated in app router and reuses guarded family/calendar
   assert.match(route,/onChildren=\{\(\) => openTab\('children'\)\}/);
   assert.match(route,/<MobileParentHome identityId=\{user\.id\} parentName=\{user\.name\}/);
   assert.match(route,/!user\.current_role_available/);
+});
+
+test('parent action queue uses only the currently verified child and unanswered upcoming activities',()=>{
+  const matches=parentHomePendingResponses(family,calendar(),identityId,today,'academy-child');
+  assert.deepEqual(matches.map(e=>e.id),['training-1']);
+  assert.deepEqual(parentHomePendingResponses(family,calendar({
+    items:[item({responses:[{player_id:'academy-child',status:'going'}]})]
+  }),identityId,today,'academy-child'),[]);
+  assert.deepEqual(parentHomePendingResponses(family,calendar({
+    items:[item({responses:[{player_id:'club-child',status:'going'}]})]
+  }),identityId,today,'academy-child').map(e=>e.id),['training-1']);
+  for(const modified of [
+    calendar({identity_id:'unknown'}),
+    calendar({role:'coach'}),
+    calendar({selected_player_id:'club-child'}),
+    calendar({organization_id:'lefteria_fc'}),
+    calendar({month:'2026-10'}),
+    null
+  ])assert.deepEqual(parentHomePendingResponses(family,modified,identityId,today,'academy-child'),[]);
+  assert.deepEqual(parentHomePendingResponses(null,calendar(),identityId,today,'academy-child'),[]);
+  assert.deepEqual(parentHomePendingResponses(family,calendar(),identityId,today,'absent-child'),[]);
+});
+
+test('parent response actions render only for trusted current child and retain selected-child calendar shortcut',async()=>{
+  const {default:Home}=await import('../src/lib/mobile/components/MobileParentHome.svelte');
+  const common={
+    identityId,parentName:'Ελεγχόμενος γονέας',today,
+    family,familyStatus:'ready',familyError:null,
+    calendar:calendar(),calendarStatus:'ready',calendarError:null,busy:false,
+    onLoadFamily:()=>true,onLoadCalendar:()=>true,onChildren:()=>{},
+    onCalendar:()=>{},onRespond:()=>true
+  };
+  const active=render(Home,{props:common}).body;
+  assert.match(active,/parent-home-response-queue/);
+  assert.match(active,/parent-home-response-needed/);
+  assert.match(active,/ΧΡΕΙΑΖΕΤΑΙ ΑΠΑΝΤΗΣΗ/);
+  assert.match(active,/Θα έρθει/);
+  const pendingWithoutConsent=render(Home,{props:{...common,onRespond:undefined}}).body;
+  assert.doesNotMatch(pendingWithoutConsent,/parent-home-response-queue/);
+  const mismatched=render(Home,{props:{...common,calendar:calendar({role:'coach'})}}).body;
+  assert.doesNotMatch(mismatched,/parent-home-response-queue/);
+  const revoked=render(Home,{props:{...common,family:null,familyStatus:'error'}}).body;
+  assert.doesNotMatch(revoked,/parent-home-response-queue|Παιδί Άλφα/);
+  const source=readFileSync(new URL('../src/lib/mobile/components/MobileParentHome.svelte',import.meta.url),'utf8');
+  assert.match(source,/parentHomePendingResponses\(family,calendar,identityId,today,activeChild\?\.id\)/);
+  assert.match(source,/onCalendar\(activeChild\.id\)\} data-testid="parent-shortcut-calendar"/);
 });
