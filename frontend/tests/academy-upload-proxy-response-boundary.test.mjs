@@ -32,3 +32,12 @@ test('relay rejects cross-origin requests and bounds streamed uploads independen
   assert.match(source,/if\(size>11\*1024\*1024\)/);
   assert.match(source,/AbortSignal\.timeout\(30000\)/);
 });
+
+test('relay rejects malformed declared lengths before reading a body or contacting upstream',()=>{
+  assert.match(source,/const declaredLength=request\.headers\.get\('content-length'\)/);
+  assert.match(source,/if\(declaredLength!==null\)/);
+  assert.match(source,/if\(!\/\^\(0\|\[1-9\]\[0-9\]\*\)\$\/\.test\(declaredLength\)\)/);
+  assert.match(source,/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
+  assert.match(source,/if\(Number\(declaredLength\)>11\*1024\*1024\)/);
+  assert.ok(source.indexOf('const declaredLength=')<source.indexOf('request.body?.getReader()'));
+});
