@@ -42,7 +42,7 @@ test('the admin navigation links to the centre while preserving announcement edi
   assert.match(frame,/data-testid="admin-communications-link"/);
   assert.match(frame,/data-testid="admin-announcements-link"/);
   assert.match(frame,/aria-current=\{active==='communications'/);
-  assert.match(dashboard,/href:'\/admin\/communications'/);
+  assert.doesNotMatch(dashboard,/admin-quick-navigation|href:'\/admin\/communications'/);
   assert.match(page,/href="\/admin\/announcements"/);
   assert.doesNotMatch(page,/href="\/admin\/news"|href="\/admin\/leads"/);
 });
