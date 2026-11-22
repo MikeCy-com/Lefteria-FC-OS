@@ -214,3 +214,189 @@
     --ui-line: rgb(255 255 255 / 55%);
   }
 }
+
+/* Interior-page polish: same published imagery and text, clearer surfaces. */
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-program-overview, .academy-reference-fees, .academy-philosophy,
+  .academy-key-figures, .academy-groups-philosophy
+) {
+  border-color: var(--ui-line);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-age-card, .academy-review-card, .academy-player-preview,
+  .academy-group-preview, .academy-destination
+) {
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-age-card, .academy-review-card, .academy-player-preview,
+  .academy-group-preview, .academy-destination
+):focus-within {
+  border-color: var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-landing-city-index, .academy-city-index, .academy-section-links
+) {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ui-accent) #141515;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-landing-city-index, .academy-city-index, .academy-section-links
+) a {
+  border-radius: 5px;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-landing-city-index, .academy-city-index, .academy-section-links
+) a:focus-visible {
+  outline: 3px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-city-block, .academy-city-section, .academy-location-block,
+  .academy-location-section
+) {
+  scroll-margin-top: calc(var(--public-header) + 25px);
+}
+
+/* Team/roster editorial: no substitution of player or match images. */
+.public-site[data-ui-refresh="2026"] :is(
+  .person-card, .venue-card, .academy-age-card, .academy-review-card
+) {
+  overflow: hidden;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .person-card-copy, .public-news-body, .catalog-card-body
+) {
+  min-width: 0;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .roster-filters, .catalog-filters, .event-chip-filters
+) {
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background: var(--ui-surface);
+  box-shadow: 0 9px 26px rgb(0 0 0 / 14%);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .roster-filters, .catalog-filters, .event-chip-filters
+) :is(input, select) {
+  border-color: rgb(255 255 255 / 34%);
+  background-color: #0b0d0e;
+  color: #f7f7f4;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .roster-filters, .catalog-filters, .event-chip-filters
+) :is(input, select):focus-visible {
+  border-color: var(--ui-accent);
+  outline: 2px solid var(--ui-accent);
+  outline-offset: 2px;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-pagination, .catalog-results-heading, .roster-count
+) {
+  border-bottom-color: var(--ui-line);
+}
+
+/* Multi-step Academy registration: improve visual grouping and input focus. */
+.public-site[data-ui-refresh="2026"] .registration-card {
+  border-color: rgb(246 187 56 / 33%);
+  box-shadow: 0 20px 55px rgb(0 0 0 / 25%);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-child, .registration-choice-card, .registration-costs,
+  .registration-koa, .registration-child-documents
+) {
+  border-color: var(--ui-line);
+  border-radius: var(--ui-radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+.public-site[data-ui-refresh="2026"] .registration-fields :is(
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea
+) {
+  border: 1px solid rgb(255 255 255 / 34%);
+  border-radius: 5px;
+  background-color: #0b0e0f;
+  transition: border-color .16s ease, box-shadow .16s ease;
+}
+.public-site[data-ui-refresh="2026"] .registration-fields :is(
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea
+):focus-visible {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 3px rgb(246 187 56 / 11%);
+}
+.public-site[data-ui-refresh="2026"] .registration-step-icon:focus-visible {
+  outline: 3px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+.public-site[data-ui-refresh="2026"] .registration-actions {
+  border-top-color: var(--ui-line);
+}
+
+/* Public shop and contact pages: generous content containers, precise cards. */
+.public-site[data-ui-refresh="2026"] :is(
+  .shop-ticket, .shop-product, .contact-info-card, .contact-message-form
+) {
+  border: 1px solid var(--ui-line);
+  border-radius: var(--ui-radius);
+  background-color: var(--ui-surface);
+  box-shadow: var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .shop-ticket, .shop-product, .contact-info-card
+):hover {
+  border-color: rgb(246 187 56 / 44%);
+}
+.public-site[data-ui-refresh="2026"] .contact-message-form :is(
+  input, select, textarea
+) {
+  border-radius: 5px;
+  background: #090b0c;
+}
+.public-site[data-ui-refresh="2026"] .contact-message-form :is(
+  input, select, textarea
+):focus-visible {
+  border-color: var(--ui-accent);
+  box-shadow: 0 0 0 3px rgb(246 187 56 / 10%);
+}
+.public-site[data-ui-refresh="2026"] :is(.shop-tabs, .public-pagination) a {
+  border-radius: 5px;
+}
+.public-site[data-ui-refresh="2026"] :is(.shop-tabs, .public-pagination) a:focus-visible {
+  outline: 3px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+
+/* Catalogs, legal pages and editorial reading areas share soft separators. */
+.public-site[data-ui-refresh="2026"] :is(
+  .catalog-detail-columns, .catalog-facts, .catalog-block,
+  .source-legal-document, .catalog-archive, .catalog-cta
+) {
+  border-color: var(--ui-line);
+}
+.public-site[data-ui-refresh="2026"] .catalog-card-action {
+  border-top-color: var(--ui-line);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .catalog-card, .catalog-image-grid, .catalog-detail-image
+) {
+  overflow: hidden;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .catalog-card, .shop-product, .academy-review-card
+):focus-within {
+  border-color: var(--ui-accent);
+}
+@media (max-width: 767px) {
+  .public-site[data-ui-refresh="2026"] :is(
+    .registration-child, .registration-costs, .contact-message-form
+  ) {
+    box-shadow: 0 9px 22px rgb(0 0 0 / 18%);
+  }
+  .public-site[data-ui-refresh="2026"] :is(
+    .roster-filters, .catalog-filters
+  ) {
+    border-radius: 6px;
+  }
+}
