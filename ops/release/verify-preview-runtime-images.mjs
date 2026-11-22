@@ -39,11 +39,11 @@ export function verifyPreviewRuntimeImages({
      Array.isArray(observations)||observations.schema_version!==1)
     add('runtime_observations_invalid');
   const iso=observations?.observed_at_utc;
-  if(typeof iso!=='string'||
-     !/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(iso)||
-     !Number.isFinite(Date.parse(iso))||
-     new Date(iso).toISOString().slice(0,19)!==iso.slice(0,19)||
-     now.getTime()-Date.parse(iso)<0||
+  const validTimestamp=typeof iso==='string'&&
+    /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d{1,3})?Z$/.test(iso)&&
+    Number.isFinite(Date.parse(iso))&&
+    new Date(iso).toISOString().slice(0,19)===iso.slice(0,19);
+  if(!validTimestamp||now.getTime()-Date.parse(iso)<0||
      now.getTime()-Date.parse(iso)>WINDOW_MS)
     add('observation_stale_or_invalid');
   const images=manifest?.images;
@@ -85,7 +85,7 @@ export function verifyPreviewRuntimeImages({
   }
   return {
     schema_version:1,repository:REPOSITORY,candidate_sha:sha,
-    observed_at_utc:typeof iso==='string'&&iso.length<40?iso:null,
+    observed_at_utc:validTimestamp?iso:null,
     verified:blocked.length===0,checked_services:[...SERVICES],blocked,
     limitation:'Operator-supplied sanitized Docker metadata is not independently authenticated. Still requires G0 identity/isolation, signed evidence, DB/media restore, real five-role staging tests and rollback; not release approval.'
   };
