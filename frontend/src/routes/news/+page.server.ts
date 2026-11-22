@@ -1,2 +1,9 @@
 import { loadPublicNews } from '../../lib/server/public-content';
-export const load = ({ url }: { url: URL }) => loadPublicNews(url);
+import { readWebsitePages } from '../../lib/server/website-pages';
+import { nativeEditorialBlocks } from '../../lib/public/native-editorial-regions';
+
+export async function load({url}: {url:URL}) {
+  const news=await loadPublicNews(url);
+  const pages=await readWebsitePages(news.organization);
+  return {...news,editorialBlocks:nativeEditorialBlocks(pages,news.organization,'canonical-news-sections')};
+}
