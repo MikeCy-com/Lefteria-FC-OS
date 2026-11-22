@@ -213,3 +213,14 @@
 ) {
   color:var(--lf-color-link);
 }
+
+/* Top/bottom page margins apply once to native public routes. Standalone CMS
+ * documents use WebsitePageBlocks' per-field overrides instead, preventing a
+ * double margin when a page chooses its own value. */
+.public-site[data-global-design="true"] .public-main:not(:has(> .website-page)) {
+  padding-top:var(--lf-layout-page-margin-top,0px);
+  padding-bottom:var(--lf-layout-page-margin-bottom,0px);
+}
+.public-site[data-global-design="true"] .public-main:has(> .website-page) {
+  padding-block:0;
+}
