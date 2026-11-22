@@ -62,7 +62,7 @@ export function parseGlobalDesign(text:string):GlobalDesign|null {
      colorContrast(theme.colors.background,theme.colors.accent)<3)return null;
   if(theme.layout!==undefined){
     if(!exact(theme.layout,Object.keys(layoutValues))&&!exact(theme.layout,Object.keys(layoutValues).slice(0,6)))return null;
-    for(const key of Object.keys(layoutValues) as (keyof GlobalDesignLayout)[])
+    for(const key of Object.keys(theme.layout) as (keyof GlobalDesignLayout)[])
       if(!layoutValues[key].includes(theme.layout[key]))return null;
   }
   for(const role of TEXT_ROLES) {
