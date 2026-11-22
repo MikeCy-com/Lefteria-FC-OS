@@ -981,3 +981,21 @@
     padding-inline:14px;
   }
 }
+
+/* Compact navigation rail reserves more room for team, CRM and finance work.
+   These final cascade rules intentionally override historic 300–340px rails. */
+@media(min-width:921px) and (max-width:2559px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:260px minmax(0,1fr);
+  }
+}
+@media(min-width:721px) and (max-width:920px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:250px minmax(0,1fr);
+  }
+}
+@media(min-width:2560px) {
+  .admin-app .admin-workspace-body {
+    grid-template-columns:280px minmax(0,1fr);
+  }
+}
