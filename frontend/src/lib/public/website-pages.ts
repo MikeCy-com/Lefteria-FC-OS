@@ -39,6 +39,21 @@ export const CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG = 'canonical-academy-philoso
 export const CANONICAL_ACADEMY_GROUPS_LEAD_SLUG = 'canonical-academy-groups-lead' as const;
 export const CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG = 'canonical-academy-registration-lead' as const;
 export const CANONICAL_SHOP_LEAD_SLUG = 'canonical-shop-lead' as const;
+export const NATIVE_EDITORIAL_REGIONS = {
+  'canonical-team-roster-sections':'lefteria_fc',
+  'canonical-team-schedule-sections':'lefteria_fc',
+  'canonical-team-results-sections':'lefteria_fc',
+  'canonical-team-statistics-sections':'lefteria_fc',
+  'canonical-news-sections':'both',
+  'canonical-sponsors-sections':'both'
+} as const;
+export type NativeEditorialRegion = keyof typeof NATIVE_EDITORIAL_REGIONS;
+export function nativeEditorialOwnerAllowed(slug:string, org:PublicOrganization):slug is NativeEditorialRegion {
+  return Object.prototype.hasOwnProperty.call(NATIVE_EDITORIAL_REGIONS,slug) &&
+    (NATIVE_EDITORIAL_REGIONS[slug as NativeEditorialRegion]==='both' ||
+     NATIVE_EDITORIAL_REGIONS[slug as NativeEditorialRegion]===org);
+}
+
 export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
 // Native slots are not routable standalone CMS pages, even if a legacy
 // record has an incompatible menu assignment.
@@ -47,7 +62,8 @@ export const isHomepageEditorialSlug = (slug: string) =>
   slug === CANONICAL_ABOUT_HISTORY_SLUG ||
   slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG ||
   slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ||
-  slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG || slug === CANONICAL_SHOP_LEAD_SLUG;
+  slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG || slug === CANONICAL_SHOP_LEAD_SLUG ||
+  Object.prototype.hasOwnProperty.call(NATIVE_EDITORIAL_REGIONS,slug);
 
 export function websitePageParentLink(
   organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
