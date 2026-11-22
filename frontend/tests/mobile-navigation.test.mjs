@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   MOBILE_ROLE_DEFINITIONS, ROLE_NAMES, TAB_NAMES, allowedTabs, bottomTabFor,
-  canComposePost, isMobileRole, normalizeTab, primaryTabs, tabFromLocation, fanPublicDestination
+  canComposePost, contextualBottomTabFor, isMobileRole, normalizeTab, primaryTabs, tabFromLocation, fanPublicDestination
 } from '../src/lib/mobile/navigation.ts';
 
 const roles = ['fan', 'player', 'parent', 'coach', 'management'];
@@ -158,4 +158,21 @@ test('fan shortcuts never substitute public data for private role or unfinished 
   for (const tab of ['children','calendar','chat','announcements','financials','hub','profile',
     'notifications','gamehub','potm','predict','shop','missing','__proto__','toString',
     '/admin','https://example.invalid']) assert.equal(fanPublicDestination(tab,'fan'),null);
+});
+
+test('contextual destinations highlight only their own role-specific parent sections', () => {
+  for (const tab of ['financials', 'education', 'hub']) {
+    assert.equal(contextualBottomTabFor(tab, 'parent'), 'more');
+  }
+  for (const role of ['parent', 'coach', 'management']) {
+    assert.equal(contextualBottomTabFor('announcements', role), 'chat');
+  }
+  for (const role of roles) {
+    for (const tab of primaryTabs(role)) assert.equal(contextualBottomTabFor(tab, role), tab);
+    for (const tab of ['profile', 'notifications']) assert.equal(contextualBottomTabFor(tab, role), null);
+  }
+  assert.equal(contextualBottomTabFor('financials', 'player'), null);
+  assert.equal(contextualBottomTabFor('children', 'coach'), null);
+  assert.equal(contextualBottomTabFor('announcements', 'fan'), null);
+  assert.equal(contextualBottomTabFor('hub', 'fan'), null);
 });
