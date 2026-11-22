@@ -32,10 +32,11 @@ public sealed record WebsitePageLayout(int MaxWidth, int Gap, int SidePadding)
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record WebsiteBlock(string Type, string Text, string? Url, WebsiteBlockLayout? Layout = null)
+public sealed record WebsiteBlock(string Type, string Text, string? Url, WebsiteBlockLayout? Layout = null, int? Level = null)
 {
     public bool Valid() =>
         (Layout is null || Layout.Valid()) &&
+        (Type == "heading" ? Level is null or 2 or 3 or 4 or 5 or 6 : Level is null) &&
         Type is "heading" or "paragraph" or "image" or "button" &&
         Text is { Length: <= 5000 } &&
         Text.All(c => c >= ' ' && c != '\u007f' || c is '\n' or '\r' or '\t') &&
