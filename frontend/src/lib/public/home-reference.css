@@ -134,7 +134,7 @@
     margin-top:clamp(8px,1.5vw,28px);
   }
   .public-site .home-reference .public-hero-copy h1 {
-    font-family:var(--home-display)!important;
+    font-family:var(--home-display);
     font-size:clamp(48px,5vw,94px);
     line-height:.92;
     font-weight:900;
@@ -144,7 +144,7 @@
     text-shadow:0 3px 15px color-mix(in srgb,var(--lf-color-bg,#000000) 66.6667%,transparent);
   }
   .public-site .home-reference .public-hero-copy .public-eyebrow {
-    font-family:var(--home-display)!important;
+    font-family:var(--home-display);
     font-size:clamp(24px,2.2vw,38px);
     font-style:italic;
     font-weight:850;
