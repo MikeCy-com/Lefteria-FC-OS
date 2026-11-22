@@ -273,7 +273,7 @@
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
-              {#if allowFinance && owner === 'lefteria_fc_academy' && allowGoalManagement}
+              {#if allowFinance && owner === 'lefteria_fc_academy'}
                 <a class="admin-player-finance-link"
                   href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
                   data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
