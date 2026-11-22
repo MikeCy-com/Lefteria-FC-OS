@@ -1,7 +1,7 @@
 <script lang="ts">
   import { tick } from 'svelte';
   import type { Snippet } from 'svelte';
-  import { ROLE_NAMES, TAB_NAMES, canComposePost, primaryTabs } from '../navigation.ts';
+  import { ROLE_NAMES, TAB_NAMES, canComposePost, primaryTabs, contextualBottomTabFor } from '../navigation.ts';
   import type { MobileRole, MobileTab } from '../navigation.ts';
   import type { MobileIconName, UiAction } from './component-types.ts';
   import MobileIcon from './MobileIcon.svelte';
@@ -41,6 +41,7 @@
   }
   const roles = $derived([...new Set(availableRoles)]);
   const tabs = $derived(primaryTabs(role));
+  const selectedPrimaryTab = $derived(contextualBottomTabFor(activeTab, role));
   const hasComposer = $derived(canComposePost(role));
   const initial = $derived(userName.trim().slice(0, 1).toLocaleUpperCase('el-GR') || '?');
 
@@ -121,7 +122,7 @@
             <span><MobileIcon name="plus" size={29} /></span>
           </button>
         {/if}
-        <button type="button" class:active={activeTab === tab} aria-current={activeTab === tab ? 'page' : undefined}
+        <button type="button" class:active={selectedPrimaryTab === tab} aria-current={selectedPrimaryTab === tab ? (activeTab === tab ? 'page' : 'location') : undefined}
           disabled={busy} onclick={() => void onTabChange(tab)} data-testid={`bottom-tab-${tab}`}>
           <MobileIcon name={iconForTab(tab)} size={24} /><span>{TAB_NAMES[tab]}</span>
         </button>
