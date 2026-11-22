@@ -989,3 +989,10 @@
   .admin-app .admin-content{padding:20px 14px 35px}
   .admin-app .admin-header{padding:8px 13px}
 }
+
+/* Main navigation headings are stronger, not larger, than destination labels. */
+.admin-app .admin-sidebar .admin-nav-category{font:750 13.5px/1.35 'Fira Sans',sans-serif;
+  min-height:41px;padding:9px 11px;border-radius:0 7px 7px 0;letter-spacing:.005em}
+.admin-app .admin-sidebar .admin-nav-category > span{font-size:15px}
+.admin-app .admin-sidebar .admin-nav-section{font-weight:650;font-size:12.5px}
+.admin-app .admin-sidebar .admin-nav-tool{font-size:12px;padding-left:20px}
