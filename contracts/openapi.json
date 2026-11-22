@@ -9611,6 +9611,16 @@
       "WebsiteBlock": {
         "additionalProperties": false,
         "properties": {
+          "layout": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WebsiteBlockLayout"
+              }
+            ]
+          },
           "text": {
             "type": "string"
           },
@@ -9631,6 +9641,45 @@
         ],
         "type": "object"
       },
+      "WebsiteBlockLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "margin_bottom": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "margin_top": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "min_height": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "width": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "width",
+          "min_height",
+          "margin_top",
+          "margin_bottom"
+        ],
+        "type": "object"
+      },
       "WebsitePageContent": {
         "additionalProperties": false,
         "properties": {
@@ -9639,6 +9688,16 @@
               "$ref": "#/components/schemas/WebsiteBlock"
             },
             "type": "array"
+          },
+          "layout": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/WebsitePageLayout"
+              }
+            ]
           },
           "menu_order": {
             "format": "int32",
@@ -9688,6 +9747,41 @@
         "required": [
           "slug",
           "page"
+        ],
+        "type": "object"
+      },
+      "WebsitePageLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "gap": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "max_width": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "side_padding": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "max_width",
+          "gap",
+          "side_padding"
         ],
         "type": "object"
       },
