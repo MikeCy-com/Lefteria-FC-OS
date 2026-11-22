@@ -12,7 +12,9 @@
   import { personPublicLink } from '../../lib/public/public-urls';
   import { selectTeamGallery, selectTeamVenues } from '../../lib/public/team-scope';
   import type { TeamPageData, TeamTab } from '../../lib/public/sections-types';
-  let { data }: { data: TeamPageData } = $props();
+  import WebsitePageBlocks from '../../lib/public/WebsitePageBlocks.svelte';
+  import type {WebsiteBlock} from '../../lib/public/website-pages';
+  let { data }: { data: TeamPageData & {editorialBlocks:WebsiteBlock[]} } = $props();
   let search = $state(''); let position = $state(''); let cupOnly = $state(false);
   const navigation: [TeamTab, string][] = [['overview','Η ΟΜΑΔΑ'],['roster','ΡΟΣΤΕΡ'],['staff','ΕΠΙΤΕΛΕΙΟ'],['schedule','ΠΡΟΓΡΑΜΜΑ'],['results','ΑΠΟΤΕΛΕΣΜΑΤΑ'],['statistics','ΣΤΑΤΙΣΤΙΚΑ'],['gallery','ΓΚΑΛΕΡΙ'],['venues','ΓΗΠΕΔΑ']];
   const title = $derived(navigation.find(([id]) => id === data.tab)?.[1] ?? 'Η ΟΜΑΔΑ');
@@ -105,6 +107,11 @@
           <nav class="public-subnav team-tabs" aria-label="Ενότητες ομάδας">{#each navigation as [id,label]}<a href={withTeam(id === 'overview' ? '/team' : '/team?tab='+id)} aria-current={data.tab === id ? 'page' : undefined}>{label}</a>{/each}</nav>
     {/if}
   </section>
+  {#if data.editorialBlocks.length}
+    <section class="public-section team-cms-region" aria-label="Δημοσιευμένες ενότητες ομάδας" data-testid="team-cms-region">
+      <WebsitePageBlocks blocks={data.editorialBlocks}/>
+    </section>
+  {/if}
   {#if !data.available}<Unavailable />{:else}<section class="public-section team-section">
     {#if data.tab === 'overview'}
       {#each (data.site?.teams ?? []).filter(team => team.id === data.selectedTeamId) as team (team.id)}<article class="public-team-overview">{#if team.banner_url}<PublicImage src={team.banner_url} alt="" />{/if}<div><p class="public-eyebrow">{team.level || 'ΛΕΥΤΕΡΙΑ FC'}</p><h2>{team.name}</h2>{#if team.description}<p class="preserve-lines">{team.description}</p>{/if}<a class="public-button" href={withTeam('/team?tab=roster')}>ΓΝΩΡΙΣΕ ΤΟΥΣ ΠΑΙΚΤΕΣ ↗</a></div></article>{/each}
