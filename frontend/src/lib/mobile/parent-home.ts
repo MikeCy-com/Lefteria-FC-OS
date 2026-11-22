@@ -108,3 +108,16 @@ export function parentHomePendingResponses(
     .filter(item=>!item.is_cancelled&&parentHomeRsvp(item,child.id)===null)
     .slice(0,Math.max(0,Math.min(limit,4)));
 }
+
+
+/** Restore only a child still present in the current verified family, from
+ * the same parent's last authenticated calendar. Never trust a bare child ID
+ * stored in a URL or another family/organization's cached calendar. */
+export function preferredParentHomeChildId(
+  family:Family|null,calendar:ParentCalendar|null,identityId:string
+):string|null{
+  if(!family||!calendar||calendar.role!=='parent'||
+    calendar.identity_id!==identityId)return null;
+  const child=family.children.find(item=>item.id===calendar.selected_player_id);
+  return child&&child.organization_id===calendar.organization_id?child.id:null;
+}
