@@ -1,6 +1,7 @@
 import { INTERNAL_API_ORIGIN } from '$app/env/private';
 import { error } from '@sveltejs/kit';
 import { createApiClient } from '../api/client';
+import { verifiedPublicSite } from '../public/verified-site';
 import type { PublicArticle, PublicHomeData, PublicNews, PublicNewsScope, PublicOrganization, PublicPageData, PublicSite } from '../public/types';
 
 export function publicOrganization(url: URL, fixed?: PublicOrganization): PublicOrganization {
@@ -38,14 +39,6 @@ async function requestArticle(organization: PublicNewsScope, id: string): Promis
     const result = await publicApi().GET('/api/public/news/{id}', { params: { path: { id }, ...(organization ? { query: { organization_id: organization } } : {}) } });
     return { value: result.data ?? null, status: result.response.status };
   } catch { return { value: null, status: 503 }; }
-}
-
-// Defend against stale caches or an upstream cross-organization response.
-// The requested organization's identity must match the returned public club.
-// A mismatch fails closed rather than displaying the other club's details.
-export function verifiedPublicSite(site: PublicSite | null, organization: PublicOrganization): PublicSite | null {
-  return site?.organization_id === organization && (site.club == null || site.club.organization_id === organization)
-    ? site : null;
 }
 
 // Bare Node preview has no edge proxy. This single public GET uses the same
