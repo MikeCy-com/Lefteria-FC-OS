@@ -170,7 +170,7 @@
   padding-inline:var(--public-page-gutter,16px);
 }
 .public-site[data-global-design="true"] .shop-container {
-  width:min(var(--public-content-width,1280px),calc(100% - 2 * var(--public-page-gutter,16px)));
+  width:min(var(--public-content-width,1280px),calc(100% - var(--public-page-gutter,16px) - var(--public-page-gutter,16px)));
 }
 
 /* Native layouts still own their imagery and information architecture, but
