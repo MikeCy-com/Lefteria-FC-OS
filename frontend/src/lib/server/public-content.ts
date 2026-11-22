@@ -40,6 +40,13 @@ async function requestArticle(organization: PublicNewsScope, id: string): Promis
   } catch { return { value: null, status: 503 }; }
 }
 
+// Defend against stale caches or an upstream cross-organization response.
+// The requested organization's identity must match the returned public club.
+// A mismatch fails closed rather than displaying the other club's details.
+export function verifiedPublicSite(site: PublicSite | null, organization: PublicOrganization): PublicSite | null {
+  return site?.club?.organization_id === organization ? site : null;
+}
+
 // Bare Node preview has no edge proxy. This single public GET uses the same
 // fixed, credential-free server client as SSR; no caller chooses its upstream.
 export async function requestPublicSearchNews(url: URL) {
@@ -68,8 +75,10 @@ export async function loadPublicSite(url: URL, fixed?: PublicOrganization): Prom
   // Never substitute the First Team logo, contact details or social accounts
   // for Academy pages. Each organization's public profile is independently edited.
   const [result, navigation] = await Promise.all([resultTask, navigationTask]);
-  return { site: result.value, available: result.status === 200 && result.value !== null, organization,
-    branding: result.value?.club ?? null, navigationGroups: navigation.value?.academy_groups ?? [] };
+  const site = verifiedPublicSite(result.value, organization);
+  const academyNavigation = verifiedPublicSite(navigation.value, 'lefteria_fc_academy');
+  return { site, available: result.status === 200 && site !== null, organization,
+    branding: site?.club ?? null, navigationGroups: academyNavigation?.academy_groups ?? [] };
 }
 
 export async function loadPublicHome(url: URL): Promise<PublicHomeData> {
