@@ -531,7 +531,7 @@
   .registration-consents>label{align-items:flex-start}
   .registration-consent-channels,.registration-payment{display:flex;gap:18px;flex-wrap:wrap}
   .registration-notice{font-size:13px;color:#b1b1b1}
-  .registration-card a:not(.public-button){text-decoration:underline;text-underline-offset:3px;color:#ffcb58}
+  .registration-card a:not(.public-button){text-decoration:underline;text-underline-offset:3px;color:var(--public-gold)}
   .registration-signature-label{display:block;margin:18px 0 8px}
   .registration-signature{display:block;width:100%;height:150px;max-width:100%;background:#0d0d0d;border:1px solid #535353;touch-action:none;cursor:crosshair;border-radius:7px}
   .registration-clear{color:var(--public-gold);font-size:13px;margin-top:8px}
