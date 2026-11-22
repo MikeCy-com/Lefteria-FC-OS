@@ -64,6 +64,21 @@ public static class AcademyRegistrationEndpoints
             !System.Text.RegularExpressions.Regex.IsMatch(policy, @"^[a-zA-Z0-9_.-]+$"))
             return Unavailable();
 
+        // A family submission may be confirmed only when per-child private
+        // identity evidence can subsequently be accepted into encrypted
+        // quarantine. Keep both keys unavailable rather than pretending that
+        // public registration is working without its document workflow.
+        byte[] documentKey;
+        try { documentKey=Convert.FromBase64String(config["DocumentVault:KeyBase64"]??""); }
+        catch(FormatException) { return Unavailable(); }
+        var documentKeyId=config["DocumentVault:KeyId"];
+        if(documentKey.Length!=32 || string.IsNullOrWhiteSpace(documentKeyId) ||
+           documentKeyId.Length>120 || documentKeyId.Any(char.IsControl))
+        {
+            CryptographicOperations.ZeroMemory(documentKey);
+            return Unavailable();
+        }
+        CryptographicOperations.ZeroMemory(documentKey);
         if (!context.Request.HasJsonContentType()) return Failure(400,"json_required");
         if (context.Request.ContentLength is > MaxBytes) return Failure(413,"payload_too_large");
         using var stream = new MemoryStream();
@@ -103,6 +118,7 @@ public static class AcademyRegistrationEndpoints
         // registration if any sibling fails validation or durable throttling.
         var familyId=Guid.NewGuid();
         var receipts=new List<string>(children.Count);
+        var uploadTokens=new List<string>(children.Count);
         try
         {
             var cs=database.Database.GetConnectionString();
@@ -116,6 +132,10 @@ public static class AcademyRegistrationEndpoints
                     CultureInfo.InvariantCulture,DateTimeStyles.None,out var birth))
                     return Failure(422,"invalid_registration");
                 var id=Guid.NewGuid();
+                var tokenBytes=RandomNumberGenerator.GetBytes(32);
+                var uploadToken=Convert.ToHexStringLower(tokenBytes);
+                var uploadDigest=Convert.ToHexStringLower(SHA256.HashData(tokenBytes));
+                CryptographicOperations.ZeroMemory(tokenBytes);
                 var monthly=children.Count==1?60:100+(children.Count-2)*50;
                 byte[] evidence=JsonSerializer.SerializeToUtf8Bytes(new {
                     FamilyId=familyId, FamilyChildCount=children.Count,
@@ -164,8 +184,9 @@ public static class AcademyRegistrationEndpoints
                     consent_financial=body.ConsentFinancial
                 });
                 await using var command=new NpgsqlCommand("""
-                    SELECT academy_intake.submit_public_registration(
-                      @id,@projection,@sealed,@sha,@key_id,@fingerprint,@policy)
+                    SELECT academy_intake.submit_public_registration_with_upload(
+                      @id,@projection,@sealed,@sha,@key_id,@fingerprint,@policy,
+                      @upload_digest)
                     """,connection,transaction);
                 command.CommandTimeout=10;
                 command.Parameters.AddWithValue("id",NpgsqlDbType.Uuid,id);
@@ -175,13 +196,15 @@ public static class AcademyRegistrationEndpoints
                 command.Parameters.AddWithValue("key_id",NpgsqlDbType.Text,keyId);
                 command.Parameters.AddWithValue("fingerprint",NpgsqlDbType.Text,fingerprint);
                 command.Parameters.AddWithValue("policy",NpgsqlDbType.Text,policy);
+                command.Parameters.AddWithValue("upload_digest",NpgsqlDbType.Text,uploadDigest);
                 var status=await command.ExecuteScalarAsync(cancellationToken) as string;
                 if(status=="rate_limited") return Failure(429,"rate_limited");
                 if(status!="stored") return Unavailable();
                 receipts.Add(id.ToString("N"));
+                uploadTokens.Add(uploadToken);
             }
             await transaction.CommitAsync(cancellationToken);
-            return Results.Json(new {receipt=receipts[0],receipts},statusCode:202);
+            return Results.Json(new {receipt=receipts[0],receipts,upload_tokens=uploadTokens},statusCode:202);
         }
         catch(PostgresException error) when(error.SqlState is "22023" or "23514" or "22007")
         { return Failure(422,"invalid_registration"); }
