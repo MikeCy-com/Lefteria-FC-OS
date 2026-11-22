@@ -7,6 +7,7 @@ const page=read('src/routes/admin/documents/+page.svelte');
 const api=read('../backend/src/LefteriaFc.Api/Evaluations/AdminPrivateDocumentUploadEndpoints.cs');
 const migration=read('../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261110200000_PrivatePlayerDocumentQuarantine.cs');
 const territory=read('../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261115980000_PrivateDocumentTerritoryBoundary.cs');
+const office=read('src/routes/admin/academy-office/+page.svelte');
 
 test('selected player receives staff-only upload; public files and downloads remain disabled',()=>{
   assert.match(page,/data-testid="player-private-document-upload"/);
@@ -24,6 +25,16 @@ test('selected player receives staff-only upload; public files and downloads rem
   assert.doesNotMatch(page,/downloadUrl|publicMediaUrl|\/<img.+uploadFile/);
   assert.ok(compile(page,{filename:'admin/documents/+page.svelte',generate:'server'}).js.code.length>100);
 });
+test('approved Academy player deep-link selects the exact private player and manager scope',()=>{
+  assert.match(office,/data-testid="approved-player-documents"/);
+  assert.match(office,/row\.onboarded_player_id && canEnroll/);
+  assert.match(office,/organization_id:'lefteria_fc_academy'/);
+  assert.match(office,/player_id:row\.onboarded_player_id/);
+  assert.match(page,/page\.url\.searchParams\.get\('player_id'\)/);
+  assert.match(page,/owner!==organization/);
+  assert.match(page,/!validId\(direct\)/);
+});
+
 test('backend encrypts and inserts into the actual player documents table, not a loose registration media store',()=>{
   assert.match(api,/MapPost\("\/\{playerId\}\/documents"/);
   assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
