@@ -1,10 +1,12 @@
 <script lang="ts">
   import PublicShell from './PublicShell.svelte';
   import PublicImage from './PublicImage.svelte';
+  import WebsitePageBlocks from './WebsitePageBlocks.svelte';
+  import type {WebsiteBlock} from './website-pages';
   import { greekDate } from './content';
   import { catalogTitles, catalogScopeLabel, catalogListHref, eventTypeLabel, eventDateTime, eventPrice } from './PublicCatalog';
   import type { CatalogData } from '../server/public-catalog';
-  let { data }: { data: CatalogData } = $props();
+  let { data }: { data: CatalogData & {editorialBlocks?:WebsiteBlock[]} } = $props();
   const descriptions = { events: 'Οι στιγμές που φέρνουν την οικογένεια της Λευτεριάς πιο κοντά.', partners: 'Οι άνθρωποι και οι οργανισμοί που μοιράζονται το όραμά μας.', sponsors: 'Δίπλα στην ομάδα. Μέρος της διαδρομής μας.', seasons: 'Οι αγώνες, οι ομάδες και οι στιγμές κάθε σεζόν.' };
   const title = $derived(catalogTitles[data.kind]);
 </script>
@@ -12,6 +14,9 @@
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups}>
   <section class="catalog" data-testid={`public-${data.kind}-catalog`}>
     <header class="catalog-heading"><p class="public-eyebrow">Η ΟΙΚΟΓΕΝΕΙΑ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p><h1>{title}</h1><p>{descriptions[data.kind]}</p></header>
+    {#if data.kind==='sponsors' && data.editorialBlocks?.length}
+      <div class="catalog-cms-region" data-testid="sponsors-cms-region" aria-label="Δημοσιευμένες ενότητες χορηγών"><WebsitePageBlocks blocks={data.editorialBlocks}/></div>
+    {/if}
     {#if data.kind === 'events'}
       <nav class="event-chip-filters" aria-label="Φίλτρα εκδηλώσεων" data-testid="events-original-chip-filters">
         <div class="event-chip-row" data-testid="filter-scope">
