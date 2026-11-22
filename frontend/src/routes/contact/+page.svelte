@@ -137,21 +137,21 @@
   .contact-page-heading{padding-bottom:28px;background:#0b0b0b}
   .contact-lead{color:#b7b7b7;line-height:1.6;max-width:64ch;margin:18px 0 28px}
   .contact-original-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(30px,4vw,70px);background:#0a0a0a;align-items:start}
-  .contact-info-column h2,.contact-form-column h2{font:800 clamp(23px,2.15vw,33px)/1.12 'Fira Sans Extra Condensed',sans-serif;letter-spacing:.02em;border-bottom:3px solid #f6bb38;padding-bottom:19px;margin-bottom:15px}
+  .contact-info-column h2,.contact-form-column h2{font:800 clamp(23px,2.15vw,33px)/1.12 'Fira Sans Extra Condensed',sans-serif;letter-spacing:.02em;border-bottom:3px solid var(--public-gold);padding-bottom:19px;margin-bottom:15px}
   .contact-section-caption{font-size:14px;line-height:1.6;color:#b4b4b4;margin-bottom:25px}
   .contact-info-cards{display:flex;flex-direction:column;gap:22px}
   .contact-info-card{display:flex;gap:20px;align-items:flex-start;border:1px solid #383735;background:linear-gradient(145deg,#191919,#101010);padding:24px;min-height:110px}
-  .contact-icon{color:#f6bb38;flex-shrink:0;margin-top:3px}
+  .contact-icon{color:var(--public-gold);flex-shrink:0;margin-top:3px}
   .contact-info-card h3{font:800 23px/1.1 'Fira Sans Extra Condensed',sans-serif;margin-bottom:9px}
   .contact-info-card p{color:#bcbcbc;line-height:1.6;font-size:15px;overflow-wrap:anywhere}
-  .contact-info-card a{color:#f6bb38;text-decoration:underline;text-underline-offset:4px}
+  .contact-info-card a{color:var(--public-gold);text-decoration:underline;text-underline-offset:4px}
   .contact-other-links{margin-top:26px;border-top:1px solid #51482c;padding-top:17px}
-  .contact-other-links a{display:inline-flex;align-items:center;gap:10px;color:#f6bb38;font-size:14px;font-weight:800;text-decoration:none}
+  .contact-other-links a{display:inline-flex;align-items:center;gap:10px;color:var(--public-gold);font-size:14px;font-weight:800;text-decoration:none}
   .contact-message-form{display:flex;flex-direction:column;gap:11px;background:#111;padding:clamp(20px,2.5vw,32px);border:1px solid #343434}
   .contact-message-form label{font-size:13px;font-weight:800;color:#dbdbdb;margin-top:6px}
   .contact-message-form input,.contact-message-form select,.contact-message-form textarea{box-sizing:border-box;display:block;width:100%;min-height:50px;background:#070707;border:1px solid #595959;border-radius:3px;color:#fff;padding:13px 15px;font-family:inherit;font-weight:400;font-size:16px;line-height:1.45}
   .contact-message-form textarea{min-height:150px;resize:vertical}
-  .contact-message-form :is(input,select,textarea):focus-visible,.contact-info-card a:focus-visible,.contact-other-links a:focus-visible{outline:3px solid #f6bb38;outline-offset:2px}
+  .contact-message-form :is(input,select,textarea):focus-visible,.contact-info-card a:focus-visible,.contact-other-links a:focus-visible{outline:3px solid var(--public-gold);outline-offset:2px}
   .contact-send-button{min-height:50px;width:100%;justify-content:center;display:flex;align-items:center;gap:10px;margin-top:15px}
   .contact-send-button:disabled{opacity:.5;cursor:not-allowed}
   .contact-compose-status{padding:15px;background:#171b17;border-left:3px solid #b1cd9b;color:#f0f0f0;line-height:1.6}
