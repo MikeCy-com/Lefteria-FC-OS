@@ -23,7 +23,7 @@ Repository tree and all 69 route templates inspected for local inline CSS and ha
 - **32 admin templates** including dashboard, organization management, teams, Academy, communications, news, marketing, finance, POS, users, settings and the WYSIWYG website editor.
 - **2 authenticated mobile member application templates**.
 
-The public site has additional page-local style rules, not just shared `public.css`. Higher-volume existing fixed color declarations were seen in Academy landing, Academy group detail/directory, registration, First Team, contact, public article detail and public login. These are **pre-existing architectural gaps**, not proof that every existing native page is already fully driven by the editor.
+The public site has additional page-local style rules, not just shared `public.css`. **The redesign branch has migrated the color literals** in Academy landing, Academy groups/details/registration, First Team, contact, public article and login styles, as well as the three shared CSS files and the remaining major public components. Existing sizes and functional page structures are intentionally retained.
 
 ### Current remediation in PR #467
 1. Replaced new visual CSS's fixed palette values with `--lf-color-*` variables, including transparent tints derived using `color-mix`.
@@ -31,11 +31,11 @@ The public site has additional page-local style rules, not just shared `public.c
 3. Changed the WYSIWYG design preview so responsive headings and paragraph typography follow selected desktop/mobile values.
 4. Bridged published colors into legacy `--public-gold`, `--public-black`, `--public-panel`, `--public-line`, etc. without affecting unpublished themes.
 5. Implemented independent page overrides for max width, block gap, side padding and vertical margins. Each selector includes **Use global default** and an all-fields reset control. Saved legacy explicit dimensions stay explicit; absent/null fields inherit the owning organization's *published* global defaults. Existing `--cms-*` block geometry remains authoritative.
-6. Converted original gold accents in the key public templates and shared CSS to the published accent token, bridged native public surfaces/brand variables to the palette and added focused inheritance/legacy security tests alongside responsive browser checks.
+6. Migrated the shared `public.css`, `club-polish.css`, `home-reference.css`, major native pages and 10 public Svelte component styles to semantic `--lf-color-*` values with the original palette as fallback. Photo overlays preserve their image source and use the selected background tint. Cookie consent now inherits the enclosing public organization's published theme. Added source-level guards and isolated browser checks for Academy, registration, contact and team.
 
 ## Important remaining limits
 
-The redesign does not by itself migrate every historical hardcoded native component color or all page markup into the WYSIWYG schema. A complete audit of all older native page-local gradients, media overlays and editor preview comparison is a **separate release gate**. Do not claim that the entire 69-template system is visually CMS-controlled yet.
+The redesign now gives shared and high-priority native page visual colors a single palette source; **it does not make every feature-specific layout or data-driven native component individually editable in the WYSIWYG canvas**. Saved content blocks have per-page and per-block control; functional pages retain some native component geometry. Complete visual comparison across live CMS variants and actual published content remains a separate release gate.
 
 The admin and mobile member apps are not public website themes. The independent admin UI PR #468 must not accidentally adopt an Academy/First Team public theme or alter role scopes.
 
@@ -56,6 +56,27 @@ Global design publishes `page_max_width=1440`, `page_gap=32`, `page_side_padding
 - Page C already saved `{"max_width":1120,"gap":16,"side_padding":16}` → continues using **1120 / 16 / 16** for those three; vertical margins inherit **48 / 64**.
 - Clicking **Επαναφορά όλων στις γενικές ρυθμίσεις** removes Page C's local overrides in its *draft*, taking effect only after explicit publication.
 
-Each organization publishes an independent global design; Academy values cannot affect First Team pages. Explicit native `WebsitePageBlocks` block geometry takes priority over inherited page defaults. Existing images and hero gradients are left under their original media components; changing the palette must not silently replace photos.
+Each organization publishes an independent global design; Academy values cannot affect First Team pages. Explicit native `WebsitePageBlocks` block geometry takes priority over inherited page defaults. Existing images remain under their original media components. Their overlay tints now derive from the global palette without replacing the photos or media URLs.
 
 **Important:** WYSIWYG page-level override controls apply to CMS pages and CMS sections. Hard-coded native feature templates still retain some page-specific presentation rules; they share the published defaults through `--public-*` variables but are not all converted into individually editable WYSIWYG canvas pages. The editor does not control the private admin/member apps.
+
+## Authoritative CSS cascade (not four competing themes)
+
+The public shell imports styles in this fixed order:
+
+1. `public.css`: original component geometry, Fira typography and fallback tokens only.
+2. `club-polish.css`: established photographic/editorial composition, using those tokens.
+3. `global-design.css`: the **published, organization-scoped** WYSIWYG contract for typography, seven colors and eleven layout dimensions. These values are injected on the `.public-site` root from a validated, published canonical CMS record.
+4. `ui-refresh.css`: presentation-only Juventus/Ferrari-inspired refinements. **Every tint, gradient, border, shadow, card spacing and corner uses the published tokens** and respects any page/block editor override.
+
+All legacy color literals in the audited shared/public files are kept **only inside `var(--lf-color-*,original-fallback)`** or derived `color-mix` expressions, not as a competing override. If no theme has been published, those fallbacks retain the original Lefteria palette.
+
+No child Svelte component is permitted to establish a new independent brand palette. The regression suite monitors the base stylesheets, native Academy/registration/contact/team pages and shared public cards/dialogs. The admin and member app deliberately have **separate** design systems; they are unaffected by website editor settings.
+
+### Visual direction
+
+Luxury Juventus editorial photography + Ferrari-like precision: crisp typographic hierarchy using original Fira fonts, club black/approved gold, deliberately restrained depth, low-noise cards, accessible interactive states and slim accent borders. This is **design language**, not copied Juventus/Ferrari brand assets. User-uploaded logos, text, fixture/team data and real photos remain unchanged. No new font-size, photo asset or fixed accent is introduced by the premium skin.
+
+### Rollout
+
+Backend and frontend schema changes (including nullable page overrides) **must ship together**, after green builds and browser testing. Leave PR #467 a draft until a real published CMS staging theme has been tested for both organizations and the screenshots have been reviewed.
