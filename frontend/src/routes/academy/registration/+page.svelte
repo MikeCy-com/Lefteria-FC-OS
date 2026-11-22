@@ -218,7 +218,7 @@
                   <label>Τ.Κ.<input bind:value={form.player_postal_code} maxlength="20" data-testid="player-postal"/></label>
                   <h3 class="registration-full">Επίσημη στολή και υποχρεωτική εκτύπωση · €150</h3>
                   <label>Προτιμώμενος αριθμός φανέλας <span>*</span>
-                    <input type="text" inputmode="numeric" pattern="[0-9]{1,2}" bind:value={form.preferred_number}
+                    <input type="text" inputmode="numeric" pattern="[0-9][0-9]?" bind:value={form.preferred_number}
                       maxlength="2" required data-testid="player-preferred-number" placeholder="π.χ. 10"/>
                   </label>
                   <label>Προτιμώμενο όνομα εκτύπωσης <span>*</span>
@@ -244,7 +244,7 @@
                       <label>Πόλη <span>*</span><input bind:value={child.player_city} maxlength="100" required/></label>
                       <label>Τ.Κ.<input bind:value={child.player_postal_code} maxlength="20"/></label>
                       <h3 class="registration-full">Στολή €140 + υποχρεωτική εκτύπωση €10</h3>
-                      <label>Προτιμώμενος αριθμός <span>*</span><input inputmode="numeric" pattern="[0-9]{1,2}" bind:value={child.preferred_number} maxlength="2" required/></label>
+                      <label>Προτιμώμενος αριθμός <span>*</span><input inputmode="numeric" pattern="[0-9][0-9]?" bind:value={child.preferred_number} maxlength="2" required/></label>
                       <label>Όνομα εκτύπωσης <span>*</span><input bind:value={child.preferred_print_name} maxlength="32" required/></label>
                       <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
                     </fieldset>
