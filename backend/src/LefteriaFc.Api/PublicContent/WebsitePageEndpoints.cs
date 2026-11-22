@@ -527,9 +527,25 @@ public static class WebsitePageEndpoints
         {
             using var doc = JsonDocument.Parse(page.Blocks[0].Text);
             var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 1 ||
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is < 1 or > 2 ||
+                root.EnumerateObject().Any(entry => entry.Name is not ("links" or "category_order")) ||
                 !root.TryGetProperty("links", out var links) || links.ValueKind != JsonValueKind.Array ||
                 links.GetArrayLength() > 24) throw Invalid();
+            if (root.TryGetProperty("category_order", out var categoryOrder))
+            {
+                if (categoryOrder.ValueKind != JsonValueKind.Array || categoryOrder.GetArrayLength() != 9)
+                    throw Invalid();
+                var expected = new HashSet<string>(StringComparer.Ordinal) {
+                    "home", "club", "team", "academy", "matches", "news", "events", "shop", "contact"
+                };
+                foreach (var category in categoryOrder.EnumerateArray())
+                {
+                    if (category.ValueKind != JsonValueKind.String ||
+                        !expected.Remove(category.GetString() ?? ""))
+                        throw Invalid();
+                }
+                if (expected.Count != 0) throw Invalid();
+            }
             var identifiers = new HashSet<string>(StringComparer.Ordinal);
             foreach (var link in links.EnumerateArray())
             {
