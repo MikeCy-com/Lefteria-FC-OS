@@ -71,8 +71,10 @@
 .public-site[data-global-design="true"] .catalog-grid {
   gap:var(--lf-layout-card-gap,16px);
 }
+/* A single centered content inset applies page width AND section spacing.
+ * A plain 28px gutter previously overrode the chosen max page width. */
 .public-site[data-global-design="true"] .public-section:not(.public-embedded-page) {
-  padding-inline:var(--lf-layout-gutter,28px);
+  padding-inline:max(var(--lf-layout-gutter,28px),var(--public-page-inset,24px));
 }
 /* Embedded CMS sections delegate their horizontal space to the page editor.
  * The original .public-section gutter plus the nested .website-blocks padding
