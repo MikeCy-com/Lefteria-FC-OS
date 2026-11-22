@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -406,6 +406,24 @@ public static class WebsitePageEndpoints
             content.Blocks[0].Url is not null ||
             string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
             content.Blocks[0].Text.Length > 500)
+            throw Invalid();
+    }
+    // Dynamic data is never stored as CMS blocks: only additional, explicitly
+    // allowlisted editorial regions before native lists/cards are customizable.
+    private static void ValidateNativeEditorialRegions(string owner, string slug, WebsitePageContent content)
+    {
+        var firstTeam = slug is "canonical-team-roster-sections" or
+            "canonical-team-schedule-sections" or "canonical-team-results-sections" or
+            "canonical-team-statistics-sections";
+        var shared = slug is "canonical-news-sections" or "canonical-sponsors-sections";
+        if (!firstTeam && !shared) return;
+        if (firstTeam && owner != "lefteria_fc" ||
+            content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count is < 1 or > 12)
+            throw Invalid();
+        // Additional sections cannot embed HTML or arbitrary code; blocks use
+        // existing URL/length validation and the separately approved publisher.
+        if (content.Blocks.Any(block => block.Type is not ("heading" or "paragraph" or "image" or "button")))
             throw Invalid();
     }
     private static string Owner(string? org) =>
