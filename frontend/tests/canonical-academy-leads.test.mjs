@@ -71,7 +71,7 @@ test('admin uses authorized optimistic drafts and separate manager publication f
   assert.match(editor,/data-testid="edit-canonical-academy-groups"/);
   assert.match(editor,/data-testid="edit-canonical-academy-registration"/);
   assert.match(editor,/organization!=='lefteria_fc_academy'/);
-  assert.match(editor,/isLockedRegion = \$derived\(isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead \|\| isShopLead\)/);
+  assert.match(editor,/isLockedRegion = \$derived\(isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead \|\| isShopLead \|\| isGlobalDesign\)/);
   assert.match(editor,/expected_version:selected\?\.version,page:draft/);
   assert.match(editor,/expected_version:selected\.version,publish/);
   assert.ok(compile(editor,{filename:'admin/website-pages/+page.svelte',generate:'server'}).js.code.length>100);
