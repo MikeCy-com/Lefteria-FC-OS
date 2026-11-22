@@ -55,7 +55,7 @@ test('token renderer emits only curated CSS vars and responsive heading selector
     assert.ok(styles.includes('--lf-'+role+'-mobile:'));
   }
   assert.match(styles,/--lf-color-accent:#f6bb38/);
-  assert.match(shell,/publishedGlobalDesign\(page\.data\.websitePages\?\.\[organization\]/);
+  assert.match(shell,/publishedGlobalDesign\(page\.data\?\.websitePages\?\.\[organization\]/);
   assert.match(shell,/data-global-design=\{globalTheme/);
   for(const heading of ['h1','h2','h3','h4','h5','h6','p']) {
     assert.ok(css.includes(' .public-main '+heading+'{'));
