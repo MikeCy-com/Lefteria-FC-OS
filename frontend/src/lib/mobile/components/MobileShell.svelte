@@ -122,7 +122,7 @@
             <span><MobileIcon name="plus" size={29} /></span>
           </button>
         {/if}
-        <button type="button" class:active={selectedPrimaryTab === tab} aria-current={selectedPrimaryTab === tab ? 'page' : undefined}
+        <button type="button" class:active={selectedPrimaryTab === tab} aria-current={selectedPrimaryTab === tab ? (activeTab === tab ? 'page' : 'location') : undefined}
           disabled={busy} onclick={() => void onTabChange(tab)} data-testid={`bottom-tab-${tab}`}>
           <MobileIcon name={iconForTab(tab)} size={24} /><span>{TAB_NAMES[tab]}</span>
         </button>
