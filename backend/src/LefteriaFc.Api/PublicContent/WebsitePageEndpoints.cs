@@ -386,7 +386,7 @@ public static class WebsitePageEndpoints
     // only the fixed introductory copy is editorial. Other owners are forbidden.
     private static void ValidateAcademyEditorialLead(string owner, string slug, WebsitePageContent content)
     {
-        if (slug is not ("canonical-academy-intro" or "canonical-academy-philosophy-lead")) return;
+        if (slug is not ("canonical-academy-intro" or "canonical-academy-philosophy-lead" or "canonical-academy-groups-lead")) return;
         if (owner != "lefteria_fc_academy" ||
             content.MenuParent != "hidden" || content.MenuOrder != 0 ||
             content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
