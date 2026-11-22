@@ -53,7 +53,7 @@ test('family registration preserves per-child medical details and mandatory prin
   assert.match(page,/preferred_number/);
   assert.match(page,/preferred_print_name/);
   assert.match(page,/υποχρεωτική εκτύπωση/);
-  assert.match(page,/playerCount===1\\?60:100\\+\\(playerCount-2\\)\\*50/);
+  assert.ok(page.includes('playerCount===1?60:100+(playerCount-2)*50'));
   assert.match(page,/additional_players:additionalPlayers/);
   assert.match(api,/PrintingFeeEur=10/);
   assert.match(api,/KitFeeEur=140/);
