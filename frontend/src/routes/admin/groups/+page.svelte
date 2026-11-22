@@ -171,10 +171,10 @@
       !creationCities.some(city=>city.id===creationCityId) ||
       locationSaving || saving || creationLocationsLoading)return;
     const name=locationName.trim(), slug=locationSlug.trim().toLowerCase();
-    if(!name || name.length>120 || /[\\x00-\\x1f\\x7f]/.test(name) ||
+    if(!name || name.length>120 || /[\x00-\x1f\x7f]/.test(name) ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length>120 ||
       locationAddress.length>500 || locationMapsUrl.length>2048 ||
-      (locationMapsUrl && !/^https:\/\/(?:www\\.)?(?:google\\.[a-z.]+\/maps|maps\\.app\\.goo\\.gl\/)/i.test(locationMapsUrl))){
+      (locationMapsUrl && !/^https:\/\/(?:www\.)?(?:google\.[a-z.]+\/maps|maps\.app\.goo\.gl\/)/i.test(locationMapsUrl))){
       locationCreateError='Συμπληρώστε έγκυρο όνομα, slug και προαιρετικό Google Maps HTTPS URL.';
       return;
     }
