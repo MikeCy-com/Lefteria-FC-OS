@@ -529,15 +529,27 @@ public static class WebsitePageEndpoints
                     Regex.IsMatch(path, @"\A/(admin|api|app|login)(?:/|\?|\z)") ||
                     parent is not ("root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact"))
                     throw Invalid();
+                var uri = new Uri("https://lefteria.invalid" + path, UriKind.Absolute);
+                var route = uri.AbsolutePath;
+                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+                string? Value(string key) => query.Select(pair => pair.Split('=', 2))
+                    .Where(parts => parts.Length == 2 && parts[0] == key)
+                    .Select(parts => parts[1]).FirstOrDefault();
+                var selectedOwner = Value("organization_id");
+                var scope = Value("scope");
                 if (owner == "lefteria_fc_academy")
                 {
                     if (parent is "team" or "matches" or "shop" ||
                         Regex.IsMatch(path, @"\A/(team|trials|shop)(?:/|\?|\z)") ||
-                        Regex.IsMatch(path, @"\A/(news|about|contact)(?:\?|\z)") &&
-                        !path.Contains("organization_id=lefteria_fc_academy", StringComparison.Ordinal))
+                        scope == "first_team" || route == "/sponsors/first-team" ||
+                        (route is "/news" or "/about" or "/contact" || route.StartsWith("/pages/", StringComparison.Ordinal)) &&
+                        selectedOwner != "lefteria_fc_academy" ||
+                        route is "/events" or "/partners" or "/sponsors" && scope != "academy")
                         throw Invalid();
                 }
-                else if (parent == "academy" || Regex.IsMatch(path, @"\A/academy(?:/|\?|\z)"))
+                else if (parent == "academy" || Regex.IsMatch(path, @"\A/academy(?:/|\?|\z)") ||
+                    scope == "academy" || route == "/sponsors/academy" ||
+                    selectedOwner == "lefteria_fc_academy")
                     throw Invalid();
             }
         }
