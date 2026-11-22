@@ -147,7 +147,7 @@
   <AdminFrame user={$auth.session.user} active="matches" busy={$auth.busy} onLogout={() => void auth.logout()}>
     <section class="admin-matches" data-testid="admin-matches-page">
       <header class="admin-matches-heading">
-        <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC · {organization === 'lefteria_fc' ? 'ΣΥΛΛΟΓΟΣ' : 'ΑΚΑΔΗΜΙΑ'}</p>
+        
         <h1>ΑΓΩΝΕΣ <span>&amp; ΑΠΟΤΕΛΕΣΜΑΤΑ</span></h1>
         {#if team!=='all' && choices.some(item=>item.id===team)}
           <a class="admin-match-back-to-group"
