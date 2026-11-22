@@ -298,11 +298,12 @@
             {:else}
               <div class="vat-list">
                 {#each response.proposals as item (item.id)}
+                  {@const reviewed=reviews.find(r=>r.proposal_id===item.id)}
                   <article>
                     <strong>{item.product_id} · {item.variant_id}</strong>
                     <p>{rates.find(r=>r.value===item.treatment_code)?.label} · από {item.effective_from}</p>
                     <p>{item.authority_reference}</p>
-                    {#if reviews.find(r=>r.proposal_id===item.id) as reviewed}
+                    {#if reviewed}
                       <small>{reviewed.approved?'Εγκρίθηκε ως ανενεργή φορολογική ταξινόμηση':'Απορρίφθηκε'} · {reviewed.reviewed_at}</small>
                     {:else}
                       <small>Εκκρεμεί ανεξάρτητος έλεγχος · {item.requested_at}</small>
