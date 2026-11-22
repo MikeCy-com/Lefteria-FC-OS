@@ -5,12 +5,13 @@
     editable:boolean;
     locked:boolean;
     busy:boolean;
+    maxBlocks?:number;
     onEdit:(index:number,text:string)=>void;
     onMove:(from:number,to:number)=>void;
     onInsert:(index:number,type:WebsiteBlock['type'])=>void;
     onSelect:(index:number)=>void;
   };
-  let {blocks,editable,locked,busy,onEdit,onMove,onInsert,onSelect}:Props=$props();
+  let {blocks,editable,locked,busy,maxBlocks=40,onEdit,onMove,onInsert,onSelect}:Props=$props();
   let selected=$state<number|null>(null);
   let dragged=$state<number|null>(null);
   let hover=$state<number|null>(null);
@@ -63,7 +64,7 @@
         <div class="visual-insert-row">
           <span>+ Ενότητα εδώ</span>
           {#each types as kind (kind.kind)}
-            <button type="button" disabled={busy||blocks.length>=40}
+            <button type="button" disabled={busy||blocks.length>=maxBlocks}
               onclick={()=>onInsert(index,kind.kind)}
               aria-label={'Προσθήκη '+kind.label+' πριν από την ενότητα '+(index+1)}>+ {kind.label}</button>
           {/each}
@@ -110,7 +111,7 @@
     <div class="visual-insert-row last">
       <span>+ Προσθήκη στο τέλος</span>
       {#each types as kind (kind.kind)}
-        <button type="button" disabled={busy||blocks.length>=40}
+        <button type="button" disabled={busy||blocks.length>=maxBlocks}
           onclick={()=>onInsert(blocks.length,kind.kind)}>+ {kind.label}</button>
       {/each}
     </div>
