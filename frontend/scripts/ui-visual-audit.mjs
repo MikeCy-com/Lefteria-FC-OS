@@ -504,7 +504,7 @@ try {
           home:viewport.width<=767?47:80,
           academy:viewport.width<=767?55:76,
           'first-team':viewport.width<=767?55:76,
-          'team-schedule':viewport.width<=767?52:68,
+          'team-schedule':viewport.width<=767?40:68,
           'app-login':viewport.width<=720?35:57
         };
         const cap=caps[route.name];
