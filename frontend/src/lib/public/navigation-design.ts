@@ -17,12 +17,20 @@ const validLink=(link:NavigationEntry,owner:PublicOrganization):boolean=>{
      /^\/(admin|api|app|login)(?:\/|\?|$)/.test(link.path)||
      !NAVIGATION_PARENTS.includes(link.parent)||!Number.isInteger(link.order)||
      link.order<0||link.order>100)return false;
+  const parsed=new URL(link.path,'https://lefteria.invalid');
+  const scope=parsed.searchParams.get('scope');
+  const selectedOwner=parsed.searchParams.get('organization_id');
   if(owner==='lefteria_fc_academy'){
     if(link.parent==='team'||link.parent==='matches'||link.parent==='shop'||
-       /^\/(team|trials|shop)(?:\/|\?|$)/.test(link.path))return false;
-    if(/^\/(news|about|contact)(?:\?|$)/.test(link.path)&&
-       !link.path.includes('organization_id=lefteria_fc_academy'))return false;
-  }else if(link.parent==='academy'||/^\/academy(?:\/|\?|$)/.test(link.path))return false;
+       /^\/(team|trials|shop)(?:\/|\?|$)/.test(link.path)||
+       scope==='first_team'||parsed.pathname==='/sponsors/first-team')return false;
+    if(['/news','/about','/contact','/pages'].some(route=>parsed.pathname===route||
+       route==='/pages'&&parsed.pathname.startsWith('/pages/')) &&
+       selectedOwner!=='lefteria_fc_academy')return false;
+    if(['/events','/partners','/sponsors'].includes(parsed.pathname)&&scope!=='academy')return false;
+  }else if(link.parent==='academy'||/^\/academy(?:\/|\?|$)/.test(link.path)||
+    scope==='academy'||parsed.pathname==='/sponsors/academy'||
+    selectedOwner==='lefteria_fc_academy')return false;
   return true;
 };
 export function parseNavigationDesign(raw:string,owner:PublicOrganization):NavigationDesign|null{
