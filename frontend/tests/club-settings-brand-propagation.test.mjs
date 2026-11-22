@@ -21,7 +21,7 @@ test('club profile is managed centrally, preserving existing audited per-org sav
   assert.match(editor,/club-organization|club-profile-target/);
   assert.match(editor,/club-save/);
   assert.match(editor,/club-social-/);
-  assert.match(editor,/club-logo_url/);
+  assert.match(editor,/keys: \['logo_url', 'stadium_image_url'\]/);
   assert.match(editor,/club-back-to-settings/);
   assert.match(navCatalog,/id: 'operations'/);
   assert.match(navCatalog,/id: 'club', name: 'Ταυτότητα & επικοινωνία συλλόγου'/);
