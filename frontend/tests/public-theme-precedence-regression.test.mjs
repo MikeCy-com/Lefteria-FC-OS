@@ -80,6 +80,17 @@ test('CMS semantic heading typography comes directly from backend role values, m
 });
 
 
+test('native page width and insets have one owner instead of conflicting theme and luxury rules',()=>{
+  const luxury=read('lib/public/ui-refresh.css');
+  assert.match(tokens,/padding-inline:max\\(var\\(--lf-layout-gutter,28px\\),var\\(--public-page-inset,24px\\)\\)/);
+  assert.doesNotMatch(luxury,/\\.public-section:not\\(\\.public-embedded-page\\)\\s*\\{/);
+  assert.doesNotMatch(luxury,/\\.public-page-heading:not\\(\\.academy-intro\\):not\\(\\.team-heading\\)\\s*\\{[^}]*padding-inline/);
+  assert.match(native,/\\.catalog\\{max-width:var\\(--public-content-width,1400px\\)/);
+  assert.match(native,/\\.match-detail\\{max-width:var\\(--public-content-width,1200px\\)/);
+  assert.match(native,/\\.person-content\\{max-width:var\\(--public-content-width,1400px\\)/);
+  assert.match(tokens,/\\.shop-container\\s*\\{\\s*width:min\\(var\\(--public-content-width,1280px\\)/);
+});
+
 test('every public route stylesheet (not just the seven showcase pages) inherits the palette',()=>{
   const routesRoot=fileURLToPath(new URL('../src/routes/',import.meta.url));
   const pages=[];
@@ -98,6 +109,11 @@ test('every public route stylesheet (not just the seven showcase pages) inherits
   for(const {route,pathname} of pages){
     const source=readFileSync(pathname,'utf8');
     const pos=source.indexOf('<style');
+    const markup=pos<0?source:source.slice(0,pos);
+    assert.doesNotMatch(markup,/(?:bg|text|border|fill|stroke|from|via|to)-\\[\\s*#[\\da-fA-F]{3,8}\\s*\\]/i,
+      route+' contains a direct Tailwind paint value outside the published palette');
+    assert.doesNotMatch(markup,/(?<![\\w-])(?:bg|text|border)-(?:white|black|zinc|gray|amber|yellow|orange|neutral|slate)(?:-\\d+)?\\b/i,
+      route+' contains a legacy fixed named paint class');
     if(pos<0)continue;
     const css=source.slice(pos);
     const normalized=css.replace(
