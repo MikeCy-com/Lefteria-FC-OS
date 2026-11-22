@@ -14,8 +14,13 @@ export const POST: RequestHandler = async ({params,request,url}) => {
   if(!contentType.startsWith('multipart/form-data; boundary=')||
      contentType.length>200||/[\r\n]/.test(contentType))
     return json({code:'multipart_required'},{status:415,headers});
-  if(Number(request.headers.get('content-length')??'0')>11*1024*1024)
-    return json({code:'file_too_large'},{status:413,headers});
+  const declaredLength=request.headers.get('content-length');
+  if(declaredLength!==null){
+    if(!/^(0|[1-9][0-9]*)$/.test(declaredLength))
+      return json({code:'invalid_upload'},{status:400,headers});
+    if(Number(declaredLength)>11*1024*1024)
+      return json({code:'file_too_large'},{status:413,headers});
+  }
   const reader=request.body?.getReader();
   if(!reader)return json({code:'invalid_upload'},{status:400,headers});
   let size=0;
