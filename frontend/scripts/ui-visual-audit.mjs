@@ -682,6 +682,13 @@ try {
           !sectionDesign.root.color || sectionDesign.root.width<=0)) {
         failures.push(route.path+' '+viewport.name+': invalid public design root');
       }
+      if (route.name==='about' && sectionDesign) {
+        const aboutHeadings=sectionDesign.sections
+          .filter(item=>item.selector==='.section-heading' && item.heading)
+          .map(item=>parseFloat(item.heading.fontSize));
+        if(aboutHeadings.length!==2 || aboutHeadings.some(size=>size<20||size>34))
+          failures.push('About '+viewport.name+': section headings differ from the shared Academy hierarchy: '+JSON.stringify(aboutHeadings));
+      }
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
