@@ -13,7 +13,10 @@ export type WebsitePageLayout = {
   gap: 8|16|24|32|48;
   side_padding: 12|16|24|32|48;
 };
-export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null; layout?: WebsiteBlockLayout|null };
+export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null; level?: 2|3|4|5|6|null; layout?: WebsiteBlockLayout|null };
+export function validHeadingLevel(block:WebsiteBlock):boolean {
+  return block.type==='heading' ? (block.level==null || [2,3,4,5,6].includes(block.level)) : block.level==null;
+}
 export type WebsitePageContent = {
   title: string; summary: string; seo_title: string; seo_description: string;
   menu_parent: 'hidden'|'root'|'club'|'team'|'academy'|'matches'|'news'|'events'|'shop'|'contact';
@@ -145,7 +148,7 @@ export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization
   return row.page.blocks.every(block => block &&
     ['heading','paragraph','image','button'].includes(block.type) &&
     typeof block.text === 'string' &&
-    (block.url === null || typeof block.url === 'string'));
+    (block.url === null || typeof block.url === 'string') && validHeadingLevel(block));
 }
 
 export function withWebsitePages(
