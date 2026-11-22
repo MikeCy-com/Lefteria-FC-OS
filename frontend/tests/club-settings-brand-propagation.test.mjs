@@ -52,6 +52,19 @@ test('mobile header consumes verified public-only club name and logo from role o
   assert.match(mobile,/credentials:'omit',cache:'no-store'/);
   assert.match(mobile,/readPublicBrand\(raw,owner\)/);
   assert.match(mobile,/clubLogoUrl=\{publicClubBrand\?\.logoUrl\?\?null\}/);
+  assert.match(mobile,/data-testid="mobile-club-contact"/);
+  assert.match(mobile,/data-testid="mobile-club-email"/);
+  assert.match(mobile,/data-testid="mobile-club-phone"/);
+  assert.match(mobile,/mobile-club-social-/);
+  assert.equal(brand?.email,null);
+  assert.deepEqual(brand?.socialLinks,{});
+  const publicContacts=readPublicBrand({club:{organization_id:'lefteria_fc',name:'FC',
+    logo_url:'/fc.png',email:'info@example.org',phone:'+357 12345678',
+    social_links:{facebook:'https://facebook.com/sample',youtube:'javascript:alert(1)'}}},'lefteria_fc');
+  assert.equal(publicContacts?.email,'info@example.org');
+  assert.equal(publicContacts?.phone,'+357 12345678');
+  assert.equal(publicContacts?.socialLinks.facebook,'https://facebook.com/sample');
+  assert.equal(publicContacts?.socialLinks.youtube,undefined);
   assert.match(mobileShell,/data-testid="mobile-club-brand-name"/);
   assert.doesNotMatch(mobileShell,/src="\/mobile\/club-logo\.png"/);
 });
