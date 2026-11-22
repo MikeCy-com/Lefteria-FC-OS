@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -349,7 +349,16 @@
     mediaPickerIndex=null;
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
+  function setPageLayout(key:keyof WebsitePageLayout,value:number) {
+    if(!canWrite || saving || isLockedRegion)return;
+    draft.layout={...DEFAULT_PAGE_LAYOUT,...draft.layout,[key]:value};
+  }
+  function setBlockLayout(index:number,next:WebsiteBlockLayout) {
+    if(!canWrite || saving || isLockedRegion || !validBlockLayout(next) || !draft.blocks[index])return;
+    draft.blocks[index]={...draft.blocks[index],layout:next};
+  }
   function valid():boolean {
+    if(!validPageLayout(draft.layout)||draft.blocks.some(block=>!validBlockLayout(block.layout)))return false;
     if(isNativeRegion && (!organization || !nativeEditorialOwnerAllowed(slug,organization) ||
       draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length<1 || draft.blocks.length>12))return false;
@@ -570,6 +579,32 @@
                       pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="our-values" bind:value={slug}
                       disabled={!creating || !canWrite || saving}/></label>
                   </div>
+                  {#if !isLockedRegion}
+                    <fieldset class="cms-layout-fieldset" data-testid="cms-global-layout">
+                      <legend>Διάταξη σελίδας · πλάτος και αποστάσεις</legend>
+                      <div class="cms-field-grid">
+                        <label>Μέγιστο πλάτος περιεχομένου
+                          <select value={draft.layout?.max_width ?? DEFAULT_PAGE_LAYOUT.max_width}
+                            onchange={e=>setPageLayout('max_width',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [960,1120,1280,1440] as width}<option value={width}>{width} px</option>{/each}
+                          </select>
+                        </label>
+                        <label>Κενό μεταξύ blocks
+                          <select value={draft.layout?.gap ?? DEFAULT_PAGE_LAYOUT.gap}
+                            onchange={e=>setPageLayout('gap',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [8,16,24,32,48] as gap}<option value={gap}>{gap} px</option>{/each}
+                          </select>
+                        </label>
+                        <label>Πλευρικό περιθώριο
+                          <select value={draft.layout?.side_padding ?? DEFAULT_PAGE_LAYOUT.side_padding}
+                            onchange={e=>setPageLayout('side_padding',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [12,16,24,32,48] as padding}<option value={padding}>{padding} px</option>{/each}
+                          </select>
+                        </label>
+                      </div>
+                      <p class="admin-muted">Οι ρυθμίσεις ισχύουν για τις επεξεργάσιμες ενότητες, όχι για προστατευμένα δεδομένα και φόρμες.</p>
+                    </fieldset>
+                  {/if}
                   {#if isHero}<p class="admin-muted">Η αλλαγή αφορά μόνο το κείμενο της κεντρικής εικόνας στην αρχική σελίδα. Καρουζέλ, εικόνες, επόμενος αγώνας και σύνδεσμοι μένουν δυναμικοί. Απαιτείται ξεχωριστή έγκριση και δημοσίευση.</p>{/if}
                   {#if isSpotlight}<p class="admin-muted">Η αλλαγή αφορά μόνο τον τρίπτυχο τίτλο (τρεις λέξεις ή φράσεις χωρισμένες με ·) και την περιγραφή της προβολής Ακαδημίας στην αρχική σελίδα. Εικόνα, κουμπί και πραγματικός αριθμός τμημάτων διατηρούνται. Δημοσίευση μόνο μετά την έγκριση.</p>{/if}
                   <label>Σύντομη περιγραφή <textarea rows="2" maxlength="500" bind:value={draft.summary} disabled={!canWrite || saving}></textarea></label>
@@ -681,6 +716,7 @@
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}
                     <WebsiteVisualCanvas blocks={draft.blocks} maxBlocks={maxBlocks}
+                      pageLayout={draft.layout ?? DEFAULT_PAGE_LAYOUT} onLayout={setBlockLayout}
                       editable={canWrite} locked={isLockedRegion} busy={saving}
                       onEdit={editCanvasText} onMove={moveCanvasBlock}
                       onInsert={insertBlock} onSelect={selectCanvasBlock}/>
