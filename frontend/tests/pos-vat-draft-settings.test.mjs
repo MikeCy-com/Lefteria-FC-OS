@@ -8,6 +8,7 @@ const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migratio
 const grants=read('ops/postgres/pos-vat-proposals-staging-grants.sql');
 const page=read('frontend/src/routes/admin/settings/pos-vat/+page.svelte');
 const provider=read('frontend/src/routes/admin/settings/providers/+page.svelte');
+const finance=read('frontend/src/routes/admin/finance/+page.svelte');
 const program=read('backend/src/LefteriaFc.Api/Program.cs');
 
 test('separate zero and exempt plus all other Cyprus treatment codes are proposals only',()=>{
@@ -21,6 +22,8 @@ test('separate zero and exempt plus all other Cyprus treatment codes are proposa
   assert.match(migration,/pos\.product_variants\(organization_id,product_id,id\)/);
   assert.match(migration,/IF EXISTS\(SELECT 1 FROM pos_cashier\.vat_classification_proposals\)/);
   assert.match(migration,/pos_vat_proposals_require_forward_recovery/);
+  assert.match(migration,/CREATE TRIGGER pos_vat_proposal_immutable/);
+  assert.match(migration,/pos\.reject_private_pos_ledger_change\(\)/);
   assert.doesNotMatch(migration,/UPDATE pos_cashier\.(?:sales|receipts|vat_treatments|variant_vat_assignments)/i);
 });
 test('two layers of scoped authenticated finance permissions with audit and replay safety',()=>{
@@ -49,6 +52,7 @@ test('staging SQL grant requires reviewed narrow admin DB role and forbids mobil
 test('admin UI is a real scoped form with pending-only receipt/payabl/fiscal status',()=>{
   assert.match(program,/app\.MapAdminPosVatSettings\(\)/);
   assert.match(provider,/data-testid="admin-provider-vat-settings"/);
+  assert.match(finance,/data-testid="finance-vat-settings-link"/);
   assert.match(page,/data-testid="admin-pos-vat-settings"/);
   assert.match(page,/data-testid="vat-policy-guard"/);
   assert.match(page,/checkout_enabled===false/);
