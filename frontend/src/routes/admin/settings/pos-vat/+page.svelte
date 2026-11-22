@@ -12,6 +12,8 @@
     justification:string;requested_at:string;status:'pending'};
   type Response={organization_id:Owner;checkout_enabled:false;
     approval_available:false;proposals:Proposal[]};
+  type VatReview={proposal_id:string;approved:boolean;review_note:string;
+    treatment_revision:number|null;reviewed_at:string};
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const rates=[
     {value:'standard_19',label:'19% · κανονικός'},
@@ -24,9 +26,12 @@
   const organizations=$derived($auth.session?.user.organizations.filter(
     o=>o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
   const authorized=$derived(['super_admin','manager','accountant'].includes($auth.session?.user.role??''));
+  const canReview=$derived($auth.session?.user.role==='super_admin'&&reviewsAvailable);
   let owner=$state<Owner|null>(null),response=$state<Response|null>(null);
   let products=$state<CatalogProduct[]>([]);
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
+  let reviews=$state<VatReview[]>([]),reviewsAvailable=$state(false);
+  let reviewTarget=$state<string|null>(null),reviewNote=$state(''),reviewSaving=$state(false);
   let productId=$state(''),variantId=$state(''),code=$state('standard_19');
   let effectiveFrom=$state(''),reference=$state(''),reason=$state('');
   let requestId=$state(''),refresh=$state(0);
@@ -122,6 +127,69 @@
     })();
     return()=>controller.abort();
   });
+  $effect(()=>{
+    const current=owner;void refresh;
+    reviews=[];reviewsAvailable=false;reviewTarget=null;reviewNote='';
+    if(!browser||!authorized||!current)return;
+    const controller=new AbortController();
+    void(async()=>{
+      try{
+        const result=await fetch('/api/admin/finance/pos-vat/reviews?'+
+          new URLSearchParams({organization_id:current}),{
+            credentials:'same-origin',cache:'no-store',signal:controller.signal
+          });
+        if(!result.ok||controller.signal.aborted)return;
+        const raw:unknown=await result.json();
+        if(!raw||typeof raw!=='object'||Array.isArray(raw))return;
+        const x=raw as Record<string,unknown>;
+        if(x.organization_id!==current||x.checkout_enabled!==false||
+          !Array.isArray(x.reviews)||x.reviews.length>100)return;
+        const valid=x.reviews.every((item:unknown)=>{
+          if(!item||typeof item!=='object'||Array.isArray(item))return false;
+          const r=item as Record<string,unknown>;
+          return typeof r.proposal_id==='string'&&typeof r.approved==='boolean'&&
+            typeof r.review_note==='string'&&typeof r.reviewed_at==='string'&&
+            (r.treatment_revision===null||Number.isSafeInteger(r.treatment_revision));
+        });
+        if(valid&&!controller.signal.aborted&&owner===current){
+          reviews=x.reviews as VatReview[];
+          reviewsAvailable=true;
+        }
+      }catch{/* Decision review remains disabled if evidence cannot be verified. */}
+    })();
+    return()=>controller.abort();
+  });
+  async function submitReview(approve:boolean){
+    if(!owner||!canReview||!reviewTarget||reviewSaving||
+      reviewNote.trim()!==reviewNote||reviewNote.length<10||reviewNote.length>500)return;
+    const current=owner,target=reviewTarget;
+    reviewSaving=true;error='';notice='';
+    try{
+      const result=await fetch('/api/admin/finance/pos-vat/proposals/'+
+        encodeURIComponent(target)+'/review?'+
+        new URLSearchParams({organization_id:current}),{
+          method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/json',Accept:'application/json'},
+          body:JSON.stringify({approve,review_note:reviewNote})
+        });
+      if(owner!==current)return;
+      if(result.status===401||result.status===403){void auth.bootstrap();return;}
+      if(!result.ok)throw Error(result.status===409
+        ?'Έχει καταχωριστεί άλλη απόφαση για αυτό το αίτημα.'
+        :result.status===422?'Ελέγξτε την τεκμηρίωση.':
+          'Ο ανεξάρτητος έλεγχος δεν ολοκληρώθηκε.');
+      const payload:unknown=await result.json();
+      if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+        (payload as Record<string,unknown>).proposal_id!==target||
+        (payload as Record<string,unknown>).approved!==approve||
+        (payload as Record<string,unknown>).checkout_enabled!==false)
+        throw Error('Η απόφαση δεν επαληθεύτηκε.');
+      reviewTarget=null;reviewNote='';
+      notice='Η απόφαση καταγράφηκε. Η φορολογική ενεργοποίηση και οι πληρωμές παραμένουν κλειδωμένες.';
+      refresh++;
+    }catch(e){error=e instanceof Error?e.message:'Σφάλμα ελέγχου.';}
+    finally{reviewSaving=false;}
+  }
   async function submit(){
     if(!canSubmit||!owner||saving||!response)return;
     const current=owner;
@@ -234,12 +302,38 @@
                     <strong>{item.product_id} · {item.variant_id}</strong>
                     <p>{rates.find(r=>r.value===item.treatment_code)?.label} · από {item.effective_from}</p>
                     <p>{item.authority_reference}</p>
-                    <small>Εκκρεμεί ανεξάρτητος έλεγχος · {item.requested_at}</small>
+                    {#if reviews.find(r=>r.proposal_id===item.id) as reviewed}
+                      <small>{reviewed.approved?'Εγκρίθηκε ως ανενεργή φορολογική ταξινόμηση':'Απορρίφθηκε'} · {reviewed.reviewed_at}</small>
+                    {:else}
+                      <small>Εκκρεμεί ανεξάρτητος έλεγχος · {item.requested_at}</small>
+                      {#if canReview}
+                        <button type="button" class="admin-secondary"
+                          onclick={()=>{reviewTarget=item.id;reviewNote='';}}
+                          data-testid="vat-review-open">Ανεξάρτητος έλεγχος</button>
+                      {/if}
+                    {/if}
                   </article>
                 {/each}
               </div>
             {/if}
           </section>
+          {#if canReview&&reviewTarget}
+            <section class="admin-panel" data-testid="vat-independent-review">
+              <h2>Ανεξάρτητη απόφαση Super Admin</h2>
+              <p class="admin-muted">Δεν επιτρέπεται αυτοέγκριση. Ελέγξτε πραγματική νομοθεσία και τεκμηρίωση του προϊόντος. Η έγκριση αποθηκεύει ανενεργή αναθεώρηση ΦΠΑ και δεν επιτρέπει φορολογικές αποδείξεις ή Payabl.</p>
+              <label>Αιτιολόγηση απόφασης
+                <textarea bind:value={reviewNote} rows="3" minlength="10" maxlength="500"/>
+              </label>
+              <div class="vat-review-actions">
+                <button type="button" disabled={reviewSaving||reviewNote.trim().length<10}
+                  onclick={()=>void submitReview(true)}>Έγκριση ταξινόμησης · ανενεργή</button>
+                <button type="button" disabled={reviewSaving||reviewNote.trim().length<10}
+                  onclick={()=>void submitReview(false)}>Απόρριψη</button>
+                <button type="button" disabled={reviewSaving}
+                  onclick={()=>{reviewTarget=null;reviewNote='';}}>Ακύρωση</button>
+              </div>
+            </section>
+          {/if}
         {/if}
       {/if}
     </main>
@@ -252,6 +346,8 @@
 .pos-vat-settings label{display:grid;gap:6px;font-size:13px}
 .pos-vat-settings input,.pos-vat-settings select,.pos-vat-settings textarea{width:100%;min-width:0;border:1px solid #777;background:#101010;color:#fff;padding:10px;border-radius:6px}
 .pos-vat-settings .wide{grid-column:1/-1}
+.pos-vat-settings .vat-review-actions{display:flex;gap:10px;flex-wrap:wrap}
+.pos-vat-settings .vat-review-actions button{border:1px solid #f6bb38;background:#171717;color:#f6bb38;padding:9px;border-radius:5px}
 .pos-vat-settings .vat-list{display:grid;gap:10px}
 .pos-vat-settings article{border:1px solid #555;padding:12px;border-radius:8px}
 .pos-vat-settings article p{margin:5px 0}
