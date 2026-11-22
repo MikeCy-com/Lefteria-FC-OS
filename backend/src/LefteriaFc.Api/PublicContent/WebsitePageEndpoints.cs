@@ -13,9 +13,29 @@ using Npgsql;
 namespace LefteriaFc.Api.PublicContent;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record WebsiteBlock(string Type, string Text, string? Url)
+public sealed record WebsiteBlockLayout(string Width, int MinHeight, int MarginTop, int MarginBottom)
 {
     public bool Valid() =>
+        Width is "full" or "half" or "third" &&
+        MinHeight is 0 or 120 or 240 or 360 or 480 &&
+        MarginTop is 0 or 8 or 16 or 24 or 32 or 48 or 64 &&
+        MarginBottom is 0 or 8 or 16 or 24 or 32 or 48 or 64;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePageLayout(int MaxWidth, int Gap, int SidePadding)
+{
+    public bool Valid() =>
+        MaxWidth is 960 or 1120 or 1280 or 1440 &&
+        Gap is 8 or 16 or 24 or 32 or 48 &&
+        SidePadding is 12 or 16 or 24 or 32 or 48;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsiteBlock(string Type, string Text, string? Url, WebsiteBlockLayout? Layout = null)
+{
+    public bool Valid() =>
+        (Layout is null || Layout.Valid()) &&
         Type is "heading" or "paragraph" or "image" or "button" &&
         Text is { Length: <= 5000 } &&
         Text.All(c => c >= ' ' && c != '\u007f' || c is '\n' or '\r' or '\t') &&
@@ -29,7 +49,8 @@ public sealed record WebsiteBlock(string Type, string Text, string? Url)
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record WebsitePageContent(
     string Title, string Summary, string SeoTitle, string SeoDescription,
-    string MenuParent, int MenuOrder, IReadOnlyList<WebsiteBlock> Blocks)
+    string MenuParent, int MenuOrder, IReadOnlyList<WebsiteBlock> Blocks,
+    WebsitePageLayout? Layout = null)
 {
     public static bool SafeUrl(string? value, bool image) =>
         value is { Length: > 0 and <= 2048 } &&
@@ -46,6 +67,7 @@ public sealed record WebsitePageContent(
             SeoTitle is not {Length: <= 180} || SeoDescription is not {Length: <= 300} ||
             MenuParent is not ("hidden" or "root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact") ||
             MenuOrder is < 0 or > 1000 || Blocks is null || Blocks.Count is < 1 or > 40 ||
+            (Layout is not null && !Layout.Valid()) ||
             Blocks.Any(b => b is null || !b.Valid()) ||
             Blocks.Any(b => b.Type is "heading" or "paragraph" or "button" && string.IsNullOrWhiteSpace(b.Text)) ||
             Blocks.Any(b => b.Type == "image" && string.IsNullOrWhiteSpace(b.Text)))
