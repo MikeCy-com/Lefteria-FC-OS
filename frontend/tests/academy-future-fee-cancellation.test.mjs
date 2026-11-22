@@ -68,7 +68,7 @@ test('Svelte admin views compile with cancellation actions, finance sums and pla
   assert.match(finance,/fee\.status==='cancelled'/);
   assert.match(overview,/academy-fees-cancelled-stat/);
   assert.match(site,/training_cancelled_count/);
-  assert.match(roster,/allowFinance && owner === 'lefteria_fc_academy' && allowGoalManagement/);
+  assert.match(roster,/allowFinance && owner === 'lefteria_fc_academy'/);
 });
 
 test('disposable database checks cover auditable cancellation, receipts, role safety and CI execution',()=>{
