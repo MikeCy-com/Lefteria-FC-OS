@@ -4,7 +4,9 @@
   import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
   import type {MobileCalendar,MobileCalendarItem,AvailabilityStatus} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
-  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext,trustedRoleHomeCancelledEvents} from '../role-home.ts';
+  import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,
+    isTrustedRoleHomeContext,trustedRoleHomeCancelledEvents,
+    trustedPlayerTrainingResponsesNeeded} from '../role-home.ts';
   import './mobile-theme.css';
   import { publicImages } from '../../public/images.ts';
 
@@ -33,6 +35,8 @@
     trustedNextRoleMatch(calendar,role,identityId,organizationId,today));
   const playerRsvp=$derived(role==='player'&&nextMatch&&calendar?.selected_player_id
     ?(nextMatch.responses.find(r=>r.player_id===calendar?.selected_player_id)?.status??null):null);
+  const trainingResponsesNeeded=$derived(role==='player'&&contextIsCurrent&&onRespond
+    ?trustedPlayerTrainingResponsesNeeded(calendar,identityId,today):[]);
   let requestedScope=$state('');
   $effect(()=>{
     const scope=identityId+':'+role+':'+(organizationId??'')+':'+today.slice(0,7);
@@ -95,6 +99,44 @@
           {/each}
         </ul>
         <p class="cancel-note">Οι προηγούμενες απαντήσεις συμμετοχής διατηρούνται. Δεν γίνονται νέες δηλώσεις για ακυρωμένες δραστηριότητες.</p>
+      </section>
+    {/if}
+    {#if role==='player' && trainingResponsesNeeded.length>0 && onRespond}
+      <section class="panel player-training-queue" data-testid="player-training-response-queue"
+        aria-labelledby={id+'-training-response-title'}>
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Η ΣΥΜΜΕΤΟΧΗ ΜΟΥ</p>
+            <h2 id={id+'-training-response-title'}>Απαντήσεις προπονήσεων</h2>
+          </div>
+          <button type="button" disabled={busy} onclick={()=>void onNavigate('calendar')}>
+            Πρόγραμμα ›
+          </button>
+        </div>
+        <p class="player-training-note">Μόνο οι επόμενες προπονήσεις σου με
+          επιβεβαιωμένη ταυτότητα και χωρίς ήδη καταχωρισμένη απάντηση.</p>
+        <ul class="player-training-items">
+          {#each trainingResponsesNeeded as event (event.kind+':'+event.id)}
+            <li data-testid="player-training-response-needed">
+              <div class="player-training-copy">
+                <strong>{event.title}</strong>
+                <small>{formatCalendarDate(event.date,{weekday:'short',day:'numeric',month:'short'})}
+                  {event.start_time?' · '+event.start_time:''}</small>
+              </div>
+              <div class="player-training-buttons" role="group"
+                aria-label={'Διαθεσιμότητα προπόνησης '+event.title}>
+                <button type="button" disabled={busy}
+                  onclick={()=>void onRespond?.(event,'going')}>Θα έρθω</button>
+                <button type="button" disabled={busy}
+                  onclick={()=>void onRespond?.(event,'not_going')}>Δεν θα έρθω</button>
+                <button type="button" disabled={busy}
+                  onclick={()=>void onRespond?.(event,'maybe')}>Ίσως</button>
+              </div>
+            </li>
+          {/each}
+        </ul>
+        <p class="player-training-note">Η απάντησή σου αποθηκεύεται μόνο μετά
+          την επιβεβαίωση από το σύστημα.</p>
       </section>
     {/if}
     <section class="panel matchday" aria-labelledby={id+'-matchday'} data-testid="role-home-matchday">
@@ -195,6 +237,22 @@
   .event-copy small{font-size:14px;color:var(--lf-muted)}
   .notice{font-size:15px;color:var(--lf-muted)}.error{color:#ffa7a7}
   .standalone-link{display:inline-flex;color:#ffca46;min-height:44px;align-items:center}
+  .player-training-queue{border-color:#7a602d;background:linear-gradient(125deg,#241d12,#141515 70%)}
+  .player-training-queue .eyebrow{font-size:11px;margin:0 0 6px}
+  .player-training-queue h2{margin:0 0 8px}
+  .player-training-note{font-size:12px;color:#c9c0b0;line-height:1.5;margin:9px 0}
+  .player-training-items{list-style:none;margin:12px 0;padding:0;display:grid;gap:10px}
+  .player-training-items li{padding:12px;border-radius:8px;border:1px solid #5d4b2c;
+    background:#171819;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px}
+  .player-training-copy{display:grid;gap:5px;min-width:180px;flex:1}
+  .player-training-copy strong{font-size:14px;line-height:1.4}
+  .player-training-copy small{font-size:12px;color:#d3c49e}
+  .player-training-buttons{display:flex;flex-wrap:wrap;gap:6px}
+  .player-training-buttons button{min-height:44px;padding:8px 11px;border-radius:7px;
+    background:#2b2418;border:1px solid #735c2e;color:#ffca46;
+    font-size:13px;font-weight:700;cursor:pointer}
+  .player-training-buttons button:disabled{opacity:.5;cursor:wait}
+  .player-training-buttons button:focus-visible{outline:2px solid #ffca46;outline-offset:2px}
   .matchday{border-color:#765320;background:linear-gradient(135deg,#35250e,#121313 75%)}
   .matchday h3{font-family:var(--lf-heading);font-size:25px;line-height:1.2;margin:10px 0;color:#fff}
   .match-date{font-size:15px;color:#ffca46;font-weight:700}
