@@ -65,7 +65,7 @@
 .public-group-card p { font-size:14px; color:var(--lf-color-muted,#bbbbbb); }
 .public-group-card h4 { color:var(--gold); font-size:16px; margin:25px 0 12px; }
 .preserve-lines { white-space:pre-line; }
-.public-club-story { display:grid; grid-template-columns:220px 1fr; gap:65px; max-width:var(--public-content-width,1200px); margin:auto; }
+.public-club-story { display:grid; grid-template-columns:220px 1fr; gap:65px; max-width:var(--lf-layout-page-max-width,1200px); margin:auto; }
 .public-club-story>img { max-height:285px; object-fit:contain; }
 .public-club-story h2 { font-size:45px; margin-bottom:22px; }
 .club-motto { color:var(--gold); font-size:22px; font-family:'Fira Sans Extra Condensed',sans-serif; }
@@ -672,7 +672,7 @@ dialog.public-dialog::backdrop { background:color-mix(in srgb,var(--lf-color-bg,
 :where(.public-site[data-route="/login"]) .access-arrow{margin-left:auto;font-size:28px;color:var(--public-gold)}
 @media(max-width:750px){:where(.public-site[data-route="/login"]) .access-options{grid-template-columns:1fr}:where(.public-site[data-route="/login"]) .access-options>a{min-height:200px}}
 /* routes/match/[id]/+page.svelte */
-:where(.public-site[data-route="/match/[id]"]) .match-detail{max-width:var(--public-content-width,1200px);margin:auto;padding:28px clamp(20px,4vw,64px) 80px}
+:where(.public-site[data-route="/match/[id]"]) .match-detail{max-width:var(--lf-layout-page-max-width,1200px);margin:auto;padding:28px clamp(20px,4vw,64px) 80px}
 :where(.public-site[data-route="/match/[id]"]) .match-intro{padding:52px 0 32px}
 :where(.public-site[data-route="/match/[id]"]) .match-intro h1{font-family:'Fira Sans Extra Condensed',sans-serif;font-size:var(--public-title-size);line-height:1;margin:12px 0 18px;letter-spacing:-.03em}
 :where(.public-site[data-route="/match/[id]"]) .match-intro>p:last-child{font-size:1.05rem;color:var(--lf-color-muted,#bbbbbb)}
