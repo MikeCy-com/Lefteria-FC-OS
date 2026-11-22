@@ -27,7 +27,7 @@
 </PublicShell>
 <style>
   .club-access { display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr); gap:clamp(24px,4vw,64px); padding:32px clamp(20px,4vw,60px) 48px; background:radial-gradient(ellipse at top right,#f6bb3814,transparent 60%),#080a0b; align-items:center; }
-  .club-access-welcome { min-height:640px; padding:clamp(24px,3vw,44px); background-size:cover; background-position:center; border-bottom:2px solid #b58a35; }
+  .club-access-welcome { min-height:640px; padding:clamp(24px,3vw,44px); background-size:cover; background-position:center; border-bottom:2px solid var(--public-gold); }
   .club-access-welcome h1 { font-size:clamp(38px,4.5vw,68px); line-height:1.03; font-style:italic; margin:20px 0; }
   .club-access-welcome em { color:var(--public-gold); }
   .club-access-welcome>p:last-child { max-width:42ch; font-size:16px; color:#e3e3df; }
@@ -38,7 +38,7 @@
   .club-access-panel>p { color:#bfc0bb; font-size:14px; }
   .club-access-audiences { display:flex; flex-wrap:wrap; gap:8px; padding:0; margin:24px 0; list-style:none; }
   .club-access-audiences li { border:1px solid #8b703c; padding:10px 14px; color:var(--public-gold); font-family:'Fira Sans Extra Condensed',sans-serif; font-size:18px; font-weight:700; }
-  .club-access-panel .club-access-action { width:100%; justify-content:space-between; min-height:54px; font-size:21px; background:linear-gradient(120deg,#ffd65b,var(--public-gold)); color:#080808; border-radius:6px; }
+  .club-access-panel .club-access-action { width:100%; justify-content:space-between; min-height:54px; font-size:21px; background:linear-gradient(120deg,var(--public-gold),var(--public-gold)); color:#080808; border-radius:6px; }
   .club-access-note { margin-top:16px; }
   .club-access-family { border-top:1px solid #6a5835; margin-top:28px; padding-top:22px; }
   .club-access-family strong { font-family:'Fira Sans Extra Condensed',sans-serif; color:var(--public-gold); font-size:21px; }
