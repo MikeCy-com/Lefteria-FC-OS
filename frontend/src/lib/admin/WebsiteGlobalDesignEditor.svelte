@@ -4,7 +4,7 @@
   let {value,onChange,disabled=false}:{value:string;onChange:(text:string)=>void;disabled?:boolean}=$props();
   const theme=$derived(parseGlobalDesign(value)??DEFAULT_GLOBAL_DESIGN);
   const titles:Record<TextRole,string>={h1:'H1 · Τίτλος σελίδας',h2:'H2 · Ενότητα',h3:'H3 · Υποενότητα',
-    h4:'H4',h5:'H5',h6:'H6',p:'Παράγραφος',button:'Κουμπιά',nav:'Πλοήγηση'};
+    h4:'H4',h5:'H5',h6:'H6',p:'Παράγραφος',button:'Κουμπιά',nav:'Πλοήγηση',caption:'Μικρό κείμενο',label:'Ετικέτες',card:'Κάρτες'};
   function updateRole(role:TextRole,key:keyof TextStyle,value:string|number){
     const next:GlobalDesign=structuredClone(theme);
     (next.text[role] as unknown as Record<string,string|number>)[key]=value;
@@ -54,8 +54,8 @@
   {/each}
   <h3>Χρωματική παλέτα</h3>
   <div class="design-inputs">
-    {#each ['background','foreground','accent'] as key (key)}
-      <label>{key==='background'?'Φόντο':key==='foreground'?'Κείμενο':'Χρυσή έμφαση'}
+    {#each ['background','foreground','accent','surface','muted','border','link'] as key (key)}
+      <label>{key==='background'?'Φόντο':key==='foreground'?'Κείμενο':key==='accent'?'Χρυσή έμφαση':key==='surface'?'Κάρτες / επιφάνειες':key==='muted'?'Δευτερεύον κείμενο':key==='border'?'Περιγράμματα':'Σύνδεσμοι'}
         <input type="color" disabled={disabled} value={theme.colors[key as keyof GlobalDesign['colors']]}
           onchange={e=>updateColor(key as keyof GlobalDesign['colors'],e.currentTarget.value)}/>
       </label>
