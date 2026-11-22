@@ -27,7 +27,7 @@
   </header>
   <div class="admin-signin-grid">
   <section class="admin-signin-story" style:background-image={`linear-gradient(180deg,#080a0b55,#080a0bf5),url("${publicImages.hero}")`} aria-labelledby="admin-welcome-title">
-    <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC</p>
+    
     <h2 id="admin-welcome-title">ADMIN PORTAL</h2>
     <p class="admin-signin-lead">Διαχείριση λογαριασμού</p>
     <p>Πρόσβαση στο σύστημα διαχείρισης της Λευτεριάς FC για τη διοίκηση, το προπονητικό επιτελείο και το προσωπικό Ακαδημίας.</p>
