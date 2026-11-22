@@ -50,6 +50,20 @@ public static class AdminPosVatSettingsEndpoints
             return await ReadJson(command,ct);
         }).WithName("ReadAdminPosVatProposals").ExcludeFromDescription();
 
+        group.MapGet("/assignments", async (string? organization_id,
+            WebAdminService admin,WebAdminConnections db,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Verify(admin,context,organization_id,ct);
+            await using var connection=await db.OpenAsync(ct);
+            await using var command=new NpgsqlCommand(
+                "SELECT pos_cashier.read_admin_vat_assignments(@digest,@owner)::text",
+                connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            return await ReadJson(command,ct);
+        }).WithName("ReadAdminPosVatAssignments").ExcludeFromDescription();
+
         group.MapPost("/proposals", async (string? organization_id,
             VatProposalRequest body, WebAdminService admin,
             WebAdminConnections db,IWebAdminSecrets secrets,
