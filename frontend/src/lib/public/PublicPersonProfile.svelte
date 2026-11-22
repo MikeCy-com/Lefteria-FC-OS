@@ -26,16 +26,16 @@
   {#if player}
     <aside class="person-stat-bars" data-testid="player-stat-bars" aria-label="Δημοσιευμένα στατιστικά παίκτη">
       {#each [
-        {label:'ΣΥΜΜΕΤΟΧΕΣ',value:player.statistics?.appearances,max:Math.max(30,player.statistics?.appearances??0)},
-        {label:'ΓΚΟΛ',value:player.statistics?.goals,max:Math.max(15,player.statistics?.goals??0)},
-        {label:'ΑΣΙΣΤ',value:player.statistics?.assists,max:Math.max(10,player.statistics?.assists??0)},
-        {label:'ΛΕΠΤΑ',value:player.statistics?.minutes_played,max:Math.max(2700,player.statistics?.minutes_played??0)}
+        {label:'ΣΥΜΜΕΤΟΧΕΣ',value:player.statistics?.appearances,max:Math.max(30,Number(player.statistics?.appearances??0))},
+        {label:'ΓΚΟΛ',value:player.statistics?.goals,max:Math.max(15,Number(player.statistics?.goals??0))},
+        {label:'ΑΣΙΣΤ',value:player.statistics?.assists,max:Math.max(10,Number(player.statistics?.assists??0))},
+        {label:'ΛΕΠΤΑ',value:player.statistics?.minutes_played,max:Math.max(2700,Number(player.statistics?.minutes_played??0))}
       ] as item (item.label)}
         {#if item.value!==null&&item.value!==undefined}
           <div class="person-stat-line">
             <div class="person-stat-label"><span>{item.label}</span><strong>{item.value}</strong></div>
             <div class="person-stat-track" aria-hidden="true">
-              <span style:width={Math.min(100,Math.max(0,Math.round(item.value/item.max*100)))+'%'}></span>
+              <span style:width={Math.min(100,Math.max(0,Math.round(Number(item.value)/item.max*100)))+'%'}></span>
             </div>
           </div>
         {/if}
