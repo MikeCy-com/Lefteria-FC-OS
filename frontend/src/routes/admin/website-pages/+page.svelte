@@ -385,6 +385,11 @@
     if(!canWrite || saving || isLockedRegion || !validBlockLayout(next) || !draft.blocks[index])return;
     draft.blocks[index]={...draft.blocks[index],layout:next};
   }
+  function setHeadingLevel(index:number,level:2|3|4|5|6){
+    if(!canWrite || saving || isLockedRegion || ![2,3,4,5,6].includes(level) ||
+       draft.blocks[index]?.type!=='heading')return;
+    draft.blocks[index]={...draft.blocks[index],level};
+  }
   function valid():boolean {
     if(isNavigationDesign && (!organization || draft.menu_parent!=='hidden' ||
       draft.menu_order!==0 || draft.blocks.length!==1 ||
@@ -784,7 +789,7 @@
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}
                     <WebsiteVisualCanvas blocks={draft.blocks} maxBlocks={maxBlocks}
-                      pageLayout={draft.layout ?? DEFAULT_PAGE_LAYOUT} onLayout={setBlockLayout}
+                      pageLayout={draft.layout ?? DEFAULT_PAGE_LAYOUT} onLayout={setBlockLayout} onLevel={setHeadingLevel}
                       editable={canWrite} locked={isLockedRegion} busy={saving}
                       onEdit={editCanvasText} onMove={moveCanvasBlock}
                       onInsert={insertBlock} onSelect={selectCanvasBlock}/>
