@@ -64,7 +64,7 @@ public sealed class PosVatProposalReviews : Migration
         THEN RAISE EXCEPTION 'pos_vat_review_denied' USING ERRCODE='42501'; END IF;
 
         SELECT * INTO v_proposal FROM pos_cashier.vat_classification_proposals
-          WHERE id=_proposal AND organization_id=_owner FOR SHARE;
+          WHERE id=_proposal AND organization_id=_owner FOR UPDATE;
         IF NOT FOUND THEN
           RAISE EXCEPTION 'pos_vat_proposal_missing' USING ERRCODE='22023';
         END IF;
