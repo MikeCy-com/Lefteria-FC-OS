@@ -6,7 +6,14 @@ export const NAVIGATION_DESIGN_SLUG='canonical-navigation-design' as const;
 export const NAVIGATION_PARENTS=['root','club','team','academy','matches','news','events','shop','contact'] as const;
 export type NavigationParent=typeof NAVIGATION_PARENTS[number];
 export type NavigationEntry={id:string;label:string;path:string;parent:NavigationParent;order:number};
-export type NavigationDesign={links:NavigationEntry[]};
+export const BUILTIN_CATEGORY_IDS=['home','club','team','academy','matches','news','events','shop','contact'] as const;
+export type BuiltinCategoryId=typeof BUILTIN_CATEGORY_IDS[number];
+export type NavigationDesign={links:NavigationEntry[];category_order?:BuiltinCategoryId[]};
+export function validBuiltinCategoryOrder(value:unknown):value is BuiltinCategoryId[] {
+  return Array.isArray(value)&&value.length===BUILTIN_CATEGORY_IDS.length&&
+    new Set(value).size===BUILTIN_CATEGORY_IDS.length&&
+    value.every(id=>typeof id==='string'&&BUILTIN_CATEGORY_IDS.includes(id as BuiltinCategoryId));
+}
 
 const validLink=(link:NavigationEntry,owner:PublicOrganization):boolean=>{
   if(!link||Object.keys(link).length!==5 ||
@@ -37,11 +44,14 @@ export function parseNavigationDesign(raw:string,owner:PublicOrganization):Navig
   if(typeof raw!=='string'||raw.length>5000)return null;
   let value:unknown;try{value=JSON.parse(raw)}catch{return null}
   if(!value||typeof value!=='object'||Array.isArray(value)||
-     Object.keys(value).length!==1||!Object.hasOwn(value,'links'))return null;
+     ![1,2].includes(Object.keys(value).length)||!Object.hasOwn(value,'links')||
+     Object.keys(value).some(key=>key!=='links'&&key!=='category_order'))return null;
   const links=(value as NavigationDesign).links;
   if(!Array.isArray(links)||links.length>24||!links.every(x=>validLink(x,owner))||
     new Set(links.map(x=>x.id)).size!==links.length)return null;
-  return {links};
+  const order=(value as NavigationDesign).category_order;
+  if(order!==undefined&&!validBuiltinCategoryOrder(order))return null;
+  return order===undefined?{links}:{links,category_order:[...order]};
 }
 export function publishedNavigationDesign(pages:readonly PublishedWebsitePage[],owner:PublicOrganization):NavigationDesign|null{
   const row=pages.find(item=>item.slug===NAVIGATION_DESIGN_SLUG&&isPublishedWebsitePage(item,owner));
@@ -56,6 +66,10 @@ export function publishedNavigationDesign(pages:readonly PublishedWebsitePage[],
 export function withNavigationDesign(base:readonly PublicNavigationItem[],design:NavigationDesign|null):PublicNavigationItem[]{
   const result=base.map(item=>item.items?{...item,items:[...item.items]}:{...item}) as PublicNavigationItem[];
   if(!design)return result;
+  if(design.category_order&&validBuiltinCategoryOrder(design.category_order)){
+    const rank=new Map<string,number>(design.category_order.map((id,i)=>[id,i]));
+    result.sort((a,b)=>(rank.get(a.id)??100)-(rank.get(b.id)??100));
+  }
   for(const link of [...design.links].sort((a,b)=>a.order-b.order||a.id.localeCompare(b.id))){
     if(link.parent==='root'){
       result.splice(Math.min(link.order,result.length),0,{id:link.id,label:link.label,path:link.path,icon:'info'});
