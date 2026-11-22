@@ -132,7 +132,7 @@ public static class AdminPosVatSettingsEndpoints
         if(session is null)throw new WebAdminException(401,"not_authenticated","Sign in again.");
         if(review && session.User.Role!="super_admin")
             throw new WebAdminException(403,"pos_vat_review_denied","Only a distinct Super Admin may review VAT proposals.");
-        if(session.User.Role is not ("super_admin" or "manager" or "accountant") ||
+        if(session.User.Role is not ("super_admin" or "accountant") ||
            !AdminPermissions.Has(session.User.Role,"finance:write") ||
            !session.User.Organizations.Any(o=>o.Id==owner))
             throw new WebAdminException(403,"pos_vat_denied","VAT proposals are restricted to authorized finance staff.");
