@@ -65,6 +65,7 @@ export const CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG = 'canonical-academy-philoso
 export const CANONICAL_ACADEMY_GROUPS_LEAD_SLUG = 'canonical-academy-groups-lead' as const;
 export const CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG = 'canonical-academy-registration-lead' as const;
 export const CANONICAL_SHOP_LEAD_SLUG = 'canonical-shop-lead' as const;
+export const CANONICAL_GLOBAL_DESIGN_SLUG = 'canonical-global-design' as const;
 export const NATIVE_EDITORIAL_REGIONS = {
   'canonical-team-roster-sections':'lefteria_fc',
   'canonical-team-schedule-sections':'lefteria_fc',
@@ -88,7 +89,7 @@ export const isHomepageEditorialSlug = (slug: string) =>
   slug === CANONICAL_ABOUT_HISTORY_SLUG ||
   slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG ||
   slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ||
-  slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG || slug === CANONICAL_SHOP_LEAD_SLUG ||
+  slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG || slug === CANONICAL_SHOP_LEAD_SLUG || slug === CANONICAL_GLOBAL_DESIGN_SLUG ||
   Object.prototype.hasOwnProperty.call(NATIVE_EDITORIAL_REGIONS,slug);
 
 export function websitePageParentLink(
