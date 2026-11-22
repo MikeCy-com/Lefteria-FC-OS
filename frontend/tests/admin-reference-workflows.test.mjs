@@ -49,7 +49,9 @@ test('team workspace embeds the original actions, including coaches, behind exis
 });
 
 test('shared compact admin styles retain role-scoped nav without adding standalone player-data routes',()=>{
-  assert.match(shared,/Lefteria FC reference admin system/);
+  // Preserve the already-verified shared typography and mobile nav sizes.
+  assert.match(shared,/Source Lefteria FC admin: Manrope text/);
+  assert.match(shared,/@media\(max-width:720px\)/);
   assert.match(shared,/\.admin-app \.admin-sidebar/);
   assert.match(shell,/adminSectionsFor\(user\)/);
   assert.match(shell,/liveIds/);
