@@ -526,7 +526,7 @@
   .registration-choice-card{margin:18px 0;padding:18px;border:1px solid var(--lf-color-border,#333333);background:var(--lf-color-bg,#0d0d0d);border-radius:7px;display:flex;flex-wrap:wrap;gap:16px}
   .registration-choice-card legend{font-weight:700;color:var(--lf-color-text,#ffffff);padding:0 8px}
   .registration-choice-card label,.registration-consents label,.registration-payment label{display:inline-flex;align-items:center;gap:10px;line-height:1.5;color:var(--lf-color-text,#ececec)}
-  .registration-choice-card textarea{width:100%;min-height:88px;padding:12px;border:1px solid var(--lf-color-border,#555555);background:var(--lf-color-bg,#101010);color:white}
+  .registration-choice-card textarea{width:100%;min-height:88px;padding:12px;border:1px solid var(--lf-color-border,#555555);background:var(--lf-color-bg,#101010);color:var(--lf-color-text,white)}
   .registration-consents{display:grid;gap:19px;border:0;padding:0}
   .registration-consents>label{align-items:flex-start}
   .registration-consent-channels,.registration-payment{display:flex;gap:18px;flex-wrap:wrap}
@@ -549,7 +549,7 @@
   .registration-child-documents>label{display:flex;align-items:center;gap:10px;min-height:44px}
   .registration-child-documents .registration-document-file{width:100%;align-items:stretch;flex-direction:column}
   .registration-child-documents input[type=file]{width:100%;min-height:48px;padding:11px;
-    border:1px solid var(--lf-color-border,#6e6250);border-radius:7px;background:var(--lf-color-bg,#0d0d0d);color:white}
+    border:1px solid var(--lf-color-border,#6e6250);border-radius:7px;background:var(--lf-color-bg,#0d0d0d);color:var(--lf-color-text,white)}
   .registration-doc-error{color:var(--lf-feedback-error,#ffb7b7)}
   .registration-doc-success{color:var(--lf-feedback-success,#b9ebc8)}
   .registration-child{margin:22px 0;border:1px solid var(--lf-color-border,#49402a);border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,var(--lf-color-surface,#171510),var(--lf-color-bg,#0e0e0e))}
