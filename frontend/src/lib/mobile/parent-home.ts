@@ -90,3 +90,21 @@ export function parentHomeCancelledEvents(
       a.id.localeCompare(b.id))
     .slice(0,Math.max(0,Math.min(limit,5)));
 }
+
+
+// A short actionable queue from the same already-authorized child calendar.
+// A count here describes only the four upcoming activities returned to Home,
+// not all events in the month or all a guardian's children.
+export function parentHomePendingResponses(
+  family:Family|null,calendar:ParentCalendar|null,identityId:string,
+  today=clubToday(),selectedChildId?:string,limit=3
+):ParentCalendarItem[]{
+  if(!matchingParentHomeCalendar(family,calendar,identityId,today,selectedChildId))return [];
+  const child=selectedChildId
+    ?family?.children.find(item=>item.id===selectedChildId)
+    :family?.children[0];
+  if(!child)return [];
+  return parentHomeSchedule(family,calendar,identityId,today,child.id)
+    .filter(item=>!item.is_cancelled&&parentHomeRsvp(item,child.id)===null)
+    .slice(0,Math.max(0,Math.min(limit,4)));
+}
