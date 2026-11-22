@@ -152,5 +152,32 @@ test('redesign consumes the published palette and layout instead of hardcoded va
   assert.doesNotMatch(skin,/(?:background|border-color|color)\s*:\s*#[a-f0-9]{3,8}\b/i);
   // Native CMS per-block WYSIWYG spacing must not be overwritten by new skin.
   assert.doesNotMatch(skin,/\.website-block-wrap\b|\.website-blocks\b|--cms-(?:gap|side|max-width|mt|mb)/);
-  assert.match(read('frontend/src/lib/public/WebsitePageBlocks.svelte'),/--cms-gap:\$\{resolvedPage\.gap\}px/);
+  assert.match(read('frontend/src/lib/public/WebsitePageBlocks.svelte'),/--cms-gap:\$\{dimension\('gap','page-gap'\)\}/);
+});
+
+test('global editor now controls default page width, padding and top/bottom margins',()=>{
+  const theme=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  theme.layout.page_max_width=1440;
+  theme.layout.page_gap=48;
+  theme.layout.page_side_padding=32;
+  theme.layout.page_margin_top=64;
+  theme.layout.page_margin_bottom=80;
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(theme)),theme);
+  const vars=globalDesignCssVars(theme);
+  for(const pair of [
+    '--lf-layout-page-max-width:1440px',
+    '--lf-layout-page-gap:48px',
+    '--lf-layout-page-side-padding:32px',
+    '--lf-layout-page-margin-top:64px',
+    '--lf-layout-page-margin-bottom:80px'
+  ])assert.ok(vars.includes(pair),pair);
+  for(const key of ['page_max_width','page_gap','page_side_padding','page_margin_top','page_margin_bottom']){
+    const invalid=structuredClone(theme); invalid.layout[key]=999;
+    assert.equal(parseGlobalDesign(JSON.stringify(invalid)),null,key+' must be allowlisted');
+    assert.ok(editor.includes(key),key+' must appear in the WYSIWYG editor');
+    assert.ok(api.includes('"'+key+'"'),key+' must be validated by server');
+  }
+  const oldSix={...theme.layout};
+  for(const key of ['page_max_width','page_gap','page_side_padding','page_margin_top','page_margin_bottom'])delete oldSix[key];
+  assert.ok(parseGlobalDesign(JSON.stringify({...theme,layout:oldSix})),'6-option published layouts remain valid');
 });
