@@ -10,8 +10,10 @@
 
 <div class="club-editor" data-testid="admin-club-editor">
   <div class="club-content">
-    <p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ ΙΣΤΟΣΕΛΙΔΑΣ</p><h1>Προφίλ συλλόγου</h1>
-    <p class="admin-muted">Δημόσια στοιχεία που εμφανίζονται στην ιστοσελίδα του επιλεγμένου οργανισμού.</p>
+    <p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ ΣΥΛΛΟΓΟΥ · ΤΑΥΤΟΤΗΤΑ</p><h1>Ταυτότητα & επικοινωνία</h1>
+    <p class="admin-muted">Εδώ διαχειρίζεστε το λογότυπο, τα τηλέφωνα, τα email, τη διεύθυνση και τα κοινωνικά δίκτυα
+      κάθε οργανισμού. Η Πρώτη Ομάδα και η Ακαδημία έχουν ανεξάρτητα προφίλ.</p>
+    <a class="club-back-settings" href="/admin/settings" data-testid="club-back-to-settings">← Ρυθμίσεις συλλόγου</a>
     <div class="club-selector">
       {#if $controller.organizations.length > 1}
         <label for="club-profile-target">ΔΗΜΟΣΙΟ ΠΡΟΦΙΛ ΓΙΑ
@@ -96,7 +98,9 @@
 </div>
 
 <style>
-  .club-content { max-width:1100px; }
+  .club-content { width:100%;min-width:0; }
+  .club-back-settings {display:inline-flex;align-items:center;min-height:40px;margin-top:12px;color:#eac168;text-decoration:none;font-size:12px}
+  .club-back-settings:focus-visible{outline:2px solid #f8c65a;outline-offset:2px}
   .club-selector { display:grid; gap:8px; max-width:400px; margin:24px 0; }
   .club-selector label { font-weight:600; }
   .club-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin:24px 0; }
