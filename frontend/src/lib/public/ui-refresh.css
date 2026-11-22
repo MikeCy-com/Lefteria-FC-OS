@@ -26,14 +26,8 @@
   --ui-shadow:0 14px 40px color-mix(in srgb,var(--ui-bg) 30%,transparent);
 }
 
-/* Publish-time global layout overrides only native containers.
- * Page and block WYSIWYG geometry --cms-* is deliberately never targeted. */
-.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-section:not(.public-embedded-page) {
-  padding-inline:var(--ui-gutter);
-}
-.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-page-heading:not(.academy-intro):not(.team-heading) {
-  padding-inline:var(--ui-gutter);
-}
+/* Page widths and gutters belong to public.css + global-design.css.
+ * The luxury visual layer must not redefine native or CMS page geometry. */
 
 /* Navigation still owns its existing hierarchy, rail width and actions. */
 .public-site[data-ui-refresh="2026"] .public-header {
