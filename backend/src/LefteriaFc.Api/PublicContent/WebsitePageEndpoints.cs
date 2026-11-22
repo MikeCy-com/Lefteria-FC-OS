@@ -464,16 +464,16 @@ public static class WebsitePageEndpoints
             if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 2 ||
                 !root.TryGetProperty("text", out var styles) || styles.ValueKind != JsonValueKind.Object ||
                 !root.TryGetProperty("colors", out var colors) || colors.ValueKind != JsonValueKind.Object ||
-                colors.EnumerateObject().Count() != 3 ||
-                styles.EnumerateObject().Count() != 9)
+                colors.EnumerateObject().Count() != 7 ||
+                styles.EnumerateObject().Count() != 12)
                 throw Invalid();
-            foreach (var name in new[] { "background", "foreground", "accent" })
+            foreach (var name in new[] { "background", "foreground", "accent", "surface", "muted", "border", "link" })
             {
                 if (!colors.TryGetProperty(name, out var color) || color.ValueKind != JsonValueKind.String ||
                     !Regex.IsMatch(color.GetString() ?? "", @"\A#[0-9A-Fa-f]{6}\z"))
                     throw Invalid();
             }
-            foreach (var name in new[] { "h1", "h2", "h3", "h4", "h5", "h6", "p", "button", "nav" })
+            foreach (var name in new[] { "h1", "h2", "h3", "h4", "h5", "h6", "p", "button", "nav", "caption", "label", "card" })
             {
                 if (!styles.TryGetProperty(name, out var t) || t.ValueKind != JsonValueKind.Object ||
                     t.EnumerateObject().Count() != 5 ||
