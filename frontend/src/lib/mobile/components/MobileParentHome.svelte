@@ -3,7 +3,8 @@
   import { CALENDAR_KIND_LABELS, clubToday, formatCalendarDate } from '../calendar.ts';
   import type { CalendarLoadStatus,AvailabilityStatus,MobileCalendarItem } from '../calendar.ts';
   import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule,
-    parentHomeRsvp, parentHomeCancelledEvents, parentHomePendingResponses } from '../parent-home.ts';
+    parentHomeRsvp, parentHomeCancelledEvents, parentHomePendingResponses,
+    preferredParentHomeChildId } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
   import { publicImages } from '../../public/images.ts';
@@ -46,6 +47,15 @@
   const cancellations = $derived(trustworthyCalendar ? parentHomeCancelledEvents(family,calendar,identityId,today,activeChild?.id) : []);
   const pendingResponses = $derived(trustworthyCalendar && onRespond
     ? parentHomePendingResponses(family,calendar,identityId,today,activeChild?.id):[]);
+
+  // Preserve the previously active child only when the current authenticated
+  // calendar and the newly verified family independently agree on its identity.
+  $effect(()=>{
+    if(familyStatus==='ready'&&!selectedChildId){
+      const preferred=preferredParentHomeChildId(family,calendar,identityId);
+      if(preferred)selectedChildId=preferred;
+    }
+  });
 
   // Every new dashboard mount rechecks guardian bindings. Cached sibling
   // selections and calendar data are not treated as lasting authorization.
