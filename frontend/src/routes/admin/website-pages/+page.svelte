@@ -11,7 +11,9 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import WebsiteGlobalDesignEditor from '../../../lib/admin/WebsiteGlobalDesignEditor.svelte';
+  import {DEFAULT_GLOBAL_DESIGN,parseGlobalDesign} from '../../../lib/public/global-design.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -75,11 +77,12 @@
   const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
   const isAboutHistory = $derived(slug === CANONICAL_ABOUT_HISTORY_SLUG);
   const isShopLead = $derived(slug === CANONICAL_SHOP_LEAD_SLUG);
+  const isGlobalDesign = $derived(slug === CANONICAL_GLOBAL_DESIGN_SLUG);
   const isNativeRegion = $derived(organization!==null && nativeEditorialOwnerAllowed(slug,organization));
   const maxBlocks = $derived(isNativeRegion ? 12 : 40);
   const nativeRegionOptions = $derived(organization ? (Object.keys(NATIVE_EDITORIAL_REGIONS) as NativeEditorialRegion[]).filter(key=>nativeEditorialOwnerAllowed(key,organization!)) : []);
   const isAcademyLead = $derived(slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG || slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG || slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG);
-  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory || isAcademyLead || isShopLead);
+  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory || isAcademyLead || isShopLead || isGlobalDesign);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -154,6 +157,17 @@
       seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
       blocks:[{type:'heading',text:'Η ΔΙΚΗ ΜΑΣ ΙΣΤΟΡΙΑ',url:null},
         {type:'paragraph',text:'Προσθέστε εγκεκριμένες πληροφορίες, εικόνες ή συνδέσμους. Οι δυναμικές εγγραφές παραμένουν αμετάβλητες.',url:null}]};
+    notice='';problem='';
+  }
+  function openGlobalDesign() {
+    if(!organization||!canWrite||saving)return;
+    const existing=records.find(row=>row.slug===CANONICAL_GLOBAL_DESIGN_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_GLOBAL_DESIGN_SLUG;mediaPickerIndex=null;
+    draft={title:'Γενικό σύστημα σχεδιασμού',summary:'Τυπογραφία και χρώματα όλου του δημόσιου ιστοτόπου',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:JSON.stringify(DEFAULT_GLOBAL_DESIGN),url:null}]};
     notice='';problem='';
   }
   function openShopEditorialLead() {
@@ -358,6 +372,9 @@
     draft.blocks[index]={...draft.blocks[index],layout:next};
   }
   function valid():boolean {
+    if(isGlobalDesign && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+      draft.blocks[0].url!==null || !parseGlobalDesign(draft.blocks[0].text)))return false;
     if(!validPageLayout(draft.layout)||draft.blocks.some(block=>!validBlockLayout(block.layout)))return false;
     if(isNativeRegion && (!organization || !nativeEditorialOwnerAllowed(slug,organization) ||
       draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
@@ -490,6 +507,12 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}
+              <button type="button" class="admin-secondary" onclick={openGlobalDesign}
+                disabled={loading||saving} data-testid="edit-global-design">
+                Γενική τυπογραφία H1–H6 · Χρώματα
+              </button>
+            {/if}
             {#if canWrite && nativeRegionOptions.length}
               <section aria-label="Δυναμικές σελίδες · πρόσθετες ενότητες" data-testid="cms-native-regions">
                 <h3>Δυναμικές σελίδες · πρόσθετες ενότητες</h3>
@@ -618,6 +641,11 @@
                     <label>SEO τίτλος <input maxlength="180" bind:value={draft.seo_title} disabled={!canWrite || saving}/></label>
                     <label>Meta description <textarea rows="2" maxlength="300" bind:value={draft.seo_description} disabled={!canWrite || saving}></textarea></label>
                   </details>{/if}
+                  {#if isGlobalDesign}
+                    <WebsiteGlobalDesignEditor value={draft.blocks[0]?.text ?? ''}
+                      onChange={value=>{if(draft.blocks[0])draft.blocks[0].text=value}}
+                      disabled={!canWrite||saving}/>
+                  {:else}
                   <div class="cms-block-heading"><h3>Περιεχόμενο σελίδας</h3><span>{draft.blocks.length} / 40 blocks</span></div>
                   {#if !isLockedRegion}<p class="admin-muted cms-drag-hint">Σύρετε ένα block από τη λαβή ⠿ για να αλλάξετε τη σειρά του ή χρησιμοποιήστε τα βέλη ↑ ↓ με πληκτρολόγιο ή κινητό. Η αντιγραφή διατηρεί το περιεχόμενο του block.</p>{/if}
                   <p class="cms-block-status" role="status" aria-live="polite" aria-atomic="true">{blockMessage}</p>
@@ -667,6 +695,7 @@
                       </div>
                     {/each}
                   </div>
+                  {/if}
                   {#if mediaPickerIndex!==null && organization && canWrite && !isLockedRegion &&
                     draft.blocks[mediaPickerIndex]?.type==='image'}
                     <section class="cms-media-chooser" id="cms-published-media" aria-label="Επιλογή δημοσιευμένης εικόνας">
@@ -695,7 +724,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isNativeRegion ? (slug.startsWith('canonical-team-') ? '/team?tab='+slug.replace('canonical-team-','').replace('-sections','') : slug==='canonical-news-sections' ? '/news?organization_id='+organization : '/sponsors?scope='+(organization==='lefteria_fc_academy'?'academy':'first_team')) : isShopLead ? '/shop' : isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isGlobalDesign ? '/' : isNativeRegion ? (slug.startsWith('canonical-team-') ? '/team?tab='+slug.replace('canonical-team-','').replace('-sections','') : slug==='canonical-news-sections' ? '/news?organization_id='+organization : '/sponsors?scope='+(organization==='lefteria_fc_academy'?'academy':'first_team')) : isShopLead ? '/shop' : isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
@@ -706,7 +735,9 @@
                   <p class="admin-eyebrow">{organization==='lefteria_fc'?'ΠΡΩΤΗ ΟΜΑΔΑ':'ΑΚΑΔΗΜΙΑ'}</p>
                   <h2>{draft.title || 'Τίτλος σελίδας'}</h2>
                   {#if draft.summary}<p>{draft.summary}</p>{/if}
-                  {#if isHero}
+                  {#if isGlobalDesign}
+                    <p class="admin-muted">Η προεπισκόπηση των H1–H6 και της παλέτας εμφανίζεται στον επεξεργαστή. Η δημόσια ιστοσελίδα θα ενημερωθεί μόνο μετά τη δημοσίευση.</p>
+                  {:else if isHero}
                     <p class="admin-muted">Προεπισκόπηση περιεχομένου Hero · η τελική γεωμετρία διατηρείται από την αρχική σελίδα.</p>
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
