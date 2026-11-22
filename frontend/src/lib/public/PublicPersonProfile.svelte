@@ -20,9 +20,28 @@
       ? '&team_id=' + encodeURIComponent(returnTeamId) : '');
   const facts = $derived(player ? [['ΘΕΣΗ', player.position], ['ΗΛΙΚΙΑ', player.age], ['ΕΘΝΙΚΟΤΗΤΑ', player.nationality], ['ΥΨΟΣ', player.height], ['ΒΑΡΟΣ', player.weight], ['ΠΟΔΙ', player.preferred_foot]] : [['ΡΟΛΟΣ', staff?.role], ['ΕΘΝΙΚΟΤΗΤΑ', staff?.nationality]]);
 </script>
-<section class="person-hero">
+<section class="person-hero" class:player-profile-hero={!!player} data-testid={player ? "player-hero" : undefined}>
   <div class="person-identity"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {player ? (isAcademyPlayer ? 'ΑΚΑΔΗΜΙΑ' : clubTeamLabel) : 'ΤΕΧΝΙΚΟ ΕΠΙΤΕΛΕΙΟ'}</p>{#if player}<span class="person-number" aria-label={`Αριθμός φανέλας ${player.number}`}>{player.number}</span>{/if}<h1>{person.name}</h1>{#if player?.position || staff?.role}<p class="person-role">{player?.position ?? staff?.role}</p>{/if}<a class="public-button public-button-outline" href={isAcademyPlayer ? '/academy/groups' : (player ? '/team?tab=roster' + teamQuery : '/team?tab=staff' + teamQuery)}>← {isAcademyPlayer ? 'ΤΑ ΤΜΗΜΑΤΑ ΤΗΣ ΑΚΑΔΗΜΙΑΣ' : (player ? 'ΟΛΟ ΤΟ ΡΟΣΤΕΡ' : 'ΤΟ ΕΠΙΤΕΛΕΙΟ')}</a></div>
-  <div class="person-portrait"><PublicImage src={person.image_url} alt={person.name} eager /></div>
+  <div class="person-portrait" data-testid={player ? 'player-hero-photo' : undefined}><PublicImage src={person.image_url} alt={person.name} eager /></div>
+  {#if player}
+    <aside class="person-stat-bars" data-testid="player-stat-bars" aria-label="Δημοσιευμένα στατιστικά παίκτη">
+      {#each [
+        {label:'ΣΥΜΜΕΤΟΧΕΣ',value:player.statistics?.appearances,max:Math.max(30,player.statistics?.appearances??0)},
+        {label:'ΓΚΟΛ',value:player.statistics?.goals,max:Math.max(15,player.statistics?.goals??0)},
+        {label:'ΑΣΙΣΤ',value:player.statistics?.assists,max:Math.max(10,player.statistics?.assists??0)},
+        {label:'ΛΕΠΤΑ',value:player.statistics?.minutes_played,max:Math.max(2700,player.statistics?.minutes_played??0)}
+      ] as item (item.label)}
+        {#if item.value!==null&&item.value!==undefined}
+          <div class="person-stat-line">
+            <div class="person-stat-label"><span>{item.label}</span><strong>{item.value}</strong></div>
+            <div class="person-stat-track" aria-hidden="true">
+              <span style:width={Math.min(100,Math.max(0,Math.round(item.value/item.max*100)))+'%'}></span>
+            </div>
+          </div>
+        {/if}
+      {/each}
+    </aside>
+  {/if}
 </section>
 {#if player}
   <nav class="profile-links" aria-label="Ενότητες προφίλ">
@@ -49,3 +68,61 @@
   {#if staff?.coaching_philosophy}<section class="person-story"><h2>ΦΙΛΟΣΟΦΙΑ</h2><p class="preserve-lines">{staff.coaching_philosophy}</p></section>{/if}
   {#if staff?.previous_experience.length}<section class="person-story"><h2>ΕΜΠΕΙΡΙΑ</h2>{#each staff.previous_experience as item}<p>{[item.club,item.role,item.years].filter(Boolean).join(' · ')}</p>{/each}</section>{/if}
 </section>
+
+<style>
+  /* Source PlayerProfilePage.jsx: photograph / name / published stat rails.
+     The underlying shared staff profile remains unchanged. */
+  :global(.public-site) .player-profile-hero {
+    grid-template-columns:minmax(190px,280px) minmax(0,1fr) minmax(190px,280px);
+    align-items:end;gap:clamp(20px,3vw,42px);
+    padding:clamp(28px,4vw,54px) clamp(22px,5vw,70px);
+    min-height:390px;max-width:100%;background:
+      linear-gradient(90deg,#050606eb,#080909bd 55%,#090a0aeb),
+      radial-gradient(ellipse at 50% 35%,#5b47243c,transparent 68%),#080909;
+  }
+  :global(.public-site) .player-profile-hero .person-portrait{
+    grid-column:1;grid-row:1;padding:0;background:transparent;align-self:end;
+  }
+  :global(.public-site) .player-profile-hero .person-portrait :global(img){
+    width:100%;height:315px;object-fit:contain;object-position:center bottom;
+  }
+  :global(.public-site) .player-profile-hero .person-identity{
+    grid-column:2;grid-row:1;min-width:0;padding:12px 0 18px;align-items:flex-start;
+  }
+  :global(.public-site) .player-profile-hero .person-number{
+    position:static;z-index:auto;color:var(--public-gold);
+    font:800 clamp(48px,5vw,76px)/1 'Fira Sans Extra Condensed',sans-serif;
+  }
+  :global(.public-site) .player-profile-hero .person-identity h1{
+    font:italic 800 clamp(32px,3.4vw,51px)/1.08 'Fira Sans Extra Condensed',sans-serif;
+    margin:8px 0 12px;text-transform:uppercase;
+  }
+  :global(.public-site) .player-profile-hero .person-role{
+    margin:0 0 20px;color:#f6bb38;font-weight:700;font-size:16px;
+  }
+  :global(.public-site) .player-profile-hero .person-stat-bars{
+    grid-column:3;grid-row:1;min-width:0;padding-bottom:24px;
+    display:grid;gap:18px;align-self:end;
+  }
+  .person-stat-line{display:grid;gap:7px}
+  .person-stat-label{display:flex;justify-content:space-between;gap:12px;align-items:baseline;color:#d8d8d8;font-size:12px;font-weight:600}
+  .person-stat-label strong{color:var(--public-gold)}
+  .person-stat-track{height:6px;border-radius:5px;background:#252525;overflow:hidden}
+  .person-stat-track>span{display:block;height:100%;background:var(--public-gold);border-radius:5px}
+  @media(max-width:1100px){
+    :global(.public-site) .player-profile-hero{
+      grid-template-columns:minmax(160px,250px) minmax(0,1fr);gap:24px;
+    }
+    :global(.public-site) .player-profile-hero .person-stat-bars{
+      grid-column:1/-1;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr));padding-bottom:0;
+    }
+  }
+  @media(max-width:650px){
+    :global(.public-site) .player-profile-hero{display:flex;flex-direction:column;align-items:stretch;padding:24px 20px;gap:12px}
+    :global(.public-site) .player-profile-hero .person-portrait{order:0;align-self:center;width:min(100%,240px)}
+    :global(.public-site) .player-profile-hero .person-portrait :global(img){height:270px}
+    :global(.public-site) .player-profile-hero .person-identity{order:1;align-items:center;text-align:center;padding:0}
+    :global(.public-site) .player-profile-hero .person-identity h1{font-size:clamp(32px,9vw,42px)}
+    :global(.public-site) .player-profile-hero .person-stat-bars{order:2;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding:14px 0 0}
+  }
+</style>
