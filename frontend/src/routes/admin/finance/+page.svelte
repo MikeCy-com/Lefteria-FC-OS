@@ -212,7 +212,7 @@
     <div class="admin-workspace-intro" data-testid="payabl-admin-sandbox">
       <p class="admin-eyebrow">ΔΙΑΧΕΙΡΙΣΗ · ΟΙΚΟΝΟΜΙΚΑ</p>
       <h1>Οικονομικά & λογιστήριο</h1>
-      {#if $auth.session.user.role==='super_admin'||$auth.session.user.role==='accountant'||$auth.session.user.role==='manager'}
+      {#if $auth.session.user.role==='super_admin'||$auth.session.user.role==='accountant'}
         <a class="admin-secondary" href="/admin/settings/pos-vat"
           data-testid="finance-vat-settings-link">ΦΠΑ προϊόντων · ταξινόμηση και προτάσεις</a>
       {/if}
