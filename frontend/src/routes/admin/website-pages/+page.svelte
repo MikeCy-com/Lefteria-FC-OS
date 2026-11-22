@@ -654,6 +654,11 @@
                           </label>
                         {/each}
                       </div>
+                      <button type="button" class="admin-secondary" data-testid="cms-page-reset-inheritance"
+                        disabled={!canWrite||saving||!draft.layout}
+                        onclick={()=>{if(canWrite&&!saving&&!isLockedRegion)draft.layout=null;}}>
+                        Επαναφορά όλων στις γενικές ρυθμίσεις
+                      </button>
                       <p class="admin-muted">Αποθηκεύστε το ιδιωτικό πρόχειρο και δημοσιεύστε για να εφαρμοστεί η αλλαγή. Τα δεδομένα και οι προστατευμένες φόρμες δεν επηρεάζονται.</p>
                     </fieldset>
                   {/if}
