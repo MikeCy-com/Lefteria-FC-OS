@@ -85,6 +85,9 @@ export function adminRoleActions(user:AdminUser):AdminRoleAction[]{
   for(const id of BY_ROLE[user.role]??[]){
     const href=permitted.get(id),item=ACTIONS[id];
     if(!href||!item)continue;
+    // Group CRM endpoints are currently restricted to Manager/Super Admin.
+    // A Coach/Match-day module listing alone cannot open this admin roster.
+    if(id==='groups'&&!['manager','super_admin'].includes(user.role))continue;
     // Distinguish an organization-wide roster lookup from exact group read.
     // Player CRM only exists for managers with Academy write scope.
     const target=id==='groups'&&haveAcademy&&
