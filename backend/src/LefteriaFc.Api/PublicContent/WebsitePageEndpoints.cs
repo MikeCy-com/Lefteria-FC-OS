@@ -111,7 +111,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateGlobalDesign(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateGlobalDesign(body.Slug, body.Page); ValidateNavigationDesign(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -134,7 +134,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateGlobalDesign(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateGlobalDesign(slug, body.Page); ValidateNavigationDesign(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -486,6 +486,58 @@ public static class WebsitePageEndpoints
                     w is not (400 or 500 or 600 or 700 or 800) ||
                     !t.TryGetProperty("line_height", out var line) ||
                     !line.TryGetDouble(out var h) || h is not (1.0 or 1.15 or 1.2 or 1.35 or 1.5 or 1.6 or 1.8))
+                    throw Invalid();
+            }
+        }
+        catch (JsonException) { throw Invalid(); }
+        catch (InvalidOperationException) { throw Invalid(); }
+    }
+    // Custom navigation lives in an approved, organization-scoped CMS snapshot.
+    // Operational routes/categories cannot be replaced by this document.
+    private static void ValidateNavigationDesign(string owner, string slug, WebsitePageContent page)
+    {
+        if (slug != "canonical-navigation-design") return;
+        if (page.MenuParent != "hidden" || page.MenuOrder != 0 ||
+            page.Blocks.Count != 1 || page.Blocks[0].Type != "paragraph" ||
+            page.Blocks[0].Url is not null || page.Blocks[0].Text.Length > 5000)
+            throw Invalid();
+        try
+        {
+            using var doc = JsonDocument.Parse(page.Blocks[0].Text);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 1 ||
+                !root.TryGetProperty("links", out var links) || links.ValueKind != JsonValueKind.Array ||
+                links.GetArrayLength() > 24) throw Invalid();
+            var identifiers = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var link in links.EnumerateArray())
+            {
+                if (link.ValueKind != JsonValueKind.Object || link.EnumerateObject().Count() != 5 ||
+                    !link.TryGetProperty("id", out var idValue) || idValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("label", out var labelValue) || labelValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("path", out var pathValue) || pathValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("parent", out var parentValue) || parentValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("order", out var orderValue) || !orderValue.TryGetInt32(out var order) ||
+                    order is < 0 or > 100) throw Invalid();
+                var id = idValue.GetString() ?? "";
+                var label = labelValue.GetString() ?? "";
+                var path = pathValue.GetString() ?? "";
+                var parent = parentValue.GetString() ?? "";
+                if (!Regex.IsMatch(id, @"\Acustom-[a-z0-9-]{3,45}\z") || !identifiers.Add(id) ||
+                    string.IsNullOrWhiteSpace(label) || label.Length > 80 ||
+                    path.Length > 250 ||
+                    !Regex.IsMatch(path, @"\A/[a-z0-9-]+(?:/[a-z0-9-]+)*(?:\?[a-z0-9_=&-]+)?\z") ||
+                    Regex.IsMatch(path, @"\A/(admin|api|app|login)(?:/|\?|\z)") ||
+                    parent is not ("root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact"))
+                    throw Invalid();
+                if (owner == "lefteria_fc_academy")
+                {
+                    if (parent is "team" or "matches" or "shop" ||
+                        Regex.IsMatch(path, @"\A/(team|trials|shop)(?:/|\?|\z)") ||
+                        Regex.IsMatch(path, @"\A/(news|about|contact)(?:\?|\z)") &&
+                        !path.Contains("organization_id=lefteria_fc_academy", StringComparison.Ordinal))
+                        throw Invalid();
+                }
+                else if (parent == "academy" || Regex.IsMatch(path, @"\A/academy(?:/|\?|\z)"))
                     throw Invalid();
             }
         }
