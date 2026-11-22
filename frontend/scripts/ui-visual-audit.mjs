@@ -118,7 +118,7 @@ async function verifyNativeThemePages(browser, base) {
     for(const {route,selector,property,expected} of [
       {route:'/academy',selector:'.academy-key-figures',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
       {route:'/academy/registration',selector:'.registration-card',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
-      {route:'/contact',selector:'.contact-page-heading',property:'backgroundColor',expected:'rgb(245, 245, 240)'},
+      {route:'/contact',selector:'.contact-lead',property:'color',expected:'rgb(77, 77, 77)'},
       {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'}
     ]) {
       await page.goto(base+route,{waitUntil:'domcontentloaded'});
