@@ -1065,8 +1065,10 @@ dialog.public-dialog::backdrop { background:color-mix(in srgb,var(--lf-color-bg,
   border-color:var(--public-panel-edge);border-radius:5px;
 }
 .public-site .public-news-body h3 {
-  font-family:'Fira Sans Extra Condensed',sans-serif !important;
-  font-size:24px;font-weight:700;line-height:1.16;
+  font-family:var(--lf-h3-family,'Fira Sans Extra Condensed',sans-serif);
+  font-size:var(--lf-h3-desktop,24px);
+  font-weight:var(--lf-h3-weight,700);
+  line-height:var(--lf-h3-line,1.16);
 }
 .public-site [data-testid="public-home-news"] .public-news-grid {
   grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);
