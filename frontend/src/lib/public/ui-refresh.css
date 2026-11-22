@@ -400,3 +400,30 @@
     border-radius: 6px;
   }
 }
+
+/* Homepage rhythm: remove the oversized empty motto band introduced by
+   legacy reference styles. Keep its original text and decorative stripes. */
+.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+  min-height: clamp(88px, 8vw, 126px);
+  padding-block: 24px;
+  justify-content: center;
+  border-block: 1px solid rgb(255 255 255 / 9%);
+  background: linear-gradient(180deg, #0e1112 0%, #080a0a 100%);
+}
+.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-bottom {
+  max-width: 1060px;
+}
+.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .public-news-section {
+  padding-top: clamp(25px, 3vw, 44px);
+  padding-bottom: clamp(30px, 3.5vw, 52px);
+}
+@media (max-width: 767px) {
+  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+    min-height: 76px;
+    padding: 17px 18px;
+  }
+  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .public-news-section {
+    padding-top: 26px;
+    padding-bottom: 32px;
+  }
+}
