@@ -70,6 +70,10 @@ test('owner boundaries and private routes fail closed',()=>{
     path:'/news'}]}),'lefteria_fc_academy'),null);
   for(const unsafe of ['/news?x=organization_id=lefteria_fc_academy',
     '/news?organization_id=lefteria_fc&organization_id=lefteria_fc_academy',
+    '/news?organization_id=lefteria_fc_academy&organization_id=lefteria_fc',
+    '/news?organization_id=lefteria_fc_academy&organization_id=lefteria_fc_academy',
+    '/events?scope=academy&scope=first_team',
+    '/academy?organization_id=lefteria_fc',
     '/sponsors/first-team','/events?scope=first_team','/partners?scope=first_team']) {
     const malicious={links:[{...academy.links[0],path:unsafe}]};
     assert.equal(parseNavigationDesign(JSON.stringify(malicious),'lefteria_fc_academy'),null,unsafe);
