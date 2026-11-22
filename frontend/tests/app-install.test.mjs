@@ -112,8 +112,8 @@ test('installed OS manifest is distinct from original app and has valid PWA icon
   assert.match(component, /Εγκατάσταση επίσημης εφαρμογής OS/);
   assert.match(component, /<dialog[^>]*aria-labelledby="app-install-title"/);
   assert.match(component, /Προσθήκη στην οθόνη Αφετηρίας/);
-  assert.match(component, /lockPageScroll\\(document\\)/);
-  assert.match(component, /void installCurrentSite\\(\\)/);
+  assert.ok(component.includes('lockPageScroll(document)'));
+  assert.ok(component.includes('void installCurrentSite()'));
   assert.equal(component.includes('api/app/android'), false);
   assert.doesNotMatch(component, /official-android-apk|emergentagent/);
   const mobileLogin = readFileSync(new URL('../src/routes/app/login/+page.svelte', import.meta.url), 'utf8');
