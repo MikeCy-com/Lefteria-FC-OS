@@ -1,5 +1,5 @@
 /* Approved tenant design tokens only. No arbitrary CSS is accepted. */
-.public-site[data-global-design="true"]{background:var(--lf-color-bg);color:var(--lf-color-text)}
+.public-site[data-global-design="true"]{background:var(--lf-color-bg);color:var(--lf-color-text);color-scheme:var(--lf-color-scheme,dark)}
 .public-site[data-global-design="true"] .public-main{color:var(--lf-color-text)}
 .public-site[data-global-design="true"] .public-main h1{font-family:var(--lf-h1-family)!important;font-size:var(--lf-h1-desktop)!important;font-weight:var(--lf-h1-weight)!important;line-height:var(--lf-h1-line)!important}
 .public-site[data-global-design="true"] .public-main h2{font-family:var(--lf-h2-family)!important;font-size:var(--lf-h2-desktop)!important;font-weight:var(--lf-h2-weight)!important;line-height:var(--lf-h2-line)!important}
