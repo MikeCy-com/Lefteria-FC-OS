@@ -19,6 +19,17 @@ BEGIN
     WHERE tgrelid='pos_cashier.vat_classification_proposals'::regclass
       AND tgname='pos_vat_proposal_immutable' AND NOT tgisinternal)
   THEN RAISE EXCEPTION 'pos_vat_proposals_mutable'; END IF;
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_class c
+    WHERE c.oid='pos_cashier.vat_classification_reviews'::regclass
+      AND c.relrowsecurity)
+    OR NOT EXISTS(
+      SELECT 1 FROM pg_trigger
+      WHERE tgrelid='pos_cashier.vat_classification_reviews'::regclass
+        AND tgname='pos_vat_review_immutable' AND NOT tgisinternal)
+  THEN RAISE EXCEPTION 'pos_vat_reviews_not_immutable_or_private'; END IF;
+  IF EXISTS(SELECT 1 FROM pos_cashier.vat_classification_reviews)
+  THEN RAISE EXCEPTION 'vat_reviews_automatically_created'; END IF;
 
   IF EXISTS(
     SELECT 1 FROM pg_class c
@@ -30,7 +41,9 @@ BEGIN
 
   FOREACH f IN ARRAY ARRAY[
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
-    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid
+    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang
       WHERE p.oid=f AND p.prosecdef AND l.lanname='plpgsql'
@@ -53,6 +66,17 @@ BEGIN
       DATE '2026-11-22','Synthetic authority test only',
       'Synthetic justification test only');
     RAISE EXCEPTION 'unauthenticated_vat_write_allowed';
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN
+      IF SQLERRM <> 'admin_club_session_lock_missing' THEN RAISE; END IF;
+  END;
+
+  BEGIN
+    PERFORM pos_cashier.review_admin_variant_vat(
+      repeat('0',64),'lefteria_fc',gen_random_uuid(),true,
+      'Synthetic review denial check');
+    RAISE EXCEPTION 'unauthenticated_vat_review_allowed';
   EXCEPTION
     WHEN insufficient_privilege THEN NULL;
     WHEN raise_exception THEN
