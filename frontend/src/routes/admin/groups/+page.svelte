@@ -154,14 +154,18 @@
           $auth.session?.user.id!==actor)return;
         creationCities=authorizedCities;
         creationLocations=options;
-        const requested=pendingLocationId||page.url.searchParams.get('location_id')||'';
-        const preferred=options.find(l=>l.id===requested) ??
-          (options.length===1?options[0]:null);
+        const newlyCreatedId=pendingLocationId;
+        const requested=newlyCreatedId||page.url.searchParams.get('location_id')||'';
+        const requestedSite=options.find(l=>l.id===requested);
+        const preferred=requestedSite ??
+          (!newlyCreatedId && options.length===1?options[0]:null);
         if(preferred)creationCityId=preferred.city_id;
         else if(!authorizedCities.some(c=>c.id===creationCityId))
           creationCityId=authorizedCities.length===1?authorizedCities[0].id:'';
         creationLocationId=preferred?.id ?? '';
-        pendingLocationId='';
+        if(newlyCreatedId && !requestedSite)creationLocationsError=
+          'Η τοποθεσία αποθηκεύτηκε, αλλά δεν εμφανίζεται στον επαληθευμένο κατάλογο. Ελέγξτε τα δικαιώματα και ανανεώστε πριν δημιουργήσετε ομάδα.';
+        else pendingLocationId='';
         if(!authorizedCities.length)creationLocationsError=
           'Δεν υπάρχουν εξουσιοδοτημένες ενεργές πόλεις.';
       }catch{
