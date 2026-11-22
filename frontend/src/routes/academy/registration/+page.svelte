@@ -235,7 +235,7 @@
                     <label><input type="radio" name="koa-card-first" value="yes" bind:group={form.koa_health_card_status} required data-testid="koa-card-yes"/> Ναι</label>
                     <label><input type="radio" name="koa-card-first" value="no" bind:group={form.koa_health_card_status} required data-testid="koa-card-no"/> Όχι</label>
                     {#if form.koa_health_card_status==='no'}
-                      <p class="registration-note">Μετά την έγκριση και ένταξη στην ομάδα, θα λάβετε ενημέρωση για τη διαδικασία έκδοσης. Επίσημες οδηγίες: <a href="https://cso.org.cy/health-journal/" target="_blank" rel="noopener noreferrer">Κυπριακός Οργανισμός Αθλητισμού</a>.</p>
+                      <p class="registration-note">Μετά την έγκριση και ένταξη στην ομάδα θα λάβετε οδηγίες. Η κανονική έκδοση Δελτίου Υγείας ΚΟΑ κοστίζει €5 ανά παιδί και ο αναφερόμενος χρόνος είναι 14 εργάσιμες ημέρες από την επίσημη παραλαβή της αίτησης από τον ΚΟΑ (όχι την ημέρα παράδοσης στην ACS). Επίσημες οδηγίες: <a href="https://cso.org.cy/health-journal/" target="_blank" rel="noopener noreferrer">Κυπριακός Οργανισμός Αθλητισμού</a>.</p>
                     {/if}
                   </fieldset>
                   <p class="registration-full registration-note">Η επίσημη στολή κοστίζει €140 και η εκτύπωση ονόματος και αριθμού είναι <strong>υποχρεωτική (€10)</strong>. Ο αριθμός αποτελεί προτίμηση, όχι κράτηση. Εάν χρησιμοποιείται ήδη, ο υπεύθυνος τοποθεσίας θα επικοινωνήσει μαζί σας για τυχόν αλλαγή.</p>
@@ -264,7 +264,7 @@
                         <label><input type="radio" name={'koa-child-'+i} value="yes" bind:group={child.koa_health_card_status} required/> Ναι</label>
                         <label><input type="radio" name={'koa-child-'+i} value="no" bind:group={child.koa_health_card_status} required/> Όχι</label>
                         {#if child.koa_health_card_status==='no'}
-                          <p class="registration-note">Η διαδικασία ΚΟΑ αποστέλλεται μετά την ένταξη στην ομάδα, εφόσον επιλέξετε Viber.</p>
+                          <p class="registration-note">Η κανονική έκδοση ΚΟΑ κοστίζει €5 ανά παιδί. Αναφέρονται 14 εργάσιμες ημέρες από την επίσημη παραλαβή στον ΚΟΑ. Οι οδηγίες αποστέλλονται μετά την ένταξη στην ομάδα, μόνο εφόσον έχετε συναινέσει στο Viber.</p>
                         {/if}
                       </fieldset>
                       <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
