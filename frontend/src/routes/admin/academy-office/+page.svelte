@@ -2,6 +2,9 @@
   import { getContext } from 'svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/env';
+  import { page } from '$app/state';
+  import {filterRegistrations,registrationNextStep,registrationPageSummary,
+    type RegistrationQueue} from '../../../lib/admin/academy-registration-triage.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AcademyGuardianProofReview from '../../../lib/admin/AcademyGuardianProofReview.svelte';
@@ -49,6 +52,11 @@
   const permittedGroups = $derived(
     territory?.groups.filter(group => group.city_id === cityId && group.location_id === locationId) ?? []);
   let tab = $state<'registrations' | 'orders'>('registrations');
+  let applicationFilter = $state<RegistrationQueue>(
+    page.url.searchParams.get('queue')==='action'?'action':'all');
+  let applicationQuery = $state('');
+  const visibleEntries = $derived(filterRegistrations(entries,applicationFilter,applicationQuery));
+  const pageTotals = $derived(registrationPageSummary(entries));
   let offset = $state(0);
   let revision = $state(0);
   let entries = $state<Entry[]>([]);
@@ -311,15 +319,79 @@
               <button class="admin-primary" disabled={busy}>Καταχώριση αίτησης</button>
             </form>
           </details>
-          <h2 data-testid="academy-registration-unified-inbox">Όλες οι αιτήσεις εγγραφής</h2>
+          <div class="academy-registration-inbox-head">
+            <div>
+              <p class="admin-eyebrow">ΑΙΤΗΣΕΙΣ · ΕΛΕΓΧΟΣ · ΕΝΤΑΞΗ</p>
+              <h2 data-testid="academy-registration-unified-inbox">Αιτήσεις εγγραφής</h2>
+            </div>
+            <button type="button" class="admin-secondary" disabled={busy||loading}
+              onclick={()=>revision++} data-testid="academy-inbox-refresh">Ανανέωση λίστας</button>
+          </div>
+          <div class="academy-registration-summary" data-testid="academy-registration-page-summary">
+            <div><strong>{pageTotals.loaded}</strong><span>Φορτωμένες αιτήσεις</span></div>
+            <div><strong>{pageTotals.needsAttention}</strong><span>Χρειάζονται ενέργεια</span></div>
+            <div><strong>{pageTotals.linked}</strong><span>Με καταγεγραμμένη ένταξη</span></div>
+            <div><strong>{pageTotals.awaitingGuardianInfo}</strong><span>Αναμονή στοιχείων</span></div>
+          </div>
+          <p class="admin-muted academy-inbox-limits">
+            Οι αριθμοί αφορούν μόνο τις αιτήσεις της τρέχουσας εξουσιοδοτημένης σελίδας
+            και δεν αποτελούν συνολικά στατιστικά πόλης ή Ακαδημίας.
+          </p>
+          <div class="academy-registration-filters" data-testid="academy-registration-triage">
+            <label for="academy-inbox-status">Κατάσταση εργασίας
+              <select id="academy-inbox-status" bind:value={applicationFilter}
+                disabled={loading||busy} data-testid="academy-inbox-status">
+                <option value="action">Χρειάζονται ενέργεια</option>
+                <option value="all">Όλες της σελίδας</option>
+                <option value="pending">Νέες</option>
+                <option value="under_review">Υπό έλεγχο</option>
+                <option value="needs_information">Χρειάζονται στοιχεία</option>
+                <option value="approved">Εγκεκριμένες</option>
+                <option value="closed">Απορρίφθηκαν / αποσύρθηκαν</option>
+              </select>
+            </label>
+            <label for="academy-inbox-query">Αναζήτηση παιδιού ή κηδεμόνα
+              <input id="academy-inbox-query" type="search" maxlength="100"
+                bind:value={applicationQuery} autocomplete="off"
+                placeholder="Όνομα παιδιού, κηδεμόνα ή ID"
+                data-testid="academy-inbox-search"/>
+            </label>
+            <button type="button" class="admin-secondary" disabled={busy||loading}
+              onclick={()=>{applicationFilter='all';applicationQuery='';}}
+              data-testid="academy-inbox-clear">Εκκαθάριση φίλτρων</button>
+          </div>
           {#if territoryLoading}<p class="admin-muted" role="status">Φόρτωση επιτρεπόμενων τοποθεσιών…</p>
           {:else if territoryError}<p role="alert" class="admin-error">{territoryError}</p>{/if}
           <p>Ελέγξτε τα στοιχεία και την κατάσταση κάθε αίτησης. Η ένταξη σε συγκεκριμένο τμήμα απαιτεί ξεχωριστή επαληθευμένη διαδικασία στα <a href="/admin/groups">Ομάδες & τμήματα</a>· η απλή έγκριση δεν είναι προσθήκη στο ρόστερ.</p>
-          {#each entries.slice(0, 25) as row (row.id)}
-            <article class="admin-panel">
-              <h3>{row.applicant_first_name} {row.applicant_last_name} · {labels[row.status] ?? row.status}</h3>
-              <p class="registration-source">{row.submission_source === 'website' ? 'Από τη δημόσια φόρμα' : row.submission_source === 'staff' ? 'Χειροκίνητη αίτηση' : 'Αίτηση Ακαδημίας'} · {row.id}</p>
-              <p>{row.applicant_birth_date} · {row.guardian_name} ({row.guardian_relationship}) · {row.guardian_phone} · {row.guardian_email}</p>
+          {#if !loading && entries.length>0 && visibleEntries.length===0}
+            <p class="admin-muted academy-inbox-empty" role="status"
+              data-testid="academy-inbox-no-filter-results">
+              Δεν βρέθηκαν αιτήσεις στην τρέχουσα σελίδα με αυτά τα φίλτρα.
+              Μπορείτε να τα καθαρίσετε ή να αλλάξετε σελίδα.
+            </p>
+          {/if}
+          {#each visibleEntries.slice(0, 25) as row (row.id)}
+            <article class="admin-panel academy-registration-card"
+              data-testid="academy-registration-triage-card">
+              <div class="academy-registration-card-heading">
+                <div>
+                  <p class="admin-eyebrow">{row.submission_source==='website'?'ONLINE ΑΙΤΗΣΗ':'ΕΓΓΡΑΦΗ ΑΚΑΔΗΜΙΑΣ'}</p>
+                  <h3>{row.applicant_first_name} {row.applicant_last_name}</h3>
+                  <small class="registration-source">Αριθμός αίτησης: {row.id}</small>
+                </div>
+                <strong class="academy-registration-status" data-status={row.status}>
+                  {labels[row.status] ?? row.status}
+                </strong>
+              </div>
+              <div class="academy-registration-card-details">
+                <div><span>Ημερομηνία γέννησης</span><strong>{row.applicant_birth_date}</strong></div>
+                <div><span>Κηδεμόνας · {row.guardian_relationship}</span><strong>{row.guardian_name}</strong></div>
+                <div><span>Στοιχεία επικοινωνίας</span>
+                  <strong>{row.guardian_phone}</strong><small>{row.guardian_email}</small></div>
+              </div>
+              <p class="academy-registration-next" data-testid="academy-registration-next-step">
+                <strong>Επόμενο βήμα:</strong> {registrationNextStep(row)}
+              </p>
               {#if row.status === 'approved'}
                 <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
                 {#if row.onboarded_player_id && canEnroll}
@@ -477,5 +549,51 @@
   .enrollment-form{border-top:1px solid #594824;padding-top:18px;display:grid;gap:14px;max-width:660px}
   .enrollment-form label{min-width:min(100%,20rem)}
   .enrollment-form select,.enrollment-form input{max-width:100%}
+  .academy-registration-inbox-head{display:flex;justify-content:space-between;
+    align-items:center;flex-wrap:wrap;gap:12px;margin-top:24px}
+  .academy-registration-inbox-head h2{margin:0}
+  .academy-registration-inbox-head .admin-eyebrow{margin:0 0 4px}
+  .academy-registration-inbox-head button{min-height:44px}
+  .academy-registration-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;margin:16px 0 6px}
+  .academy-registration-summary>div{display:grid;gap:6px;padding:15px;
+    background:var(--admin-surface,#151515);
+    border:1px solid var(--admin-border,#38332b);border-radius:10px}
+  .academy-registration-summary strong{font-size:24px;font-variant-numeric:tabular-nums;
+    line-height:1.15;color:var(--admin-gold,#f6bb38)}
+  .academy-registration-summary span{font-size:12px;color:var(--admin-muted,#b4bab3)}
+  .academy-inbox-limits{font-size:12px;max-width:80ch;line-height:1.5}
+  .academy-registration-filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;
+    margin:16px 0}
+  .academy-registration-filters label{flex:1;min-width:min(100%,210px);font-size:13px}
+  .academy-registration-filters input,.academy-registration-filters select{min-height:44px}
+  .academy-registration-filters button{min-height:44px}
+  .academy-inbox-empty{padding:18px;border:1px dashed var(--admin-border,#555);
+    border-radius:9px;font-size:13px}
+  .academy-registration-card{display:grid;gap:14px}
+  .academy-registration-card-heading{display:flex;justify-content:space-between;
+    gap:10px;align-items:start;flex-wrap:wrap}
+  .academy-registration-card-heading h3{font-size:22px;margin:0 0 4px}
+  .academy-registration-card-heading .admin-eyebrow{margin:0 0 4px}
+  .academy-registration-status{font-size:12px;padding:6px 10px;
+    border-radius:6px;border:1px solid var(--admin-gold,#f6bb38);
+    color:var(--admin-gold,#f6bb38)}
+  .academy-registration-status[data-status="rejected"],
+  .academy-registration-status[data-status="withdrawn"]{
+    border-color:var(--admin-muted,#bbb);color:var(--admin-muted,#bbb)}
+  .academy-registration-card-details{display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+  .academy-registration-card-details>div{display:grid;gap:5px;padding:12px;
+    border:1px solid var(--admin-border,#3d3a33);border-radius:8px;
+    background:var(--admin-surface,#171717)}
+  .academy-registration-card-details span,.academy-registration-card-details small{
+    color:var(--admin-muted,#afb5b7);font-size:12px}
+  .academy-registration-card-details strong{font-size:13px;overflow-wrap:anywhere}
+  .academy-registration-next{padding:12px 15px;
+    border-inline-start:3px solid var(--admin-gold,#f6bb38);
+    background:var(--admin-surface,#161616);font-size:13px;margin:0}
+  @media(max-width:640px){.academy-registration-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .academy-registration-filters{display:grid;grid-template-columns:1fr}
+    .academy-registration-card-details{grid-template-columns:1fr}}
 
 </style>
