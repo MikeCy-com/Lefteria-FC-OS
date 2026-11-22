@@ -39,19 +39,14 @@ test('global navigation has no standalone player or match tools; profile and set
   assert.match(settings,/id="website-settings"/);
 });
 
-test('dashboard starts authorized real create workflows, not service counters',()=>{
-  for(const path of [
-    '/admin/groups?organization_id=lefteria_fc&new=1',
-    '/admin/groups?organization_id=lefteria_fc_academy&new=1',
-    '/admin/territories?organization_id=lefteria_fc_academy#create-city',
-    '/admin/territories?organization_id=lefteria_fc_academy#create-location',
-    '/admin/users?new=1'
-  ]) assert.ok(dashboard.includes(path),path);
-  assert.match(dashboard,/hasAdminPermission\(user\.permissions,'academy:write'\)/);
-  assert.match(dashboard,/hasAdminPermission\(user\.permissions,'teams:write'\)/);
-  assert.match(dashboard,/user\.role==='super_admin'/);
-  assert.match(dashboard,/data-testid="admin-creation-actions"/);
-  assert.doesNotMatch(dashboard,/plannedCount|liveCount|Under Developments|admin-overview-stats/);
+test('creation actions live in the right authorized modules, not on the dashboard',()=>{
+  assert.doesNotMatch(dashboard,/admin-creation-actions|admin-quick-navigation|Γρήγορη δημιουργία|Οι εργασίες μου/);
+  assert.doesNotMatch(dashboard,/new=1|create-city|create-location|admin\/users/);
+  assert.match(dashboard,/AdminClubMetrics/);
+  assert.match(frame,/href="\/admin\/groups"/);
+  assert.match(frame,/href="\/admin\/territories"/);
+  assert.match(settings,/href="\/admin\/users"/);
+  assert.match(settings,/href="\/admin\/staff"/);
   assert.match(groups,/page\.url\.searchParams\.get\('new'\)/);
   assert.match(groups,/choices\.some\(item=>item\.id===requested\)/);
   assert.match(groups,/if\(!browser\|\|openedRequestedCreate\|\|!wantsNew\|\|!loaded\|\|!canCreate\)return/);
@@ -67,7 +62,6 @@ test('dashboard starts authorized real create workflows, not service counters',(
   assert.match(delegation,/access\.accounts\.some\(item=>item\.id===focusAccountId\)/);
   for(const id of ['academy_schedule','attendance','documents','evaluations','fixtures'])
     assert.doesNotMatch(catalog,new RegExp("id: '"+id+"'"));
-
 });
 
 test('athlete attendance is accessible only within Academy group player file',()=>{
