@@ -6,7 +6,7 @@ import { registerHooks } from 'node:module';
 import { compile } from 'svelte/compiler';
 import { render } from 'svelte/server';
 import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule,
-  parentHomePendingResponses } from '../src/lib/mobile/parent-home.ts';
+  parentHomePendingResponses,preferredParentHomeChildId } from '../src/lib/mobile/parent-home.ts';
 
 const today = '2026-11-07';
 const identityId = '11111111-1111-4111-8111-111111111111';
@@ -188,4 +188,20 @@ test('parent response actions render only for trusted current child and retain s
   const source=readFileSync(new URL('../src/lib/mobile/components/MobileParentHome.svelte',import.meta.url),'utf8');
   assert.match(source,/parentHomePendingResponses\(family,calendar,identityId,today,activeChild\?\.id\)/);
   assert.match(source,/onCalendar\(activeChild\.id\)\} data-testid="parent-shortcut-calendar"/);
+});
+
+test('remembered child selection cannot leak across revoked, foreign or malformed parent contexts',()=>{
+  assert.equal(preferredParentHomeChildId(family,calendar({
+    selected_player_id:'club-child',organization_id:'lefteria_fc'
+  }),identityId),'club-child');
+  assert.equal(preferredParentHomeChildId(family,calendar(),identityId),'academy-child');
+  assert.equal(preferredParentHomeChildId(family,calendar({
+    selected_player_id:'club-child',organization_id:'lefteria_fc_academy'
+  }),identityId),null);
+  assert.equal(preferredParentHomeChildId(family,calendar({
+    selected_player_id:'academy-child',identity_id:'someone-else'
+  }),identityId),null);
+  assert.equal(preferredParentHomeChildId(family,calendar({role:'coach'}),identityId),null);
+  assert.equal(preferredParentHomeChildId({children:[family.children[1]]},calendar(),identityId),null);
+  assert.equal(preferredParentHomeChildId(null,calendar(),identityId),null);
 });
