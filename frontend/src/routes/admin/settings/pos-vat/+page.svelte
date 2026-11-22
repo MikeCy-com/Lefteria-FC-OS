@@ -6,6 +6,7 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from '../../../../lib/admin/controller.ts';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
+  type CatalogProduct={id:string;name:string;variants:{id:string;name:string}[]};
   type Proposal={id:string;product_id:string;variant_id:string;
     treatment_code:string;effective_from:string;authority_reference:string;
     justification:string;requested_at:string;status:'pending'};
@@ -24,10 +25,12 @@
     o=>o.id==='lefteria_fc'||o.id==='lefteria_fc_academy')??[]);
   const authorized=$derived(['super_admin','manager','accountant'].includes($auth.session?.user.role??''));
   let owner=$state<Owner|null>(null),response=$state<Response|null>(null);
+  let products=$state<CatalogProduct[]>([]);
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
   let productId=$state(''),variantId=$state(''),code=$state('standard_19');
   let effectiveFrom=$state(''),reference=$state(''),reason=$state('');
   let requestId=$state(''),refresh=$state(0);
+  const activeProduct=$derived(products.find(p=>p.id===productId));
   const canSubmit=$derived(!!owner&&authorized&&
     /^[A-Za-z0-9_-]{1,80}$/.test(productId)&&
     /^[A-Za-z0-9_-]{1,60}$/.test(variantId)&&
@@ -85,6 +88,37 @@
       }catch(e){
         if(!controller.signal.aborted)error=e instanceof Error?e.message:'Σφάλμα σύνδεσης.';
       }finally{if(!controller.signal.aborted)loading=false;}
+    })();
+    return()=>controller.abort();
+  });
+  $effect(()=>{
+    const current=owner,role=$auth.session?.user.role;
+    products=[];
+    if(!browser||!current||!['super_admin','manager'].includes(role??''))return;
+    const controller=new AbortController();
+    void(async()=>{
+      try{
+        const result=await fetch('/api/admin/pos/catalog?'+
+          new URLSearchParams({organization_id:current}),{
+            credentials:'same-origin',cache:'no-store',signal:controller.signal
+          });
+        if(!result.ok||controller.signal.aborted)return;
+        const raw:unknown=await result.json();
+        if(!raw||typeof raw!=='object'||Array.isArray(raw))return;
+        const x=raw as Record<string,unknown>;
+        if(x.organization_id!==current||!Array.isArray(x.products))return;
+        const list=x.products.filter((p:unknown)=>{
+          if(!p||typeof p!=='object'||Array.isArray(p))return false;
+          const row=p as Record<string,unknown>;
+          return typeof row.id==='string'&&typeof row.name==='string'&&
+            Array.isArray(row.variants)&&row.variants.every((v:unknown)=>{
+              if(!v||typeof v!=='object'||Array.isArray(v))return false;
+              const item=v as Record<string,unknown>;
+              return typeof item.id==='string'&&typeof item.name==='string';
+            });
+        }) as CatalogProduct[];
+        if(!controller.signal.aborted&&owner===current)products=list.slice(0,250);
+      }catch{/* Private catalog is optional; scoped product IDs remain editable. */}
     })();
     return()=>controller.abort();
   });
@@ -154,11 +188,20 @@
             <form onsubmit={e=>{e.preventDefault();void submit();}} class="vat-form">
               <label>Κωδικός προϊόντος
                 <input required maxlength="80" bind:value={productId}
-                  oninput={resetRequest} placeholder="product_id"/>
+                  list="vat-product-options" oninput={()=>{variantId='';resetRequest();}}
+                  placeholder="product_id"/>
+                <datalist id="vat-product-options">
+                  {#each products as product}<option value={product.id}>{product.name}</option>{/each}
+                </datalist>
               </label>
               <label>Κωδικός παραλλαγής
                 <input required maxlength="60" bind:value={variantId}
-                  oninput={resetRequest} placeholder="variant_id"/>
+                  list="vat-variant-options" oninput={resetRequest} placeholder="variant_id"/>
+                <datalist id="vat-variant-options">
+                  {#each activeProduct?.variants??[] as variant}
+                    <option value={variant.id}>{variant.name}</option>
+                  {/each}
+                </datalist>
               </label>
               <label>Φορολογική κατηγορία
                 <select bind:value={code} onchange={resetRequest}>
