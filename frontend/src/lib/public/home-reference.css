@@ -387,7 +387,7 @@
   font:italic 900 clamp(22px,2.25vw,36px)/1 'Fira Sans Extra Condensed',sans-serif;
   text-align:center;text-shadow:0 2px 14px #000;
 }
-.public-site .home-reference .home-brand-motto>span{color:#f6bb38;font-size:.82em;padding-inline:8px}
+.public-site .home-reference .home-brand-motto>span{color:var(--public-gold);font-size:.82em;padding-inline:8px}
 .public-site .home-reference .home-brand-stripe{
   display:block;flex:1;min-width:18px;height:2px;
   background:linear-gradient(90deg,transparent,#ffcc51 25%,#f3b424);
