@@ -5,6 +5,7 @@ import { compile } from 'svelte/compiler';
 const read=p=>readFileSync(new URL('../'+p,import.meta.url),'utf8');
 const home=read('src/routes/+page.svelte');
 const css=read('src/lib/public/home-reference.css');
+const refresh=read('src/lib/public/ui-refresh.css');
 const base=read('src/lib/public/public.css');
 const audit=read('scripts/ui-visual-audit.mjs');
 const nav=read('src/lib/public/PublicNavigation.svelte');
@@ -33,10 +34,11 @@ test('desktop geometry restores source brand interval before news and mobile rem
   assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
   assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
+  assert.match(refresh,/min-height: clamp\(88px, 8vw, 126px\)/);
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
-  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y<900'])
+  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y>900'])
     assert.ok(audit.includes(text),'No browser measurement: '+text);
   assert.match(nav,/data-testid="public-sidebar"/);
   assert.match(nav,/data-testid="public-menu-drawer"/);
