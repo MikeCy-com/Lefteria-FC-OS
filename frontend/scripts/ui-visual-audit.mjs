@@ -18,6 +18,13 @@ const routes = [
   { name:'first-team', path:'/team', expectedStatus:200 },
   { name:'team-schedule', path:'/team?tab=schedule', expectedStatus:200 },
   { name:'team-roster-unavailable', path:'/team?tab=roster', expectedStatus:503 },
+  { name:'news', path:'/news', expectedStatus:200 },
+  { name:'news-academy', path:'/news?scope=academy', expectedStatus:200 },
+  { name:'shop', path:'/shop', expectedStatus:200 },
+  { name:'sponsors-unavailable', path:'/sponsors', expectedStatus:503 },
+  { name:'partners-unavailable', path:'/partners', expectedStatus:503 },
+  { name:'events-unavailable', path:'/events', expectedStatus:503 },
+  { name:'seasons-unavailable', path:'/seasons', expectedStatus:503 },
   { name:'academy', path:'/academy', expectedStatus:200 },
   { name:'academy-groups-unavailable', path:'/academy/groups', expectedStatus:503 },
   { name:'academy-philosophy', path:'/academy/philosophy', expectedStatus:200 },
@@ -497,7 +504,7 @@ try {
           home:viewport.width<=767?47:80,
           academy:viewport.width<=767?55:76,
           'first-team':viewport.width<=767?55:76,
-          'team-schedule':viewport.width<=767?52:68,
+          'team-schedule':viewport.width<=767?40:68,
           'app-login':viewport.width<=720?35:57
         };
         const cap=caps[route.name];
@@ -634,10 +641,58 @@ try {
           }
         }
       }
+      // Record real computed styles per public page and section; a single
+      // global CSS assertion cannot detect oversized nested headings, gutters
+      // or inconsistent card padding. Evidence stays in isolated CI artifacts.
+      const sectionDesign = await page.evaluate(() => {
+        const site = document.querySelector('.public-site');
+        if (!site) return null;
+        const details = (node) => {
+          const css = getComputedStyle(node);
+          const box = node.getBoundingClientRect();
+          return {
+            tag:node.tagName.toLowerCase(),
+            className:typeof node.className==='string'?node.className.slice(0,120):'',
+            fontFamily:css.fontFamily,fontSize:css.fontSize,fontWeight:css.fontWeight,
+            fontStyle:css.fontStyle,lineHeight:css.lineHeight,letterSpacing:css.letterSpacing,
+            color:css.color,backgroundColor:css.backgroundColor,
+            padding:[css.paddingTop,css.paddingRight,css.paddingBottom,css.paddingLeft],
+            margin:[css.marginTop,css.marginRight,css.marginBottom,css.marginLeft],
+            width:Math.round(box.width),left:Math.round(box.left),
+            maxWidth:css.maxWidth
+          };
+        };
+        const candidates = [
+          '.public-header','.public-rail','.public-main','.public-footer',
+          '.public-page-heading','.public-section','.section-heading',
+          '.public-news-grid','.public-group-grid','.public-group-card',
+          '.article-body','.public-hero-stage'
+        ];
+        const sections = candidates.flatMap(selector =>
+          [...site.querySelectorAll(selector)].slice(0,20).map(element => ({
+            selector,...details(element),
+            heading:(element.matches('h1,h2,h3')?element:
+              element.querySelector('h1,h2,h3')) || null
+          })).map(({heading,...item})=>({
+            ...item,heading:heading?details(heading):null
+          }))).slice(0,90);
+        return {root:details(site),sections};
+      });
+      if (sectionDesign && (!sectionDesign.root.fontFamily.includes('Fira Sans') ||
+          !sectionDesign.root.color || sectionDesign.root.width<=0)) {
+        failures.push(route.path+' '+viewport.name+': invalid public design root');
+      }
+      if (route.name==='about' && sectionDesign) {
+        const aboutHeadings=sectionDesign.sections
+          .filter(item=>item.selector==='.section-heading' && item.heading)
+          .map(item=>parseFloat(item.heading.fontSize));
+        if(aboutHeadings.length!==2 || aboutHeadings.some(size=>size<20||size>34))
+          failures.push('About '+viewport.name+': section headings differ from the shared Academy hierarchy: '+JSON.stringify(aboutHeadings));
+      }
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,sectionDesign,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);
