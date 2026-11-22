@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 import {brandOwnerForRole,publicLogoUrl,readPublicBrand} from '../src/lib/mobile/club-branding.ts';
+import {verifiedPublicSite} from '../src/lib/public/verified-site.ts';
 
 const read=(p)=>readFileSync(new URL('../src/'+p,import.meta.url),'utf8');
 const settings=read('routes/admin/settings/+page.svelte');
@@ -78,11 +79,23 @@ test('public contact email accepts ordinary addresses and rejects malformed or i
 });
 
 test('public page loader rejects cross-organization site responses and Academy navigation',()=>{
-  assert.match(publicContent,/export function verifiedPublicSite\(/);
-  assert.match(publicContent,/site\?\.organization_id === organization/);
-  assert.match(publicContent,/site\.club == null \|\| site\.club\.organization_id === organization/);
+  assert.match(publicContent,/import \{ verifiedPublicSite \} from '\.\.\/public\/verified-site'/);
   assert.match(publicContent,/verifiedPublicSite\(result\.value, organization\)/);
   assert.match(publicContent,/verifiedPublicSite\(navigation\.value, 'lefteria_fc_academy'\)/);
   assert.match(publicContent,/branding: site\?\.club \?\? null/);
   assert.match(publicContent,/navigationGroups: academyNavigation\?\.academy_groups \?\? \[\]/);
+});
+
+test('organization response verification is fail-closed against mismatched payloads',()=>{
+  const fc={organization_id:'lefteria_fc',club:{organization_id:'lefteria_fc',name:'First Team'},academy_groups:[]};
+  const academy={organization_id:'lefteria_fc_academy',club:{organization_id:'lefteria_fc_academy',name:'Academy'},academy_groups:[]};
+  assert.equal(verifiedPublicSite(fc,'lefteria_fc'),fc);
+  assert.equal(verifiedPublicSite(academy,'lefteria_fc_academy'),academy);
+  assert.equal(verifiedPublicSite(fc,'lefteria_fc_academy'),null);
+  assert.equal(verifiedPublicSite(academy,'lefteria_fc'),null);
+  assert.equal(verifiedPublicSite({...fc,club:academy.club},'lefteria_fc'),null);
+  assert.equal(verifiedPublicSite({...academy,club:fc.club},'lefteria_fc_academy'),null);
+  const noClub={organization_id:'lefteria_fc',club:null,academy_groups:[]};
+  assert.equal(verifiedPublicSite(noClub,'lefteria_fc'),noClub);
+  assert.equal(verifiedPublicSite(null,'lefteria_fc'),null);
 });
