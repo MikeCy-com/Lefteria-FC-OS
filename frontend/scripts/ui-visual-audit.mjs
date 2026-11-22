@@ -148,17 +148,17 @@ async function verifyNativeThemePages(browser, base) {
   const checked=[];
   try {
     const page=await context.newPage();
-    for(const {route,selector,property,expected,min} of [
+    for(const {route,selector,property,expected,centered} of [
       {route:'/academy',selector:'.academy-key-figures',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
       {route:'/academy/registration',selector:'.registration-card',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
       {route:'/contact',selector:'.contact-lead',property:'color',expected:'rgb(77, 77, 77)'},
       {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'},
       {route:'/about',selector:'.source-about .max-w-7xl',property:'maxWidth',expected:'1120px'},
       {route:'/shop',selector:'.shop-container',property:'width',expected:'1120px'},
-      {route:'/team',selector:'.public-page-heading.team-heading',property:'paddingLeft',min:88}
+      {route:'/team',selector:'.public-page-heading.team-heading',property:'paddingLeft',centered:true}
     ]) {
       await page.goto(base+route,{waitUntil:'domcontentloaded'});
-      const actual=await page.evaluate(({selector,property})=>{
+      const actual=await page.evaluate(({selector,property,centered})=>{
         const site=document.querySelector('[data-testid="public-site"]');
         const element=document.querySelector(selector);
         if(!site||!element)throw Error('Missing native page element: '+selector);
@@ -172,11 +172,16 @@ async function verifyNativeThemePages(browser, base) {
           '--lf-layout-page-side-padding':'32px',
           '--lf-layout-gutter':'28px'
         }))site.style.setProperty(key,value);
-        return getComputedStyle(element)[property];
-      },{selector,property});
+        const actual=getComputedStyle(element)[property];
+        if(!centered)return actual;
+        const vars=getComputedStyle(site);
+        const maxWidth=parseFloat(vars.getPropertyValue('--lf-layout-page-max-width'));
+        const minSide=parseFloat(vars.getPropertyValue('--lf-layout-page-side-padding'));
+        return {actual, expectedInset:Math.max(minSide,(element.getBoundingClientRect().width-maxWidth)/2)};
+      },{selector,property,centered});
       if(expected!==undefined)assert.equal(actual,expected,route+' '+selector+' ignores published '+property);
-      if(min!==undefined)assert.ok(parseFloat(actual)>=min,
-        route+' '+selector+' ignores centered published page inset: '+actual);
+      if(centered)assert.ok(Math.abs(parseFloat(actual.actual)-actual.expectedInset)<1.5,
+        route+' '+selector+' does not center the published page max width: '+JSON.stringify(actual));
       checked.push({route,selector,actual});
     }
     return checked;
