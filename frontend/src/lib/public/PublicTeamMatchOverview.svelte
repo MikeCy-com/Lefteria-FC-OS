@@ -138,7 +138,7 @@
   .match-facts p{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin:0}
   .match-facts :global(svg){color:#ffc548;flex:none}
   .match-detail{display:flex;align-items:center;justify-content:center;gap:10px;
-    min-height:45px;margin-top:18px;background:#f6bb38;color:#070809;
+    min-height:45px;margin-top:18px;background:var(--public-gold);color:#070809;
     font-weight:850;font-size:13px;border-radius:3px;padding:10px}
   .upcoming-matches ol{list-style:none;margin:0;padding:0}
   .upcoming-matches li+li{border-top:1px solid #ffffff28}
@@ -157,7 +157,7 @@
   thead th{color:#f8c34b;font-weight:850;font-size:10px}
   tbody th{font-weight:700;overflow-wrap:anywhere}
   td{text-align:center}
-  td.points{color:#f6bb38;font-weight:800}
+  td.points{color:var(--public-gold);font-weight:800}
   .bottom{margin-top:10px}
   .empty{font-size:13px;line-height:1.6;color:#c8cac7;padding-top:20px}
   .match-panel a:focus-visible{outline:3px solid #ffd357;outline-offset:3px}
