@@ -43,6 +43,14 @@ test('owner boundaries and private routes fail closed',()=>{
   assert.ok(parseNavigationDesign(JSON.stringify(academy),'lefteria_fc_academy'));
   assert.equal(parseNavigationDesign(JSON.stringify({links:[{...academy.links[0],
     path:'/news'}]}),'lefteria_fc_academy'),null);
+  for(const unsafe of ['/news?x=organization_id=lefteria_fc_academy',
+    '/news?organization_id=lefteria_fc&organization_id=lefteria_fc_academy',
+    '/sponsors/first-team','/events?scope=first_team','/partners?scope=first_team']) {
+    const malicious={links:[{...academy.links[0],path:unsafe}]};
+    assert.equal(parseNavigationDesign(JSON.stringify(malicious),'lefteria_fc_academy'),null,unsafe);
+  }
+  const teamLinks={links:[{...config.links[0],path:'/sponsors/academy'}]};
+  assert.equal(parseNavigationDesign(JSON.stringify(teamLinks),'lefteria_fc'),null);
   assert.equal(parseNavigationDesign(JSON.stringify({links:Array(25).fill(config.links[0])}),'lefteria_fc'),null);
 });
 test('navigation configuration is a published-only hidden owner-specific CMS record',()=>{
