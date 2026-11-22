@@ -18,8 +18,8 @@ test('legacy shared public styles never force an independent font/color or contr
   assert.doesNotMatch(native,/font-family:'Fira Sans Extra Condensed',sans-serif\s*!important/);
   assert.doesNotMatch(native,/(?:background|color|border-color)\s*:\s*(?:white|black)\b/i);
   assert.match(native,/\.public-site :is\(\.card,[^{]+\{ border-radius:var\(--lf-layout-card-radius,0px\)/);
-  assert.match(native,/\.public-site :is\(\.btn-primary,[^{]+border-radius:var\(--lf-layout-button-radius,0px\)/);
-  assert.match(native,/\.public-site input:not\(\[type="checkbox"\]\)[^{]+border-radius:var\(--lf-layout-button-radius,0px\)/);
+  assert.match(native,/\.public-site :is\(\.btn-primary,[^}]+border-radius:var\(--lf-layout-button-radius,0px\)/);
+  assert.match(native,/\.public-site input:not\(\[type="checkbox"\]\)[^}]+border-radius:var\(--lf-layout-button-radius,0px\)/);
   assert.match(native,/max-width:var\(--lf-layout-page-max-width,1400px\)/);
   assert.match(tokens,/--public-gold:var\(--lf-color-accent\)/);
 });
