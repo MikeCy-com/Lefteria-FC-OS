@@ -44,3 +44,43 @@
 .public-site[data-global-design="true"] .website-block-wrap{background:var(--lf-color-surface);border-color:var(--lf-color-border)}
 .public-site[data-global-design="true"] .section-dark{background:var(--lf-color-bg)}
 .public-site[data-global-design="true"] .section-heading>a{color:var(--lf-color-link)!important}
+
+/*
+ * Bridge the published WYSIWYG palette into the legacy public component
+ * variables. Existing heroes, cards, navigation and new UI skin then consume
+ * the same organization-scoped tokens instead of a second fixed palette.
+ * This is active only for an approved, published canonical global design.
+ */
+.public-site[data-global-design="true"] {
+  --public-gold:var(--lf-color-accent);
+  --public-black:var(--lf-color-bg);
+  --public-muted:var(--lf-color-muted);
+  --public-panel:var(--lf-color-surface);
+  --public-panel-raised:color-mix(in srgb,var(--lf-color-surface) 80%,var(--lf-color-bg));
+  --public-panel-edge:var(--lf-color-border);
+  --public-line:var(--lf-color-border);
+  --gold:var(--lf-color-accent);
+  --line:var(--lf-color-border);
+  --home-card-edge:var(--lf-color-border);
+}
+
+/* The public CMS editor defines these shared spacing controls; scoped WYSIWYG
+ * --cms-* max-width/gap/padding still belongs exclusively to each page/block. */
+.public-site[data-global-design="true"] .public-news-grid,
+.public-site[data-global-design="true"] .public-group-grid,
+.public-site[data-global-design="true"] .catalog-grid {
+  gap:var(--lf-layout-card-gap,16px);
+}
+.public-site[data-global-design="true"] .public-section:not(.public-embedded-page) {
+  padding-inline:var(--lf-layout-gutter,28px);
+}
+.public-site[data-global-design="true"] :is(
+  .public-news-card,.catalog-card,.public-group-card,
+  .person-card,.venue-card,.academy-review-card
+) {
+  border-color:var(--lf-color-border);
+  border-radius:var(--lf-layout-card-radius,9px);
+}
+.public-site[data-global-design="true"] :is(.public-button,.public-search-trigger) {
+  border-radius:var(--lf-layout-button-radius,5px);
+}
