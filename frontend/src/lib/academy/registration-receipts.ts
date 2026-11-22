@@ -15,7 +15,7 @@ export function parseAcademyRegistrationReceipts(raw:unknown):AcademyRegistratio
   const {receipt,receipts}=value;
   if(typeof receipt!=='string'||!ID.test(receipt)||!Array.isArray(receipts)||
      receipts.length<1||receipts.length>5||receipts[0]!==receipt||
-     !receipts.every((id:unknown)=>typeof id==='string'&&ID.test(id))||
+     !receipts.every((id:unknown,index:number)=>Object.hasOwn(receipts,index)&&typeof id==='string'&&ID.test(id))||
      new Set(receipts).size!==receipts.length)return null;
   return {receipt,receipts};
 }
