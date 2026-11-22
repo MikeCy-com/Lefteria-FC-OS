@@ -61,7 +61,7 @@ test('finance roles get exact functions without private finance table access',()
   assert.match(grants,/GRANT EXECUTE ON FUNCTION finance\.apply_payabl_notification/);
   assert.match(grants,/Finance cross-role function leakage/);
   assert.match(frame,/href="\/admin\/finance"/);
-  assert.match(workspace,/href:'\/admin\/finance'/);
+  assert.doesNotMatch(workspace,/href:'\/admin\/finance'/);
   assert.doesNotMatch(api,/payment_cft|payment_refund|bank_transfer/i);
 });
 
