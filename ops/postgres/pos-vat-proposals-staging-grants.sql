@@ -1,15 +1,15 @@
-\\set ON_ERROR_STOP on
+\set ON_ERROR_STOP on
 -- EXPLICIT STAGING REVIEW ONLY. Never run automatically in migration or CI.
 -- Grant narrow draft VAT proposal procedures to independently authorized web-admin
 -- runtime; do not grant raw table access, receipt issuance, refunds or Payabl.
-\\if :{?admin_auth_role}
-\\else
+\if :{?admin_auth_role}
+\else
   DO $required$ BEGIN RAISE EXCEPTION 'vat_admin_auth_role_required'; END $required$;
-\\endif
-\\if :{?app_role}
-\\else
+\endif
+\if :{?app_role}
+\else
   DO $required$ BEGIN RAISE EXCEPTION 'vat_mobile_role_required'; END $required$;
-\\endif
+\endif
 BEGIN;
 SELECT set_config('lefteria.vat_admin_role',:'admin_auth_role',true);
 SELECT set_config('lefteria.vat_mobile_role',:'app_role',true);
