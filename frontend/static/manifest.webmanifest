@@ -1,17 +1,17 @@
 {
-  "id": "/app",
-  "name": "Λευτεριά FC",
-  "short_name": "Λευτεριά FC",
-  "description": "Η επίσημη εφαρμογή της Λευτεριά FC",
+  "id": "/lefteria-fc-os",
+  "name": "Lefteria FC OS · Επίσημη Εφαρμογή",
+  "short_name": "Lefteria OS",
+  "description": "Η επίσημη εφαρμογή Lefteria FC OS για αθλητές, γονείς, προπονητές και φιλάθλους",
   "lang": "el",
-  "start_url": "/app",
+  "start_url": "/app?installed=1",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "icons": [
     {
-      "src": "/club/app-icon.svg",
+      "src": "/os/app-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
