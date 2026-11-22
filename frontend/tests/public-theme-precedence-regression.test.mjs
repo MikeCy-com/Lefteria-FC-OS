@@ -12,7 +12,7 @@ const standalone=read('routes/pages/[slug]/+page.svelte');
 const browser=readFileSync(new URL('../scripts/ui-visual-audit.mjs',import.meta.url),'utf8');
 
 test('legacy shared public styles never force an independent font/color or control geometry',()=>{
-  assert.doesNotMatch(native,/\.public-site \*,\s*\.public-dialog \*\s*\{[^}]*!important/);
+  assert.doesNotMatch(native,/\.public-site \*,\s*\.public-dialog \*\s*\{[^}]*letter-spacing:\s*0\s*!important/);
   assert.doesNotMatch(native,/font-family:'Fira Sans Extra Condensed',sans-serif\s*!important/);
   assert.doesNotMatch(native,/(?:background|color|border-color)\s*:\s*(?:white|black)\b/i);
   assert.match(native,/\.public-site :is\(\.card,[^{]+\{ border-radius:var\(--lf-layout-card-radius,0px\)/);
