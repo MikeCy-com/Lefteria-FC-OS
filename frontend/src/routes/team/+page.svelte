@@ -13,8 +13,8 @@
   import { selectTeamGallery, selectTeamVenues } from '../../lib/public/team-scope';
   import type { TeamPageData, TeamTab } from '../../lib/public/sections-types';
   import WebsitePageBlocks from '../../lib/public/WebsitePageBlocks.svelte';
-  import type {WebsiteBlock} from '../../lib/public/website-pages';
-  let { data }: { data: TeamPageData & {editorialBlocks:WebsiteBlock[]} } = $props();
+  import type {WebsiteBlock,WebsitePageLayout} from '../../lib/public/website-pages';
+  let { data }: { data: TeamPageData & {editorialBlocks:WebsiteBlock[];editorialLayout:WebsitePageLayout|null} } = $props();
   let search = $state(''); let position = $state(''); let cupOnly = $state(false);
   const navigation: [TeamTab, string][] = [['overview','Η ΟΜΑΔΑ'],['roster','ΡΟΣΤΕΡ'],['staff','ΕΠΙΤΕΛΕΙΟ'],['schedule','ΠΡΟΓΡΑΜΜΑ'],['results','ΑΠΟΤΕΛΕΣΜΑΤΑ'],['statistics','ΣΤΑΤΙΣΤΙΚΑ'],['gallery','ΓΚΑΛΕΡΙ'],['venues','ΓΗΠΕΔΑ']];
   const title = $derived(navigation.find(([id]) => id === data.tab)?.[1] ?? 'Η ΟΜΑΔΑ');
@@ -109,7 +109,7 @@
   </section>
   {#if data.editorialBlocks.length}
     <section class="public-section team-cms-region" aria-label="Δημοσιευμένες ενότητες ομάδας" data-testid="team-cms-region">
-      <WebsitePageBlocks blocks={data.editorialBlocks}/>
+      <WebsitePageBlocks pageLayout={data.editorialLayout} blocks={data.editorialBlocks}/>
     </section>
   {/if}
   {#if !data.available}<Unavailable />{:else}<section class="public-section team-section">
