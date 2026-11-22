@@ -234,6 +234,9 @@ jobs:
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
             -v app_role="$DATABASE_APP_USER" -v admin_auth_role="$DATABASE_ADMIN_AUTH_USER" \
             -f /opt/lefteria-postgres/payabl-finance-grants.sql
+      - name: Verify future fee cancellation financial invariants
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/academy-future-fee-cancellation-checks.sql
       - name: Verify Super Admin-only global finance SQL in disposable PostgreSQL
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/finance-global-role-checks.sql
