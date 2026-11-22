@@ -3,12 +3,15 @@
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import type { PublicPageData } from '../../../lib/public/types';
   import type { PublishedWebsitePage } from '../../../lib/public/website-pages';
-  import { websitePagePath, websitePageParentLink } from '../../../lib/public/website-pages';
+  import { websitePagePath, websitePageParentLink,validPageLayout } from '../../../lib/public/website-pages';
   import { publicCanonicalHref } from '../../../lib/public/public-urls';
   let {data}: {data: PublicPageData & {published: PublishedWebsitePage}} = $props();
   const content = $derived(data.published.page);
   const canonicalPath = $derived(websitePagePath(data.published.slug, data.organization));
   const parentLink = $derived(websitePageParentLink(data.organization, content.menu_parent));
+  const localLayout=$derived(validPageLayout(content.layout)?content.layout:null);
+  const localPageWidth=$derived(localLayout?.max_width!=null?localLayout.max_width+'px':'var(--lf-layout-page-max-width,1280px)');
+  const localPageSide=$derived(localLayout?.side_padding!=null?localLayout.side_padding+'px':'var(--lf-layout-page-side-padding,16px)');
 </script>
 <svelte:head>
   <title>{content.seo_title || content.title} | ΛΕΥΤΕΡΙΑ FC</title>
@@ -20,7 +23,8 @@
 </svelte:head>
 <PublicShell site={data.site} branding={data.branding} organization={data.organization}
   navigationGroups={data.navigationGroups} {canonicalPath}>
-  <article class="website-page" data-organization={data.organization} data-testid="website-published-page">
+  <article class="website-page" data-organization={data.organization} data-testid="website-published-page"
+    style={`--lf-page-content-max-width:${localPageWidth};--lf-page-content-side:${localPageSide}`}>
     <header class="website-page-header">
       <div class="website-page-header-inner">
         <nav class="website-page-breadcrumbs" aria-label="Διαδρομή πλοήγησης" data-testid="website-page-breadcrumbs">
