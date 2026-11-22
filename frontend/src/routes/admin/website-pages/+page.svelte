@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -71,7 +71,8 @@
   const editing = $derived(creating || !!selected);
   const isHero = $derived(organization !== null && slug === HOMEPAGE_HERO_SLUGS[organization]);
   const isSpotlight = $derived(organization === 'lefteria_fc_academy' && slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
-  const isLockedRegion = $derived(isHero || isSpotlight);
+  const isAboutIntro = $derived(slug === CANONICAL_ABOUT_INTRO_SLUG);
+  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -126,6 +127,21 @@
   function newPage() {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
+  }
+  function openCanonicalAboutIntro() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_ABOUT_INTRO_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_ABOUT_INTRO_SLUG;mediaPickerIndex=null;
+    draft={title:'Εισαγωγή · Σχετικά με τον σύλλογο',
+      summary:'Κείμενο της υπάρχουσας σελίδας Σχετικά με τον σύλλογο',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:'Σχετικά με τη ΛΕΥΤΕΡΙΑ FC',url:null},
+        {type:'paragraph',text:'Ιδρύθηκε το 2024, η ΛΕΥΤΕΡΙΑ FC ενσαρκώνει το πνεύμα του πάθους, της αριστείας και της κοινότητας στο κυπριακό ποδόσφαιρο.',url:null}
+      ]};
+    notice='';problem='';
   }
   function openHomepageHero() {
     if(!organization || !canWrite)return;
@@ -249,6 +265,12 @@
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
+    if(isAboutIntro && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
+      draft.blocks[1].type!=='paragraph' ||
+      draft.blocks[0].url!==null || draft.blocks[1].url!==null ||
+      draft.blocks[0].text.length>180 || draft.blocks[1].text.length>500 ||
+      /[\\r\\n]/.test(draft.blocks[0].text)))return false;
     if(isSpotlight && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
       draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
@@ -352,6 +374,10 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalAboutIntro}
+              disabled={loading || saving} data-testid="edit-canonical-about-intro">
+              Επεξεργασία εισαγωγής · Σχετικά με τον σύλλογο
+            </button>{/if}
             {#if canWrite}<button type="button" class="admin-secondary" onclick={openHomepageHero} disabled={loading || saving}>Επεξεργασία Hero αρχικής · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</button>{/if}
             {#if canWrite && organization==='lefteria_fc_academy'}
               <button type="button" class="admin-secondary" onclick={openAcademySpotlight} disabled={loading || saving}>
