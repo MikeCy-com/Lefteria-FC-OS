@@ -527,8 +527,8 @@ public static class WebsitePageEndpoints
         {
             using var doc = JsonDocument.Parse(page.Blocks[0].Text);
             var root = doc.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is < 1 or > 2 ||
-                root.EnumerateObject().Any(entry => entry.Name is not ("links" or "category_order")) ||
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is < 1 or > 3 ||
+                root.EnumerateObject().Any(entry => entry.Name is not ("links" or "category_order" or "category_labels")) ||
                 !root.TryGetProperty("links", out var links) || links.ValueKind != JsonValueKind.Array ||
                 links.GetArrayLength() > 24) throw Invalid();
             if (root.TryGetProperty("category_order", out var categoryOrder))
@@ -545,6 +545,21 @@ public static class WebsitePageEndpoints
                         throw Invalid();
                 }
                 if (expected.Count != 0) throw Invalid();
+            }
+            if (root.TryGetProperty("category_labels", out var categoryLabels))
+            {
+                var allowedLabels = new HashSet<string>(StringComparer.Ordinal) {
+                    "home", "club", "team", "academy", "matches", "news", "events", "shop", "contact"
+                };
+                if (categoryLabels.ValueKind != JsonValueKind.Object ||
+                    categoryLabels.EnumerateObject().Count() > allowedLabels.Count)
+                    throw Invalid();
+                foreach (var entry in categoryLabels.EnumerateObject())
+                {
+                    if (!allowedLabels.Contains(entry.Name) || entry.Value.ValueKind != JsonValueKind.String ||
+                        string.IsNullOrWhiteSpace(entry.Value.GetString()) || entry.Value.GetString()!.Length > 40)
+                        throw Invalid();
+                }
             }
             var identifiers = new HashSet<string>(StringComparer.Ordinal);
             foreach (var link in links.EnumerateArray())
