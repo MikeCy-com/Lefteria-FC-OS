@@ -65,7 +65,7 @@ test('First Team tabs retain real player, match and statistics projections',()=>
   assert.match(teamLoader,/loadTeamPage\(url\)/);
   assert.match(teamLoader,/nativeEditorialBlocks\(pages,'lefteria_fc',region\)/);
   assert.match(team,/data-testid="team-cms-region"/);
-  assert.match(team,/WebsitePageBlocks blocks=\{data\.editorialBlocks\}/);
+  assert.match(team,/WebsitePageBlocks pageLayout=\{data\.editorialLayout\} blocks=\{data\.editorialBlocks \?\? \[\]\}/);
   for(const required of ['selectedTeamId','firstTeamStandings','team-scoped-standings','team-heading-photo',
     'PublicTeamMatchOverview','PublicMatchScheduleTable'])assert.ok(team.includes(required),required);
   assert.ok(compile(team,{filename:'team/+page.svelte',generate:'server'}).js.code.length>100);
