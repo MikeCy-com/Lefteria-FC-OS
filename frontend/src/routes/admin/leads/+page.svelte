@@ -151,7 +151,7 @@
     onLogout={()=>void auth.logout()}>
     {#if manager}
       <div class="academy-crm" data-testid="admin-academy-crm">
-        <p class="admin-eyebrow">CRM · ΛΕΥΤΕΡΙΑ FC ΑΚΑΔΗΜΙΑ</p>
+        
         <h1>Ενδιαφερόμενοι & αιτήματα Ακαδημίας</h1>
         <p class="admin-muted">Ιδιωτικά αιτήματα από τη φόρμα της Ακαδημίας.
           Η αλλαγή κατάστασης δεν δημιουργεί αυτόματα παίκτη, κράτηση
