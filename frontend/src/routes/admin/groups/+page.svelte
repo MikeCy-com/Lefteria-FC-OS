@@ -9,12 +9,15 @@
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
+  import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
   type Directory = {organization_id: Organization; ready: true; unassigned_players: number; groups: Audience[]};
   type CreationLocation = {id:string;city_id:string;label:string};
   type CreationCity = {id:string;name:string;canCreateLocation:boolean};
+  type AcademyCardProfile = {group_id:string;organization_id:string;age_range:string;
+    coach_name:string;training_schedule:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
   const assignments = $derived(
@@ -28,6 +31,11 @@
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
   let focusedGroupId = $state('');
+  let groupSearch = $state('');
+  let directoryView=$state<'groups'|'players'>('groups');
+  let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
+  const visibleGroups = $derived((directory?.groups ?? []).filter(group=>
+    group.name.toLocaleLowerCase('el-GR').includes(groupSearch.trim().toLocaleLowerCase('el-GR'))));
   const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
   const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
@@ -82,6 +90,12 @@
   });
   let appliedInitialOrganization=false;
   let openedRequestedCreate=false;
+  let appliedRequestedView=false;
+  $effect(()=>{
+    if(!browser||appliedRequestedView||!canCreate)return;
+    appliedRequestedView=true;
+    if(page.url.searchParams.get('view')==='players')directoryView='players';
+  });
   $effect(()=>{
     const choices=assignments;
     if(!browser||appliedInitialOrganization||$auth.status!=='authenticated'||!choices.length)return;
@@ -98,6 +112,46 @@
       organization === 'lefteria_fc' ? 'teams:write' : 'academy:write') &&
     (organization !== 'lefteria_fc' || $auth.session.user.role==='super_admin')
   );
+
+  // The group directory exposes only names and counts. Optional card details
+  // come from the existing private, group-specific and independently authorized
+  // profile endpoint. Bound the request fan-out and reject stale role responses.
+  $effect(()=>{
+    const owner=organization,actor=$auth.session?.user.id;
+    const groups=directory?.groups ?? [],view=directoryView,allowed=canCreate;
+    academyCardProfiles={};
+    if(!browser||owner!=='lefteria_fc_academy'||!actor||!allowed||
+      view!=='groups'||groups.length===0)return;
+    const controller=new AbortController();
+    void (async()=>{
+      const rows=groups.filter(group=>group.kind==='academy_group').slice(0,12);
+      const result:Record<string,AcademyCardProfile>={};
+      await Promise.all(rows.map(async group=>{
+        try{
+          const response=await fetch('/api/admin/football/academy-group-profiles/'+
+            encodeURIComponent(group.id)+'?organization_id=lefteria_fc_academy',{
+              credentials:'same-origin',cache:'no-store',signal:controller.signal
+            });
+          if(response.status===401){controller.abort();auth.invalidateSession();return;}
+          if(response.status===403){controller.abort();void auth.bootstrap();return;}
+          if(!response.ok)return;
+          const raw:unknown=await response.json();
+          if(!raw || typeof raw!=='object' || Array.isArray(raw))return;
+          const profile=raw as Record<string,unknown>;
+          if(profile.organization_id!=='lefteria_fc_academy'||
+            profile.group_id!==group.id ||
+            !['age_range','coach_name','training_schedule'].every(key=>
+              typeof profile[key]==='string' && (profile[key] as string).length<=500))return;
+          result[group.id]={group_id:group.id,organization_id:'lefteria_fc_academy',
+            age_range:profile.age_range as string,coach_name:profile.coach_name as string,
+            training_schedule:profile.training_schedule as string};
+        }catch{ /* Per-card metadata is optional; never block the canonical directory. */ }
+      }));
+      if(!controller.signal.aborted && organization===owner &&
+        $auth.session?.user.id===actor && directoryView===view)academyCardProfiles=result;
+    })();
+    return ()=>controller.abort();
+  });
 
   // The server returns only currently authorized Academy locations. This
   // selector does not infer city/site authority from any editable text or URL.
@@ -465,6 +519,25 @@
               <div data-testid="admin-audiences-scoped"><span>Πεδίο πρόσβασης</span><strong class="admin-audiences-scope-text">Μόνο ανατεθειμένα τμήματα</strong></div>
             {/if}
           </div>
+          {#if canCreate}
+            <div class="admin-directory-switch" role="group" aria-label="Ενότητες διαχείρισης">
+              <button type="button" aria-pressed={directoryView==='groups'}
+                data-testid="admin-directory-teams"
+                onclick={()=>directoryView='groups'}>Ομάδες & τμήματα</button>
+              <button type="button" aria-pressed={directoryView==='players'}
+                data-testid="admin-directory-players"
+                onclick={()=>directoryView='players'}>Παίκτες CRM</button>
+            </div>
+          {/if}
+          {#if canCreate && directoryView==='players' && $auth.session}
+            <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
+              groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              allowFinance={organization==='lefteria_fc_academy' &&
+                hasAdminPermission($auth.session.user.permissions,'finance:read')}
+              onExpired={()=>auth.invalidateSession()}
+              onRevoked={()=>void auth.bootstrap()} onChanged={()=>retry++}/>
+          {/if}
+          {#if directoryView==='groups'}
           {#if lastCreatedGroupId && lastCreatedOrganization===organization}
             <section class="admin-panel admin-group-create-next" data-testid="admin-group-next-setup" role="status">
               <p class="admin-eyebrow">ΤΟ ΤΜΗΜΑ ΑΠΟΘΗΚΕΥΤΗΚΕ</p>
@@ -648,6 +721,14 @@
               <h2 id="admin-audiences-title">{organization === 'lefteria_fc' ? 'Ομάδες πρώτης ομάδας' : 'Τμήματα Ακαδημίας'}</h2>
               <span class="admin-audiences-caption">Ενημέρωση από το ρόστερ</span>
             </div>
+            {#if directory.groups.length>0}
+              <label class="admin-audience-search" for="admin-group-search">
+                Αναζήτηση ομάδας / τμήματος
+                <input id="admin-group-search" type="search" bind:value={groupSearch}
+                  placeholder="Όνομα ομάδας ή ηλικιακού τμήματος…" autocomplete="off"
+                  data-testid="admin-group-search"/>
+              </label>
+            {/if}
             {#if directory.groups.length === 0}
               {#if $auth.session.user.role==='super_admin'}
                 <p class="admin-muted" data-testid="admin-audiences-empty">
@@ -688,24 +769,50 @@
               {/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
-                {#each directory.groups as group (group.id)}
-                  <li>
-                    <div><span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span><strong>{group.name}</strong></div>
-                    <div class="admin-audiences-count"><strong>{group.active_players}</strong><span>ενεργοί παίκτες</span></div>
+                {#each visibleGroups as group (group.id)}
+                  <li class:admin-audience-selected={focusedGroupId===group.id}>
+                    <div class="admin-audience-card-title">
+                      <span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
+                      <strong>{group.name}</strong>
+                    </div>
+                    {#if organization==='lefteria_fc_academy' && academyCardProfiles[group.id]}
+                      <div class="admin-audience-card-meta" data-testid="admin-academy-card-profile">
+                        {#if academyCardProfiles[group.id].age_range}
+                          <span class="admin-audience-age">{academyCardProfiles[group.id].age_range}</span>
+                        {/if}
+                        {#if academyCardProfiles[group.id].coach_name}
+                          <span>Προπονητής: {academyCardProfiles[group.id].coach_name}</span>
+                        {/if}
+                        {#if academyCardProfiles[group.id].training_schedule}
+                          <span>Πρόγραμμα: {academyCardProfiles[group.id].training_schedule}</span>
+                        {/if}
+                      </div>
+                    {/if}
+                    <div class="admin-audiences-count">
+                      <strong>{group.active_players}</strong><span>ενεργοί παίκτες</span>
+                    </div>
                     <button type="button" class="admin-secondary"
                       aria-expanded={focusedGroupId===group.id}
                       aria-controls="admin-group-workspace"
                       onclick={()=>focusedGroupId=focusedGroupId===group.id?'':group.id}
-                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Άνοιγμα τμήματος'}</button>
+                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Διαχείριση τμήματος'} <span aria-hidden="true">›</span></button>
                   </li>
                 {/each}
               </ul>
+              {#if visibleGroups.length===0}
+                <p class="admin-muted" role="status" data-testid="admin-group-search-empty">Δεν βρέθηκε τμήμα με αυτή την ονομασία. Δοκιμάστε διαφορετική αναζήτηση.</p>
+              {/if}
               {#if focusedGroup}
                 <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
                   data-testid="admin-group-workspace">
-                  <header><p class="admin-eyebrow">ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</p>
-                    <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
-                    <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                  <header class="admin-focused-group-header">
+                    <div>
+                      <p class="admin-eyebrow">ΤΜΗΜΑ · ΠΡΟΠΟΝΗΣΕΙΣ · ΑΘΛΗΤΕΣ</p>
+                      <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
+                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                    </div>
+                    <button type="button" class="admin-secondary"
+                      onclick={()=>focusedGroupId=''}>Πίσω στις ομάδες</button>
                   </header>
                   {#if organization && $auth.session}
                     {#key organization+':'+focusedGroup.id+':'+$auth.session.user.id}
@@ -721,6 +828,7 @@
               {/if}
             {/if}
           </section>
+          {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
       </div>
@@ -737,7 +845,39 @@
 {/if}
 
 <style>
-  .admin-audiences{max-width:1190px}
+  .admin-audiences{max-width:1440px}
+  .admin-directory-switch{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+  .admin-directory-switch button{min-height:40px;padding:9px 15px;border:1px solid #3c4140;
+    background:#161818;color:#d5dad8;border-radius:7px;font:700 13px/1.3 'Fira Sans',sans-serif}
+  .admin-directory-switch button[aria-pressed='true']{color:#fbd076;background:#241d10;border-color:#bd8528}
+
+  .admin-audiences h1{font-size:clamp(23px,2.1vw,30px);line-height:1.2}
+  .admin-audience-search{display:grid;gap:7px;max-width:440px;margin:17px 0 8px;
+    font-size:12px;color:#bfc3c6}
+  .admin-audience-search input{min-height:42px;border-radius:7px}
+  .admin-audiences-list{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:13px;margin:14px 0 4px!important}
+  .admin-audiences-list li{display:grid!important;grid-template-columns:1fr auto;gap:14px;
+    align-content:space-between;min-height:174px;padding:17px!important;border:1px solid #303335!important;
+    border-radius:11px;background:#141515;transition:border-color .15s,background .15s}
+  .admin-audiences-list li:hover{border-color:#907139!important;background:#1a1915}
+  .admin-audiences-list li.admin-audience-selected{border-color:#11af79!important;background:#101a16}
+  .admin-audience-card-title{grid-column:1/-1;min-width:0;display:grid;gap:8px}
+  .admin-audience-card-title strong{font:800 20px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    color:#f3f4f0}
+  .admin-audience-card-meta{grid-column:1/-1;display:grid;gap:5px;color:#c0c8c9;
+    font-size:11.5px;line-height:1.45;overflow-wrap:anywhere}
+  .admin-audience-age{justify-self:start;padding:3px 8px;background:#10352a;
+    color:#45dcaa;border-radius:5px;font-weight:750}
+  .admin-audiences-list .admin-audiences-count{align-items:center;align-self:end}
+  .admin-audiences-list .admin-audiences-count strong{font-size:21px}
+  .admin-audiences-list .admin-secondary{min-height:38px;padding:7px 11px;font-size:12px;
+    border-radius:7px;align-self:end}
+  .admin-focused-group-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  .admin-focused-group-header .admin-secondary{min-height:40px}
+  @media(max-width:1020px){.admin-audiences-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:700px){.admin-audiences-list{grid-template-columns:1fr}}
+
   .admin-audiences>h1{margin:0 0 10px}
   .admin-audiences>.admin-muted{max-width:80ch;margin-bottom:18px}
   .admin-audiences-select{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-bottom:14px}
