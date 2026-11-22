@@ -107,9 +107,9 @@
           <nav class="public-subnav team-tabs" aria-label="Ενότητες ομάδας">{#each navigation as [id,label]}<a href={withTeam(id === 'overview' ? '/team' : '/team?tab='+id)} aria-current={data.tab === id ? 'page' : undefined}>{label}</a>{/each}</nav>
     {/if}
   </section>
-  {#if data.editorialBlocks.length}
+  {#if data.editorialBlocks?.length}
     <section class="public-section team-cms-region" aria-label="Δημοσιευμένες ενότητες ομάδας" data-testid="team-cms-region">
-      <WebsitePageBlocks pageLayout={data.editorialLayout} blocks={data.editorialBlocks}/>
+      <WebsitePageBlocks pageLayout={data.editorialLayout} blocks={data.editorialBlocks ?? []}/>
     </section>
   {/if}
   {#if !data.available}<Unavailable />{:else}<section class="public-section team-section">
