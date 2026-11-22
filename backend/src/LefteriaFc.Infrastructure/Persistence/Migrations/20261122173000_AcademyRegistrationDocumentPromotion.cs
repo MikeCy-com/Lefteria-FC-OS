@@ -50,6 +50,7 @@ public sealed class AcademyRegistrationDocumentPromotion : Migration
           (promoted_at IS NULL AND promoted_player_id IS NULL
             AND promoted_document_id IS NULL AND ciphertext IS NOT NULL
             AND octet_length(ciphertext)=size_bytes
+            AND nonce IS NOT NULL AND auth_tag IS NOT NULL
             AND octet_length(nonce)=12 AND octet_length(auth_tag)=16)
           OR
           (promoted_at IS NOT NULL AND promoted_player_id IS NOT NULL
@@ -74,10 +75,12 @@ public sealed class AcademyRegistrationDocumentPromotion : Migration
         player_document_id uuid NOT NULL UNIQUE
           REFERENCES academy_private.player_documents(id) ON DELETE RESTRICT,
         player_id varchar(128) COLLATE "C" NOT NULL,
+        organization_id varchar(32) NOT NULL DEFAULT 'lefteria_fc_academy'
+          CHECK(organization_id='lefteria_fc_academy'),
         approved_by uuid NOT NULL
           REFERENCES identity.admin_accounts(id) ON DELETE RESTRICT,
         transferred_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-        FOREIGN KEY('lefteria_fc_academy',player_id)
+        FOREIGN KEY(organization_id,player_id)
           REFERENCES club.players(organization_id,id) ON DELETE RESTRICT
       );
       REVOKE ALL ON academy_intake.registration_document_promotions FROM PUBLIC;
