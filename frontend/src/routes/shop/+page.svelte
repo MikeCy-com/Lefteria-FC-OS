@@ -5,7 +5,7 @@
   import { formatShopPrice } from '../../lib/public/shop';
   import type { PublicShopData } from '../../lib/server/public-shop';
 
-  let { data }: { data: PublicShopData } = $props();
+  let { data }: { data: PublicShopData & {editorialLead:string|null} } = $props();
 </script>
 
 <svelte:head>
@@ -19,7 +19,7 @@
       <div class="shop-container">
         <a class="shop-back" href="/">← Αρχική</a>
         <h1 id="shop-title" data-testid="shop-title">ΕΠΙΣΗΜΟ <span>ΚΑΤΑΣΤΗΜΑ</span></h1>
-        <p>Εισιτήρια αγώνων και επίσημα προϊόντα ΛΕΥΤΕΡΙΑ FC.</p>
+        <p>{data.editorialLead ?? 'Εισιτήρια αγώνων και επίσημα προϊόντα ΛΕΥΤΕΡΙΑ FC.'}</p>
       </div>
     </section>
 

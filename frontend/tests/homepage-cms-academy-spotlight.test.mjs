@@ -65,8 +65,8 @@ test('API validates new fixed slot on creation and updates independently of edit
   assert.match(api,/requirePublisher && role is not \("super_admin" or "manager"\)/);
   const editor=read('frontend/src/routes/admin/website-pages/+page.svelte');
   assert.match(editor,/openAcademySpotlight/);
-  assert.match(editor,/isLockedRegion = \$derived\(isHero \|\| isSpotlight\)/);
-  assert.match(editor,/href=\{isLockedRegion \? '\/'/);
+  assert.match(editor,/isLockedRegion = \$derived\(isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead \|\| isShopLead \|\| isGlobalDesign \|\| isNavigationDesign\)/);
+  assert.match(editor,/isLockedRegion \? '\/' : websitePagePath/);
   assert.match(editor,/expected_version:selected.version,publish/);
   assert.match(editor,/hasAdminPermission/);
 });

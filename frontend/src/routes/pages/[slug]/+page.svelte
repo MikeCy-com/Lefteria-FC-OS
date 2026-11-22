@@ -34,7 +34,7 @@
       </div>
     </header>
     <div class="website-page-content" data-testid="website-published-content">
-      <WebsitePageBlocks blocks={content.blocks} />
+      <WebsitePageBlocks blocks={content.blocks} pageLayout={content.layout}/>
       <nav class="website-page-return" aria-label="Επιστροφή στην ενότητα">
         <a href={parentLink.href} data-testid="website-page-return">← ΕΠΙΣΤΡΟΦΗ · {parentLink.label}</a>
       </nav>

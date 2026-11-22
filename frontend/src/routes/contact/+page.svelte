@@ -5,7 +5,7 @@
   import type { PublicPageData } from '../../lib/public/types';
   import { safeContactEmail, contactEmailDraftHref } from '../../lib/public/contact-email';
 
-  let { data }: { data: PublicPageData } = $props();
+  let { data }: { data: PublicPageData & {contactLead:string|null} } = $props();
   const club = $derived(data.site?.club);
   const owner = $derived(data.organization === 'lefteria_fc_academy' ? 'ΑΚΑΔΗΜΙΑ' : 'ΛΕΥΤΕΡΙΑ FC');
   const validEmail = $derived(safeContactEmail(club?.email));
@@ -40,7 +40,7 @@
   <section class="public-page-heading contact-page-heading" data-testid="contact-page">
     <p class="public-eyebrow">ΕΠΙΚΟΙΝΩΝΗΣΤΕ ΜΑΖΙ ΜΑΣ</p>
     <h1>ΕΠΙΚΟΙΝΩΝΙΑ</h1>
-    <p class="contact-lead">Εδώ θα βρείτε τους επίσημους τρόπους επικοινωνίας με τη Λευτεριά FC και την Ακαδημία.</p>
+    <p class="contact-lead">{data.contactLead ?? 'Εδώ θα βρείτε τους επίσημους τρόπους επικοινωνίας με τη Λευτεριά FC και την Ακαδημία.'}</p>
     <nav class="public-subnav" aria-label="Στοιχεία οργανισμού">
       <a href="/contact?organization_id=lefteria_fc" aria-current={data.organization === 'lefteria_fc' ? 'page' : undefined}>ΛΕΥΤΕΡΙΑ FC</a>
       <a href="/contact?organization_id=lefteria_fc_academy" aria-current={data.organization === 'lefteria_fc_academy' ? 'page' : undefined}>ΑΚΑΔΗΜΙΑ</a>

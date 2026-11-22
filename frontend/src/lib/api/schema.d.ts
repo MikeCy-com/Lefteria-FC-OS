@@ -5196,12 +5196,25 @@ export interface components {
             user: components["schemas"]["WebAdminIdentityDto"];
         };
         WebsiteBlock: {
+            layout?: null | components["schemas"]["WebsiteBlockLayout"];
+            /** Format: int32 */
+            level?: null | number | string;
             text: string;
             type: string;
             url: null | string;
         };
+        WebsiteBlockLayout: {
+            /** Format: int32 */
+            margin_bottom: number | string;
+            /** Format: int32 */
+            margin_top: number | string;
+            /** Format: int32 */
+            min_height: number | string;
+            width: string;
+        };
         WebsitePageContent: {
             blocks: components["schemas"]["WebsiteBlock"][];
+            layout?: null | components["schemas"]["WebsitePageLayout"];
             /** Format: int32 */
             menu_order: number | string;
             menu_parent: string;
@@ -5213,6 +5226,14 @@ export interface components {
         WebsitePageCreate: {
             page: components["schemas"]["WebsitePageContent"];
             slug: string;
+        };
+        WebsitePageLayout: {
+            /** Format: int32 */
+            gap: number | string;
+            /** Format: int32 */
+            max_width: number | string;
+            /** Format: int32 */
+            side_padding: number | string;
         };
         WebsitePagePublication: {
             /** Format: int64 */

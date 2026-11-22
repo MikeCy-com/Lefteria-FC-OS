@@ -11,7 +11,11 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import WebsiteGlobalDesignEditor from '../../../lib/admin/WebsiteGlobalDesignEditor.svelte';
+  import WebsiteNavigationEditor from '../../../lib/admin/WebsiteNavigationEditor.svelte';
+  import {parseNavigationDesign} from '../../../lib/public/navigation-design.ts';
+  import {DEFAULT_GLOBAL_DESIGN,parseGlobalDesign} from '../../../lib/public/global-design.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, CANONICAL_NAVIGATION_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, validHeadingLevel, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -71,7 +75,17 @@
   const editing = $derived(creating || !!selected);
   const isHero = $derived(organization !== null && slug === HOMEPAGE_HERO_SLUGS[organization]);
   const isSpotlight = $derived(organization === 'lefteria_fc_academy' && slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
-  const isLockedRegion = $derived(isHero || isSpotlight);
+  const isAboutIntro = $derived(slug === CANONICAL_ABOUT_INTRO_SLUG);
+  const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
+  const isAboutHistory = $derived(slug === CANONICAL_ABOUT_HISTORY_SLUG);
+  const isShopLead = $derived(slug === CANONICAL_SHOP_LEAD_SLUG);
+  const isGlobalDesign = $derived(slug === CANONICAL_GLOBAL_DESIGN_SLUG);
+  const isNavigationDesign = $derived(slug === CANONICAL_NAVIGATION_DESIGN_SLUG);
+  const isNativeRegion = $derived(organization!==null && nativeEditorialOwnerAllowed(slug,organization));
+  const maxBlocks = $derived(isNativeRegion ? 12 : 40);
+  const nativeRegionOptions = $derived(organization ? (Object.keys(NATIVE_EDITORIAL_REGIONS) as NativeEditorialRegion[]).filter(key=>nativeEditorialOwnerAllowed(key,organization!)) : []);
+  const isAcademyLead = $derived(slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG || slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG || slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG);
+  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory || isAcademyLead || isShopLead || isGlobalDesign || isNavigationDesign);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -127,6 +141,121 @@
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
   }
+  const nativeRegionLabels:Record<NativeEditorialRegion,string>={
+    'canonical-team-roster-sections':'Ρόστερ · προσαρμοσμένες ενότητες',
+    'canonical-team-schedule-sections':'Πρόγραμμα αγώνων · προσαρμοσμένες ενότητες',
+    'canonical-team-results-sections':'Αποτελέσματα · προσαρμοσμένες ενότητες',
+    'canonical-team-statistics-sections':'Στατιστικά · προσαρμοσμένες ενότητες',
+    'canonical-news-sections':'Νέα · προσαρμοσμένες ενότητες',
+    'canonical-sponsors-sections':'Χορηγοί · προσαρμοσμένες ενότητες'
+  };
+  function openNativeRegion(target:NativeEditorialRegion) {
+    if(!organization||!nativeEditorialOwnerAllowed(target,organization)||!canWrite||saving)return;
+    const existing=records.find(page=>page.slug===target);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=target;mediaPickerIndex=null;
+    draft={title:nativeRegionLabels[target],
+      summary:'Ανεξάρτητες ενότητες πριν από τη δυναμική λίστα. Η λίστα παραμένει συνδεδεμένη με το σύστημα.',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'heading',text:'Η ΔΙΚΗ ΜΑΣ ΙΣΤΟΡΙΑ',url:null},
+        {type:'paragraph',text:'Προσθέστε εγκεκριμένες πληροφορίες, εικόνες ή συνδέσμους. Οι δυναμικές εγγραφές παραμένουν αμετάβλητες.',url:null}]};
+    notice='';problem='';
+  }
+  function openNavigationDesign() {
+    if(!organization||!canWrite||saving)return;
+    const existing=records.find(row=>row.slug===CANONICAL_NAVIGATION_DESIGN_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_NAVIGATION_DESIGN_SLUG;mediaPickerIndex=null;
+    draft={title:'Πλοήγηση · προσαρμοσμένοι σύνδεσμοι',summary:'Εγκεκριμένο μενού και υπομενού οργανισμού',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:JSON.stringify({links:[]}),url:null}]};
+    notice='';problem='';
+  }
+  function openGlobalDesign() {
+    if(!organization||!canWrite||saving)return;
+    const existing=records.find(row=>row.slug===CANONICAL_GLOBAL_DESIGN_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_GLOBAL_DESIGN_SLUG;mediaPickerIndex=null;
+    draft={title:'Γενικό σύστημα σχεδιασμού',summary:'Τυπογραφία και χρώματα όλου του δημόσιου ιστοτόπου',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:JSON.stringify(DEFAULT_GLOBAL_DESIGN),url:null}]};
+    notice='';problem='';
+  }
+  function openShopEditorialLead() {
+    if(organization!=='lefteria_fc'||!canWrite||saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_SHOP_LEAD_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_SHOP_LEAD_SLUG;mediaPickerIndex=null;
+    draft={title:'Εισαγωγή · Κατάστημα',summary:'Επεξηγηματικό κείμενο καταστήματος χωρίς αλλαγή προϊόντων, εισιτηρίων ή πληρωμών',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:'Εισιτήρια αγώνων και επίσημα προϊόντα ΛΕΥΤΕΡΙΑ FC.',url:null}]};
+    notice='';problem='';
+  }
+  function openAcademyEditorialLead(target: typeof CANONICAL_ACADEMY_INTRO_SLUG | typeof CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG | typeof CANONICAL_ACADEMY_GROUPS_LEAD_SLUG | typeof CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG) {
+    if(organization!=='lefteria_fc_academy'||!canWrite||saving)return;
+    const existing=records.find(page=>page.slug===target);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    const isPhilosophy=target===CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG;
+    const isGroups=target===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG;
+    const isRegistration=target===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG;
+    creating=true;picked=null;slug=target;mediaPickerIndex=null;
+    draft={title:isRegistration?'Εισαγωγή · Εγγραφές Ακαδημίας':isGroups?'Εισαγωγή · Τμήματα Ακαδημίας':isPhilosophy?'Εισαγωγή · Φιλοσοφία Ακαδημίας':'Εισαγωγή · Ακαδημία',
+      summary:'Εγκεκριμένο εισαγωγικό κείμενο στην υπάρχουσα σελίδα',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:isPhilosophy
+        ?'Πιστευουμε οτι καθε νεος αθλητης αξιζει ενα περιβαλλον που τον αναπτυσσει ολοπλευρα — τεχνικα, τακτικα, σωματικα και ψυχολογικα.'
+        :isRegistration?'Συμπληρώστε τη φόρμα για να αιτηθείτε την εγγραφή του αθλητή στην ακαδημία.'
+        :isGroups?'Γνώρισε τα τμήματά μας και βρες τις πληροφορίες προπονήσεων και αγώνων για κάθε ηλικιακή ομάδα.'
+        :'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.',url:null}]};
+    notice='';problem='';
+  }
+  function openCanonicalAboutHistory() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_ABOUT_HISTORY_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_ABOUT_HISTORY_SLUG;mediaPickerIndex=null;
+    draft={title:'Ιστορία συλλόγου · Σχετικά',summary:'Επεξεργάσιμη ενότητα ιστορίας στην υπάρχουσα σελίδα',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:'Η Ιστορία μας',url:null},
+        {type:'paragraph',text:'Η ΛΕΥΤΕΡΙΑ FC ιδρύθηκε με όραμα να δημιουργήσει έναν ποδοσφαιρικό σύλλογο που συνδυάζει την επαγγελματική αριστεία με τις κοινοτικές αξίες.',url:null},
+        {type:'paragraph',text:"Με έδρα τη Λεμεσό της Κύπρου, αγωνιζόμαστε στον Α' Όμιλο του ΠΑΑΟΚ.",url:null},
+        {type:'paragraph',text:'Το όνομά μας "ΛΕΥΤΕΡΙΑ" σημαίνει "Ελευθερία" στα ελληνικά, αντιπροσωπεύοντας τη φιλοσοφία μας για ελεύθερο, επιθετικό ποδόσφαιρο.',url:null}
+      ]};
+    notice='';problem='';
+  }
+  function openCanonicalContactLead() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_CONTACT_LEAD_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_CONTACT_LEAD_SLUG;mediaPickerIndex=null;
+    draft={title:'Εισαγωγή · Επικοινωνία',summary:'Κείμενο πάνω από τα επίσημα στοιχεία επικοινωνίας',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'paragraph',text:'Εδώ θα βρείτε τους επίσημους τρόπους επικοινωνίας με τη Λευτεριά FC και την Ακαδημία.',url:null}]};
+    notice='';problem='';
+  }
+  function openCanonicalAboutIntro() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_ABOUT_INTRO_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_ABOUT_INTRO_SLUG;mediaPickerIndex=null;
+    draft={title:'Εισαγωγή · Σχετικά με τον σύλλογο',
+      summary:'Κείμενο της υπάρχουσας σελίδας Σχετικά με τον σύλλογο',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:'Σχετικά με τη ΛΕΥΤΕΡΙΑ FC',url:null},
+        {type:'paragraph',text:'Ιδρύθηκε το 2024, η ΛΕΥΤΕΡΙΑ FC ενσαρκώνει το πνεύμα του πάθους, της αριστείας και της κοινότητας στο κυπριακό ποδόσφαιρο.',url:null}
+      ]};
+    notice='';problem='';
+  }
   function openHomepageHero() {
     if(!organization || !canWrite)return;
     const target=HOMEPAGE_HERO_SLUGS[organization];
@@ -159,7 +288,7 @@
     notice='';problem='';
   }
   function insertBlock(index:number,type:WebsiteBlock['type']){
-    if(!canWrite||saving||isLockedRegion||draft.blocks.length>=40||
+    if(!canWrite||saving||isLockedRegion||draft.blocks.length>=maxBlocks||
       index<0||index>draft.blocks.length)return;
     const next={type,text:type==='heading'?'Νέα ενότητα':'',
       url:type==='image'||type==='button'?'':null} as WebsiteBlock;
@@ -169,9 +298,9 @@
     blockMessage='Προστέθηκε νέα ενότητα '+(index+1)+'.';
   }
   function addBlock(type: WebsiteBlock['type']) {
-    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=maxBlocks)return;
     mediaPickerIndex=null;
-    draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
+    draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null,...(type==='heading'?{level:2 as const}:{})}];
   }
   function removeBlock(index:number) {
     if(!canWrite || saving || isLockedRegion || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
@@ -186,7 +315,7 @@
     blockMessage='Το block '+(index+1)+' μετακινήθηκε στη θέση '+(index+direction+1)+'.';
   }
   function duplicateBlock(index:number) {
-    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=maxBlocks || index<0 || index>=draft.blocks.length)return;
     draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
     mediaPickerIndex=null;
     blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
@@ -248,7 +377,56 @@
     mediaPickerIndex=null;
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
+  function setPageLayout(key:keyof WebsitePageLayout,value:number) {
+    if(!canWrite || saving || isLockedRegion)return;
+    draft.layout={...DEFAULT_PAGE_LAYOUT,...draft.layout,[key]:value};
+  }
+  function setBlockLayout(index:number,next:WebsiteBlockLayout) {
+    if(!canWrite || saving || isLockedRegion || !validBlockLayout(next) || !draft.blocks[index])return;
+    draft.blocks[index]={...draft.blocks[index],layout:next};
+  }
+  function setHeadingLevel(index:number,level:2|3|4|5|6){
+    if(!canWrite || saving || isLockedRegion || ![2,3,4,5,6].includes(level) ||
+       draft.blocks[index]?.type!=='heading')return;
+    draft.blocks[index]={...draft.blocks[index],level};
+  }
   function valid():boolean {
+    if(isNavigationDesign && (!organization || draft.menu_parent!=='hidden' ||
+      draft.menu_order!==0 || draft.blocks.length!==1 ||
+      draft.blocks[0].type!=='paragraph' || draft.blocks[0].url!==null ||
+      !parseNavigationDesign(draft.blocks[0].text,organization)))return false;
+    if(isGlobalDesign && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+      draft.blocks[0].url!==null || !parseGlobalDesign(draft.blocks[0].text)))return false;
+    if(!validPageLayout(draft.layout)||draft.blocks.some(block=>!validBlockLayout(block.layout)||!validHeadingLevel(block)))return false;
+    if(isNativeRegion && (!organization || !nativeEditorialOwnerAllowed(slug,organization) ||
+      draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length<1 || draft.blocks.length>12))return false;
+    if(isShopLead && (organization!=='lefteria_fc' ||
+       draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+       draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+       draft.blocks[0].url!==null || !draft.blocks[0].text.trim() ||
+       draft.blocks[0].text.length>500))return false;
+    if(isAcademyLead && (organization!=='lefteria_fc_academy' ||
+       draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+       draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+       draft.blocks[0].url!==null || !draft.blocks[0].text.trim() ||
+       draft.blocks[0].text.length>500))return false;
+    if(isAboutHistory && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==4 || draft.blocks[0].type!=='heading' ||
+      draft.blocks[0].url!==null || !draft.blocks[0].text.trim() ||
+      draft.blocks[0].text.length>180 || /[\r\n]/.test(draft.blocks[0].text) ||
+      draft.blocks.slice(1).some(b=>b.type!=='paragraph' || b.url!==null ||
+        !b.text.trim() || b.text.length>800)))return false;
+    if(isContactLead && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
+      draft.blocks[0].url!==null || draft.blocks[0].text.length>500))return false;
+    if(isAboutIntro && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
+      draft.blocks[1].type!=='paragraph' ||
+      draft.blocks[0].url!==null || draft.blocks[1].url!==null ||
+      draft.blocks[0].text.length>180 || draft.blocks[1].text.length>500 ||
+      /[\r\n]/.test(draft.blocks[0].text)))return false;
     if(isSpotlight && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==2 || draft.blocks[0].type!=='heading' ||
       draft.blocks[1].type!=='paragraph' || draft.blocks[0].text.length>180 ||
@@ -264,7 +442,7 @@
        draft.seo_title.length>180 || draft.seo_description.length>300 ||
        !visibleParents.some(p=>p.value===draft.menu_parent) ||
        !Number.isSafeInteger(draft.menu_order) || draft.menu_order<0 || draft.menu_order>1000 ||
-       draft.blocks.length<1 || draft.blocks.length>40 ||
+       draft.blocks.length<1 || draft.blocks.length>maxBlocks ||
        draft.blocks.some(b=>!b.text.trim() || b.text.length>5000 ||
          ((b.type==='image'||b.type==='button') && (!b.url ||
            !(/^(\/(?!\/)|https:\/\/)/i.test(b.url)) || b.url.includes('\\')))))
@@ -352,6 +530,63 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}
+              <button type="button" class="admin-secondary" onclick={openNavigationDesign}
+                disabled={loading||saving} data-testid="edit-navigation-design">
+                Διαχείριση μενού / υπομενού
+              </button>
+              <button type="button" class="admin-secondary" onclick={openGlobalDesign}
+                disabled={loading||saving} data-testid="edit-global-design">
+                Γενική τυπογραφία H1–H6 · Χρώματα
+              </button>
+            {/if}
+            {#if canWrite && nativeRegionOptions.length}
+              <section aria-label="Δυναμικές σελίδες · πρόσθετες ενότητες" data-testid="cms-native-regions">
+                <h3>Δυναμικές σελίδες · πρόσθετες ενότητες</h3>
+                <p class="admin-muted">Επεξεργαστείτε τίτλους, κείμενα, εικόνες και κουμπιά πριν από το ρόστερ, το πρόγραμμα, τα αποτελέσματα, τα νέα ή τους χορηγούς. Τα πραγματικά δεδομένα και φίλτρα παραμένουν κλειδωμένα.</p>
+                {#each nativeRegionOptions as region (region)}
+                  <button type="button" class="admin-secondary"
+                    onclick={()=>openNativeRegion(region)} disabled={loading||saving}
+                    data-testid={'edit-native-'+region}>{nativeRegionLabels[region]}</button>
+                {/each}
+              </section>
+            {/if}
+            {#if canWrite && organization==='lefteria_fc'}
+              <button type="button" class="admin-secondary" onclick={openShopEditorialLead}
+                disabled={loading || saving} data-testid="edit-canonical-shop-lead">
+                Επεξεργασία εισαγωγής · Κατάστημα
+              </button>
+            {/if}
+            {#if canWrite && organization==='lefteria_fc_academy'}
+              <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_INTRO_SLUG)}
+                disabled={loading || saving} data-testid="edit-canonical-academy-intro">
+                Επεξεργασία εισαγωγής · Ακαδημία
+              </button>
+              <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG)}
+                disabled={loading || saving} data-testid="edit-canonical-academy-registration">
+                Επεξεργασία εισαγωγής · Εγγραφές Ακαδημίας
+              </button>
+              <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_GROUPS_LEAD_SLUG)}
+                disabled={loading || saving} data-testid="edit-canonical-academy-groups">
+                Επεξεργασία εισαγωγής · Τμήματα Ακαδημίας
+              </button>
+              <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG)}
+                disabled={loading || saving} data-testid="edit-canonical-academy-philosophy">
+                Επεξεργασία εισαγωγής · Φιλοσοφία Ακαδημίας
+              </button>
+            {/if}
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalAboutHistory}
+              disabled={loading || saving} data-testid="edit-canonical-about-history">
+              Επεξεργασία ιστορίας · Σχετικά με τον σύλλογο
+            </button>{/if}
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalContactLead}
+              disabled={loading || saving} data-testid="edit-canonical-contact-lead">
+              Επεξεργασία εισαγωγής · Επικοινωνία
+            </button>{/if}
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalAboutIntro}
+              disabled={loading || saving} data-testid="edit-canonical-about-intro">
+              Επεξεργασία εισαγωγής · Σχετικά με τον σύλλογο
+            </button>{/if}
             {#if canWrite}<button type="button" class="admin-secondary" onclick={openHomepageHero} disabled={loading || saving}>Επεξεργασία Hero αρχικής · {organization==='lefteria_fc'?'Πρώτη ομάδα':'Ακαδημία'}</button>{/if}
             {#if canWrite && organization==='lefteria_fc_academy'}
               <button type="button" class="admin-secondary" onclick={openAcademySpotlight} disabled={loading || saving}>
@@ -394,6 +629,32 @@
                       pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="our-values" bind:value={slug}
                       disabled={!creating || !canWrite || saving}/></label>
                   </div>
+                  {#if !isLockedRegion}
+                    <fieldset class="cms-layout-fieldset" data-testid="cms-global-layout">
+                      <legend>Διάταξη σελίδας · πλάτος και αποστάσεις</legend>
+                      <div class="cms-field-grid">
+                        <label>Μέγιστο πλάτος περιεχομένου
+                          <select value={draft.layout?.max_width ?? DEFAULT_PAGE_LAYOUT.max_width}
+                            onchange={e=>setPageLayout('max_width',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [960,1120,1280,1440] as width}<option value={width}>{width} px</option>{/each}
+                          </select>
+                        </label>
+                        <label>Κενό μεταξύ blocks
+                          <select value={draft.layout?.gap ?? DEFAULT_PAGE_LAYOUT.gap}
+                            onchange={e=>setPageLayout('gap',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [8,16,24,32,48] as gap}<option value={gap}>{gap} px</option>{/each}
+                          </select>
+                        </label>
+                        <label>Πλευρικό περιθώριο
+                          <select value={draft.layout?.side_padding ?? DEFAULT_PAGE_LAYOUT.side_padding}
+                            onchange={e=>setPageLayout('side_padding',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
+                            {#each [12,16,24,32,48] as padding}<option value={padding}>{padding} px</option>{/each}
+                          </select>
+                        </label>
+                      </div>
+                      <p class="admin-muted">Οι ρυθμίσεις ισχύουν για τις επεξεργάσιμες ενότητες, όχι για προστατευμένα δεδομένα και φόρμες.</p>
+                    </fieldset>
+                  {/if}
                   {#if isHero}<p class="admin-muted">Η αλλαγή αφορά μόνο το κείμενο της κεντρικής εικόνας στην αρχική σελίδα. Καρουζέλ, εικόνες, επόμενος αγώνας και σύνδεσμοι μένουν δυναμικοί. Απαιτείται ξεχωριστή έγκριση και δημοσίευση.</p>{/if}
                   {#if isSpotlight}<p class="admin-muted">Η αλλαγή αφορά μόνο τον τρίπτυχο τίτλο (τρεις λέξεις ή φράσεις χωρισμένες με ·) και την περιγραφή της προβολής Ακαδημίας στην αρχική σελίδα. Εικόνα, κουμπί και πραγματικός αριθμός τμημάτων διατηρούνται. Δημοσίευση μόνο μετά την έγκριση.</p>{/if}
                   <label>Σύντομη περιγραφή <textarea rows="2" maxlength="500" bind:value={draft.summary} disabled={!canWrite || saving}></textarea></label>
@@ -407,6 +668,15 @@
                     <label>SEO τίτλος <input maxlength="180" bind:value={draft.seo_title} disabled={!canWrite || saving}/></label>
                     <label>Meta description <textarea rows="2" maxlength="300" bind:value={draft.seo_description} disabled={!canWrite || saving}></textarea></label>
                   </details>{/if}
+                  {#if isNavigationDesign && organization}
+                    <WebsiteNavigationEditor value={draft.blocks[0]?.text ?? ''}
+                      {organization} onChange={value=>{if(draft.blocks[0])draft.blocks[0].text=value}}
+                      disabled={!canWrite||saving}/>
+                  {:else if isGlobalDesign}
+                    <WebsiteGlobalDesignEditor value={draft.blocks[0]?.text ?? ''}
+                      onChange={value=>{if(draft.blocks[0])draft.blocks[0].text=value}}
+                      disabled={!canWrite||saving}/>
+                  {:else}
                   <div class="cms-block-heading"><h3>Περιεχόμενο σελίδας</h3><span>{draft.blocks.length} / 40 blocks</span></div>
                   {#if !isLockedRegion}<p class="admin-muted cms-drag-hint">Σύρετε ένα block από τη λαβή ⠿ για να αλλάξετε τη σειρά του ή χρησιμοποιήστε τα βέλη ↑ ↓ με πληκτρολόγιο ή κινητό. Η αντιγραφή διατηρεί το περιεχόμενο του block.</p>{/if}
                   <p class="cms-block-status" role="status" aria-live="polite" aria-atomic="true">{blockMessage}</p>
@@ -425,7 +695,7 @@
                               disabled={!canWrite || saving} ondragstart={e=>blockDragStart(e,index)} ondragend={clearBlockDrag}>⠿</button>{/if}
                             <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isLockedRegion || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
                             <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isLockedRegion || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
-                            {#if !isLockedRegion}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=40 || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
+                            {#if !isLockedRegion}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=maxBlocks || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
                             <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isLockedRegion || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
                           </div>
                         </div>
@@ -440,6 +710,15 @@
                             <input maxlength="5000" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}/>
                           {/if}
                         </label>
+                        {#if block.type==='heading' && !isLockedRegion}
+                          <label>Σημασιολογικό επίπεδο τίτλου
+                            <select data-testid="cms-heading-level" value={block.level??2}
+                              disabled={!canWrite||saving}
+                              onchange={e=>draft.blocks[index].level=Number(e.currentTarget.value) as 2|3|4|5|6}>
+                              {#each [2,3,4,5,6] as level}<option value={level}>H{level}</option>{/each}
+                            </select>
+                          </label>
+                        {/if}
                         {#if block.type==='image' || block.type==='button'}
                           <label>{block.type==='image'?'Ασφαλές URL εικόνας':'Προορισμός κουμπιού'}
                             <input type="text" maxlength="2048" placeholder="https://… ή /…" value={block.url ?? ''}
@@ -456,6 +735,7 @@
                       </div>
                     {/each}
                   </div>
+                  {/if}
                   {#if mediaPickerIndex!==null && organization && canWrite && !isLockedRegion &&
                     draft.blocks[mediaPickerIndex]?.type==='image'}
                     <section class="cms-media-chooser" id="cms-published-media" aria-label="Επιλογή δημοσιευμένης εικόνας">
@@ -465,10 +745,10 @@
                     </section>
                   {/if}
                   {#if canWrite && !isLockedRegion}<div class="cms-add-block" aria-label="Προσθήκη block">
-                    <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=40}>+ Τίτλος</button>
-                    <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=40}>+ Κείμενο</button>
-                    <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=40}>+ Εικόνα</button>
-                    <button type="button" onclick={()=>addBlock('button')} disabled={saving || draft.blocks.length>=40}>+ Κουμπί</button>
+                    <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Τίτλος</button>
+                    <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Κείμενο</button>
+                    <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Εικόνα</button>
+                    <button type="button" onclick={()=>addBlock('button')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Κουμπί</button>
                   </div>{/if}
                   {#if notice}<p role="status" class="cms-success">{notice}</p>{/if}
                   {#if problem}<p role="alert" class="cms-error">{problem}</p>{/if}
@@ -484,7 +764,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isNavigationDesign ? '/' : isGlobalDesign ? '/' : isNativeRegion ? (slug.startsWith('canonical-team-') ? '/team?tab='+slug.replace('canonical-team-','').replace('-sections','') : slug==='canonical-news-sections' ? '/news?organization_id='+organization : '/sponsors?scope='+(organization==='lefteria_fc_academy'?'academy':'first_team')) : isShopLead ? '/shop' : isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
@@ -495,7 +775,11 @@
                   <p class="admin-eyebrow">{organization==='lefteria_fc'?'ΠΡΩΤΗ ΟΜΑΔΑ':'ΑΚΑΔΗΜΙΑ'}</p>
                   <h2>{draft.title || 'Τίτλος σελίδας'}</h2>
                   {#if draft.summary}<p>{draft.summary}</p>{/if}
-                  {#if isHero}
+                  {#if isNavigationDesign}
+                    <p class="admin-muted">Η προεπισκόπηση του μενού βρίσκεται στον επεξεργαστή. Η δημόσια πλοήγηση δεν αλλάζει πριν από έγκριση και δημοσίευση.</p>
+                  {:else if isGlobalDesign}
+                    <p class="admin-muted">Η προεπισκόπηση των H1–H6 και της παλέτας εμφανίζεται στον επεξεργαστή. Η δημόσια ιστοσελίδα θα ενημερωθεί μόνο μετά τη δημοσίευση.</p>
+                  {:else if isHero}
                     <p class="admin-muted">Προεπισκόπηση περιεχομένου Hero · η τελική γεωμετρία διατηρείται από την αρχική σελίδα.</p>
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
@@ -504,7 +788,8 @@
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}
-                    <WebsiteVisualCanvas blocks={draft.blocks}
+                    <WebsiteVisualCanvas blocks={draft.blocks} maxBlocks={maxBlocks}
+                      pageLayout={draft.layout ?? DEFAULT_PAGE_LAYOUT} onLayout={setBlockLayout} onLevel={setHeadingLevel}
                       editable={canWrite} locked={isLockedRegion} busy={saving}
                       onEdit={editCanvasText} onMove={moveCanvasBlock}
                       onInsert={insertBlock} onSelect={selectCanvasBlock}/>

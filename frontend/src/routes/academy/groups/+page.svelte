@@ -7,7 +7,7 @@
   import { personPublicLink } from '../../../lib/public/public-urls';
   import { publicImages } from '../../../lib/public/images';
   import type { PublicSectionPageData } from '../../../lib/public/sections-types';
-  let { data }: { data: PublicSectionPageData } = $props();
+  let { data }: { data: PublicSectionPageData & {editorialLead:string|null} } = $props();
   const groups = $derived((data.site?.academy_groups ?? []).filter(group => group.organization_id === 'lefteria_fc_academy'));
   // Only backend-published public DTOs for a group which also appears in
   // the canonical administrator-approved public group directory.
@@ -29,7 +29,7 @@
     <div class="academy-groups-hero-image"><PublicImage src={publicImages.academy} alt="" eager /></div>
     <div class="academy-groups-hero-copy">
     <p class="public-eyebrow">ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</p><h1>ΜΙΚΡΑ ΒΗΜΑΤΑ.<br /><em>ΜΕΓΑΛΑ ΟΝΕΙΡΑ.</em></h1>
-    <p class="intro-copy">Γνώρισε τα τμήματά μας και βρες τις πληροφορίες προπονήσεων και αγώνων για κάθε ηλικιακή ομάδα.</p>
+    <p class="intro-copy">{data.editorialLead ?? 'Γνώρισε τα τμήματά μας και βρες τις πληροφορίες προπονήσεων και αγώνων για κάθε ηλικιακή ομάδα.'}</p>
     <nav class="academy-section-links" aria-label="Ακαδημία"><a href="/academy">Η ακαδημία μας</a><a href="/academy/philosophy">Η φιλοσοφία μας</a><a href="/contact">Επικοινωνία</a></nav>
     </div>
   </section>

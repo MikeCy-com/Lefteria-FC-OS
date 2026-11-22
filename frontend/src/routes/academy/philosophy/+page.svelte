@@ -4,7 +4,7 @@
   import type { PublicIconName } from '../../../lib/public/icon-types';
   import type { PublicPageData } from '../../../lib/public/types';
 
-  let { data }: { data: PublicPageData } = $props();
+  let { data }: { data: PublicPageData & { editorialLead: string|null } } = $props();
 
   // Source-parity content: Lefteria-FC/frontend/src/pages/AcademyPhilosophyPage.jsx.
   const values: { icon: PublicIconName; title: string; description: string }[] = [
@@ -38,7 +38,7 @@
           Η ΦΙΛΟΣΟΦΙΑ <span>ΜΑΣ</span>
         </h1>
         <p class="philosophy-lead">
-          Πιστευουμε οτι καθε νεος αθλητης αξιζει ενα περιβαλλον που τον αναπτυσσει ολοπλευρα — τεχνικα, τακτικα, σωματικα και ψυχολογικα.
+          {data.editorialLead ?? 'Πιστευουμε οτι καθε νεος αθλητης αξιζει ενα περιβαλλον που τον αναπτυσσει ολοπλευρα — τεχνικα, τακτικα, σωματικα και ψυχολογικα.'}
         </p>
       </div>
     </section>

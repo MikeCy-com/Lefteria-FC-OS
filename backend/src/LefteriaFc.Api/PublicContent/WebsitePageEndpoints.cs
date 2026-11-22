@@ -13,9 +13,30 @@ using Npgsql;
 namespace LefteriaFc.Api.PublicContent;
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record WebsiteBlock(string Type, string Text, string? Url)
+public sealed record WebsiteBlockLayout(string Width, int MinHeight, int MarginTop, int MarginBottom)
 {
     public bool Valid() =>
+        Width is "full" or "half" or "third" &&
+        MinHeight is 0 or 120 or 240 or 360 or 480 &&
+        MarginTop is 0 or 8 or 16 or 24 or 32 or 48 or 64 &&
+        MarginBottom is 0 or 8 or 16 or 24 or 32 or 48 or 64;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsitePageLayout(int MaxWidth, int Gap, int SidePadding)
+{
+    public bool Valid() =>
+        MaxWidth is 960 or 1120 or 1280 or 1440 &&
+        Gap is 8 or 16 or 24 or 32 or 48 &&
+        SidePadding is 12 or 16 or 24 or 32 or 48;
+}
+
+[JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+public sealed record WebsiteBlock(string Type, string Text, string? Url, WebsiteBlockLayout? Layout = null, int? Level = null)
+{
+    public bool Valid() =>
+        (Layout is null || Layout.Valid()) &&
+        (Type == "heading" ? Level is null or 2 or 3 or 4 or 5 or 6 : Level is null) &&
         Type is "heading" or "paragraph" or "image" or "button" &&
         Text is { Length: <= 5000 } &&
         Text.All(c => c >= ' ' && c != '\u007f' || c is '\n' or '\r' or '\t') &&
@@ -29,7 +50,8 @@ public sealed record WebsiteBlock(string Type, string Text, string? Url)
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
 public sealed record WebsitePageContent(
     string Title, string Summary, string SeoTitle, string SeoDescription,
-    string MenuParent, int MenuOrder, IReadOnlyList<WebsiteBlock> Blocks)
+    string MenuParent, int MenuOrder, IReadOnlyList<WebsiteBlock> Blocks,
+    WebsitePageLayout? Layout = null)
 {
     public static bool SafeUrl(string? value, bool image) =>
         value is { Length: > 0 and <= 2048 } &&
@@ -46,6 +68,7 @@ public sealed record WebsitePageContent(
             SeoTitle is not {Length: <= 180} || SeoDescription is not {Length: <= 300} ||
             MenuParent is not ("hidden" or "root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact") ||
             MenuOrder is < 0 or > 1000 || Blocks is null || Blocks.Count is < 1 or > 40 ||
+            (Layout is not null && !Layout.Valid()) ||
             Blocks.Any(b => b is null || !b.Valid()) ||
             Blocks.Any(b => b.Type is "heading" or "paragraph" or "button" && string.IsNullOrWhiteSpace(b.Text)) ||
             Blocks.Any(b => b.Type == "image" && string.IsNullOrWhiteSpace(b.Text)))
@@ -89,7 +112,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateShopEditorialLead(owner, body.Slug, body.Page); ValidateNativeEditorialRegions(owner, body.Slug, body.Page); ValidateGlobalDesign(body.Slug, body.Page); ValidateNavigationDesign(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +135,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateShopEditorialLead(owner, slug, body.Page); ValidateNativeEditorialRegions(owner, slug, body.Page); ValidateGlobalDesign(slug, body.Page); ValidateNavigationDesign(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -337,6 +360,262 @@ public static class WebsitePageEndpoints
             content.Blocks[0].Text.Split('·').Length != 3 ||
             content.Blocks[0].Text.Split('·').Any(part => string.IsNullOrWhiteSpace(part) || part.Length > 60))
             throw Invalid();
+    }
+    // Canonical About-page intro: editorial text only. Layout, crest, values,
+    // venue and every dynamic widget remain in the native route. This slot is
+    // intentionally hidden from menus and cannot become a new public page.
+    private static void ValidateCanonicalAboutIntro(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-about-intro") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 2 || content.Blocks[0].Type != "heading" ||
+            content.Blocks[1].Type != "paragraph" ||
+            content.Blocks[0].Url is not null || content.Blocks[1].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            string.IsNullOrWhiteSpace(content.Blocks[1].Text) ||
+            content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
+            content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n'))
+            throw Invalid();
+    }
+    // Fixed contact introduction only; the published club contact details and
+    // mail-client flow remain dynamic and must never be overridden by CMS.
+    private static void ValidateCanonicalContactLead(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-contact-lead") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 500)
+            throw Invalid();
+    }
+    // Native About history supports heading plus three editorial paragraphs.
+    // Crest, venue and other existing native components remain untouched.
+    private static void ValidateCanonicalAboutHistory(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-about-history") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 4 || content.Blocks[0].Type != "heading" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 180 ||
+            content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n') ||
+            content.Blocks.Skip(1).Any(block => block.Type != "paragraph" ||
+                block.Url is not null || string.IsNullOrWhiteSpace(block.Text) ||
+                block.Text.Length > 800))
+            throw Invalid();
+    }
+    // Preserve Academy fixtures, group rosters, registration links and core layout:
+    // only the fixed introductory copy is editorial. Other owners are forbidden.
+    private static void ValidateAcademyEditorialLead(string owner, string slug, WebsitePageContent content)
+    {
+        if (slug is not ("canonical-academy-intro" or "canonical-academy-philosophy-lead" or "canonical-academy-groups-lead" or "canonical-academy-registration-lead")) return;
+        if (owner != "lefteria_fc_academy" ||
+            content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 500)
+            throw Invalid();
+    }
+    // Shop copy only. No catalog stock, prices, checkout or payment status can
+    // be edited via a website block and this slot belongs to First Team.
+    private static void ValidateShopEditorialLead(string owner, string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-shop-lead") return;
+        if (owner != "lefteria_fc" ||
+            content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 500)
+            throw Invalid();
+    }
+    // Dynamic data is never stored as CMS blocks: only additional, explicitly
+    // allowlisted editorial regions before native lists/cards are customizable.
+    private static void ValidateNativeEditorialRegions(string owner, string slug, WebsitePageContent content)
+    {
+        var firstTeam = slug is "canonical-team-roster-sections" or
+            "canonical-team-schedule-sections" or "canonical-team-results-sections" or
+            "canonical-team-statistics-sections";
+        var shared = slug is "canonical-news-sections" or "canonical-sponsors-sections";
+        if (!firstTeam && !shared) return;
+        if (firstTeam && owner != "lefteria_fc" ||
+            content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count is < 1 or > 12)
+            throw Invalid();
+        // Additional sections cannot embed HTML or arbitrary code; blocks use
+        // existing URL/length validation and the separately approved publisher.
+        if (content.Blocks.Any(block => block.Type is not ("heading" or "paragraph" or "image" or "button")))
+            throw Invalid();
+    }
+    // Published global design is data, not CSS. Require an exact JSON schema and
+    // bounded numeric/color tokens. Privileged publication remains unchanged.
+    private static void ValidateGlobalDesign(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-global-design") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null || content.Blocks[0].Text.Length > 5000)
+            throw Invalid();
+        try
+        {
+            using var json = JsonDocument.Parse(content.Blocks[0].Text);
+            var root = json.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 2 ||
+                !root.TryGetProperty("text", out var styles) || styles.ValueKind != JsonValueKind.Object ||
+                !root.TryGetProperty("colors", out var colors) || colors.ValueKind != JsonValueKind.Object ||
+                colors.EnumerateObject().Count() != 7 ||
+                styles.EnumerateObject().Count() != 12)
+                throw Invalid();
+            foreach (var name in new[] { "background", "foreground", "accent", "surface", "muted", "border", "link" })
+            {
+                if (!colors.TryGetProperty(name, out var color) || color.ValueKind != JsonValueKind.String ||
+                    !Regex.IsMatch(color.GetString() ?? "", @"\A#[0-9A-Fa-f]{6}\z"))
+                    throw Invalid();
+            }
+            var bg = colors.GetProperty("background").GetString()!;
+            if (ColorContrast(bg, colors.GetProperty("foreground").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("muted").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("link").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("accent").GetString()!) < 3.0)
+                throw Invalid();
+            foreach (var name in new[] { "h1", "h2", "h3", "h4", "h5", "h6", "p", "button", "nav", "caption", "label", "card" })
+            {
+                if (!styles.TryGetProperty(name, out var t) || t.ValueKind != JsonValueKind.Object ||
+                    t.EnumerateObject().Count() != 5 ||
+                    !t.TryGetProperty("family", out var family) ||
+                    family.ValueKind != JsonValueKind.String ||
+                    family.GetString() is not ("condensed" or "sans" or "serif") ||
+                    !t.TryGetProperty("desktop", out var desktop) || !desktop.TryGetInt32(out var d) || d is < 12 or > 80 ||
+                    !t.TryGetProperty("mobile", out var mobile) || !mobile.TryGetInt32(out var m) || m is < 12 or > 80 ||
+                    !t.TryGetProperty("weight", out var weight) || !weight.TryGetInt32(out var w) ||
+                    w is not (400 or 500 or 600 or 700 or 800) ||
+                    !t.TryGetProperty("line_height", out var line) ||
+                    !line.TryGetDouble(out var h) || h is not (1.0 or 1.15 or 1.2 or 1.35 or 1.5 or 1.6 or 1.8))
+                    throw Invalid();
+            }
+        }
+        catch (JsonException) { throw Invalid(); }
+        catch (InvalidOperationException) { throw Invalid(); }
+    }
+    // Custom navigation lives in an approved, organization-scoped CMS snapshot.
+    // Operational routes/categories cannot be replaced by this document.
+    private static double ColorContrast(string first, string second)
+    {
+        static double Luminance(string hex)
+        {
+            double Channel(int start)
+            {
+                var color = Convert.ToInt32(hex.Substring(start, 2), 16) / 255.0;
+                return color <= 0.04045 ? color / 12.92 : Math.Pow((color + 0.055) / 1.055, 2.4);
+            }
+            return 0.2126 * Channel(1) + 0.7152 * Channel(3) + 0.0722 * Channel(5);
+        }
+        var a = Luminance(first);
+        var b = Luminance(second);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
+    private static void ValidateNavigationDesign(string owner, string slug, WebsitePageContent page)
+    {
+        if (slug != "canonical-navigation-design") return;
+        if (page.MenuParent != "hidden" || page.MenuOrder != 0 ||
+            page.Blocks.Count != 1 || page.Blocks[0].Type != "paragraph" ||
+            page.Blocks[0].Url is not null || page.Blocks[0].Text.Length > 5000)
+            throw Invalid();
+        try
+        {
+            using var doc = JsonDocument.Parse(page.Blocks[0].Text);
+            var root = doc.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is < 1 or > 3 ||
+                root.EnumerateObject().Any(entry => entry.Name is not ("links" or "category_order" or "category_labels")) ||
+                !root.TryGetProperty("links", out var links) || links.ValueKind != JsonValueKind.Array ||
+                links.GetArrayLength() > 24) throw Invalid();
+            if (root.TryGetProperty("category_order", out var categoryOrder))
+            {
+                if (categoryOrder.ValueKind != JsonValueKind.Array || categoryOrder.GetArrayLength() != 9)
+                    throw Invalid();
+                var expected = new HashSet<string>(StringComparer.Ordinal) {
+                    "home", "club", "team", "academy", "matches", "news", "events", "shop", "contact"
+                };
+                foreach (var category in categoryOrder.EnumerateArray())
+                {
+                    if (category.ValueKind != JsonValueKind.String ||
+                        !expected.Remove(category.GetString() ?? ""))
+                        throw Invalid();
+                }
+                if (expected.Count != 0) throw Invalid();
+            }
+            if (root.TryGetProperty("category_labels", out var categoryLabels))
+            {
+                var allowedLabels = new HashSet<string>(StringComparer.Ordinal) {
+                    "home", "club", "team", "academy", "matches", "news", "events", "shop", "contact"
+                };
+                if (categoryLabels.ValueKind != JsonValueKind.Object ||
+                    categoryLabels.EnumerateObject().Count() > allowedLabels.Count)
+                    throw Invalid();
+                foreach (var entry in categoryLabels.EnumerateObject())
+                {
+                    if (!allowedLabels.Contains(entry.Name) || entry.Value.ValueKind != JsonValueKind.String ||
+                        string.IsNullOrWhiteSpace(entry.Value.GetString()) || entry.Value.GetString()!.Length > 40)
+                        throw Invalid();
+                }
+            }
+            var identifiers = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var link in links.EnumerateArray())
+            {
+                if (link.ValueKind != JsonValueKind.Object || link.EnumerateObject().Count() != 5 ||
+                    !link.TryGetProperty("id", out var idValue) || idValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("label", out var labelValue) || labelValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("path", out var pathValue) || pathValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("parent", out var parentValue) || parentValue.ValueKind != JsonValueKind.String ||
+                    !link.TryGetProperty("order", out var orderValue) || !orderValue.TryGetInt32(out var order) ||
+                    order is < 0 or > 100) throw Invalid();
+                var id = idValue.GetString() ?? "";
+                var label = labelValue.GetString() ?? "";
+                var path = pathValue.GetString() ?? "";
+                var parent = parentValue.GetString() ?? "";
+                if (!Regex.IsMatch(id, @"\Acustom-[a-z0-9-]{3,45}\z") || !identifiers.Add(id) ||
+                    string.IsNullOrWhiteSpace(label) || label.Length > 80 ||
+                    path.Length > 250 ||
+                    !Regex.IsMatch(path, @"\A/[a-z0-9-]+(?:/[a-z0-9-]+)*(?:\?[a-z0-9_=&-]+)?\z") ||
+                    Regex.IsMatch(path, @"\A/(admin|api|app|login)(?:/|\?|\z)") ||
+                    parent is not ("root" or "club" or "team" or "academy" or "matches" or "news" or "events" or "shop" or "contact"))
+                    throw Invalid();
+                var uri = new Uri("https://lefteria.invalid" + path, UriKind.Absolute);
+                var route = uri.AbsolutePath;
+                var query = uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries);
+                string? Value(string key) => query.Select(pair => pair.Split('=', 2))
+                    .Where(parts => parts.Length == 2 && parts[0] == key)
+                    .Select(parts => parts[1]).FirstOrDefault();
+                var selectedOwner = Value("organization_id");
+                var scope = Value("scope");
+                if (query.Select(pair => pair.Split('=', 2)[0])
+                    .Count(key => key == "organization_id") > 1 ||
+                    query.Select(pair => pair.Split('=', 2)[0])
+                    .Count(key => key == "scope") > 1)
+                    throw Invalid();
+                if (owner == "lefteria_fc_academy")
+                {
+                    if (selectedOwner is not null && selectedOwner != "lefteria_fc_academy")
+                        throw Invalid();
+                    if (parent is "team" or "matches" or "shop" ||
+                        Regex.IsMatch(path, @"\A/(team|trials|shop)(?:/|\?|\z)") ||
+                        scope == "first_team" || route == "/sponsors/first-team" ||
+                        (route is "/news" or "/about" or "/contact" || route.StartsWith("/pages/", StringComparison.Ordinal)) &&
+                        selectedOwner != "lefteria_fc_academy" ||
+                        route is "/events" or "/partners" or "/sponsors" && scope != "academy")
+                        throw Invalid();
+                }
+                else if (parent == "academy" || Regex.IsMatch(path, @"\A/academy(?:/|\?|\z)") ||
+                    scope == "academy" || route == "/sponsors/academy" ||
+                    (selectedOwner is not null && selectedOwner != "lefteria_fc"))
+                    throw Invalid();
+            }
+        }
+        catch (JsonException) { throw Invalid(); }
+        catch (InvalidOperationException) { throw Invalid(); }
     }
     private static string Owner(string? org) =>
         org is "lefteria_fc" or "lefteria_fc_academy" ? org :
