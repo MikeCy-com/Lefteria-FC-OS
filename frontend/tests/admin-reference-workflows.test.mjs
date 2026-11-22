@@ -48,5 +48,7 @@ test('shared compact admin styles retain role-scoped nav without adding standalo
   assert.match(shared,/\.admin-app \.admin-sidebar/);
   assert.match(shell,/adminSectionsFor\(user\)/);
   assert.match(shell,/liveIds/);
+  assert.match(shell,/data-testid="admin-player-crm-link"/);
+  assert.match(shell,/canManagePlayerCrm/);
   assert.doesNotMatch(groups,/Math\.random|localStorage/);
 });
