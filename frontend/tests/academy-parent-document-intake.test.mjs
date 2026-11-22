@@ -63,6 +63,8 @@ test('file upload grants are child-bound, limited, encrypted and never served to
 test('same-origin proxy strips cookies, caps file size and returns only validated statuses',()=>{
   assert.match(proxy,/upload_tokens/);
   assert.match(proxy,/new Set\(result\.upload_tokens\)/);
+  assert.match(proxy,/parseAcademyRegistrationReceipts/);
+  assert.match(proxy,/Object\.hasOwn/);
   assert.match(uploads,/request\.headers\.get\('origin'\)!==url\.origin/);
   assert.match(uploads,/size>11\*1024\*1024/);
   assert.match(uploads,/credentials:'omit'/);

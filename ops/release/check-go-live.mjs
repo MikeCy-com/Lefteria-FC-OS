@@ -29,6 +29,26 @@ export const MVP_REQUIRED_GATES=Object.freeze([
 ]);
 const PROFILES=new Set(['full','academy-mvp']);
 
+// Release evidence dates and URLs must be plausible before a human can
+// independently verify them. A green link is never proof of staging itself.
+function validVerificationDate(value){
+  if(typeof value!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value))
+    return false;
+  const parsed=new Date(value+'T00:00:00Z');
+  return Number.isFinite(parsed.getTime())&&
+    parsed.toISOString().slice(0,10)===value&&
+    value<=new Date().toISOString().slice(0,10);
+}
+function validEvidenceUrl(value){
+  if(typeof value!=='string'||value.length<12||value.length>2048)return false;
+  try{
+    const url=new URL(value);
+    return url.protocol==='https:'&&!url.username&&!url.password&&!url.hash&&
+      url.hostname.length>3&&
+      !/(^localhost$|^127[.]|[.]invalid$|^example[.])/.test(url.hostname);
+  }catch{return false;}
+}
+
 export function checkReleaseReadiness(input, targetSha=null, profile='full') {
   if(!PROFILES.has(profile))throw new Error('Unknown release profile: fail closed.');
   if(!input || typeof input!=='object' || Array.isArray(input) ||
@@ -56,8 +76,9 @@ export function checkReleaseReadiness(input, targetSha=null, profile='full') {
     }
     if(!RELEASE_SHA.test(gate.release_sha??'') ||
       (targetSha!==null && gate.release_sha!==targetSha) ||
-      !/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(gate.verified_at??'') ||
-      gate.evidence.length<1) {
+      !validVerificationDate(gate.verified_at) ||
+      gate.evidence.length<1 ||
+      gate.evidence.some(item=>!validEvidenceUrl(item))) {
       reasons.push({id:gate.id,priority:gate.priority,reason:'missing_or_wrong_verification_evidence'});
     }
   }

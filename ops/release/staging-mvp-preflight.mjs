@@ -11,6 +11,7 @@
  */
 import process from 'node:process';
 import {fileURLToPath} from 'node:url';
+import {readBoundedResponse} from './read-bounded-response.mjs';
 
 export const STAGING_CHECKS=Object.freeze([
   {path:'/api/health/live',status:200,kind:'json',bodyStatus:'live'},
@@ -25,6 +26,11 @@ export const STAGING_CHECKS=Object.freeze([
     status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
   {path:'/api/mobile/hub/fan-subscription/plans',
     status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
+  // Sensitive Academy enrollment and roster reads are protected at the API,
+  // not only through the administrator UI.
+  {path:'/api/admin/academy/intake',status:[401,403],kind:'deny'},
+  {path:'/api/admin/football/players?organization_id=lefteria_fc_academy',
+    status:[401,403],kind:'deny'},
   {path:'/api/mobile/family',status:[401,403],kind:'deny'},
   {path:'/api/mobile/players-list',status:[401,403],kind:'deny'}
 ]);
@@ -71,19 +77,28 @@ export async function checkStagingMvp({
     }
     const expected=Array.isArray(check.status)?check.status:[check.status];
     let ok=expected.includes(response.status);
-    if(ok&&check.kind==='json'){
+    if(ok&&(check.kind==='json'||check.kind==='disabled')){
       try{
-        const body=await response.json();
-        ok=body?.status===check.bodyStatus;
-      }catch{ok=false;}
-    }else if(ok&&check.kind==='disabled'){
-      try {
-        const body=await response.json();
-        ok=body?.code===check.bodyCode &&
-          (response.headers?.get('content-type')??'').includes('application/json');
+        const type=(response.headers?.get('content-type')??'').toLowerCase();
+        if(!type.includes('application/json'))ok=false;
+        else{
+          const body=JSON.parse(await readBoundedResponse(response,8192));
+          ok=check.kind==='json'?body?.status===check.bodyStatus:
+            body?.code===check.bodyCode;
+        }
       }catch{ok=false;}
     }else if(ok&&check.kind==='html'){
-      ok=(response.headers?.get('content-type')??'').toLowerCase().includes('text/html');
+      // A chunked or lying-content-length 200 may contain an enormous body.
+      // Stream at most 1 MiB and NEVER log any response bytes.
+      try{
+        const type=(response.headers?.get('content-type')??'').toLowerCase();
+        if(!type.includes('text/html'))ok=false;
+        else{
+          const html=await readBoundedResponse(response,1024*1024);
+          ok=html.length>0&&
+            /<(?:!doctype\s+html|html\b)/i.test(html);
+        }
+      }catch{ok=false;}
     }
     evidence.push({path:check.path,ok,status:response.status,
       reason:ok?'matched':response.status>=300&&response.status<400

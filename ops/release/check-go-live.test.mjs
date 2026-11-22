@@ -86,3 +86,30 @@ test('a narrower MVP requires an exact reviewed SHA and verifiable evidence',()=
   notDisabled.gates.find(g=>g.id==='mvp-deferred-features').status='blocked';
   assert.equal(checkReleaseReadiness(notDisabled,productionSha,'academy-mvp').ready,false);
 });
+
+test('verified release gates reject invalid or future date and fabricated evidence URLs',()=>{
+  const data=clone(gates);
+  for(const gate of data.gates){
+    gate.status='verified';gate.release_sha=productionSha;
+    gate.verified_at='2026-11-21';
+    gate.evidence=['https://github.com/MikeCy-com/Lefteria-FC-OS/issues/446'];
+  }
+  assert.equal(checkReleaseReadiness(data,productionSha,'academy-mvp').ready,true);
+  for(const [date,evidence] of [
+    ['2030-01-01',null],
+    ['2026-02-30',null],
+    [null,'staging checked'],
+    [null,'http://example.com/evidence'],
+    [null,'https://user:pass@github.com/secret'],
+    [null,'https://example.invalid/claim'],
+    [null,'https://github.com/example/proof#secret']
+  ]){
+    const attempt=clone(data);
+    const check=attempt.gates.find(g=>g.id==='identity-delivery');
+    if(date!==null)check.verified_at=date;
+    if(evidence!==null)check.evidence=[evidence];
+    const result=checkReleaseReadiness(attempt,productionSha,'academy-mvp');
+    assert.equal(result.ready,false,JSON.stringify({date,evidence}));
+    assert.ok(result.blocked.some(g=>g.id==='identity-delivery'));
+  }
+});

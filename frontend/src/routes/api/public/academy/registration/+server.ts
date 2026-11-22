@@ -1,6 +1,7 @@
 import { INTERNAL_API_ORIGIN } from '$app/env/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import {parseAcademyRegistrationReceipts} from '../../../../../lib/academy/registration-receipts';
 
 // Same-origin web adapter: no client-selected upstream, no cookies or
 // Authorization forwarded, no sensitive form data logged or stored in SSR.
@@ -44,17 +45,18 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // server internals or user-submitted medical data to the browser.
     if (response.status === 202) {
       const result = await response.json().catch(() => null);
-      if (typeof result?.receipt === 'string' && /^[0-9a-f]{32}$/.test(result.receipt) &&
-        Array.isArray(result?.receipts) && result.receipts.length>=1 &&
-        result.receipts.length<=5 && result.receipts[0]===result.receipt &&
-        result.receipts.every((id:unknown)=>typeof id==='string' && /^[0-9a-f]{32}$/.test(id)) &&
-        Array.isArray(result.upload_tokens) &&
-        result.upload_tokens.length===result.receipts.length &&
-        result.upload_tokens.every((token:unknown)=>typeof token==='string' &&
-          /^[0-9a-f]{64}$/.test(token)) &&
-        new Set(result.upload_tokens).size===result.upload_tokens.length)
-        return json({receipt:result.receipt,receipts:result.receipts,
-          upload_tokens:result.upload_tokens},{status:202,headers});
+      // Preserve PR #463's strict receipt validation (including sparse,
+      // duplicate and mismatched sibling IDs) before accepting upload tokens.
+      const verified = parseAcademyRegistrationReceipts(result);
+      if (verified && Array.isArray(result?.upload_tokens) &&
+        result.upload_tokens.length === verified.receipts.length &&
+        Array.from({length: result.upload_tokens.length}, (_, i) => i)
+          .every(index => Object.hasOwn(result.upload_tokens, index) &&
+            typeof result.upload_tokens[index] === 'string' &&
+            /^[0-9a-f]{64}$/.test(result.upload_tokens[index])) &&
+        new Set(result.upload_tokens).size === result.upload_tokens.length)
+        return json({...verified, upload_tokens: result.upload_tokens},
+          {status: 202, headers});
     }
     const status = [400, 403, 413, 415, 422, 429].includes(response.status) ? response.status : 503;
     return json({ code: status === 429 ? 'rate_limited' : status === 422 ? 'invalid_registration' : 'registration_unavailable' }, { status, headers });

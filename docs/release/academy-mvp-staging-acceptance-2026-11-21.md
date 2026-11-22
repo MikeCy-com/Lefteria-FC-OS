@@ -16,6 +16,48 @@ Before issuing **any** mutating command, independently compare the preview hostn
 
 The existing authoritative procedure is `deploy/preview/README.md`; follow it for pinned image provenance, root-only environment management and safe migration. A deployment of a new commit must not silently overwrite existing staging configuration. No destructive down migration on CMS tables with content/audit history.
 
+## Manual read-only staging HTTP evidence (after G0, not a deployment)
+
+GitHub Actions → **Academy isolated staging HTTP preflight (read-only)** is
+`workflow_dispatch` only; it does not run on a push, create a release, or
+modify a running container. Before triggering it, an infrastructure operator
+must independently prove **G0** in a reviewed issue and explicitly confirm
+that the nominated HTTPS origin is a separate preview with no shared
+production writes, secrets, providers, databases, mounts, or callbacks.
+The checked preview hostname alone is never proof of isolation.
+
+Provide the exact **current** main SHA, explicitly approved isolated staging
+origin (without credentials or a URL path), the reviewed G0 GitHub issue URL,
+and tick the false-by-default isolation confirmation. The workflow rejects
+missing confirmation, stale main, missing exact-main build/browser CI and
+non-isolated/prod URL forms before issuing GETs.
+
+The check inspects readiness, public/admin HTML, backend-disabled high-risk
+routes, and anonymous denial of protected Academy/guardian/roster APIs.
+It records HTTP statuses in a short-lived Actions artifact. If the preview
+is behind a Basic/other external access gate, this no-secret Actions job may
+correctly report BLOCKED; an authorized operator can run the same
+`ops/release/staging-mvp-preflight.mjs` from a controlled machine using
+the opt-in `LEFTERIA_PREVIEW_GATE_AUTHORIZATION` environment value.
+Never paste credentials into issue comments, workflow inputs or artifacts.
+
+The report **does not** verify deployed SHA, private five-role sessions,
+guardian revocation, financial reconciliation, media/document isolation,
+staging backup/restore or rollback. These remain **NOT RUN** until separately
+observed against synthetic records. An HTTP result is not production GO.
+
+## Image revision evidence is separate from HTTP readiness
+
+After G0 approval and an authorized staging-only rollout, independently capture
+the running preview API/web image IDs and OCI revisions and compare them to
+the immutable, SHA-256-verified preview bundle using the **offline**
+[staging runtime provenance guide](preview-runtime-image-provenance-2026-11-22.md).
+This operation reads only minimal sanitized Docker fields and requires a
+separate operator-signed evidence record. It does not connect to Hostinger,
+change Docker resources, or replace G0 and actual five-role acceptance.
+Neither a correct manifest nor a successful HTTP preflight alone proves the
+running revision.
+
 ## Executable acceptance matrix
 
 | ID | Scenario and expected observable result | Evidence needed | Status |

@@ -61,16 +61,29 @@ export function hasOperatorApproval(approval,sha,profile){
      !Array.isArray(approval.signoffs)||
      approval.signoffs.length!==SIGNOFF_ROLES.length)return false;
   const roles=new Set();
+  const identities=new Set();
+  const evidenceUrls=new Set();
   for(const signer of approval.signoffs){
     if(!signer||!SIGNOFF_ROLES.includes(signer.role)||roles.has(signer.role)||
        typeof signer.name!=='string'||
        !/^[\p{L}0-9 ._@-]{3,120}$/u.test(signer.name)||
        !validDate(signer.signed_at)||
+       signer.signed_at>approval.decision_at||
        !validProofUrl(signer.evidence_url))return false;
+    // Distinct role strings alone never prove five independent reviewers.
+    // Normalize harmless case/spacing variations before comparing identities.
+    const identity=signer.name.normalize('NFKC').trim()
+      .replace(/\s+/g,' ').toLowerCase();
+    if(identities.has(identity)||evidenceUrls.has(signer.evidence_url))
+      return false;
     roles.add(signer.role);
+    identities.add(identity);
+    evidenceUrls.add(signer.evidence_url);
   }
-  if(roles.size!==SIGNOFF_ROLES.length)return false;
-  // A release cannot approve a future or older unrelated code revision.
+  if(roles.size!==SIGNOFF_ROLES.length||
+     identities.size!==SIGNOFF_ROLES.length||
+     evidenceUrls.size!==SIGNOFF_ROLES.length)return false;
+  // Operator names and evidence links are an audit aid, not proof of real-world independence.
   return true;
 }
 
