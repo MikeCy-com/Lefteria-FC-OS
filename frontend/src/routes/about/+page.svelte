@@ -4,7 +4,7 @@
   import PublicIcon from '../../lib/public/PublicIcon.svelte';
   import type { PublicIconName } from '../../lib/public/icon-types';
   import type { PublicPageData } from '../../lib/public/types';
-  let { data }: { data: PublicPageData & {aboutIntro: {heading:string;description:string}|null} } = $props();
+  let { data }: { data: PublicPageData & {aboutIntro: {heading:string;description:string}|null; aboutHistory: {heading:string;paragraphs:[string,string,string]}|null} } = $props();
   const values: {icon: PublicIconName;title:string;desc:string}[] = [{"title": "Αριστεία", "desc": "Επιδιώκουμε την αριστεία σε όλα όσα κάνουμε, εντός και εκτός γηπέδου.", "icon": "trophy"}, {"title": "Πάθος", "desc": "Το ποδόσφαιρο είναι περισσότερο από ένα παιχνίδι - είναι το πάθος και ο τρόπος ζωής μας.", "icon": "heart"}, {"title": "Φιλοδοξία", "desc": "Θέτουμε υψηλούς στόχους και εργαζόμαστε ακούραστα για να τους επιτύχουμε.", "icon": "target"}];
 </script>
 <svelte:head><title>Σχετικά με τη ΛΕΥΤΕΡΙΑ FC</title><meta name="description" content="Η ιστορία, οι αξίες και η έδρα της Λευτεριάς FC." /></svelte:head>
@@ -27,8 +27,13 @@
     <section class="py-10 md:py-20 px-4 md:px-6">
       <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
         <div>
-          <h2 class="font-['Bebas_Neue'] text-4xl text-white mb-6 section-heading">Η Ιστορια μας</h2>
+          <h2 class="font-['Bebas_Neue'] text-4xl text-white mb-6 section-heading">{data.aboutHistory?.heading ?? 'Η Ιστορια μας'}</h2>
           <div class="space-y-4 text-zinc-300">
+            {#if data.aboutHistory}
+              {#each data.aboutHistory.paragraphs as paragraph, index (index)}
+                <p>{paragraph}</p>
+              {/each}
+            {:else}
             <p>
               Η ΛΕΥΤΕΡΙΑ FC ιδρύθηκε με όραμα να δημιουργήσει έναν ποδοσφαιρικό σύλλογο που συνδυάζει
               την επαγγελματική αριστεία με τις κοινοτικές αξίες. Το περιστέρι στο έμβλημά μας
@@ -43,6 +48,7 @@
               φιλοσοφία μας για ελεύθερο, επιθετικό ποδόσφαιρο και την ελευθερία που δίνουμε
               στους παίκτες μας να εκφραστούν.
             </p>
+            {/if}
           </div>
         </div>
         <div class="relative">
