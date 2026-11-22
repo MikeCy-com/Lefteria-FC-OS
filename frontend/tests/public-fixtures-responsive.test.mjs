@@ -21,6 +21,6 @@ test('narrow fixture cards handle long team names and readable date / score', ()
   assert.match(css, /grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/);
   assert.match(css, /@media\(max-width:767px\)/);
   assert.match(css, /@media\(max-width:360px\)/);
-  assert.match(css, /fixture-row time \{display:block;color:#ddd;font-size:14px/);
+  assert.match(css, /fixture-row time \{display:block;color:var\(--lf-color-text,#dddddd\);font-size:14px/);
   assert.match(css, /fixture-teams span \{font-size:clamp\(21px,6vw,28px\)/);
 });
