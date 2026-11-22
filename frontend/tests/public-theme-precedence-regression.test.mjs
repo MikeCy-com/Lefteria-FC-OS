@@ -86,7 +86,7 @@ test('native page width and insets have one owner instead of conflicting theme a
   assert.doesNotMatch(luxury,/\.public-section:not\(\.public-embedded-page\)\s*\{/);
   assert.doesNotMatch(luxury,/\.public-page-heading:not\(\.academy-intro\):not\(\.team-heading\)\s*\{[^}]*padding-inline/);
   assert.match(native,/\.catalog\{max-width:var\(--public-content-width,1400px\)/);
-  assert.match(native,/\.match-detail\{max-width:var\(--public-content-width,1200px\)/);
+  assert.match(native,/\.match-detail\{max-width:var\(--lf-layout-page-max-width,1200px\)/);
   assert.match(native,/\.person-content\{max-width:var\(--public-content-width,1400px\)/);
   assert.match(tokens,/\.shop-container\s*\{\s*width:min\(var\(--public-content-width,1280px\)/);
 });
