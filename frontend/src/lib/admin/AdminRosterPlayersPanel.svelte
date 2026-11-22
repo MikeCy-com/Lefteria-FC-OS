@@ -23,13 +23,14 @@
   const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
   let refresh = $state(0);
   let playerSearch=$state('');
+  let page = $state<Page|null>(null);
   const visiblePlayers=$derived((page?.players??[]).filter(player=>{
     const term=playerSearch.trim().toLocaleLowerCase('el-GR');
     return !term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
       player.id.toLocaleLowerCase('el-GR').includes(term) ||
       groupLabels(player).toLocaleLowerCase('el-GR').includes(term);
   }));
-  let page = $state<Page|null>(null);
+
   let loading = $state(false);
   let failed = $state(false);
   let editing = $state<string|null>(null);
