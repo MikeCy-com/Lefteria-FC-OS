@@ -362,6 +362,25 @@
           <a class="fan-public-link" href={publicDestination}>Άνοιγμα: {TAB_NAMES[activeTab]} <span aria-hidden="true">↗</span></a>
         </section>
       {:else if activeTab === 'more' && !composing}
+        {#if publicClubBrand}
+          <section class="content-card club-mobile-contact" aria-labelledby="mobile-club-contact-heading"
+            data-testid="mobile-club-contact">
+            <h2 id="mobile-club-contact-heading">{publicClubBrand.name} · Επικοινωνία</h2>
+            {#if publicClubBrand.address}<p>{publicClubBrand.address}</p>{/if}
+            <div class="club-mobile-contact-links">
+              {#if publicClubBrand.email}
+                <a href={'mailto:'+publicClubBrand.email} data-testid="mobile-club-email">{publicClubBrand.email}</a>
+              {/if}
+              {#if publicClubBrand.phone}
+                <a href={'tel:'+publicClubBrand.phone} data-testid="mobile-club-phone">{publicClubBrand.phone}</a>
+              {/if}
+              {#each Object.entries(publicClubBrand.socialLinks) as [network,url] (network)}
+                {#if url}<a href={url} target="_blank" rel="noopener noreferrer"
+                  data-testid={'mobile-club-social-'+network}>{network}</a>{/if}
+              {/each}
+            </div>
+          </section>
+        {/if}
         {#key user.id+':'+role}
           <GuidedSetup
             steps={mobileGuide({...user,role})}
@@ -411,6 +430,14 @@
   .secondary { background:#151718; color:#ffca46; }
   button:disabled { opacity:.55; cursor:wait; }
   button:focus-visible { outline:2px solid #ffca46; outline-offset:3px; }
+  .club-mobile-contact{display:grid;gap:10px}
+  .club-mobile-contact h2{margin:0;font:750 20px/1.25 'Fira Sans Extra Condensed',sans-serif}
+  .club-mobile-contact p{font-size:13px;margin:0}
+  .club-mobile-contact-links{display:flex;flex-wrap:wrap;gap:8px}
+  .club-mobile-contact-links a{display:inline-flex;align-items:center;min-height:40px;padding:8px 12px;
+    border:1px solid #5b4929;border-radius:6px;color:#f3c45e;text-decoration:none;
+    font-size:12px;overflow-wrap:anywhere}
+  .club-mobile-contact-links a:focus-visible{outline:2px solid #f7c655;outline-offset:2px}
   .more-links { display:grid; gap:9px; }
   .more-links button { text-align:left; }
   .app-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
