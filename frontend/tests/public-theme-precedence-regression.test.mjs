@@ -39,11 +39,22 @@ test('one CMS embedded page override controls only its own heading and block geo
   assert.match(shell,/validPageLayout\(layout\)&&layout\?\.\[key\]!=null/);
   assert.match(shell,/--lf-embedded-page-max-width:\$\{embeddedDimension\(section\.page\.layout/);
   assert.match(shell,/--lf-embedded-page-side:\$\{embeddedDimension\(section\.page\.layout/);
+  assert.match(shell,/--lf-embedded-page-gap:\$\{embeddedDimension\(section\.page\.layout/);
+  assert.match(shell,/margin:0 auto var\(--lf-embedded-page-gap/);
+  assert.match(shell,/side_padding','page-side-padding',16\)/);
+
   assert.match(shell,/max-width:var\(--lf-embedded-page-max-width,1280px\)/);
   assert.match(shell,/padding-inline:var\(--lf-embedded-page-side,0px\)/);
   assert.match(tokens,/\.public-section\.public-embedded-page\s*\{\s*padding-inline:0/);
   assert.match(blocks,/--cms-side:\$\{dimension\('side_padding','page-side-padding'\)\}/);
   assert.match(blocks,/--cms-max-width:\$\{dimension\('max_width','page-max-width'\)\}/);
+});
+
+test('original editorial title faces cannot override a published text role with local importance',()=>{
+  const home=read('lib/public/home-reference.css');
+  assert.doesNotMatch(home,/font-family:var\\(--home-display\\)\\s*!important/);
+  assert.doesNotMatch(native,/\\.public-news-body h3\\s*\\{[^}]*font-family:[^;]*!important/);
+  assert.match(native,/\\.public-news-body h3\\s*\\{\\s*font-family:var\\(--lf-h3-family/);
 });
 
 test('CMS semantic heading typography comes directly from backend role values, mobile wins over desktop',()=>{
