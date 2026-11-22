@@ -140,6 +140,8 @@ public static class AcademyFeeEndpoints
                     "Only an unlinked, unpaid future month can be cancelled; otherwise request payment review.");
             }
         }).WithName("CancelAdminAcademyFutureFee")
+        // Private admin operation used directly by the authenticated finance UI.
+        .ExcludeFromDescription()
         .Accepts<CancelAcademyFutureFeeCommand>("application/json");
 
         admin.MapPost("/{feeId:guid}/sms", async (
