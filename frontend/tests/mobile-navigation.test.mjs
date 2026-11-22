@@ -164,9 +164,10 @@ test('contextual destinations highlight only their own role-specific parent sect
   for (const tab of ['financials', 'education', 'hub']) {
     assert.equal(contextualBottomTabFor(tab, 'parent'), 'more');
   }
-  for (const role of ['parent', 'coach', 'management']) {
+  for (const role of ['parent', 'coach']) {
     assert.equal(contextualBottomTabFor('announcements', role), 'chat');
   }
+  assert.equal(contextualBottomTabFor('announcements', 'management'), 'more');
   for (const role of roles) {
     for (const tab of primaryTabs(role)) assert.equal(contextualBottomTabFor(tab, role), tab);
     for (const tab of ['profile', 'notifications']) assert.equal(contextualBottomTabFor(tab, role), null);
