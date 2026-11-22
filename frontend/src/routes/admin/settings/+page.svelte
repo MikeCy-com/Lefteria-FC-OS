@@ -30,8 +30,8 @@
     <div class="admin-settings-home" data-testid="admin-settings-home">
       <header>
         <h1>Ρυθμίσεις συλλόγου</h1>
-        <p class="admin-muted">Οι ρυθμίσεις χωρίζονται ανά λειτουργία και οργανισμό.
-          Οι σύνδεσμοι ανοίγουν τα πραγματικά, προστατευμένα εργαλεία.</p>
+        <p class="admin-muted">Ενιαίο κέντρο διαχείρισης ταυτότητας, επικοινωνίας, υποδομών, προσβάσεων και διασυνδέσεων.
+          Επιλέξτε την αντίστοιχη ενότητα για τις πραγματικές, προστατευμένες ρυθμίσεις.</p>
       </header>
       <div class="admin-settings-grid">
         {#if organizations.length}
@@ -50,10 +50,14 @@
         {#if canClub}
           <section class="admin-panel" id="website-settings">
             <p class="admin-eyebrow">ΙΣΤΟΣΕΛΙΔΑ</p>
-            <h2>Ρυθμίσεις ιστοσελίδας</h2>
-            <p>Ταυτότητα, περιγραφή, στοιχεία επικοινωνίας και δημόσιες σελίδες κάθε οργανισμού.</p>
-            <a class="admin-settings-link" href="/admin/club" data-testid="admin-settings-club">Προφίλ & δημόσια στοιχεία <span aria-hidden="true">↗</span></a>
-            <p class="admin-settings-note">Οι αλλαγές εφαρμόζονται στον επιλεγμένο οργανισμό, όχι αυτόματα και στους δύο.</p>
+            <h2>Ταυτότητα & στοιχεία οργανισμών</h2>
+            <p>Λογότυπα, ονόματα, τηλέφωνα, email, διευθύνσεις, πόλεις και κοινωνικά δίκτυα
+              της Πρώτης Ομάδας και της Ακαδημίας. Κάθε οργανισμός διατηρεί ξεχωριστό λογαριασμό και στοιχεία.</p>
+            <a class="admin-settings-link" href="/admin/club" data-testid="admin-settings-club">
+              Επεξεργασία λογότυπου & επαφών <span aria-hidden="true">↗</span></a>
+            <a class="admin-settings-link" href="/admin/website-pages">
+              Δημόσιες σελίδες & παρουσίαση <span aria-hidden="true">↗</span></a>
+            <p class="admin-settings-note">Οι αλλαγές καταχωρίζονται ανά εξουσιοδοτημένο οργανισμό και χρησιμοποιούνται από τις δημόσιες προβολές. Δεν αντιγράφονται από την Πρώτη Ομάδα στην Ακαδημία.</p>
           </section>
         {/if}
         {#if canTerritories}
@@ -112,7 +116,7 @@
     error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
-  .admin-settings-home{display:grid;gap:24px;max-width:1300px}
+  .admin-settings-home{display:grid;gap:20px;width:100%;min-width:0}
   .admin-settings-home header{display:grid;gap:6px}
   .admin-settings-home header h1{margin:0}
   .admin-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}

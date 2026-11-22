@@ -13,6 +13,8 @@
     availableRoles: readonly MobileRole[];
     userName: string;
     avatarUrl?: string | null;
+    clubName?: string;
+    clubLogoUrl?: string | null;
     notificationCount?: number;
     busy?: boolean;
     children: Snippet;
@@ -23,7 +25,7 @@
     onCreatePost: () => UiAction;
   }
 
-  let { role, activeTab, availableRoles, userName, avatarUrl = null, notificationCount = 0,
+  let { role, activeTab, availableRoles, userName, avatarUrl = null, clubName = 'ΛΕΥΤΕΡΙΑ FC', clubLogoUrl = null, notificationCount = 0,
     busy = false, children, onTabChange, onRoleChange, onNotifications, onProfile, onCreatePost }: Props = $props();
   const id = $props.id();
   let roleMenuOpen = $state(false);
@@ -77,8 +79,13 @@
       onclick={() => { roleMenuOpen = !roleMenuOpen; }} onkeydown={closeRoles} data-testid="role-switcher">
       <MobileIcon name="menu" size={24} />
     </button>
-    <img class="club-crest" src="/mobile/club-logo.png" alt="" width="42" height="48" />
-    <div class="brand-lockup"><p>ΛΕΥΤΕΡΙΑ FC</p><span>{ROLE_NAMES[role]}</span></div>
+    {#if clubLogoUrl}
+      <img class="club-crest" src={clubLogoUrl} alt="" width="42" height="48"
+        data-testid="mobile-club-brand-logo" />
+    {:else}
+      <span class="club-crest club-crest-placeholder" aria-hidden="true">Λ</span>
+    {/if}
+    <div class="brand-lockup"><p data-testid="mobile-club-brand-name">{clubName}</p><span>{ROLE_NAMES[role]}</span></div>
     <div class="header-actions">
       <button type="button" class="header-action bell" disabled={busy}
         aria-label={notificationCount > 0 ? `Ειδοποιήσεις: ${notificationCount} μη αναγνωσμένες` : 'Ειδοποιήσεις'}
@@ -129,6 +136,8 @@
   .header-action { display:grid; place-items:center; flex:0 0 auto; width:40px; height:44px; padding:0; border:0; background:transparent; color:#f5f5f5; cursor:pointer; }
   .header-action:hover:not(:disabled) { color:var(--lf-gold); }
   .club-crest { flex:0 0 auto; width:35px; height:44px; object-fit:contain; }
+  .club-crest-placeholder{display:grid;place-items:center;border:1px solid #907b43;
+    border-radius:5px;color:#e3b95b;font:800 22px/1 'Fira Sans Extra Condensed',sans-serif}
   .brand-lockup { min-width:0; flex:1; }
   .brand-lockup p { margin:0; color:#fff; font-family:var(--lf-heading); font-size:24px; font-weight:700; line-height:1.1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .brand-lockup > span { display:block; margin-top:4px; color:#b4b8bb; font-family:var(--lf-heading); font-size:12px; letter-spacing:.08em; line-height:1.1; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
