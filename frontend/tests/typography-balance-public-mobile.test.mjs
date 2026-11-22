@@ -72,3 +72,16 @@ test('public and app templates still compile without replacing functional conten
   assert.match(login,/onVerifyOtp/);
   assert.doesNotMatch(shared,/(^|\n)\s*(?:\.admin-|\.mobile-|body\s*\{)/);
 });
+
+test('mobile shell honors original app header, bottom bar and safe-area layout',()=>{
+  const originalShell=mobile.slice(mobile.indexOf('/* Original Lefteria mobile shell parity'));
+  assert.ok(originalShell.length>500,'original shell parity overrides must exist');
+  assert.match(originalShell,/min-height:\s*calc\(72px \+ env\(safe-area-inset-top/);
+  assert.match(originalShell,/min-height:\s*68px/);
+  assert.match(originalShell,/\.bottom-nav\s*\{[^}]*background:\s*var\(--lf-bg\)/s);
+  assert.match(originalShell,/\.bottom-items > button\.active\s*\{[^}]*background:\s*transparent/s);
+  assert.match(mobile,/--lf-body:\s*'Fira Sans'/);
+  assert.match(mobile,/--lf-heading:\s*'Fira Sans Extra Condensed'/);
+  assert.match(shell,/padding-bottom:env\(safe-area-inset-bottom/);
+  assert.match(shell,/selectedPrimaryTab === tab/);
+});
