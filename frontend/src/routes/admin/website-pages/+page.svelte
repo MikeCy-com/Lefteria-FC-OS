@@ -270,7 +270,7 @@
     blockMessage='Προστέθηκε νέα ενότητα '+(index+1)+'.';
   }
   function addBlock(type: WebsiteBlock['type']) {
-    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=maxBlocks)return;
     mediaPickerIndex=null;
     draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
   }
@@ -287,7 +287,7 @@
     blockMessage='Το block '+(index+1)+' μετακινήθηκε στη θέση '+(index+direction+1)+'.';
   }
   function duplicateBlock(index:number) {
-    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=40 || index<0 || index>=draft.blocks.length)return;
+    if(!canWrite || saving || isLockedRegion || draft.blocks.length>=maxBlocks || index<0 || index>=draft.blocks.length)return;
     draft.blocks=duplicateWebsiteBlock(draft.blocks,index);
     mediaPickerIndex=null;
     blockMessage='Αντιγράφηκε το block '+(index+1)+' στη θέση '+(index+2)+'.';
@@ -402,7 +402,7 @@
        draft.seo_title.length>180 || draft.seo_description.length>300 ||
        !visibleParents.some(p=>p.value===draft.menu_parent) ||
        !Number.isSafeInteger(draft.menu_order) || draft.menu_order<0 || draft.menu_order>1000 ||
-       draft.blocks.length<1 || draft.blocks.length>40 ||
+       draft.blocks.length<1 || draft.blocks.length>maxBlocks ||
        draft.blocks.some(b=>!b.text.trim() || b.text.length>5000 ||
          ((b.type==='image'||b.type==='button') && (!b.url ||
            !(/^(\/(?!\/)|https:\/\/)/i.test(b.url)) || b.url.includes('\\')))))
@@ -636,7 +636,7 @@
                               disabled={!canWrite || saving} ondragstart={e=>blockDragStart(e,index)} ondragend={clearBlockDrag}>⠿</button>{/if}
                             <button type="button" aria-label="Μετακίνηση πάνω" title="Πάνω" disabled={isLockedRegion || index===0 || !canWrite || saving} onclick={()=>moveBlock(index,-1)}>↑</button>
                             <button type="button" aria-label="Μετακίνηση κάτω" title="Κάτω" disabled={isLockedRegion || index===draft.blocks.length-1 || !canWrite || saving} onclick={()=>moveBlock(index,1)}>↓</button>
-                            {#if !isLockedRegion}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=40 || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
+                            {#if !isLockedRegion}<button type="button" aria-label="Αντιγραφή block" title="Αντιγραφή" disabled={draft.blocks.length>=maxBlocks || !canWrite || saving} onclick={()=>duplicateBlock(index)}>⧉</button>{/if}
                             <button type="button" aria-label="Αφαίρεση block" title="Αφαίρεση" disabled={isLockedRegion || draft.blocks.length===1 || !canWrite || saving} onclick={()=>removeBlock(index)}>×</button>
                           </div>
                         </div>
@@ -676,10 +676,10 @@
                     </section>
                   {/if}
                   {#if canWrite && !isLockedRegion}<div class="cms-add-block" aria-label="Προσθήκη block">
-                    <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=40}>+ Τίτλος</button>
-                    <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=40}>+ Κείμενο</button>
-                    <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=40}>+ Εικόνα</button>
-                    <button type="button" onclick={()=>addBlock('button')} disabled={saving || draft.blocks.length>=40}>+ Κουμπί</button>
+                    <button type="button" onclick={()=>addBlock('heading')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Τίτλος</button>
+                    <button type="button" onclick={()=>addBlock('paragraph')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Κείμενο</button>
+                    <button type="button" onclick={()=>addBlock('image')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Εικόνα</button>
+                    <button type="button" onclick={()=>addBlock('button')} disabled={saving || draft.blocks.length>=maxBlocks}>+ Κουμπί</button>
                   </div>{/if}
                   {#if notice}<p role="status" class="cms-success">{notice}</p>{/if}
                   {#if problem}<p role="alert" class="cms-error">{problem}</p>{/if}
