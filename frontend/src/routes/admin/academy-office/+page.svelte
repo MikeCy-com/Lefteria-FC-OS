@@ -55,11 +55,11 @@
   let applicationFilter = $state<RegistrationQueue>(
     page.url.searchParams.get('queue')==='action'?'action':'all');
   let applicationQuery = $state('');
-  const visibleEntries = $derived(filterRegistrations(entries,applicationFilter,applicationQuery));
-  const pageTotals = $derived(registrationPageSummary(entries));
   let offset = $state(0);
   let revision = $state(0);
   let entries = $state<Entry[]>([]);
+  const visibleEntries = $derived(filterRegistrations(entries,applicationFilter,applicationQuery));
+  const pageTotals = $derived(registrationPageSummary(entries));
   let orders = $state<Order[]>([]);
   let players = $state<Player[]>([]);
   let search = $state('');
