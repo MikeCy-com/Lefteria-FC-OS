@@ -12,9 +12,9 @@
       const candidate=JSON.parse(value) as NavigationDesign;
       return Array.isArray(candidate?.links)?{links:candidate.links,
         category_order:validBuiltinCategoryOrder(candidate.category_order)?candidate.category_order:[...BUILTIN_CATEGORY_IDS],
-        category_labels:candidate.category_labels??{}}
-        :{links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Record<string,string>};
-    } catch {return {links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Record<string,string>};}
+        category_labels:(candidate.category_labels??{}) as Partial<Record<BuiltinCategoryId,string>>}
+        :{links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Partial<Record<BuiltinCategoryId,string>>};
+    } catch {return {links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS],category_labels:{} as Partial<Record<BuiltinCategoryId,string>>};}
   })());
   const parentNames:Record<NavigationParent,string>={
     root:'Κύριο μενού',club:'Σύλλογος',team:'Πρώτη ομάδα',academy:'Ακαδημία',
