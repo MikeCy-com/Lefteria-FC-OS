@@ -42,7 +42,7 @@ test('rendered CMS login and session panels expose no token, signup or simulated
       user: { id: '11111111-1111-4111-8111-111111111111', username: 'cms-fixture', name: '<script>fixture</script>', role: 'editor',
         permissions: ['news:*', 'gallery:*'], organizations: [{ id: 'lefteria_fc_academy', name: 'Lefteria FC Academy' }] },
       expires_at: '2026-11-01T20:00:00Z' }, onLogout() {}, onRefresh() {} } }).body;
-    assert.match(workspace, /Πίνακας εργασιών/);
+    assert.match(workspace, /Επισκόπηση/);
     assert.match(workspace, /Editor/);
     assert.match(workspace, /Άρθρα &amp; νέα|Άρθρα & νέα/);
     assert.doesNotMatch(workspace, /news:\*/);
