@@ -27,7 +27,7 @@ public static class AdminPlayerProfileEndpoints
             .WithTags("Private Academy player profiles")
             .RequireAuthorization(WebAdminServices.Policy);
 
-        routes.MapGet("/",async (string playerId,string? organization_id,
+        routes.MapGet("",async (string playerId,string? organization_id,
             HttpContext context,WebAdminService admin,IWebAdminSecrets secrets,
             WebAdminConnections connections,CancellationToken ct)=>
         {
@@ -46,7 +46,7 @@ public static class AdminPlayerProfileEndpoints
             catch(PostgresException error){throw MapSql(error);}
         }).WithName("ReadAdminAcademyPrivatePlayerProfile").ExcludeFromDescription();
 
-        routes.MapPut("/",async (string playerId,string? organization_id,
+        routes.MapPut("",async (string playerId,string? organization_id,
             UpdateAcademyPlayerPrivateProfile body,HttpContext context,
             WebAdminService admin,IWebAdminSecrets secrets,
             WebAdminConnections connections,CancellationToken ct)=>
