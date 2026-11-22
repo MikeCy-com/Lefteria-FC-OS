@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -75,6 +75,9 @@
   const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
   const isAboutHistory = $derived(slug === CANONICAL_ABOUT_HISTORY_SLUG);
   const isShopLead = $derived(slug === CANONICAL_SHOP_LEAD_SLUG);
+  const isNativeRegion = $derived(organization!==null && nativeEditorialOwnerAllowed(slug,organization));
+  const maxBlocks = $derived(isNativeRegion ? 12 : 40);
+  const nativeRegionOptions = $derived(organization ? (Object.keys(NATIVE_EDITORIAL_REGIONS) as NativeEditorialRegion[]).filter(key=>nativeEditorialOwnerAllowed(key,organization!)) : []);
   const isAcademyLead = $derived(slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG || slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG || slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG);
   const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory || isAcademyLead || isShopLead);
 
@@ -131,6 +134,27 @@
   function newPage() {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
+  }
+  const nativeRegionLabels:Record<NativeEditorialRegion,string>={
+    'canonical-team-roster-sections':'Ρόστερ · προσαρμοσμένες ενότητες',
+    'canonical-team-schedule-sections':'Πρόγραμμα αγώνων · προσαρμοσμένες ενότητες',
+    'canonical-team-results-sections':'Αποτελέσματα · προσαρμοσμένες ενότητες',
+    'canonical-team-statistics-sections':'Στατιστικά · προσαρμοσμένες ενότητες',
+    'canonical-news-sections':'Νέα · προσαρμοσμένες ενότητες',
+    'canonical-sponsors-sections':'Χορηγοί · προσαρμοσμένες ενότητες'
+  };
+  function openNativeRegion(target:NativeEditorialRegion) {
+    if(!organization||!nativeEditorialOwnerAllowed(target,organization)||!canWrite||saving)return;
+    const existing=records.find(page=>page.slug===target);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=target;mediaPickerIndex=null;
+    draft={title:nativeRegionLabels[target],
+      summary:'Ανεξάρτητες ενότητες πριν από τη δυναμική λίστα. Η λίστα παραμένει συνδεδεμένη με το σύστημα.',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[{type:'heading',text:'Η ΔΙΚΗ ΜΑΣ ΙΣΤΟΡΙΑ',url:null},
+        {type:'paragraph',text:'Προσθέστε εγκεκριμένες πληροφορίες, εικόνες ή συνδέσμους. Οι δυναμικές εγγραφές παραμένουν αμετάβλητες.',url:null}]};
+    notice='';problem='';
   }
   function openShopEditorialLead() {
     if(organization!=='lefteria_fc'||!canWrite||saving)return;
@@ -236,7 +260,7 @@
     notice='';problem='';
   }
   function insertBlock(index:number,type:WebsiteBlock['type']){
-    if(!canWrite||saving||isLockedRegion||draft.blocks.length>=40||
+    if(!canWrite||saving||isLockedRegion||draft.blocks.length>=maxBlocks||
       index<0||index>draft.blocks.length)return;
     const next={type,text:type==='heading'?'Νέα ενότητα':'',
       url:type==='image'||type==='button'?'':null} as WebsiteBlock;
@@ -326,6 +350,9 @@
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
+    if(isNativeRegion && (!organization || !nativeEditorialOwnerAllowed(slug,organization) ||
+      draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length<1 || draft.blocks.length>12))return false;
     if(isShopLead && (organization!=='lefteria_fc' ||
        draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
        draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
@@ -454,6 +481,17 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite && nativeRegionOptions.length}
+              <section aria-label="Δυναμικές σελίδες · πρόσθετες ενότητες" data-testid="cms-native-regions">
+                <h3>Δυναμικές σελίδες · πρόσθετες ενότητες</h3>
+                <p class="admin-muted">Επεξεργαστείτε τίτλους, κείμενα, εικόνες και κουμπιά πριν από το ρόστερ, το πρόγραμμα, τα αποτελέσματα, τα νέα ή τους χορηγούς. Τα πραγματικά δεδομένα και φίλτρα παραμένουν κλειδωμένα.</p>
+                {#each nativeRegionOptions as region (region)}
+                  <button type="button" class="admin-secondary"
+                    onclick={()=>openNativeRegion(region)} disabled={loading||saving}
+                    data-testid={'edit-native-'+region}>{nativeRegionLabels[region]}</button>
+                {/each}
+              </section>
+            {/if}
             {#if canWrite && organization==='lefteria_fc'}
               <button type="button" class="admin-secondary" onclick={openShopEditorialLead}
                 disabled={loading || saving} data-testid="edit-canonical-shop-lead">
@@ -622,7 +660,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isShopLead ? '/shop' : isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isNativeRegion ? (slug.startsWith('canonical-team-') ? '/team?tab='+slug.replace('canonical-team-','').replace('-sections','') : slug==='canonical-news-sections' ? '/news?organization_id='+organization : '/sponsors?scope='+(organization==='lefteria_fc_academy'?'academy':'first_team')) : isShopLead ? '/shop' : isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
@@ -642,7 +680,7 @@
                     <h2 class="cms-hero-copy">{draft.blocks[0]?.text}</h2>
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}
-                    <WebsiteVisualCanvas blocks={draft.blocks}
+                    <WebsiteVisualCanvas blocks={draft.blocks} maxBlocks={maxBlocks}
                       editable={canWrite} locked={isLockedRegion} busy={saving}
                       onEdit={editCanvasText} onMove={moveCanvasBlock}
                       onInsert={insertBlock} onSelect={selectCanvasBlock}/>
