@@ -33,6 +33,22 @@ DECLARE
   confirmed int;
   children_count int;
   proof_body jsonb;
+  sibling_registration uuid;
+  sibling_escrow uuid;
+  sibling_request uuid;
+  sibling_result jsonb;
+  sibling_player text;
+  sibling_index integer;
+  sibling_ids uuid[]:=ARRAY[]::uuid[];
+  primary_escrow uuid:=gen_random_uuid();
+  primary_id_front uuid:=gen_random_uuid();
+  primary_id_back uuid:=gen_random_uuid();
+  second_city uuid:=gen_random_uuid();
+  second_location uuid:=gen_random_uuid();
+  second_scope uuid:=gen_random_uuid();
+  second_group text:='grp_other_'||replace(gen_random_uuid()::text,'-','');
+  second_player text;
+  processed integer:=1;
   fixture_player_id text:='ply_'||replace(request_id::text,'-','');
   payload jsonb;
   result jsonb;
@@ -86,6 +102,75 @@ BEGIN
       'fixture-policy',repeat('a',64)
     FROM unnest(ARRAY['participation','medical_authorization',
       'privacy_notice','media','communications','liability','financial']) AS k;
+
+  -- Private parent evidence fixture: one child may supply identity front
+  -- and back; each sibling has its own independent birth certificate.
+  -- The test data is synthetic ciphertext with the correct format, not
+  -- customer documents. No public upload grant is activated by the schema.
+  INSERT INTO academy_intake.registration_document_escrow(
+    id,registration_id,organization_id,document_slot,document_type,
+    expiry_date,mime_type,size_bytes,encryption_key_id,sha256,
+    ciphertext,nonce,auth_tag)
+  VALUES
+    (primary_id_front,application,'lefteria_fc_academy','id_front',
+      'id_passport',DATE '2032-01-01','image/png',32,'fixture-vault',
+      repeat('a',64),decode(repeat('ab',32),'hex'),
+      decode(repeat('11',12),'hex'),decode(repeat('22',16),'hex')),
+    (primary_id_back,application,'lefteria_fc_academy','id_back',
+      'id_passport',DATE '2032-01-01','image/png',32,'fixture-vault',
+      repeat('b',64),decode(repeat('cd',32),'hex'),
+      decode(repeat('33',12),'hex'),decode(repeat('44',16),'hex'));
+  -- Siblings 2-5 each have separate registration ownership. Neither a
+  -- common guardian phone nor the same season can mix document storage.
+  FOR sibling_index IN 2..5 LOOP
+    sibling_registration:=gen_random_uuid();
+    sibling_escrow:=gen_random_uuid();
+    sibling_ids:=array_append(sibling_ids,sibling_registration);
+    INSERT INTO academy_intake.registrations(
+      id,organization_id,applicant_first_name,applicant_last_name,
+      applicant_birth_date,guardian_name,guardian_relationship,guardian_phone,
+      guardian_email)
+    VALUES(sibling_registration,'lefteria_fc_academy','Child'||sibling_index,
+      'Private',DATE '2016-01-01','Fixture Parent','Parent',
+      '+35799123456','parent-fixture@example.invalid');
+    INSERT INTO academy_intake.registration_sealed_evidence(
+      registration_id,encryption_key_id,evidence_ciphertext,evidence_sha256)
+    VALUES(sibling_registration,'fixture-only',
+      convert_to(repeat('f',64),'UTF8'),repeat('c',64));
+    INSERT INTO academy_intake.registration_consents(
+      registration_id,consent_kind,revision,granted,policy_version,evidence_digest)
+    SELECT sibling_registration,k,1,
+      CASE WHEN k='media' THEN false ELSE true END,
+      'fixture-policy',repeat('a',64)
+    FROM unnest(ARRAY['participation','medical_authorization',
+      'privacy_notice','media','communications','liability','financial']) AS k;
+    INSERT INTO academy_intake.registration_document_escrow(
+      id,registration_id,document_slot,document_type,mime_type,size_bytes,
+      encryption_key_id,sha256,ciphertext,nonce,auth_tag)
+    VALUES(sibling_escrow,sibling_registration,'birth_certificate',
+      'birth_certificate','image/png',32,'fixture-vault',
+      repeat('a',64),decode(repeat('ef',32),'hex'),
+      decode(repeat('55',12),'hex'),decode(repeat('66',16),'hex'));
+    PERFORM identity.admin_academy_office(admin_digest,'review',
+      jsonb_build_object('id',sibling_registration,'status','under_review',
+        'version',1));
+  END LOOP;
+
+  -- Alternate location deliberately has no manager grant for original city.
+  INSERT INTO club.football_cities(id,name,slug)
+    VALUES(second_city,'Alternate Fixture City','crm-enrollment-alt-city');
+  INSERT INTO club.football_locations(id,city_id,name,slug)
+    VALUES(second_location,second_city,'Alternate Fixture Location',
+      'crm-enrollment-alt-site');
+  INSERT INTO club.football_operational_scopes(
+    id,organization_id,academy_city_id)
+    VALUES(second_scope,'lefteria_fc_academy',second_city);
+  INSERT INTO club.academy_groups(id,organization_id,name)
+    VALUES(second_group,'lefteria_fc_academy','Fixture Alternate U12');
+  INSERT INTO club.academy_group_location_assignments(
+    organization_id,group_id,city_id,location_id,scope_id)
+    VALUES('lefteria_fc_academy',second_group,second_city,
+      second_location,second_scope);
 
   -- Super Admin can move public application to "under review".
   PERFORM identity.admin_academy_office(admin_digest,'review',
@@ -154,6 +239,83 @@ BEGIN
         WHERE a.id=application AND a.status='approved'
           AND a.status_version=3 AND a.onboarded_player_id=fixture_player_id)
   THEN RAISE EXCEPTION 'Atomic approval and roster placement failed'; END IF;
+
+  -- Two identity-card sides for child 1 are promoted to that real
+  -- player's encrypted Documents in the enrollment transaction.
+  IF (SELECT count(*) FROM academy_private.player_documents
+      WHERE organization_id='lefteria_fc_academy'
+        AND player_id=fixture_player_id)<>2
+    OR EXISTS(
+      SELECT 1 FROM academy_intake.registration_document_escrow
+      WHERE registration_id=application AND
+        (promoted_player_id IS DISTINCT FROM fixture_player_id OR
+         promoted_document_id IS NULL OR ciphertext IS NOT NULL OR
+         nonce IS NOT NULL OR auth_tag IS NOT NULL))
+    OR (SELECT count(*) FROM academy_intake.registration_document_promotions
+      WHERE registration_id=application AND player_id=fixture_player_id)<>2
+    OR EXISTS(SELECT 1 FROM academy_intake.registration_document_escrow
+      WHERE registration_id=ANY(sibling_ids) AND promoted_at IS NOT NULL)
+  THEN RAISE EXCEPTION 'Child 1 document promotion leaked sibling evidence'; END IF;
+  -- The pending sibling documents are NOT in child 1's folder.
+  IF EXISTS(SELECT 1 FROM academy_private.player_documents d
+    JOIN academy_intake.registration_document_escrow e
+      ON e.id=d.storage_object_id
+    WHERE e.registration_id=ANY(sibling_ids) AND d.player_id=fixture_player_id)
+  THEN RAISE EXCEPTION 'Unapproved sibling evidence attached to child 1'; END IF;
+
+  -- Enroll siblings 2-5; verify after counts 2, 4 and 5, not just 3.
+  -- Child 2 is assigned to a separate Academy CITY/LOCATION.
+  -- Enrollment writes its audit event after the status update. Restore the
+  -- deferrable audit constraint after the first fixture used IMMEDIATE.
+  SET CONSTRAINTS ALL DEFERRED;
+  FOR sibling_index IN 2..5 LOOP
+    sibling_registration:=sibling_ids[sibling_index-1];
+    sibling_request:=gen_random_uuid();
+    sibling_result:=identity.enroll_admin_academy_registration(admin_digest,
+      jsonb_build_object('id',sibling_registration,'version',2,
+        'request_id',sibling_request,
+        'city_id',CASE WHEN sibling_index=2 THEN second_city ELSE city END,
+        'location_id',CASE WHEN sibling_index=2 THEN second_location ELSE location END,
+        'group_id',CASE WHEN sibling_index=2 THEN second_group ELSE fixture_group_id END,
+        'position','Defender','number',30+sibling_index));
+    sibling_player:=sibling_result->>'player_id';
+    IF sibling_index=2 THEN second_player:=sibling_player; END IF;
+    processed:=processed+1;
+    IF sibling_result->>'status'<>'approved'
+      OR (SELECT count(*) FROM academy_private.player_documents
+        WHERE organization_id='lefteria_fc_academy'
+          AND player_id=sibling_player)<>1
+      OR NOT EXISTS(SELECT 1 FROM academy_intake.registration_document_promotions t
+        JOIN academy_intake.registration_document_escrow e ON e.id=t.escrow_id
+        JOIN academy_private.player_documents d ON d.id=t.player_document_id
+        JOIN academy_private.encrypted_document_objects o
+          ON o.id=d.storage_object_id
+        WHERE t.registration_id=sibling_registration
+          AND t.player_id=sibling_player AND e.promoted_player_id=sibling_player
+          AND e.ciphertext IS NULL AND e.nonce IS NULL
+          AND d.player_id=sibling_player AND o.player_id=sibling_player
+          AND o.scan_status='quarantined')
+      OR EXISTS(SELECT 1 FROM academy_private.player_documents d
+        JOIN academy_intake.registration_document_escrow e
+          ON e.id=d.storage_object_id
+        WHERE d.player_id=sibling_player
+          AND e.registration_id<>sibling_registration)
+    THEN RAISE EXCEPTION 'Sibling % document promotion or ownership failed',
+       sibling_index; END IF;
+    IF processed IN (2,4,5)
+      AND (SELECT count(*) FROM academy_intake.registration_document_promotions
+        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+1
+    THEN RAISE EXCEPTION 'Family % child documents count wrong',processed; END IF;
+  END LOOP;
+  SET CONSTRAINTS ALL IMMEDIATE;
+  BEGIN
+    PERFORM academy_private.read_admin_player_document_metadata(
+      manager_digest,'lefteria_fc_academy',second_player);
+    RAISE EXCEPTION 'Original location manager read another city child Documents';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF (SELECT count(DISTINCT registration_id)
+      FROM academy_intake.registration_document_promotions)<>5 THEN
+    RAISE EXCEPTION '1-5 child family documents not isolated'; END IF;
 
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
