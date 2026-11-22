@@ -29,6 +29,26 @@ test('validated menu entries insert without deleting original functional destina
     assert.ok(nav.some(item=>item.id===id),id);
   assert.equal(withNavigationDesign(publicNavigation,null).length,publicNavigation.length);
 });
+test('built-in category order is persisted while all nine native routes survive',()=>{
+  const order=['contact','shop','events','news','matches','academy','team','club','home'];
+  const revised={...config,category_order:order};
+  assert.deepEqual(parseNavigationDesign(JSON.stringify(revised),'lefteria_fc'),revised);
+  const nav=withNavigationDesign(publicNavigation,revised);
+  assert.equal(nav[0].id,'contact');
+  assert.equal(nav[nav.length-1].id,'home');
+  assert.equal(new Set(nav.map(item=>item.id)).size,publicNavigation.length+1);
+  for(const item of publicNavigation)
+    assert.deepEqual(nav.find(found=>found.id===item.id)?.items,item.items);
+  for(const invalid of [
+    [...order.slice(0,8),'contact'],order.slice(0,8),[...order,'fake'],
+    [...order.slice(0,8),42]
+  ]){
+    assert.equal(parseNavigationDesign(JSON.stringify({...config,category_order:invalid}),'lefteria_fc'),null);
+  }
+  assert.match(api,/categoryOrder.GetArrayLength\(\) != 9/);
+  assert.match(editor,/data-testid="cms-menu-category-order"/);
+  assert.match(editor,/function moveCategory/);
+});
 test('owner boundaries and private routes fail closed',()=>{
   assert.equal(parseNavigationDesign(JSON.stringify(config),'lefteria_fc_academy'),null);
   for(const path of ['/admin','/api/public','/app','//evil','/login','javascript:alert(1)','/academy','/team?tab=roster#x']){
