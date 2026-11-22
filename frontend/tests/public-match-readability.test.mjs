@@ -10,7 +10,7 @@ test('match detail uses original Fira heading family and readable mobile labels'
   assert.ok(css.includes("'Fira Sans Extra Condensed',sans-serif"));
   assert.ok(!source.includes("'Fira Sans Condensed',sans-serif"));
   assert.match(css, /\.match-team>span\{font-size:\.75rem;line-height:1\.4/);
-  assert.match(css, /\.match-score small\{display:block;color:#d1d1d1;font-size:\.8rem/);
+  assert.match(css, /\.match-score small\{display:block;color:var\(--lf-color-muted,#d1d1d1\);font-size:\.8rem/);
   assert.match(css, /grid-template-columns:minmax\(0,1fr\) minmax\(70px,\.55fr\) minmax\(0,1fr\)/);
   assert.match(source, /aria-label=\{hasScore/);
   assert.doesNotThrow(() => compile(source, {filename:'match/[id]/+page.svelte',generate:'server'}));
