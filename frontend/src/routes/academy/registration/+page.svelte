@@ -15,11 +15,44 @@
   let receipt = $state('');
   let submissionError = $state('');
   let errors = $state<Record<string, string>>({});
+  type AdditionalPlayer = {
+    player_first_name:string;player_last_name:string;player_dob:string;
+    player_gender:string;player_address:string;player_city:string;player_postal_code:string;
+    preferred_number:string;preferred_print_name:string;
+    has_allergies:boolean;allergies_details:string;
+    has_conditions:boolean;conditions_details:string;
+    has_medication:boolean;medication_details:string;
+  };
+  let additionalPlayers = $state<AdditionalPlayer[]>([]);
+  const numberValid = (number:string) => /^[0-9]{1,2}$/.test(number.trim());
+  const printNameValid = (name:string) => name.trim().length>0 && name.trim().length<=32;
+  const playerCount = $derived(1+additionalPlayers.length);
+  const monthlyFee = $derived(playerCount===1?60:100+(playerCount-2)*50);
+  const registrationFees = $derived(playerCount*20);
+  const kitAndPrintingFees = $derived(playerCount*150);
+  const initialTotal = $derived(monthlyFee+registrationFees+kitAndPrintingFees);
+  function addPlayer(){
+    if(pending||additionalPlayers.length>=4)return;
+    additionalPlayers=[...additionalPlayers,{
+      player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
+      player_address:form.player_address,player_city:form.player_city,
+      player_postal_code:form.player_postal_code,preferred_number:'',
+      preferred_print_name:'',has_allergies:false,allergies_details:'',
+      has_conditions:false,conditions_details:'',has_medication:false,medication_details:''
+    }];
+    errors={};
+  }
+  function removePlayer(index:number){
+    if(pending)return;
+    additionalPlayers=additionalPlayers.filter((_,i)=>i!==index);
+    errors={};
+  }
   let drawing = false;
   let canvas = $state<HTMLCanvasElement | undefined>();
   let form = $state({
     player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
     player_address:'',player_city:'',player_postal_code:'',
+    preferred_number:'',preferred_print_name:'',
     parent_name:'',parent_relationship:'',parent_phone:'',parent_email:'',
     emergency_name:'',emergency_phone:'',emergency_relationship:'',
     has_allergies:false,allergies_details:'',has_conditions:false,conditions_details:'',
@@ -37,6 +70,21 @@
       for(const key of ['player_first_name','player_last_name','player_address','player_city'] as const) must(key,required(form[key]));
       must('player_dob',!!form.player_dob && /^\d{4}-\d\d-\d\d$/.test(form.player_dob) && form.player_dob < new Date().toISOString().slice(0,10));
       must('player_gender', ['male','female'].includes(form.player_gender));
+      must('preferred_number',numberValid(form.preferred_number));
+      must('preferred_print_name',printNameValid(form.preferred_print_name));
+      for(const [i,child] of additionalPlayers.entries()){
+        for(const key of ['player_first_name','player_last_name','player_address','player_city','preferred_print_name'] as const)
+          if(!required(child[key]))issues['child_'+i+'_'+key]='Υποχρεωτικό πεδίο';
+        if(!/^\\d{4}-\\d\\d-\\d\\d$/.test(child.player_dob) ||
+          child.player_dob>=new Date().toISOString().slice(0,10))
+          issues['child_'+i+'_player_dob']='Ελέγξτε την ημερομηνία γέννησης';
+        if(!['male','female'].includes(child.player_gender))
+          issues['child_'+i+'_player_gender']='Επιλέξτε φύλο';
+        if(!numberValid(child.preferred_number))
+          issues['child_'+i+'_preferred_number']='Αριθμός από 0 έως 99';
+        if(!printNameValid(child.preferred_print_name))
+          issues['child_'+i+'_preferred_print_name']='Συμπληρώστε όνομα εκτύπωσης (έως 32 χαρακτήρες)';
+      }
     }
     if(step===2) {
       for(const key of ['parent_name','parent_relationship','emergency_name'] as const) must(key,required(form[key]));
@@ -47,6 +95,12 @@
       if(form.has_allergies) must('allergies_details',required(form.allergies_details));
       if(form.has_conditions) must('conditions_details',required(form.conditions_details));
       if(form.has_medication) must('medication_details',required(form.medication_details));
+      for(const [i,child] of additionalPlayers.entries()){
+        for(const [flag,field] of [
+          ['has_allergies','allergies_details'],['has_conditions','conditions_details'],['has_medication','medication_details']
+        ] as const)if(child[flag]&&!required(child[field]))
+          issues['child_'+i+'_'+field]='Συμπληρώστε τις ιατρικές πληροφορίες για '+(child.player_first_name||'το παιδί');
+      }
     }
     if(step===4) {
       for(const key of ['consent_participation','consent_medical_auth','consent_gdpr','consent_liability','consent_financial'] as const) must(key,form[key]);
@@ -97,15 +151,17 @@
   function clearSignature(){canvas?.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);form.signature_data='';}
   async function submit(event:SubmitEvent) {
     event.preventDefault();
-    if(pending || !validate(5))return;
+    if(pending)return;
+    for(let step=1;step<=5;step++)if(!validate(step)){currentStep=step;return;}
     pending=true;submissionError='';
     try{
       const response=await fetch('/api/public/academy/registration',{
         method:'POST',headers:{'content-type':'application/json'},credentials:'omit',
-        body:JSON.stringify(form),cache:'no-store'
+        body:JSON.stringify({...form,additional_players:additionalPlayers}),cache:'no-store'
       });
       const result=await response.json().catch(()=>null);
-      if(response.status===202 && typeof result?.receipt==='string' && result.receipt){
+      if(response.status===202 && typeof result?.receipt==='string' && result.receipt &&
+        Array.isArray(result.receipts) && result.receipts.length===playerCount){
         receipt=result.receipt;submitted=true;
       }else if(response.status===429){
         submissionError='Πολλές προσπάθειες εγγραφής. Δοκιμάστε αργότερα.';
