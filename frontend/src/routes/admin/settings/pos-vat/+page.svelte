@@ -70,7 +70,7 @@
   });
   $effect(()=>{
     const current=owner;void refresh;
-    response=null;loading=false;error='';notice='';requestId='';
+    response=null;loading=false;error='';requestId='';
     if(!browser||!authorized||!current)return;
     const controller=new AbortController();
     loading=true;
@@ -173,7 +173,8 @@
           body:JSON.stringify({approve,review_note:reviewNote})
         });
       if(owner!==current)return;
-      if(result.status===401||result.status===403){void auth.bootstrap();return;}
+      if(result.status===401){void auth.bootstrap();return;}
+      if(result.status===403)throw Error('Απαιτείται ανεξάρτητος Super Admin. Η αυτοέγκριση δεν επιτρέπεται.');
       if(!result.ok)throw Error(result.status===409
         ?'Έχει καταχωριστεί άλλη απόφαση για αυτό το αίτημα.'
         :result.status===422?'Ελέγξτε την τεκμηρίωση.':
@@ -235,7 +236,7 @@
         <section class="admin-panel">
           <label for="vat-org">Οργανισμός</label>
           <select id="vat-org" value={owner??''} disabled={saving}
-            onchange={e=>owner=e.currentTarget.value as Owner}>
+            onchange={e=>{owner=e.currentTarget.value as Owner;notice='';error='';}}> 
             {#if organizations.length!==1}<option value="">Επιλέξτε οργανισμό</option>{/if}
             {#each organizations as org}<option value={org.id}>{org.name}</option>{/each}
           </select>
