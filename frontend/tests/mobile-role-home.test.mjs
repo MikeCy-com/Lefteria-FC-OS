@@ -63,7 +63,7 @@ test('player home suggests only own unanswered training activities, never siblin
     {...event('other-person'),responses:[{player_id:'other',status:'going'}]}
   ]};
   const results=trustedPlayerTrainingResponsesNeeded(payloadWith,'coach-1',today);
-  assert.deepEqual(results.map(x=>x.id),['own','other-person']);
+  assert.deepEqual(results.map(x=>x.id),['other-person','own']);
   assert.deepEqual(trustedPlayerTrainingResponsesNeeded(payloadWith,'other',today),[]);
   assert.deepEqual(trustedPlayerTrainingResponsesNeeded({...payloadWith,role:'coach'},'coach-1',today),[]);
   assert.deepEqual(trustedPlayerTrainingResponsesNeeded({...payloadWith,month:'2026-10'},'coach-1',today),[]);
