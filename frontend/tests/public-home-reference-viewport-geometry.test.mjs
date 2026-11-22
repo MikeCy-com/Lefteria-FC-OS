@@ -34,7 +34,7 @@ test('desktop geometry restores source brand interval before news and mobile rem
   assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
   assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
-  assert.match(refresh,/min-height: clamp\(88px, 8vw, 126px\)/);
+  assert.match(refresh,/min-height:var\(--ui-motto-height\)/);
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
