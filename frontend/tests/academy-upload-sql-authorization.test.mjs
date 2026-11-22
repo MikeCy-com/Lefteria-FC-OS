@@ -15,6 +15,8 @@ test('anonymous upload SQL functions are private and use a fixed search path', (
     const revoke = migration.indexOf('REVOKE ALL ON FUNCTION\n        academy_intake.' + name);
     assert.ok(create >= 0, 'missing function ' + name);
     assert.ok(revoke > create, 'missing PUBLIC revoke for ' + name);
+    const revokeStatement = migration.slice(revoke, migration.indexOf(';', revoke) + 1);
+    assert.match(revokeStatement, /\)\s+FROM PUBLIC\s*;/, 'function revoke must target PUBLIC: ' + name);
     const definition = migration.slice(create, revoke);
     assert.match(definition, /SECURITY DEFINER\s+SET search_path=pg_catalog,pg_temp/);
     assert.doesNotMatch(definition, /\bGRANT\b/i);
