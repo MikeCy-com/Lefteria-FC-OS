@@ -36,13 +36,15 @@ export const CANONICAL_CONTACT_LEAD_SLUG = 'canonical-contact-lead' as const;
 export const CANONICAL_ABOUT_HISTORY_SLUG = 'canonical-about-history' as const;
 export const CANONICAL_ACADEMY_INTRO_SLUG = 'canonical-academy-intro' as const;
 export const CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG = 'canonical-academy-philosophy-lead' as const;
+export const CANONICAL_ACADEMY_GROUPS_LEAD_SLUG = 'canonical-academy-groups-lead' as const;
 export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
 // Native slots are not routable standalone CMS pages, even if a legacy
 // record has an incompatible menu assignment.
 export const isHomepageEditorialSlug = (slug: string) =>
   isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug) || slug === CANONICAL_ABOUT_INTRO_SLUG || slug === CANONICAL_CONTACT_LEAD_SLUG ||
   slug === CANONICAL_ABOUT_HISTORY_SLUG ||
-  slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG;
+  slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG ||
+  slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG;
 
 export function websitePageParentLink(
   organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
