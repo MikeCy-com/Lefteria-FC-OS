@@ -46,6 +46,18 @@ guardian revocation, financial reconciliation, media/document isolation,
 staging backup/restore or rollback. These remain **NOT RUN** until separately
 observed against synthetic records. An HTTP result is not production GO.
 
+## Image revision evidence is separate from HTTP readiness
+
+After G0 approval and an authorized staging-only rollout, independently capture
+the running preview API/web image IDs and OCI revisions and compare them to
+the immutable, SHA-256-verified preview bundle using the **offline**
+[staging runtime provenance guide](preview-runtime-image-provenance-2026-11-22.md).
+This operation reads only minimal sanitized Docker fields and requires a
+separate operator-signed evidence record. It does not connect to Hostinger,
+change Docker resources, or replace G0 and actual five-role acceptance.
+Neither a correct manifest nor a successful HTTP preflight alone proves the
+running revision.
+
 ## Executable acceptance matrix
 
 | ID | Scenario and expected observable result | Evidence needed | Status |
