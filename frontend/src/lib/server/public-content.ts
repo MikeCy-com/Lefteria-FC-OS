@@ -44,7 +44,8 @@ async function requestArticle(organization: PublicNewsScope, id: string): Promis
 // The requested organization's identity must match the returned public club.
 // A mismatch fails closed rather than displaying the other club's details.
 export function verifiedPublicSite(site: PublicSite | null, organization: PublicOrganization): PublicSite | null {
-  return site?.club?.organization_id === organization ? site : null;
+  return site?.organization_id === organization && (site.club == null || site.club.organization_id === organization)
+    ? site : null;
 }
 
 // Bare Node preview has no edge proxy. This single public GET uses the same
