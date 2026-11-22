@@ -15,11 +15,44 @@
   let receipt = $state('');
   let submissionError = $state('');
   let errors = $state<Record<string, string>>({});
+  type AdditionalPlayer = {
+    player_first_name:string;player_last_name:string;player_dob:string;
+    player_gender:string;player_address:string;player_city:string;player_postal_code:string;
+    preferred_number:string;preferred_print_name:string;
+    has_allergies:boolean;allergies_details:string;
+    has_conditions:boolean;conditions_details:string;
+    has_medication:boolean;medication_details:string;
+  };
+  let additionalPlayers = $state<AdditionalPlayer[]>([]);
+  const numberValid = (number:string) => /^[0-9]{1,2}$/.test(number.trim());
+  const printNameValid = (name:string) => name.trim().length>0 && name.trim().length<=32;
+  const playerCount = $derived(1+additionalPlayers.length);
+  const monthlyFee = $derived(playerCount===1?60:100+(playerCount-2)*50);
+  const registrationFees = $derived(playerCount*20);
+  const kitAndPrintingFees = $derived(playerCount*150);
+  const initialTotal = $derived(monthlyFee+registrationFees+kitAndPrintingFees);
+  function addPlayer(){
+    if(pending||additionalPlayers.length>=4)return;
+    additionalPlayers=[...additionalPlayers,{
+      player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
+      player_address:form.player_address,player_city:form.player_city,
+      player_postal_code:form.player_postal_code,preferred_number:'',
+      preferred_print_name:'',has_allergies:false,allergies_details:'',
+      has_conditions:false,conditions_details:'',has_medication:false,medication_details:''
+    }];
+    errors={};
+  }
+  function removePlayer(index:number){
+    if(pending)return;
+    additionalPlayers=additionalPlayers.filter((_,i)=>i!==index);
+    errors={};
+  }
   let drawing = false;
   let canvas = $state<HTMLCanvasElement | undefined>();
   let form = $state({
     player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
     player_address:'',player_city:'',player_postal_code:'',
+    preferred_number:'',preferred_print_name:'',
     parent_name:'',parent_relationship:'',parent_phone:'',parent_email:'',
     emergency_name:'',emergency_phone:'',emergency_relationship:'',
     has_allergies:false,allergies_details:'',has_conditions:false,conditions_details:'',
@@ -37,6 +70,21 @@
       for(const key of ['player_first_name','player_last_name','player_address','player_city'] as const) must(key,required(form[key]));
       must('player_dob',!!form.player_dob && /^\d{4}-\d\d-\d\d$/.test(form.player_dob) && form.player_dob < new Date().toISOString().slice(0,10));
       must('player_gender', ['male','female'].includes(form.player_gender));
+      must('preferred_number',numberValid(form.preferred_number));
+      must('preferred_print_name',printNameValid(form.preferred_print_name));
+      for(const [i,child] of additionalPlayers.entries()){
+        for(const key of ['player_first_name','player_last_name','player_address','player_city','preferred_print_name'] as const)
+          if(!required(child[key]))issues['child_'+i+'_'+key]='Υποχρεωτικό πεδίο';
+        if(!/^\\d{4}-\\d\\d-\\d\\d$/.test(child.player_dob) ||
+          child.player_dob>=new Date().toISOString().slice(0,10))
+          issues['child_'+i+'_player_dob']='Ελέγξτε την ημερομηνία γέννησης';
+        if(!['male','female'].includes(child.player_gender))
+          issues['child_'+i+'_player_gender']='Επιλέξτε φύλο';
+        if(!numberValid(child.preferred_number))
+          issues['child_'+i+'_preferred_number']='Αριθμός από 0 έως 99';
+        if(!printNameValid(child.preferred_print_name))
+          issues['child_'+i+'_preferred_print_name']='Συμπληρώστε όνομα εκτύπωσης (έως 32 χαρακτήρες)';
+      }
     }
     if(step===2) {
       for(const key of ['parent_name','parent_relationship','emergency_name'] as const) must(key,required(form[key]));
@@ -47,6 +95,12 @@
       if(form.has_allergies) must('allergies_details',required(form.allergies_details));
       if(form.has_conditions) must('conditions_details',required(form.conditions_details));
       if(form.has_medication) must('medication_details',required(form.medication_details));
+      for(const [i,child] of additionalPlayers.entries()){
+        for(const [flag,field] of [
+          ['has_allergies','allergies_details'],['has_conditions','conditions_details'],['has_medication','medication_details']
+        ] as const)if(child[flag]&&!required(child[field]))
+          issues['child_'+i+'_'+field]='Συμπληρώστε τις ιατρικές πληροφορίες για '+(child.player_first_name||'το παιδί');
+      }
     }
     if(step===4) {
       for(const key of ['consent_participation','consent_medical_auth','consent_gdpr','consent_liability','consent_financial'] as const) must(key,form[key]);
@@ -97,15 +151,17 @@
   function clearSignature(){canvas?.getContext('2d')?.clearRect(0,0,canvas.width,canvas.height);form.signature_data='';}
   async function submit(event:SubmitEvent) {
     event.preventDefault();
-    if(pending || !validate(5))return;
+    if(pending)return;
+    for(let step=1;step<=5;step++)if(!validate(step)){currentStep=step;return;}
     pending=true;submissionError='';
     try{
       const response=await fetch('/api/public/academy/registration',{
         method:'POST',headers:{'content-type':'application/json'},credentials:'omit',
-        body:JSON.stringify(form),cache:'no-store'
+        body:JSON.stringify({...form,additional_players:additionalPlayers}),cache:'no-store'
       });
       const result=await response.json().catch(()=>null);
-      if(response.status===202 && typeof result?.receipt==='string' && result.receipt){
+      if(response.status===202 && typeof result?.receipt==='string' && result.receipt &&
+        Array.isArray(result.receipts) && result.receipts.length===playerCount){
         receipt=result.receipt;submitted=true;
       }else if(response.status===429){
         submissionError='Πολλές προσπάθειες εγγραφής. Δοκιμάστε αργότερα.';
@@ -160,7 +216,45 @@
                   <label class="registration-address">Διεύθυνση Κατοικίας <span>*</span><input bind:value={form.player_address} maxlength="200" required data-testid="player-address"/></label>
                   <label>Πόλη <span>*</span><input bind:value={form.player_city} maxlength="100" required data-testid="player-city"/></label>
                   <label>Τ.Κ.<input bind:value={form.player_postal_code} maxlength="20" data-testid="player-postal"/></label>
+                  <h3 class="registration-full">Επίσημη στολή και υποχρεωτική εκτύπωση · €150</h3>
+                  <label>Προτιμώμενος αριθμός φανέλας <span>*</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9][0-9]?" bind:value={form.preferred_number}
+                      maxlength="2" required data-testid="player-preferred-number" placeholder="π.χ. 10"/>
+                  </label>
+                  <label>Προτιμώμενο όνομα εκτύπωσης <span>*</span>
+                    <input bind:value={form.preferred_print_name} maxlength="32" required
+                      data-testid="player-preferred-print-name" placeholder="π.χ. ΓΙΩΡΓΟΣ"/>
+                  </label>
+                  <p class="registration-full registration-note">Η επίσημη στολή κοστίζει €140 και η εκτύπωση ονόματος και αριθμού είναι <strong>υποχρεωτική (€10)</strong>. Ο αριθμός αποτελεί προτίμηση, όχι κράτηση. Εάν χρησιμοποιείται ήδη, ο υπεύθυνος τοποθεσίας θα επικοινωνήσει μαζί σας για τυχόν αλλαγή.</p>
                 </fieldset>
+                {#each additionalPlayers as child,i (i)}
+                  <section class="registration-child" data-testid="additional-player">
+                    <header class="registration-child-head">
+                      <h3>Παιδί {i+2} · {child.player_first_name||'Νέος παίκτης'}</h3>
+                      <button type="button" disabled={pending} onclick={()=>removePlayer(i)}
+                        aria-label={'Αφαίρεση παιδιού '+(i+2)}>Αφαίρεση</button>
+                    </header>
+                    <fieldset class="registration-fields" disabled={pending}>
+                      <legend class="sr-only">Στοιχεία παιδιού {i+2}</legend>
+                      <label>Όνομα <span>*</span><input bind:value={child.player_first_name} maxlength="100" required data-testid="additional-first-name"/></label>
+                      <label>Επώνυμο <span>*</span><input bind:value={child.player_last_name} maxlength="100" required/></label>
+                      <label>Ημερομηνία γέννησης <span>*</span><input type="date" bind:value={child.player_dob} required/></label>
+                      <label>Φύλο <span>*</span><select bind:value={child.player_gender} required><option value="">Επιλέξτε...</option><option value="male">Αγόρι</option><option value="female">Κορίτσι</option></select></label>
+                      <label class="registration-full">Διεύθυνση κατοικίας <span>*</span><input bind:value={child.player_address} maxlength="200" required/></label>
+                      <label>Πόλη <span>*</span><input bind:value={child.player_city} maxlength="100" required/></label>
+                      <label>Τ.Κ.<input bind:value={child.player_postal_code} maxlength="20"/></label>
+                      <h3 class="registration-full">Στολή €140 + υποχρεωτική εκτύπωση €10</h3>
+                      <label>Προτιμώμενος αριθμός <span>*</span><input inputmode="numeric" pattern="[0-9][0-9]?" bind:value={child.preferred_number} maxlength="2" required/></label>
+                      <label>Όνομα εκτύπωσης <span>*</span><input bind:value={child.preferred_print_name} maxlength="32" required/></label>
+                      <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
+                    </fieldset>
+                  </section>
+                {/each}
+                {#if additionalPlayers.length<4}
+                  <button type="button" class="registration-add-child" disabled={pending}
+                    onclick={addPlayer} data-testid="add-player">+ Προσθήκη άλλου παιδιού</button>
+                {/if}
+                <p class="registration-family-note">Μία αίτηση, μία επικοινωνία γονέα και μία υπογραφή για {playerCount} {playerCount===1?'παιδί':'παιδιά'}. Κάθε παιδί διατηρεί τη δική του ιατρική δήλωση.</p>
               </div>
             {:else if currentStep===2}
               <div data-testid="step-2"><h2>Στοιχεία Γονέα / Κηδεμόνα</h2><p>Κύρια στοιχεία επικοινωνίας και υπεύθυνος έκτακτης ανάγκης.</p>
@@ -177,7 +271,8 @@
                 </fieldset>
               </div>
             {:else if currentStep===3}
-              <div data-testid="step-3"><h2>Ιατρικές Πληροφορίες</h2><p>Δηλώστε τις απαραίτητες πληροφορίες υγείας του παιδιού. Φυλάσσονται μόνο σε κρυπτογραφημένη μορφή.</p>
+              <div data-testid="step-3"><h2>Ιατρικές Πληροφορίες ανά παιδί</h2><p>Δηλώστε ξεχωριστά τις απαραίτητες πληροφορίες υγείας κάθε παιδιού. Φυλάσσονται μόνο σε κρυπτογραφημένη μορφή.</p>
+                <h3 class="registration-medical-child">Παιδί 1 · {form.player_first_name} {form.player_last_name}</h3>
                 {#each [{key:'allergies',title:'Αλλεργίες'},{key:'conditions',title:'Ιατρικές Παθήσεις'},{key:'medication',title:'Φαρμακευτική Αγωγή'}] as item (item.key)}
                   <fieldset class="registration-choice-card" disabled={pending}>
                     <legend>{item.title}</legend>
@@ -195,6 +290,29 @@
                       {#if form.has_medication}<textarea bind:value={form.medication_details} maxlength="1500" placeholder="Περιγράψτε τη φαρμακευτική αγωγή" data-testid="medication-details"></textarea>{/if}
                     {/if}
                   </fieldset>
+                {/each}
+                {#each additionalPlayers as child,i (i)}
+                  <section class="registration-child" data-testid="additional-medical">
+                    <h3 class="registration-medical-child">Παιδί {i+2} · {child.player_first_name} {child.player_last_name}</h3>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Αλλεργίες</legend>
+                      <label><input type="radio" name={'child-'+i+'-allergies'} checked={child.has_allergies} onchange={()=>child.has_allergies=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-allergies'} checked={!child.has_allergies} onchange={()=>{child.has_allergies=false;child.allergies_details='';}}/> Όχι</label>
+                      {#if child.has_allergies}<textarea bind:value={child.allergies_details} maxlength="1500" placeholder="Περιγράψτε τις αλλεργίες του παιδιού"></textarea>{/if}
+                    </fieldset>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Ιατρικές παθήσεις</legend>
+                      <label><input type="radio" name={'child-'+i+'-conditions'} checked={child.has_conditions} onchange={()=>child.has_conditions=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-conditions'} checked={!child.has_conditions} onchange={()=>{child.has_conditions=false;child.conditions_details='';}}/> Όχι</label>
+                      {#if child.has_conditions}<textarea bind:value={child.conditions_details} maxlength="1500" placeholder="Περιγράψτε τις παθήσεις του παιδιού"></textarea>{/if}
+                    </fieldset>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Φαρμακευτική αγωγή</legend>
+                      <label><input type="radio" name={'child-'+i+'-medication'} checked={child.has_medication} onchange={()=>child.has_medication=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-medication'} checked={!child.has_medication} onchange={()=>{child.has_medication=false;child.medication_details='';}}/> Όχι</label>
+                      {#if child.has_medication}<textarea bind:value={child.medication_details} maxlength="1500" placeholder="Περιγράψτε τη φαρμακευτική αγωγή του παιδιού"></textarea>{/if}
+                    </fieldset>
+                  </section>
                 {/each}
               </div>
             {:else if currentStep===4}
@@ -216,6 +334,15 @@
               </div>
             {:else}
               <div data-testid="step-5"><h2>Πληρωμή & Υπογραφή</h2><p>Η επιλογή πληρωμής αποτελεί προτίμηση· δεν γίνεται αυτόματη χρέωση με την υποβολή.</p>
+                <section class="registration-costs" data-testid="registration-fee-summary" aria-label="Ανάλυση εκτιμώμενων χρεώσεων">
+                  <h3>Ανάλυση χρεώσεων · {playerCount} {playerCount===1?'παιδί':'παιδιά'}</h3>
+                  <div><span>Μηνιαία συνδρομή οικογένειας</span><strong>€{monthlyFee}</strong></div>
+                  <div><span>Εφάπαξ εγγραφή · €20 × {playerCount}</span><strong>€{registrationFees}</strong></div>
+                  <div><span>Επίσημη στολή · €140 × {playerCount}</span><strong>€{playerCount*140}</strong></div>
+                  <div><span>Υποχρεωτική εκτύπωση · €10 × {playerCount}</span><strong>€{playerCount*10}</strong></div>
+                  <div class="registration-total"><span>Αρχικό εκτιμώμενο σύνολο με τον 1ο μήνα</span><strong>€{initialTotal}</strong></div>
+                  <p>Η εκτύπωση είναι υποχρεωτική για κάθε επίσημη στολή. Οι αριθμοί είναι προτιμήσεις υπό επιβεβαίωση από τον υπεύθυνο τοποθεσίας. Η υποβολή δεν αποτελεί τιμολόγιο ή πληρωμή.</p>
+                </section>
                 <fieldset class="registration-payment" disabled={pending}><legend>Επιθυμητός τρόπος πληρωμής</legend>
                   <label><input type="radio" value="cash" bind:group={form.payment_method} data-testid="payment-cash"/> Μετρητά</label>
                   <label><input type="radio" value="card" bind:group={form.payment_method} data-testid="payment-card"/> Κάρτα</label>
@@ -270,6 +397,23 @@
   .registration-step-icon{cursor:pointer;color:inherit}
   .registration-step-icon:disabled{cursor:default}
   .registration-steps .completed .registration-step-icon{border-color:#f6bb38;color:#f6bb38}
+  .registration-child{margin:22px 0;border:1px solid #49402a;border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,#171510,#0e0e0e)}
+  .registration-child-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .registration-child-head h3{margin:0}
+  .registration-child-head button{color:#f6bb38;padding:10px 12px;min-height:44px;border:1px solid #77602f;border-radius:6px}
+  .registration-add-child{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;margin:18px 0;padding:12px 18px;border:1px dashed #f6bb38;border-radius:9px;background:#241d0d;color:#f6bb38;font-weight:800;cursor:pointer}
+  .registration-add-child:hover,.registration-add-child:focus-visible{background:#35270e;outline-offset:3px}
+  .registration-note,.registration-family-note{font-size:13px;line-height:1.65;color:#d4cbb4}
+  .registration-medical-child{margin:20px 0 12px;padding:12px 16px;border-left:4px solid #f6bb38;background:#191710}
+  .registration-costs{padding:clamp(16px,3vw,26px);background:#121212;border:1px solid #59451e;border-radius:12px;margin:24px 0}
+  .registration-costs h3{margin:0 0 18px}
+  .registration-costs>div{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:11px 0;border-bottom:1px solid #303030}
+  .registration-costs strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .registration-costs .registration-total{border-top:2px solid #f6bb38;border-bottom:0;margin-top:10px;font-weight:800}
+  .registration-costs .registration-total strong{color:#f6bb38;font-size:24px}
+  .registration-costs>p{margin:15px 0 0;color:#bfbfbf;font-size:13px;line-height:1.6}
+  .registration-card input:focus-visible,.registration-card select:focus-visible,
+  .registration-card textarea:focus-visible{outline:2px solid #f6bb38;outline-offset:2px}
   .registration-success{text-align:center;margin-top:40px}
   .registration-success h1{font-size:36px}
   .registration-success p{margin:16px auto;max-width:45ch}

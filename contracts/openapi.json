@@ -42,8 +42,67 @@
         ],
         "type": "object"
       },
+      "AcademyRegistrationAdditionalPlayer": {
+        "properties": {
+          "allergies_details": {
+            "type": "string"
+          },
+          "conditions_details": {
+            "type": "string"
+          },
+          "has_allergies": {
+            "type": "boolean"
+          },
+          "has_conditions": {
+            "type": "boolean"
+          },
+          "has_medication": {
+            "type": "boolean"
+          },
+          "medication_details": {
+            "type": "string"
+          },
+          "player_address": {
+            "type": "string"
+          },
+          "player_city": {
+            "type": "string"
+          },
+          "player_dob": {
+            "type": "string"
+          },
+          "player_first_name": {
+            "type": "string"
+          },
+          "player_gender": {
+            "type": "string"
+          },
+          "player_last_name": {
+            "type": "string"
+          },
+          "player_postal_code": {
+            "type": "string"
+          },
+          "preferred_number": {
+            "type": "string"
+          },
+          "preferred_print_name": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "AcademyRegistrationRequest": {
         "properties": {
+          "additional_players": {
+            "items": {
+              "$ref": "#/components/schemas/AcademyRegistrationAdditionalPlayer"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "allergies_details": {
             "type": "string"
           },
@@ -132,6 +191,12 @@
             "type": "string"
           },
           "player_postal_code": {
+            "type": "string"
+          },
+          "preferred_number": {
+            "type": "string"
+          },
+          "preferred_print_name": {
             "type": "string"
           },
           "signature_data": {

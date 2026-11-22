@@ -10,7 +10,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
     return json({ code: 'origin_denied' }, { status: 403, headers });
   if (request.headers.get('content-type')?.split(';', 1)[0]?.trim() !== 'application/json')
     return json({ code: 'json_required' }, { status: 415, headers });
-  if (Number(request.headers.get('content-length') ?? '0') > 32768)
+  if (Number(request.headers.get('content-length') ?? '0') > 131072)
     return json({ code: 'payload_too_large' }, { status: 413, headers });
 
   // Bound even chunked requests without a Content-Length. Do not stringify
@@ -24,7 +24,7 @@ export const POST: RequestHandler = async ({ request, url }) => {
       const { done, value } = await reader.read();
       if (done) break;
       size += value.byteLength;
-      if (size > 32768) return json({ code: 'payload_too_large' }, { status: 413, headers });
+      if (size > 131072) return json({ code: 'payload_too_large' }, { status: 413, headers });
       chunks.push(value);
     }
     const apiOrigin = new URL(INTERNAL_API_ORIGIN);
@@ -44,8 +44,11 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // server internals or user-submitted medical data to the browser.
     if (response.status === 202) {
       const result = await response.json().catch(() => null);
-      if (typeof result?.receipt === 'string' && /^[0-9a-f]{32}$/.test(result.receipt))
-        return json({ receipt: result.receipt }, { status: 202, headers });
+      if (typeof result?.receipt === 'string' && /^[0-9a-f]{32}$/.test(result.receipt) &&
+        Array.isArray(result?.receipts) && result.receipts.length>=1 &&
+        result.receipts.length<=5 && result.receipts[0]===result.receipt &&
+        result.receipts.every((id:unknown)=>typeof id==='string' && /^[0-9a-f]{32}$/.test(id)))
+        return json({ receipt: result.receipt,receipts:result.receipts }, { status: 202, headers });
     }
     const status = [400, 403, 413, 415, 422, 429].includes(response.status) ? response.status : 503;
     return json({ code: status === 429 ? 'rate_limited' : status === 422 ? 'invalid_registration' : 'registration_unavailable' }, { status, headers });

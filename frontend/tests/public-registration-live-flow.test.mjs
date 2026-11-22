@@ -42,13 +42,30 @@ test('public intake only creates pending Academy records with encrypted evidence
   assert.match(api,/AcademyRegistration:PolicyVersion/);
   assert.match(api,/AcademyEnquiryActivationGate\.TryCreateFingerprint/);
   assert.match(api,/Duplicate|duplicate_field/);
-  assert.match(api,/Results\.Json\(new \{receipt=id\.ToString\("N"\)\},statusCode:202\)/);
+  assert.match(api,/receipt=receipts\[0\],receipts/);
   assert.doesNotMatch(api,/console\.log|logger\.LogInformation\(.*[Bb]ody/);
+});
+
+test('family registration preserves per-child medical details and mandatory printing',()=>{
+  assert.match(page,/data-testid="add-player"/);
+  assert.match(page,/data-testid="additional-player"/);
+  assert.match(page,/data-testid="additional-medical"/);
+  assert.match(page,/preferred_number/);
+  assert.match(page,/preferred_print_name/);
+  assert.match(page,/υποχρεωτική εκτύπωση/);
+  assert.ok(page.includes('playerCount===1?60:100+(playerCount-2)*50'));
+  assert.match(page,/additional_players:additionalPlayers/);
+  assert.match(api,/PrintingFeeEur=10/);
+  assert.match(api,/KitFeeEur=140/);
+  assert.match(api,/OfficialKitMandatory=true,PrintingMandatory=true/);
+  assert.match(api,/BeginTransactionAsync/);
+  assert.match(api,/CommitAsync/);
+  assert.doesNotMatch(api,/KitPrintingRequested|OfficialKitRequested/);
 });
 
 test('same-origin SvelteKit proxy strips credentials and bounds upload payload',()=>{
   assert.match(proxy,/request\.headers\.get\('origin'\) !== url\.origin/);
-  assert.match(proxy,/size > 32768/);
+  assert.match(proxy,/size > 131072/);
   assert.match(proxy,/credentials: 'omit'/);
   assert.match(proxy,/cache: 'no-store'/);
   assert.match(proxy,/response\.status === 202/);
