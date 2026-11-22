@@ -320,7 +320,13 @@ async function verifyAuthenticatedAdminNavigation(browser, base, artifacts) {
       if (viewport.width <= 720)
         assert.ok(values.sidebarScrollWidth <= values.sidebarClientWidth + 2,
           'Mobile admin menu should not depend on an overflowing horizontal link rail');
-      else assert.ok(values.sidebarWidth >= 260,'Sidebar rail became too narrow');
+      else assert.ok(values.sidebarWidth >= (viewport.width <= 920 ? 250 : 260),
+        'Sidebar rail became too narrow');
+      if (viewport.width > 720) {
+        const expectedWidth = viewport.width >= 2560 ? 280 : viewport.width <= 920 ? 250 : 260;
+        assert.ok(Math.abs(values.sidebarWidth - expectedWidth) <= 2,
+          viewport.name+' admin sidebar width no longer matches shared compact rail');
+      }
       const news = page.getByTestId('admin-news-link');
       // :focus-visible intentionally follows keyboard modality. A synthetic
       // focus() call immediately after clicking the disclosure is pointer
