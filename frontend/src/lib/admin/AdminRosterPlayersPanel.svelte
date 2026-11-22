@@ -23,12 +23,14 @@
   const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
   let refresh = $state(0);
   let playerSearch=$state('');
+  let playerGroupFilter=$state('');
   let page = $state<Page|null>(null);
   const visiblePlayers=$derived((page?.players??[]).filter(player=>{
     const term=playerSearch.trim().toLocaleLowerCase('el-GR');
-    return !term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
+    const matchesGroup=!playerGroupFilter || currentGroups(player).includes(playerGroupFilter);
+    return matchesGroup && (!term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
       player.id.toLocaleLowerCase('el-GR').includes(term) ||
-      groupLabels(player).toLocaleLowerCase('el-GR').includes(term);
+      groupLabels(player).toLocaleLowerCase('el-GR').includes(term));
   }));
 
   let loading = $state(false);
@@ -228,6 +230,17 @@
       <input id="admin-player-search" type="search" bind:value={playerSearch}
         data-testid="admin-player-search" placeholder="Όνομα, αναγνωριστικό ή τμήμα…" autocomplete="off"/>
     </label>
+    {#if !currentGroup}
+      <label for="admin-player-group-filter">Ομάδα / τμήμα
+        <select id="admin-player-group-filter" bind:value={playerGroupFilter}
+          data-testid="admin-player-group-filter">
+          <option value="">Όλα τα εξουσιοδοτημένα τμήματα</option>
+          {#each groups as group (group.id)}
+            <option value={group.id}>{group.name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
     <p class="admin-muted">Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας.
       Για πλήρη έλεγχο του ρόστερ χρησιμοποιήστε την πλοήγηση σελίδων.</p>
   </div>
@@ -363,10 +376,11 @@
   .admin-player-directory{margin:16px 0;border-radius:11px}
   .admin-player-directory h2{font-size:clamp(18px,1.7vw,23px)}
   .admin-player-filters{margin-top:16px;padding:13px;border:1px solid #303335;
-    border-radius:9px;background:#101112;display:grid;gap:8px}
+    border-radius:9px;background:#101112;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
   .admin-player-filters label{display:grid;gap:7px;margin:0;color:#cbd0ce;font-size:12px}
   .admin-player-filters input{min-height:42px;border-radius:6px}
-  .admin-player-filters p{font-size:11px;margin:0;line-height:1.5}
+  .admin-player-filters p{grid-column:1/-1;font-size:11px;margin:0;line-height:1.5}
+  @media(max-width:670px){.admin-player-filters{grid-template-columns:1fr}}
   .admin-player-filter-count{margin-left:auto}
   .admin-player-columns{display:grid;grid-template-columns:1fr 1.5fr;gap:15px;
     padding:9px 0;border-top:1px solid #363a3a;color:#8e9caa;letter-spacing:.08em;font-size:10px}
