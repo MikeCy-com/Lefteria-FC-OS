@@ -99,22 +99,29 @@ test('navigation worker never intercepts API requests and returns a noncached ge
   assert.doesNotMatch(source, /caches\.|localStorage|sessionStorage|pushManager/);
 });
 
-test('manifest and footer install entry retain the app route and accessible device instructions', () => {
+test('installed OS manifest is distinct from original app and has valid PWA icon sizes', () => {
   const manifest = JSON.parse(readFileSync(new URL('../static/manifest.webmanifest', import.meta.url)));
-  assert.equal(manifest.start_url, '/app'); assert.equal(manifest.id, '/app');
-  assert.equal(manifest.scope, '/'); assert.equal(manifest.display, 'standalone');
-  assert.ok(manifest.icons.some(icon => icon.src === '/club/app-icon.svg' && icon.sizes === 'any'));
+  assert.equal(manifest.start_url, '/app');
+  assert.equal(manifest.scope, '/');
+  assert.equal(manifest.id, '/lefteria-fc-os');
+  assert.equal(manifest.display, 'standalone');
+  assert.match(manifest.name, /OS/);
+  for (const size of ['192x192','512x512'])
+    assert.ok(manifest.icons.some(icon => icon.sizes === size && icon.src.startsWith('/os/')),size);
   const component = readFileSync(new URL('../src/lib/public/AppInstallButton.svelte', import.meta.url), 'utf8');
-  assert.match(component, /Κατέβασε την επίσημη εφαρμογή/);
+  assert.match(component, /Εγκατάσταση επίσημης εφαρμογής OS/);
   assert.match(component, /<dialog[^>]*aria-labelledby="app-install-title"/);
   assert.match(component, /Προσθήκη στην οθόνη Αφετηρίας/);
-  assert.match(component, /lockPageScroll\(document\)/);
-  assert.match(component, /href="https:\/\/lefteriafc\.cy\/api\/app\/android"/);
-  assert.match(component, /Η εφαρμογή Android συνδέεται στο επίσημο/);
-  assert.doesNotMatch(component, /emergentagent|window\.location/);
+  assert.match(component, /lockPageScroll\\(document\\)/);
+  assert.match(component, /void installCurrentSite\\(\\)/);
+  assert.doesNotMatch(component, /api\\/app\\/android|official-android-apk|emergentagent/);
+  const mobileLogin = readFileSync(new URL('../src/routes/app/login/+page.svelte', import.meta.url), 'utf8');
+  const mobileApp = readFileSync(new URL('../src/routes/app/[...path]/+page.svelte', import.meta.url), 'utf8');
+  assert.match(mobileLogin,/data-testid="mobile-login-os-install"/);
+  assert.match(mobileApp,/data-testid="mobile-more-os-install"/);
 });
 
-test('Android gets explicit official APK choice while iOS and desktop retain their own install flow', () => {
+test('Android uses native OS PWA prompt while iOS and desktop retain their own install flow', () => {
   const controller = createInstallController(), state = observe(controller);
   const android = browser({ navigator:{userAgent:'Mozilla/5.0 (Linux; Android 15)'} });
   const stop = controller.start(android.events);
