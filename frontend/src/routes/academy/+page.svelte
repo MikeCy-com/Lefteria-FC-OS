@@ -264,7 +264,7 @@
   }
   :global(.public-site[data-route="/academy"]) .academy-intro .public-subnav a:hover,
   :global(.public-site[data-route="/academy"]) .academy-intro .public-subnav a:focus-visible{
-    background:#f6bb3817;border-bottom-color:#f6bb38;
+    background:#f6bb3817;border-bottom-color:var(--public-gold);
   }
   @media(max-width:700px){
     :global(.public-site[data-route="/academy"]) .academy-intro{
@@ -302,18 +302,18 @@
   .academy-review-card footer strong{color:#fff;font-size:14px}
   .academy-review-card footer span{color:#bbb;font-size:12px}
   .academy-review-response{padding:14px;background:#101010;border-left:3px solid #e5b94e}
-  .academy-review-response strong{font-size:11px;letter-spacing:.05em;color:#f6bb38}
+  .academy-review-response strong{font-size:11px;letter-spacing:.05em;color:var(--public-gold)}
   .academy-review-response p{margin-top:6px;color:#ccc;font-size:13px;line-height:1.6}
   @media(max-width:1000px){.academy-review-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
   @media(max-width:650px){.academy-review-grid{grid-template-columns:1fr}.academy-reviews-heading{align-items:flex-start;flex-direction:column}.academy-reviews-summary{align-items:flex-start}.academy-review-card{padding:21px 18px}}
   .academy-key-figures{background:#090a0b;border-block:1px solid #3c3528}
   .academy-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
   .academy-stats-grid>div{padding:25px 15px;border-left:2px solid #c99732;background:#151515;display:flex;flex-direction:column;gap:7px}
-  .academy-stats-grid strong{color:#f6bb38;font:900 clamp(32px,3.3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif}
+  .academy-stats-grid strong{color:var(--public-gold);font:900 clamp(32px,3.3vw,52px)/1 'Fira Sans Extra Condensed',sans-serif}
   .academy-stats-grid span{color:#d2d2d2;font-size:13px;font-weight:700}
   .academy-philosophy{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.92fr);gap:45px;align-items:center;background:#101111}
   .academy-philosophy h2,.academy-enquiry h2{font:900 clamp(27px,2.75vw,45px)/1.12 'Fira Sans Extra Condensed',sans-serif}
-  .academy-philosophy em{color:#f6bb38}
+  .academy-philosophy em{color:var(--public-gold)}
   .academy-philosophy-copy>p:not(.public-eyebrow),.academy-enquiry p:not(.public-eyebrow){line-height:1.7;color:#d0d0d0;max-width:67ch;margin:20px 0}
   .academy-philosophy ul{padding:0;list-style:none;display:grid;gap:14px;margin:24px 0}
   .academy-philosophy li{border-left:3px solid #e7b341;padding-left:15px;font-size:15px;line-height:1.5;color:#e7e7e7}
@@ -354,14 +354,14 @@
     margin:0;white-space:nowrap;font:900 clamp(20px,1.8vw,28px)/1 'Fira Sans Extra Condensed',sans-serif;
   }
   .academy-program-overview h2{display:flex;align-items:center;gap:12px;white-space:normal}
-  .academy-program-overview h2::before{content:"";display:block;flex:0 0 5px;height:24px;background:#f6bb38;transform:skew(-18deg)}
+  .academy-program-overview h2::before{content:"";display:block;flex:0 0 5px;height:24px;background:var(--public-gold);transform:skew(-18deg)}
   .academy-program-overview>p{margin:0;max-width:53ch;font-size:12px;line-height:1.45;color:#ddd}
   .academy-program-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
   .academy-program-facts>div{
     display:flex;align-items:center;gap:8px;padding:0 10px;
     border-left:1px solid #777;font-family:'Fira Sans Extra Condensed',sans-serif;
   }
-  .academy-program-facts :global(svg){color:#f6bb38;flex-shrink:0}
+  .academy-program-facts :global(svg){color:var(--public-gold);flex-shrink:0}
   .academy-program-facts>div>span{font-size:12px;font-weight:800}
   .academy-program-facts strong{display:block;font:400 11px/1.4 'Fira Sans',sans-serif;color:#ddd;overflow-wrap:anywhere}
   .academy-age-groups{background:#101111;padding:18px clamp(20px,2.7vw,43px) 22px}
@@ -380,18 +380,18 @@
     text-decoration:none;
   }
   .academy-landing-city-index a:is(:hover,:focus-visible){
-    color:#080909;background:#f6bb38;border-color:#f6bb38;
+    color:#080909;background:var(--public-gold);border-color:var(--public-gold);
   }
   .academy-landing-city-index a:focus-visible{outline:3px solid #fff;outline-offset:3px}
   .academy-city-block{padding:8px 0 12px;border-bottom:1px solid #34322b;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
   .academy-city-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
   .academy-city-heading a{
     display:inline-flex;align-items:center;gap:7px;min-height:44px;
-    color:#f6bb38;font:800 13px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    color:var(--public-gold);font:800 13px/1.2 'Fira Sans Extra Condensed',sans-serif;
     text-decoration:none;
   }
   .academy-city-heading a:is(:hover,:focus-visible){color:#fff;text-decoration:underline;text-underline-offset:3px}
-  .academy-city-heading a:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  .academy-city-heading a:focus-visible{outline:2px solid var(--public-gold);outline-offset:3px}
   .academy-city-label{scroll-margin-top:calc(var(--public-header,64px) + 14px)}
   .academy-location-block{padding:10px 0 6px;scroll-margin-top:calc(var(--public-header,64px) + 14px)}
   .academy-location-block>h4{
@@ -401,17 +401,17 @@
   }
   .academy-location-block>h4::before{
     content:"";width:4px;height:1.05em;flex:none;
-    transform:skew(-16deg);background:#f6bb38;
+    transform:skew(-16deg);background:var(--public-gold);
   }
-  .academy-age-card:focus-within{border-color:#f6bb38;box-shadow:0 0 0 1px #f6bb38}
+  .academy-age-card:focus-within{border-color:var(--public-gold);box-shadow:0 0 0 1px var(--public-gold)}
   .academy-age-card :is(a,summary):focus-visible{outline:3px solid #fff;outline-offset:3px}
   .academy-unassigned-block{
     padding:20px 18px;margin:18px 0 4px;
     background:linear-gradient(130deg,#1e1a14,#111313);
-    border:1px solid #8c7549;border-left:4px solid #f6bb38;
+    border:1px solid #8c7549;border-left:4px solid var(--public-gold);
   }
   .academy-unassigned-block h3{
-    margin:0 0 8px;color:#f6bb38;
+    margin:0 0 8px;color:var(--public-gold);
     font:800 clamp(19px,1.75vw,26px)/1.16 'Fira Sans Extra Condensed',sans-serif;
   }
   .academy-unassigned-block>p{font-size:13px;line-height:1.6;color:#ded8cc;max-width:75ch;margin:0 0 16px}
@@ -448,7 +448,7 @@
   .academy-philosophy-art{min-height:200px;max-height:340px;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%)}
   .academy-reference-fees{
     display:grid;grid-template-columns:minmax(0,.42fr) minmax(0,1fr);
-    min-height:132px;margin:0;padding:0;border-top:1px solid #f6bb38;
+    min-height:132px;margin:0;padding:0;border-top:1px solid var(--public-gold);
     background:linear-gradient(110deg,#ffb82d,#f5ae1e);color:#070707;
   }
   .academy-fees-art{position:relative;overflow:hidden;clip-path:polygon(0 0,100% 0,90% 100%,0 100%)}
