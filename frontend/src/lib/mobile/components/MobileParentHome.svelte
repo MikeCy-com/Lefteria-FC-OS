@@ -2,7 +2,8 @@
   import { untrack } from 'svelte';
   import { CALENDAR_KIND_LABELS, clubToday, formatCalendarDate } from '../calendar.ts';
   import type { CalendarLoadStatus,AvailabilityStatus,MobileCalendarItem } from '../calendar.ts';
-  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp, parentHomeCancelledEvents } from '../parent-home.ts';
+  import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule,
+    parentHomeRsvp, parentHomeCancelledEvents, parentHomePendingResponses } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
   import { publicImages } from '../../public/images.ts';
@@ -43,6 +44,8 @@
     matchingParentHomeCalendar(family, calendar, identityId, today, activeChild?.id) && calendarStatus === 'ready');
   const upcoming = $derived(trustworthyCalendar ? parentHomeSchedule(family, calendar, identityId, today, activeChild?.id) : []);
   const cancellations = $derived(trustworthyCalendar ? parentHomeCancelledEvents(family,calendar,identityId,today,activeChild?.id) : []);
+  const pendingResponses = $derived(trustworthyCalendar && onRespond
+    ? parentHomePendingResponses(family,calendar,identityId,today,activeChild?.id):[]);
 
   // Every new dashboard mount rechecks guardian bindings. Cached sibling
   // selections and calendar data are not treated as lasting authorization.
@@ -140,6 +143,45 @@
     </section>
   {/if}
 
+  {#if activeChild && pendingResponses.length>0 && onRespond}
+    <section class="parent-section parent-response-queue"
+      aria-labelledby={id+'-responses-heading'} data-testid="parent-home-response-queue">
+      <div class="parent-section-heading">
+        <div>
+          <p class="parent-response-eyebrow">ΧΡΕΙΑΖΕΤΑΙ ΑΠΑΝΤΗΣΗ</p>
+          <h2 id={id+'-responses-heading'}>Δηλώσεις συμμετοχής</h2>
+        </div>
+        <button type="button" disabled={busy} onclick={()=>void onCalendar(activeChild.id)}>
+          Πλήρες ημερολόγιο <span aria-hidden="true">›</span>
+        </button>
+      </div>
+      <p class="parent-scope">Για {activeChild.name} · δραστηριότητες χωρίς
+        καταχωρισμένη απάντηση στο επιβεβαιωμένο πρόγραμμα.</p>
+      <ul class="parent-response-list">
+        {#each pendingResponses as event (event.kind+':'+event.id)}
+          <li data-testid="parent-home-response-needed">
+            <div>
+              <strong>{event.title}</strong>
+              <span>{calendarDateLabel(event.date)}
+                {event.start_time?' · '+event.start_time:''}</span>
+            </div>
+            <div class="parent-response-buttons" role="group"
+              aria-label={'Συμμετοχή '+activeChild.name+' · '+event.title}>
+              <button type="button" disabled={busy}
+                onclick={()=>void onRespond?.(event,'going')}>Θα έρθει</button>
+              <button type="button" disabled={busy}
+                onclick={()=>void onRespond?.(event,'not_going')}>Δεν θα έρθει</button>
+              <button type="button" disabled={busy}
+                onclick={()=>void onRespond?.(event,'maybe')}>Ίσως</button>
+            </div>
+          </li>
+        {/each}
+      </ul>
+      <p class="parent-response-note">Εμφανίζονται μόνο οι επόμενες διαθέσιμες
+        δραστηριότητες αυτού του παιδιού. Η απάντηση ενημερώνεται όταν επιβεβαιωθεί από το σύστημα.</p>
+    </section>
+  {/if}
+
   <section class="parent-section" aria-labelledby={id + '-schedule-heading'} data-testid="parent-upcoming-schedule">
     <div class="parent-section-heading">
       <h2 id={id + '-schedule-heading'}>Σήμερα & επόμενα</h2>
@@ -210,8 +252,8 @@
       <button type="button" disabled={busy} onclick={() => void onChildren()} data-testid="parent-shortcut-children">
         <span aria-hidden="true">♧</span><strong>Τα παιδιά μου</strong>
       </button>
-      {#if firstChild}
-        <button type="button" disabled={busy} onclick={() => void onCalendar(firstChild.id)} data-testid="parent-shortcut-calendar">
+      {#if activeChild}
+        <button type="button" disabled={busy} onclick={() => void onCalendar(activeChild.id)} data-testid="parent-shortcut-calendar">
           <span aria-hidden="true">▦</span><strong>Πρόγραμμα</strong>
         </button>
       {/if}
@@ -282,6 +324,24 @@
   .parent-child-card .parent-select-schedule[aria-pressed='true']{background:#6b4a18;border-color:#f6bb38;color:#fff}
   .parent-child-card>button:not(.parent-select-schedule),.parent-event>button{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border:0;background:transparent;color:#ffca46;font-size:25px;cursor:pointer}
   .parent-scope{margin:0 0 12px;color:#c0c6c8;font-size:14px}
+  .parent-response-queue{border:1px solid #5d4b2b;border-radius:12px;padding:18px;
+    background:linear-gradient(125deg,#211c13,#131515 70%)}
+  .parent-response-eyebrow{margin:0 0 5px;color:#f6bb38;font-size:11px;
+    font-weight:800;letter-spacing:.12em}
+  .parent-response-list{list-style:none;display:grid;gap:10px;margin:0;padding:0}
+  .parent-response-list li{padding:13px;display:flex;flex-wrap:wrap;gap:12px;
+    justify-content:space-between;align-items:center;border:1px solid #594628;border-radius:9px;
+    background:#131516}
+  .parent-response-list li>div:first-child{display:grid;gap:5px;flex:1;min-width:180px}
+  .parent-response-list strong{font-size:15px;line-height:1.3}
+  .parent-response-list span{font-size:12px;color:#d4bf96}
+  .parent-response-buttons{display:flex;flex-wrap:wrap;gap:6px}
+  .parent-response-buttons button{min-height:44px;border:1px solid #68522b;
+    color:#ffca46;background:#292116;border-radius:7px;padding:8px 12px;
+    font-size:13px;font-weight:700;cursor:pointer}
+  .parent-response-buttons button:disabled{opacity:.5;cursor:wait}
+  .parent-response-buttons button:focus-visible{outline:2px solid #ffca46;outline-offset:2px}
+  .parent-response-note{font-size:12px;color:#c3b9aa;margin:12px 0 0;line-height:1.5}
   .parent-cancellations{border-color:#b36832;background:linear-gradient(130deg,#2b1b11,#17191a)}
   .parent-cancellations h2{color:#ffbf86}
   .cancelled-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
