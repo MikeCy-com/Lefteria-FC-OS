@@ -634,10 +634,51 @@ try {
           }
         }
       }
+      // Record real computed styles per public page and section; a single
+      // global CSS assertion cannot detect oversized nested headings, gutters
+      // or inconsistent card padding. Evidence stays in isolated CI artifacts.
+      const sectionDesign = await page.evaluate(() => {
+        const site = document.querySelector('.public-site');
+        if (!site) return null;
+        const details = (node) => {
+          const css = getComputedStyle(node);
+          const box = node.getBoundingClientRect();
+          return {
+            tag:node.tagName.toLowerCase(),
+            className:typeof node.className==='string'?node.className.slice(0,120):'',
+            fontFamily:css.fontFamily,fontSize:css.fontSize,fontWeight:css.fontWeight,
+            fontStyle:css.fontStyle,lineHeight:css.lineHeight,letterSpacing:css.letterSpacing,
+            color:css.color,backgroundColor:css.backgroundColor,
+            padding:[css.paddingTop,css.paddingRight,css.paddingBottom,css.paddingLeft],
+            margin:[css.marginTop,css.marginRight,css.marginBottom,css.marginLeft],
+            width:Math.round(box.width),left:Math.round(box.left),
+            maxWidth:css.maxWidth
+          };
+        };
+        const candidates = [
+          '.public-header','.public-rail','.public-main','.public-footer',
+          '.public-page-heading','.public-section','.section-heading',
+          '.public-news-grid','.public-group-grid','.public-group-card',
+          '.article-body','.public-hero-stage'
+        ];
+        const sections = candidates.flatMap(selector =>
+          [...site.querySelectorAll(selector)].slice(0,20).map(element => ({
+            selector,...details(element),
+            heading:(element.matches('h1,h2,h3')?element:
+              element.querySelector('h1,h2,h3')) || null
+          })).map(({heading,...item})=>({
+            ...item,heading:heading?details(heading):null
+          }))).slice(0,90);
+        return {root:details(site),sections};
+      });
+      if (sectionDesign && (!sectionDesign.root.fontFamily.includes('Fira Sans') ||
+          !sectionDesign.root.color || sectionDesign.root.width<=0)) {
+        failures.push(route.path+' '+viewport.name+': invalid public design root');
+      }
       const screenshot = `${route.name}-${viewport.name}.png`;
       await page.screenshot({path:path.join(artifacts,screenshot),fullPage:true,animations:'disabled',timeout:30000});
       const status = response?.status() ?? 0;
-      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,screenshot});
+      results.push({route:route.path,viewport:viewport.name,width:viewport.width,status,...metrics,typography,publicFont,displayType,referenceLayout,sectionDesign,screenshot});
       // Status assertions distinguish real rendering from a redirect, missing page, or server error.
       // The isolated backend is intentionally absent: the roster must render its explicit 503 fallback.
       if (status !== route.expectedStatus) failures.push(`${route.path} ${viewport.name}: HTTP ${status}, expected ${route.expectedStatus}`);
