@@ -146,3 +146,19 @@ test('private Academy enrollment and roster APIs must deny anonymous staging acc
       item.path.startsWith(protectedRoute)&&!item.ok));
   }
 });
+
+test('staging preflight refuses oversized chunked HTML and JSON instead of accepting 200',async()=>{
+  const html=new Response('<html>'+ 'x'.repeat(1024*1024)+'</html>',{
+    status:200,headers:{'content-type':'text/html'}
+  });
+  const report=await checkStagingMvp({origin:validOrigin,
+    fetcher:mock({'/admin/login':html})});
+  assert.equal(report.ready,false);
+  assert.ok(report.evidence.some(x=>x.path==='/admin/login'&&!x.ok));
+  const json=Response.json({status:'ready',payload:'x'.repeat(10000)});
+  const report2=await checkStagingMvp({origin:validOrigin,
+    fetcher:mock({'/api/health/ready':json})});
+  assert.equal(report2.ready,false);
+  assert.ok(report2.evidence.some(x=>x.path==='/api/health/ready'&&!x.ok));
+  assert.ok(!JSON.stringify(report2).includes('payload'));
+});
