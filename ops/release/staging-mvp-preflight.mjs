@@ -25,6 +25,11 @@ export const STAGING_CHECKS=Object.freeze([
     status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
   {path:'/api/mobile/hub/fan-subscription/plans',
     status:503,kind:'disabled',bodyCode:'mvp_feature_disabled'},
+  // Sensitive Academy enrollment and roster reads are protected at the API,
+  // not only through the administrator UI.
+  {path:'/api/admin/academy/intake',status:[401,403],kind:'deny'},
+  {path:'/api/admin/football/players?organization_id=lefteria_fc_academy',
+    status:[401,403],kind:'deny'},
   {path:'/api/mobile/family',status:[401,403],kind:'deny'},
   {path:'/api/mobile/players-list',status:[401,403],kind:'deny'}
 ]);
@@ -83,7 +88,19 @@ export async function checkStagingMvp({
           (response.headers?.get('content-type')??'').includes('application/json');
       }catch{ok=false;}
     }else if(ok&&check.kind==='html'){
-      ok=(response.headers?.get('content-type')??'').toLowerCase().includes('text/html');
+      // A proxy's text/html 200 alone could be an empty page, not a rendered
+      // site. Do not log or return the response body in the evidence report.
+      try{
+        const type=(response.headers?.get('content-type')??'').toLowerCase();
+        const length=Number(response.headers?.get('content-length')??0);
+        if(!type.includes('text/html')||
+           !Number.isFinite(length)||length>1024*1024)ok=false;
+        else{
+          const html=await response.text();
+          ok=html.length>0&&html.length<=1024*1024&&
+            /<(?:!doctype\s+html|html\b)/i.test(html);
+        }
+      }catch{ok=false;}
     }
     evidence.push({path:check.path,ok,status:response.status,
       reason:ok?'matched':response.status>=300&&response.status<400
