@@ -134,28 +134,12 @@ public sealed class PosVatProposalReviews : Migration
       END $vat_review$;
       REVOKE ALL ON FUNCTION pos_cashier.review_admin_variant_vat(
         text,text,uuid,boolean,text) FROM PUBLIC;
-
       CREATE FUNCTION pos_cashier.read_admin_vat_reviews(_digest text,_owner text)
       RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $vat_review_read$
       DECLARE v_role text;
       BEGIN
-        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
-    """);
-
-    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      DO $guard$
-      BEGIN
-        IF EXISTS(SELECT 1 FROM pos_cashier.vat_classification_reviews)
-        THEN RAISE EXCEPTION 'pos_vat_reviews_require_forward_recovery'; END IF;
-      END $guard$;
-      DROP FUNCTION pos_cashier.read_admin_vat_reviews(text,text);
-      DROP FUNCTION pos_cashier.review_admin_variant_vat(
-        text,text,uuid,boolean,text);
-      DROP TABLE pos_cashier.vat_classification_reviews;
-    """);
-}
-
+        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}$'
           OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
         THEN RAISE EXCEPTION 'pos_vat_review_denied' USING ERRCODE='42501'; END IF;
         SELECT a.role INTO v_role
@@ -182,6 +166,7 @@ public sealed class PosVatProposalReviews : Migration
           '[]'::jsonb));
       END $vat_review_read$;
       REVOKE ALL ON FUNCTION pos_cashier.read_admin_vat_reviews(text,text) FROM PUBLIC;
+
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -190,6 +175,7 @@ public sealed class PosVatProposalReviews : Migration
         IF EXISTS(SELECT 1 FROM pos_cashier.vat_classification_reviews)
         THEN RAISE EXCEPTION 'pos_vat_reviews_require_forward_recovery'; END IF;
       END $guard$;
+      DROP FUNCTION pos_cashier.read_admin_vat_reviews(text,text);
       DROP FUNCTION pos_cashier.review_admin_variant_vat(
         text,text,uuid,boolean,text);
       DROP TABLE pos_cashier.vat_classification_reviews;
