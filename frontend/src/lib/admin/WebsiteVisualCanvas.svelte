@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {DEFAULT_BLOCK_LAYOUT,DEFAULT_PAGE_LAYOUT,resolveWebsitePageLayout,validBlockLayout,validPageLayout,type WebsiteBlock,type WebsiteBlockLayout,type WebsitePageLayout} from '../public/website-pages.ts';
+  import {DEFAULT_BLOCK_LAYOUT,resolveWebsitePageLayout,validBlockLayout,type WebsiteBlock,type WebsiteBlockLayout,type WebsitePageLayout} from '../public/website-pages.ts';
   type Props={
     blocks:WebsiteBlock[];
     editable:boolean;
