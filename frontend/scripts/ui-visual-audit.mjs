@@ -148,11 +148,14 @@ async function verifyNativeThemePages(browser, base) {
   const checked=[];
   try {
     const page=await context.newPage();
-    for(const {route,selector,property,expected} of [
+    for(const {route,selector,property,expected,min} of [
       {route:'/academy',selector:'.academy-key-figures',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
       {route:'/academy/registration',selector:'.registration-card',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
       {route:'/contact',selector:'.contact-lead',property:'color',expected:'rgb(77, 77, 77)'},
-      {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'}
+      {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'},
+      {route:'/about',selector:'.source-about .max-w-7xl',property:'maxWidth',expected:'1120px'},
+      {route:'/shop',selector:'.shop-container',property:'width',expected:'1120px'},
+      {route:'/team',selector:'.public-section.team-section',property:'paddingLeft',min:88}
     ]) {
       await page.goto(base+route,{waitUntil:'domcontentloaded'});
       const actual=await page.evaluate(({selector,property})=>{
@@ -164,11 +167,16 @@ async function verifyNativeThemePages(browser, base) {
           '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
           '--lf-color-accent':'#145db3','--lf-color-surface':'#ffffff',
           '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
-          '--lf-color-link':'#145db3'
+          '--lf-color-link':'#145db3',
+          '--lf-layout-page-max-width':'1120px',
+          '--lf-layout-page-side-padding':'32px',
+          '--lf-layout-gutter':'28px'
         }))site.style.setProperty(key,value);
         return getComputedStyle(element)[property];
       },{selector,property});
-      assert.equal(actual,expected,route+' '+selector+' ignores published '+property);
+      if(expected!==undefined)assert.equal(actual,expected,route+' '+selector+' ignores published '+property);
+      if(min!==undefined)assert.ok(parseFloat(actual)>=min,
+        route+' '+selector+' ignores centered published page inset: '+actual);
       checked.push({route,selector,actual});
     }
     return checked;
