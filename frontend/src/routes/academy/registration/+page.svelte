@@ -397,6 +397,23 @@
   .registration-step-icon{cursor:pointer;color:inherit}
   .registration-step-icon:disabled{cursor:default}
   .registration-steps .completed .registration-step-icon{border-color:#f6bb38;color:#f6bb38}
+  .registration-child{margin:22px 0;border:1px solid #49402a;border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,#171510,#0e0e0e)}
+  .registration-child-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .registration-child-head h3{margin:0}
+  .registration-child-head button{color:#f6bb38;padding:10px 12px;min-height:44px;border:1px solid #77602f;border-radius:6px}
+  .registration-add-child{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;margin:18px 0;padding:12px 18px;border:1px dashed #f6bb38;border-radius:9px;background:#241d0d;color:#f6bb38;font-weight:800;cursor:pointer}
+  .registration-add-child:hover,.registration-add-child:focus-visible{background:#35270e;outline-offset:3px}
+  .registration-note,.registration-family-note{font-size:13px;line-height:1.65;color:#d4cbb4}
+  .registration-medical-child{margin:20px 0 12px;padding:12px 16px;border-left:4px solid #f6bb38;background:#191710}
+  .registration-costs{padding:clamp(16px,3vw,26px);background:#121212;border:1px solid #59451e;border-radius:12px;margin:24px 0}
+  .registration-costs h3{margin:0 0 18px}
+  .registration-costs>div{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;padding:11px 0;border-bottom:1px solid #303030}
+  .registration-costs strong{font-variant-numeric:tabular-nums;white-space:nowrap}
+  .registration-costs .registration-total{border-top:2px solid #f6bb38;border-bottom:0;margin-top:10px;font-weight:800}
+  .registration-costs .registration-total strong{color:#f6bb38;font-size:24px}
+  .registration-costs>p{margin:15px 0 0;color:#bfbfbf;font-size:13px;line-height:1.6}
+  .registration-card input:focus-visible,.registration-card select:focus-visible,
+  .registration-card textarea:focus-visible{outline:2px solid #f6bb38;outline-offset:2px}
   .registration-success{text-align:center;margin-top:40px}
   .registration-success h1{font-size:36px}
   .registration-success p{margin:16px auto;max-width:45ch}
