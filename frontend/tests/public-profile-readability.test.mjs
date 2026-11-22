@@ -10,7 +10,9 @@ const css = read('lib/public/public.css');
 test('public person profile keeps the roster link and semantic facts', () => {
   const source = read('lib/public/PublicPersonProfile.svelte');
   assert.match(source, /\/team\?tab=roster/);
-  assert.doesNotMatch(source, /person-breadcrumb/);
+  assert.match(source, /person-breadcrumbs/);
+  assert.match(source, /aria-label="Διαδρομή προφίλ"/);
+  assert.match(source, /person-name-highlight/);
   assert.match(source, /<dl class="person-facts">/);
   assert.match(source, /<dt>\{label\}<\/dt><dd>\{value\}<\/dd>/);
   assert.match(css, /font-size:13px;line-height:1\.5/);

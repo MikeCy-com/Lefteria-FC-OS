@@ -6,7 +6,7 @@ import {
   publicNavigation,navigationActive,navigationOwner,navigationLinkCurrent
 } from '../src/lib/public/navigation.ts';
 import {
-  withWebsitePages,websitePagePath,websitePageParentLink
+  withWebsitePages,websitePagePath,websitePageParentLink,websiteSectionPath,embeddedWebsiteSections
 } from '../src/lib/public/website-pages.ts';
 
 const team='lefteria_fc',academy='lefteria_fc_academy';
@@ -40,8 +40,56 @@ test('same CMS slug in Academy and First Team has different current markers and 
   assert.deepEqual(active(academyNav,new URL(academyPath,'https://example.test'),academy),['academy']);
   const teamItem=teamNav.find(item=>item.id==='team');
   const academyItem=academyNav.find(item=>item.id==='academy');
-  assert.equal(navigationLinkCurrent(teamItem.items.find(row=>row[0].startsWith('page-'))[2],clubPath),'page');
-  assert.equal(navigationLinkCurrent(academyItem.items.find(row=>row[0].startsWith('page-'))[2],academyPath),'page');
+  const teamMenu=teamItem.items.find(row=>row[0].startsWith('page-'))[2];
+  const academyMenu=academyItem.items.find(row=>row[0].startsWith('page-'))[2];
+  assert.equal(teamMenu,'/team#website-section-football-guide');
+  assert.equal(academyMenu,'/academy#website-section-football-guide');
+  assert.equal(navigationLinkCurrent(teamMenu,teamMenu),'location');
+  assert.equal(navigationLinkCurrent(academyMenu,academyMenu),'location');
+  // Standalone legacy bookmarks retain owning menu category, without
+  // claiming that their anchor is the currently loaded URL.
+  assert.equal(navigationLinkCurrent(teamMenu,clubPath),undefined);
+  assert.equal(navigationLinkCurrent(academyMenu,academyPath),undefined);
+});
+
+test('Pages menu links to native sections with scoped content and keeps old URLs accessible',()=>{
+  const rows=[
+    published(team,'first-roster','team'),
+    published(team,'match-guide','matches'),
+    published(academy,'kids-schedule','academy'),
+    published(academy,'academy-about','club'),
+    published(team,'club-info','root')
+  ];
+  assert.equal(websiteSectionPath('first-roster',team,'team'),'/team#website-section-first-roster');
+  assert.equal(websiteSectionPath('match-guide',team,'matches'),'/team?tab=results#website-section-match-guide');
+  assert.equal(websiteSectionPath('kids-schedule',academy,'academy'),'/academy#website-section-kids-schedule');
+  assert.equal(websiteSectionPath('academy-about',academy,'club'),'/about?organization_id=lefteria_fc_academy#website-section-academy-about');
+  assert.equal(websiteSectionPath('club-info',team,'root'),'/#website-section-club-info');
+  assert.equal(websiteSectionPath('academy-info',academy,'root'),'/academy#website-section-academy-info');
+  assert.equal(websiteSectionPath('academy-shop',academy,'shop'),websitePagePath('academy-shop',academy));
+  assert.deepEqual(
+    embeddedWebsiteSections(rows,team,'/team',new URLSearchParams()).map(x=>x.slug),['first-roster']
+  );
+  assert.deepEqual(
+    embeddedWebsiteSections(rows,team,'/team',new URLSearchParams('tab=results')).map(x=>x.slug),
+    ['first-roster','match-guide']
+  );
+  assert.deepEqual(
+    embeddedWebsiteSections(rows,academy,'/academy',new URLSearchParams()).map(x=>x.slug),['kids-schedule']
+  );
+  assert.deepEqual(
+    embeddedWebsiteSections(rows,academy,'/about',new URLSearchParams()).map(x=>x.slug),[]
+  );
+  assert.deepEqual(
+    embeddedWebsiteSections(rows,academy,'/about',new URLSearchParams('organization_id=lefteria_fc_academy')).map(x=>x.slug),
+    ['academy-about']
+  );
+  assert.equal(websitePagePath('kids-schedule',academy),'/pages/kids-schedule?organization_id=lefteria_fc_academy');
+  const shell=readFileSync(new URL('../src/lib/public/PublicShell.svelte',import.meta.url),'utf8');
+  assert.match(shell,/embeddedWebsiteSections/);
+  assert.match(shell,/id=\{embeddedWebsiteSectionId\(section.slug\)\}/);
+  assert.match(shell,/WebsitePageBlocks blocks=\{section.page.blocks\}/);
+  assert.ok(compile(shell,{filename:'PublicShell.svelte',generate:'server'}).js.code.length>100);
 });
 
 test('root, news and contact CMS pages correctly illuminate their own rail or mobile category',()=>{

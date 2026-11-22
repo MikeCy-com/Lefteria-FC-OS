@@ -10,7 +10,7 @@ test('Academy reference hero is full-bleed and safe when CMS has no academy grou
   assert.match(source,/group\.organization_id==='lefteria_fc_academy'&&group\.banner_url/);
   assert.match(source,/\|\| publicImages\.academy/);
   assert.match(source,/<PublicImage src=\{academyBanner\} alt="" class="academy-hero-image"/);
-  assert.match(source,/<h1>ΑΚΑΔΗΜΙΑ<\/h1>/);
+  assert.match(source,/<h1>ΛΕΥΤΕΡΙΑ FC <span class="academy-title-gold">ΑΚΑΔΗΜΙΑ<\/span><\/h1>/);
   assert.match(source,/ΔΙΑΠΛΑΣΗ <span>·<\/span> ΑΝΑΠΤΥΞΗ/);
   assert.match(source,/object-fit:cover;object-position:center 42%/);
   assert.match(source,/linear-gradient\(90deg,#080909f3/);

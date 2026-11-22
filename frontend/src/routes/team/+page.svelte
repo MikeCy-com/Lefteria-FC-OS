@@ -93,8 +93,8 @@
       <div class="team-heading-photo" aria-hidden="true" data-testid="team-heading-photo">
         <PublicImage src={teamHeadingPhoto} alt="" eager />
       </div>
-      <p class="public-eyebrow">ΤΑ ΧΡΩΜΑΤΑ ΜΑΣ. Η ΠΕΡΗΦΑΝΙΑ ΜΑΣ.</p>
-      <h1>{selectedTeam?.name ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'}</h1>
+      <p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC · {selectedTeam?.level ?? 'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
+      <h1>{#if isSelectedFirstTeam || !selectedTeam}ΠΡΩΤΗ <span class="team-title-gold">ΟΜΑΔΑ</span>{:else}{selectedTeam.name}{/if}</h1>
           {#if teamsCount > 1}
       <nav class="public-team-selector" aria-label="Επίλεξε ομάδα" data-testid="public-team-selector">
         {#each (data.site?.teams ?? []).filter(team => team.organization_id === 'lefteria_fc') as team (team.id)}
@@ -166,6 +166,7 @@
 </PublicShell>
 
 <style>
+  :global(.public-site[data-route="/team"]) .team-title-gold{color:var(--public-gold)}
   .public-team-selector{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 18px}
   .public-team-selector a{display:inline-flex;min-height:44px;align-items:center;
     padding:9px 15px;border:1px solid #837448;border-radius:6px;

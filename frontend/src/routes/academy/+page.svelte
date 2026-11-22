@@ -52,7 +52,7 @@
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc_academy" navigationGroups={data.navigationGroups}>
   <section class="public-page-heading academy-intro" data-testid="academy-landing-page">
     <PublicImage src={academyBanner} alt="" class="academy-hero-image" />
-    <div class="academy-intro-copy"><p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p><h1>ΑΚΑΔΗΜΙΑ</h1>
+    <div class="academy-intro-copy"><p class="public-eyebrow">ΑΚΑΔΗΜΙΑ ΛΕΥΤΕΡΙΑ FC</p><h1>ΛΕΥΤΕΡΙΑ FC <span class="academy-title-gold">ΑΚΑΔΗΜΙΑ</span></h1>
       <p class="academy-hero-motto">ΔΙΑΠΛΑΣΗ <span>·</span> ΑΝΑΠΤΥΞΗ <span>·</span> ΟΝΕΙΡΑ</p>
       <p class="academy-description">{data.editorialLead ?? (data.site?.club?.description || 'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.')}</p>
       <div class="academy-actions"><a class="public-button" href="/academy/registration" data-testid="academy-hero-register">ΕΓΓΡΑΦΗ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/academy/groups" data-testid="academy-hero-groups">ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ <PublicIcon name="arrow" size={18} /></a><a class="public-button public-button-outline" href="/contact">ΜΙΛΗΣΕ ΜΑΖΙ ΜΑΣ <PublicIcon name="arrow" size={18} /></a></div>
@@ -60,7 +60,7 @@
 
   </section>
   <section class="academy-program-overview" aria-labelledby="academy-program-title">
-    <h2 id="academy-program-title"><span aria-hidden="true">//</span> ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
+    <h2 id="academy-program-title">ΤΟ ΠΡΟΓΡΑΜΜΑ ΜΑΣ</h2>
     <p>Ανάπτυξη με σεβασμό στο παιδί, την ηλικία και τις ανάγκες του κάθε αθλητή.</p>
     <div class="academy-program-facts">
       <div><PublicIcon name="pin" size={27} /><span>ΠΟΛΕΙΣ / ΤΟΠΟΘΕΣΙΕΣ <strong>{academyCities.length
@@ -242,6 +242,7 @@
     letter-spacing:-.025em;font-style:italic;margin:0;
     text-shadow:0 7px 24px #000c;
   }
+  :global(.public-site[data-route="/academy"]) .academy-title-gold{color:var(--public-gold)}
   .academy-hero-motto{
     font:800 clamp(17px,1.9vw,30px)/1.22 'Fira Sans Extra Condensed',sans-serif;
     color:#fff;margin:15px 0 20px;
@@ -352,7 +353,8 @@
   .academy-program-overview h2{
     margin:0;white-space:nowrap;font:900 clamp(20px,1.8vw,28px)/1 'Fira Sans Extra Condensed',sans-serif;
   }
-  .academy-program-overview h2>span{font-size:32px;color:#f6bb38;margin-right:8px}
+  .academy-program-overview h2{display:flex;align-items:center;gap:12px;white-space:normal}
+  .academy-program-overview h2::before{content:"";display:block;flex:0 0 5px;height:24px;background:#f6bb38;transform:skew(-18deg)}
   .academy-program-overview>p{margin:0;max-width:53ch;font-size:12px;line-height:1.45;color:#ddd}
   .academy-program-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch}
   .academy-program-facts>div{

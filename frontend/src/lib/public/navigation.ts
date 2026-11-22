@@ -83,10 +83,15 @@ export function navigationActive(item: PublicNavigationItem, location: Navigatio
   // has no fixed navigationOwner. Derive the active section from the actual
   // organization-scoped published URL projected into this menu instead.
   if (within(url.pathname, '/pages')) {
-    if (item.path && item.id.startsWith('page-'))
-      return navigationLinkCurrent(item.path, url) === 'page';
-    return item.items?.some(([id, , path]) =>
-      id.startsWith('page-') && navigationLinkCurrent(path, url) === 'page') ?? false;
+    // Direct CMS URLs remain valid bookmarks. Their nav owners now point to
+    // native section anchors, so compare the server-published exact owner/slug
+    // identity instead of treating a different /pages link as the destination.
+    const slug=url.pathname.slice('/pages/'.length);
+    const owner=url.searchParams.get('organization_id')??'lefteria_fc';
+    if(!['lefteria_fc','lefteria_fc_academy'].includes(owner))return false;
+    const expected='page-'+owner+'-'+slug;
+    if(item.path && item.id===expected)return true;
+    return item.items?.some(([id])=>id===expected)??false;
   }
   return navigationOwner(url, organization) === item.id;
 }
@@ -132,7 +137,7 @@ export function navigationLinkCurrent(path: string, location: NavigationLocation
   }
   const targetGroup = academyIdentity(target.pathname, groups);
   if (targetGroup && targetGroup === academyIdentity(current.pathname, groups)) return 'page';
-  if (target.pathname === current.pathname && (!target.hash || target.hash === current.hash)) return 'page';
+  if (target.pathname === current.pathname && (!target.hash || target.hash === current.hash)) return target.hash ? 'location' : 'page';
   if (['/news', '/events', '/seasons'].includes(target.pathname) && within(current.pathname, target.pathname)) return 'location';
   return undefined;
 }
@@ -180,7 +185,10 @@ export function publicSearch(
     return item.items ? item.items.map(([id,label,path]) => ({
       id: item.id + '-' + id, label, path
     })) : [{id:item.id,label:item.label,path:item.path}];
-  }).filter(item => !organization || belongsToSearchOrganization(item.path, organization))
+  }).filter(item => !organization || (
+    (!/(?:^|-)page-(?:lefteria_fc_academy|lefteria_fc)-/.test(item.id) ||
+      item.id.includes('page-'+organization+'-')) &&
+    belongsToSearchOrganization(item.path, organization)))
     .map(item => {
       if (!organization) return item;
       if (item.path === '/news') return {...item,path:newsLink(organization)};
