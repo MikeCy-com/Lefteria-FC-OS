@@ -28,6 +28,9 @@
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
   let focusedGroupId = $state('');
+  let groupSearch = $state('');
+  const visibleGroups = $derived((directory?.groups ?? []).filter(group=>
+    group.name.toLocaleLowerCase('el-GR').includes(groupSearch.trim().toLocaleLowerCase('el-GR'))));
   const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
   const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
@@ -648,6 +651,14 @@
               <h2 id="admin-audiences-title">{organization === 'lefteria_fc' ? 'Ομάδες πρώτης ομάδας' : 'Τμήματα Ακαδημίας'}</h2>
               <span class="admin-audiences-caption">Ενημέρωση από το ρόστερ</span>
             </div>
+            {#if directory.groups.length>0}
+              <label class="admin-audience-search" for="admin-group-search">
+                Αναζήτηση ομάδας / τμήματος
+                <input id="admin-group-search" type="search" bind:value={groupSearch}
+                  placeholder="Όνομα ομάδας ή ηλικιακού τμήματος…" autocomplete="off"
+                  data-testid="admin-group-search"/>
+              </label>
+            {/if}
             {#if directory.groups.length === 0}
               {#if $auth.session.user.role==='super_admin'}
                 <p class="admin-muted" data-testid="admin-audiences-empty">
@@ -688,24 +699,37 @@
               {/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
-                {#each directory.groups as group (group.id)}
-                  <li>
-                    <div><span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span><strong>{group.name}</strong></div>
-                    <div class="admin-audiences-count"><strong>{group.active_players}</strong><span>ενεργοί παίκτες</span></div>
+                {#each visibleGroups as group (group.id)}
+                  <li class:admin-audience-selected={focusedGroupId===group.id}>
+                    <div class="admin-audience-card-title">
+                      <span class="admin-audiences-type">{group.kind === 'team' ? 'ΠΡΩΤΗ ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
+                      <strong>{group.name}</strong>
+                    </div>
+                    <div class="admin-audiences-count">
+                      <strong>{group.active_players}</strong><span>ενεργοί παίκτες</span>
+                    </div>
                     <button type="button" class="admin-secondary"
                       aria-expanded={focusedGroupId===group.id}
                       aria-controls="admin-group-workspace"
                       onclick={()=>focusedGroupId=focusedGroupId===group.id?'':group.id}
-                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Άνοιγμα τμήματος'}</button>
+                      data-testid="admin-open-group">{focusedGroupId===group.id?'Κλείσιμο':'Διαχείριση τμήματος'} <span aria-hidden="true">›</span></button>
                   </li>
                 {/each}
               </ul>
+              {#if visibleGroups.length===0}
+                <p class="admin-muted" role="status" data-testid="admin-group-search-empty">Δεν βρέθηκε τμήμα με αυτή την ονομασία. Δοκιμάστε διαφορετική αναζήτηση.</p>
+              {/if}
               {#if focusedGroup}
                 <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
                   data-testid="admin-group-workspace">
-                  <header><p class="admin-eyebrow">ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</p>
-                    <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
-                    <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                  <header class="admin-focused-group-header">
+                    <div>
+                      <p class="admin-eyebrow">ΤΜΗΜΑ · ΠΡΟΠΟΝΗΣΕΙΣ · ΑΘΛΗΤΕΣ</p>
+                      <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
+                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                    </div>
+                    <button type="button" class="admin-secondary"
+                      onclick={()=>focusedGroupId=''}>Πίσω στις ομάδες</button>
                   </header>
                   {#if organization && $auth.session}
                     {#key organization+':'+focusedGroup.id+':'+$auth.session.user.id}
@@ -737,7 +761,30 @@
 {/if}
 
 <style>
-  .admin-audiences{max-width:1190px}
+  .admin-audiences{max-width:1440px}
+  .admin-audiences h1{font-size:clamp(23px,2.1vw,30px);line-height:1.2}
+  .admin-audience-search{display:grid;gap:7px;max-width:440px;margin:17px 0 8px;
+    font-size:12px;color:#bfc3c6}
+  .admin-audience-search input{min-height:42px;border-radius:7px}
+  .admin-audiences-list{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:13px;margin:14px 0 4px!important}
+  .admin-audiences-list li{display:grid!important;grid-template-columns:1fr auto;gap:14px;
+    align-content:space-between;min-height:174px;padding:17px!important;border:1px solid #303335!important;
+    border-radius:11px;background:#141515;transition:border-color .15s,background .15s}
+  .admin-audiences-list li:hover{border-color:#907139!important;background:#1a1915}
+  .admin-audiences-list li.admin-audience-selected{border-color:#11af79!important;background:#101a16}
+  .admin-audience-card-title{grid-column:1/-1;min-width:0;display:grid;gap:8px}
+  .admin-audience-card-title strong{font:800 20px/1.2 'Fira Sans Extra Condensed',sans-serif;
+    color:#f3f4f0}
+  .admin-audiences-list .admin-audiences-count{align-items:center;align-self:end}
+  .admin-audiences-list .admin-audiences-count strong{font-size:21px}
+  .admin-audiences-list .admin-secondary{min-height:38px;padding:7px 11px;font-size:12px;
+    border-radius:7px;align-self:end}
+  .admin-focused-group-header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  .admin-focused-group-header .admin-secondary{min-height:40px}
+  @media(max-width:1020px){.admin-audiences-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:700px){.admin-audiences-list{grid-template-columns:1fr}}
+
   .admin-audiences>h1{margin:0 0 10px}
   .admin-audiences>.admin-muted{max-width:80ch;margin-bottom:18px}
   .admin-audiences-select{display:flex;align-items:end;flex-wrap:wrap;gap:12px;margin-bottom:14px}
