@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -336,6 +336,22 @@ public static class WebsitePageEndpoints
             content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n') ||
             content.Blocks[0].Text.Split('·').Length != 3 ||
             content.Blocks[0].Text.Split('·').Any(part => string.IsNullOrWhiteSpace(part) || part.Length > 60))
+            throw Invalid();
+    }
+    // Canonical About-page intro: editorial text only. Layout, crest, values,
+    // venue and every dynamic widget remain in the native route. This slot is
+    // intentionally hidden from menus and cannot become a new public page.
+    private static void ValidateCanonicalAboutIntro(string slug, WebsitePageContent content)
+    {
+        if (slug != "canonical-about-intro") return;
+        if (content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 2 || content.Blocks[0].Type != "heading" ||
+            content.Blocks[1].Type != "paragraph" ||
+            content.Blocks[0].Url is not null || content.Blocks[1].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            string.IsNullOrWhiteSpace(content.Blocks[1].Text) ||
+            content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
+            content.Blocks[0].Text.Contains('\\r') || content.Blocks[0].Text.Contains('\\n'))
             throw Invalid();
     }
     private static string Owner(string? org) =>
