@@ -690,6 +690,11 @@
                           {/each}
                         </select>
                       </label>
+                      {#if $auth.session?.user.role==='super_admin'}
+                        <a class="admin-add-city-link"
+                          href="/admin/territories?organization_id=lefteria_fc_academy#create-city"
+                          data-testid="admin-new-city-route">+ Νέα πόλη · κεντρικός κατάλογος</a>
+                      {/if}
                       <label>Τοποθεσία Ακαδημίας *
                         <select bind:value={creationLocationId}
                           disabled={saving || locationSaving || creationLocationsLoading || !creationCityId}
@@ -1024,6 +1029,8 @@
     padding:14px;border:1px solid #4b3b20;border-radius:10px;background:#161714}
   .admin-academy-placement label,.admin-inline-location label{display:grid;gap:6px;font-size:12px;color:#cfd0cc}
   .admin-academy-placement select,.admin-inline-location input{width:100%;min-width:0}
+  .admin-add-city-link{align-self:end;min-height:41px;color:var(--admin-accent,#f6bb38);
+    font-size:12px;display:inline-flex;align-items:center;text-decoration:underline}
   .admin-location-toggle{grid-column:1/-1;justify-self:start}
   .admin-location-note{grid-column:1/-1;margin:0}
   .admin-inline-location{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
