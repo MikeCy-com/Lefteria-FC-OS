@@ -17,7 +17,7 @@ namespace LefteriaFc.Api.Marketing;
 /// </summary>
 public static class AcademyRegistrationEndpoints
 {
-    private const int MaxBytes = 32768;
+    private const int MaxBytes = 131072;
     private static readonly JsonSerializerOptions StrictJson = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -85,7 +85,18 @@ public static class AcademyRegistrationEndpoints
             body = json.RootElement.Deserialize<AcademyRegistrationRequest>(StrictJson);
         }
         catch (JsonException) { return Failure(400,"invalid_json"); }
-        if (body is null || !Validate(body,out var birth)) return Failure(422,"invalid_registration");
+        if (body is null || !Validate(body,out _) || !ValidKit(body)) return Failure(422,"invalid_registration");
+        if (body.AdditionalPlayers is { Count: > 4 }) return Failure(422,"too_many_players");
+        var children = new List<AcademyRegistrationRequest> { body };
+        foreach (var additional in body.AdditionalPlayers ?? [])
+            children.Add(ExpandChild(body,additional));
+        var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var child in children)
+        {
+            if (!Validate(child,out _) || !ValidKit(child) ||
+                !identities.Add(child.PlayerFirstName.Trim()+"|"+child.PlayerLastName.Trim()+"|"+child.PlayerDob))
+                return Failure(422,"invalid_family_registration");
+        }
 
         // No sensitive fields are logged. Only a minimal contact projection goes
         // to registration rows; everything else is authenticated encrypted evidence.
@@ -162,6 +173,36 @@ public static class AcademyRegistrationEndpoints
         catch (TimeoutException) { return Unavailable(); }
     }
 
+    private static AcademyRegistrationRequest ExpandChild(
+        AcademyRegistrationRequest family,AcademyRegistrationAdditionalPlayer child) => new()
+    {
+        PlayerFirstName=child.PlayerFirstName,PlayerLastName=child.PlayerLastName,
+        PlayerDob=child.PlayerDob,PlayerGender=child.PlayerGender,
+        PlayerAddress=child.PlayerAddress,PlayerCity=child.PlayerCity,
+        PlayerPostalCode=child.PlayerPostalCode,
+        HasAllergies=child.HasAllergies,AllergiesDetails=child.AllergiesDetails,
+        HasConditions=child.HasConditions,ConditionsDetails=child.ConditionsDetails,
+        HasMedication=child.HasMedication,MedicationDetails=child.MedicationDetails,
+        PreferredNumber=child.PreferredNumber,PreferredPrintName=child.PreferredPrintName,
+        OfficialKitRequested=child.OfficialKitRequested,KitPrintingRequested=child.KitPrintingRequested,
+        ParentName=family.ParentName,ParentRelationship=family.ParentRelationship,
+        ParentPhone=family.ParentPhone,ParentEmail=family.ParentEmail,
+        EmergencyName=family.EmergencyName,EmergencyPhone=family.EmergencyPhone,
+        EmergencyRelationship=family.EmergencyRelationship,
+        ConsentParticipation=family.ConsentParticipation,ConsentMedicalAuth=family.ConsentMedicalAuth,
+        ConsentGdpr=family.ConsentGdpr,ConsentMedia=family.ConsentMedia,
+        ConsentCommunications=family.ConsentCommunications,CommEmail=family.CommEmail,
+        CommSms=family.CommSms,ConsentLiability=family.ConsentLiability,
+        ConsentFinancial=family.ConsentFinancial,PaymentMethod=family.PaymentMethod,
+        SignatureData=family.SignatureData,SignatureDate=family.SignatureDate
+    };
+    private static bool ValidKit(AcademyRegistrationRequest child) =>
+        (string.IsNullOrEmpty(child.PreferredNumber) ||
+         System.Text.RegularExpressions.Regex.IsMatch(child.PreferredNumber,@"^[0-9]{1,2}$")) &&
+        (string.IsNullOrEmpty(child.PreferredPrintName) ||
+         child.PreferredPrintName.Length<=32 && !child.PreferredPrintName.Any(char.IsControl)) &&
+        (!child.KitPrintingRequested || child.OfficialKitRequested);
+
     private static bool Validate(AcademyRegistrationRequest b,out DateOnly birth)
     {
         birth = default;
@@ -200,6 +241,11 @@ public static class AcademyRegistrationEndpoints
 
 public sealed class AcademyRegistrationRequest
 {
+    public List<AcademyRegistrationAdditionalPlayer>? AdditionalPlayers {get;set;}
+    public string PreferredNumber {get;set;} = "";
+    public string PreferredPrintName {get;set;} = "";
+    public bool OfficialKitRequested {get;set;}
+    public bool KitPrintingRequested {get;set;}
     public string PlayerFirstName {get;set;} = "";
     public string PlayerLastName {get;set;} = "";
     public string PlayerDob {get;set;} = "";
@@ -232,4 +278,25 @@ public sealed class AcademyRegistrationRequest
     public string PaymentMethod {get;set;} = "";
     public string SignatureData {get;set;} = "";
     public string SignatureDate {get;set;} = "";
+}
+
+public sealed class AcademyRegistrationAdditionalPlayer
+{
+    public string PlayerFirstName {get;set;} = "";
+    public string PlayerLastName {get;set;} = "";
+    public string PlayerDob {get;set;} = "";
+    public string PlayerGender {get;set;} = "";
+    public string PlayerAddress {get;set;} = "";
+    public string PlayerCity {get;set;} = "";
+    public string PlayerPostalCode {get;set;} = "";
+    public bool HasAllergies {get;set;}
+    public string AllergiesDetails {get;set;} = "";
+    public bool HasConditions {get;set;}
+    public string ConditionsDetails {get;set;} = "";
+    public bool HasMedication {get;set;}
+    public string MedicationDetails {get;set;} = "";
+    public string PreferredNumber {get;set;} = "";
+    public string PreferredPrintName {get;set;} = "";
+    public bool OfficialKitRequested {get;set;}
+    public bool KitPrintingRequested {get;set;}
 }
