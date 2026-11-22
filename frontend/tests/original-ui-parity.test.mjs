@@ -8,8 +8,8 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   const shell=read('lib/public/PublicShell.svelte');
   assert.match(css,/Fira Sans Extra Condensed/);
   assert.match(css,/Fira Sans/);
-  assert.match(css,/--public-gold:#f6bb38/);
-  assert.match(css,/--public-black:#080808/);
+  assert.match(css,/--public-gold:var\(--lf-color-accent,#f6bb38\)/);
+  assert.match(css,/--public-black:var\(--lf-color-bg,#080808\)/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
   assert.match(css,/body:has\(\.public-site\) \{ font-family:'Fira Sans'/);
