@@ -29,7 +29,7 @@ test('editor can click text directly on the canvas, drag and insert sections at 
 });
 test('visual editing stays a private draft with publication and grant checks intact',()=>{
   assert.match(editor,/hasAdminPermission\(\$auth\.session\.user\.permissions,'news:write'\)/);
-  assert.match(editor,/canPublish && dirty/);
+  assert.match(editor,/!canPublish \|\| dirty \|\| saving/);
   assert.match(editor,/function save\(/);
   assert.match(editor,/expected_version:selected\.version,publish/);
   assert.match(editor,/!canWrite\|\|saving\|\|isLockedRegion/);
