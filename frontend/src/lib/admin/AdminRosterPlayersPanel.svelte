@@ -2,6 +2,7 @@
   import { browser } from '$app/env';
   import AdminPlayerPrivateRecordsPanel from './AdminPlayerPrivateRecordsPanel.svelte';
   import AdminPlayerDevelopmentGoals from './AdminPlayerDevelopmentGoals.svelte';
+  import AdminPlayerPrivateProfilePanel from './AdminPlayerPrivateProfilePanel.svelte';
   import AdminGroupAttendancePanel from './AdminGroupAttendancePanel.svelte';
 
   type Owner = 'lefteria_fc' | 'lefteria_fc_academy';
@@ -39,6 +40,7 @@
   let selectedGroups = $state<string[]>([]);
   let inspectedPlayer = $state<string|null>(null);
   let inspectedGoals = $state<string|null>(null);
+  let inspectedProfile = $state<string|null>(null);
   let saving = $state(false);
   let saveError = $state<string|null>(null);
   let saveSuccess = $state<string|null>(null);
@@ -278,6 +280,14 @@
                   href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
                   data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
               {/if}
+              {#if allowPrivate && owner==='lefteria_fc_academy'}
+                <button type="button" class="admin-secondary" disabled={saving||loading}
+                  data-testid="admin-open-player-private-profile"
+                  aria-expanded={inspectedProfile===player.id}
+                  onclick={()=>inspectedProfile=inspectedProfile===player.id?null:player.id}>
+                  {inspectedProfile===player.id?'Κλείσιμο προφίλ':'Προφίλ · βιογραφικό & φωτογραφία'}
+                </button>
+              {/if}
               {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
                 <button type="button" class="admin-secondary"
                   data-testid="admin-manager-goal-reader-toggle"
@@ -333,6 +343,14 @@
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
+            {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
+              <div class="admin-player-individual-workspace" data-testid="admin-player-private-profile-workspace">
+                {#key actorId+':'+player.id}
+                  <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
+                    {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
+                {/key}
+              </div>
+            {/if}
             {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
               currentGroups(player).includes(currentGroup)}
               <div class="admin-player-individual-workspace"
