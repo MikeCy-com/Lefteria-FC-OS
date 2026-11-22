@@ -17,7 +17,7 @@ const manifest=()=>({
 });
 const row=name=>({
   service:name,project:PROJECT,
-  image_id:image(name).id,image_ref:image(name).reference,
+  image_id:image(name).id,image_ref:image(name).id,
   revision:sha,source,running:true,healthy:true,read_only:true
 });
 const observations=()=>({
@@ -32,6 +32,13 @@ test('passes exact candidate API/web images with healthy read-only preview metad
   assert.deepEqual(result.checked_services,['api','web']);
   assert.deepEqual(result.blocked,[]);
   assert.match(result.limitation,/not independently authenticated/);
+});
+test('also accepts the exact verified tag but refuses mutable latest',()=>{
+  const o=observations();
+  o.containers[0].image_ref=image('api').reference;
+  assert.equal(verify(manifest(),o).verified,true);
+  o.containers[0].image_ref='lefteria-fc-os-api:latest';
+  assert.equal(verify(manifest(),o).verified,false);
 });
 test('refuses mismatched image ID, source SHA or OCI source and wrong project',()=>{
   for(const mutate of [
