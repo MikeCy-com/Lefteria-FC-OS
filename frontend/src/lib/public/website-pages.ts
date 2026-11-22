@@ -151,6 +151,62 @@ export function isPublishedWebsitePage(value: unknown, owner: PublicOrganization
     (block.url === null || typeof block.url === 'string') && validHeadingLevel(block));
 }
 
+/** Published Pages menu entries are in-page sections of their native hub.
+ * Preserve their /pages/:slug canonical URLs for external bookmarks and SEO,
+ * but the public menu follows the original site section-navigation model.
+ * Every destination uses only same-organization published snapshots. */
+export function embeddedWebsiteSectionId(slug:string):string {
+  return 'website-section-'+slug;
+}
+export function websiteSectionPath(
+  slug:string,org:PublicOrganization,parent:WebsitePageContent['menu_parent']
+):string {
+  const suffix='#'+embeddedWebsiteSectionId(slug);
+  const academy=org==='lefteria_fc_academy';
+  const scoped=(base:string)=>academy?base+'?organization_id=lefteria_fc_academy'+suffix:base+suffix;
+  switch(parent) {
+    case 'root':return '/'+suffix;
+    case 'club':return scoped('/about');
+    case 'team':return '/team'+suffix;
+    case 'academy':return '/academy'+suffix;
+    case 'matches':return '/team?tab=results'+suffix;
+    case 'news':return scoped('/news');
+    case 'events':return '/events?scope='+(academy?'academy':'first_team')+suffix;
+    case 'shop':return '/shop'+suffix;
+    case 'contact':return scoped('/contact');
+    default:return websitePagePath(slug,org);
+  }
+}
+export function embeddedWebsiteSections(
+  pages:readonly PublishedWebsitePage[],org:PublicOrganization,
+  pathname:string,searchParams:URLSearchParams
+):PublishedWebsitePage[] {
+  const matches=(parent:WebsitePageContent['menu_parent'])=>{
+    switch(parent) {
+      case 'root':return pathname==='/';
+      case 'club':return pathname==='/about';
+      case 'team':return pathname==='/team';
+      case 'academy':return pathname==='/academy';
+      case 'matches':return pathname==='/team'&&searchParams.get('tab')==='results';
+      case 'news':return pathname==='/news';
+      case 'events':return pathname==='/events';
+      case 'shop':return pathname==='/shop';
+      case 'contact':return pathname==='/contact';
+      default:return false;
+    }
+  };
+  return pages.filter(p=>isPublishedWebsitePage(p,org)&&
+    !isHomepageEditorialSlug(p.slug)&&
+    websiteMenuParentAllowed(org,p.page.menu_parent)&&
+    matches(p.page.menu_parent)&&
+    (['root','club','news','contact'].includes(p.page.menu_parent)
+      ? (searchParams.get('organization_id')??'lefteria_fc')===org
+      : ['events'].includes(p.page.menu_parent)
+        ? (searchParams.get('scope')??'first_team')===(org==='lefteria_fc_academy'?'academy':'first_team')
+        : true))
+    .sort((a,b)=>a.page.menu_order-b.page.menu_order||a.slug.localeCompare(b.slug));
+}
+
 export function withWebsitePages(
   navigation: readonly PublicNavigationItem[],
   pages: readonly PublishedWebsitePage[], organization: PublicOrganization
@@ -161,7 +217,7 @@ export function withWebsitePages(
       isPublishedWebsitePage(p, organization) && !isHomepageEditorialSlug(p.slug) &&
       p.page.menu_parent !== 'hidden' && websiteMenuParentAllowed(organization, p.page.menu_parent))
       .sort((a,b) => a.page.menu_order-b.page.menu_order || a.slug.localeCompare(b.slug))) {
-    const path = websitePagePath(row.slug, organization);
+    const path = websiteSectionPath(row.slug, organization, row.page.menu_parent);
     const label = row.page.title.slice(0, 80);
     const parent = row.page.menu_parent;
     if (parent === 'root') {
