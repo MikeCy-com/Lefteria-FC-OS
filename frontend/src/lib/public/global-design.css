@@ -163,6 +163,16 @@
   border-top-color:var(--lf-color-border);
 }
 
+/* Width and side padding for native feature-page containers are governed by
+ * the same published defaults as public sections and CMS pages. Specific
+ * cards, forms and readable article columns keep their deliberate sub-widths. */
+.public-site[data-global-design="true"] :is(.catalog,.match-detail) {
+  padding-inline:var(--public-page-gutter,16px);
+}
+.public-site[data-global-design="true"] .shop-container {
+  width:min(var(--public-content-width,1280px),calc(100% - 2 * var(--public-page-gutter,16px)));
+}
+
 /* Native layouts still own their imagery and information architecture, but
  * their previously fixed decorative panels now follow published WYSIWYG theme
  * colors. No background image/crop/photo source is touched. */
