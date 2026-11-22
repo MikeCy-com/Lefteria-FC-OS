@@ -65,7 +65,7 @@
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}>
   <section class="public-page-heading team-heading" class:matches-reference-heading={data.tab === 'schedule' || data.tab === 'results'}>
     {#if data.tab === 'schedule' || data.tab === 'results'}
-      <div class="matches-reference-banner" style:background-image={`linear-gradient(90deg,#060808f2,#0608089c 42%,#07080824 80%),url("${publicImages.pitch}")`}>
+      <div class="matches-reference-banner" style:background-image={`linear-gradient(90deg,color-mix(in srgb,var(--lf-color-bg,#060808) 94.902%,transparent),color-mix(in srgb,var(--lf-color-bg,#060808) 61.176%,transparent) 42%,color-mix(in srgb,var(--lf-color-bg,#070808) 14.118%,transparent) 80%),url("${publicImages.pitch}")`}>
         <p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p>
         <h1>ΑΓΩΝΕΣ</h1>
         <p>Πρόγραμμα αγώνων, αποτελέσματα και επιβεβαιωμένη βαθμολογία.</p>
