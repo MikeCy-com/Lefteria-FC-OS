@@ -28,9 +28,12 @@ public sealed class AcademyFutureFeeCancellation : Migration
         ADD COLUMN cancel_request_id uuid UNIQUE;
       ALTER TABLE finance.training_fee_issues
         ADD CONSTRAINT training_fee_cancelled_complete CHECK (
-          (status='cancelled')=
-            (cancelled_at IS NOT NULL AND cancelled_by IS NOT NULL
-             AND cancel_reason IS NOT NULL AND cancel_request_id IS NOT NULL)
+          (status='cancelled' AND cancelled_at IS NOT NULL
+            AND cancelled_by IS NOT NULL AND cancel_reason IS NOT NULL
+            AND cancel_request_id IS NOT NULL)
+          OR (status<>'cancelled' AND cancelled_at IS NULL
+            AND cancelled_by IS NULL AND cancel_reason IS NULL
+            AND cancel_request_id IS NULL)
         );
       
 CREATE FUNCTION finance.cancel_admin_future_training_fee(
