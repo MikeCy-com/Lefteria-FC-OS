@@ -179,7 +179,7 @@
   }
   .public-site .home-reference .public-fixture-heading {
     font-style:italic;font-size:clamp(19px,1.65vw,29px);
-    color:white;border-bottom-color:color-mix(in srgb,var(--lf-color-text,#ffffff) 23.1373%,transparent);
+    color:var(--lf-color-text,#ffffff);border-bottom-color:color-mix(in srgb,var(--lf-color-text,#ffffff) 23.1373%,transparent);
   }
   .public-site .home-reference .public-fixture-heading svg {color:var(--public-gold);}
   .public-site .home-reference .public-fixture-teams strong {font-size:clamp(18px,1.45vw,25px);}
