@@ -59,6 +59,9 @@
           "has_medication": {
             "type": "boolean"
           },
+          "koa_health_card_status": {
+            "type": "string"
+          },
           "medication_details": {
             "type": "string"
           },
@@ -136,6 +139,9 @@
           "consent_participation": {
             "type": "boolean"
           },
+          "consent_viber": {
+            "type": "boolean"
+          },
           "emergency_name": {
             "type": "string"
           },
@@ -153,6 +159,9 @@
           },
           "has_medication": {
             "type": "boolean"
+          },
+          "koa_health_card_status": {
+            "type": "string"
           },
           "medication_details": {
             "type": "string"

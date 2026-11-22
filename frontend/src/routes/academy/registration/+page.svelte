@@ -19,6 +19,7 @@
     player_first_name:string;player_last_name:string;player_dob:string;
     player_gender:string;player_address:string;player_city:string;player_postal_code:string;
     preferred_number:string;preferred_print_name:string;
+    koa_health_card_status:'yes'|'no'|'';
     has_allergies:boolean;allergies_details:string;
     has_conditions:boolean;conditions_details:string;
     has_medication:boolean;medication_details:string;
@@ -37,7 +38,7 @@
       player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
       player_address:form.player_address,player_city:form.player_city,
       player_postal_code:form.player_postal_code,preferred_number:'',
-      preferred_print_name:'',has_allergies:false,allergies_details:'',
+      preferred_print_name:'',koa_health_card_status:'',has_allergies:false,allergies_details:'',
       has_conditions:false,conditions_details:'',has_medication:false,medication_details:''
     }];
     errors={};
@@ -52,13 +53,14 @@
   let form = $state({
     player_first_name:'',player_last_name:'',player_dob:'',player_gender:'',
     player_address:'',player_city:'',player_postal_code:'',
-    preferred_number:'',preferred_print_name:'',
+    preferred_number:'',preferred_print_name:'',koa_health_card_status:'',
     parent_name:'',parent_relationship:'',parent_phone:'',parent_email:'',
     emergency_name:'',emergency_phone:'',emergency_relationship:'',
     has_allergies:false,allergies_details:'',has_conditions:false,conditions_details:'',
     has_medication:false,medication_details:'',
     consent_participation:false,consent_medical_auth:false,consent_gdpr:false,
     consent_media:'',consent_communications:false,comm_email:false,comm_sms:false,
+    consent_viber:false,
     consent_liability:false,consent_financial:false,
     payment_method:'cash',signature_data:'',signature_date:''
   });
@@ -72,6 +74,7 @@
       must('player_gender', ['male','female'].includes(form.player_gender));
       must('preferred_number',numberValid(form.preferred_number));
       must('preferred_print_name',printNameValid(form.preferred_print_name));
+      must('koa_health_card_status',['yes','no'].includes(form.koa_health_card_status));
       for(const [i,child] of additionalPlayers.entries()){
         for(const key of ['player_first_name','player_last_name','player_address','player_city','preferred_print_name'] as const)
           if(!required(child[key]))issues['child_'+i+'_'+key]='Υποχρεωτικό πεδίο';
@@ -80,6 +83,8 @@
           issues['child_'+i+'_player_dob']='Ελέγξτε την ημερομηνία γέννησης';
         if(!['male','female'].includes(child.player_gender))
           issues['child_'+i+'_player_gender']='Επιλέξτε φύλο';
+        if(!['yes','no'].includes(child.koa_health_card_status))
+          issues['child_'+i+'_koa_health_card_status']='Επιλέξτε αν έχει εκδοθεί δελτίο υγείας ΚΟΑ';
         if(!numberValid(child.preferred_number))
           issues['child_'+i+'_preferred_number']='Αριθμός από 0 έως 99';
         if(!printNameValid(child.preferred_print_name))
@@ -225,6 +230,14 @@
                     <input bind:value={form.preferred_print_name} maxlength="32" required
                       data-testid="player-preferred-print-name" placeholder="π.χ. ΓΙΩΡΓΟΣ"/>
                   </label>
+                  <fieldset class="registration-full registration-koa">
+                    <legend>Έχει εκδοθεί Δελτίο Υγείας ΚΟΑ για αυτό το παιδί; <span>*</span></legend>
+                    <label><input type="radio" name="koa-card-first" value="yes" bind:group={form.koa_health_card_status} required data-testid="koa-card-yes"/> Ναι</label>
+                    <label><input type="radio" name="koa-card-first" value="no" bind:group={form.koa_health_card_status} required data-testid="koa-card-no"/> Όχι</label>
+                    {#if form.koa_health_card_status==='no'}
+                      <p class="registration-note">Εφόσον η αίτηση εγκριθεί και το παιδί ενταχθεί σε ομάδα, θα ακολουθήσουν οδηγίες για το Δελτίο Υγείας ΚΟΑ μέσω του εγκεκριμένου καναλιού επικοινωνίας.</p>
+                    {/if}
+                  </fieldset>
                   <p class="registration-full registration-note">Η επίσημη στολή κοστίζει €140 και η εκτύπωση ονόματος και αριθμού είναι <strong>υποχρεωτική (€10)</strong>. Ο αριθμός αποτελεί προτίμηση, όχι κράτηση. Εάν χρησιμοποιείται ήδη, ο υπεύθυνος τοποθεσίας θα επικοινωνήσει μαζί σας για τυχόν αλλαγή.</p>
                 </fieldset>
                 {#each additionalPlayers as child,i (i)}
@@ -246,6 +259,14 @@
                       <h3 class="registration-full">Στολή €140 + υποχρεωτική εκτύπωση €10</h3>
                       <label>Προτιμώμενος αριθμός <span>*</span><input inputmode="numeric" pattern="[0-9][0-9]?" bind:value={child.preferred_number} maxlength="2" required/></label>
                       <label>Όνομα εκτύπωσης <span>*</span><input bind:value={child.preferred_print_name} maxlength="32" required/></label>
+                      <fieldset class="registration-full registration-koa">
+                        <legend>Έχει εκδοθεί Δελτίο Υγείας ΚΟΑ για {child.player_first_name||'αυτό το παιδί'}; <span>*</span></legend>
+                        <label><input type="radio" name={'koa-child-'+i} value="yes" bind:group={child.koa_health_card_status} required/> Ναι</label>
+                        <label><input type="radio" name={'koa-child-'+i} value="no" bind:group={child.koa_health_card_status} required/> Όχι</label>
+                        {#if child.koa_health_card_status==='no'}
+                          <p class="registration-note">Οι οδηγίες για το Δελτίο Υγείας ΚΟΑ αποστέλλονται μετά την έγκριση της αίτησης και την ένταξη του παιδιού σε ομάδα μέσω εγκεκριμένου καναλιού επικοινωνίας.</p>
+                        {/if}
+                      </fieldset>
                       <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
                     </fieldset>
                   </section>
@@ -325,6 +346,7 @@
                     <label><input type="radio" name="media" value="yes" bind:group={form.consent_media} data-testid="media-yes"/> Ναι</label>
                     <label><input type="radio" name="media" value="no" bind:group={form.consent_media} data-testid="media-no"/> Όχι</label>
                   </fieldset>
+                  <label><input type="checkbox" bind:checked={form.consent_viber} data-testid="consent-viber"/> Συναινώ να λαμβάνω μέσω Viber ενημερώσεις εγγραφής και οδηγίες Δελτίου Υγείας ΚΟΑ, μόνο μετά την έγκριση και ένταξη παιδιού σε ομάδα. Μπορώ να ανακαλέσω τη συγκατάθεση.</label>
                   <label><input type="checkbox" bind:checked={form.consent_communications} data-testid="consent-comms"/> Επιθυμώ να λαμβάνω ενημερώσεις</label>
                   {#if form.consent_communications}<div class="registration-consent-channels"><label><input type="checkbox" bind:checked={form.comm_email}/> Email</label><label><input type="checkbox" bind:checked={form.comm_sms}/> SMS</label></div>{/if}
                   <label><input type="checkbox" bind:checked={form.consent_liability} data-testid="consent-liability"/> Έχω ενημερωθεί για τους κινδύνους των αθλητικών δραστηριοτήτων και τους σχετικούς όρους <span>*</span></label>
@@ -404,6 +426,10 @@
   .registration-add-child{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;width:100%;margin:18px 0;padding:12px 18px;border:1px dashed #f6bb38;border-radius:9px;background:#241d0d;color:#f6bb38;font-weight:800;cursor:pointer}
   .registration-add-child:hover,.registration-add-child:focus-visible{background:#35270e;outline-offset:3px}
   .registration-note,.registration-family-note{font-size:13px;line-height:1.65;color:#d4cbb4}
+  .registration-koa{display:flex;flex-wrap:wrap;align-items:center;gap:14px;border:1px solid #65502e;border-radius:9px;padding:16px;margin:16px 0}
+  .registration-koa legend{padding:0 8px;font-weight:700;color:#f6bb38}
+  .registration-koa label{display:inline-flex;align-items:center;gap:8px;min-height:44px}
+  .registration-koa>p{width:100%;margin:0}
   .registration-medical-child{margin:20px 0 12px;padding:12px 16px;border-left:4px solid #f6bb38;background:#191710}
   .registration-costs{padding:clamp(16px,3vw,26px);background:#121212;border:1px solid #59451e;border-radius:12px;margin:24px 0}
   .registration-costs h3{margin:0 0 18px}
