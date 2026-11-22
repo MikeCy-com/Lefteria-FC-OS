@@ -86,7 +86,7 @@
 
       {#if hasWebsite}
         <details class="admin-nav-disclosure"
-          open={['pages','news','media','sponsors','club'].includes(active)}
+          open={['pages','news','media','sponsors'].includes(active)}
           data-testid="admin-website-navigation">
           <summary class="admin-nav-category" data-testid="admin-website-category">
             Ιστοσελίδα <span aria-hidden="true">⌄</span>
@@ -186,7 +186,7 @@
            configuration are reachable from the one permission-scoped Settings
            landing page, rather than duplicated in multiple nested menus. -->
       <a class="admin-nav-settings-home" href="/admin/settings"
-        aria-current={['settings','staff','users','onboarding'].includes(active)?'page':undefined}
+        aria-current={['settings','club','staff','users','onboarding'].includes(active)?'page':undefined}
         data-testid="admin-settings-link">Ρυθμίσεις & πρόσβαση</a>
     </nav>
     <main class="admin-content" id="admin-main" tabindex="-1">{@render children()}</main>
