@@ -39,6 +39,18 @@ test('global theme requires all nine HTML text roles with exact safe values',()=
   inaccessible.colors.foreground='#ffffff';
   inaccessible.colors.link='#090909';
   assert.equal(parseGlobalDesign(JSON.stringify(inaccessible)),null,'links must remain readable');
+  const unreadableSurface=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  unreadableSurface.colors.surface='#ffffff';
+  assert.equal(parseGlobalDesign(JSON.stringify(unreadableSurface)),null,'surface must preserve readable foreground and links');
+  unreadableSurface.colors.surface='#171717';
+  unreadableSurface.colors.link='#171717';
+  assert.equal(parseGlobalDesign(JSON.stringify(unreadableSurface)),null,'surface links must remain readable');
+  unreadableSurface.colors.link='#f6bb38';
+  unreadableSurface.colors.muted='#171717';
+  assert.equal(parseGlobalDesign(JSON.stringify(unreadableSurface)),null,'surface muted labels must remain readable');
+  assert.match(api,/ColorContrast\(surface, colors\.GetProperty\("foreground"\)/);
+  assert.match(api,/ColorContrast\(surface, colors\.GetProperty\("muted"\)/);
+  assert.match(api,/ColorContrast\(surface, colors\.GetProperty\("link"\)/);
   assert.match(api,/ColorContrast\(bg, colors\.GetProperty\("foreground"\)/);
   assert.equal(parseGlobalDesign('{invalid}'),null);
   assert.equal(parseGlobalDesign('a'.repeat(5001)),null);
