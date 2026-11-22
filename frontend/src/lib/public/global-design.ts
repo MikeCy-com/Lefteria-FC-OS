@@ -91,7 +91,15 @@ export function globalDesignCssVars(theme:GlobalDesign|null):string {
       '--lf-'+role+'-weight:'+t.weight,'--lf-'+role+'-line:'+t.line_height];
   });
   const layout={...DEFAULT_GLOBAL_LAYOUT,...theme.layout};
-  return [...parts,...(Object.keys(layoutValues) as (keyof GlobalDesignLayout)[]).map(key=>'--lf-layout-'+key.replaceAll('_','-')+':'+layout[key]+'px'),'--lf-color-bg:'+theme.colors.background,
+  // Native controls should match the light/dark palette published by the CMS.
+  const linearBackground=[1,3,5].map(i=>{
+    const c=parseInt(theme.colors.background.slice(i,i+2),16)/255;
+    return c<=0.04045?c/12.92:Math.pow((c+0.055)/1.055,2.4);
+  });
+  const backgroundLuma=linearBackground[0]*0.2126+
+    linearBackground[1]*0.7152+linearBackground[2]*0.0722;
+  const colorScheme=backgroundLuma>0.179?'light':'dark';
+  return [...parts,...(Object.keys(layoutValues) as (keyof GlobalDesignLayout)[]).map(key=>'--lf-layout-'+key.replaceAll('_','-')+':'+layout[key]+'px'),'--lf-color-scheme:'+colorScheme,'--lf-color-bg:'+theme.colors.background,
     '--lf-color-text:'+theme.colors.foreground,'--lf-color-accent:'+theme.colors.accent,
     '--lf-color-surface:'+theme.colors.surface,'--lf-color-muted:'+theme.colors.muted,
     '--lf-color-border:'+theme.colors.border,'--lf-color-link:'+theme.colors.link].join(';');
