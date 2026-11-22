@@ -185,7 +185,10 @@ export function publicSearch(
     return item.items ? item.items.map(([id,label,path]) => ({
       id: item.id + '-' + id, label, path
     })) : [{id:item.id,label:item.label,path:item.path}];
-  }).filter(item => !organization || belongsToSearchOrganization(item.path, organization))
+  }).filter(item => !organization || (
+    (!/(?:^|-)page-(?:lefteria_fc_academy|lefteria_fc)-/.test(item.id) ||
+      item.id.includes('page-'+organization+'-')) &&
+    belongsToSearchOrganization(item.path, organization)))
     .map(item => {
       if (!organization) return item;
       if (item.path === '/news') return {...item,path:newsLink(organization)};
