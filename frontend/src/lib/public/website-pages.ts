@@ -1,12 +1,38 @@
 import type { PublicNavigationItem, PublicMenuLink } from './navigation';
 import type { PublicOrganization } from './types';
 
-export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null };
+// Only curated responsive layout tokens are persisted; arbitrary CSS is forbidden.
+export type WebsiteBlockLayout = {
+  width: 'full'|'half'|'third';
+  min_height: 0|120|240|360|480;
+  margin_top: 0|8|16|24|32|48|64;
+  margin_bottom: 0|8|16|24|32|48|64;
+};
+export type WebsitePageLayout = {
+  max_width: 960|1120|1280|1440;
+  gap: 8|16|24|32|48;
+  side_padding: 12|16|24|32|48;
+};
+export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null; layout?: WebsiteBlockLayout|null };
 export type WebsitePageContent = {
   title: string; summary: string; seo_title: string; seo_description: string;
   menu_parent: 'hidden'|'root'|'club'|'team'|'academy'|'matches'|'news'|'events'|'shop'|'contact';
-  menu_order: number; blocks: WebsiteBlock[];
+  menu_order: number; blocks: WebsiteBlock[]; layout?: WebsitePageLayout|null;
 };
+export const DEFAULT_BLOCK_LAYOUT:WebsiteBlockLayout={width:'full',min_height:0,margin_top:0,margin_bottom:0};
+export const DEFAULT_PAGE_LAYOUT:WebsitePageLayout={max_width:1280,gap:24,side_padding:16};
+const VALID_WIDTHS=['full','half','third'];
+const VALID_HEIGHTS=[0,120,240,360,480];
+const VALID_MARGINS=[0,8,16,24,32,48,64];
+export function validBlockLayout(value:WebsiteBlockLayout|null|undefined):boolean {
+  return value == null || (VALID_WIDTHS.includes(value.width) &&
+    VALID_HEIGHTS.includes(value.min_height) && VALID_MARGINS.includes(value.margin_top) &&
+    VALID_MARGINS.includes(value.margin_bottom));
+}
+export function validPageLayout(value:WebsitePageLayout|null|undefined):boolean {
+  return value == null || ([960,1120,1280,1440].includes(value.max_width) &&
+    [8,16,24,32,48].includes(value.gap) && [12,16,24,32,48].includes(value.side_padding));
+}
 export type WebsitePageRecord = {
   organization_id: PublicOrganization; slug: string; version: number;
   draft: WebsitePageContent; published: WebsitePageContent|null;
