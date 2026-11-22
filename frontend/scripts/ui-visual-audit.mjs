@@ -68,7 +68,9 @@ async function verifyPublishedThemeControls(browser, base) {
         '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
         '--lf-color-link':'#145db3','--lf-layout-card-radius':'24px',
         '--lf-layout-button-radius':'16px','--lf-layout-card-gap':'40px',
-        '--lf-layout-motto-height':'160px','--lf-h1-family':'Georgia,serif',
+        '--lf-layout-motto-height':'160px','--lf-layout-page-max-width':'1120px',
+        '--lf-layout-page-side-padding':'32px','--lf-layout-page-margin-top':'48px',
+        '--lf-layout-page-margin-bottom':'64px','--lf-h1-family':'Georgia,serif',
         '--lf-h1-desktop':'44px','--lf-h1-mobile':'30px',
         '--lf-h1-weight':'700','--lf-h1-line':'1.2'
       }))site.style.setProperty(key,value);
@@ -82,13 +84,21 @@ async function verifyPublishedThemeControls(browser, base) {
         headingFamily:style(heading).fontFamily,
         headerBackground:style(header).backgroundColor,
         accent:style(site).getPropertyValue('--public-gold').trim(),
-        bodyBackground:style(site).backgroundColor
+        bodyBackground:style(site).backgroundColor,
+        nativePageTop:style(document.querySelector('.public-main')).paddingTop,
+        nativePageBottom:style(document.querySelector('.public-main')).paddingBottom,
+        globalWidth:style(site).getPropertyValue('--public-content-width').trim(),
+        globalSide:style(site).getPropertyValue('--public-page-gutter').trim()
       };
     });
     assert.equal(computed.tileRadius,'24px','Published card radius must override redesign');
     assert.equal(computed.tilesGap,'40px','Published card spacing must override redesign');
     assert.equal(computed.buttonRadius,'16px','Published button radius must override redesign');
     assert.equal(computed.mottoHeight,'160px','Published motto height must override redesign');
+    assert.equal(computed.nativePageTop,'48px','Native public page must follow global top margin');
+    assert.equal(computed.nativePageBottom,'64px','Native public page must follow global bottom margin');
+    assert.equal(computed.globalWidth,'1120px','Native content width must inherit published global setting');
+    assert.equal(computed.globalSide,'32px','Native side padding must inherit published global setting');
     assert.equal(computed.headingSize,'44px','Published H1 size must override redesign');
     assert.match(computed.headingFamily,/Georgia/,'Published H1 family must override redesign');
     assert.equal(computed.bodyBackground,'rgb(245, 245, 240)');
