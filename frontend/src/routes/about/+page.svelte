@@ -14,7 +14,7 @@
     <section class="py-10 md:py-20 px-4 md:px-6 about-dark-surface">
       <div class="max-w-7xl mx-auto">
         <span class="badge badge-secondary mb-4">Η Ιστορια μας</span>
-        <h1 class="font-['Bebas_Neue'] text-4xl md:text-5xl about-copy-primary mb-6">
+        <h1 class="text-4xl md:text-5xl about-copy-primary mb-6">
           {#if data.aboutIntro}{data.aboutIntro.heading}{:else}Σχετικα με την <span class="about-brand-accent">ΛΕΥΤΕΡΙΑ FC</span>{/if}
         </h1>
         <p class="text-xl about-copy-body max-w-3xl">
@@ -27,7 +27,7 @@
     <section class="py-10 md:py-20 px-4 md:px-6">
       <div class="max-w-7xl mx-auto grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
         <div>
-          <h2 class="font-['Bebas_Neue'] text-4xl about-copy-primary mb-6 section-heading">{data.aboutHistory?.heading ?? 'Η Ιστορια μας'}</h2>
+          <h2 class="text-4xl about-copy-primary mb-6 section-heading">{data.aboutHistory?.heading ?? 'Η Ιστορια μας'}</h2>
           <div class="space-y-4 about-copy-body">
             {#if data.aboutHistory}
               {#each data.aboutHistory.paragraphs as paragraph, index (index)}
@@ -64,12 +64,12 @@
 
     <section class="py-10 md:py-20 px-4 md:px-6 about-dark-surface">
       <div class="max-w-7xl mx-auto">
-        <h2 class="font-['Bebas_Neue'] text-4xl about-copy-primary mb-12 text-center">Οι Αξιες μας</h2>
+        <h2 class="text-4xl about-copy-primary mb-12 text-center">Οι Αξιες μας</h2>
         <div class="grid md:grid-cols-3 gap-8">
           {#each values as value, i}
 <div class="card p-8 text-center">
               <PublicIcon name={value.icon} size={48} />
-              <h3 class="font-['Bebas_Neue'] text-2xl about-copy-primary mb-3">{value.title}</h3>
+              <h3 class="text-2xl about-copy-primary mb-3">{value.title}</h3>
               <p class="about-copy-dim">{value.desc}</p>
             </div>
 {/each}
@@ -83,7 +83,7 @@
         <div class="grid lg:grid-cols-2 gap-6 lg:gap-12 items-center">
           <div>
             <span class="badge badge-secondary mb-4">Εδρα</span>
-            <h2 class="font-['Bebas_Neue'] text-4xl about-copy-primary mb-6 section-heading">Γηπεδο Αετου</h2>
+            <h2 class="text-4xl about-copy-primary mb-6 section-heading">Γηπεδο Αετου</h2>
             <div class="space-y-4 about-copy-body">
               <p>
                 Η έδρα μας, το Γήπεδο Αετού, βρίσκεται στην καρδιά της Λεμεσού.
