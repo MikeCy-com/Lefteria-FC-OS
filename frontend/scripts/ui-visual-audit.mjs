@@ -60,7 +60,11 @@ async function verifyPublishedThemeControls(browser, base) {
       const motto=document.querySelector('[data-testid="home-brand-interval"]');
       const header=document.querySelector('.public-header');
       const heading=document.querySelector('.public-hero-copy h1');
-      if(!site||!tile||!tiles||!button||!motto||!header||!heading)throw Error('missing real public UI nodes');
+      const headingTwo=document.querySelector('[data-testid="public-destinations"] h2');
+      const paragraph=document.querySelector('[data-testid="public-hero-description"]');
+      const navigation=document.querySelector('.public-rail nav a');
+      if(!site||!tile||!tiles||!button||!motto||!header||!heading||!headingTwo||!paragraph||!navigation)
+        throw Error('missing real public UI nodes');
       site.setAttribute('data-global-design','true');
       for(const [key,value] of Object.entries({
         '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
@@ -72,10 +76,28 @@ async function verifyPublishedThemeControls(browser, base) {
         '--lf-layout-page-side-padding':'32px','--lf-layout-page-margin-top':'48px',
         '--lf-layout-page-margin-bottom':'64px','--lf-h1-family':'Georgia,serif',
         '--lf-h1-desktop':'44px','--lf-h1-mobile':'30px',
-        '--lf-h1-weight':'700','--lf-h1-line':'1.2'
+        '--lf-h1-weight':'700','--lf-h1-line':'1.2',
+        '--lf-h2-family':'Georgia,serif','--lf-h2-desktop':'33px','--lf-h2-mobile':'27px',
+        '--lf-h2-weight':'600','--lf-h2-line':'1.35',
+        '--lf-p-family':'Georgia,serif','--lf-p-desktop':'17px','--lf-p-mobile':'15px',
+        '--lf-p-weight':'400','--lf-p-line':'1.6',
+        '--lf-nav-family':'Georgia,serif','--lf-nav-desktop':'16px',
+        '--lf-nav-mobile':'14px','--lf-nav-weight':'500','--lf-nav-line':'1.35',
+        '--lf-button-family':'Georgia,serif','--lf-button-desktop':'16px',
+        '--lf-button-mobile':'14px','--lf-button-weight':'700','--lf-button-line':'1.2'
       }))site.style.setProperty(key,value);
+      const sampleCard=document.createElement('div');sampleCard.className='card';site.appendChild(sampleCard);
+      const sampleLegacyButton=document.createElement('button');sampleLegacyButton.className='btn-primary';site.appendChild(sampleLegacyButton);
+      const sampleInput=document.createElement('input');sampleInput.type='text';site.appendChild(sampleInput);
       const style=x=>getComputedStyle(x);
       return {
+        legacyCardRadius:style(sampleCard).borderTopLeftRadius,
+        legacyButtonRadius:style(sampleLegacyButton).borderTopLeftRadius,
+        nativeInputRadius:style(sampleInput).borderTopLeftRadius,
+        h2Size:style(headingTwo).fontSize,h2Family:style(headingTwo).fontFamily,
+        paragraphSize:style(paragraph).fontSize,paragraphFamily:style(paragraph).fontFamily,
+        navigationSize:style(navigation).fontSize,navigationFamily:style(navigation).fontFamily,
+        buttonSize:style(button).fontSize,buttonFamily:style(button).fontFamily,
         tileRadius:style(tile).borderTopLeftRadius,
         tilesGap:style(tiles).columnGap,
         buttonRadius:style(button).borderTopLeftRadius,
@@ -92,6 +114,17 @@ async function verifyPublishedThemeControls(browser, base) {
       };
     });
     assert.equal(computed.tileRadius,'24px','Published card radius must override redesign');
+    assert.equal(computed.legacyCardRadius,'24px','Original generic cards must inherit global card radius');
+    assert.equal(computed.legacyButtonRadius,'16px','Original generic buttons must inherit global button radius');
+    assert.equal(computed.nativeInputRadius,'16px','Native inputs must inherit global control radius');
+    assert.equal(computed.h2Size,'33px','Published H2 role must override original destination heading');
+    assert.match(computed.h2Family,/Georgia/,'Published H2 font family must override original');
+    assert.equal(computed.paragraphSize,'17px','Published paragraph size must override original');
+    assert.match(computed.paragraphFamily,/Georgia/,'Published paragraph family must override original');
+    assert.equal(computed.navigationSize,'16px','Published navigation size must override original');
+    assert.match(computed.navigationFamily,/Georgia/,'Published navigation font must override original');
+    assert.equal(computed.buttonSize,'16px','Published button size must override original');
+    assert.match(computed.buttonFamily,/Georgia/,'Published button font must override original');
     assert.equal(computed.tilesGap,'40px','Published card spacing must override redesign');
     assert.equal(computed.buttonRadius,'16px','Published button radius must override redesign');
     assert.equal(computed.mottoHeight,'160px','Published motto height must override redesign');
