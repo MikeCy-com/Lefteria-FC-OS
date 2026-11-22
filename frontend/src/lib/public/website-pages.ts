@@ -32,11 +32,12 @@ export const isHomeHeroSlug = (slug: string) =>
   slug === HOMEPAGE_HERO_SLUGS.lefteria_fc || slug === HOMEPAGE_HERO_SLUGS.lefteria_fc_academy;
 export const HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG = 'homepage-academy-spotlight' as const;
 export const CANONICAL_ABOUT_INTRO_SLUG = 'canonical-about-intro' as const;
+export const CANONICAL_CONTACT_LEAD_SLUG = 'canonical-contact-lead' as const;
 export const isAcademySpotlightSlug = (slug: string) => slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG;
 // Native slots are not routable standalone CMS pages, even if a legacy
 // record has an incompatible menu assignment.
 export const isHomepageEditorialSlug = (slug: string) =>
-  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug) || slug === CANONICAL_ABOUT_INTRO_SLUG;
+  isHomeHeroSlug(slug) || isAcademySpotlightSlug(slug) || slug === CANONICAL_ABOUT_INTRO_SLUG || slug === CANONICAL_CONTACT_LEAD_SLUG;
 
 export function websitePageParentLink(
   organization: PublicOrganization, parent: WebsitePageContent['menu_parent']
