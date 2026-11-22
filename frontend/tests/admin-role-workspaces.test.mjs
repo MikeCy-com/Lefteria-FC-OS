@@ -48,6 +48,8 @@ test('role-specific work queues never escalate finance or youth access',()=>{
   const cashier=user('cashier',['shop:operate','shop:read']);
   assert.deepEqual(ids(cashier),['registers']);
   assert.deepEqual(ids(user('coach',['academy:read_assigned'])),[]);
+  assert.deepEqual(ids(user('coach',['academy:read'])),[]);
+  assert.deepEqual(ids(user('matchday_editor',['teams:read'],['lefteria_fc'])),[]);
   assert.deepEqual(ids(user('marketing',['marketing:read'])),[]);
   assert.deepEqual(ids(user('super_admin',['*:*'],[])),[]);
   assert.ok(!urls(user('manager',['academy:read','academy:write','finance:read']))
