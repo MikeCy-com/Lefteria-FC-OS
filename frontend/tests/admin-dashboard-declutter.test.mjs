@@ -44,7 +44,7 @@ test('repeated generic Lefteria FC eyebrow is removed from admin header and affe
   for(const path of ['routes/admin/settings/+page.svelte',
     'routes/admin/leads/+page.svelte','routes/admin/matches/+page.svelte',
     'routes/admin/schedule/+page.svelte','routes/admin/territories/+page.svelte',
-    'routes/admin/hub/+page.svelte']){
+    'routes/admin/hub/+page.svelte','routes/admin/hub/player-quizzes/+page.svelte']){
     const page=read(path);
     assert.doesNotMatch(page,/<p class="(?:admin-)?eyebrow">(?:ΛΕΥΤΕΡΙΑ FC|[^<]* · ΛΕΥΤΕΡΙΑ FC)/,path);
   }
