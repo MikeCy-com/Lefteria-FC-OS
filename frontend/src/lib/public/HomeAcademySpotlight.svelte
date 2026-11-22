@@ -12,7 +12,7 @@
 <section class="home-academy-spotlight" aria-labelledby="home-academy-title"
   data-testid="home-academy-spotlight">
   <div class="home-academy-image" aria-hidden="true"
-    style:background-image={`linear-gradient(90deg,#080a0add 0%,#080a0aa0 50%,#080a0a16 100%),url("${publicImages.hero}")`}></div>
+    style:background-image={`linear-gradient(90deg,color-mix(in srgb,var(--lf-color-bg,#080a0a) 86.667%,transparent) 0%,color-mix(in srgb,var(--lf-color-bg,#080a0a) 62.745%,transparent) 50%,color-mix(in srgb,var(--lf-color-bg,#080a0a) 8.627%,transparent) 100%),url("${publicImages.hero}")`}></div>
   <div class="home-academy-content">
     <p class="home-academy-eyebrow">ΛΕΥΤΕΡΙΑ FC <span>ACADEMY</span></p>
     {#if spotlightWords}
