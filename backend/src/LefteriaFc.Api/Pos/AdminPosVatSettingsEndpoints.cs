@@ -18,6 +18,7 @@ public static class AdminPosVatSettingsEndpoints
     public sealed record VatProposalRequest(Guid RequestId, string? ProductId,
         string? VariantId, string? TreatmentCode, DateOnly? EffectiveFrom,
         string? AuthorityReference, string? Justification);
+    public sealed record VatReviewRequest(bool? Approve, string? ReviewNote);
 
     private static readonly string[] Codes =
         ["standard_19","reduced_9","reduced_5","reduced_3","zero_0","exempt"];
@@ -81,17 +82,56 @@ public static class AdminPosVatSettingsEndpoints
         }).WithName("ProposeAdminPosVariantVat")
           .Accepts<VatProposalRequest>("application/json").ExcludeFromDescription();
 
+        group.MapGet("/reviews", async (string? organization_id,
+            WebAdminService admin,WebAdminConnections db,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Verify(admin,context,organization_id,ct);
+            await using var connection=await db.OpenAsync(ct);
+            await using var command=new NpgsqlCommand(
+                "SELECT pos_cashier.read_admin_vat_reviews(@digest,@owner)::text",
+                connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            return await ReadJson(command,ct);
+        }).WithName("ReadAdminPosVatReviews").ExcludeFromDescription();
+
+        group.MapPost("/proposals/{proposalId:guid}/review",async (
+            Guid proposalId,string? organization_id,VatReviewRequest body,
+            WebAdminService admin,WebAdminConnections db,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct) =>
+        {
+            var cookie=await Verify(admin,context,organization_id,ct,review:true);
+            if(proposalId==Guid.Empty||body.Approve is null||!Note(body.ReviewNote))
+                throw new WebAdminException(422,"pos_vat_review_invalid",
+                    "Provide a valid review decision and a documented explanation.");
+            await using var connection=await db.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT pos_cashier.review_admin_variant_vat(
+                  @digest,@owner,@proposal,@approve,@note)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("owner",organization_id!);
+            command.Parameters.AddWithValue("proposal",proposalId);
+            command.Parameters.AddWithValue("approve",body.Approve.Value);
+            command.Parameters.AddWithValue("note",body.ReviewNote!);
+            return await ReadJson(command,ct);
+        }).WithName("ReviewAdminPosVatProposal")
+          .Accepts<VatReviewRequest>("application/json").ExcludeFromDescription();
+
         return endpoints;
     }
 
     private static async Task<string> Verify(WebAdminService admin,
-        HttpContext context,string? owner,CancellationToken ct)
+        HttpContext context,string? owner,CancellationToken ct,bool review=false)
     {
         if(owner is null || !PublicContentService.IsOrganization(owner))
             throw new WebAdminException(400,"invalid_organization","Select an organization.");
         var cookie=context.Request.Cookies[WebAdminServices.CookieName];
         var session=await admin.CurrentAsync(cookie,ct);
         if(session is null)throw new WebAdminException(401,"not_authenticated","Sign in again.");
+        if(review && session.User.Role!="super_admin")
+            throw new WebAdminException(403,"pos_vat_review_denied","Only a distinct Super Admin may review VAT proposals.");
         if(session.User.Role is not ("super_admin" or "manager" or "accountant") ||
            !AdminPermissions.Has(session.User.Role,"finance:write") ||
            !session.User.Organizations.Any(o=>o.Id==owner))
@@ -112,8 +152,11 @@ public static class AdminPosVatSettingsEndpoints
         {throw new WebAdminException(403,"pos_vat_denied","Finance VAT access denied.");}
         catch(PostgresException ex) when(ex.SqlState is "22023" or "23503")
         {throw new WebAdminException(422,"pos_vat_invalid","Invalid VAT classification or product variant.");}
+        catch(PostgresException ex) when(ex.SqlState=="P0001" &&
+            ex.MessageText is "pos_vat_proposal_replay_conflict" or "pos_vat_review_conflict")
+        {throw new WebAdminException(409,"pos_vat_request_conflict","This request was already recorded with different data.");}
         catch(PostgresException ex) when(ex.SqlState=="P0001")
-        {throw new WebAdminException(409,"pos_vat_request_conflict","The proposal ID has already been used differently.");}
+        {throw new WebAdminException(403,"pos_vat_session_expired","The authorized session was revoked.");}
         catch(PostgresException ex) when(ex.SqlState=="42883")
         {throw new WebAdminException(503,"pos_vat_not_ready","VAT proposal access has not been configured.");}
     }
