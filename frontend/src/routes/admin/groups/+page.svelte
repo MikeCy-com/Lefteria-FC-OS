@@ -487,7 +487,7 @@
             </div>
           {/if}
           {#if canCreate && directoryView==='players' && $auth.session}
-            <AdminRosterPlayersPanel owner={organization} actorId={$auth.session.user.id}
+            <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
               groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
