@@ -234,6 +234,7 @@ app.MapAdminSponsorships();
 app.MapAdminPosCatalog();
 app.MapAdminPosCategories();
 app.MapAdminPosProducts();
+app.MapAdminPosVatSettings();
 app.MapAdminPosLocations();
 app.MapAdminPosCashier();
 app.MapAdminPosSites();

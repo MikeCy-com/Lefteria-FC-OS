@@ -186,6 +186,8 @@
               Η πραγματική είσπραξη, οι επιστροφές και οι παραγωγικές συναλλαγές παραμένουν ξεχωριστά κλειδωμένες.</p>
             <a class="provider-link" href={"/admin/finance?organization_id="+encodeURIComponent(paymentOwner??"lefteria_fc_academy")}
               data-testid="admin-provider-payabl-finance">Άνοιγμα οικονομικών / payabl. sandbox ↗</a>
+            <a class="provider-link" href="/admin/settings/pos-vat"
+              data-testid="admin-provider-vat-settings">Ρυθμίσεις συντελεστών ΦΠΑ προϊόντων (προτάσεις)</a>
           </div>
         </section>
         <p class="admin-muted provider-footnote">Αυτή η σελίδα δείχνει μόνο επαληθευμένη κατάσταση, χωρίς διαρροή διαπιστευτηρίων ή ενεργοποίηση παρόχου. Η αποθήκευση ρυθμίσεων απαιτεί ασφαλή διαχείριση μυστικών και έλεγχο αλλαγών.</p>
