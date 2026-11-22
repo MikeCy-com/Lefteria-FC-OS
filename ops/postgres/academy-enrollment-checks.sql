@@ -126,8 +126,19 @@ BEGIN
   IF EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id) THEN
     RAISE EXCEPTION 'Failed enrollment created player'; END IF;
 
+  IF EXISTS(SELECT 1 FROM academy_intake.placement_workflow_outbox
+      WHERE registration_id=application) THEN
+    RAISE EXCEPTION 'Denied enrollment reserved an outbound event';
+  END IF;
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   SET CONSTRAINTS ALL IMMEDIATE;
+  IF (SELECT count(*) FROM academy_intake.placement_workflow_outbox
+      WHERE registration_id=application AND player_id=fixture_player_id
+        AND group_id=fixture_group_id AND stage='welcome'
+        AND delivery_state='blocked_verification'
+        AND consent_verified=false AND provider_enabled=false)<>1 THEN
+    RAISE EXCEPTION 'Approved placement did not reserve exactly one blocked welcome event';
+  END IF;
   IF result->>'player_id'<>fixture_player_id OR result->>'group_id'<>fixture_group_id
       OR result->>'status'<>'approved'
       OR NOT EXISTS(SELECT 1 FROM club.players p WHERE p.id=fixture_player_id
@@ -149,6 +160,9 @@ BEGIN
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
       WHERE id=fixture_player_id)<>1 THEN
     RAISE EXCEPTION 'Enrollment replay was not idempotent'; END IF;
+  IF (SELECT count(*) FROM academy_intake.placement_workflow_outbox
+      WHERE registration_id=application)<>1 THEN
+    RAISE EXCEPTION 'Replay duplicated the post-enrollment welcome event'; END IF;
   BEGIN
     PERFORM identity.enroll_admin_academy_registration(admin_digest,
       jsonb_set(payload,'{request_id}',to_jsonb(alternate_request::text)));
