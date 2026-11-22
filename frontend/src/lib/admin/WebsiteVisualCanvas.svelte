@@ -8,12 +8,13 @@
     maxBlocks?:number;
     pageLayout?:WebsitePageLayout;
     onLayout?:(index:number,layout:WebsiteBlockLayout)=>void;
+    onLevel?:(index:number,level:2|3|4|5|6)=>void;
     onEdit:(index:number,text:string)=>void;
     onMove:(from:number,to:number)=>void;
     onInsert:(index:number,type:WebsiteBlock['type'])=>void;
     onSelect:(index:number)=>void;
   };
-  let {blocks,editable,locked,busy,maxBlocks=40,pageLayout,onLayout,onEdit,onMove,onInsert,onSelect}:Props=$props();
+  let {blocks,editable,locked,busy,maxBlocks=40,pageLayout,onLayout,onLevel,onEdit,onMove,onInsert,onSelect}:Props=$props();
   const resolvedPage=$derived(validPageLayout(pageLayout)?pageLayout??DEFAULT_PAGE_LAYOUT:DEFAULT_PAGE_LAYOUT);
   const blockLayout=(block:WebsiteBlock)=>validBlockLayout(block.layout)&&block.layout?block.layout:DEFAULT_BLOCK_LAYOUT;
   function setLayout(index:number,key:keyof WebsiteBlockLayout,value:number|string){
@@ -94,6 +95,14 @@
               aria-label={'Σύρετε την ενότητα '+(index+1)} title="Σύρετε για μετακίνηση">⠿ Μετακίνηση</button>
           {/if}
         </div>
+        {#if editable&&!locked&&!busy&&selected===index&&block.type==='heading'&&onLevel}
+          <label class="visual-heading-level">Σημασιολογικό επίπεδο τίτλου
+            <select data-testid="canvas-heading-level" value={block.level??2}
+              onchange={e=>onLevel(index,Number(e.currentTarget.value) as 2|3|4|5|6)}>
+              {#each [2,3,4,5,6] as level}<option value={level}>H{level}</option>{/each}
+            </select>
+          </label>
+        {/if}
         {#if editable&&!locked&&!busy&&selected===index&&onLayout}
           <div class="visual-layout-controls" data-testid="cms-block-layout-controls">
             <label>Πλάτος
