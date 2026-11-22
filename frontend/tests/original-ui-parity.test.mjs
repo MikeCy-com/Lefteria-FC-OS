@@ -37,7 +37,7 @@ test('native main/public menu preserves original nine categories and restores ke
   assert.match(menu,/aria-expanded=\{menuOpen/);
 });
 
-test('mobile roles retain original Fira font sizes and same logo asset',()=>{
+test('mobile roles retain original Fira font sizes with the organization logo',()=>{
   const mobile=read('lib/mobile/components/mobile-theme.css');
   const shell=read('lib/mobile/components/MobileShell.svelte');
   for(const [name,value] of Object.entries({
@@ -46,7 +46,7 @@ test('mobile roles retain original Fira font sizes and same logo asset',()=>{
   }))assert.ok(mobile.includes('--lf-type-'+name+': '+value),name);
   assert.match(mobile,/--lf-gold: #f6bb38/);
   assert.match(mobile,/Fira Sans Extra Condensed/);
-  assert.match(shell,/src="\/mobile\/club-logo\.png"/);
+  assert.match(shell,/src=\{clubLogoUrl\}/);
   for(const testid of ['mobile-app','bottom-nav','role-switcher','mobile-notifications','mobile-profile'])
     assert.ok(shell.includes(testid),testid);
 });

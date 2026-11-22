@@ -14,7 +14,7 @@
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Group={id:string;name:string;kind:'team'|'academy_group';active_players:number};
-  type Tab='players'|'training'|'attendance'|'matches'|'settings';
+  type Tab='players'|'training'|'attendance'|'matches'|'coaches'|'settings';
   let {group,groups,organization,user,canCreate,canReadAttendance,onExpired,onRevoked,onChanged}:{
     group:Group;groups:Group[];organization:Owner;user:WebAdminSession['user'];
     canCreate:boolean;canReadAttendance:boolean;
@@ -38,6 +38,7 @@
     tab=requested==='training'&&canReadAttendance?'training':
       requested==='attendance'&&canReadAttendance?'attendance':
       requested==='matches'?'matches':
+      requested==='coaches'&&canCreate?'coaches':
       requested==='settings'&&canCreate?'settings':'players';
   });
 </script>
@@ -55,6 +56,10 @@
     {/if}
     <button type="button" aria-pressed={tab==='matches'} onclick={()=>tab='matches'}
       data-testid="admin-group-matches-link">Αγώνες & αποτελέσματα</button>
+    {#if canCreate}
+      <button type="button" aria-pressed={tab==='coaches'} onclick={()=>tab='coaches'}
+        data-testid="admin-group-coaches-link">Προπονητές</button>
+    {/if}
     {#if canAnnounce}
       <a class="group-notice-link" data-testid="admin-group-app-announcements-link"
         href={'/admin/announcements?organization_id='+encodeURIComponent(organization)+
@@ -100,6 +105,9 @@
           <AdminGroupMatchDraftPanel groupId={group.id} {organization}
             actorId={user.id} canWrite={canCreate}/>
         {/if}
+      {:else if tab==='coaches' && canCreate}
+        <AdminCoachDirectoryPanel owner={organization} actorId={user.id}
+          groups={[group]} {onExpired} {onRevoked}/>
       {:else if tab==='settings' && canCreate}
         {#if organization==='lefteria_fc'}
           <AdminFirstTeamProfilePanel actorId={user.id} groups={[group]}
@@ -108,19 +116,18 @@
           <AdminAcademyGroupProfilePanel actorId={user.id} groups={[group]}
             {onExpired} {onRevoked}/>
         {/if}
-        <AdminCoachDirectoryPanel owner={organization} actorId={user.id}
-          groups={[group]} {onExpired} {onRevoked}/>
       {/if}
     </div>
   {/key}
 </section>
 <style>
   .group-operating-space{min-width:0;max-width:100%}
-  .group-operation-tabs{display:flex;flex-wrap:wrap;gap:7px;margin:17px 0;padding-bottom:10px;border-bottom:1px solid #98712b}
+  .group-operation-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0;padding-bottom:10px;
+    border-bottom:1px solid #38332a;overflow-x:auto}
   .group-operation-tabs button,.group-operation-tabs a{display:inline-flex;align-items:center;justify-content:center;
-    min-height:44px;padding:10px 13px;color:#eee;background:#111517;border:1px solid #6a5b39;
-    cursor:pointer;font:800 15px/1.15 'Fira Sans Extra Condensed',sans-serif}
-  .group-operation-tabs button[aria-pressed='true']{background:#f6bb38;color:#080909;border-color:#f6bb38}
+    min-height:40px;padding:9px 12px;color:#d8dde0;background:#121516;border:1px solid #343637;
+    border-radius:6px;cursor:pointer;font:700 13px/1.25 'Fira Sans',sans-serif}
+  .group-operation-tabs button[aria-pressed='true']{background:#272012;color:#f8c65a;border-color:#d39722}
   .group-operation-tabs button:focus-visible,.group-operation-tabs a:focus-visible{outline:3px solid #ffd164;outline-offset:3px}
   .group-operation-tabs a{text-decoration:none;border-style:dashed;gap:8px}
   .group-operation-tabs a:hover{border-color:#ffcc65;background:#27271e}

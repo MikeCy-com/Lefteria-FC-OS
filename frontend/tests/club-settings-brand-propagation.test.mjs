@@ -68,3 +68,11 @@ test('mobile header consumes verified public-only club name and logo from role o
   assert.match(mobileShell,/data-testid="mobile-club-brand-name"/);
   assert.doesNotMatch(mobileShell,/src="\/mobile\/club-logo\.png"/);
 });
+
+
+test('public contact email accepts ordinary addresses and rejects malformed or injected links',()=>{
+  for(const email of ['sales@example.org','info+club@example.org'])
+    assert.equal(readPublicBrand({club:{organization_id:'lefteria_fc',name:'FC',email}},'lefteria_fc')?.email,email);
+  for(const email of ['info example.org','info@ example.org','info@example.org?subject=test','info@example.org\n','javascript:info@example.org'])
+    assert.equal(readPublicBrand({club:{organization_id:'lefteria_fc',name:'FC',email}},'lefteria_fc')?.email,null);
+});

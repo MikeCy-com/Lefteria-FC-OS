@@ -84,6 +84,16 @@
             <p class="admin-settings-note">Ο Super Admin μπορεί να αλλάζει ρόλο ή κατάσταση λογαριασμού από τους Χρήστες &amp; δικαιώματα. Πριν από αλλαγή ρόλου πρέπει να αφαιρεθούν οι υφιστάμενες αναθέσεις πόλης, τοποθεσίας, ομάδας και προσωπικού, καθώς και οι ενεργές βάρδιες POS. Η αλλαγή ανακαλεί τις ενεργές συνεδρίες.</p>
           </section>
         {/if}
+        {#if $auth.session.user.role==='super_admin'}
+          <section class="admin-panel" id="integration-settings" data-testid="admin-provider-settings-entry">
+            <p class="admin-eyebrow">ΔΙΑΣΥΝΔΕΣΕΙΣ · ΠΑΡΟΧΟΙ</p>
+            <h2>SMS / OTP & Πληρωμές</h2>
+            <p>Επαληθευμένη διαμόρφωση Twilio και payabl. με απόκρυψη μυστικών, κατάσταση παρόχου και ελεγχόμενη πρόσβαση.</p>
+            <a class="admin-settings-link" href="/admin/settings/providers"
+              data-testid="admin-settings-provider-link">Άνοιγμα ρυθμίσεων παρόχων <span aria-hidden="true">↗</span></a>
+            <p class="admin-settings-note">Η αλλαγή διαπιστευτηρίων απαιτεί ξεχωριστή ασφαλή διαδικασία. Δεν ενεργοποιούνται πραγματικά SMS ή πληρωμές από αυτόν τον σύνδεσμο.</p>
+          </section>
+        {/if}
         {#if canOnboard}
           <section class="admin-panel" id="help-settings" data-testid="admin-settings-onboarding">
             <p class="admin-eyebrow">ΠΡΩΤΗ ΧΡΗΣΗ · ΛΕΙΤΟΥΡΓΙΕΣ</p>

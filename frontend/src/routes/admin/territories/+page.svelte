@@ -73,6 +73,10 @@
   let locationId = $state('');
   let scopeId = $state('');
   let kind = $state<Resource>('opponent');
+  let academyOpponentName=$state('');
+  let academyFieldName=$state('');
+  let academyFieldAddress=$state('');
+  let academyFieldMapsUrl=$state('');
   let name = $state('');
   let slug = $state('');
   let address = $state('');
@@ -246,6 +250,26 @@
     void createResource('location',{city_id:cityId,name,slug,address,
       google_maps_url:googleMapsUrl});
   }
+  async function submitAcademyCatalog(resource:'opponent'|'playing_field'){
+    if(organization!=='lefteria_fc_academy'||!selectedScope||
+      selectedScope.academy_city_id!==cityId||!mayManageCatalog||saving)return;
+    const expectedCity=cityId;
+    const enteredName=resource==='opponent'?academyOpponentName:academyFieldName;
+    if(!enteredName.trim())return;
+    // Keep unsaved form inputs on failed requests. The backend enforces the same
+    // organization/city scope independently of these interface checks.
+    const before=revision;
+    await createResource(resource,{
+      scope_id:selectedScope.id,name:enteredName.trim(),
+      ...(resource==='playing_field'
+        ?{address:academyFieldAddress.trim(),google_maps_url:academyFieldMapsUrl.trim()}: {})
+    });
+    if(organization=== 'lefteria_fc_academy' && cityId===expectedCity &&
+      revision!==before){
+      if(resource==='opponent')academyOpponentName='';
+      else {academyFieldName='';academyFieldAddress='';academyFieldMapsUrl='';}
+    }
+  }
   function submitCatalog(){
     if(!selectedScope || !canAddResource) return;
     void createResource(kind,{
@@ -348,6 +372,61 @@
           </section>
 
           {#if selectedScope}
+            <section class="admin-panel academy-city-catalog" aria-labelledby="academy-city-catalog-heading"
+              data-testid="academy-city-catalog">
+              <header class="academy-city-catalog-title">
+                <div>
+                  <h2 id="academy-city-catalog-heading">Αντίπαλοι & γήπεδα πόλης</h2>
+                  <p class="admin-muted">Κοινός κατάλογος για όλες τις τοποθεσίες και τα τμήματα της επιλεγμένης πόλης.
+                    Η Πρώτη Ομάδα έχει ξεχωριστούς αντιπάλους και γήπεδα.</p>
+                </div>
+              </header>
+              <div class="territory-columns">
+                <div>
+                  <h3>Αντίπαλοι πόλης</h3>
+                  {#if opponents.length===0}<p class="admin-muted">Δεν έχουν καταχωριστεί αντίπαλοι σε αυτή την πόλη.</p>{/if}
+                  <ul class="territory-list" data-testid="academy-city-opponents">
+                    {#each opponents as item (item.id)}<li>{item.name}</li>{/each}
+                  </ul>
+                </div>
+                <div>
+                  <h3>Γήπεδα αγώνων πόλης</h3>
+                  {#if fields.length===0}<p class="admin-muted">Δεν έχουν καταχωριστεί γήπεδα σε αυτή την πόλη.</p>{/if}
+                  <ul class="territory-list" data-testid="academy-city-fields">
+                    {#each fields as item (item.id)}
+                      <li><span>{item.name}</span>
+                        {#if item.google_maps_url}
+                          <a href={item.google_maps_url} target="_blank" rel="noopener noreferrer">Google Maps</a>
+                        {/if}
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              </div>
+              {#if mayManageCatalog}
+                <div class="territory-columns">
+                  <form class="territory-form" data-testid="academy-add-city-opponent"
+                    onsubmit={e=>{e.preventDefault();submitAcademyCatalog('opponent');}}>
+                    <h3>Νέος αντίπαλος πόλης</h3>
+                    <label>Όνομα αντιπάλου
+                      <input bind:value={academyOpponentName} required maxlength="160" />
+                    </label>
+                    <button type="submit" disabled={saving||!academyOpponentName.trim()}>Προσθήκη αντιπάλου</button>
+                  </form>
+                  <form class="territory-form" data-testid="academy-add-city-field"
+                    onsubmit={e=>{e.preventDefault();submitAcademyCatalog('playing_field');}}>
+                    <h3>Νέο γήπεδο αγώνα πόλης</h3>
+                    <label>Όνομα γηπέδου <input bind:value={academyFieldName} required maxlength="160" /></label>
+                    <label>Διεύθυνση <input bind:value={academyFieldAddress} maxlength="300" /></label>
+                    <label>Google Maps <input type="url" bind:value={academyFieldMapsUrl} maxlength="2048" /></label>
+                    <button type="submit" disabled={saving||!academyFieldName.trim()}>Προσθήκη γηπέδου</button>
+                  </form>
+                </div>
+              {/if}
+            </section>
+          {/if}
+
+          {#if selectedScope}
             <section class="admin-panel" aria-labelledby="location-heading">
               <h2 id="location-heading">2. Τοποθεσία στην πόλη</h2>
               <label>Τοποθεσία
@@ -439,9 +518,10 @@
         {/if}
 
         {#if selectedScope}
-          <section class="admin-panel" aria-labelledby="catalog-heading">
+          {#if organization==='lefteria_fc'}
+          <section class="admin-panel" aria-labelledby="catalog-heading" data-testid="first-team-catalog">
             <h2 id="catalog-heading">3. Αντίπαλοι και γήπεδα αγώνων
-              {organization==='lefteria_fc_academy'?'ανά πόλη':'ανά ομάδα'}</h2>
+              ανά ομάδα</h2>
             <div class="territory-columns">
               <div>
                 <h3>Αντίπαλοι</h3>
@@ -461,7 +541,7 @@
             </div>
             {#if mayManageCatalog}
               <form class="territory-form" onsubmit={e=>{e.preventDefault();submitCatalog();}}>
-                <h3>Προσθήκη κοινού καταλόγου {organization==='lefteria_fc_academy'?'πόλης':'ομάδας'}</h3>
+                <h3>Προσθήκη κοινού καταλόγου ομάδας</h3>
                 <label>Τύπος
                   <select bind:value={kind}>
                     <option value="opponent">Αντίπαλος</option>
@@ -477,6 +557,8 @@
               </form>
             {/if}
           </section>
+
+          {/if}
 
           <section class="admin-panel" aria-labelledby="base-heading">
             <h2 id="base-heading">4. Βάσεις προπονήσεων
@@ -585,7 +667,13 @@
     color:#ffd16b;background:#171a18;border:1px solid #ad863a;padding:10px 16px;
     text-decoration:none;font-weight:800}
   #group-placement{scroll-margin-top:90px}
-  .territory-page{display:grid;gap:1.3rem;max-width:1240px}
+  .territory-page{display:grid;gap:1.3rem;width:100%;min-width:0}
+  .academy-city-catalog-title{margin-bottom:12px}
+  .academy-city-catalog-title p{max-width:75ch}
+  .academy-city-catalog .territory-columns{margin-top:12px}
+  .academy-city-catalog .territory-list li{min-height:42px;align-items:center}
+  .academy-city-catalog .territory-form{min-width:0}
+  .academy-city-catalog .territory-form input{max-width:100%}
   .territory-page h1{font-size:clamp(1.65rem,3vw,2.75rem);letter-spacing:-.045em;margin:.4rem 0}
   .territory-page h1 span{color:#bd9763}
   .territory-page h2{font-size:1.2rem;margin:0 0 1rem}

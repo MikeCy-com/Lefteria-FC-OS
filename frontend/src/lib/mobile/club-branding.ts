@@ -37,8 +37,8 @@ export function readPublicBrand(raw:unknown,organizationId:BrandOwner):ClubBrand
       !record.name.trim()||record.name.length>200)return null;
   // Only project explicitly public fields. Filter links independently rather
   // than trusting a raw API object to become a browser navigation target.
-  const email=typeof record.email==='string'&&
-    /^[^\\s@<>:]+@[^\\s@<>:]+\\.[^\\s@<>:]+$/.test(record.email)
+  const email=typeof record.email==='string'&&record.email===record.email.trim()&&
+    /^[^\s@<>:?#]+@[^\s@<>:?#]+\.[^\s@<>:?#]+$/.test(record.email)
       ?record.email:null;
   const phone=typeof record.phone==='string'&&
     /^[+0-9 ()-]{5,40}$/.test(record.phone)?record.phone:null;

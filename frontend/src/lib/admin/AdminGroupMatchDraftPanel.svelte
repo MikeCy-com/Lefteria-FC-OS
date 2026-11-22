@@ -169,19 +169,24 @@
       {#if mayWrite && (opponents.length===0 || fields.length===0)}
         <p class="admin-muted">Καταχωρίστε πρώτα αντίπαλο και γήπεδο αγώνα στον κοινό κατάλογο πόλης.
           Οι τοποθεσίες δεν δημιουργούν δικούς τους ανεξάρτητους αντιπάλους.</p>
-        <a href="/admin/territories">Διαχείριση αντιπάλων & γηπέδων ↗</a>
+        <a href={'/admin/territories?organization_id='+encodeURIComponent(organization)}
+          data-testid="admin-match-manage-catalog">
+          {organization==='lefteria_fc_academy'?'Κατάλογος αντιπάλων & γηπέδων της πόλης':'Κατάλογος Πρώτης Ομάδας'} ↗
+        </a>
       {/if}
       {#if mayWrite && formOpen}
         <form class="admin-group-match-form" onsubmit={e=>{e.preventDefault();void submitDraft();}}
           data-testid="admin-group-match-form">
-          <label>Αντίπαλος πόλης
-            <select bind:value={opponentId} required disabled={saving}>
+          <label>{organization==='lefteria_fc_academy'?'Αντίπαλος πόλης':'Αντίπαλος Πρώτης Ομάδας'}
+            <select bind:value={opponentId} required disabled={saving}
+              data-testid="admin-match-opponent-picker">
               <option value="">Επιλέξτε αντίπαλο</option>
               {#each opponents as row (row.id)}<option value={row.id}>{row.name}</option>{/each}
             </select>
           </label>
-          <label>Γήπεδο αγώνα πόλης
-            <select bind:value={fieldId} required disabled={saving}>
+          <label>{organization==='lefteria_fc_academy'?'Γήπεδο αγώνα πόλης':'Γήπεδο Πρώτης Ομάδας'}
+            <select bind:value={fieldId} required disabled={saving}
+              data-testid="admin-match-field-picker">
               <option value="">Επιλέξτε γήπεδο</option>
               {#each fields as row (row.id)}<option value={row.id}>{row.name}</option>{/each}
             </select>

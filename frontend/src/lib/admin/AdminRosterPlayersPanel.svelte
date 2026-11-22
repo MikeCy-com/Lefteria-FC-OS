@@ -22,7 +22,17 @@
   let rosterMode=$state<'group'|'assign'>('group');
   const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
   let refresh = $state(0);
+  let playerSearch=$state('');
+  let playerGroupFilter=$state('');
   let page = $state<Page|null>(null);
+  const visiblePlayers=$derived((page?.players??[]).filter(player=>{
+    const term=playerSearch.trim().toLocaleLowerCase('el-GR');
+    const matchesGroup=!playerGroupFilter || currentGroups(player).includes(playerGroupFilter);
+    return matchesGroup && (!term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
+      player.id.toLocaleLowerCase('el-GR').includes(term) ||
+      groupLabels(player).toLocaleLowerCase('el-GR').includes(term));
+  }));
+
   let loading = $state(false);
   let failed = $state(false);
   let editing = $state<string|null>(null);
@@ -215,6 +225,25 @@
         για να προσθέσετε αθλητή στο τμήμα. Η ανάθεση ελέγχεται από το API.</p>
     {/if}
   {/if}
+  <div class="admin-player-filters" role="search" aria-label="Αναζήτηση αθλητών">
+    <label for="admin-player-search">Αναζήτηση στην τρέχουσα σελίδα
+      <input id="admin-player-search" type="search" bind:value={playerSearch}
+        data-testid="admin-player-search" placeholder="Όνομα, αναγνωριστικό ή τμήμα…" autocomplete="off"/>
+    </label>
+    {#if !currentGroup}
+      <label for="admin-player-group-filter">Ομάδα / τμήμα
+        <select id="admin-player-group-filter" bind:value={playerGroupFilter}
+          data-testid="admin-player-group-filter">
+          <option value="">Όλα τα εξουσιοδοτημένα τμήματα</option>
+          {#each groups as group (group.id)}
+            <option value={group.id}>{group.name}</option>
+          {/each}
+        </select>
+      </label>
+    {/if}
+    <p class="admin-muted">Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας.
+      Για πλήρη έλεγχο του ρόστερ χρησιμοποιήστε την πλοήγηση σελίδων.</p>
+  </div>
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
   {:else if failed || !page}
@@ -225,18 +254,25 @@
   {:else}
     <div class="admin-player-total" role="status">
       <strong>{page.total}</strong><span>{currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
+      <span class="admin-player-filter-count">Εμφανίζονται {visiblePlayers.length} / {page.players.length} στη σελίδα</span>
     </div>
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
     {#if page.players.length===0}
       <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
+      <div class="admin-player-columns" aria-hidden="true">
+        <span>ΠΑΙΚΤΗΣ</span><span>ΟΜΑΔΑ / ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</span>
+      </div>
       <ul class="admin-player-list" data-testid="admin-players-list">
-        {#each page.players as player (player.id)}
+        {#each visiblePlayers as player (player.id)}
           <li>
-            <strong>{player.name}</strong>
+            <div class="admin-player-identity">
+              <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
+              <div><strong>{player.name}</strong><small>{player.id}</small></div>
+            </div>
             <div class="admin-player-actions">
-              <span>{groupLabels(player)}</span>
+              <span class="admin-player-team-label">{groupLabels(player)}</span>
               {#if allowFinance && owner === 'lefteria_fc_academy'}
                 <a class="admin-player-finance-link"
                   href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
@@ -322,6 +358,9 @@
           </li>
         {/each}
       </ul>
+      {#if visiblePlayers.length===0}
+        <p class="admin-muted" role="status" data-testid="admin-player-search-empty">Δεν υπάρχουν αποτελέσματα σε αυτή τη σελίδα.</p>
+      {/if}
     {/if}
     <nav class="admin-player-paging" aria-label="Σελίδες ρόστερ">
       <span>{page.total===0 ? 0 : offset+1}–{Math.min(offset+pageSize,page.total)} / {page.total}</span>
@@ -334,7 +373,25 @@
 </section>
 
 <style>
-  .admin-player-directory{margin:16px 0}
+  .admin-player-directory{margin:16px 0;border-radius:11px}
+  .admin-player-directory h2{font-size:clamp(18px,1.7vw,23px)}
+  .admin-player-filters{margin-top:16px;padding:13px;border:1px solid #303335;
+    border-radius:9px;background:#101112;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .admin-player-filters label{display:grid;gap:7px;margin:0;color:#cbd0ce;font-size:12px}
+  .admin-player-filters input{min-height:42px;border-radius:6px}
+  .admin-player-filters p{grid-column:1/-1;font-size:11px;margin:0;line-height:1.5}
+  @media(max-width:670px){.admin-player-filters{grid-template-columns:1fr}}
+  .admin-player-filter-count{margin-left:auto}
+  .admin-player-columns{display:grid;grid-template-columns:1fr 1.5fr;gap:15px;
+    padding:9px 0;border-top:1px solid #363a3a;color:#8e9caa;letter-spacing:.08em;font-size:10px}
+  .admin-player-list li:hover{background:#ffffff05}
+  .admin-player-identity{display:flex;gap:12px;min-width:0;align-items:center}
+  .admin-player-identity>div{display:grid;gap:3px;min-width:0}
+  .admin-player-identity small{font-size:10px;color:#939b9b;overflow-wrap:anywhere}
+  .admin-player-avatar{width:35px;height:35px;border-radius:50%;display:grid;
+    place-items:center;flex:none;background:#222629;color:#d2b775;font-size:14px;font-weight:700}
+  .admin-player-team-label{color:#b3d3df!important}
+
   .admin-player-individual-workspace{grid-column:1/-1;min-width:0;display:grid;gap:12px}
   .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
   .admin-player-attendance-details>summary{cursor:pointer;font-weight:800;color:#f8c95d;min-height:44px;display:flex;align-items:center}
@@ -364,7 +421,7 @@
   .admin-player-error{color:#ffd29b}
   .admin-player-paging{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:15px}
   .admin-player-paging span{font-size:12px;color:#b9bcbe;margin-right:auto}
-  @media(max-width:600px){.admin-player-list li{grid-template-columns:1fr}.admin-player-heading{display:grid}.admin-player-paging span{width:100%}}
+  @media(max-width:600px){.admin-player-list li{grid-template-columns:1fr}.admin-player-columns{display:none}.admin-player-heading{display:grid}.admin-player-paging span{width:100%}}
 
   .admin-player-group-scope{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 8px}
   .admin-player-group-scope button{min-height:44px;padding:10px 14px;border:1px solid #777;

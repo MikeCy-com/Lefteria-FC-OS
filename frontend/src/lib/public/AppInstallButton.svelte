@@ -16,39 +16,41 @@
     else if (result === 'prompted' && dialog.open) dialog.close();
   }
   function install() {
-    if ($appInstall.android) showGuidance();
-    else void installCurrentSite();
+    // Trigger the browser-owned OS/PWA install prompt directly in the click
+    // gesture. An external APK belongs to a different app and is never used.
+    void installCurrentSite();
   }
 </script>
 
 {#if $appInstall.installed}
   <a href="/app" class="public-app-open" data-testid="official-app-open"><Icon name="external" size={21} />Άνοιξε την επίσημη εφαρμογή</a>
 {:else}
-  <button type="button" class="public-app-open" onclick={install} disabled={$appInstall.busy} aria-haspopup="dialog" data-testid="official-app-install"><Icon name="download" size={21} />{$appInstall.busy ? 'Αναμονή επιβεβαίωσης…' : 'Κατέβασε την επίσημη εφαρμογή'}</button>
+  <button type="button" class="public-app-open" onclick={install} disabled={$appInstall.busy} aria-haspopup="dialog" data-testid="official-app-install"><Icon name="download" size={21} />{$appInstall.busy ? 'Αναμονή επιβεβαίωσης…' : 'Εγκατάσταση επίσημης εφαρμογής OS'}</button>
 {/if}
 
 <dialog bind:this={dialog} onclose={restoreScroll} aria-labelledby="app-install-title" aria-describedby="app-install-description">
-  <div class="install-heading"><h2 id="app-install-title">Η επίσημη εφαρμογή Λευτεριά FC</h2><button type="button" onclick={() => dialog.close()} aria-label="Κλείσιμο οδηγιών εγκατάστασης">×</button></div>
-  <p id="app-install-description">Πρόσθεσε την εφαρμογή στην αρχική οθόνη για γρήγορη πρόσβαση στον λογαριασμό σου.</p>
+  <div class="install-heading"><h2 id="app-install-title">Η επίσημη εφαρμογή Λευτεριά FC OS</h2><button type="button" onclick={() => dialog.close()} aria-label="Κλείσιμο οδηγιών εγκατάστασης">×</button></div>
+  <p id="app-install-description">Εγκατέστησε την εφαρμογή του Lefteria FC OS στην αρχική οθόνη για γρήγορη πρόσβαση. Η εγκατάσταση αφορά αυτόν τον ιστότοπο.</p>
   {#if $appInstall.android}
-    <section aria-label="Επίσημη εφαρμογή Android">
-      <h3>Εφαρμογή Android</h3>
-      <p>Η εφαρμογή Android συνδέεται στο επίσημο <strong>lefteriafc.cy</strong>.</p>
-      <a class="install-open" href="https://lefteriafc.cy/api/app/android" data-testid="official-android-apk" data-sveltekit-preload-data="off" data-sveltekit-reload>Λήψη επίσημου Android APK — lefteriafc.cy</a>
-      <p>Μετά τη λήψη, άνοιξε το αρχείο και ακολούθησε την επιβεβαίωση εγκατάστασης της συσκευής σου.</p>
+    <section aria-label="Εγκατάσταση Lefteria FC OS στο Android">
+      <h3>Επίσημη εφαρμογή Lefteria FC OS</h3>
+      <p>Εγκατέστησε το OS που χρησιμοποιείς τώρα. Δεν απαιτείται λήψη APK από άλλη ιστοσελίδα.</p>
+      {#if $appInstall.available}
+        <button type="button" class="install-open" onclick={installCurrentSite}
+          disabled={$appInstall.busy} data-testid="current-site-install">
+          Εγκατάσταση τώρα
+        </button>
+      {/if}
     </section>
-    <hr />
-    <h3>Εφαρμογή αυτού του ιστοτόπου</h3>
-    <p>Για να συνεχίσεις στον ιστότοπο που χρησιμοποιείς τώρα, πρόσθεσέ τον στην αρχική οθόνη.</p>
-    {#if $appInstall.available}<button type="button" class="install-open" onclick={installCurrentSite} disabled={$appInstall.busy} data-testid="current-site-install">Εγκατάσταση αυτού του ιστοτόπου</button>{/if}
   {/if}
   {#if $appInstall.ios}
+    <p>Το iPhone δεν επιτρέπει σε μια ιστοσελίδα να ανοίξει αυτόματα την επιβεβαίωση εγκατάστασης.</p>
     <ol><li>Άνοιξε αυτή τη σελίδα στο Safari.</li><li>Πάτησε <strong>Κοινοποίηση</strong> και <strong>Προσθήκη στην οθόνη Αφετηρίας</strong>.</li><li>Επιβεβαίωσε με <strong>Προσθήκη</strong> και άνοιξε το εικονίδιο Λευτεριά FC.</li></ol>
   {:else}
     <ol><li>Άνοιξε το μενού του προγράμματος περιήγησης.</li><li>Επίλεξε <strong>Εγκατάσταση εφαρμογής</strong> ή <strong>Προσθήκη στην αρχική οθόνη</strong>, εφόσον εμφανίζεται.</li><li>Επιβεβαίωσε την εγκατάσταση στη συσκευή σου.</li></ol>
     <p>Αν δεν εμφανίζεται αυτή η επιλογή, δοκίμασε Chrome ή Edge, ή συνέχισε από το πρόγραμμα περιήγησης.</p>
   {/if}
-  <p class="install-note">Η εγκατάσταση χρειάζεται επιβεβαίωση από εσένα. Μπορείς πάντα να χρησιμοποιείς την εφαρμογή από το πρόγραμμα περιήγησης.</p>
+  <p class="install-note">Η εγκατάσταση εξαρτάται από τις δυνατότητες του browser και χρειάζεται τη δική σου επιβεβαίωση. Δεν χρησιμοποιείται η παλιά εφαρμογή ή εξωτερικό APK.</p>
   <a href="/app" class="install-open" onclick={() => dialog.close()}>Συνέχεια στην εφαρμογή →</a>
 </dialog>
 

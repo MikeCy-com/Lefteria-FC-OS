@@ -214,6 +214,7 @@ app.MapMobileAppAnnouncements();
 app.MapMobileWebPush();
 app.MapWebAdmin();
 app.MapAdminUserDirectory();
+app.MapAdminProviderSettings();
 app.MapAdminNativeCoach();
 app.MapPayabl();
 app.MapAcademyFees();
