@@ -29,7 +29,7 @@ test('POS catalog fetch is authenticated, scoped, no-store, and has no mutation 
 
 test('POS controls retain real page and prevent planned checkout/tools being clickable',()=>{
   assert.ok(frame.includes('href="/admin/pos"'));
-  assert.ok(workspace.includes("href:'/admin/pos'"));
+  assert.ok(!workspace.includes("href:'/admin/pos'"));
   assert.ok(catalog.includes("id: 'products', name: 'Κατάλογος προϊόντων'"));
   assert.ok(catalog.includes("status: 'live', href: '/admin/pos'"));
   assert.match(catalog, /id: 'registers'[^\n]*status: 'live', href: '\/admin\/pos'/);
