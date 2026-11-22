@@ -153,3 +153,63 @@
 .public-site[data-global-design="true"] .website-page-return {
   border-top-color:var(--lf-color-border);
 }
+
+/* Native layouts still own their imagery and information architecture, but
+ * their previously fixed decorative panels now follow published WYSIWYG theme
+ * colors. No background image/crop/photo source is touched. */
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-reference-fees,.academy-review-card,
+  .registration-card,.registration-child,.registration-choice-card,
+  .registration-costs,.registration-koa,.contact-info-card,
+  .contact-message-form,.catalog-filters,.roster-filters,
+  .academy-groups-philosophy,.academy-philosophy-copy,
+  .catalog-empty,.catalog-facts
+) {
+  background:var(--lf-color-surface);
+  border-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] .website-page-header {
+  background:linear-gradient(125deg,var(--lf-color-surface),var(--lf-color-bg));
+  border-bottom-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] .website-page-header::before {
+  background:repeating-linear-gradient(121deg,transparent 0,transparent 145px,
+    color-mix(in srgb,var(--lf-color-accent) 6%,transparent) 147px,transparent 152px);
+}
+.public-site[data-global-design="true"] .website-page-header::after {
+  background:linear-gradient(90deg,transparent 0 35%,
+    color-mix(in srgb,var(--lf-color-accent) 16%,transparent) 35% 44%,
+    transparent 44% 61%,
+    color-mix(in srgb,var(--lf-color-accent) 9%,transparent) 61% 75%,transparent 75%);
+}
+.public-site[data-global-design="true"] .website-page-breadcrumbs a,
+.public-site[data-global-design="true"] .website-page-return a {
+  color:var(--lf-color-link);
+}
+.public-site[data-global-design="true"] .website-page-return a {
+  border-color:var(--lf-color-border);
+  background:color-mix(in srgb,var(--lf-color-accent) 8%,transparent);
+}
+.public-site[data-global-design="true"] .website-page-return a:hover {
+  background:var(--lf-color-accent);
+  color:var(--lf-color-bg);
+}
+.public-site[data-global-design="true"] .website-page-summary,
+.public-site[data-global-design="true"] .website-page-breadcrumbs,
+.public-site[data-global-design="true"] .website-page-breadcrumbs>span:last-child {
+  color:var(--lf-color-muted);
+}
+.public-site[data-global-design="true"] .website-page-header h1 {
+  color:var(--lf-color-text);
+  text-shadow:none;
+}
+.public-site[data-global-design="true"] .contact-send-button:not(:disabled),
+.public-site[data-global-design="true"] .registration-add-child {
+  border-color:var(--lf-color-accent);
+}
+.public-site[data-global-design="true"] :is(
+  .contact-other-links a,.contact-info-card a,
+  .registration-card a:not(.public-button),.shop-back
+) {
+  color:var(--lf-color-link);
+}
