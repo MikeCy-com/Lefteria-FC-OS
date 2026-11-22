@@ -351,7 +351,7 @@ public static class WebsitePageEndpoints
             string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
             string.IsNullOrWhiteSpace(content.Blocks[1].Text) ||
             content.Blocks[0].Text.Length > 180 || content.Blocks[1].Text.Length > 500 ||
-            content.Blocks[0].Text.Contains('\\r') || content.Blocks[0].Text.Contains('\\n'))
+            content.Blocks[0].Text.Contains('\r') || content.Blocks[0].Text.Contains('\n'))
             throw Invalid();
     }
     private static string Owner(string? org) =>
