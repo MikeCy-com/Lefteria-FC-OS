@@ -1,0 +1,87 @@
+name: Academy isolated staging HTTP preflight (read-only)
+
+# Manual only. The operator must first independently verify G0 preview
+# isolation in a reviewed ticket. This workflow cannot provide that proof.
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: "Exact current main SHA whose CI must pass"
+        type: string
+        required: true
+      origin:
+        description: "Approved HTTPS staging origin only, never the live domain"
+        type: string
+        required: true
+      g0_ticket:
+        description: "Reviewed GitHub issue documenting read-only Hostinger G0 isolation"
+        type: string
+        required: true
+      isolation_confirmed:
+        description: "Operator attests that G0 isolation was independently verified"
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  staging-http:
+    name: Read-only Academy staging HTTPS acceptance
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Refuse unapproved preview, stale source or absent G0 ticket
+        env:
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          ISOLATION_CONFIRMED: ${{ inputs.isolation_confirmed }}
+          G0_TICKET: ${{ inputs.g0_ticket }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$ISOLATION_CONFIRMED" == "true" ]] || {
+            echo "G0 isolation requires a separate operator confirmation"; exit 1;
+          }
+          [[ "$G0_TICKET" =~ ^https://github\.com/MikeCy-com/Lefteria-FC-OS/issues/[1-9][0-9]*$ ]] || {
+            echo "A reviewed G0 evidence issue link is required"; exit 1;
+          }
+          [[ "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          [[ "$(git rev-parse HEAD)" == "$CANDIDATE_SHA" ]] || {
+            echo "Stale candidate: refusing preview requests"; exit 1;
+          }
+      - name: Independently verify required exact main CI
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+        run: node ops/release/verify-exact-ci.mjs "--sha=$CANDIDATE_SHA" --require-passing
+      - name: GET-only HTTP preflight against explicitly approved origin
+        env:
+          PREVIEW_ORIGIN: ${{ inputs.origin }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No gate credentials, cookies, API tokens, POST/PUT or payment capture.
+          # Refuses production domains and redirects; evidence contains status only.
+          node ops/release/staging-mvp-preflight.mjs "--origin=$PREVIEW_ORIGIN" \
+            > "$RUNNER_TEMP/academy-staging-http-result.json"
+          cat "$RUNNER_TEMP/academy-staging-http-result.json"
+      - name: Preserve sanitized HTTP evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: academy-staging-http-evidence
+          path: ${{ runner.temp }}/academy-staging-http-result.json
+          if-no-files-found: warn
+          retention-days: 7
+
+# Not a deployer: no SSH, GitHub write token, hosting login, migrations,
+# production environment, payment provider or private participant data.
