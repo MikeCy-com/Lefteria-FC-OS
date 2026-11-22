@@ -171,8 +171,8 @@
   .public-team-selector a{display:inline-flex;min-height:44px;align-items:center;
     padding:9px 15px;border:1px solid #837448;border-radius:6px;
     color:#ffca46;background:#101112;font-size:14px;font-weight:700}
-  .public-team-selector a[aria-current="page"]{background:#ffbf32;color:#080808;border-color:#ffbf32}
-  .public-team-selector a:focus-visible{outline:2px solid #ffd068;outline-offset:3px}
+  .public-team-selector a[aria-current="page"]{background:var(--public-gold);color:var(--public-black);border-color:var(--public-gold)}
+  .public-team-selector a:focus-visible{outline:2px solid var(--public-gold);outline-offset:3px}
 
   /* First Team matches hub at the club's 1536×1024 reference hierarchy.
      Keep the eight existing team sections in an expandable utility nav. */
@@ -199,14 +199,14 @@
     color:#eee;text-decoration:none;font:800 14px 'Fira Sans Extra Condensed',sans-serif;
     cursor:pointer;
   }
-  .matches-reference-tabs :is(a,button) :global(svg){color:#eec052}
+  .matches-reference-tabs :is(a,button) :global(svg){color:var(--public-gold)}
   .matches-reference-tabs a[aria-current='page'],.matches-reference-tabs button[aria-pressed='true']{
-    background:linear-gradient(135deg,#ffd469,#e8a519);color:#060606;border-color:#e8ad23;
+    background:var(--public-gold);color:var(--public-black);border-color:var(--public-gold);
   }
   .matches-reference-tabs a[aria-current='page'] :global(svg),
-  .matches-reference-tabs button[aria-pressed='true'] :global(svg){color:#080808}
+  .matches-reference-tabs button[aria-pressed='true'] :global(svg){color:var(--public-black)}
   .matches-extra-navigation{padding:7px clamp(20px,2vw,33px);background:#0c0c0c;border-bottom:1px solid #4b3a21}
-  .matches-extra-navigation summary{font:800 12px 'Fira Sans Extra Condensed',sans-serif;color:#f6c261;cursor:pointer}
+  .matches-extra-navigation summary{font:800 12px 'Fira Sans Extra Condensed',sans-serif;color:var(--public-gold);cursor:pointer}
   .matches-extra-navigation .team-tabs{display:flex;margin-top:10px;flex-wrap:wrap;position:static}
   :global(.public-site[data-route="/team"]) .matches-reference-heading+.team-section{padding-top:23px}
    :global(.public-site[data-route="/team"] .team-section:has(.match-overview)){padding-top:20px}
