@@ -8,7 +8,7 @@
 <svelte:head><title>Σύνδεση | ΛΕΥΤΕΡΙΑ FC</title><meta name="robots" content="noindex" /></svelte:head>
 <PublicShell site={data.site} branding={data.branding} navigationGroups={data.navigationGroups} organization="lefteria_fc">
   <div class="club-access">
-    <section class="club-access-welcome" style:background-image={`linear-gradient(180deg,#080a0be8,#080a0b30 60%,#080a0b),url("${welcomeImage.replaceAll('"','%22')}")`}>
+    <section class="club-access-welcome" style:background-image={`linear-gradient(180deg,color-mix(in srgb,var(--lf-color-bg,#080a0b) 90.98%,transparent),color-mix(in srgb,var(--lf-color-bg,#080a0b) 18.824%,transparent) 60%,var(--lf-color-bg,#080a0b)),url("${welcomeImage.replaceAll('"','%22')}")`}>
       <p class="public-eyebrow">Η ΟΙΚΟΓΕΝΕΙΑ ΤΗΣ ΛΕΥΤΕΡΙΑΣ</p>
       <h1>ΚΑΛΩΣ ΗΡΘΑΤΕ ΣΤΗ<br /><em>ΛΕΥΤΕΡΙΑ FC</em></h1>
       <p>Η ψηφιακή κοινότητα της ομάδας μας. Παίκτες, γονείς και φίλαθλοι, πιο κοντά στη Λευτεριά.</p>
