@@ -33,6 +33,7 @@ public static class AcademyRegistrationEndpoints
             .Accepts<AcademyRegistrationRequest>("application/json")
             .Produces(202).Produces(400).Produces(403).Produces(413)
             .Produces(422).Produces(429).Produces(503);
+        app.MapAcademyPublicRegistrationDocuments();
         return app;
     }
 
