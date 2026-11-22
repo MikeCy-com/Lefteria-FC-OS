@@ -134,6 +134,54 @@ public sealed class PosVatProposalReviews : Migration
       END $vat_review$;
       REVOKE ALL ON FUNCTION pos_cashier.review_admin_variant_vat(
         text,text,uuid,boolean,text) FROM PUBLIC;
+
+      CREATE FUNCTION pos_cashier.read_admin_vat_reviews(_digest text,_owner text)
+      RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $vat_review_read$
+      DECLARE v_role text;
+      BEGIN
+        IF _digest IS NULL OR _digest !~ '^[0-9a-f]{64}
+    """);
+
+    protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
+      DO $guard$
+      BEGIN
+        IF EXISTS(SELECT 1 FROM pos_cashier.vat_classification_reviews)
+        THEN RAISE EXCEPTION 'pos_vat_reviews_require_forward_recovery'; END IF;
+      END $guard$;
+      DROP FUNCTION pos_cashier.read_admin_vat_reviews(text,text);
+      DROP FUNCTION pos_cashier.review_admin_variant_vat(
+        text,text,uuid,boolean,text);
+      DROP TABLE pos_cashier.vat_classification_reviews;
+    """);
+}
+
+          OR _owner NOT IN ('lefteria_fc','lefteria_fc_academy')
+        THEN RAISE EXCEPTION 'pos_vat_review_denied' USING ERRCODE='42501'; END IF;
+        SELECT a.role INTO v_role
+        FROM identity.admin_sessions s
+        JOIN identity.admin_accounts a ON a.id=s.admin_account_id
+        JOIN identity.admin_organization_grants g
+          ON g.admin_account_id=a.id AND g.organization_id=_owner
+        WHERE s.token_digest=_digest AND s.revoked_at IS NULL
+          AND s.expires_at>clock_timestamp()
+          AND a.is_active AND NOT a.invite_pending
+          AND NOT a.otp2fa_enabled AND a.password_hash IS NOT NULL;
+        IF NOT FOUND OR v_role NOT IN ('super_admin','manager','accountant')
+        THEN RAISE EXCEPTION 'pos_vat_review_denied' USING ERRCODE='42501'; END IF;
+        RETURN jsonb_build_object('organization_id',_owner,
+          'checkout_enabled',false,
+          'reviews',COALESCE((SELECT jsonb_agg(jsonb_build_object(
+            'proposal_id',r.proposal_id,'approved',r.approved,
+            'review_note',r.review_note,'reviewed_at',r.reviewed_at,
+            'treatment_revision',r.treatment_revision)
+          ORDER BY r.reviewed_at DESC,r.proposal_id)
+          FROM (SELECT * FROM pos_cashier.vat_classification_reviews
+                WHERE organization_id=_owner
+                ORDER BY reviewed_at DESC,proposal_id LIMIT 100) r),
+          '[]'::jsonb));
+      END $vat_review_read$;
+      REVOKE ALL ON FUNCTION pos_cashier.read_admin_vat_reviews(text,text) FROM PUBLIC;
     """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
