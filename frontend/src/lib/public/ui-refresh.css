@@ -268,7 +268,7 @@
   outline:3px solid var(--ui-accent);
   outline-offset:3px;
 }
-@media(max-width:767px) {
+@media (max-width: 767px) {
   .public-site[data-ui-refresh="2026"] .home-reference .public-destinations {
     gap:var(--ui-card-gap);
   }
@@ -279,12 +279,12 @@
     padding:var(--ui-card-gap);
   }
 }
-@media(prefers-reduced-motion:reduce) {
+@media (prefers-reduced-motion: reduce) {
   .public-site[data-ui-refresh="2026"] :is(.public-button,.public-rail nav a,.public-rail nav button) {
     transition:none;
   }
 }
-@media(prefers-contrast:more) {
+@media (prefers-contrast: more) {
   .public-site[data-ui-refresh="2026"] {
     --ui-hairline:var(--ui-border);
   }
