@@ -42,8 +42,10 @@
     </main>
     <PublicFooter {club} {organization} />
   </div>
+  <!-- Keep cookie controls inside this organization scope, so published
+       palette/typography reach the public consent dialog as well. -->
+  <CookieConsent />
 </div>
-<CookieConsent />
 
 <style>
   /* One native section destination per published Pages menu item. */
