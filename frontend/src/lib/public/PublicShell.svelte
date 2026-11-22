@@ -57,7 +57,8 @@
   /* One native section destination per published Pages menu item. */
   .public-embedded-page{scroll-margin-top:calc(var(--public-header,64px) + 18px)}
   .public-embedded-heading{margin:0 auto var(--lf-layout-page-gap,24px);max-width:var(--lf-embedded-page-max-width,1280px);padding-inline:var(--lf-embedded-page-side,0px);display:grid;gap:var(--lf-layout-card-gap,9px)}
-  .public-embedded-heading h2{display:flex;align-items:center;gap:12px;margin:0;font:800 clamp(25px,2.4vw,34px)/1.15 'Fira Sans Extra Condensed',sans-serif}
+  .public-embedded-heading h2{display:flex;align-items:center;gap:12px;margin:0;font-family:var(--lf-h2-family,'Fira Sans Extra Condensed',sans-serif);font-size:var(--lf-h2-desktop,clamp(25px,2.4vw,34px));font-weight:var(--lf-h2-weight,800);line-height:var(--lf-h2-line,1.15)}
   .public-embedded-heading h2::before{content:"";display:block;flex:0 0 5px;height:24px;background:var(--public-gold);transform:skew(-18deg)}
   .public-embedded-heading p{margin:0;max-width:72ch;color:var(--lf-color-muted,#c6c6c6)}
+@media(max-width:767px){.public-embedded-heading h2{font-size:var(--lf-h2-mobile,clamp(25px,2.4vw,34px))}}
 </style>
