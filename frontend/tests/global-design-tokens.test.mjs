@@ -19,7 +19,7 @@ const row=(organization_id='lefteria_fc')=>({
     blocks:[{type:'paragraph',text:JSON.stringify(DEFAULT_GLOBAL_DESIGN),url:null}]}
 });
 test('global theme requires all nine HTML text roles with exact safe values',()=>{
-  assert.equal(TEXT_ROLES.length,9);
+  assert.equal(TEXT_ROLES.length,12);
   assert.deepEqual(parseGlobalDesign(JSON.stringify(DEFAULT_GLOBAL_DESIGN)),DEFAULT_GLOBAL_DESIGN);
   const bad=structuredClone(DEFAULT_GLOBAL_DESIGN);
   bad.text.h1.desktop=10000;
@@ -55,6 +55,8 @@ test('token renderer emits only curated CSS vars and responsive heading selector
     assert.ok(styles.includes('--lf-'+role+'-mobile:'));
   }
   assert.match(styles,/--lf-color-accent:#f6bb38/);
+  for(const token of ['surface','muted','border','link'])assert.ok(styles.includes('--lf-color-'+token+':'));
+  for(const role of ['caption','label','card'])assert.match(css,new RegExp('--lf-'+role+'-mobile'));
   assert.match(shell,/publishedGlobalDesign\(page\.data\?\.websitePages\?\.\[organization\]/);
   assert.match(shell,/data-global-design=\{globalTheme/);
   for(const heading of ['h1','h2','h3','h4','h5','h6','p']) {
@@ -66,7 +68,7 @@ test('token renderer emits only curated CSS vars and responsive heading selector
 test('design settings use existing private draft approval with exact API validation',()=>{
   assert.match(api,/ValidateGlobalDesign\(body\.Slug, body\.Page\)/);
   assert.match(api,/ValidateGlobalDesign\(slug, body\.Page\)/);
-  assert.match(api,/styles\.EnumerateObject\(\)\.Count\(\) != 9/);
+  assert.match(api,/styles\.EnumerateObject\(\)\.Count\(\) != 12/);
   assert.match(api,/content\.MenuParent != "hidden"/);
   assert.match(admin,/data-testid="edit-global-design"/);
   assert.match(admin,/function openGlobalDesign/);
