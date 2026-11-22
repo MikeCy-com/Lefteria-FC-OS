@@ -74,6 +74,12 @@
 .public-site[data-global-design="true"] .public-section:not(.public-embedded-page) {
   padding-inline:var(--lf-layout-gutter,28px);
 }
+/* Embedded CMS sections delegate their horizontal space to the page editor.
+ * The original .public-section gutter plus the nested .website-blocks padding
+ * otherwise adds the same margin twice and defeats a page-only override. */
+.public-site[data-global-design="true"] .public-section.public-embedded-page {
+  padding-inline:0;
+}
 .public-site[data-global-design="true"] :is(
   .public-news-card,.catalog-card,.public-group-card,
   .person-card,.venue-card,.academy-review-card
