@@ -15,7 +15,7 @@
   import WebsiteNavigationEditor from '../../../lib/admin/WebsiteNavigationEditor.svelte';
   import {parseNavigationDesign} from '../../../lib/public/navigation-design.ts';
   import {DEFAULT_GLOBAL_DESIGN,parseGlobalDesign} from '../../../lib/public/global-design.ts';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, CANONICAL_NAVIGATION_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, CANONICAL_NAVIGATION_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, validHeadingLevel, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -300,7 +300,7 @@
   function addBlock(type: WebsiteBlock['type']) {
     if(!canWrite || saving || isLockedRegion || draft.blocks.length>=maxBlocks)return;
     mediaPickerIndex=null;
-    draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null}];
+    draft.blocks=[...draft.blocks,{type,text:type==='heading'?'Νέα ενότητα':'',url:type==='image'||type==='button'?'':null,...(type==='heading'?{level:2 as const}:{})}];
   }
   function removeBlock(index:number) {
     if(!canWrite || saving || isLockedRegion || draft.blocks.length<=1 || index<0 || index>=draft.blocks.length)return;
@@ -393,7 +393,7 @@
     if(isGlobalDesign && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
       draft.blocks[0].url!==null || !parseGlobalDesign(draft.blocks[0].text)))return false;
-    if(!validPageLayout(draft.layout)||draft.blocks.some(block=>!validBlockLayout(block.layout)))return false;
+    if(!validPageLayout(draft.layout)||draft.blocks.some(block=>!validBlockLayout(block.layout)||!validHeadingLevel(block)))return false;
     if(isNativeRegion && (!organization || !nativeEditorialOwnerAllowed(slug,organization) ||
       draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length<1 || draft.blocks.length>12))return false;
@@ -705,6 +705,15 @@
                             <input maxlength="5000" value={block.text} oninput={e=>draft.blocks[index].text=e.currentTarget.value} disabled={!canWrite || saving}/>
                           {/if}
                         </label>
+                        {#if block.type==='heading' && !isLockedRegion}
+                          <label>Σημασιολογικό επίπεδο τίτλου
+                            <select data-testid="cms-heading-level" value={block.level??2}
+                              disabled={!canWrite||saving}
+                              onchange={e=>draft.blocks[index].level=Number(e.currentTarget.value) as 2|3|4|5|6}>
+                              {#each [2,3,4,5,6] as level}<option value={level}>H{level}</option>{/each}
+                            </select>
+                          </label>
+                        {/if}
                         {#if block.type==='image' || block.type==='button'}
                           <label>{block.type==='image'?'Ασφαλές URL εικόνας':'Προορισμός κουμπιού'}
                             <input type="text" maxlength="2048" placeholder="https://… ή /…" value={block.url ?? ''}
