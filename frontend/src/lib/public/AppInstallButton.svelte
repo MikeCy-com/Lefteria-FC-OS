@@ -55,20 +55,20 @@
 </dialog>
 
 <style>
-  button.public-app-open { font: inherit; font-weight: 700; cursor: pointer; background: var(--public-gold, #f6bb38); color: #090909; border-color: var(--public-gold, #f6bb38); border-radius: 5px; }
+  button.public-app-open { font: inherit; font-weight: 700; cursor: pointer; background: var(--public-gold, var(--lf-color-accent,#f6bb38)); color: var(--lf-color-bg,#090909); border-color: var(--public-gold, var(--lf-color-accent,#f6bb38)); border-radius: 5px; }
   button.public-app-open:disabled { opacity: .65; cursor: wait; }
-  dialog { width: min(92vw, 540px); max-height: 85dvh; overflow: auto; padding: 24px; color: #f5f5f5; background: #101112; border: 1px solid var(--public-gold, #f6bb38); border-radius: 12px; box-shadow: 0 20px 80px #0009; }
-  dialog::backdrop { background: #000b; }
+  dialog { width: min(92vw, 540px); max-height: 85dvh; overflow: auto; padding: 24px; color: var(--lf-color-text,#f5f5f5); background: var(--lf-color-bg,#101112); border: 1px solid var(--public-gold, var(--lf-color-accent,#f6bb38)); border-radius: 12px; box-shadow: 0 20px 80px color-mix(in srgb,var(--lf-color-bg,#000000) 60%,transparent); }
+  dialog::backdrop { background: color-mix(in srgb,var(--lf-color-bg,#000000) 73.333%,transparent); }
   .install-heading { display: flex; align-items: flex-start; gap: 16px; }
-  .install-heading h2 { margin: 0; font-size: 24px; color: #ffca46; }
-  .install-heading button { margin-left: auto; min-width: 44px; min-height: 44px; background: #191b1c; border: 1px solid #777; border-radius: 6px; color: white; font-size: 28px; cursor: pointer; }
+  .install-heading h2 { margin: 0; font-size: 24px; color: var(--lf-color-accent,#ffca46); }
+  .install-heading button { margin-left: auto; min-width: 44px; min-height: 44px; background: var(--lf-color-surface,#191b1c); border: 1px solid var(--lf-color-muted,#777777); border-radius: 6px; color: white; font-size: 28px; cursor: pointer; }
   p, li { line-height: 1.6; }
   ol { padding-left: 24px; }
   li + li { margin-top: 10px; }
-  h3 { color: var(--public-gold, #f6bb38); }
-  hr { border: 0; border-top: 1px solid #555; margin: 20px 0; }
+  h3 { color: var(--public-gold, var(--lf-color-accent,#f6bb38)); }
+  hr { border: 0; border-top: 1px solid var(--lf-color-border,#555555); margin: 20px 0; }
   button.install-open { font: inherit; cursor: pointer; border: 0; }
-  .install-note { color: #bbb; font-size: 14px; }
-  .install-open { display: inline-block; padding: 12px 18px; color: #090909; background: var(--public-gold, #f6bb38); border-radius: 5px; font-weight: 700; text-decoration: none; }
-  button:focus-visible, a:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .install-note { color: var(--lf-color-muted,#bbbbbb); font-size: 14px; }
+  .install-open { display: inline-block; padding: 12px 18px; color: var(--lf-color-bg,#090909); background: var(--public-gold, var(--lf-color-accent,#f6bb38)); border-radius: 5px; font-weight: 700; text-decoration: none; }
+  button:focus-visible, a:focus-visible { outline: 3px solid var(--lf-color-text,#ffffff); outline-offset: 3px; }
 </style>
