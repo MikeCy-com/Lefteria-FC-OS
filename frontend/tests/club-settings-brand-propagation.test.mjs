@@ -47,6 +47,9 @@ test('mobile header consumes verified public-only club name and logo from role o
   assert.equal(publicLogoUrl('//evil.invalid/logo.svg'),null);
   assert.equal(publicLogoUrl('https://owner.invalid/logo.png'),'https://owner.invalid/logo.png');
   assert.equal(readPublicBrand({club:{organization_id:'lefteria_fc',name:'FC',logo_url:'/fc.png'}},'lefteria_fc_academy'),null);
+  assert.equal(readPublicBrand({organization_id:'lefteria_fc_academy',club:{organization_id:'lefteria_fc',name:'FC',logo_url:'/fc.png'}},'lefteria_fc'),null);
+  assert.equal(readPublicBrand({organization_id:'lefteria_fc',club:{organization_id:'lefteria_fc',name:'FC',logo_url:'/fc.png'}},'lefteria_fc')?.name,'FC');
+
   const brand=readPublicBrand({club:{organization_id:'lefteria_fc_academy',name:'Academy',logo_url:'/academy.png'}},'lefteria_fc_academy');
   assert.equal(brand?.name,'Academy');
   assert.equal(brand?.logoUrl,'/academy.png');
