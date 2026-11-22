@@ -132,8 +132,8 @@
             encodeURIComponent(group.id)+'?organization_id=lefteria_fc_academy',{
               credentials:'same-origin',cache:'no-store',signal:controller.signal
             });
-          if(response.status===401){auth.invalidateSession();return;}
-          if(response.status===403){void auth.bootstrap();return;}
+          if(response.status===401){controller.abort();auth.invalidateSession();return;}
+          if(response.status===403){controller.abort();void auth.bootstrap();return;}
           if(!response.ok)return;
           const raw:unknown=await response.json();
           if(!raw || typeof raw!=='object' || Array.isArray(raw))return;
@@ -142,7 +142,9 @@
             profile.group_id!==group.id ||
             !['age_range','coach_name','training_schedule'].every(key=>
               typeof profile[key]==='string' && (profile[key] as string).length<=500))return;
-          result[group.id]=profile as AcademyCardProfile;
+          result[group.id]={group_id:group.id,organization_id:'lefteria_fc_academy',
+            age_range:profile.age_range as string,coach_name:profile.coach_name as string,
+            training_schedule:profile.training_schedule as string};
         }catch{ /* Per-card metadata is optional; never block the canonical directory. */ }
       }));
       if(!controller.signal.aborted && organization===owner &&
