@@ -148,7 +148,8 @@
 }
 .public-site[data-global-design="true"] .website-page-content {
   max-width:var(--lf-page-content-max-width,var(--lf-layout-page-max-width,1280px));
-  padding-inline:var(--lf-page-content-side,var(--lf-layout-page-side-padding,16px));
+  /* The nested WYSIWYG grid already owns side padding. Avoid applying it twice. */
+  padding-inline:0;
 }
 .public-site[data-global-design="true"] .website-page-return {
   border-top-color:var(--lf-color-border);
