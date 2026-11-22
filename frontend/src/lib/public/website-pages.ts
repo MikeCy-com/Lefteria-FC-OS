@@ -165,14 +165,14 @@ export function websiteSectionPath(
   const academy=org==='lefteria_fc_academy';
   const scoped=(base:string)=>academy?base+'?organization_id=lefteria_fc_academy'+suffix:base+suffix;
   switch(parent) {
-    case 'root':return '/'+suffix;
+    case 'root':return academy?'/academy'+suffix:'/'+suffix;
     case 'club':return scoped('/about');
     case 'team':return '/team'+suffix;
     case 'academy':return '/academy'+suffix;
     case 'matches':return '/team?tab=results'+suffix;
     case 'news':return scoped('/news');
     case 'events':return '/events?scope='+(academy?'academy':'first_team')+suffix;
-    case 'shop':return '/shop'+suffix;
+    case 'shop':return academy?websitePagePath(slug,org):'/shop'+suffix;
     case 'contact':return scoped('/contact');
     default:return websitePagePath(slug,org);
   }
@@ -183,7 +183,7 @@ export function embeddedWebsiteSections(
 ):PublishedWebsitePage[] {
   const matches=(parent:WebsitePageContent['menu_parent'])=>{
     switch(parent) {
-      case 'root':return pathname==='/';
+      case 'root':return pathname===(org==='lefteria_fc_academy'?'/academy':'/');
       case 'club':return pathname==='/about';
       case 'team':return pathname==='/team';
       case 'academy':return pathname==='/academy';
@@ -199,6 +199,7 @@ export function embeddedWebsiteSections(
     !isHomepageEditorialSlug(p.slug)&&
     websiteMenuParentAllowed(org,p.page.menu_parent)&&
     matches(p.page.menu_parent)&&
+    !(org==='lefteria_fc_academy'&&p.page.menu_parent==='shop')&&
     (['root','club','news','contact'].includes(p.page.menu_parent)
       ? (searchParams.get('organization_id')??'lefteria_fc')===org
       : ['events'].includes(p.page.menu_parent)
