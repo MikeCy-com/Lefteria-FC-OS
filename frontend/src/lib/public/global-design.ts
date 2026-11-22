@@ -1,4 +1,4 @@
-import {isPublishedWebsitePage,type PublishedWebsitePage} from './website-pages.ts';
+import {isPublishedWebsitePage,type PublishedWebsitePage,type WebsitePageLayout} from './website-pages.ts';
 import type {PublicOrganization} from './types.ts';
 
 /** Published theme tokens are curated values, never arbitrary CSS or font URLs. */
@@ -6,15 +6,20 @@ export const GLOBAL_DESIGN_SLUG='canonical-global-design' as const;
 export const TEXT_ROLES=['h1','h2','h3','h4','h5','h6','p','button','nav','caption','label','card'] as const;
 export type TextRole=typeof TEXT_ROLES[number];
 export type TextStyle={family:'condensed'|'sans'|'serif';desktop:number;mobile:number;weight:400|500|600|700|800;line_height:number};
-export type GlobalDesignLayout={gutter:number;section_gap:number;card_gap:number;card_radius:number;button_radius:number;motto_height:number};
-export const DEFAULT_GLOBAL_LAYOUT:GlobalDesignLayout={gutter:28,section_gap:32,card_gap:16,card_radius:9,button_radius:5,motto_height:120};
+export type GlobalDesignLayout={gutter:number;section_gap:number;card_gap:number;card_radius:number;button_radius:number;motto_height:number;page_max_width:number;page_gap:number;page_side_padding:number;page_margin_top:number;page_margin_bottom:number};
+export const DEFAULT_GLOBAL_LAYOUT:GlobalDesignLayout={gutter:28,section_gap:32,card_gap:16,card_radius:9,button_radius:5,motto_height:120,page_max_width:1280,page_gap:24,page_side_padding:16,page_margin_top:0,page_margin_bottom:0};
 const layoutValues:Record<keyof GlobalDesignLayout,readonly number[]>={
   gutter:[12,16,20,24,28,32,40,48,56,64],
   section_gap:[12,16,20,24,32,40,48,64,80],
   card_gap:[8,12,16,20,24,32,40],
   card_radius:[0,4,6,9,12,16,20,24],
   button_radius:[0,4,5,8,12,16,24],
-  motto_height:[80,100,120,160,240,320,360]
+  motto_height:[80,100,120,160,240,320,360],
+  page_max_width:[960,1120,1280,1440],
+  page_gap:[8,16,24,32,48],
+  page_side_padding:[12,16,24,32,48],
+  page_margin_top:[0,8,12,16,24,32,48,64,80],
+  page_margin_bottom:[0,8,12,16,24,32,48,64,80]
 };
 export const GLOBAL_LAYOUT_CHOICES=layoutValues;
 export type GlobalDesign={text:Record<TextRole,TextStyle>;colors:{background:string;foreground:string;accent:string;surface:string;muted:string;border:string;link:string};layout?:GlobalDesignLayout};
@@ -56,7 +61,7 @@ export function parseGlobalDesign(text:string):GlobalDesign|null {
      colorContrast(theme.colors.background,theme.colors.link)<4.5 ||
      colorContrast(theme.colors.background,theme.colors.accent)<3)return null;
   if(theme.layout!==undefined){
-    if(!exact(theme.layout,Object.keys(layoutValues)))return null;
+    if(!exact(theme.layout,Object.keys(layoutValues))&&!exact(theme.layout,Object.keys(layoutValues).slice(0,6)))return null;
     for(const key of Object.keys(layoutValues) as (keyof GlobalDesignLayout)[])
       if(!layoutValues[key].includes(theme.layout[key]))return null;
   }
@@ -85,9 +90,20 @@ export function globalDesignCssVars(theme:GlobalDesign|null):string {
       '--lf-'+role+'-desktop:'+t.desktop+'px','--lf-'+role+'-mobile:'+t.mobile+'px',
       '--lf-'+role+'-weight:'+t.weight,'--lf-'+role+'-line:'+t.line_height];
   });
-  const layout=theme.layout??DEFAULT_GLOBAL_LAYOUT;
+  const layout={...DEFAULT_GLOBAL_LAYOUT,...theme.layout};
   return [...parts,...(Object.keys(layoutValues) as (keyof GlobalDesignLayout)[]).map(key=>'--lf-layout-'+key.replaceAll('_','-')+':'+layout[key]+'px'),'--lf-color-bg:'+theme.colors.background,
     '--lf-color-text:'+theme.colors.foreground,'--lf-color-accent:'+theme.colors.accent,
     '--lf-color-surface:'+theme.colors.surface,'--lf-color-muted:'+theme.colors.muted,
     '--lf-color-border:'+theme.colors.border,'--lf-color-link:'+theme.colors.link].join(';');
+}
+
+/** Page defaults are inherited from the published organization theme; explicit
+ * WYSIWYG page settings override each property independently. */
+export function globalPageDefaults(theme:GlobalDesign|null):WebsitePageLayout {
+  const values={...DEFAULT_GLOBAL_LAYOUT,...theme?.layout};
+  return {max_width:values.page_max_width as WebsitePageLayout['max_width'],
+    gap:values.page_gap as WebsitePageLayout['gap'],
+    side_padding:values.page_side_padding as WebsitePageLayout['side_padding'],
+    margin_top:values.page_margin_top as WebsitePageLayout['margin_top'],
+    margin_bottom:values.page_margin_bottom as WebsitePageLayout['margin_bottom']};
 }
