@@ -42,3 +42,30 @@ test('premium UI is presentation-only and does not make a competing global theme
     /\.website-block-wrap\b/,/\.website-blocks\b/
   ]) assert.doesNotMatch(skin,forbidden);
 });
+
+test('public cookie consent inherits the selected organization theme, not sibling defaults',()=>{
+  const shell=read('lib/public/PublicShell.svelte');
+  const css=read('lib/public/public.css');
+  const home=read('lib/public/home-reference.css');
+  assert.match(shell,/<CookieConsent \/>[\s\S]*<\/div>[\s\S]*<style>/);
+  assert.doesNotMatch(shell,/<\/div>\s*<CookieConsent \/>/);
+  assert.match(css,/\.cookie-consent-accept:hover\{background:var\(--lf-color-accent,#ff8c00\)/);
+  assert.doesNotMatch(home,/--lf-feedback-error,#b67910/);
+});
+test('shared public components cannot reintroduce a second fixed color palette',()=>{
+  const components=[
+    'AcademyDirectoryGroupCard','AppInstallButton','HomeAcademySpotlight',
+    'OrganizationSponsorStrip','PublicMatchScheduleTable','PublicCatalogDetail',
+    'PublicCatalogList','PublicPersonProfile','PublicShell','PublicTeamMatchOverview'
+  ];
+  for(const name of components){
+    const source=read('lib/public/'+name+'.svelte');
+    const pos=source.indexOf('<style');
+    assert.notEqual(pos,-1,name+' has no local styles');
+    const css=source.slice(pos).replace(
+      /var\(--(?:lf-(?:color-[\w-]+|feedback-[\w-]+)|public-gold)\s*,\s*#[\da-fA-F]{6}\)/g,
+      'SEMANTIC_COLOR');
+    assert.doesNotMatch(css,/#[\da-fA-F]{3,8}\b/,
+      name+' must not bypass the global editor with a literal component color');
+  }
+});
