@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 import {validHeadingLevel,isPublishedWebsitePage} from '../src/lib/public/website-pages.ts';
+import {duplicateWebsiteBlock} from '../src/lib/admin/website-block-editor.ts';
 
 const read=(path)=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const api=read('backend/src/LefteriaFc.Api/PublicContent/WebsitePageEndpoints.cs');
@@ -46,6 +47,16 @@ test('public rendering keeps semantic real headings; default remains H2',()=>{
   assert.ok(compile(publicBlocks,{filename:'WebsitePageBlocks.svelte',generate:'server'}).js.code.length>100);
 });
 
+test('duplicating styled sections preserves layout and semantic heading attributes',()=>{
+  const original={...heading(4),layout:{width:'half',min_height:240,margin_top:16,margin_bottom:32}};
+  const copies=duplicateWebsiteBlock([original],0);
+  assert.deepEqual(copies,[original,original]);
+  assert.notEqual(copies[1],original);
+  assert.notEqual(copies[1].layout,original.layout);
+  copies[1].layout.margin_top=48;
+  assert.equal(original.layout.margin_top,16);
+  assert.equal(copies[1].level,4);
+});
 test('editors choose valid semantic heading levels without changing fixed native slots',()=>{
   assert.match(admin,/data-testid="cms-heading-level"/);
   assert.match(admin,/function setHeadingLevel/);
