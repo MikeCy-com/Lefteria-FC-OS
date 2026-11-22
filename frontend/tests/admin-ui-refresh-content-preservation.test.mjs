@@ -35,5 +35,5 @@ test('admin role, session, menu, and photograph owners remain the original compo
   assert.match(login,/data-testid="admin-login-password"/);
   assert.match(login,/data-testid="admin-login-submit"/);
   assert.match(navigation,/hasAdminPermission\(user\.permissions/);
-  assert.match(navigation,/item\.status/);
+  assert.match(navigation,/status: 'live' \| 'planned'/);
 });
