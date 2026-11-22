@@ -257,6 +257,15 @@
           <h1>Η Αίτηση Υποβλήθηκε</h1>
           <p>Η αίτηση καταχωρίστηκε προς έλεγχο από την Ακαδημία. Δεν αποτελεί αυτόματη εγγραφή αθλητή ή πληρωμή.</p>
           <p>Κωδικός παραλαβής: <strong>{receipt}</strong></p>
+          {#if documentUploadStatus==='complete'}
+            <p class="registration-doc-success" data-testid="documents-uploaded">Τα αρχεία ταυτοποίησης καταχωρίστηκαν κρυπτογραφημένα σε καραντίνα ανά παιδί. Με την έγκριση θα μεταφερθούν στα προστατευμένα Έγγραφα του αντίστοιχου αθλητή.</p>
+          {:else if documentUploadStatus==='uploading'}
+            <p role="status">Αποθηκεύονται με ασφάλεια τα έγγραφα κάθε παιδιού…</p>
+          {:else if documentUploadStatus==='incomplete'}
+            <p role="alert" class="registration-doc-error">{documentUploadError}</p>
+            <button type="button" onclick={()=>void uploadDocuments()} disabled={pending||!uploadTokens.length}
+              class="registration-add-child" data-testid="retry-child-uploads">Επανάληψη μεταφόρτωσης εγγράφων</button>
+          {/if}
           <a class="public-button" href="/academy">Πίσω στην Ακαδημία <Icon name="arrow" size={17}/></a>
         </div>
       {:else}
@@ -305,6 +314,29 @@
                       <p class="registration-note">Εφόσον η αίτηση εγκριθεί και το παιδί ενταχθεί σε ομάδα, θα ακολουθήσουν οδηγίες για το Δελτίο Υγείας ΚΟΑ μέσω του εγκεκριμένου καναλιού επικοινωνίας.</p>
                     {/if}
                   </fieldset>
+                  <section class="registration-full registration-child-documents" data-testid="child-document-picker">
+                    <h3>Έγγραφο ταυτοποίησης · {form.player_first_name||'Παιδί 1'} <span>*</span></h3>
+                    <p>Για την καταχώριση του παιδιού στον ΚΟΑ. Επιλέξτε είτε πιστοποιητικό γέννησης είτε σαρωμένες εικόνες και των δύο όψεων της ταυτότητας. Τα αρχεία αποθηκεύονται κρυπτογραφημένα και συνδέονται μόνο με τον φάκελο αυτού του παιδιού μετά την έγκριση.</p>
+                    <label><input type="radio" value="birth" name="child-document-first" bind:group={childDocuments[0].kind} disabled={pending}/> Πιστοποιητικό γέννησης</label>
+                    <label><input type="radio" value="identity" name="child-document-first" bind:group={childDocuments[0].kind} disabled={pending}/> Ταυτότητα, εμπρός και πίσω</label>
+                    {#if childDocuments[0].kind==='birth'}
+                      <label class="registration-document-file">Πιστοποιητικό γέννησης (PDF ή φωτογραφία έως 10 MB)
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                          onchange={event=>childDocuments[0].birth=event.currentTarget.files?.[0]??null}/>
+                      </label>
+                    {:else if childDocuments[0].kind==='identity'}
+                      <label class="registration-document-file">Ταυτότητα · Εμπρόσθια όψη
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                          onchange={event=>childDocuments[0].front=event.currentTarget.files?.[0]??null}/>
+                      </label>
+                      <label class="registration-document-file">Ταυτότητα · Οπίσθια όψη
+                        <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                          onchange={event=>childDocuments[0].back=event.currentTarget.files?.[0]??null}/>
+                      </label>
+                      <label>Ημερομηνία λήξης ταυτότητας <input type="date" bind:value={childDocuments[0].expiry} disabled={pending} required/></label>
+                    {/if}
+                    {#if errors.documents_0}<small role="alert">{errors.documents_0}</small>{/if}
+                  </section>
                   <p class="registration-full registration-note">Η επίσημη στολή κοστίζει €140 και η εκτύπωση ονόματος και αριθμού είναι <strong>υποχρεωτική (€10)</strong>. Ο αριθμός αποτελεί προτίμηση, όχι κράτηση. Εάν χρησιμοποιείται ήδη, ο υπεύθυνος τοποθεσίας θα επικοινωνήσει μαζί σας για τυχόν αλλαγή.</p>
                 </fieldset>
                 {#each additionalPlayers as child,i (i)}
@@ -334,6 +366,29 @@
                           <p class="registration-note">Οι οδηγίες για το Δελτίο Υγείας ΚΟΑ αποστέλλονται μετά την έγκριση της αίτησης και την ένταξη του παιδιού σε ομάδα μέσω εγκεκριμένου καναλιού επικοινωνίας.</p>
                         {/if}
                       </fieldset>
+                      <section class="registration-full registration-child-documents" data-testid="child-document-picker">
+                        <h3>Έγγραφο ταυτοποίησης · {child.player_first_name||'Παιδί '+(i+2)} <span>*</span></h3>
+                        <p>Για την εγγραφή στον ΚΟΑ. Οι ταυτότητες χρειάζονται και τις δύο όψεις. Τα αρχεία αυτού του παιδιού δεν συνδέονται με τα αδέλφια του.</p>
+                        <label><input type="radio" value="birth" name={'child-document-'+i} bind:group={childDocuments[i+1].kind} disabled={pending}/> Πιστοποιητικό γέννησης</label>
+                        <label><input type="radio" value="identity" name={'child-document-'+i} bind:group={childDocuments[i+1].kind} disabled={pending}/> Ταυτότητα, εμπρός και πίσω</label>
+                        {#if childDocuments[i+1].kind==='birth'}
+                          <label class="registration-document-file">Πιστοποιητικό γέννησης (PDF ή φωτογραφία έως 10 MB)
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                              onchange={event=>childDocuments[i+1].birth=event.currentTarget.files?.[0]??null}/>
+                          </label>
+                        {:else if childDocuments[i+1].kind==='identity'}
+                          <label class="registration-document-file">Ταυτότητα · Εμπρόσθια όψη
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                              onchange={event=>childDocuments[i+1].front=event.currentTarget.files?.[0]??null}/>
+                          </label>
+                          <label class="registration-document-file">Ταυτότητα · Οπίσθια όψη
+                            <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" required disabled={pending}
+                              onchange={event=>childDocuments[i+1].back=event.currentTarget.files?.[0]??null}/>
+                          </label>
+                          <label>Ημερομηνία λήξης ταυτότητας <input type="date" bind:value={childDocuments[i+1].expiry} disabled={pending} required/></label>
+                        {/if}
+                        {#if errors['documents_'+(i+1)]}<small role="alert">{errors['documents_'+(i+1)]}</small>{/if}
+                      </section>
                       <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
                     </fieldset>
                   </section>
@@ -486,6 +541,17 @@
   .registration-step-icon{cursor:pointer;color:inherit}
   .registration-step-icon:disabled{cursor:default}
   .registration-steps .completed .registration-step-icon{border-color:#f6bb38;color:#f6bb38}
+  .registration-child-documents{display:flex;flex-direction:column;align-items:flex-start;
+    gap:12px;padding:clamp(15px,2vw,22px);margin:16px 0;border:1px solid #695127;
+    border-radius:10px;background:linear-gradient(135deg,#211a0c,#101010)}
+  .registration-child-documents h3{margin:0;font-size:20px;color:#f6bb38}
+  .registration-child-documents>p{margin:0;color:#d5d5d5;font-size:13px;line-height:1.65}
+  .registration-child-documents>label{display:flex;align-items:center;gap:10px;min-height:44px}
+  .registration-child-documents .registration-document-file{width:100%;align-items:stretch;flex-direction:column}
+  .registration-child-documents input[type=file]{width:100%;min-height:48px;padding:11px;
+    border:1px solid #6e6250;border-radius:7px;background:#0d0d0d;color:white}
+  .registration-doc-error{color:#ffb7b7}
+  .registration-doc-success{color:#b9ebc8}
   .registration-child{margin:22px 0;border:1px solid #49402a;border-radius:12px;padding:clamp(16px,3vw,26px);background:linear-gradient(145deg,#171510,#0e0e0e)}
   .registration-child-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
   .registration-child-head h3{margin:0}
