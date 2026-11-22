@@ -27,6 +27,7 @@ public static class AcademyPublicRegistrationDocumentEndpoints
         app.MapPost("/api/public/academy/registration/{registrationId}/documents",
             UploadAsync).WithTags("Academy registration private documents")
             .WithName("UploadPublicAcademyRegistrationDocument")
+            .ExcludeFromDescription()
             .Produces(202).Produces(400).Produces(403).Produces(409)
             .Produces(413).Produces(415).Produces(422).Produces(429)
             .Produces(503);
