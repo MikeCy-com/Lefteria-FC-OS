@@ -36,7 +36,10 @@ export function parseGlobalDesign(text:string):GlobalDesign|null {
   const theme=value as GlobalDesign;
   if(!exact(theme.text,TEXT_ROLES)||!exact(theme.colors,['background','foreground','accent','surface','muted','border','link'])||
     !hex(theme.colors.background)||!hex(theme.colors.foreground)||!hex(theme.colors.accent)||!hex(theme.colors.surface)||!hex(theme.colors.muted)||!hex(theme.colors.border)||!hex(theme.colors.link))return null;
-  if(colorContrast(theme.colors.background,theme.colors.foreground)<4.5 ||
+  if(colorContrast(theme.colors.surface,theme.colors.foreground)<4.5 ||
+     colorContrast(theme.colors.surface,theme.colors.muted)<4.5 ||
+     colorContrast(theme.colors.surface,theme.colors.link)<4.5 ||
+     colorContrast(theme.colors.background,theme.colors.foreground)<4.5 ||
      colorContrast(theme.colors.background,theme.colors.muted)<4.5 ||
      colorContrast(theme.colors.background,theme.colors.link)<4.5 ||
      colorContrast(theme.colors.background,theme.colors.accent)<3)return null;
