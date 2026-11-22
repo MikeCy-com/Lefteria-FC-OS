@@ -24,7 +24,9 @@ BEGIN
   THEN RAISE EXCEPTION 'pos_vat_admin_role_unsafe'; END IF;
   FOREACH f IN ARRAY ARRAY[
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
-    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid
+    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang
       WHERE p.oid=f AND p.prosecdef AND l.lanname='plpgsql' AND
@@ -41,6 +43,10 @@ GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_vat_proposals(text,text)
   TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION pos_cashier.propose_admin_variant_vat(
   text,text,uuid,text,text,text,date,text,text) TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos_cashier.read_admin_vat_reviews(text,text)
+  TO :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION pos_cashier.review_admin_variant_vat(
+  text,text,uuid,boolean,text) TO :"admin_auth_role";
 DO $verify$
 DECLARE a text:=current_setting('lefteria.vat_admin_role');
   m text:=current_setting('lefteria.vat_mobile_role');
@@ -48,7 +54,9 @@ DECLARE a text:=current_setting('lefteria.vat_admin_role');
 BEGIN
   FOREACH f IN ARRAY ARRAY[
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
-    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid
+    'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(a,f,'EXECUTE') OR
       has_function_privilege(m,f,'EXECUTE')
