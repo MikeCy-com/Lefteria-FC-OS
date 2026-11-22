@@ -14,7 +14,7 @@
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
   type Directory = {organization_id: Organization; ready: true; unassigned_players: number; groups: Audience[]};
   type CreationLocation = {id:string;city_id:string;label:string};
-  type CreationCity = {id:string;name:string};
+  type CreationCity = {id:string;name:string;canCreateLocation:boolean};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
   const assignments = $derived(
@@ -68,6 +68,8 @@
   let locationSaving=$state(false);
   let locationCreateError=$state('');
   const cityLocations=$derived(creationLocations.filter(site=>site.city_id===creationCityId));
+  const mayCreateLocation=$derived(creationCities.some(city=>
+    city.id===creationCityId && city.canCreateLocation));
   let creationLocationId=$state('');
   let creationLocationsLoading=$state(false);
   let creationLocationsError=$state('');
@@ -132,9 +134,13 @@
           .filter(s=>s.organization_id==='lefteria_fc_academy' &&
             typeof s.academy_city_id==='string')
           .map(s=>s.academy_city_id as string));
+        const writableCities=new Set((data.scopes as Record<string,unknown>[])
+          .filter(scope=>scope.organization_id==='lefteria_fc_academy' &&
+            scope.can_write_catalog===true && typeof scope.academy_city_id==='string')
+          .map(scope=>scope.academy_city_id as string));
         const authorizedCities:CreationCity[]=[...cities]
           .filter(([id])=>scopedCities.has(id))
-          .map(([id,name])=>({id,name}));
+          .map(([id,name])=>({id,name,canCreateLocation:writableCities.has(id)}));
         const options:CreationLocation[]=[];
         for(const row of data.locations as Record<string,unknown>[]){
           if(typeof row.id!=='string' || !/^[0-9a-f-]{36}$/i.test(row.id) ||
@@ -168,12 +174,13 @@
 
   async function createInlineLocation() {
     if(!browser || !canCreate || organization!=='lefteria_fc_academy' ||
-      !creationCities.some(city=>city.id===creationCityId) ||
+      !mayCreateLocation ||
       locationSaving || saving || creationLocationsLoading)return;
     const name=locationName.trim(), slug=locationSlug.trim().toLowerCase();
     if(!name || name.length>120 || /[\x00-\x1f\x7f]/.test(name) ||
       !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length>120 ||
-      locationAddress.length>500 || locationMapsUrl.length>2048 ||
+      locationAddress.length>300 || /[\x00-\x1f\x7f]/.test(locationAddress) ||
+      locationMapsUrl.length>2048 ||
       (locationMapsUrl && !/^https:\/\/(?:www\.)?(?:google\.[a-z.]+\/maps|maps\.app\.goo\.gl\/)/i.test(locationMapsUrl))){
       locationCreateError='Συμπληρώστε έγκυρο όνομα, slug και προαιρετικό Google Maps HTTPS URL.';
       return;
@@ -540,11 +547,14 @@
                       </label>
                       <button type="button" class="admin-secondary admin-location-toggle"
                         data-testid="admin-group-add-location"
-                        disabled={saving || locationSaving || !creationCityId}
+                        disabled={saving || locationSaving || !mayCreateLocation}
                         onclick={() => {showInlineLocation=!showInlineLocation;locationCreateError='';}}>
                         {showInlineLocation?'Κλείσιμο δημιουργίας':'+ Νέα τοποθεσία'}
                       </button>
-                      {#if showInlineLocation}
+                      {#if creationCityId && !mayCreateLocation}
+                        <p class="admin-muted admin-location-note">Μπορείτε να επιλέξετε εξουσιοδοτημένη τοποθεσία, αλλά δεν έχετε δικαίωμα δημιουργίας νέας σε αυτή την πόλη.</p>
+                      {/if}
+                      {#if showInlineLocation && mayCreateLocation}
                         <div class="admin-inline-location" data-testid="admin-group-inline-location">
                           <h3>Νέα τοποθεσία στην επιλεγμένη πόλη</h3>
                           <p class="admin-muted">Η ομάδα δεν θα αποθηκευτεί μέχρι να επιλέξετε επαληθευμένη τοποθεσία.</p>
@@ -556,7 +566,7 @@
                               disabled={locationSaving || saving}/>
                           </label>
                           <label>Διεύθυνση
-                            <input bind:value={locationAddress} maxlength="500" disabled={locationSaving || saving}/>
+                            <input bind:value={locationAddress} maxlength="300" disabled={locationSaving || saving}/>
                           </label>
                           <label>Google Maps URL (HTTPS)
                             <input type="url" bind:value={locationMapsUrl} maxlength="2048"
@@ -742,6 +752,7 @@
   .admin-academy-placement label,.admin-inline-location label{display:grid;gap:6px;font-size:12px;color:#cfd0cc}
   .admin-academy-placement select,.admin-inline-location input{width:100%;min-width:0}
   .admin-location-toggle{grid-column:1/-1;justify-self:start}
+  .admin-location-note{grid-column:1/-1;margin:0}
   .admin-inline-location{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
     gap:10px;padding:15px;border:1px solid #62502a;border-radius:8px;background:#111313}
   .admin-inline-location h3,.admin-inline-location p,.admin-inline-location button{grid-column:1/-1;margin:0}
