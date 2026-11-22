@@ -15,6 +15,9 @@ test('reference admin pages compile and preserve the real group and roster surfa
     assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>100);
   assert.match(groups,/data-testid="admin-audiences-groups"/);
   assert.match(groups,/data-testid="admin-group-search"/);
+  assert.match(groups,/data-testid="admin-academy-card-profile"/);
+  assert.match(groups,/academy-group-profiles\//);
+  assert.match(groups,/profile\.group_id!==group\.id/);
   assert.match(groups,/data-testid="admin-directory-players"/);
   assert.match(groups,/AdminRosterPlayersPanel owner=\{directory\.organization_id\}/);
   assert.match(groups,/data-testid="admin-group-workspace"/);
