@@ -17,13 +17,13 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   assert.match(read('lib/public/fonts.ts'),/@fontsource\/manrope[\s\S]*@fontsource\/bebas-neue[\s\S]*@fontsource\/fira-sans-extra-condensed/);
   // Keep the original font/layout styles in their canonical order; the new
   // visual-only skin is an opt-in extension, never a replacement.
-  const publicStyles=[...shell.matchAll(/import '\\.\\/([^']+\\.css)'/g)].map(match=>match[1]);
+  const publicStyles=[...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]);
   assert.deepEqual(publicStyles, ['public.css','club-polish.css','global-design.css','ui-refresh.css']);
   assert.match(shell,/data-ui-refresh="2026"/);
   const refresh=read('lib/public/ui-refresh.css');
-  assert.match(refresh,/\\.public-site\\[data-ui-refresh="2026"\\]/);
-  assert.doesNotMatch(refresh, /(?:background-image|object-fit|object-position|font-family|font-size)\\s*:/);
-  assert.doesNotMatch(refresh, /url\\s*\\(/);
+  assert.match(refresh,/\.public-site\[data-ui-refresh="2026"\]/);
+  assert.doesNotMatch(refresh, /(?:background-image|object-fit|object-position|font-family|font-size)\s*:/);
+  assert.doesNotMatch(refresh, /url\s*\(/);
   assert.match(shell,/data-global-design=\{globalTheme \? "true" : undefined\}/);
   assert.match(shell,/publishedGlobalDesign\(page\.data\?\.websitePages/);
   assert.match(read('lib/public/global-design.css'),/\.public-site\[data-global-design="true"\]/);
