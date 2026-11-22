@@ -62,7 +62,7 @@ async function verifyAppInstall(browser, base, artifacts) {
       padding:document.body.style.getPropertyValue('padding-right')
     }));
     await install.click();
-    const dialog = page.getByRole('dialog', { name:'Η επίσημη εφαρμογή Λευτεριά FC' });
+    const dialog = page.getByRole('dialog', { name:'Η επίσημη εφαρμογή Λευτεριά FC OS' });
     await dialog.waitFor({state:'visible'});
     assert.equal(await dialog.getByRole('link', { name:'Συνέχεια στην εφαρμογή →' }).getAttribute('href'), '/app');
     assert.equal(await page.evaluate(() => document.body.style.overflow), 'hidden');
@@ -116,6 +116,9 @@ async function verifyAppInstall(browser, base, artifacts) {
     assert.match(manifestResponse.headers()['content-type'] ?? '', /application\/(?:manifest\+json|json)/);
     const manifest = await manifestResponse.json();
     assert.equal(manifest.start_url, '/app'); assert.equal(manifest.scope, '/');
+    assert.equal(manifest.id,'/lefteria-fc-os');
+    assert.ok(manifest.icons.some(icon => icon.sizes==='192x192' && icon.src==='/os/icon-192.png'));
+    assert.ok(manifest.icons.some(icon => icon.sizes==='512x512' && icon.src==='/os/icon-512.png'));
     const worker = await context.request.get(base + '/app-service-worker.js');
     assert.equal(worker.status(), 200);
     assert.match(worker.headers()['content-type'] ?? '', /(?:text|application)\/javascript/);
@@ -144,7 +147,7 @@ async function verifyAppInstall(browser, base, artifacts) {
     await page.getByTestId('consent-decline').click();
     await page.getByTestId('cookie-consent').waitFor({state:'hidden'});
     await page.getByTestId('official-app-install').click();
-    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
+    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC OS'});
     await dialog.waitFor({state:'visible'});
     assert.match(await dialog.innerText(), /Safari/);
     assert.match(await dialog.innerText(), /Προσθήκη στην οθόνη Αφετηρίας/);
@@ -174,19 +177,12 @@ async function verifyAppInstall(browser, base, artifacts) {
       window.dispatchEvent(event);
     });
     await page.getByTestId('official-app-install').click();
-    const dialog = page.getByRole('dialog', {name:'Η επίσημη εφαρμογή Λευτεριά FC'});
-    await dialog.waitFor({state:'visible'});
-    const apk = page.getByTestId('official-android-apk');
-    assert.equal(await apk.getAttribute('href'), 'https://lefteriafc.cy/api/app/android');
-    assert.match(await apk.innerText(), /lefteriafc.cy/);
-    assert.equal(await page.evaluate(() => window.installPromptCalls), 0);
-    assert.equal(officialRequests, 0);
-    await page.screenshot({path:path.join(artifacts,'app-install-android-choices.png'),fullPage:true});
-    await page.getByTestId('current-site-install').click();
-    await dialog.waitFor({state:'hidden'});
+    await page.waitForFunction(() => !document.querySelector('[data-testid="official-app-install"]').disabled);
     assert.equal(await page.evaluate(() => window.installPromptCalls), 1);
+    assert.equal(await page.getByTestId('official-android-apk').count(), 0);
     assert.equal(officialRequests, 0);
-    checks.push('Android official APK choice and separate current-site native install without production requests');
+    await page.screenshot({path:path.join(artifacts,'app-install-android-os.png'),fullPage:true});
+    checks.push('Android prompts native installation of current OS app without legacy APK or production requests');
   } finally { await android.close(); }
 
   return checks;

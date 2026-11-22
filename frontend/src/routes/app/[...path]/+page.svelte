@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
+  import AppInstallButton from '../../../lib/public/AppInstallButton.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
@@ -338,6 +339,12 @@
             title="Οδηγός χρήσης εφαρμογής"
             onNavigate={async href=>{await goto(href);}}/>
         {/key}
+        <section class="content-card os-install-card" aria-labelledby="os-install-title"
+          data-testid="mobile-more-os-install">
+          <h2 id="os-install-title">Η επίσημη εφαρμογή Lefteria FC OS</h2>
+          <p>Εγκατέστησε το OS στη συσκευή σου για πρόσβαση από την αρχική οθόνη.</p>
+          <AppInstallButton />
+        </section>
         <section class="content-card" aria-labelledby="more-title"><h1 id="more-title">{TAB_NAMES.more}</h1>
           <div class="more-links">
             {#each allowedTabs(role).filter((tab) => !['home', 'more', 'profile'].includes(tab)) as tab (tab)}
@@ -380,6 +387,10 @@
   .secondary { background:#151718; color:#ffca46; }
   button:disabled { opacity:.55; cursor:wait; }
   button:focus-visible { outline:2px solid #ffca46; outline-offset:3px; }
+  .os-install-card{display:grid;gap:9px}
+  .os-install-card h2{margin:0;font-size:20px}
+  .os-install-card p{margin:0;font-size:13px}
+  .os-install-card :global(.public-app-open){justify-self:start;min-height:44px;padding:10px 14px}
   .more-links { display:grid; gap:9px; }
   .more-links button { text-align:left; }
   .app-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
