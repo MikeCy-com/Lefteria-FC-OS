@@ -3064,6 +3064,7 @@ export interface components {
             has_allergies?: boolean;
             has_conditions?: boolean;
             has_medication?: boolean;
+            koa_health_card_status?: string;
             medication_details?: string;
             player_address?: string;
             player_city?: string;
@@ -3088,12 +3089,14 @@ export interface components {
             consent_media?: string;
             consent_medical_auth?: boolean;
             consent_participation?: boolean;
+            consent_viber?: boolean;
             emergency_name?: string;
             emergency_phone?: string;
             emergency_relationship?: string;
             has_allergies?: boolean;
             has_conditions?: boolean;
             has_medication?: boolean;
+            koa_health_card_status?: string;
             medication_details?: string;
             parent_email?: string;
             parent_name?: string;
