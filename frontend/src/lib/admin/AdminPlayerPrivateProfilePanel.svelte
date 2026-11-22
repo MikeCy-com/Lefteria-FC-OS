@@ -60,7 +60,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';notice='';photoLoaded=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -81,8 +81,7 @@
   async function save(){
     if(!profile||!allowWrite||saving||uploading||loading)return;
     const bio=biography.trim(),position=preferredPosition.trim();
-    const number=preferredNumber.trim()?;
-      Number(preferredNumber):null;
+    const number=preferredNumber.trim()?Number(preferredNumber):null;
     if(bio.length>1000||position.length>80||bio.includes('\r')||
       (number!==null&&(!Number.isInteger(number)||number<1||number>99))){
       error='Ελέγξτε το κείμενο, τη θέση και τον αριθμό 1–99.';return;
