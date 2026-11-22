@@ -20,7 +20,12 @@ test('original public page-local accents inherit the global published palette',(
     const source=read('frontend/src/routes/'+route);
     const styles=source.slice(source.indexOf('<style'));
     assert.match(styles,/var\(--public-gold\)/,route);
-    assert.doesNotMatch(styles,/#f6bb38\b/i,'Hardcoded original gold overrides CMS accent: '+route);
+    // Original gold may exist only as a CSS variable FALLBACK for systems
+    // without a published theme. Never as a direct declaration.
+    assert.doesNotMatch(styles,/(?:color|background(?:-color)?|border(?:-[\w-]+)?|outline(?:-[\w-]+)?)\s*:\s*#f6bb38\b/i,
+      'Hardcoded accent declaration overrides CMS palette: '+route);
+    if(styles.includes('#f6bb38'))assert.match(styles,/var\(--lf-color-accent,#f6bb38\)/,
+      'Unscoped gold fallback must be owned by the semantic accent token: '+route);
   }
 });
 
