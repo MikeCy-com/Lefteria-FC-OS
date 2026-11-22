@@ -9840,6 +9840,25 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "margin_bottom": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "margin_top": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ]
@@ -9848,6 +9867,7 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
               "integer",
               "string"
             ]
@@ -9856,16 +9876,12 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
               "integer",
               "string"
             ]
           }
         },
-        "required": [
-          "max_width",
-          "gap",
-          "side_padding"
-        ],
         "type": "object"
       },
       "WebsitePagePublication": {
