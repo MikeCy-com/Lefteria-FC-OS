@@ -51,5 +51,5 @@
   .public-embedded-heading{margin:0 auto 24px;max-width:1280px;display:grid;gap:9px}
   .public-embedded-heading h2{display:flex;align-items:center;gap:12px;margin:0;font:800 clamp(25px,2.4vw,34px)/1.15 'Fira Sans Extra Condensed',sans-serif}
   .public-embedded-heading h2::before{content:"";display:block;flex:0 0 5px;height:24px;background:var(--public-gold);transform:skew(-18deg)}
-  .public-embedded-heading p{margin:0;max-width:72ch;color:#c6c6c6}
+  .public-embedded-heading p{margin:0;max-width:72ch;color:var(--lf-color-muted,#c6c6c6)}
 </style>
