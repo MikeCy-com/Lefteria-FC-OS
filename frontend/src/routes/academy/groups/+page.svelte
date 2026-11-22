@@ -132,7 +132,7 @@
 
 <style>
   .academy-city-index{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 32px}
-  .academy-city-index a{display:inline-flex;align-items:center;min-height:44px;padding:10px 17px;border:1px solid #9d782f;color:#f2d18e;text-decoration:none;font-weight:700;background:#151310}
+  .academy-city-index a{display:inline-flex;align-items:center;min-height:44px;padding:10px 17px;border:1px solid var(--public-gold);color:#f2d18e;text-decoration:none;font-weight:700;background:#151310}
   .academy-city-index a:hover,.academy-city-index a:focus-visible{border-color:var(--public-gold);color:#fff;outline-offset:3px}
   .academy-city-section{margin:28px 0 44px;scroll-margin-top:95px}
   .academy-location-section{margin:19px 0 32px;scroll-margin-top:95px}
@@ -165,7 +165,7 @@
   .academy-player-preview span{font-size:11px;color:var(--public-gold)}
   .academy-player-preview strong{font-size:14px;color:#fff}
   .academy-player-preview:hover,.academy-player-preview:focus-visible{border-color:var(--public-gold)}
-  .academy-more-group{display:inline-block;margin-top:15px;color:#e9be52;font-size:13px;font-weight:800}
+  .academy-more-group{display:inline-block;margin-top:15px;color:var(--public-gold);font-size:13px;font-weight:800}
   .academy-groups-registration{text-align:center;background:#101010;border-top:1px solid #4d3c1e}
   .academy-groups-registration p:not(.public-eyebrow){color:#d1d1d1;line-height:1.6;margin:0 auto 22px;max-width:60ch}
   .academy-groups-registration .public-button{display:inline-flex;min-height:48px;align-items:center}
