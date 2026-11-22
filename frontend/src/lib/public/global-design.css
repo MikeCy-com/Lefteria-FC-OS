@@ -37,3 +37,10 @@
 .public-site[data-global-design="true"] .public-main label{font-size:var(--lf-label-mobile)!important}
 .public-site[data-global-design="true"] .public-main .public-card-title{font-size:var(--lf-card-mobile)!important}
 }
+
+/* Published surface palette controls reusable public cards and section chrome. */
+.public-site[data-global-design="true"] .catalog-card,
+.public-site[data-global-design="true"] .news-card,
+.public-site[data-global-design="true"] .website-block-wrap{background:var(--lf-color-surface);border-color:var(--lf-color-border)}
+.public-site[data-global-design="true"] .section-dark{background:var(--lf-color-bg)}
+.public-site[data-global-design="true"] .section-heading>a{color:var(--lf-color-link)!important}
