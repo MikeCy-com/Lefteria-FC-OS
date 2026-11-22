@@ -179,7 +179,7 @@ export function websiteSectionPath(
 }
 export function embeddedWebsiteSections(
   pages:readonly PublishedWebsitePage[],org:PublicOrganization,
-  pathname:string,searchParams:URLSearchParams
+  pathname:string,searchParams:Pick<URLSearchParams,'get'>
 ):PublishedWebsitePage[] {
   const matches=(parent:WebsitePageContent['menu_parent'])=>{
     switch(parent) {
