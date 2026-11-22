@@ -194,7 +194,9 @@
       form.signature_data='';
     }
     const ctx=el.getContext('2d');if(!ctx)return;
-    ctx.strokeStyle='#f6bb38';ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap='round';ctx.lineJoin='round';
+    const currentAccent=getComputedStyle(el).getPropertyValue('--public-gold').trim();
+    ctx.strokeStyle=/^#[0-9a-fA-F]{6}$/.test(currentAccent)?currentAccent:'#f6bb38';
+    ctx.lineWidth=2.5*devicePixelRatio;ctx.lineCap='round';ctx.lineJoin='round';
     ctx.beginPath();ctx.moveTo((event.clientX-rect.left)*devicePixelRatio,(event.clientY-rect.top)*devicePixelRatio);
     drawing=true;el.setPointerCapture(event.pointerId);
   }
