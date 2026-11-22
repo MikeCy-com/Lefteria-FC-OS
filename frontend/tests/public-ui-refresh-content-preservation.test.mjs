@@ -40,3 +40,14 @@ test('existing homepage, fixture, navigation and footer remain the content owner
   assert.match(footer, /club\?\.social_links/);
   assert.match(shell, /<WebsitePageBlocks\b/);
 });
+
+
+test('visual refresh cannot disable interaction or conceal existing controls', () => {
+  // Presentation changes must not turn working menus, forms or links into
+  // visually present but unusable or invisible elements.
+  assert.doesNotMatch(css, /pointer-events\s*:\s*none\b/i);
+  assert.doesNotMatch(css, /user-select\s*:\s*none\b/i);
+  assert.doesNotMatch(css, /opacity\s*:\s*0(?:\.0+)?\s*(?:;|})/i);
+  assert.doesNotMatch(css, /position\s*:\s*fixed\b/i);
+  assert.doesNotMatch(css, /z-index\s*:/i);
+});
