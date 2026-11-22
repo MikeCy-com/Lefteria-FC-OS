@@ -38,7 +38,15 @@
 .website-blocks{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--cms-gap);max-width:var(--cms-max-width);margin-inline:auto;margin-block:var(--cms-page-top) var(--cms-page-bottom);padding-inline:var(--cms-side);line-height:1.7;min-width:0}
 .website-block-wrap{grid-column:span 6;min-width:0;min-height:var(--cms-min-height);margin-top:var(--cms-mt);margin-bottom:var(--cms-mb)}
 @media(min-width:768px){.website-block-wrap[data-width="half"]{grid-column:span 3}.website-block-wrap[data-width="third"]{grid-column:span 2}}
-@media(max-width:767px){.website-blocks{grid-template-columns:minmax(0,1fr)}.website-block-wrap{grid-column:span 1;.website-blocks h2{font-size:var(--lf-h2-mobile,clamp(28px,3.6vw,48px))}.website-blocks h3{font-size:var(--lf-h3-mobile,clamp(24px,3vw,36px))}.website-blocks h4{font-size:var(--lf-h4-mobile,clamp(21px,2.5vw,29px))}.website-blocks h5{font-size:var(--lf-h5-mobile,clamp(18px,2.1vw,23px))}.website-blocks h6{font-size:var(--lf-h6-mobile,clamp(16px,1.8vw,20px))}}}
+@media(max-width:767px){
+.website-blocks{grid-template-columns:minmax(0,1fr)}
+.website-block-wrap{grid-column:span 1}
+.website-blocks h2{font-size:var(--lf-h2-mobile,clamp(28px,3.6vw,48px))}
+.website-blocks h3{font-size:var(--lf-h3-mobile,clamp(24px,3vw,36px))}
+.website-blocks h4{font-size:var(--lf-h4-mobile,clamp(21px,2.5vw,29px))}
+.website-blocks h5{font-size:var(--lf-h5-mobile,clamp(18px,2.1vw,23px))}
+.website-blocks h6{font-size:var(--lf-h6-mobile,clamp(16px,1.8vw,20px))}
+}
 /* Use published role tokens in the originating component, not a second
  * hardcoded font cascade that must be defeated with !important. */
 .website-blocks :is(h2,h3,h4,h5,h6){margin:10px 0 0;font-style:italic}
