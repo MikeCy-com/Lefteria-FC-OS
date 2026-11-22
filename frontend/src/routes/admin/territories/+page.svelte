@@ -280,7 +280,7 @@
     busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <div class="territory-page" data-testid="admin-football-territories">
       <header>
-        <p class="admin-eyebrow">ΛΕΥΤΕΡΙΑ FC · ΑΓΩΝΙΣΤΙΚΗ ΟΡΓΑΝΩΣΗ</p>
+        
         <h1>ΠΟΛΕΙΣ <span>· ΤΟΠΟΘΕΣΙΕΣ · ΓΗΠΕΔΑ</span></h1>
         <p class="admin-muted">Οι αντίπαλοι και τα γήπεδα αγώνων της Ακαδημίας ανήκουν στην πόλη.
           Οι βάσεις προπονήσεων, τα τμήματα και οι αγώνες ανήκουν στην τοποθεσία.
