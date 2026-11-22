@@ -5268,11 +5268,15 @@ export interface components {
         };
         WebsitePageLayout: {
             /** Format: int32 */
-            gap: number | string;
+            gap?: null | number | string;
             /** Format: int32 */
-            max_width: number | string;
+            margin_bottom?: null | number | string;
             /** Format: int32 */
-            side_padding: number | string;
+            margin_top?: null | number | string;
+            /** Format: int32 */
+            max_width?: null | number | string;
+            /** Format: int32 */
+            side_padding?: null | number | string;
         };
         WebsitePagePublication: {
             /** Format: int64 */
