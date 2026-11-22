@@ -14,6 +14,7 @@
   import './public.css';
   import './club-polish.css';
   import './global-design.css';
+  import './ui-refresh.css';
   let { site, branding, organization = 'lefteria_fc', navigationGroups = [], canonicalPath, children }: { site: PublicSite | null; branding?: PublicClub | null; organization?: PublicOrganization; navigationGroups?: PublicGroup[]; canonicalPath?: string; children: Snippet } = $props();
   const club = $derived(branding === undefined ? site?.club ?? null : branding);
   const globalTheme=$derived(publishedGlobalDesign(page.data?.websitePages?.[organization]??[],organization));
@@ -23,7 +24,7 @@
   <link rel="canonical" href={publicCanonicalHref(canonicalPath ?? page.url.pathname)} />
   {#if !isIndexablePublicOrigin(page.url)}<meta name="robots" content="noindex,nofollow" />{/if}
 </svelte:head>
-<div class="public-site" lang="el" data-organization={organization} data-global-design={globalTheme ? "true" : undefined} style={globalTheme ? globalDesignCssVars(globalTheme) : undefined} data-route={page.route?.id ?? page.url?.pathname} data-testid="public-site">
+<div class="public-site" lang="el" data-ui-refresh="2026" data-organization={organization} data-global-design={globalTheme ? "true" : undefined} style={globalTheme ? globalDesignCssVars(globalTheme) : undefined} data-route={page.route?.id ?? page.url?.pathname} data-testid="public-site">
   <PublicNavigation {club} {organization} groups={navigationGroups} />
   <div class="public-content">
     <main id="public-main" class="public-main" tabindex="-1" data-testid="public-main">
