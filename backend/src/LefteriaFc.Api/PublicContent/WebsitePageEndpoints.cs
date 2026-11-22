@@ -473,6 +473,12 @@ public static class WebsitePageEndpoints
                     !Regex.IsMatch(color.GetString() ?? "", @"\A#[0-9A-Fa-f]{6}\z"))
                     throw Invalid();
             }
+            var bg = colors.GetProperty("background").GetString()!;
+            if (ColorContrast(bg, colors.GetProperty("foreground").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("muted").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("link").GetString()!) < 4.5 ||
+                ColorContrast(bg, colors.GetProperty("accent").GetString()!) < 3.0)
+                throw Invalid();
             foreach (var name in new[] { "h1", "h2", "h3", "h4", "h5", "h6", "p", "button", "nav", "caption", "label", "card" })
             {
                 if (!styles.TryGetProperty(name, out var t) || t.ValueKind != JsonValueKind.Object ||
@@ -494,6 +500,22 @@ public static class WebsitePageEndpoints
     }
     // Custom navigation lives in an approved, organization-scoped CMS snapshot.
     // Operational routes/categories cannot be replaced by this document.
+    private static double ColorContrast(string first, string second)
+    {
+        static double Luminance(string hex)
+        {
+            double Channel(int start)
+            {
+                var color = Convert.ToInt32(hex.Substring(start, 2), 16) / 255.0;
+                return color <= 0.04045 ? color / 12.92 : Math.Pow((color + 0.055) / 1.055, 2.4);
+            }
+            return 0.2126 * Channel(1) + 0.7152 * Channel(3) + 0.0722 * Channel(5);
+        }
+        var a = Luminance(first);
+        var b = Luminance(second);
+        return (Math.Max(a, b) + 0.05) / (Math.Min(a, b) + 0.05);
+    }
+
     private static void ValidateNavigationDesign(string owner, string slug, WebsitePageContent page)
     {
         if (slug != "canonical-navigation-design") return;
