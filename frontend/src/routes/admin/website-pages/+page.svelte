@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -73,7 +73,8 @@
   const isSpotlight = $derived(organization === 'lefteria_fc_academy' && slug === HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG);
   const isAboutIntro = $derived(slug === CANONICAL_ABOUT_INTRO_SLUG);
   const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
-  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead);
+  const isAboutHistory = $derived(slug === CANONICAL_ABOUT_HISTORY_SLUG);
+  const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory);
 
   $effect(() => {
     if (browser && $auth.status==='anonymous') void goto('/admin/login',{replace:true});
@@ -128,6 +129,22 @@
   function newPage() {
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
+  }
+  function openCanonicalAboutHistory() {
+    if(!organization || !canWrite || saving)return;
+    const existing=records.find(page=>page.slug===CANONICAL_ABOUT_HISTORY_SLUG);
+    if(existing){openPage(existing);return;}
+    if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
+    creating=true;picked=null;slug=CANONICAL_ABOUT_HISTORY_SLUG;mediaPickerIndex=null;
+    draft={title:'Ιστορία συλλόγου · Σχετικά',summary:'Επεξεργάσιμη ενότητα ιστορίας στην υπάρχουσα σελίδα',
+      seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
+      blocks:[
+        {type:'heading',text:'Η Ιστορία μας',url:null},
+        {type:'paragraph',text:'Η ΛΕΥΤΕΡΙΑ FC ιδρύθηκε με όραμα να δημιουργήσει έναν ποδοσφαιρικό σύλλογο που συνδυάζει την επαγγελματική αριστεία με τις κοινοτικές αξίες.',url:null},
+        {type:'paragraph',text:"Με έδρα τη Λεμεσό της Κύπρου, αγωνιζόμαστε στον Α' Όμιλο του ΠΑΑΟΚ.",url:null},
+        {type:'paragraph',text:'Το όνομά μας "ΛΕΥΤΕΡΙΑ" σημαίνει "Ελευθερία" στα ελληνικά, αντιπροσωπεύοντας τη φιλοσοφία μας για ελεύθερο, επιθετικό ποδόσφαιρο.',url:null}
+      ]};
+    notice='';problem='';
   }
   function openCanonicalContactLead() {
     if(!organization || !canWrite || saving)return;
@@ -277,6 +294,12 @@
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
   function valid():boolean {
+    if(isAboutHistory && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
+      draft.blocks.length!==4 || draft.blocks[0].type!=='heading' ||
+      draft.blocks[0].url!==null || draft.blocks[0].text.length>180 ||
+      /[\r\n]/.test(draft.blocks[0].text) ||
+      draft.blocks.slice(1).some(b=>b.type!=='paragraph' || b.url!==null ||
+        !b.text.trim() || b.text.length>800)))return false;
     if(isContactLead && (draft.menu_parent!=='hidden' || draft.menu_order!==0 ||
       draft.blocks.length!==1 || draft.blocks[0].type!=='paragraph' ||
       draft.blocks[0].url!==null || draft.blocks[0].text.length>500))return false;
@@ -389,6 +412,10 @@
             <div class="cms-library-heading"><h2>Σελίδες</h2>
               {#if canWrite}<button type="button" class="admin-primary" onclick={newPage}>+ Νέα</button>{/if}
             </div>
+            {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalAboutHistory}
+              disabled={loading || saving} data-testid="edit-canonical-about-history">
+              Επεξεργασία ιστορίας · Σχετικά με τον σύλλογο
+            </button>{/if}
             {#if canWrite}<button type="button" class="admin-secondary" onclick={openCanonicalContactLead}
               disabled={loading || saving} data-testid="edit-canonical-contact-lead">
               Επεξεργασία εισαγωγής · Επικοινωνία
@@ -529,7 +556,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
