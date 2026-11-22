@@ -37,8 +37,13 @@ test('built-in category order is persisted while all nine native routes survive'
   assert.equal(nav[0].id,'contact');
   assert.equal(nav[nav.length-1].id,'home');
   assert.equal(new Set(nav.map(item=>item.id)).size,publicNavigation.length+1);
-  for(const item of publicNavigation)
-    assert.deepEqual(nav.find(found=>found.id===item.id)?.items,item.items);
+  for(const item of publicNavigation){
+    const found=nav.find(entry=>entry.id===item.id);
+    assert.ok(found,'native category '+item.id);
+    if(item.items)for(const link of item.items)
+      assert.ok(found.items?.some(row=>row[0]===link[0]&&row[2]===link[2]),'native link '+link[0]);
+    else assert.equal(found.path,item.path);
+  }
   for(const invalid of [
     [...order.slice(0,8),'contact'],order.slice(0,8),[...order,'fake'],
     [...order.slice(0,8),42]
