@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {NAVIGATION_PARENTS,type NavigationEntry,type NavigationParent}
+  import {NAVIGATION_PARENTS,BUILTIN_CATEGORY_IDS,validBuiltinCategoryOrder,type BuiltinCategoryId,type NavigationDesign,type NavigationEntry,type NavigationParent}
     from '../public/navigation-design.ts';
   import type {PublicOrganization} from '../public/types.ts';
   let {value,organization,onChange,disabled=false}:{
@@ -9,9 +9,11 @@
   // Save/publish still uses the strict owner-aware parser and backend policy.
   const config=$derived((()=>{
     try {
-      const candidate=JSON.parse(value) as {links?:NavigationEntry[]};
-      return Array.isArray(candidate?.links)?{links:candidate.links}:{links:[]};
-    } catch {return {links:[] as NavigationEntry[]};}
+      const candidate=JSON.parse(value) as NavigationDesign;
+      return Array.isArray(candidate?.links)?{links:candidate.links,
+        category_order:validBuiltinCategoryOrder(candidate.category_order)?candidate.category_order:[...BUILTIN_CATEGORY_IDS]}
+        :{links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS]};
+    } catch {return {links:[] as NavigationEntry[],category_order:[...BUILTIN_CATEGORY_IDS]};}
   })());
   const parentNames:Record<NavigationParent,string>={
     root:'Κύριο μενού',club:'Σύλλογος',team:'Πρώτη ομάδα',academy:'Ακαδημία',
@@ -25,7 +27,16 @@
     onChange(JSON.stringify(next));
   }
   function remove(index:number){
-    onChange(JSON.stringify({links:config.links.filter((_,i)=>i!==index)}));
+    onChange(JSON.stringify({...config,links:config.links.filter((_,i)=>i!==index)}));
+  }
+  function moveCategory(index:number,direction:-1|1){
+    if(disabled)return;
+    const other=index+direction;
+    if(other<0||other>=config.category_order.length)return;
+    const next=structuredClone(config);
+    [next.category_order[index],next.category_order[other]]=
+      [next.category_order[other],next.category_order[index]];
+    onChange(JSON.stringify(next));
   }
   function add(){
     if(disabled||config.links.length>=24)return;
@@ -34,12 +45,27 @@
     const link:NavigationEntry={id:'custom-link-'+n,label:'Νέος σύνδεσμος',
       path:organization==='lefteria_fc_academy'?'/academy':'/team',
       parent:'root',order:config.links.length};
-    onChange(JSON.stringify({links:[...config.links,link]}));
+    onChange(JSON.stringify({...config,links:[...config.links,link]}));
   }
 </script>
 <section class="menu-editor" data-testid="cms-menu-editor" aria-label="Διαχείριση μενού και υπομενού">
   <h3>Μενού και υπομενού οργανισμού</h3>
   <p>Προσθέστε συνδέσμους στις υπάρχουσες κατηγορίες ή στο κύριο μενού. Η δημοσίευση είναι ξεχωριστή ενέργεια. Οι λειτουργικές διαδρομές δεν αντικαθίστανται.</p>
+  <fieldset data-testid="cms-menu-category-order">
+    <legend>Σειρά βασικών κατηγοριών</legend>
+    <p>Οι εννέα βασικές κατηγορίες διατηρούνται πάντα. Μπορείτε να αλλάξετε μόνο τη σειρά τους.</p>
+    <ol class="category-order">
+      {#each config.category_order as id,index (id)}
+        <li>
+          <span>{parentNames[id as NavigationParent]??'Αρχική'}</span>
+          <button type="button" disabled={disabled||index===0}
+            aria-label={'Μετακίνηση '+id+' πάνω'} onclick={()=>moveCategory(index,-1)}>↑</button>
+          <button type="button" disabled={disabled||index===config.category_order.length-1}
+            aria-label={'Μετακίνηση '+id+' κάτω'} onclick={()=>moveCategory(index,1)}>↓</button>
+        </li>
+      {/each}
+    </ol>
+  </fieldset>
   {#each config.links as link,index (link.id)}
     <fieldset>
       <legend>Σύνδεσμος {index+1}</legend>
@@ -71,6 +97,10 @@
 </section>
 <style>
 .menu-editor{display:grid;gap:12px;border:1px solid #594a2d;border-radius:10px;padding:14px}
+.menu-editor .category-order{display:grid;gap:6px;list-style:none;padding:0;margin:8px 0}
+.menu-editor .category-order li{display:flex;align-items:center;gap:8px}
+.menu-editor .category-order li span{flex:1}
+.menu-editor .category-order li button{min-width:38px}
 .menu-editor fieldset{border:1px solid #525252;border-radius:7px;padding:12px;min-width:0}
 .menu-editor legend{color:#f6bb38;font-size:13px;padding-inline:6px}
 .menu-editor .fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
