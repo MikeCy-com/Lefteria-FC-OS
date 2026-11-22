@@ -122,7 +122,7 @@ BEGIN
   VALUES(v_linked_request,'lefteria_fc_academy',v_super,gen_random_uuid(),
     'LFC'||left(replace(v_linked_request::text,'-',''),27),
     'Academy training '||to_char(v_month,'YYYY-MM'),3000,'ci@example.invalid',
-    'CI','Guardian',repeat('e',64),'ready');
+    'CI','Guardian',repeat('e',64),'initiating');
   INSERT INTO finance.training_fee_issues(id,organization_id,player_id,
     payer_identity_id,fee_month,amount_cents,payer_phone,payer_email,
     payer_first_name,payer_last_name,issued_by,payment_request_id)
