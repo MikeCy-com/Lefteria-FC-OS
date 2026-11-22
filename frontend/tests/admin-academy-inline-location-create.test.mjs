@@ -25,7 +25,10 @@ test('inline location creation uses existing authenticated territory endpoint', 
   assert.match(ui, /city_id:city,name,slug,address:locationAddress/);
   assert.match(ui, /pendingLocationId=/);
   assert.match(ui, /locationReload\+\+/);
-  assert.match(ui, /creationCities\.some\(city=>city\.id===creationCityId\)/);
+  assert.match(ui, /const mayCreateLocation=\$derived\(creationCities\.some\(city=>/);
+  assert.match(ui, /scope\.can_write_catalog===true/);
+  assert.match(ui, /!mayCreateLocation/);
+  assert.match(ui, /maxlength="300" disabled=\{locationSaving \|\| saving\}/);
   assert.match(territories, /create_admin_football_resource\(@digest,@owner,@kind,@data\)/);
   assert.match(territories, /AdminPermissions\.Has\(session\.User\.Role, permission\)/);
   assert.match(groups, /create_admin_academy_location_group_with_profile/);
