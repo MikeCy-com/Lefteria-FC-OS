@@ -9,9 +9,13 @@ export type WebsiteBlockLayout = {
   margin_bottom: 0|8|16|24|32|48|64;
 };
 export type WebsitePageLayout = {
-  max_width: 960|1120|1280|1440;
-  gap: 8|16|24|32|48;
-  side_padding: 12|16|24|32|48;
+  // Every property is an independent override. An unset/null field inherits
+  // the corresponding organization-specific published global setting.
+  max_width?: 960|1120|1280|1440|null;
+  gap?: 8|16|24|32|48|null;
+  side_padding?: 12|16|24|32|48|null;
+  margin_top?: 0|8|12|16|24|32|48|64|80|null;
+  margin_bottom?: 0|8|12|16|24|32|48|64|80|null;
 };
 export type WebsiteBlock = { type: 'heading'|'paragraph'|'image'|'button'; text: string; url: string|null; level?: 2|3|4|5|6|null; layout?: WebsiteBlockLayout|null };
 export function validHeadingLevel(block:WebsiteBlock):boolean {
@@ -23,7 +27,14 @@ export type WebsitePageContent = {
   menu_order: number; blocks: WebsiteBlock[]; layout?: WebsitePageLayout|null;
 };
 export const DEFAULT_BLOCK_LAYOUT:WebsiteBlockLayout={width:'full',min_height:0,margin_top:0,margin_bottom:0};
-export const DEFAULT_PAGE_LAYOUT:WebsitePageLayout={max_width:1280,gap:24,side_padding:16};
+export const DEFAULT_PAGE_LAYOUT:Required<WebsitePageLayout>={max_width:1280,gap:24,side_padding:16,margin_top:0,margin_bottom:0};
+export const PAGE_LAYOUT_CHOICES={
+  max_width:[960,1120,1280,1440],
+  gap:[8,16,24,32,48],
+  side_padding:[12,16,24,32,48],
+  margin_top:[0,8,12,16,24,32,48,64,80],
+  margin_bottom:[0,8,12,16,24,32,48,64,80]
+} as const;
 const VALID_WIDTHS=['full','half','third'];
 const VALID_HEIGHTS=[0,120,240,360,480];
 const VALID_MARGINS=[0,8,16,24,32,48,64];
@@ -33,8 +44,26 @@ export function validBlockLayout(value:WebsiteBlockLayout|null|undefined):boolea
     VALID_MARGINS.includes(value.margin_bottom));
 }
 export function validPageLayout(value:WebsitePageLayout|null|undefined):boolean {
-  return value == null || ([960,1120,1280,1440].includes(value.max_width) &&
-    [8,16,24,32,48].includes(value.gap) && [12,16,24,32,48].includes(value.side_padding));
+  if(value == null)return true;
+  if(typeof value!=='object'||Array.isArray(value))return false;
+  const keys=Object.keys(PAGE_LAYOUT_CHOICES) as (keyof typeof PAGE_LAYOUT_CHOICES)[];
+  return Object.entries(value).every(([key,setting])=>
+    keys.includes(key as keyof typeof PAGE_LAYOUT_CHOICES) &&
+    (setting==null || (typeof setting==='number' &&
+      (PAGE_LAYOUT_CHOICES[key as keyof typeof PAGE_LAYOUT_CHOICES] as readonly number[]).includes(setting))));
+}
+/** Merge global defaults with this page's explicit values. Existing full
+ * saved layouts retain all of their fields; null and absent fields inherit. */
+export function resolveWebsitePageLayout(
+  overrides:WebsitePageLayout|null|undefined,global:WebsitePageLayout|null|undefined=undefined
+):Required<WebsitePageLayout> {
+  const result={...DEFAULT_PAGE_LAYOUT};
+  for(const source of [global,overrides]){
+    if(!validPageLayout(source)||!source)continue;
+    for(const key of Object.keys(PAGE_LAYOUT_CHOICES) as (keyof typeof PAGE_LAYOUT_CHOICES)[])
+      if(source[key]!=null)(result as Record<string,number>)[key]=source[key] as number;
+  }
+  return result;
 }
 export type WebsitePageRecord = {
   organization_id: PublicOrganization; slug: string; version: number;
