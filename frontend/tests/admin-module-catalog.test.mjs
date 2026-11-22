@@ -88,8 +88,8 @@ test('admin navigation exposes real operational destinations without five orphan
   for(const orphan of ['schedule','attendance','matches','evaluations','documents']){
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
   }
-  assert.match(workspace,/data-testid="admin-quick-navigation"/);
-  assert.match(workspace,/item\.status==='live'/);
+  assert.doesNotMatch(workspace,/data-testid="admin-quick-navigation"/);
+  assert.match(workspace,/AdminClubMetrics/);
   assert.doesNotMatch(workspace,/admin-overview-stats|Under Developments|admin-account-grid|admin-tool-planned/);
   assert.doesNotMatch(source,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
   assert.doesNotMatch(workspace,/fetch\(|\bPOST\b|\bPUT\b|\bDELETE\b/);
@@ -160,7 +160,7 @@ test('application communications are isolated from the public website and CRM',(
 test('live workflows are reachable in contextual groups and authorized standalone routes',()=>{
   const workspace=read('AdminWorkspace.svelte');
   const frame=read('AdminFrame.svelte');
-  assert.match(workspace,/\{#each actions as item/);
+  assert.doesNotMatch(workspace,/\{#each actions as item/);
   const all=modules(user(['*:*'],['lefteria_fc','lefteria_fc_academy'],'super_admin'));
   for(const id of ['leads','registrations','staff','users']){
     const entry=all.find(m=>m.id===id);
