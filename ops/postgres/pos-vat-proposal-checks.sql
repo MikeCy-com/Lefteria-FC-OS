@@ -53,7 +53,11 @@ BEGIN
       DATE '2026-11-22','Synthetic authority test only',
       'Synthetic justification test only');
     RAISE EXCEPTION 'unauthenticated_vat_write_allowed';
-  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  EXCEPTION
+    WHEN insufficient_privilege THEN NULL;
+    WHEN raise_exception THEN
+      IF SQLERRM <> 'admin_club_session_lock_missing' THEN RAISE; END IF;
+  END;
 
   IF EXISTS(SELECT 1 FROM pos_cashier.vat_classification_proposals)
   THEN RAISE EXCEPTION 'vat_negative_test_mutated_data'; END IF;
