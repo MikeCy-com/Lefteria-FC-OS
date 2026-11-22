@@ -76,3 +76,12 @@ test('public contact email accepts ordinary addresses and rejects malformed or i
   for(const email of ['info example.org','info@ example.org','info@example.org?subject=test','info@example.org\n','javascript:info@example.org'])
     assert.equal(readPublicBrand({club:{organization_id:'lefteria_fc',name:'FC',email}},'lefteria_fc')?.email,null);
 });
+
+test('public page loader rejects cross-organization site responses and Academy navigation',()=>{
+  assert.match(publicContent,/export function verifiedPublicSite\(/);
+  assert.match(publicContent,/site\?\.club\?\.organization_id === organization \? site : null/);
+  assert.match(publicContent,/verifiedPublicSite\(result\.value, organization\)/);
+  assert.match(publicContent,/verifiedPublicSite\(navigation\.value, 'lefteria_fc_academy'\)/);
+  assert.match(publicContent,/branding: site\?\.club \?\? null/);
+  assert.match(publicContent,/navigationGroups: academyNavigation\?\.academy_groups \?\? \[\]/);
+});
