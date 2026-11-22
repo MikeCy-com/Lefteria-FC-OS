@@ -521,7 +521,7 @@
           {#if organization==='lefteria_fc'}
           <section class="admin-panel" aria-labelledby="catalog-heading" data-testid="first-team-catalog">
             <h2 id="catalog-heading">3. Αντίπαλοι και γήπεδα αγώνων
-              {organization==='lefteria_fc_academy'?'ανά πόλη':'ανά ομάδα'}</h2>
+              ανά ομάδα</h2>
             <div class="territory-columns">
               <div>
                 <h3>Αντίπαλοι</h3>
@@ -541,7 +541,7 @@
             </div>
             {#if mayManageCatalog}
               <form class="territory-form" onsubmit={e=>{e.preventDefault();submitCatalog();}}>
-                <h3>Προσθήκη κοινού καταλόγου {organization==='lefteria_fc_academy'?'πόλης':'ομάδας'}</h3>
+                <h3>Προσθήκη κοινού καταλόγου ομάδας</h3>
                 <label>Τύπος
                   <select bind:value={kind}>
                     <option value="opponent">Αντίπαλος</option>
