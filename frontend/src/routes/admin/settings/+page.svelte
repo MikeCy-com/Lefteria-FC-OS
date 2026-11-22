@@ -72,7 +72,11 @@
             <p class="admin-eyebrow">ΡΟΛΟΙ & ΠΡΟΣΒΑΣΗ</p><h2>Χρήστες & αναθέσεις</h2>
             <p>Πρόσβαση σε οργανισμούς, πόλεις, τοποθεσίες και ομάδες με επαληθευμένο δικαίωμα.</p>
             {#if canStaff}<a class="admin-settings-link" href="/admin/staff">Προσωπικό & προπονητές <span aria-hidden="true">↗</span></a>{/if}
-            {#if canUsers}<a class="admin-settings-link" href="/admin/users">Δημιουργία λογαριασμών & προβολή δικαιωμάτων <span aria-hidden="true">↗</span></a>{/if}
+            {#if canUsers}
+              <a class="admin-settings-link" href="/admin/users">Χρήστες & δικαιώματα <span aria-hidden="true">↗</span></a>
+              <a class="admin-settings-link" href="/admin/users?new=1"
+                data-testid="admin-settings-new-user">Νέος χρήστης & ρόλος <span aria-hidden="true">＋</span></a>
+            {/if}
             <p class="admin-settings-note">Ο Super Admin μπορεί να αλλάζει ρόλο ή κατάσταση λογαριασμού από τους Χρήστες &amp; δικαιώματα. Πριν από αλλαγή ρόλου πρέπει να αφαιρεθούν οι υφιστάμενες αναθέσεις πόλης, τοποθεσίας, ομάδας και προσωπικού, καθώς και οι ενεργές βάρδιες POS. Η αλλαγή ανακαλεί τις ενεργές συνεδρίες.</p>
           </section>
         {/if}
