@@ -73,10 +73,15 @@ test('rejects stale, impossible and future observation time',()=>{
     '2026-11-22T17:40:00Z',
     '2026-11-22T18:20:01Z',
     '2026-02-30T18:19:00Z',
-    'not-an-utc-date'
+    'not-an-utc-date',
+    'databasepassword-sneaky-value'
   ]){
     const o=observations();o.observed_at_utc=date;
-    assert.equal(verify(manifest(),o).verified,false);
+    const result=verify(manifest(),o);
+    assert.equal(result.verified,false);
+    if(!date.startsWith('2026-'))
+      assert.equal(result.observed_at_utc,null);
+    assert.ok(!JSON.stringify(result).includes('databasepassword-sneaky-value'));
   }
 });
 test('rejects invalid release manifests, malformed SHA and absent evidence',()=>{
