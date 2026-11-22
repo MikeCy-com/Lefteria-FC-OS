@@ -1,5 +1,5 @@
 <script lang="ts">
-  import {DEFAULT_BLOCK_LAYOUT,DEFAULT_PAGE_LAYOUT,validBlockLayout,validPageLayout,type WebsiteBlock,type WebsiteBlockLayout,type WebsitePageLayout} from '../public/website-pages.ts';
+  import {DEFAULT_BLOCK_LAYOUT,DEFAULT_PAGE_LAYOUT,resolveWebsitePageLayout,validBlockLayout,validPageLayout,type WebsiteBlock,type WebsiteBlockLayout,type WebsitePageLayout} from '../public/website-pages.ts';
   type Props={
     blocks:WebsiteBlock[];
     editable:boolean;
@@ -15,7 +15,7 @@
     onSelect:(index:number)=>void;
   };
   let {blocks,editable,locked,busy,maxBlocks=40,pageLayout,onLayout,onLevel,onEdit,onMove,onInsert,onSelect}:Props=$props();
-  const resolvedPage=$derived(validPageLayout(pageLayout)?pageLayout??DEFAULT_PAGE_LAYOUT:DEFAULT_PAGE_LAYOUT);
+  const resolvedPage=$derived(resolveWebsitePageLayout(pageLayout));
   const blockLayout=(block:WebsiteBlock)=>validBlockLayout(block.layout)&&block.layout?block.layout:DEFAULT_BLOCK_LAYOUT;
   function setLayout(index:number,key:keyof WebsiteBlockLayout,value:number|string){
     const block=blocks[index];if(!block||!onLayout||!editable||locked||busy)return;
