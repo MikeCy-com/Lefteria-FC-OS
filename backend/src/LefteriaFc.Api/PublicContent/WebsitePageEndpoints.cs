@@ -575,8 +575,15 @@ public static class WebsitePageEndpoints
                     .Select(parts => parts[1]).FirstOrDefault();
                 var selectedOwner = Value("organization_id");
                 var scope = Value("scope");
+                if (query.Select(pair => pair.Split('=', 2)[0])
+                    .Count(key => key == "organization_id") > 1 ||
+                    query.Select(pair => pair.Split('=', 2)[0])
+                    .Count(key => key == "scope") > 1)
+                    throw Invalid();
                 if (owner == "lefteria_fc_academy")
                 {
+                    if (selectedOwner is not null && selectedOwner != "lefteria_fc_academy")
+                        throw Invalid();
                     if (parent is "team" or "matches" or "shop" ||
                         Regex.IsMatch(path, @"\A/(team|trials|shop)(?:/|\?|\z)") ||
                         scope == "first_team" || route == "/sponsors/first-team" ||
@@ -587,7 +594,7 @@ public static class WebsitePageEndpoints
                 }
                 else if (parent == "academy" || Regex.IsMatch(path, @"\A/academy(?:/|\?|\z)") ||
                     scope == "academy" || route == "/sponsors/academy" ||
-                    selectedOwner == "lefteria_fc_academy")
+                    (selectedOwner is not null && selectedOwner != "lefteria_fc"))
                     throw Invalid();
             }
         }
