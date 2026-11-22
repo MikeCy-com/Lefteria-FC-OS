@@ -1,6 +1,6 @@
 <script lang="ts">
-  import {DEFAULT_GLOBAL_DESIGN,parseGlobalDesign,TEXT_ROLES,
-    type GlobalDesign,type TextRole,type TextStyle} from '../public/global-design.ts';
+  import {DEFAULT_GLOBAL_DESIGN,DEFAULT_GLOBAL_LAYOUT,GLOBAL_LAYOUT_CHOICES,parseGlobalDesign,TEXT_ROLES,
+    type GlobalDesign,type GlobalDesignLayout,type TextRole,type TextStyle} from '../public/global-design.ts';
   let {value,onChange,disabled=false}:{value:string;onChange:(text:string)=>void;disabled?:boolean}=$props();
   const theme=$derived(parseGlobalDesign(value)??DEFAULT_GLOBAL_DESIGN);
   const titles:Record<TextRole,string>={h1:'H1 · Τίτλος σελίδας',h2:'H2 · Ενότητα',h3:'H3 · Υποενότητα',
@@ -8,6 +8,19 @@
   function updateRole(role:TextRole,key:keyof TextStyle,value:string|number){
     const next:GlobalDesign=structuredClone(theme);
     (next.text[role] as unknown as Record<string,string|number>)[key]=value;
+    onChange(JSON.stringify(next));
+  }
+  const layoutLabels:Record<keyof GlobalDesignLayout,string>={
+    gutter:'Οριζόντιο περιθώριο ενοτήτων',
+    section_gap:'Απόσταση ενοτήτων',
+    card_gap:'Απόσταση καρτών',
+    card_radius:'Στρογγύλεμα καρτών',
+    button_radius:'Στρογγύλεμα κουμπιών',
+    motto_height:'Ύψος ζώνης ONE TEAM ● ONE DREAM'
+  };
+  function updateLayout(key:keyof GlobalDesignLayout,value:number){
+    const next:GlobalDesign=structuredClone(theme);
+    next.layout={...(next.layout??DEFAULT_GLOBAL_LAYOUT),[key]:value};
     onChange(JSON.stringify(next));
   }
   function updateColor(key:keyof GlobalDesign['colors'],value:string){
@@ -61,7 +74,21 @@
       </label>
     {/each}
   </div>
-  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground}>
+  <h3>Γενική διάταξη · αποστάσεις &amp; γωνίες</h3>
+  <p>Οι τιμές εφαρμόζονται σε όλες τις δημόσιες σελίδες του αντίστοιχου οργανισμού. Η διάταξη κάθε μπλοκ στο WYSIWYG παραμένει ανεξάρτητη.</p>
+  <div class="design-inputs" data-testid="global-design-layout-controls">
+    {#each Object.keys(GLOBAL_LAYOUT_CHOICES) as key (key)}
+      <label>{layoutLabels[key as keyof GlobalDesignLayout]}
+        <select disabled={disabled} value={(theme.layout??DEFAULT_GLOBAL_LAYOUT)[key as keyof GlobalDesignLayout]}
+          onchange={e=>updateLayout(key as keyof GlobalDesignLayout,Number(e.currentTarget.value))}>
+          {#each GLOBAL_LAYOUT_CHOICES[key as keyof GlobalDesignLayout] as option (option)}
+            <option value={option}>{option}px</option>
+          {/each}
+        </select>
+      </label>
+    {/each}
+  </div>
+  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+(theme.layout??DEFAULT_GLOBAL_LAYOUT).card_radius+'px'}>
     <span style={'color:'+theme.colors.accent}>LEFTERIA FC · LIVE DRAFT PREVIEW</span>
     <strong style={'font-size:'+theme.text.h1.desktop+'px;line-height:'+theme.text.h1.line_height}>Η ΟΜΑΔΑ ΜΑΣ</strong>
     <p>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
