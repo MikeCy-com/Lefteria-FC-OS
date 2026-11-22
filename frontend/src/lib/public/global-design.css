@@ -73,7 +73,7 @@
 }
 /* A single centered content inset applies page width AND section spacing.
  * A plain 28px gutter previously overrode the chosen max page width. */
-.public-site[data-global-design="true"] .public-section:not(.public-embedded-page) {
+.public-site[data-global-design="true"] .public-section:not(.public-embedded-page):not(.team-cms-region) {
   padding-inline:max(var(--lf-layout-gutter,28px),var(--public-page-inset,24px));
 }
 /* Embedded CMS sections delegate their horizontal space to the page editor.
@@ -81,6 +81,17 @@
  * otherwise adds the same margin twice and defeats a page-only override. */
 .public-site[data-global-design="true"] .public-section.public-embedded-page {
   padding-inline:0;
+}
+/* Team editorial content contains only WYSIWYG blocks: it cannot inherit a
+ * second native page inset above the block editor's own CMS side padding. */
+.public-site[data-global-design="true"] .public-section.team-cms-region {
+  padding-inline:0;
+}
+/* Sponsors' CMS blocks are nested inside the native catalog wrapper; cancel
+ * only that wrapper's gutter so the block's own page-specific inset aligns
+ * with ordinary catalog content rather than being counted twice. */
+.public-site[data-global-design="true"] .catalog-cms-region {
+  margin-inline:calc(0px - var(--public-page-gutter,16px));
 }
 .public-site[data-global-design="true"] :is(
   .public-news-card,.catalog-card,.public-group-card,
