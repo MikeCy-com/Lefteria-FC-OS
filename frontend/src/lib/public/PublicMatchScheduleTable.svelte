@@ -67,29 +67,29 @@
   <p class="fixture-counter" role="status" aria-live="polite">{rows.length} από {fixtures.length} δημοσιευμένοι αγώνες</p>
 </section>
 <style>
-  .reference-fixture-schedule{border:1px solid #595955;background:#0b0d0e;color:#fafafa;margin:26px 0 0;min-width:0}
-  .reference-fixture-header{min-height:56px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:9px 16px;background:linear-gradient(130deg,#1d1d1d,#0b0c0d);border-bottom:1px solid #b18c3c}
+  .reference-fixture-schedule{border:1px solid var(--lf-color-border,#595955);background:var(--lf-color-bg,#0b0d0e);color:var(--lf-color-text,#fafafa);margin:26px 0 0;min-width:0}
+  .reference-fixture-header{min-height:56px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:9px 16px;background:linear-gradient(130deg,var(--lf-color-surface,#1d1d1d),var(--lf-color-bg,#0b0c0d));border-bottom:1px solid var(--lf-color-accent,#b18c3c)}
   .reference-fixture-header h2{font:900 clamp(20px,1.7vw,27px)/1 'Fira Sans Extra Condensed',sans-serif;margin:0;display:flex;align-items:center;gap:11px}
-  .reference-fixture-header h2 :global(svg){color:#f6bb38;flex-shrink:0}
-  .reference-fixture-header em{color:#f6bb38;font-style:normal}
+  .reference-fixture-header h2 :global(svg){color:var(--lf-color-accent,#f6bb38);flex-shrink:0}
+  .reference-fixture-header em{color:var(--lf-color-accent,#f6bb38);font-style:normal}
   .reference-fixture-filters{display:flex;flex-wrap:wrap;gap:12px}
   .reference-fixture-filters label{display:inline-flex;align-items:center;gap:7px;font-size:12px}
-  .reference-fixture-filters select{max-width:220px;min-height:36px;min-width:114px;border:1px solid #8b8882;border-radius:0;background:#0b0b0b;color:#fff;padding:6px 10px}
-  .reference-fixture-scroll{overflow-x:auto;padding:7px 15px 9px;scrollbar-color:#99772e #111}
+  .reference-fixture-filters select{max-width:220px;min-height:36px;min-width:114px;border:1px solid var(--lf-color-muted,#8b8882);border-radius:0;background:var(--lf-color-bg,#0b0b0b);color:var(--lf-color-text,#ffffff);padding:6px 10px}
+  .reference-fixture-scroll{overflow-x:auto;padding:7px 15px 9px;scrollbar-color:var(--lf-color-accent,#99772e) var(--lf-color-bg,#111111)}
   table{border-collapse:collapse;min-width:840px;width:100%;font-size:13px;text-align:left}
-  thead{border-bottom:1px solid #666}
-  thead th{padding:12px 8px;font:800 13px 'Fira Sans Extra Condensed',sans-serif;color:#f6bb38;white-space:nowrap}
-  tbody tr{border-bottom:1px solid #373838}
-  tbody tr:hover{background:#f6bb380d}
+  thead{border-bottom:1px solid var(--lf-color-border,#666666)}
+  thead th{padding:12px 8px;font:800 13px 'Fira Sans Extra Condensed',sans-serif;color:var(--lf-color-accent,#f6bb38);white-space:nowrap}
+  tbody tr{border-bottom:1px solid var(--lf-color-border,#373838)}
+  tbody tr:hover{background:color-mix(in srgb,var(--lf-color-accent,#f6bb38) 5.098%,transparent)}
   tbody :is(th,td){padding:10px 8px;vertical-align:middle;font-size:12px}
-  .fixture-chip{border:1px solid #ac8229;color:#f8c354;padding:3px 9px;border-radius:5px;font:800 12px 'Fira Sans Extra Condensed',sans-serif;white-space:nowrap}
-  .fixture-pair-col a{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:#fff;min-width:300px}
+  .fixture-chip{border:1px solid var(--lf-color-accent,#ac8229);color:var(--lf-color-accent,#f8c354);padding:3px 9px;border-radius:5px;font:800 12px 'Fira Sans Extra Condensed',sans-serif;white-space:nowrap}
+  .fixture-pair-col a{display:flex;align-items:center;justify-content:space-between;gap:10px;text-decoration:none;color:var(--lf-color-text,#ffffff);min-width:300px}
   .fixture-club{display:inline-flex;align-items:center;gap:9px;min-width:0;flex:1;font:800 13px 'Fira Sans Extra Condensed',sans-serif}
   .fixture-club:last-child{justify-content:flex-end}
   .fixture-club :global(.public-team-crest){width:29px;height:29px;flex:none}
   .fixture-vs{font:900 13px 'Fira Sans Extra Condensed',sans-serif;min-width:32px;text-align:center}
-  .fixture-status{display:inline-flex;justify-content:center;min-width:78px;border:1px solid #a67b2b;padding:4px 7px;text-decoration:none;color:#f6cb71;font:800 11px 'Fira Sans Extra Condensed',sans-serif}
-  .fixture-counter{margin:0;padding:6px 16px 12px;font-size:11px;color:#aeb3b3}
-  .fixture-empty{text-align:center;padding:25px!important;color:#d3d3d3}
+  .fixture-status{display:inline-flex;justify-content:center;min-width:78px;border:1px solid var(--lf-color-accent,#a67b2b);padding:4px 7px;text-decoration:none;color:var(--lf-color-accent,#f6cb71);font:800 11px 'Fira Sans Extra Condensed',sans-serif}
+  .fixture-counter{margin:0;padding:6px 16px 12px;font-size:11px;color:var(--lf-color-muted,#aeb3b3)}
+  .fixture-empty{text-align:center;padding:25px!important;color:var(--lf-color-text,#d3d3d3)}
   @media(max-width:790px){.reference-fixture-header{align-items:flex-start}.reference-fixture-header h2{font-size:22px}.reference-fixture-scroll{padding-inline:8px}}
 </style>
