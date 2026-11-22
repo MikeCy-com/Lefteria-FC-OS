@@ -98,79 +98,95 @@ public static class AcademyRegistrationEndpoints
                 return Failure(422,"invalid_family_registration");
         }
 
-        // No sensitive fields are logged. Only a minimal contact projection goes
-        // to registration rows; everything else is authenticated encrypted evidence.
-        var id = Guid.NewGuid();
-        byte[] evidence = JsonSerializer.SerializeToUtf8Bytes(new
-        {
-            body.PlayerGender,body.PlayerAddress,body.PlayerCity,body.PlayerPostalCode,
-            body.EmergencyName,body.EmergencyPhone,body.EmergencyRelationship,
-            body.HasAllergies,body.AllergiesDetails,body.HasConditions,body.ConditionsDetails,
-            body.HasMedication,body.MedicationDetails,body.PaymentMethod,
-            body.SignatureData,body.SignatureDate,body.CommEmail,body.CommSms
-        });
-        if (evidence.Length > 60000) return Failure(413,"payload_too_large");
-        var nonce = RandomNumberGenerator.GetBytes(12);
-        var ciphertext = new byte[evidence.Length];
-        var tag = new byte[16];
-        using (var aes = new AesGcm(key,tag.Length))
-            aes.Encrypt(nonce,evidence,ciphertext,tag,id.ToByteArray());
-        CryptographicOperations.ZeroMemory(evidence);
-        CryptographicOperations.ZeroMemory(key);
-        var sealedPayload = new byte[nonce.Length + tag.Length + ciphertext.Length];
-        Buffer.BlockCopy(nonce,0,sealedPayload,0,nonce.Length);
-        Buffer.BlockCopy(tag,0,sealedPayload,nonce.Length,tag.Length);
-        Buffer.BlockCopy(ciphertext,0,sealedPayload,nonce.Length+tag.Length,ciphertext.Length);
-        var sha = Convert.ToHexStringLower(SHA256.HashData(sealedPayload));
-
-        var projection = JsonSerializer.Serialize(new
-        {
-            applicant_first_name = body.PlayerFirstName.Trim(),
-            applicant_last_name = body.PlayerLastName.Trim(),
-            applicant_birth_date = birth.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture),
-            guardian_name = body.ParentName.Trim(),
-            guardian_relationship = body.ParentRelationship.Trim(),
-            guardian_phone = body.ParentPhone.Trim(),
-            guardian_email = body.ParentEmail.Trim(),
-            consent_participation = body.ConsentParticipation,
-            consent_medical_auth = body.ConsentMedicalAuth,
-            consent_gdpr = body.ConsentGdpr,
-            consent_media = body.ConsentMedia == "yes",
-            consent_communications = body.ConsentCommunications,
-            consent_liability = body.ConsentLiability,
-            consent_financial = body.ConsentFinancial
-        });
-
+        // Parent signs once. Each child has their own encrypted private evidence,
+        // receipt and pending registration. One DB transaction prevents partial
+        // registration if any sibling fails validation or durable throttling.
+        var familyId=Guid.NewGuid();
+        var receipts=new List<string>(children.Count);
         try
         {
-            var cs = database.Database.GetConnectionString();
-            if (string.IsNullOrWhiteSpace(cs)) return Unavailable();
-            await using var connection = new NpgsqlConnection(cs);
+            var cs=database.Database.GetConnectionString();
+            if(string.IsNullOrWhiteSpace(cs)) return Unavailable();
+            await using var connection=new NpgsqlConnection(cs);
             await connection.OpenAsync(cancellationToken);
-            await using var command = new NpgsqlCommand("""
-                SELECT academy_intake.submit_public_registration(
-                  @id,@projection,@sealed,@sha,@key_id,@fingerprint,@policy)
-                """, connection);
-            command.CommandTimeout = 10;
-            command.Parameters.AddWithValue("id",NpgsqlDbType.Uuid,id);
-            command.Parameters.AddWithValue("projection",NpgsqlDbType.Jsonb,projection);
-            command.Parameters.AddWithValue("sealed",NpgsqlDbType.Bytea,sealedPayload);
-            command.Parameters.AddWithValue("sha",NpgsqlDbType.Text,sha);
-            command.Parameters.AddWithValue("key_id",NpgsqlDbType.Text,keyId);
-            command.Parameters.AddWithValue("fingerprint",NpgsqlDbType.Text,fingerprint);
-            command.Parameters.AddWithValue("policy",NpgsqlDbType.Text,policy);
-            var status = await command.ExecuteScalarAsync(cancellationToken) as string;
-            return status switch
+            await using var transaction=await connection.BeginTransactionAsync(cancellationToken);
+            foreach(var child in children)
             {
-                "stored" => Results.Json(new {receipt=id.ToString("N")},statusCode:202),
-                "rate_limited" => Failure(429,"rate_limited"),
-                _ => Unavailable()
-            };
+                if (!DateOnly.TryParseExact(child.PlayerDob,"yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,DateTimeStyles.None,out var birth))
+                    return Failure(422,"invalid_registration");
+                var id=Guid.NewGuid();
+                var monthly=children.Count==1?60:100+(children.Count-2)*50;
+                byte[] evidence=JsonSerializer.SerializeToUtf8Bytes(new {
+                    FamilyId=familyId, FamilyChildCount=children.Count,
+                    FamilyMonthlyFeeEur=monthly, RegistrationFeeEur=20,
+                    KitFeeEur=child.OfficialKitRequested?140:0,
+                    PrintingFeeEur=child.OfficialKitRequested&&child.KitPrintingRequested?10:0,
+                    child.PlayerGender,child.PlayerAddress,child.PlayerCity,child.PlayerPostalCode,
+                    child.EmergencyName,child.EmergencyPhone,child.EmergencyRelationship,
+                    child.HasAllergies,child.AllergiesDetails,child.HasConditions,child.ConditionsDetails,
+                    child.HasMedication,child.MedicationDetails,
+                    child.PreferredNumber,child.PreferredPrintName,
+                    child.OfficialKitRequested,child.KitPrintingRequested,
+                    child.PaymentMethod,child.SignatureData,child.SignatureDate,
+                    child.CommEmail,child.CommSms
+                });
+                if(evidence.Length>60000) {
+                    CryptographicOperations.ZeroMemory(evidence);
+                    return Failure(413,"payload_too_large");
+                }
+                var nonce=RandomNumberGenerator.GetBytes(12);
+                var ciphertext=new byte[evidence.Length];
+                var tag=new byte[16];
+                using(var aes=new AesGcm(key,tag.Length))
+                    aes.Encrypt(nonce,evidence,ciphertext,tag,id.ToByteArray());
+                CryptographicOperations.ZeroMemory(evidence);
+                var sealedPayload=new byte[nonce.Length+tag.Length+ciphertext.Length];
+                Buffer.BlockCopy(nonce,0,sealedPayload,0,nonce.Length);
+                Buffer.BlockCopy(tag,0,sealedPayload,nonce.Length,tag.Length);
+                Buffer.BlockCopy(ciphertext,0,sealedPayload,nonce.Length+tag.Length,ciphertext.Length);
+                var sha=Convert.ToHexStringLower(SHA256.HashData(sealedPayload));
+                var projection=JsonSerializer.Serialize(new {
+                    applicant_first_name=child.PlayerFirstName.Trim(),
+                    applicant_last_name=child.PlayerLastName.Trim(),
+                    applicant_birth_date=birth.ToString("yyyy-MM-dd",CultureInfo.InvariantCulture),
+                    guardian_name=body.ParentName.Trim(),
+                    guardian_relationship=body.ParentRelationship.Trim(),
+                    guardian_phone=body.ParentPhone.Trim(),
+                    guardian_email=body.ParentEmail.Trim(),
+                    consent_participation=body.ConsentParticipation,
+                    consent_medical_auth=body.ConsentMedicalAuth,
+                    consent_gdpr=body.ConsentGdpr,
+                    consent_media=body.ConsentMedia=="yes",
+                    consent_communications=body.ConsentCommunications,
+                    consent_liability=body.ConsentLiability,
+                    consent_financial=body.ConsentFinancial
+                });
+                await using var command=new NpgsqlCommand("""
+                    SELECT academy_intake.submit_public_registration(
+                      @id,@projection,@sealed,@sha,@key_id,@fingerprint,@policy)
+                    """,connection,transaction);
+                command.CommandTimeout=10;
+                command.Parameters.AddWithValue("id",NpgsqlDbType.Uuid,id);
+                command.Parameters.AddWithValue("projection",NpgsqlDbType.Jsonb,projection);
+                command.Parameters.AddWithValue("sealed",NpgsqlDbType.Bytea,sealedPayload);
+                command.Parameters.AddWithValue("sha",NpgsqlDbType.Text,sha);
+                command.Parameters.AddWithValue("key_id",NpgsqlDbType.Text,keyId);
+                command.Parameters.AddWithValue("fingerprint",NpgsqlDbType.Text,fingerprint);
+                command.Parameters.AddWithValue("policy",NpgsqlDbType.Text,policy);
+                var status=await command.ExecuteScalarAsync(cancellationToken) as string;
+                if(status=="rate_limited") return Failure(429,"rate_limited");
+                if(status!="stored") return Unavailable();
+                receipts.Add(id.ToString("N"));
+            }
+            await transaction.CommitAsync(cancellationToken);
+            return Results.Json(new {receipt=receipts[0],receipts},statusCode:202);
         }
-        catch (PostgresException error) when (error.SqlState is "22023" or "23514" or "22007")
+        catch(PostgresException error) when(error.SqlState is "22023" or "23514" or "22007")
         { return Failure(422,"invalid_registration"); }
-        catch (NpgsqlException) { return Unavailable(); }
-        catch (TimeoutException) { return Unavailable(); }
+        catch(NpgsqlException) { return Unavailable(); }
+        catch(TimeoutException) { return Unavailable(); }
+        finally { CryptographicOperations.ZeroMemory(key); }
     }
 
     private static AcademyRegistrationRequest ExpandChild(
