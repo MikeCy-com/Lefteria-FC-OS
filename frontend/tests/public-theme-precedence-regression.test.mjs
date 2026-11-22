@@ -89,6 +89,14 @@ test('native page width and insets have one owner instead of conflicting theme a
   assert.match(native,/\.match-detail\{max-width:var\(--lf-layout-page-max-width,1200px\)/);
   assert.match(native,/\.person-content\{max-width:var\(--public-content-width,1400px\)/);
   assert.match(tokens,/\.shop-container\s*\{\s*width:min\(var\(--public-content-width,1280px\)/);
+  assert.ok(tokens.includes('.public-section:not(.public-embedded-page):not(.team-cms-region)'),
+    'Native sections must not apply their centered inset to CMS-only team sections');
+  assert.ok(tokens.includes('.public-section.team-cms-region {\\n  padding-inline:0;'.replace('\\n','\n')),
+    'Team editorial blocks must own their own side padding');
+  assert.ok(tokens.includes('margin-inline:calc(0px - var(--public-page-gutter,16px))'),
+    'Catalog editorial blocks must cancel only their parent native gutter');
+  assert.match(read('routes/team/+page.svelte'),/class="public-section team-cms-region"/);
+  assert.match(read('lib/public/PublicCatalogList.svelte'),/class="catalog-cms-region"/);
 });
 
 test('every public route stylesheet (not just the seven showcase pages) inherits the palette',()=>{
