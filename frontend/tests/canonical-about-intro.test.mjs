@@ -56,7 +56,7 @@ test('editor offers an actual About intro draft with optimistic save and manager
   assert.match(editor,/data-testid="edit-canonical-about-intro"/);
   assert.match(editor,/function openCanonicalAboutIntro/);
   assert.match(editor,/CANONICAL_ABOUT_INTRO_SLUG/);
-  assert.match(editor,/isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead/);
+  assert.match(editor,/isHero \|\| isSpotlight \|\| isAboutIntro \|\| isContactLead \|\| isAboutHistory \|\| isAcademyLead \|\| isShopLead/);
   assert.match(editor,/expected_version:selected\?\.version,page:draft/);
   assert.match(editor,/expected_version:selected\.version,publish/);
   assert.match(editor,/\/about\?organization_id=lefteria_fc_academy/);
