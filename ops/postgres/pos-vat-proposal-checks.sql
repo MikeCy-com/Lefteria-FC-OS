@@ -43,6 +43,7 @@ BEGIN
     'pos_cashier.read_admin_vat_proposals(text,text)'::regprocedure::oid,
     'pos_cashier.propose_admin_variant_vat(text,text,uuid,text,text,text,date,text,text)'::regprocedure::oid,
     'pos_cashier.read_admin_vat_reviews(text,text)'::regprocedure::oid,
+    'pos_cashier.read_admin_vat_assignments(text,text)'::regprocedure::oid,
     'pos_cashier.review_admin_variant_vat(text,text,uuid,boolean,text)'::regprocedure::oid
   ] LOOP
     IF NOT EXISTS(SELECT 1 FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang
@@ -57,6 +58,12 @@ BEGIN
     PERFORM pos_cashier.read_admin_vat_proposals(
       repeat('0',64),'lefteria_fc');
     RAISE EXCEPTION 'unauthenticated_vat_read_allowed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  BEGIN
+    PERFORM pos_cashier.read_admin_vat_assignments(
+      repeat('0',64),'lefteria_fc');
+    RAISE EXCEPTION 'unauthenticated_vat_assignments_allowed';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   BEGIN
