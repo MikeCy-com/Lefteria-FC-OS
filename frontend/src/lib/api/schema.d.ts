@@ -3058,7 +3058,25 @@ export interface components {
             expected_status: null | string;
             next_status: null | string;
         };
+        AcademyRegistrationAdditionalPlayer: {
+            allergies_details?: string;
+            conditions_details?: string;
+            has_allergies?: boolean;
+            has_conditions?: boolean;
+            has_medication?: boolean;
+            medication_details?: string;
+            player_address?: string;
+            player_city?: string;
+            player_dob?: string;
+            player_first_name?: string;
+            player_gender?: string;
+            player_last_name?: string;
+            player_postal_code?: string;
+            preferred_number?: string;
+            preferred_print_name?: string;
+        };
         AcademyRegistrationRequest: {
+            additional_players?: null | components["schemas"]["AcademyRegistrationAdditionalPlayer"][];
             allergies_details?: string;
             comm_email?: boolean;
             comm_sms?: boolean;
@@ -3089,6 +3107,8 @@ export interface components {
             player_gender?: string;
             player_last_name?: string;
             player_postal_code?: string;
+            preferred_number?: string;
+            preferred_print_name?: string;
             signature_data?: string;
             signature_date?: string;
         };
