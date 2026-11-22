@@ -1,6 +1,7 @@
 import { INTERNAL_API_ORIGIN } from '$app/env/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
+import {parseAcademyRegistrationReceipts} from '$lib/academy/registration-receipts';
 
 // Same-origin web adapter: no client-selected upstream, no cookies or
 // Authorization forwarded, no sensitive form data logged or stored in SSR.
@@ -43,14 +44,10 @@ export const POST: RequestHandler = async ({ request, url }) => {
     // Only commit-backed receipts may be shown as success, and never echo
     // server internals or user-submitted medical data to the browser.
     if (response.status === 202) {
-      const result = await response.json().catch(() => null);
-      if (typeof result?.receipt === 'string' && /^[0-9a-f]{32}$/.test(result.receipt) &&
-        Array.isArray(result?.receipts) && result.receipts.length>=1 &&
-        result.receipts.length<=5 && result.receipts[0]===result.receipt &&
-        result.receipts.every((id:unknown)=>typeof id==='string' && /^[0-9a-f]{32}$/.test(id)) &&
-        // Never present two siblings as accepted under the same receipt.
-        new Set(result.receipts).size===result.receipts.length)
-        return json({ receipt: result.receipt,receipts:result.receipts }, { status: 202, headers });
+      const verified = parseAcademyRegistrationReceipts(
+        await response.json().catch(() => null));
+      if (verified)
+        return json(verified, { status: 202, headers });
     }
     const status = [400, 403, 413, 415, 422, 429].includes(response.status) ? response.status : 503;
     return json({ code: status === 429 ? 'rate_limited' : status === 422 ? 'invalid_registration' : 'registration_unavailable' }, { status, headers });
