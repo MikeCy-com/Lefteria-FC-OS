@@ -1,429 +1,291 @@
 /*
- * Lefteria FC public UI refresh — visual layer only.
- * Preserve all current DOM content, media paths, CMS records, routes and actions.
- * This is deliberately scoped to the public shell; admin and member-app styles
- * remain untouched. Existing font sizes and image treatments are not modified.
+ * Public redesign is a presentation layer, NEVER a second CMS theme.
+ *
+ * The published organization theme owns typography and colors; the native
+ * WYSIWYG page/block layouts own their own --cms-* geometry. New global
+ * layout choices come from the same approved canonical-global-design page.
+ * These fallbacks apply only when no theme has been published.
  */
 .public-site[data-ui-refresh="2026"] {
-  --ui-surface: var(--lf-color-surface, #151719);
-  --ui-surface-hover: #1c1f20;
-  --ui-line: var(--lf-color-border, rgb(255 255 255 / 16%));
-  --ui-text-soft: var(--lf-color-muted, #c2c6c5);
-  --ui-accent: var(--lf-color-accent, var(--public-gold));
-  --ui-shadow: 0 14px 40px rgb(0 0 0 / 24%);
-  --ui-radius: 9px;
+  --ui-bg:var(--lf-color-bg,var(--public-black,#090909));
+  --ui-ink:var(--lf-color-text,#ffffff);
+  --ui-accent:var(--lf-color-accent,var(--public-gold,#f6bb38));
+  --ui-link:var(--lf-color-link,var(--public-gold,#f6bb38));
+  --ui-surface:var(--lf-color-surface,var(--public-panel,#171717));
+  --ui-border:var(--lf-color-border,var(--public-panel-edge,#494949));
+  --ui-muted:var(--lf-color-muted,#bdbdbd);
+  --ui-card-gap:var(--lf-layout-card-gap,16px);
+  --ui-section-gap:var(--lf-layout-section-gap,32px);
+  --ui-gutter:var(--lf-layout-gutter,28px);
+  --ui-card-radius:var(--lf-layout-card-radius,9px);
+  --ui-button-radius:var(--lf-layout-button-radius,5px);
+  --ui-motto-height:var(--lf-layout-motto-height,120px);
+  --ui-raised:color-mix(in srgb,var(--ui-surface) 85%,var(--ui-bg));
+  --ui-emphasis:color-mix(in srgb,var(--ui-accent) 26%,transparent);
+  --ui-hairline:color-mix(in srgb,var(--ui-border) 58%,transparent);
+  --ui-shadow:0 14px 40px color-mix(in srgb,var(--ui-bg) 30%,transparent);
 }
 
-/* Distinctive, calm shared chrome; preserve the existing rail geometry. */
+/* Publish-time global layout overrides only native containers.
+ * Page and block WYSIWYG geometry --cms-* is deliberately never targeted. */
+.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-section:not(.public-embedded-page) {
+  padding-inline:var(--ui-gutter);
+}
+.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-page-heading:not(.academy-intro):not(.team-heading) {
+  padding-inline:var(--ui-gutter);
+}
+
+/* Navigation still owns its existing hierarchy, rail width and actions. */
 .public-site[data-ui-refresh="2026"] .public-header {
-  background: linear-gradient(100deg, rgb(18 20 21 / 98%), rgb(8 9 10 / 98%));
-  border-bottom: 1px solid rgb(246 187 56 / 25%);
-  box-shadow: 0 12px 34px rgb(0 0 0 / 32%);
+  background:color-mix(in srgb,var(--ui-bg) 93%,transparent);
+  border-bottom:1px solid var(--ui-emphasis);
+  box-shadow:0 10px 30px color-mix(in srgb,var(--ui-bg) 30%,transparent);
 }
 .public-site[data-ui-refresh="2026"] .public-rail {
-  border-right: 1px solid rgb(246 187 56 / 19%);
+  border-right:1px solid var(--ui-hairline);
+  background:var(--ui-bg);
 }
-.public-site[data-ui-refresh="2026"] .public-rail nav :is(a, button) {
-  transition: color .16s ease, background-color .16s ease, box-shadow .16s ease;
+.public-site[data-ui-refresh="2026"] .public-rail nav :is(a,button) {
+  transition:color .16s ease,background-color .16s ease,box-shadow .16s ease;
 }
-.public-site[data-ui-refresh="2026"] .public-rail nav :is(a, button):hover,
-.public-site[data-ui-refresh="2026"] .public-rail nav :is(a, button):focus-visible {
-  box-shadow: inset 3px 0 var(--ui-accent);
+.public-site[data-ui-refresh="2026"] .public-rail nav :is(a,button):is(:hover,:focus-visible) {
+  box-shadow:inset 3px 0 var(--ui-accent);
 }
-.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button, .public-search-trigger) {
-  border-radius: 6px;
+.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button,.public-search-trigger) {
+  border-radius:var(--ui-button-radius);
 }
-.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button, .public-search-trigger):hover,
-.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button, .public-search-trigger):focus-visible {
-  background: rgb(246 187 56 / 9%);
-}
-
-/* Hierarchy from spacing and restrained detail, not different copy or fonts. */
-.public-site[data-ui-refresh="2026"] .public-page-heading:not(.academy-intro):not(.team-heading) {
-  background: linear-gradient(130deg, #171b1c 0%, #0c0e0f 64%, #10100d 100%);
-  border-bottom: 1px solid var(--ui-line);
-}
-.public-site[data-ui-refresh="2026"] :is(.public-section-heading, .section-heading) {
-  border-bottom: 1px solid var(--ui-line);
-  padding-bottom: 16px;
-}
-.public-site[data-ui-refresh="2026"] :is(.public-section-heading, .section-heading) > a {
-  border-radius: 4px;
-  text-underline-offset: 5px;
-}
-.public-site[data-ui-refresh="2026"] .public-eyebrow {
-  color: var(--ui-accent);
-}
-.public-site[data-ui-refresh="2026"] .public-section:not(.public-embedded-page) {
-  scroll-margin-top: calc(var(--public-header) + 14px);
-}
-
-/* Primary and secondary actions retain their labels, semantics and sizes. */
-.public-site[data-ui-refresh="2026"] .public-button {
-  border-radius: 5px;
-  box-shadow: 0 4px 14px rgb(0 0 0 / 18%);
-  transition: background-color .16s ease, box-shadow .16s ease, border-color .16s ease;
-}
-.public-site[data-ui-refresh="2026"] .public-button:hover {
-  box-shadow: 0 9px 28px rgb(246 187 56 / 16%);
+.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button,.public-search-trigger):is(:hover,:focus-visible) {
+  background:color-mix(in srgb,var(--ui-accent) 12%,transparent);
 }
 .public-site[data-ui-refresh="2026"] .public-menu-dialog {
-  background: linear-gradient(150deg, #181b1c, #090a0b 78%);
-  border-right: 1px solid rgb(246 187 56 / 23%);
-  box-shadow: 22px 0 70px rgb(0 0 0 / 48%);
+  background:var(--ui-raised);
+  border-right:1px solid var(--ui-emphasis);
+  box-shadow:20px 0 60px color-mix(in srgb,var(--ui-bg) 48%,transparent);
 }
-.public-site[data-ui-refresh="2026"] .public-menu-row,
-.public-site[data-ui-refresh="2026"] .public-submenu a {
-  border-radius: 5px;
+.public-site[data-ui-refresh="2026"] :is(.public-menu-row,.public-submenu a) {
+  border-radius:var(--ui-button-radius);
 }
-.public-site[data-ui-refresh="2026"] .public-menu-row:is(:hover, :focus-visible),
-.public-site[data-ui-refresh="2026"] .public-submenu a:is(:hover, :focus-visible) {
-  background: rgb(246 187 56 / 8%);
+.public-site[data-ui-refresh="2026"] :is(.public-menu-row,.public-submenu a):is(:hover,:focus-visible) {
+  background:color-mix(in srgb,var(--ui-accent) 10%,transparent);
 }
 
-/* Keep the same hero photos, carousel behavior and fixture data. */
+/* Default title fonts/sizes remain in public.css and the published theme. */
+.public-site[data-ui-refresh="2026"] .public-page-heading:not(.academy-intro):not(.team-heading) {
+  background:linear-gradient(140deg,var(--ui-surface),var(--ui-bg));
+  border-bottom:1px solid var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-section-heading,.section-heading) {
+  border-bottom:1px solid var(--ui-hairline);
+  padding-bottom:clamp(12px,1vw,var(--ui-card-gap));
+}
+.public-site[data-ui-refresh="2026"] :is(.public-section-heading,.section-heading) > a {
+  text-underline-offset:5px;
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] .public-eyebrow {
+  color:var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] .public-section {
+  scroll-margin-top:calc(var(--public-header) + 14px);
+}
+.public-site[data-ui-refresh="2026"] .public-button {
+  border-radius:var(--ui-button-radius);
+  box-shadow:0 4px 14px color-mix(in srgb,var(--ui-bg) 20%,transparent);
+  transition:box-shadow .16s ease,border-color .16s ease;
+}
+.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-button:not(.public-button-outline) {
+  background:var(--ui-accent);
+  border-color:var(--ui-accent);
+  color:var(--ui-bg);
+}
+.public-site[data-ui-refresh="2026"] .public-button:hover {
+  box-shadow:0 8px 26px var(--ui-emphasis);
+}
+
+/* Homepage: original CMS photos, headlines, next match and news filters. */
 .public-site[data-ui-refresh="2026"] .home-reference .public-hero-fixture {
-  border-color: rgb(246 187 56 / 51%);
-  box-shadow: 0 20px 56px rgb(0 0 0 / 50%), inset 0 1px rgb(255 255 255 / 10%);
+  border-color:var(--ui-emphasis);
+  box-shadow:0 18px 48px color-mix(in srgb,var(--ui-bg) 46%,transparent);
 }
 .public-site[data-ui-refresh="2026"] .home-reference .public-destinations {
-  gap: clamp(10px, 1.15vw, 20px);
+  gap:var(--ui-card-gap);
 }
 .public-site[data-ui-refresh="2026"] .home-reference .public-destination {
-  border-color: rgb(255 255 255 / 22%);
-  border-radius: var(--ui-radius);
-  box-shadow: var(--ui-shadow);
+  border-color:var(--ui-hairline);
+  border-radius:var(--ui-card-radius);
+  box-shadow:var(--ui-shadow);
 }
-.public-site[data-ui-refresh="2026"] .home-reference .public-destination:is(:hover, :focus-visible) {
-  border-color: var(--ui-accent);
-  box-shadow: 0 14px 42px rgb(0 0 0 / 38%), 0 0 0 1px rgb(246 187 56 / 30%);
+.public-site[data-ui-refresh="2026"] .home-reference .public-destination:is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+  box-shadow:0 14px 35px color-mix(in srgb,var(--ui-bg) 38%,transparent);
 }
-
-/* Editorial cards: one border, one radius, one focus behavior across pages. */
-.public-site[data-ui-refresh="2026"] :is(
-  .public-news-card, .catalog-card, .public-group-card,
-  .person-card, .venue-card, .academy-destination
-) {
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  background-color: var(--ui-surface);
-  box-shadow: var(--ui-shadow);
+.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+  min-height:var(--ui-motto-height);
+  padding-block:clamp(16px,2vw,var(--ui-section-gap));
+  justify-content:center;
+  border-block:1px solid var(--ui-hairline);
+  background:linear-gradient(180deg,var(--ui-surface),var(--ui-bg));
 }
-.public-site[data-ui-refresh="2026"] :is(
-  .public-news-card, .catalog-card, .public-group-card,
-  .person-card, .venue-card, .academy-destination
-):is(:hover, :focus-within) {
-  border-color: rgb(246 187 56 / 64%);
-  box-shadow: 0 18px 46px rgb(0 0 0 / 36%);
+.public-site[data-ui-refresh="2026"] .home-reference .public-news-section {
+  padding-top:var(--ui-section-gap);
+  padding-bottom:var(--ui-section-gap);
+  background:linear-gradient(165deg,var(--ui-surface),var(--ui-bg));
+  border-block:1px solid var(--ui-hairline);
 }
-.public-site[data-ui-refresh="2026"] .public-news-section {
-  background: linear-gradient(170deg, #111415 0%, #0b0d0e 100%);
-  border-block: 1px solid rgb(255 255 255 / 7%);
+.public-site[data-ui-refresh="2026"] .home-reference .public-news-grid {
+  gap:var(--ui-card-gap);
 }
 .public-site[data-ui-refresh="2026"] .public-news-filters {
-  gap: 6px;
+  gap:clamp(4px,1vw,var(--ui-card-gap));
 }
 .public-site[data-ui-refresh="2026"] .public-news-filters button {
-  min-height: 40px;
-  padding-inline: 13px;
-  border: 1px solid transparent;
-  border-radius: 5px;
+  min-height:40px;
+  padding-inline:13px;
+  border:1px solid transparent;
+  border-radius:var(--ui-button-radius);
 }
 .public-site[data-ui-refresh="2026"] .public-news-filters button[aria-pressed="true"] {
-  border-color: rgb(246 187 56 / 48%);
-  background: rgb(246 187 56 / 12%);
+  border-color:var(--ui-emphasis);
+  background:color-mix(in srgb,var(--ui-accent) 12%,transparent);
 }
 .public-site[data-ui-refresh="2026"] .public-news-filters button:hover {
-  border-color: rgb(246 187 56 / 38%);
-}
-.public-site[data-ui-refresh="2026"] :is(.catalog-filters, .public-empty) {
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  background-color: var(--ui-surface);
+  border-color:var(--ui-emphasis);
 }
 
-/* Scores and results are easier to scan without changing source data. */
+/* One editor-controlled card and border system across every public route. */
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-age-card,
+  .academy-review-card,.academy-player-preview,.academy-group-preview,
+  .shop-ticket,.shop-product,.contact-info-card,.contact-message-form
+) {
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  box-shadow:var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"][data-global-design="true"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-review-card,
+  .shop-ticket,.shop-product,.contact-info-card,.contact-message-form
+) {
+  background-color:var(--ui-surface);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-age-card,
+  .academy-review-card,.academy-player-preview,.academy-group-preview,
+  .shop-ticket,.shop-product,.contact-info-card
+):is(:hover,:focus-within) {
+  border-color:var(--ui-accent);
+  box-shadow:0 16px 40px color-mix(in srgb,var(--ui-bg) 33%,transparent);
+}
+.public-site[data-ui-refresh="2026"] :is(.person-card,.venue-card,.academy-age-card,.academy-review-card,.catalog-card) {
+  overflow:hidden;
+}
+.public-site[data-ui-refresh="2026"] :is(.person-card-copy,.public-news-body,.catalog-card-body) {
+  min-width:0;
+}
+
+/* Match rows, tabs and directories remain operational as written. */
 .public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
-  margin-block: 10px;
-  padding-inline: clamp(12px, 1.7vw, 24px);
-  border: 1px solid var(--ui-line);
-  border-radius: 7px;
-  background: var(--ui-surface);
+  margin-block:clamp(8px,1vw,var(--ui-card-gap));
+  padding-inline:var(--ui-card-gap);
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  background:var(--ui-surface);
 }
-.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row:is(:hover, :focus-within) {
-  border-color: rgb(246 187 56 / 55%);
-  background: var(--ui-surface-hover);
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row:is(:hover,:focus-within) {
+  border-color:var(--ui-accent);
+  background:var(--ui-raised);
 }
-.public-site[data-ui-refresh="2026"] :is(.team-tabs, .public-subnav) > :is(a, button) {
-  border-radius: 5px 5px 0 0;
+.public-site[data-ui-refresh="2026"] :is(.team-tabs,.public-subnav) > :is(a,button) {
+  border-radius:var(--ui-button-radius) var(--ui-button-radius) 0 0;
+}
+.public-site[data-ui-refresh="2026"] :is(.roster-filters,.catalog-filters,.event-chip-filters,.catalog-empty) {
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  background-color:var(--ui-surface);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-landing-city-index,.academy-city-index,.academy-section-links
+) a {
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-city-block,.academy-city-section,.academy-location-block,.academy-location-section
+) {
+  scroll-margin-top:calc(var(--public-header) + var(--ui-card-gap));
 }
 
-/* Consistent lower-page finish. All footer links and organization text stay. */
+/* Academy form/finance summaries: style only, keep validation intact. */
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-child,.registration-choice-card,.registration-costs,
+  .registration-koa,.registration-child-documents
+) {
+  border-color:var(--ui-border);
+  border-radius:var(--ui-card-radius);
+}
+.public-site[data-ui-refresh="2026"] .registration-card {
+  border-color:var(--ui-border);
+  box-shadow:var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.roster-filters,.catalog-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+  border-radius:var(--ui-button-radius);
+  border-color:var(--ui-border);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.roster-filters,.catalog-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible {
+  outline:2px solid var(--ui-accent);
+  outline-offset:2px;
+  border-color:var(--ui-accent);
+}
+
+/* Explicit CMS page layout, media sources and inline block spacing win. */
+.public-site[data-ui-refresh="2026"] :is(.catalog-block,.catalog-facts,.catalog-detail-columns,.source-legal-document) {
+  border-color:var(--ui-hairline);
+}
 .public-site[data-ui-refresh="2026"] .public-footer {
-  background: linear-gradient(180deg, #101314 0%, #070809 70%);
-  border-top: 1px solid rgb(246 187 56 / 29%);
+  background:var(--ui-bg);
+  border-top:1px solid var(--ui-emphasis);
 }
 .public-site[data-ui-refresh="2026"] .public-footer-grid {
-  max-width: 1540px;
-  margin-inline: auto;
-  column-gap: clamp(24px, 3vw, 52px);
+  column-gap:var(--ui-section-gap);
 }
-.public-site[data-ui-refresh="2026"] .public-footer-links a,
-.public-site[data-ui-refresh="2026"] .public-footer-account a {
-  border-radius: 4px;
-  text-underline-offset: 4px;
+.public-site[data-ui-refresh="2026"] :is(.public-footer-links a,.public-footer-account a) {
+  text-underline-offset:4px;
+  border-radius:var(--ui-button-radius);
 }
-.public-site[data-ui-refresh="2026"] .public-footer-links a:is(:hover, :focus-visible),
-.public-site[data-ui-refresh="2026"] .public-footer-account a:is(:hover, :focus-visible) {
-  color: var(--ui-accent);
+.public-site[data-ui-refresh="2026"] :is(.public-footer-links a,.public-footer-account a):is(:hover,:focus-visible) {
+  color:var(--ui-link);
 }
-
-/* Visible keyboard focus and motion accessibility. */
 .public-site[data-ui-refresh="2026"] :is(
-  .public-button, .public-news-card, .catalog-card,
-  .public-group-card, .public-destination
+  .public-button,.public-news-card,.catalog-card,.public-group-card,
+  .public-destination,.academy-age-card,.academy-review-card,.shop-product
 ):focus-visible {
-  outline: 3px solid var(--ui-accent);
-  outline-offset: 3px;
+  outline:3px solid var(--ui-accent);
+  outline-offset:3px;
 }
-@media (max-width: 767px) {
-  .public-site[data-ui-refresh="2026"] .public-header {
-    border-bottom-color: rgb(246 187 56 / 22%);
-  }
+@media(max-width:767px) {
   .public-site[data-ui-refresh="2026"] .home-reference .public-destinations {
-    gap: 10px;
+    gap:var(--ui-card-gap);
   }
-  .public-site[data-ui-refresh="2026"] .public-news-filters {
-    row-gap: 4px;
+  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+    min-height:var(--ui-motto-height);
   }
   .public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
-    margin-block: 8px;
-    padding: 15px 14px;
-  }
-  .public-site[data-ui-refresh="2026"] .public-footer-grid {
-    column-gap: 20px;
+    padding:var(--ui-card-gap);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .public-site[data-ui-refresh="2026"] :is(.public-button, .public-rail nav a, .public-rail nav button) {
-    transition: none;
+@media(prefers-reduced-motion:reduce) {
+  .public-site[data-ui-refresh="2026"] :is(.public-button,.public-rail nav a,.public-rail nav button) {
+    transition:none;
   }
 }
-@media (prefers-contrast: more) {
+@media(prefers-contrast:more) {
   .public-site[data-ui-refresh="2026"] {
-    --ui-line: rgb(255 255 255 / 55%);
-  }
-}
-
-/* Interior-page polish: same published imagery and text, clearer surfaces. */
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-program-overview, .academy-reference-fees, .academy-philosophy,
-  .academy-key-figures, .academy-groups-philosophy
-) {
-  border-color: var(--ui-line);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-age-card, .academy-review-card, .academy-player-preview,
-  .academy-group-preview, .academy-destination
-) {
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  box-shadow: var(--ui-shadow);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-age-card, .academy-review-card, .academy-player-preview,
-  .academy-group-preview, .academy-destination
-):focus-within {
-  border-color: var(--ui-accent);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-landing-city-index, .academy-city-index, .academy-section-links
-) {
-  scrollbar-width: thin;
-  scrollbar-color: var(--ui-accent) #141515;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-landing-city-index, .academy-city-index, .academy-section-links
-) a {
-  border-radius: 5px;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-landing-city-index, .academy-city-index, .academy-section-links
-) a:focus-visible {
-  outline: 3px solid var(--ui-accent);
-  outline-offset: 2px;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .academy-city-block, .academy-city-section, .academy-location-block,
-  .academy-location-section
-) {
-  scroll-margin-top: calc(var(--public-header) + 25px);
-}
-
-/* Team/roster editorial: no substitution of player or match images. */
-.public-site[data-ui-refresh="2026"] :is(
-  .person-card, .venue-card, .academy-age-card, .academy-review-card
-) {
-  overflow: hidden;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .person-card-copy, .public-news-body, .catalog-card-body
-) {
-  min-width: 0;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .roster-filters, .catalog-filters, .event-chip-filters
-) {
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  background: var(--ui-surface);
-  box-shadow: 0 9px 26px rgb(0 0 0 / 14%);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .roster-filters, .catalog-filters, .event-chip-filters
-) :is(input, select) {
-  border-color: rgb(255 255 255 / 34%);
-  background-color: #0b0d0e;
-  color: #f7f7f4;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .roster-filters, .catalog-filters, .event-chip-filters
-) :is(input, select):focus-visible {
-  border-color: var(--ui-accent);
-  outline: 2px solid var(--ui-accent);
-  outline-offset: 2px;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .public-pagination, .catalog-results-heading, .roster-count
-) {
-  border-bottom-color: var(--ui-line);
-}
-
-/* Multi-step Academy registration: improve visual grouping and input focus. */
-.public-site[data-ui-refresh="2026"] .registration-card {
-  border-color: rgb(246 187 56 / 33%);
-  box-shadow: 0 20px 55px rgb(0 0 0 / 25%);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .registration-child, .registration-choice-card, .registration-costs,
-  .registration-koa, .registration-child-documents
-) {
-  border-color: var(--ui-line);
-  border-radius: var(--ui-radius);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
-}
-.public-site[data-ui-refresh="2026"] .registration-fields :is(
-  input:not([type="checkbox"]):not([type="radio"]), select, textarea
-) {
-  border: 1px solid rgb(255 255 255 / 34%);
-  border-radius: 5px;
-  background-color: #0b0e0f;
-  transition: border-color .16s ease, box-shadow .16s ease;
-}
-.public-site[data-ui-refresh="2026"] .registration-fields :is(
-  input:not([type="checkbox"]):not([type="radio"]), select, textarea
-):focus-visible {
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 3px rgb(246 187 56 / 11%);
-}
-.public-site[data-ui-refresh="2026"] .registration-step-icon:focus-visible {
-  outline: 3px solid var(--ui-accent);
-  outline-offset: 3px;
-}
-.public-site[data-ui-refresh="2026"] .registration-actions {
-  border-top-color: var(--ui-line);
-}
-
-/* Public shop and contact pages: generous content containers, precise cards. */
-.public-site[data-ui-refresh="2026"] :is(
-  .shop-ticket, .shop-product, .contact-info-card, .contact-message-form
-) {
-  border: 1px solid var(--ui-line);
-  border-radius: var(--ui-radius);
-  background-color: var(--ui-surface);
-  box-shadow: var(--ui-shadow);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .shop-ticket, .shop-product, .contact-info-card
-):hover {
-  border-color: rgb(246 187 56 / 44%);
-}
-.public-site[data-ui-refresh="2026"] .contact-message-form :is(
-  input, select, textarea
-) {
-  border-radius: 5px;
-  background: #090b0c;
-}
-.public-site[data-ui-refresh="2026"] .contact-message-form :is(
-  input, select, textarea
-):focus-visible {
-  border-color: var(--ui-accent);
-  box-shadow: 0 0 0 3px rgb(246 187 56 / 10%);
-}
-.public-site[data-ui-refresh="2026"] :is(.shop-tabs, .public-pagination) a {
-  border-radius: 5px;
-}
-.public-site[data-ui-refresh="2026"] :is(.shop-tabs, .public-pagination) a:focus-visible {
-  outline: 3px solid var(--ui-accent);
-  outline-offset: 3px;
-}
-
-/* Catalogs, legal pages and editorial reading areas share soft separators. */
-.public-site[data-ui-refresh="2026"] :is(
-  .catalog-detail-columns, .catalog-facts, .catalog-block,
-  .source-legal-document, .catalog-archive, .catalog-cta
-) {
-  border-color: var(--ui-line);
-}
-.public-site[data-ui-refresh="2026"] .catalog-card-action {
-  border-top-color: var(--ui-line);
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .catalog-card, .catalog-image-grid, .catalog-detail-image
-) {
-  overflow: hidden;
-}
-.public-site[data-ui-refresh="2026"] :is(
-  .catalog-card, .shop-product, .academy-review-card
-):focus-within {
-  border-color: var(--ui-accent);
-}
-@media (max-width: 767px) {
-  .public-site[data-ui-refresh="2026"] :is(
-    .registration-child, .registration-costs, .contact-message-form
-  ) {
-    box-shadow: 0 9px 22px rgb(0 0 0 / 18%);
-  }
-  .public-site[data-ui-refresh="2026"] :is(
-    .roster-filters, .catalog-filters
-  ) {
-    border-radius: 6px;
-  }
-}
-
-/* Homepage rhythm: remove the oversized empty motto band introduced by
-   legacy reference styles. Keep its original text and decorative stripes. */
-.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
-  min-height: clamp(88px, 8vw, 126px);
-  padding-block: 24px;
-  justify-content: center;
-  border-block: 1px solid rgb(255 255 255 / 9%);
-  background: linear-gradient(180deg, #0e1112 0%, #080a0a 100%);
-}
-.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-bottom {
-  max-width: 1060px;
-}
-.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .public-news-section {
-  padding-top: clamp(25px, 3vw, 44px);
-  padding-bottom: clamp(30px, 3.5vw, 52px);
-}
-@media (max-width: 767px) {
-  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
-    min-height: 76px;
-    padding: 17px 18px;
-  }
-  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .public-news-section {
-    padding-top: 26px;
-    padding-bottom: 32px;
+    --ui-hairline:var(--ui-border);
   }
 }
