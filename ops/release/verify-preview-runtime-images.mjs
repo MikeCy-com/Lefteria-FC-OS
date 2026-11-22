@@ -76,9 +76,13 @@ export function verifyPreviewRuntimeImages({
       if(row.read_only!==true)add('runtime_root_filesystem_not_read_only');
       if(row.revision!==sha||row.source!==SOURCE)
         add('runtime_oci_revision_mismatch');
+      // Verified preview bootstrap intentionally pins Compose images by
+      // immutable sha256 image ID, not mutable tags. Older image-ref inputs
+      // may use the exact verified tag, but never latest or an unrelated tag.
       if(!images?.[service]||
          row.image_id!==images[service].id||
-         row.image_ref!==images[service].reference)
+         (row.image_ref!==images[service].id&&
+          row.image_ref!==images[service].reference))
         add('running_image_not_candidate_bundle');
     }
     if(seen.size!==SERVICES.length)add('runtime_service_set_invalid');
