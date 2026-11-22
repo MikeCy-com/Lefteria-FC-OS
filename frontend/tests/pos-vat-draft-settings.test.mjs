@@ -5,6 +5,8 @@ import {compile} from 'svelte/compiler';
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 const api=read('backend/src/LefteriaFc.Api/Pos/AdminPosVatSettingsEndpoints.cs');
 const migration=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261122150000_PosVatClassificationProposals.cs');
+const decisions=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261122151000_PosVatProposalReviews.cs');
+const postgresCheck=read('ops/postgres/pos-vat-proposal-checks.sql');
 const grants=read('ops/postgres/pos-vat-proposals-staging-grants.sql');
 const page=read('frontend/src/routes/admin/settings/pos-vat/+page.svelte');
 const provider=read('frontend/src/routes/admin/settings/providers/+page.svelte');
@@ -49,6 +51,28 @@ test('staging SQL grant requires reviewed narrow admin DB role and forbids mobil
   assert.match(grants,/GRANT EXECUTE ON FUNCTION pos_cashier\.propose_admin_variant_vat/);
   assert.doesNotMatch(grants,/GRANT .*pos_cashier\.(?:sales|receipts|refund_events|payment_events)/i);
 });
+test('a different authorized Super Admin must review, while VAT revision stays disabled',()=>{
+  assert.match(decisions,/v_role<>'super_admin'/);
+  assert.match(decisions,/v_proposal\.requested_by=v_actor/);
+  assert.match(decisions,/pos_vat_self_review_denied/);
+  assert.match(decisions,/WHERE id=_proposal AND organization_id=_owner FOR UPDATE/);
+  assert.match(decisions,/CREATE TRIGGER pos_vat_review_immutable/);
+  assert.match(decisions,/CHECK\(approved = \(treatment_revision IS NOT NULL\)\)/);
+  assert.match(decisions,/policy_revision,effective_from,/);
+  assert.match(decisions,/reviewed_by,reviewed_at,enabled/);
+  assert.match(decisions,/clock_timestamp\(\),false\)/);
+  assert.match(decisions,/INSERT INTO pos_cashier\.variant_vat_assignments/);
+  assert.match(decisions,/pos_vat_review_conflict/);
+  assert.match(decisions,/fiscal_policies_approved',false/);
+  assert.match(decisions,/pos_vat_reviews_require_forward_recovery/);
+  assert.match(api,/review_admin_variant_vat\(/);
+  assert.match(api,/ReadAdminPosVatReviews/);
+  assert.match(api,/review:true/);
+  assert.match(api,/session\.User\.Role!="super_admin"/);
+  assert.match(grants,/GRANT EXECUTE ON FUNCTION pos_cashier\.review_admin_variant_vat/);
+  assert.match(postgresCheck,/unauthenticated_vat_review_allowed/);
+});
+
 test('admin UI is a real scoped form with pending-only receipt/payabl/fiscal status',()=>{
   assert.match(program,/app\.MapAdminPosVatSettings\(\)/);
   assert.match(provider,/data-testid="admin-provider-vat-settings"/);
@@ -62,5 +86,9 @@ test('admin UI is a real scoped form with pending-only receipt/payabl/fiscal sta
   assert.match(page,/\/api\/admin\/pos\/catalog/);
   assert.match(page,/\/api\/admin\/finance\/pos-vat\/proposals/);
   assert.match(page,/request_id:requestId/);
+  assert.match(page,/data-testid="vat-independent-review"/);
+  assert.match(page,/function submitReview/);
+  assert.match(page,/review_note:reviewNote/);
+  assert.match(page,/canReview/);
   assert.ok(compile(page,{filename:'admin/settings/pos-vat/+page.svelte',generate:'server'}).js.code.length>100);
 });
