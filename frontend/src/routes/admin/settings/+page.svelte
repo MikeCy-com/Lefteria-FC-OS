@@ -28,7 +28,7 @@
   <AdminFrame user={$auth.session.user} active="settings" busy={$auth.busy}
     onLogout={()=>void auth.logout()}>
     <div class="admin-settings-home" data-testid="admin-settings-home">
-      <header><p class="admin-eyebrow">ΡΥΘΜΙΣΕΙΣ · ΛΕΥΤΕΡΙΑ FC</p>
+      <header>
         <h1>Ρυθμίσεις συλλόγου</h1>
         <p class="admin-muted">Οι ρυθμίσεις χωρίζονται ανά λειτουργία και οργανισμό.
           Οι σύνδεσμοι ανοίγουν τα πραγματικά, προστατευμένα εργαλεία.</p>
