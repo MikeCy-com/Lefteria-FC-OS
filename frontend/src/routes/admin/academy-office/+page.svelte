@@ -58,8 +58,11 @@
   let offset = $state(0);
   let revision = $state(0);
   let entries = $state<Entry[]>([]);
-  const visibleEntries = $derived(filterRegistrations(entries,applicationFilter,applicationQuery));
-  const pageTotals = $derived(registrationPageSummary(entries));
+  // The API fetches an extra row solely to show that another page exists.
+  // Never count or render that look-ahead record on the current page.
+  const registrationPageItems = $derived(entries.slice(0,25));
+  const visibleEntries = $derived(filterRegistrations(registrationPageItems,applicationFilter,applicationQuery));
+  const pageTotals = $derived(registrationPageSummary(registrationPageItems));
   let orders = $state<Order[]>([]);
   let players = $state<Player[]>([]);
   let search = $state('');
