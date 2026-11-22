@@ -89,7 +89,7 @@ public static class WebsitePageEndpoints
         {
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageCreate>(context, ct);
-            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            Slug(body.Slug); body.Page.Validate(); ValidateHomeHero(owner, body.Slug, body.Page); ValidateAcademySpotlight(owner, body.Slug, body.Page); ValidateCanonicalAboutIntro(body.Slug, body.Page); ValidateCanonicalContactLead(body.Slug, body.Page); ValidateCanonicalAboutHistory(body.Slug, body.Page); ValidateAcademyEditorialLead(owner, body.Slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -112,7 +112,7 @@ public static class WebsitePageEndpoints
             var owner = Owner(organization_id);
             var body = await Parse<WebsitePageRevision>(context, ct);
             if (body.ExpectedVersion < 1) throw Invalid();
-            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateMenuPlacement(owner, body.Page);
+            body.Page.Validate(); ValidateHomeHero(owner, slug, body.Page); ValidateAcademySpotlight(owner, slug, body.Page); ValidateCanonicalAboutIntro(slug, body.Page); ValidateCanonicalContactLead(slug, body.Page); ValidateCanonicalAboutHistory(slug, body.Page); ValidateAcademyEditorialLead(owner, slug, body.Page); ValidateMenuPlacement(owner, body.Page);
             return Results.Ok(await Authorized(context, owner, "news:write", async (db, tx, actor, session) =>
             {
                 await using var command = new NpgsqlCommand("""
@@ -380,6 +380,19 @@ public static class WebsitePageEndpoints
             content.Blocks.Skip(1).Any(block => block.Type != "paragraph" ||
                 block.Url is not null || string.IsNullOrWhiteSpace(block.Text) ||
                 block.Text.Length > 800))
+            throw Invalid();
+    }
+    // Preserve Academy fixtures, group rosters, registration links and core layout:
+    // only the fixed introductory copy is editorial. Other owners are forbidden.
+    private static void ValidateAcademyEditorialLead(string owner, string slug, WebsitePageContent content)
+    {
+        if (slug is not ("canonical-academy-intro" or "canonical-academy-philosophy-lead")) return;
+        if (owner != "lefteria_fc_academy" ||
+            content.MenuParent != "hidden" || content.MenuOrder != 0 ||
+            content.Blocks.Count != 1 || content.Blocks[0].Type != "paragraph" ||
+            content.Blocks[0].Url is not null ||
+            string.IsNullOrWhiteSpace(content.Blocks[0].Text) ||
+            content.Blocks[0].Text.Length > 500)
             throw Invalid();
     }
     private static string Owner(string? org) =>
