@@ -18,7 +18,7 @@ test('admin first-team trials panel remains inside authenticated FC scope',()=>{
   assert.ok(access.includes("'settings:read'"));
   assert.ok(access.includes("'marketing:read'"));
   assert.ok(frame.includes('data-testid="admin-trials-link"'));
-  assert.ok(workspace.includes("id:'groups'") && !workspace.includes('Under Developments'));
+  assert.ok(workspace.includes('admin-dashboard-metrics') && !workspace.includes('Under Developments'));
   assert.ok(frame.includes("active==='trials'"));
 });
 
