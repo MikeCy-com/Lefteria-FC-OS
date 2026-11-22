@@ -155,7 +155,7 @@
   <AdminFrame user={$auth.session.user} busy={$auth.busy||busy} onLogout={()=>void auth.logout()}>
     <main class="editor" data-testid="weekly-quiz-admin">
       <header>
-        <p class="eyebrow">ΛΕΥΤΕΡΙΑ FC · HUB · ΑΘΛΗΤΕΣ</p>
+        
         <h1>Εβδομαδιαία ποδοσφαιρικά κουίζ</h1>
         <p>Κάθε αθλητής προχωρά με δική του σειρά. Οι ερωτήσεις απαιτούν ανθρώπινη έγκριση
           από διαφορετικό υπεύθυνο και ξεχωριστή δημοσίευση.</p>
