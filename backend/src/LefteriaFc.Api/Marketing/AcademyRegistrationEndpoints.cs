@@ -85,7 +85,7 @@ public static class AcademyRegistrationEndpoints
             body = json.RootElement.Deserialize<AcademyRegistrationRequest>(StrictJson);
         }
         catch (JsonException) { return Failure(400,"invalid_json"); }
-        if (body is null || !Validate(body,out _) || !ValidKit(body)) return Failure(422,"invalid_registration");
+        if (body is null || !Validate(body,out _) || !ValidKit(body) || !ValidKoa(body)) return Failure(422,"invalid_registration");
         if (body.AdditionalPlayers is { Count: > 4 }) return Failure(422,"too_many_players");
         var children = new List<AcademyRegistrationRequest> { body };
         foreach (var additional in body.AdditionalPlayers ?? [])
@@ -93,7 +93,7 @@ public static class AcademyRegistrationEndpoints
         var identities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var child in children)
         {
-            if (!Validate(child,out _) || !ValidKit(child) ||
+            if (!Validate(child,out _) || !ValidKit(child) || !ValidKoa(child) ||
                 !identities.Add(child.PlayerFirstName.Trim()+"|"+child.PlayerLastName.Trim()+"|"+child.PlayerDob))
                 return Failure(422,"invalid_family_registration");
         }
@@ -127,6 +127,7 @@ public static class AcademyRegistrationEndpoints
                     child.HasAllergies,child.AllergiesDetails,child.HasConditions,child.ConditionsDetails,
                     child.HasMedication,child.MedicationDetails,
                     child.PreferredNumber,child.PreferredPrintName,
+                    child.KoaHealthCardStatus,body.ConsentViber,
                     OfficialKitMandatory=true,PrintingMandatory=true,
                     child.PaymentMethod,child.SignatureData,child.SignatureDate,
                     child.CommEmail,child.CommSms
@@ -200,17 +201,21 @@ public static class AcademyRegistrationEndpoints
         HasConditions=child.HasConditions,ConditionsDetails=child.ConditionsDetails,
         HasMedication=child.HasMedication,MedicationDetails=child.MedicationDetails,
         PreferredNumber=child.PreferredNumber,PreferredPrintName=child.PreferredPrintName,
+        KoaHealthCardStatus=child.KoaHealthCardStatus,
         ParentName=family.ParentName,ParentRelationship=family.ParentRelationship,
         ParentPhone=family.ParentPhone,ParentEmail=family.ParentEmail,
         EmergencyName=family.EmergencyName,EmergencyPhone=family.EmergencyPhone,
         EmergencyRelationship=family.EmergencyRelationship,
         ConsentParticipation=family.ConsentParticipation,ConsentMedicalAuth=family.ConsentMedicalAuth,
         ConsentGdpr=family.ConsentGdpr,ConsentMedia=family.ConsentMedia,
-        ConsentCommunications=family.ConsentCommunications,CommEmail=family.CommEmail,
+        ConsentCommunications=family.ConsentCommunications,ConsentViber=family.ConsentViber,CommEmail=family.CommEmail,
         CommSms=family.CommSms,ConsentLiability=family.ConsentLiability,
         ConsentFinancial=family.ConsentFinancial,PaymentMethod=family.PaymentMethod,
         SignatureData=family.SignatureData,SignatureDate=family.SignatureDate
     };
+    private static bool ValidKoa(AcademyRegistrationRequest child) =>
+        child.KoaHealthCardStatus is "yes" or "no";
+
     private static bool ValidKit(AcademyRegistrationRequest child) =>
         !string.IsNullOrWhiteSpace(child.PreferredPrintName) &&
         child.PreferredPrintName.Length<=32 &&
@@ -258,6 +263,7 @@ public sealed class AcademyRegistrationRequest
     public List<AcademyRegistrationAdditionalPlayer>? AdditionalPlayers {get;set;}
     public string PreferredNumber {get;set;} = "";
     public string PreferredPrintName {get;set;} = "";
+    public string KoaHealthCardStatus {get;set;} = "";
     public string PlayerFirstName {get;set;} = "";
     public string PlayerLastName {get;set;} = "";
     public string PlayerDob {get;set;} = "";
@@ -282,6 +288,7 @@ public sealed class AcademyRegistrationRequest
     public bool ConsentMedicalAuth {get;set;}
     public bool ConsentGdpr {get;set;}
     public string ConsentMedia {get;set;} = "";
+    public bool ConsentViber {get;set;}
     public bool ConsentCommunications {get;set;}
     public bool CommEmail {get;set;}
     public bool CommSms {get;set;}
@@ -309,4 +316,5 @@ public sealed class AcademyRegistrationAdditionalPlayer
     public string MedicationDetails {get;set;} = "";
     public string PreferredNumber {get;set;} = "";
     public string PreferredPrintName {get;set;} = "";
+    public string KoaHealthCardStatus {get;set;} = "";
 }
