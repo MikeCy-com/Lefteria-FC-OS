@@ -242,6 +242,7 @@
     letter-spacing:-.025em;font-style:italic;margin:0;
     text-shadow:0 7px 24px #000c;
   }
+  :global(.public-site[data-route="/academy"]) .academy-title-gold{color:var(--public-gold)}
   .academy-hero-motto{
     font:800 clamp(17px,1.9vw,30px)/1.22 'Fira Sans Extra Condensed',sans-serif;
     color:#fff;margin:15px 0 20px;
@@ -491,10 +492,4 @@
     .academy-published-empty{align-items:flex-start;flex-direction:column}
   }
 
-</style>
-
-<style>
-  /* Original AcademyLandingPage.jsx pairs the club name with a gold Academy
-     wordmark, rather than displaying Academy as an oversized solo heading. */
-  :global(.public-site[data-route="/academy"]) .academy-title-gold{color:var(--public-gold)}
 </style>
