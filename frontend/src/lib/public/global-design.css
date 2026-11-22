@@ -22,3 +22,18 @@
 .public-site[data-global-design="true"] .public-button,.public-site[data-global-design="true"] .public-main button{font-size:var(--lf-button-mobile)!important}
 .public-site[data-global-design="true"] nav a{font-size:var(--lf-nav-mobile)!important}
 }
+
+/* Component typography remains separate from semantic headings. */
+.public-site[data-global-design="true"] .public-main figcaption,
+.public-site[data-global-design="true"] .public-main .public-caption{font-family:var(--lf-caption-family)!important;font-size:var(--lf-caption-desktop)!important;font-weight:var(--lf-caption-weight)!important;line-height:var(--lf-caption-line)!important;color:var(--lf-color-muted)}
+.public-site[data-global-design="true"] .public-main label{font-family:var(--lf-label-family)!important;font-size:var(--lf-label-desktop)!important;font-weight:var(--lf-label-weight)!important;line-height:var(--lf-label-line)!important}
+.public-site[data-global-design="true"] .public-main .public-card-title{font-family:var(--lf-card-family)!important;font-size:var(--lf-card-desktop)!important;font-weight:var(--lf-card-weight)!important;line-height:var(--lf-card-line)!important}
+.public-site[data-global-design="true"] .public-muted{color:var(--lf-color-muted)!important}
+.public-site[data-global-design="true"] .public-main a:not(.public-button){color:var(--lf-color-link)}
+.public-site[data-global-design="true"] .website-block-wrap{border-color:var(--lf-color-border)}
+@media(max-width:767px){
+.public-site[data-global-design="true"] .public-main figcaption,
+.public-site[data-global-design="true"] .public-main .public-caption{font-size:var(--lf-caption-mobile)!important}
+.public-site[data-global-design="true"] .public-main label{font-size:var(--lf-label-mobile)!important}
+.public-site[data-global-design="true"] .public-main .public-card-title{font-size:var(--lf-card-mobile)!important}
+}
