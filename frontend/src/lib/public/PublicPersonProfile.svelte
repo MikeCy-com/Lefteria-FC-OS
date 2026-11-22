@@ -86,7 +86,7 @@
 
 <style>
   .person-breadcrumbs{display:flex;gap:10px;align-items:center;flex-wrap:wrap;
-    padding:14px clamp(20px,4vw,58px);font-size:12px;color:#bbb;background:#080909}
+    padding:14px clamp(20px,4vw,58px);font-size:12px;color:var(--lf-color-muted,#bbbbbb);background:var(--lf-color-bg,#080909)}
   .person-breadcrumbs a{color:var(--public-gold);text-decoration:none}
   .person-breadcrumbs a:focus-visible{outline:2px solid var(--public-gold);outline-offset:4px}
   :global(.public-site) .person-name-highlight{display:block;color:var(--public-gold)}
@@ -97,8 +97,8 @@
     align-items:end;gap:clamp(20px,3vw,42px);
     padding:clamp(28px,4vw,54px) clamp(22px,5vw,70px);
     min-height:390px;max-width:100%;background:
-      linear-gradient(90deg,#050606eb,#080909bd 55%,#090a0aeb),
-      radial-gradient(ellipse at 50% 35%,#5b47243c,transparent 68%),#080909;
+      linear-gradient(90deg,color-mix(in srgb,var(--lf-color-bg,#050606) 92.157%,transparent),color-mix(in srgb,var(--lf-color-bg,#080909) 74.118%,transparent) 55%,color-mix(in srgb,var(--lf-color-bg,#090a0a) 92.157%,transparent)),
+      radial-gradient(ellipse at 50% 35%,color-mix(in srgb,var(--lf-color-accent,#5b4724) 23.529%,transparent),transparent 68%),var(--lf-color-bg,#080909);
   }
   :global(.public-site) .player-profile-hero .person-portrait{
     grid-column:1;grid-row:1;padding:0;background:transparent;align-self:end;
@@ -125,9 +125,9 @@
     display:grid;gap:18px;align-self:end;
   }
   .person-stat-line{display:grid;gap:7px}
-  .person-stat-label{display:flex;justify-content:space-between;gap:12px;align-items:baseline;color:#d8d8d8;font-size:12px;font-weight:600}
+  .person-stat-label{display:flex;justify-content:space-between;gap:12px;align-items:baseline;color:var(--lf-color-text,#d8d8d8);font-size:12px;font-weight:600}
   .person-stat-label strong{color:var(--public-gold)}
-  .person-stat-track{height:6px;border-radius:5px;background:#252525;overflow:hidden}
+  .person-stat-track{height:6px;border-radius:5px;background:var(--lf-color-surface,#252525);overflow:hidden}
   .person-stat-track>span{display:block;height:100%;background:var(--public-gold);border-radius:5px}
   @media(max-width:1100px){
     :global(.public-site) .player-profile-hero{
