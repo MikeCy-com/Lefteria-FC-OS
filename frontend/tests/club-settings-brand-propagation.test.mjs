@@ -79,7 +79,8 @@ test('public contact email accepts ordinary addresses and rejects malformed or i
 
 test('public page loader rejects cross-organization site responses and Academy navigation',()=>{
   assert.match(publicContent,/export function verifiedPublicSite\(/);
-  assert.match(publicContent,/site\?\.club\?\.organization_id === organization \? site : null/);
+  assert.match(publicContent,/site\?\.organization_id === organization/);
+  assert.match(publicContent,/site\.club == null \|\| site\.club\.organization_id === organization/);
   assert.match(publicContent,/verifiedPublicSite\(result\.value, organization\)/);
   assert.match(publicContent,/verifiedPublicSite\(navigation\.value, 'lefteria_fc_academy'\)/);
   assert.match(publicContent,/branding: site\?\.club \?\? null/);
