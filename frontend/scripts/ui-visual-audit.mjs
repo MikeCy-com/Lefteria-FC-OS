@@ -108,6 +108,40 @@ async function verifyPublishedThemeControls(browser, base) {
   } finally { await context.close(); }
 }
 
+/* Verify native templates, not only the homepage: a published tenant palette
+ * must win over old page-local styles for the same nondefault light theme. */
+async function verifyNativeThemePages(browser, base) {
+  const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+  const checked=[];
+  try {
+    const page=await context.newPage();
+    for(const {route,selector,property,expected} of [
+      {route:'/academy',selector:'.academy-key-figures',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
+      {route:'/academy/registration',selector:'.registration-card',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
+      {route:'/contact',selector:'.contact-page-heading',property:'backgroundColor',expected:'rgb(245, 245, 240)'},
+      {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'}
+    ]) {
+      await page.goto(base+route,{waitUntil:'domcontentloaded'});
+      const actual=await page.evaluate(({selector,property})=>{
+        const site=document.querySelector('[data-testid="public-site"]');
+        const element=document.querySelector(selector);
+        if(!site||!element)throw Error('Missing native page element: '+selector);
+        site.setAttribute('data-global-design','true');
+        for(const [key,value] of Object.entries({
+          '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
+          '--lf-color-accent':'#145db3','--lf-color-surface':'#ffffff',
+          '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
+          '--lf-color-link':'#145db3'
+        }))site.style.setProperty(key,value);
+        return getComputedStyle(element)[property];
+      },{selector,property});
+      assert.equal(actual,expected,route+' '+selector+' ignores published '+property);
+      checked.push({route,selector,actual});
+    }
+    return checked;
+  }finally{await context.close();}
+}
+
 async function verifyAppInstall(browser, base, artifacts) {
   const checks = [];
   const context = await browser.newContext({ viewport:{width:390,height:844}, reducedMotion:'reduce', locale:'el-GR' });
@@ -822,13 +856,16 @@ try {
   let publishedTheme={};
   try {publishedTheme=await verifyPublishedThemeControls(browser,base);}
   catch(error){failures.push('Published WYSIWYG theme override: '+(error.stack??error.message));}
+  let nativeThemePages=[];
+  try {nativeThemePages=await verifyNativeThemePages(browser,base);}
+  catch(error){failures.push('Native WYSIWYG palette override: '+(error.stack??error.message));}
   let installation = [];
   try { installation = await verifyAppInstall(browser, base, artifacts); }
   catch (error) { failures.push('App installation: ' + (error.stack ?? error.message)); }
   let adminNavigation=[];
   try { adminNavigation=await verifyAuthenticatedAdminNavigation(browser,base,artifacts); }
   catch(error) { failures.push('Authenticated admin sidebar visual check: '+(error.stack ?? error.message)); }
-  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, publishedTheme, installation, adminNavigation, failures }, null, 2) + '\n');
+  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, publishedTheme, nativeThemePages, installation, adminNavigation, failures }, null, 2) + '\n');
   console.log(JSON.stringify({results:results.length,installation,failures},null,2));
   assert.equal(failures.length,0,'UI viewport smoke detected regressions; inspect results.json and screenshots');
 } finally {
