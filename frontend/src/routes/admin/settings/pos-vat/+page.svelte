@@ -14,6 +14,11 @@
     approval_available:false;proposals:Proposal[]};
   type VatReview={proposal_id:string;approved:boolean;review_note:string;
     treatment_revision:number|null;reviewed_at:string};
+  type VatAssignment={product_id:string;variant_id:string;treatment_code:string;
+    treatment_revision:number;basis_points:number|null;effective_from:string;
+    effective_until:string|null;enabled:boolean;approved_at:string;
+    authority_reference:string};
+
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const rates=[
     {value:'standard_19',label:'19% · κανονικός'},
@@ -30,6 +35,7 @@
   let products=$state<CatalogProduct[]>([]);
   let loading=$state(false),saving=$state(false),error=$state(''),notice=$state('');
   let reviews=$state<VatReview[]>([]),reviewsAvailable=$state(false);
+  let assignments=$state<VatAssignment[]>([]),assignmentsError=$state('');
   const canReview=$derived($auth.session?.user.role==='super_admin'&&reviewsAvailable);
   let reviewTarget=$state<string|null>(null),reviewNote=$state(''),reviewSaving=$state(false);
   let productId=$state(''),variantId=$state(''),code=$state('standard_19');
@@ -159,6 +165,53 @@
     })();
     return()=>controller.abort();
   });
+  $effect(()=>{
+    const current=owner;void refresh;
+    assignments=[];assignmentsError='';
+    if(!browser||!authorized||!current)return;
+    const controller=new AbortController();
+    void(async()=>{
+      try{
+        const result=await fetch('/api/admin/finance/pos-vat/assignments?'+
+          new URLSearchParams({organization_id:current}),{
+            credentials:'same-origin',cache:'no-store',signal:controller.signal,
+            headers:{Accept:'application/json'}
+          });
+        if(result.status===401||result.status===403){
+          if(!controller.signal.aborted)void auth.bootstrap();return;
+        }
+        if(!result.ok)throw Error('Δεν είναι διαθέσιμες οι εγκεκριμένες ταξινομήσεις.');
+        const raw:unknown=await result.json();
+        if(!raw||typeof raw!=='object'||Array.isArray(raw))
+          throw Error('Μη έγκυρα στοιχεία ταξινόμησης.');
+        const value=raw as Record<string,unknown>;
+        if(value.organization_id!==current||value.checkout_enabled!==false||
+          value.fiscal_policies_approved!==false||
+          !Array.isArray(value.assignments)||value.assignments.length>100)
+          throw Error('Ασυμφωνία φορολογικού οργανισμού.');
+        const valid=value.assignments.every((a:unknown)=>{
+          if(!a||typeof a!=='object'||Array.isArray(a))return false;
+          const x=a as Record<string,unknown>;
+          return typeof x.product_id==='string'&&typeof x.variant_id==='string'&&
+            typeof x.treatment_code==='string'&&rates.some(r=>r.value===x.treatment_code)&&
+            Number.isSafeInteger(x.treatment_revision)&&
+            (x.basis_points===null||Number.isSafeInteger(x.basis_points))&&
+            typeof x.effective_from==='string'&&
+            (x.effective_until===null||typeof x.effective_until==='string')&&
+            typeof x.enabled==='boolean'&&typeof x.approved_at==='string'&&
+            typeof x.authority_reference==='string';
+        });
+        if(!valid)throw Error('Ασυμβατότητα καταχωρισμένων ταξινομήσεων.');
+        if(!controller.signal.aborted&&owner===current)
+          assignments=value.assignments as VatAssignment[];
+      }catch(e){
+        if(!controller.signal.aborted)
+          assignmentsError=e instanceof Error?e.message:'Σφάλμα φόρτωσης.';
+      }
+    })();
+    return()=>controller.abort();
+  });
+
   async function submitReview(approve:boolean){
     if(!owner||!canReview||!reviewTarget||reviewSaving||
       reviewNote.trim()!==reviewNote||reviewNote.length<10||reviewNote.length>500)return;
@@ -314,6 +367,30 @@
                           data-testid="vat-review-open">Ανεξάρτητος έλεγχος</button>
                       {/if}
                     {/if}
+                  </article>
+                {/each}
+              </div>
+            {/if}
+          </section>
+          <section class="admin-panel" data-testid="vat-reviewed-assignments">
+            <h2>Ελεγμένες ταξινομήσεις προϊόντων</h2>
+            <p class="admin-muted">Οι καταχωρισμένες αναθεωρήσεις είναι αποθηκευμένες
+              ανά οργανισμό, προϊόν και παραλλαγή. Η κατάσταση «Ανενεργή»
+              σημαίνει ότι δεν ισχύει ακόμη για ταμείο, παραστατικά ή πληρωμές.</p>
+            {#if assignmentsError}<p role="alert">{assignmentsError}</p>{/if}
+            {#if !assignmentsError&&!assignments.length}
+              <p>Δεν έχουν καταχωριστεί ελεγμένες ταξινομήσεις.</p>
+            {:else}
+              <div class="vat-list">
+                {#each assignments as item (item.product_id+'-'+item.variant_id)}
+                  <article>
+                    <strong>{item.product_id} · {item.variant_id}</strong>
+                    <p>{rates.find(r=>r.value===item.treatment_code)?.label}
+                      · Αναθεώρηση {item.treatment_revision}</p>
+                    <p>Από {item.effective_from}
+                      {item.effective_until?' έως '+item.effective_until:''}
+                      · {item.enabled?'Ενεργή πολιτική':'Ανενεργή πολιτική'}</p>
+                    <small>{item.authority_reference}</small>
                   </article>
                 {/each}
               </div>
