@@ -11,7 +11,7 @@
   import { duplicateWebsiteBlock, moveWebsiteBlock } from '../../../lib/admin/website-block-editor.ts';
   import WebsitePageBlocks from '../../../lib/public/WebsitePageBlocks.svelte';
   import WebsiteVisualCanvas from '../../../lib/admin/WebsiteVisualCanvas.svelte';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -74,7 +74,7 @@
   const isAboutIntro = $derived(slug === CANONICAL_ABOUT_INTRO_SLUG);
   const isContactLead = $derived(slug === CANONICAL_CONTACT_LEAD_SLUG);
   const isAboutHistory = $derived(slug === CANONICAL_ABOUT_HISTORY_SLUG);
-  const isAcademyLead = $derived(slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG || slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG);
+  const isAcademyLead = $derived(slug === CANONICAL_ACADEMY_INTRO_SLUG || slug === CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG || slug === CANONICAL_ACADEMY_GROUPS_LEAD_SLUG || slug === CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG);
   const isLockedRegion = $derived(isHero || isSpotlight || isAboutIntro || isContactLead || isAboutHistory || isAcademyLead);
 
   $effect(() => {
@@ -131,19 +131,21 @@
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     creating=true;picked=null;slug='';draft=blank();problem='';notice='';mediaPickerIndex=null;
   }
-  function openAcademyEditorialLead(target: typeof CANONICAL_ACADEMY_INTRO_SLUG | typeof CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG | typeof CANONICAL_ACADEMY_GROUPS_LEAD_SLUG) {
+  function openAcademyEditorialLead(target: typeof CANONICAL_ACADEMY_INTRO_SLUG | typeof CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG | typeof CANONICAL_ACADEMY_GROUPS_LEAD_SLUG | typeof CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG) {
     if(organization!=='lefteria_fc_academy'||!canWrite||saving)return;
     const existing=records.find(page=>page.slug===target);
     if(existing){openPage(existing);return;}
     if(dirty && !window.confirm('Απόρριψη μη αποθηκευμένων αλλαγών;'))return;
     const isPhilosophy=target===CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG;
     const isGroups=target===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG;
+    const isRegistration=target===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG;
     creating=true;picked=null;slug=target;mediaPickerIndex=null;
-    draft={title:isGroups?'Εισαγωγή · Τμήματα Ακαδημίας':isPhilosophy?'Εισαγωγή · Φιλοσοφία Ακαδημίας':'Εισαγωγή · Ακαδημία',
+    draft={title:isRegistration?'Εισαγωγή · Εγγραφές Ακαδημίας':isGroups?'Εισαγωγή · Τμήματα Ακαδημίας':isPhilosophy?'Εισαγωγή · Φιλοσοφία Ακαδημίας':'Εισαγωγή · Ακαδημία',
       summary:'Εγκεκριμένο εισαγωγικό κείμενο στην υπάρχουσα σελίδα',
       seo_title:'',seo_description:'',menu_parent:'hidden',menu_order:0,
       blocks:[{type:'paragraph',text:isPhilosophy
         ?'Πιστευουμε οτι καθε νεος αθλητης αξιζει ενα περιβαλλον που τον αναπτυσσει ολοπλευρα — τεχνικα, τακτικα, σωματικα και ψυχολογικα.'
+        :isRegistration?'Συμπληρώστε τη φόρμα για να αιτηθείτε την εγγραφή του αθλητή στην ακαδημία.'
         :isGroups?'Γνώρισε τα τμήματά μας και βρες τις πληροφορίες προπονήσεων και αγώνων για κάθε ηλικιακή ομάδα.'
         :'Η Ακαδημία της Λευτεριάς FC είναι αφιερωμένη στην ανάπτυξη νέων ποδοσφαιριστών. Χτίζουμε χαρακτήρα, πειθαρχία και αγάπη για το άθλημα μέσα από ένα δομημένο πρόγραμμα προπόνησης.',url:null}]};
     notice='';problem='';
@@ -440,6 +442,10 @@
                 disabled={loading || saving} data-testid="edit-canonical-academy-intro">
                 Επεξεργασία εισαγωγής · Ακαδημία
               </button>
+              <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG)}
+                disabled={loading || saving} data-testid="edit-canonical-academy-registration">
+                Επεξεργασία εισαγωγής · Εγγραφές Ακαδημίας
+              </button>
               <button type="button" class="admin-secondary" onclick={()=>openAcademyEditorialLead(CANONICAL_ACADEMY_GROUPS_LEAD_SLUG)}
                 disabled={loading || saving} data-testid="edit-canonical-academy-groups">
                 Επεξεργασία εισαγωγής · Τμήματα Ακαδημίας
@@ -593,7 +599,7 @@
                         onclick={()=>void publication(true)}>Επαναδημοσίευση πρόχειρου</button>{/if}
                     {/if}
                     {#if selected?.published && organization}
-                      <a class="admin-secondary" href={isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
+                      <a class="admin-secondary" href={isAcademyLead ? (slug===CANONICAL_ACADEMY_INTRO_SLUG ? '/academy' : slug===CANONICAL_ACADEMY_GROUPS_LEAD_SLUG ? '/academy/groups' : slug===CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG ? '/academy/registration' : '/academy/philosophy') : isAboutHistory ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isContactLead ? (organization==='lefteria_fc_academy' ? '/contact?organization_id=lefteria_fc_academy' : '/contact') : isAboutIntro ? (organization==='lefteria_fc_academy' ? '/about?organization_id=lefteria_fc_academy' : '/about') : isLockedRegion ? '/' : websitePagePath(selected.slug,organization)} target="_blank" rel="noopener noreferrer">Δημόσια προβολή ↗</a>
                     {/if}
                   </div>
                 </form>
