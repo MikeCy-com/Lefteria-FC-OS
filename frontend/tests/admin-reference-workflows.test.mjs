@@ -19,6 +19,8 @@ test('reference admin pages compile and preserve the real group and roster surfa
   assert.match(groups,/AdminRosterPlayersPanel owner=\{directory\.organization_id\}/);
   assert.match(groups,/data-testid="admin-group-workspace"/);
   assert.match(roster,/data-testid="admin-player-search"/);
+  assert.match(roster,/data-testid="admin-player-group-filter"/);
+  assert.match(roster,/currentGroups\(player\)\.includes\(playerGroupFilter\)/);
   assert.match(roster,/data-testid="admin-player-individual-workspace"/);
   assert.match(roster,/group-players\?/);
 });
