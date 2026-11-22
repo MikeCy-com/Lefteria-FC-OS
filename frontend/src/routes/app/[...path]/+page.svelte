@@ -4,6 +4,7 @@
   import { page } from '$app/state';
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
+  import {brandOwnerForRole,readPublicBrand,type ClubBrand} from '../../../lib/mobile/club-branding.ts';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
   import MobileRecipientInvitations from '../../../lib/mobile/components/MobileRecipientInvitations.svelte';
   import MobileCalendar from '../../../lib/mobile/components/MobileCalendar.svelte';
@@ -37,6 +38,34 @@
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
   const publicDestination = $derived(fanPublicDestination(activeTab, role));
+  const brandOwner=$derived(brandOwnerForRole(role,
+    $controller.organization?.organization_id??null));
+  let publicClubBrand=$state<ClubBrand|null>(null);
+  $effect(()=>{
+    const owner=brandOwner,actor=user?.id;
+    publicClubBrand=null;
+    if(!browser||!owner||!actor)return;
+    const request=new AbortController();
+    void(async()=>{
+      try{
+        // Public organization data only. No mobile access token or account
+        // details are passed to the branding request.
+        const response=await fetch('/api/public/site?organization_id='+encodeURIComponent(owner),{
+          credentials:'omit',cache:'no-store',signal:request.signal,
+          headers:{Accept:'application/json'}
+        });
+        if(!response.ok)return;
+        const raw:unknown=await response.json();
+        const verified=readPublicBrand(raw,owner);
+        if(!request.signal.aborted&&brandOwner===owner&&user?.id===actor)
+          publicClubBrand=verified;
+      }catch{/* An unavailable public profile must not block authenticated app use. */}
+    })();
+    return()=>request.abort();
+  });
+  const mobileClubName=$derived(publicClubBrand?.name ??
+    (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':'ΛΕΥΤΕΡΙΑ FC'));
+
   let notificationCount=$state(0);
   $effect(()=>{
     const id=user?.id,currentRole=role,currentTab=activeTab,
@@ -89,7 +118,9 @@
 
 {#if $controller.status === 'authenticated' && user && role}
   <MobileShell {role} {activeTab} availableRoles={user.current_role_available ? $controller.availableRoles : $controller.availableRoles.filter((option) => option === 'fan')} userName={user.name}
-    avatarUrl={user.avatar_url} notificationCount={notificationCount} busy={$controller.busy}
+    avatarUrl={user.avatar_url} clubName={mobileClubName}
+    clubLogoUrl={publicClubBrand?.logoUrl??null}
+    notificationCount={notificationCount} busy={$controller.busy}
     onTabChange={openTab} onRoleChange={changeRole}
     onNotifications={async () => { await openTab('notifications'); }} onProfile={openProfile}
     onCreatePost={() => { composing = true; }}>
