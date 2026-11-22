@@ -216,7 +216,45 @@
                   <label class="registration-address">Διεύθυνση Κατοικίας <span>*</span><input bind:value={form.player_address} maxlength="200" required data-testid="player-address"/></label>
                   <label>Πόλη <span>*</span><input bind:value={form.player_city} maxlength="100" required data-testid="player-city"/></label>
                   <label>Τ.Κ.<input bind:value={form.player_postal_code} maxlength="20" data-testid="player-postal"/></label>
+                  <h3 class="registration-full">Επίσημη στολή και υποχρεωτική εκτύπωση · €150</h3>
+                  <label>Προτιμώμενος αριθμός φανέλας <span>*</span>
+                    <input type="text" inputmode="numeric" pattern="[0-9]{1,2}" bind:value={form.preferred_number}
+                      maxlength="2" required data-testid="player-preferred-number" placeholder="π.χ. 10"/>
+                  </label>
+                  <label>Προτιμώμενο όνομα εκτύπωσης <span>*</span>
+                    <input bind:value={form.preferred_print_name} maxlength="32" required
+                      data-testid="player-preferred-print-name" placeholder="π.χ. ΓΙΩΡΓΟΣ"/>
+                  </label>
+                  <p class="registration-full registration-note">Η επίσημη στολή κοστίζει €140 και η εκτύπωση ονόματος και αριθμού είναι <strong>υποχρεωτική (€10)</strong>. Ο αριθμός αποτελεί προτίμηση, όχι κράτηση. Εάν χρησιμοποιείται ήδη, ο υπεύθυνος τοποθεσίας θα επικοινωνήσει μαζί σας για τυχόν αλλαγή.</p>
                 </fieldset>
+                {#each additionalPlayers as child,i (i)}
+                  <section class="registration-child" data-testid="additional-player">
+                    <header class="registration-child-head">
+                      <h3>Παιδί {i+2} · {child.player_first_name||'Νέος παίκτης'}</h3>
+                      <button type="button" disabled={pending} onclick={()=>removePlayer(i)}
+                        aria-label={'Αφαίρεση παιδιού '+(i+2)}>Αφαίρεση</button>
+                    </header>
+                    <fieldset class="registration-fields" disabled={pending}>
+                      <legend class="sr-only">Στοιχεία παιδιού {i+2}</legend>
+                      <label>Όνομα <span>*</span><input bind:value={child.player_first_name} maxlength="100" required data-testid="additional-first-name"/></label>
+                      <label>Επώνυμο <span>*</span><input bind:value={child.player_last_name} maxlength="100" required/></label>
+                      <label>Ημερομηνία γέννησης <span>*</span><input type="date" bind:value={child.player_dob} required/></label>
+                      <label>Φύλο <span>*</span><select bind:value={child.player_gender} required><option value="">Επιλέξτε...</option><option value="male">Αγόρι</option><option value="female">Κορίτσι</option></select></label>
+                      <label class="registration-full">Διεύθυνση κατοικίας <span>*</span><input bind:value={child.player_address} maxlength="200" required/></label>
+                      <label>Πόλη <span>*</span><input bind:value={child.player_city} maxlength="100" required/></label>
+                      <label>Τ.Κ.<input bind:value={child.player_postal_code} maxlength="20"/></label>
+                      <h3 class="registration-full">Στολή €140 + υποχρεωτική εκτύπωση €10</h3>
+                      <label>Προτιμώμενος αριθμός <span>*</span><input inputmode="numeric" pattern="[0-9]{1,2}" bind:value={child.preferred_number} maxlength="2" required/></label>
+                      <label>Όνομα εκτύπωσης <span>*</span><input bind:value={child.preferred_print_name} maxlength="32" required/></label>
+                      <p class="registration-full registration-note">Η επιλογή αριθμού μπορεί να χρειαστεί αλλαγή μετά τον έλεγχο του υπεύθυνου τοποθεσίας.</p>
+                    </fieldset>
+                  </section>
+                {/each}
+                {#if additionalPlayers.length<4}
+                  <button type="button" class="registration-add-child" disabled={pending}
+                    onclick={addPlayer} data-testid="add-player">+ Προσθήκη άλλου παιδιού</button>
+                {/if}
+                <p class="registration-family-note">Μία αίτηση, μία επικοινωνία γονέα και μία υπογραφή για {playerCount} {playerCount===1?'παιδί':'παιδιά'}. Κάθε παιδί διατηρεί τη δική του ιατρική δήλωση.</p>
               </div>
             {:else if currentStep===2}
               <div data-testid="step-2"><h2>Στοιχεία Γονέα / Κηδεμόνα</h2><p>Κύρια στοιχεία επικοινωνίας και υπεύθυνος έκτακτης ανάγκης.</p>
@@ -233,7 +271,8 @@
                 </fieldset>
               </div>
             {:else if currentStep===3}
-              <div data-testid="step-3"><h2>Ιατρικές Πληροφορίες</h2><p>Δηλώστε τις απαραίτητες πληροφορίες υγείας του παιδιού. Φυλάσσονται μόνο σε κρυπτογραφημένη μορφή.</p>
+              <div data-testid="step-3"><h2>Ιατρικές Πληροφορίες ανά παιδί</h2><p>Δηλώστε ξεχωριστά τις απαραίτητες πληροφορίες υγείας κάθε παιδιού. Φυλάσσονται μόνο σε κρυπτογραφημένη μορφή.</p>
+                <h3 class="registration-medical-child">Παιδί 1 · {form.player_first_name} {form.player_last_name}</h3>
                 {#each [{key:'allergies',title:'Αλλεργίες'},{key:'conditions',title:'Ιατρικές Παθήσεις'},{key:'medication',title:'Φαρμακευτική Αγωγή'}] as item (item.key)}
                   <fieldset class="registration-choice-card" disabled={pending}>
                     <legend>{item.title}</legend>
@@ -251,6 +290,29 @@
                       {#if form.has_medication}<textarea bind:value={form.medication_details} maxlength="1500" placeholder="Περιγράψτε τη φαρμακευτική αγωγή" data-testid="medication-details"></textarea>{/if}
                     {/if}
                   </fieldset>
+                {/each}
+                {#each additionalPlayers as child,i (i)}
+                  <section class="registration-child" data-testid="additional-medical">
+                    <h3 class="registration-medical-child">Παιδί {i+2} · {child.player_first_name} {child.player_last_name}</h3>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Αλλεργίες</legend>
+                      <label><input type="radio" name={'child-'+i+'-allergies'} checked={child.has_allergies} onchange={()=>child.has_allergies=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-allergies'} checked={!child.has_allergies} onchange={()=>{child.has_allergies=false;child.allergies_details='';}}/> Όχι</label>
+                      {#if child.has_allergies}<textarea bind:value={child.allergies_details} maxlength="1500" placeholder="Περιγράψτε τις αλλεργίες του παιδιού"></textarea>{/if}
+                    </fieldset>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Ιατρικές παθήσεις</legend>
+                      <label><input type="radio" name={'child-'+i+'-conditions'} checked={child.has_conditions} onchange={()=>child.has_conditions=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-conditions'} checked={!child.has_conditions} onchange={()=>{child.has_conditions=false;child.conditions_details='';}}/> Όχι</label>
+                      {#if child.has_conditions}<textarea bind:value={child.conditions_details} maxlength="1500" placeholder="Περιγράψτε τις παθήσεις του παιδιού"></textarea>{/if}
+                    </fieldset>
+                    <fieldset class="registration-choice-card" disabled={pending}>
+                      <legend>Φαρμακευτική αγωγή</legend>
+                      <label><input type="radio" name={'child-'+i+'-medication'} checked={child.has_medication} onchange={()=>child.has_medication=true}/> Ναι</label>
+                      <label><input type="radio" name={'child-'+i+'-medication'} checked={!child.has_medication} onchange={()=>{child.has_medication=false;child.medication_details='';}}/> Όχι</label>
+                      {#if child.has_medication}<textarea bind:value={child.medication_details} maxlength="1500" placeholder="Περιγράψτε τη φαρμακευτική αγωγή του παιδιού"></textarea>{/if}
+                    </fieldset>
+                  </section>
                 {/each}
               </div>
             {:else if currentStep===4}
@@ -272,6 +334,15 @@
               </div>
             {:else}
               <div data-testid="step-5"><h2>Πληρωμή & Υπογραφή</h2><p>Η επιλογή πληρωμής αποτελεί προτίμηση· δεν γίνεται αυτόματη χρέωση με την υποβολή.</p>
+                <section class="registration-costs" data-testid="registration-fee-summary" aria-label="Ανάλυση εκτιμώμενων χρεώσεων">
+                  <h3>Ανάλυση χρεώσεων · {playerCount} {playerCount===1?'παιδί':'παιδιά'}</h3>
+                  <div><span>Μηνιαία συνδρομή οικογένειας</span><strong>€{monthlyFee}</strong></div>
+                  <div><span>Εφάπαξ εγγραφή · €20 × {playerCount}</span><strong>€{registrationFees}</strong></div>
+                  <div><span>Επίσημη στολή · €140 × {playerCount}</span><strong>€{playerCount*140}</strong></div>
+                  <div><span>Υποχρεωτική εκτύπωση · €10 × {playerCount}</span><strong>€{playerCount*10}</strong></div>
+                  <div class="registration-total"><span>Αρχικό εκτιμώμενο σύνολο με τον 1ο μήνα</span><strong>€{initialTotal}</strong></div>
+                  <p>Η εκτύπωση είναι υποχρεωτική για κάθε επίσημη στολή. Οι αριθμοί είναι προτιμήσεις υπό επιβεβαίωση από τον υπεύθυνο τοποθεσίας. Η υποβολή δεν αποτελεί τιμολόγιο ή πληρωμή.</p>
+                </section>
                 <fieldset class="registration-payment" disabled={pending}><legend>Επιθυμητός τρόπος πληρωμής</legend>
                   <label><input type="radio" value="cash" bind:group={form.payment_method} data-testid="payment-cash"/> Μετρητά</label>
                   <label><input type="radio" value="card" bind:group={form.payment_method} data-testid="payment-card"/> Κάρτα</label>
