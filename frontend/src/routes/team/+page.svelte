@@ -170,7 +170,7 @@
   .public-team-selector{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 18px}
   .public-team-selector a{display:inline-flex;min-height:44px;align-items:center;
     padding:9px 15px;border:1px solid #837448;border-radius:6px;
-    color:#ffca46;background:#101112;font-size:14px;font-weight:700}
+    color:var(--public-gold);background:#101112;font-size:14px;font-weight:700}
   .public-team-selector a[aria-current="page"]{background:var(--public-gold);color:var(--public-black);border-color:var(--public-gold)}
   .public-team-selector a:focus-visible{outline:2px solid var(--public-gold);outline-offset:3px}
 
@@ -191,7 +191,7 @@
     letter-spacing:-.02em;margin:0;color:#fff;
   }
   .matches-reference-banner>p:last-child{margin:0;color:#eee;font-size:14px}
-  .matches-reference-tabs{display:flex;align-items:center;flex-wrap:wrap;min-height:49px;padding:0 clamp(20px,2vw,33px);border-bottom:2px solid #a78024}
+  .matches-reference-tabs{display:flex;align-items:center;flex-wrap:wrap;min-height:49px;padding:0 clamp(20px,2vw,33px);border-bottom:2px solid var(--public-gold)}
   .matches-reference-tabs :is(a,button){
     display:inline-flex;align-items:center;justify-content:center;gap:10px;
     min-height:47px;padding:10px 21px;border:1px solid #454646;border-bottom:0;
