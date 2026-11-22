@@ -5197,6 +5197,8 @@ export interface components {
         };
         WebsiteBlock: {
             layout?: null | components["schemas"]["WebsiteBlockLayout"];
+            /** Format: int32 */
+            level?: null | number | string;
             text: string;
             type: string;
             url: null | string;
