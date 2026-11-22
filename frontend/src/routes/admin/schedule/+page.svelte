@@ -88,7 +88,7 @@
 {#if $auth.status==='authenticated'&&$auth.session}
   <AdminFrame user={$auth.session.user} active="schedule" busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <section class="academy-schedule" aria-labelledby="academy-schedule-title" data-testid="admin-academy-schedule">
-      <p class="eyebrow">ΛΕΥΤΕΡΙΑ FC · ΑΚΑΔΗΜΙΑ</p>
+      
       <h1 id="academy-schedule-title">Πρόγραμμα προπονήσεων</h1>
       <p class="intro">Πραγματικές προπονήσεις Ακαδημίας από το επαληθευμένο ημερολόγιο. Η δημιουργία και η αλλαγή προπονήσεων δεν έχουν ενεργοποιηθεί ακόμη.</p>
       {#if !permitted}
