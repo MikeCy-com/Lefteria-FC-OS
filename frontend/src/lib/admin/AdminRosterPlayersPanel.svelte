@@ -248,6 +248,9 @@
     {#if page.players.length===0}
       <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
+      <div class="admin-player-columns" aria-hidden="true">
+        <span>ΠΑΙΚΤΗΣ</span><span>ΟΜΑΔΑ / ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</span>
+      </div>
       <ul class="admin-player-list" data-testid="admin-players-list">
         {#each visiblePlayers as player (player.id)}
           <li>
@@ -365,6 +368,9 @@
   .admin-player-filters input{min-height:42px;border-radius:6px}
   .admin-player-filters p{font-size:11px;margin:0;line-height:1.5}
   .admin-player-filter-count{margin-left:auto}
+  .admin-player-columns{display:grid;grid-template-columns:1fr 1.5fr;gap:15px;
+    padding:9px 0;border-top:1px solid #363a3a;color:#8e9caa;letter-spacing:.08em;font-size:10px}
+  .admin-player-list li:hover{background:#ffffff05}
   .admin-player-identity{display:flex;gap:12px;min-width:0;align-items:center}
   .admin-player-identity>div{display:grid;gap:3px;min-width:0}
   .admin-player-identity small{font-size:10px;color:#939b9b;overflow-wrap:anywhere}
@@ -401,7 +407,7 @@
   .admin-player-error{color:#ffd29b}
   .admin-player-paging{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding-top:15px}
   .admin-player-paging span{font-size:12px;color:#b9bcbe;margin-right:auto}
-  @media(max-width:600px){.admin-player-list li{grid-template-columns:1fr}.admin-player-heading{display:grid}.admin-player-paging span{width:100%}}
+  @media(max-width:600px){.admin-player-list li{grid-template-columns:1fr}.admin-player-columns{display:none}.admin-player-heading{display:grid}.admin-player-paging span{width:100%}}
 
   .admin-player-group-scope{display:flex;flex-wrap:wrap;gap:7px;margin:11px 0 8px}
   .admin-player-group-scope button{min-height:44px;padding:10px 14px;border:1px solid #777;
