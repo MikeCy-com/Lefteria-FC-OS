@@ -48,28 +48,28 @@
 <style>
   .website-page{
     min-width:0;
-    background:linear-gradient(180deg,#090b0c 0%,#101313 100%);
-    color:#f8f7f4;
+    background:linear-gradient(180deg,var(--lf-color-bg,#090b0c) 0%,var(--lf-color-surface,#101313) 100%);
+    color:var(--lf-color-text,#f8f7f4);
   }
   .website-page-header{
     position:relative;
     isolation:isolate;
     overflow:hidden;
-    border-bottom:1px solid #765c2b;
+    border-bottom:1px solid var(--lf-color-border,#765c2b);
     background:
-      radial-gradient(ellipse 70% 120% at 84% 25%,rgb(246 187 56 / 11%),transparent 70%),
-      linear-gradient(125deg,#1b1e1c 0%,#070809 78%);
+      radial-gradient(ellipse 70% 120% at 84% 25%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 11%,transparent),transparent 70%),
+      linear-gradient(125deg,var(--lf-color-surface,#1b1e1c) 0%,var(--lf-color-bg,#070809) 78%);
   }
   .website-page-header::before{
     position:absolute;inset:0;pointer-events:none;z-index:-1;
     content:"";opacity:.65;
-    background:repeating-linear-gradient(121deg,transparent 0,transparent 145px,rgb(246 187 56 / 4%) 147px,transparent 152px);
+    background:repeating-linear-gradient(121deg,transparent 0,transparent 145px,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 4%,transparent) 147px,transparent 152px);
   }
   .website-page-header::after{
     position:absolute;right:clamp(-60px,-3vw,-12px);top:-32%;
     width:clamp(95px,16vw,240px);height:155%;z-index:-1;
     content:"";pointer-events:none;transform:skew(-22deg);
-    background:linear-gradient(90deg,transparent 0 35%,rgb(246 187 56 / 14%) 35% 44%,transparent 44% 61%,rgb(246 187 56 / 8%) 61% 75%,transparent 75%);
+    background:linear-gradient(90deg,transparent 0 35%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 14%,transparent) 35% 44%,transparent 44% 61%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 8%,transparent) 61% 75%,transparent 75%);
   }
   .website-page-header-inner{
     max-width:1200px;
@@ -79,7 +79,7 @@
   .website-page-breadcrumbs{
     display:flex;align-items:center;flex-wrap:wrap;column-gap:11px;row-gap:6px;
     max-width:85ch;margin:0 0 clamp(30px,3vw,49px);
-    color:#d9d3c8;font-size:13px;line-height:1.5;
+    color:var(--lf-color-muted,#d9d3c8);font-size:13px;line-height:1.5;
     overflow-wrap:anywhere;
   }
   .website-page-breadcrumbs a{
@@ -90,7 +90,7 @@
   .website-page-breadcrumbs a:focus-visible,.website-page-return a:focus-visible{
     outline:3px solid var(--public-gold);outline-offset:4px;
   }
-  .website-page-breadcrumbs>span:last-child{font-weight:650;color:#eee;max-width:65ch}
+  .website-page-breadcrumbs>span:last-child{font-weight:650;color:var(--lf-color-text,#eeeeee);max-width:65ch}
   .website-page-header .public-eyebrow{
     color:var(--public-gold);
     font:800 15px/1.25 'Fira Sans Extra Condensed',sans-serif;
@@ -102,12 +102,12 @@
     margin:0;
     font:italic 900 clamp(36px,5vw,78px)/1 'Fira Sans Extra Condensed',sans-serif;
     text-wrap:balance;overflow-wrap:anywhere;
-    text-shadow:0 8px 25px rgb(0 0 0 / 40%);
+    text-shadow:0 8px 25px color-mix(in srgb,var(--lf-color-bg,#000000) 40%,transparent);
   }
   .website-page-summary{
     margin:clamp(17px,2vw,28px) 0 0;
     max-width:72ch;
-    color:#e4e2de;
+    color:var(--lf-color-muted,#e4e2de);
     line-height:1.7;
     font-size:clamp(15px,1.2vw,18px);
     overflow-wrap:anywhere;
@@ -119,23 +119,23 @@
   }
   .website-page-return{
     margin-top:clamp(38px,5vw,70px);
-    padding-top:22px;border-top:1px solid rgb(246 187 56 / 25%);
+    padding-top:22px;border-top:1px solid color-mix(in srgb,var(--lf-color-accent,#f6bb38) 25%,transparent);
   }
   .website-page-return a{
     display:inline-flex;align-items:center;min-height:48px;
     padding:10px 17px;
     border:1px solid var(--public-gold);border-radius:0 9px 0 7px;
-    background:rgb(246 187 56 / 6%);
+    background:color-mix(in srgb,var(--lf-color-accent,#f6bb38) 6%,transparent);
     color:var(--public-gold);text-decoration:none;
     font:800 15px/1.35 'Fira Sans Extra Condensed',sans-serif;
   }
   .website-page-return a:hover{
-    color:#12100a;background:var(--public-gold);border-color:var(--public-gold);
+    color:var(--lf-color-bg,#12100a);background:var(--public-gold);border-color:var(--public-gold);
   }
   .website-page[data-organization="lefteria_fc_academy"] .website-page-header{
     background:
-      radial-gradient(ellipse 56% 110% at 80% 23%,rgb(246 187 56 / 12%),transparent 70%),
-      linear-gradient(121deg,#171a17 0%,#070809 82%);
+      radial-gradient(ellipse 56% 110% at 80% 23%,color-mix(in srgb,var(--lf-color-accent,#f6bb38) 12%,transparent),transparent 70%),
+      linear-gradient(121deg,var(--lf-color-surface,#171a17) 0%,var(--lf-color-bg,#070809) 82%);
   }
   @media(max-width:650px){
     .website-page-header-inner{padding:29px 18px 43px;}
