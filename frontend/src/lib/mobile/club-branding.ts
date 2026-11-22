@@ -30,6 +30,9 @@ export function publicLogoUrl(value:unknown):string|null{
 export function readPublicBrand(raw:unknown,organizationId:BrandOwner):ClubBrand|null{
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return null;
   const site=raw as Record<string,unknown>;
+  // Some legacy public projections omit the outer owner; when supplied,
+  // it must agree with the requested and nested club organization.
+  if(site.organization_id!==undefined&&site.organization_id!==organizationId)return null;
   const club=site.club;
   if(!club||typeof club!=='object'||Array.isArray(club))return null;
   const record=club as Record<string,unknown>;
