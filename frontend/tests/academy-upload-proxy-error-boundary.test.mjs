@@ -11,7 +11,7 @@ test('document relay fails closed for upstream errors without reflecting respons
   assert.match(source, /const code=response\.status===403\?'upload_capability_invalid'/);
   assert.match(source, /response\.status===409\?'document_slot_conflict'/);
   assert.match(source, /response\.status===413\?'file_too_large'/);
-  assert.match(source, /response\.status===422\?'invalid_upload':'upload_unavailable'/);
+  assert.match(source, /response\.status===422\?'invalid_upload':\s*response\.status===429\?'upload_rate_limited':'upload_unavailable'/);
   assert.match(source, /\[400,403,409,413,415,422,429\]\.includes\(response\.status\)/);
   assert.match(source, /\?response\.status:503/);
   assert.doesNotMatch(source, /response\.text\(/);
