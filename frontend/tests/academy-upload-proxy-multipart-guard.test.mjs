@@ -23,3 +23,12 @@ test('missing request stream is rejected without an upstream request',()=>{
   assert.match(source,/if\(!reader\)return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
   assert.ok(source.indexOf('if(!reader)')<source.indexOf('const response=await fetch('));
 });
+
+test('empty multipart stream fails closed before upstream forwarding',()=>{
+  const emptyGuard=source.indexOf('if(size===0)');
+  const mismatchGuard=source.indexOf('if(declaredLength!==null&&size!==Number(declaredLength))');
+  const upstream=source.indexOf('const response=await fetch(');
+  assert.ok(emptyGuard>source.indexOf('while(true)'));
+  assert.ok(emptyGuard<mismatchGuard&&mismatchGuard<upstream);
+  assert.match(source.slice(emptyGuard,mismatchGuard),/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
+});
