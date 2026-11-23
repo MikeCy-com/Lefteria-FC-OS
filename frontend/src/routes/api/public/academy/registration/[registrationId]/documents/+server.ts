@@ -70,7 +70,8 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     const code=response.status===403?'upload_capability_invalid':
       response.status===409?'document_slot_conflict':
       response.status===413?'file_too_large':
-      response.status===422?'invalid_upload':'upload_unavailable';
+      response.status===422?'invalid_upload':
+      response.status===429?'upload_rate_limited':'upload_unavailable';
     const status=[400,403,409,413,415,422,429].includes(response.status)
       ?response.status:503;
     return json({code},{status,headers});
