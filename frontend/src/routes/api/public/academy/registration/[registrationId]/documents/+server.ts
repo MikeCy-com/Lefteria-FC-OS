@@ -51,7 +51,7 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.byteLength;}
     const response=await fetch(new URL(
       '/api/public/academy/registration/'+params.registrationId+'/documents',apiOrigin),{
-        method:'POST',credentials:'omit',cache:'no-store',
+        method:'POST',credentials:'omit',cache:'no-store',redirect:'error',
         headers:{origin:url.origin,'content-type':contentType},
         body,signal:AbortSignal.timeout(30000)
       });
