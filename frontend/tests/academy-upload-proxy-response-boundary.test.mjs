@@ -50,5 +50,5 @@ test('relay rejects unsafe private API origins before forwarding uploaded bytes'
   assert.match(source,/apiOrigin\.search\|\|apiOrigin\.hash/);
   assert.match(source,/throw Error\('Invalid private upstream'\)/);
   assert.ok(source.indexOf('const apiOrigin=')<source.indexOf('request.body?.getReader()'));
-  assert.match(source,/catch\\s*\\{\\s*return json\\(\\{code:'upload_unavailable'\\},\\{status:503,headers\\}\\)/);
+  assert.match(source,/catch\s*\{\s*return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
 });
