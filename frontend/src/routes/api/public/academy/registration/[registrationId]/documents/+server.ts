@@ -12,6 +12,7 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     return json({code:'invalid_registration'},{status:400,headers});
   const contentType=request.headers.get('content-type')??'';
   if(!contentType.startsWith('multipart/form-data; boundary=')||
+     !contentType.slice('multipart/form-data; boundary='.length).trim()||
      contentType.length>200||/[\r\n]/.test(contentType))
     return json({code:'multipart_required'},{status:415,headers});
   const declaredLength=request.headers.get('content-length');
