@@ -21,6 +21,16 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     if(Number(declaredLength)>11*1024*1024)
       return json({code:'file_too_large'},{status:413,headers});
   }
+  let apiOrigin:URL;
+  try {
+    apiOrigin=new URL(INTERNAL_API_ORIGIN);
+    if(!['http:','https:'].includes(apiOrigin.protocol)||
+      apiOrigin.username||apiOrigin.password||apiOrigin.pathname!=='/'||
+      apiOrigin.search||apiOrigin.hash)
+      throw Error('Invalid private upstream');
+  }catch{
+    return json({code:'upload_unavailable'},{status:503,headers});
+  }
   const reader=request.body?.getReader();
   if(!reader)return json({code:'invalid_upload'},{status:400,headers});
   let size=0;
@@ -34,11 +44,6 @@ export const POST: RequestHandler = async ({params,request,url}) => {
         return json({code:'file_too_large'},{status:413,headers});
       chunks.push(value);
     }
-    const apiOrigin=new URL(INTERNAL_API_ORIGIN);
-    if(!['http:','https:'].includes(apiOrigin.protocol)||
-      apiOrigin.username||apiOrigin.password||apiOrigin.pathname!=='/'||
-      apiOrigin.search||apiOrigin.hash)
-      throw Error('Invalid private upstream');
     const body=new Uint8Array(size);
     let offset=0;
     for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.byteLength;}
