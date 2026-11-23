@@ -44,6 +44,8 @@ export const POST: RequestHandler = async ({params,request,url}) => {
         return json({code:'file_too_large'},{status:413,headers});
       chunks.push(value);
     }
+    if(declaredLength!==null&&size!==Number(declaredLength))
+      return json({code:'invalid_upload'},{status:400,headers});
     const body=new Uint8Array(size);
     let offset=0;
     for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.byteLength;}
