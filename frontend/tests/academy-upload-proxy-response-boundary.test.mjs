@@ -61,3 +61,9 @@ test('relay rejects declared and streamed length mismatch before constructing up
   assert.ok(guard<source.indexOf('const response=await fetch('));
   assert.match(source.slice(guard,source.indexOf('const body=new Uint8Array(size)')),/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
 });
+
+test('private document relay refuses upstream redirects before any second-hop upload',()=>{
+  assert.match(source,/method:'POST',credentials:'omit',cache:'no-store',redirect:'error'/);
+  assert.match(source,/catch\s*\{\s*return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
+  assert.doesNotMatch(source,/redirect:'follow'/);
+});
