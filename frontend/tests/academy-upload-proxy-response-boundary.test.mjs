@@ -52,3 +52,12 @@ test('relay rejects unsafe private API origins before forwarding uploaded bytes'
   assert.ok(source.indexOf('apiOrigin=new URL(')<source.indexOf('request.body?.getReader()'));
   assert.match(source,/catch\s*\{\s*return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
 });
+
+test('relay rejects declared and streamed length mismatch before constructing upstream request',()=>{
+  assert.match(source,/if\(declaredLength!==null&&size!==Number\(declaredLength\)\)/);
+  const guard=source.indexOf('if(declaredLength!==null&&size!==Number(declaredLength))');
+  assert.ok(guard>source.indexOf('size+=value.byteLength'));
+  assert.ok(guard<source.indexOf('const body=new Uint8Array(size)'));
+  assert.ok(guard<source.indexOf('const response=await fetch('));
+  assert.match(source.slice(guard,source.indexOf('const body=new Uint8Array(size)')),/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
+});
