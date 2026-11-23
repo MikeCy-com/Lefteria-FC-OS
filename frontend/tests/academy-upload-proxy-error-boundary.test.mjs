@@ -28,3 +28,13 @@ test('document relay applies private no-store response headers before all reject
   assert.match(source, /return json\(\{code:'origin_denied'\},\{status:403,headers\}\)/);
   assert.match(source, /return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
 });
+
+test('document relay rejects an empty multipart boundary before reading or forwarding bytes', () => {
+  const boundaryGuard = source.indexOf("!contentType.slice('multipart/form-data; boundary='.length).trim()");
+  const bodyReader = source.indexOf('request.body?.getReader()');
+  const upstreamFetch = source.indexOf('const response=await fetch(');
+  assert.ok(boundaryGuard >= 0, 'empty multipart boundaries must be rejected');
+  assert.ok(bodyReader > boundaryGuard, 'multipart validation must precede reading the request body');
+  assert.ok(upstreamFetch > boundaryGuard, 'multipart validation must precede upstream forwarding');
+  assert.match(source, /return json\(\{code:'multipart_required'\},\{status:415,headers\}\)/);
+});
