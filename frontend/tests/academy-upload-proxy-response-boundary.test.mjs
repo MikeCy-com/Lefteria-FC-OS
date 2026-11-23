@@ -41,3 +41,13 @@ test('relay rejects malformed declared lengths before reading a body or contacti
   assert.match(source,/if\(Number\(declaredLength\)>11\*1024\*1024\)/);
   assert.ok(source.indexOf('const declaredLength=')<source.indexOf('request.body?.getReader()'));
 });
+
+test('relay rejects unsafe private API origins before forwarding uploaded bytes',()=>{
+  assert.match(source,/const apiOrigin=new URL\(INTERNAL_API_ORIGIN\)/);
+  assert.match(source,/!\['http:','https:'\]\.includes\(apiOrigin\.protocol\)/);
+  assert.match(source,/apiOrigin\.username\|\|apiOrigin\.password/);
+  assert.match(source,/apiOrigin\.pathname!=='\/'/);
+  assert.match(source,/apiOrigin\.search\|\|apiOrigin\.hash/);
+  assert.match(source,/throw Error\('Invalid private upstream'\)/);
+  assert.ok(source.indexOf('const apiOrigin=')<source.indexOf('await fetch('));
+});
