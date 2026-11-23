@@ -45,6 +45,9 @@ export const POST: RequestHandler = async ({params,request,url}) => {
         return json({code:'file_too_large'},{status:413,headers});
       chunks.push(value);
     }
+    // Empty streams cannot contain a valid multipart document; do not forward them.
+    if(size===0)
+      return json({code:'invalid_upload'},{status:400,headers});
     if(declaredLength!==null&&size!==Number(declaredLength))
       return json({code:'invalid_upload'},{status:400,headers});
     const body=new Uint8Array(size);
