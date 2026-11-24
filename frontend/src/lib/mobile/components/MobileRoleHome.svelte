@@ -11,6 +11,7 @@
   type HomeRole=Exclude<MobileRole,'parent'>;
   interface Props {
     role:HomeRole;identityId:string;userName:string;
+    clubName?:string;
     organizationId?:string|null;calendar:MobileCalendar|null;
     calendarStatus:'idle'|'loading'|'ready'|'error';calendarError:string|null;
     busy?:boolean;today?:string;
@@ -18,7 +19,7 @@
     onNavigate:(tab:MobileTab)=>Promise<void>|void;
     onRespond?:(item:MobileCalendarItem,status:AvailabilityStatus)=>Promise<boolean>|boolean;
   }
-  let {role,identityId,userName,organizationId=null,calendar,calendarStatus,
+  let {role,identityId,userName,clubName='ΛΕΥΤΕΡΙΑ FC',organizationId=null,calendar,calendarStatus,
     calendarError,busy=false,today=clubToday(),onLoadCalendar,onNavigate,onRespond}:Props=$props();
   const id=$props.id();
   const needsOrganization=$derived(role==='management'&&!organizationId);
@@ -47,7 +48,7 @@
     style:background-image={role==='player'||role==='coach'
       ? `linear-gradient(90deg,#08090aef 0%,#08090abc 38%,#08090a36 100%),linear-gradient(0deg,#08090ad9,transparent 65%),url("${publicImages.hero}")`
       : undefined}>
-    <p class="eyebrow">ΛΕΥΤΕΡΙΑ FC · {ROLE_NAMES[role]}</p>
+    <p class="eyebrow">{clubName} · {ROLE_NAMES[role]}</p>
     <h1 id={id+'-title'}>Καλώς ήρθες, <span>{userName}</span></h1>
     <p class="intro">
       {#if role==='player'}Το ποδόσφαιρό μου · πρόγραμμα και ενημερώσεις της ομάδας μου.
@@ -168,7 +169,7 @@
   .hero.hero-photographic h1 span{color:#ffca46}
   .hero.hero-photographic .intro{font-size:clamp(13px,2.5vw,16px);
     color:#f0ede8;text-shadow:0 3px 10px #000b;line-height:1.45}
-  .eyebrow{font-size:13px;letter-spacing:.13em;color:var(--lf-gold-light);font-weight:700}
+  .eyebrow{font-size:13px;letter-spacing:.13em;color:var(--lf-gold-light);font-weight:700;max-width:100%;overflow-wrap:anywhere}
   h1{font-size:clamp(25px,7vw,34px);line-height:1.15;margin:10px 0;font-weight:800}
   .intro{color:#ddd5c6;font-size:15px;line-height:1.6;max-width:38rem}
   .panel{padding:17px 15px;border:1px solid #343331;border-radius:12px;background:linear-gradient(135deg,#191b1c,#111314)}
