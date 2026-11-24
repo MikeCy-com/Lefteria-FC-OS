@@ -50,6 +50,7 @@ test('private role and parent hero components never hardcode First Team image',(
     assert.match(source,/url\("\$\{heroUrl\}"\)/);
   }
   assert.match(parent,/class:parent-hero-photographic=\{!!heroUrl\}/);
+  assert.match(parent,/\.parent-greeting:not\(\.parent-hero-photographic\)\{min-height:0\}/);
   assert.match(role,/class:hero-photographic=\{!!heroUrl&&\(role==='player'\|\|role==='coach'\)\}/);
   assert.match(route,/heroUrl=\{publicClubBrand\?\.heroUrl\?\?null\}/);
   assert.equal((route.match(/heroUrl=\{publicClubBrand\?\.heroUrl\?\?null\}/g)||[]).length,2);
