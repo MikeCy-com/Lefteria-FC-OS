@@ -10,7 +10,8 @@ const roles=read('MobileRoleHome.svelte');
 test('parent role retains verified family calendar while gaining a branded photo hero',()=>{
   assert.ok(compile(parent,{filename:'MobileParentHome.svelte',generate:'server'}).js.code.length>100);
   assert.ok(parent.includes('data-testid="parent-photo-hero"'));
-  assert.ok(parent.includes('publicImages.hero'));
+  assert.ok(parent.includes('heroUrl'));
+  assert.ok(parent.includes('class:parent-hero-photographic={!!heroUrl}'));
   assert.ok(parent.includes('parent-hero-description'));
   assert.ok(parent.includes("matchingParentHomeCalendar(family, calendar, identityId, today, activeChild?.id)"));
   assert.ok(parent.includes('data-testid="parent-home-child-list"'));
@@ -21,9 +22,10 @@ test('parent role retains verified family calendar while gaining a branded photo
 });
 test('photographic hero is specific to verified player and coach views',()=>{
   assert.ok(compile(roles,{filename:'MobileRoleHome.svelte',generate:'server'}).js.code.length>100);
-  assert.ok(roles.includes("class:hero-photographic={role==='player'||role==='coach'}"));
+  assert.ok(roles.includes("class:hero-photographic={!!heroUrl&&(role==='player'||role==='coach')}"));
   assert.ok(roles.includes('data-testid="mobile-role-photo-hero"'));
-  assert.ok(roles.includes('publicImages.hero'));
+  assert.ok(roles.includes('heroUrl'));
+  assert.ok(!roles.includes('publicImages.hero'));
   assert.ok(roles.includes('data-testid="role-home-matchday"'));
   assert.ok(roles.includes('data-testid="role-home-schedule"'));
   assert.ok(roles.includes('trustedNextRoleMatch(calendar,role,identityId,organizationId,today)'));
