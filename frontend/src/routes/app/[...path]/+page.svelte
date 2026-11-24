@@ -65,7 +65,8 @@
     return()=>request.abort();
   });
   const mobileClubName=$derived(publicClubBrand?.name ??
-    (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':'ΛΕΥΤΕΡΙΑ FC'));
+    (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':
+      brandOwner==='lefteria_fc'?'ΛΕΥΤΕΡΙΑ FC':'ΕΠΙΛΟΓΗ ΟΡΓΑΝΙΣΜΟΥ'));
 
   let notificationCount=$state(0);
   $effect(()=>{
@@ -115,7 +116,7 @@
   function logout() { controller.logout(); }
 </script>
 
-<svelte:head><title>{TAB_NAMES[activeTab]} | Λευτεριά FC</title><meta name="robots" content="noindex" /></svelte:head>
+<svelte:head><title>{TAB_NAMES[activeTab]} | {mobileClubName}</title><meta name="robots" content="noindex" /></svelte:head>
 
 {#if $controller.status === 'authenticated' && user && role}
   <MobileShell {role} {activeTab} availableRoles={user.current_role_available ? $controller.availableRoles : $controller.availableRoles.filter((option) => option === 'fan')} userName={user.name}
@@ -174,7 +175,7 @@
         {/key}
       {:else if activeTab === 'home' && role !== 'parent' && !composing}
         {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id??'unselected':'')}
-          <MobileRoleHome {role} identityId={user.id} userName={user.name}
+          <MobileRoleHome {role} identityId={user.id} userName={user.name} clubName={mobileClubName}
             organizationId={role==='management' && !$controller.organization?.requires_organization_selection
               ? $controller.organization?.organization_id : null}
             calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
