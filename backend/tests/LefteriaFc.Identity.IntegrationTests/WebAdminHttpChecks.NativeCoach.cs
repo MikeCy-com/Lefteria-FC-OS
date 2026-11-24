@@ -87,6 +87,51 @@ internal sealed partial class WebAdminHttpChecks
             }
             await database.VerifyNativeCoachAsync(staffId,fc,roster.Team1,
                 coachAccount.Id,first.name);
+
+            // Coach-only assigned group projection: exact native staff link,
+            // owner grant and active session. No private roster/count details.
+            const string fcAssigned="/api/admin/football/assigned-groups?organization_id=lefteria_fc";
+            const string academyAssigned="/api/admin/football/assigned-groups?organization_id=lefteria_fc_academy";
+            using(var reader=Client())
+            {
+                var coachLogin=await LoginAsync(reader,coachAccount);
+                using(var assigned=await GetAsync(reader,fcAssigned,coachLogin.Cookie))
+                {
+                    var body=await ExpectJsonAsync(assigned,200);
+                    Require(body.GetProperty("organization_id").GetString()==fc &&
+                        body.GetProperty("groups").GetArrayLength()==1 &&
+                        body.GetProperty("groups")[0].GetProperty("id").GetString()==roster.Team1 &&
+                        body.GetProperty("groups")[0].GetProperty("kind").GetString()=="team" &&
+                        !body.GetRawText().Contains(roster.Team2,StringComparison.Ordinal) &&
+                        !body.GetRawText().Contains("active_players",StringComparison.Ordinal) &&
+                        !body.GetRawText().Contains("player_id",StringComparison.Ordinal),
+                        "Coach assigned-group projection exposed another team or private roster data.");
+                }
+                using(var foreign=await GetAsync(reader,academyAssigned,coachLogin.Cookie))
+                    await ExpectJsonAsync(foreign,403,"not_authorized");
+                using(var broad=await GetAsync(reader,FcAudiencePath,coachLogin.Cookie))
+                    await ExpectJsonAsync(broad,403,"not_authorized");
+                foreach(var wrong in new[]{
+                    "/api/admin/football/assigned-groups",
+                    "/api/admin/football/assigned-groups?organization_id=both"})
+                    using(var rejected=await GetAsync(reader,wrong,coachLogin.Cookie))
+                        await ExpectJsonAsync(rejected,400,"invalid_organization");
+                using(var post=Mutation(fcAssigned,JsonContent.Create(new{})))
+                {
+                    post.Headers.Add("Cookie",coachLogin.Cookie);
+                    using var denied=await reader.SendAsync(post);
+                    await ExpectStatusAsync(denied,405);
+                }
+                // Revocation and session expiry apply to the same browser cookie.
+                await database.RevokeOrganizationAsync(coachAccount,fc);
+                using(var revoked=await GetAsync(reader,fcAssigned,coachLogin.Cookie))
+                    await ExpectJsonAsync(revoked,403,"not_authorized");
+                await database.ExpireSessionAsync(coachAccount,coachLogin.Token);
+                using(var expired=await GetAsync(reader,fcAssigned,coachLogin.Cookie))
+                    await ExpectJsonAsync(expired,401,"not_authenticated");
+            }
+            using(var adminView=await GetAsync(client,fcAssigned,adminLogin.Cookie))
+                await ExpectJsonAsync(adminView,403,"not_authorized");
             Require(await database.CountNativeCoachAuditAsync(staffId)==1,
                 "Native Coach must emit one successful pseudonymous audit event.");
             using(var repeated=await CreateNativeCoachAsync(client,adminLogin.Cookie,first))
