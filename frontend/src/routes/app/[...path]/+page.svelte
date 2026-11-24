@@ -160,7 +160,7 @@
       {/if}
       {#if activeTab === 'home' && role === 'parent' && !composing}
         {#key `${user.id}:${role}`}
-          <MobileParentHome identityId={user.id} parentName={user.name}
+          <MobileParentHome identityId={user.id} parentName={user.name} heroUrl={publicClubBrand?.heroUrl??null}
             family={$controller.family} familyStatus={$controller.familyStatus} familyError={$controller.familyError}
             calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
             calendarError={$controller.calendarError} busy={$controller.busy}
@@ -176,6 +176,7 @@
       {:else if activeTab === 'home' && role !== 'parent' && !composing}
         {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id??'unselected':'')}
           <MobileRoleHome {role} identityId={user.id} userName={user.name} clubName={mobileClubName}
+            heroUrl={publicClubBrand?.heroUrl??null}
             organizationId={role==='management' && !$controller.organization?.requires_organization_selection
               ? $controller.organization?.organization_id : null}
             calendar={$controller.calendar} calendarStatus={$controller.calendarStatus}
