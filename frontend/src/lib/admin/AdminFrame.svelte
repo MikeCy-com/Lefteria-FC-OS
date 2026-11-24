@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { page } from '$app/state';
   import type { WebAdminSession } from './controller.ts';
   import AdminProfilePhoto from './AdminProfilePhoto.svelte';
   import { canViewFirstTeamTrials } from './trials-access.ts';
@@ -20,6 +21,17 @@
   const initials=$derived((user.name || user.username).trim().split(/\s+/u)
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
+  // Navigation labels reflect real server-issued organization assignments.
+  // This does not grant an organization, filter backend requests or select one.
+  const footballCategory=$derived(
+    user.organizations.some(org=>org.id==='lefteria_fc') &&
+    user.organizations.some(org=>org.id==='lefteria_fc_academy')
+      ? 'Ομάδες & Ακαδημία'
+      : user.organizations.some(org=>org.id==='lefteria_fc_academy')
+        ? 'Ακαδημία & τμήματα' : 'Πρώτη ομάδα'
+  );
+  const viewingPlayerCrm=$derived(active==='groups'&&page.url.pathname==='/admin/groups'&&
+    page.url.searchParams.get('view')==='players');
   const canManagePlayerCrm=$derived(hasGroupHub &&
     ['manager','super_admin'].includes(user.role) &&
     (hasAdminPermission(user.permissions,'academy:write') ||
@@ -68,15 +80,16 @@
           open={['groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
           data-testid="admin-football-navigation">
           <summary class="admin-nav-category" data-testid="admin-football-category">
-            Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
+            {footballCategory} <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
             {#if hasGroupHub}
               <a class="admin-nav-section" href="/admin/groups"
-                aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)?'page':undefined}
+                aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)&&!viewingPlayerCrm?'page':undefined}
                 data-testid="admin-groups-link">Ομάδες & τμήματα</a>
               {#if canManagePlayerCrm}
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
+                  aria-current={viewingPlayerCrm?'page':undefined}
                   data-testid="admin-player-crm-link">Παίκτες CRM</a>
               {/if}
             {/if}
