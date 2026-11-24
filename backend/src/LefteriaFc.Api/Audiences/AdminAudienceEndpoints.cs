@@ -38,6 +38,44 @@ public static class AdminAudienceEndpoints
             .Produces<WebAdminError>(401)
             .Produces<WebAdminError>(403)
             .Produces<WebAdminError>(503);
+
+        // Deliberately separate from /audiences: the latter is an organization
+        // selector with counts and MUST continue denying Coach read_assigned.
+        endpoints.MapGet("/api/admin/football/assigned-groups",
+            async (string? organization_id,WebAdminService admin,
+                IAdminCoachAssignedGroupsReader assigned,HttpContext context,
+                CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                if(organization_id is null ||
+                    !PublicContentService.IsOrganization(organization_id) ||
+                    context.Request.Query["organization_id"].Count!=1 ||
+                    context.Request.Query.Count!=1)
+                    return Results.Json(new WebAdminError("Select exactly one organization.",
+                        "invalid_organization"),statusCode:400);
+                var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+                var session=await admin.CurrentAsync(cookie,token);
+                if(session is null)
+                    return Results.Json(new WebAdminError("Sign in again.",
+                        "not_authenticated"),statusCode:401);
+                var capability=organization_id=="lefteria_fc"
+                    ?"teams:read_assigned":"academy:read_assigned";
+                if(session.User.Role!="coach" ||
+                    !AdminPermissions.Has(session.User.Role,capability) ||
+                    !session.User.Organizations.Any(org=>org.Id==organization_id))
+                    return Results.Json(new WebAdminError("Assigned group access denied.",
+                        "not_authorized"),statusCode:403);
+                return Results.Ok(await assigned.ReadAsync(cookie!,organization_id,token));
+            })
+            .RequireAuthorization(WebAdminServices.Policy)
+            .WithTags("Football administration")
+            .WithName("GetAdminCoachAssignedGroups")
+            .Produces<AdminCoachAssignedGroupsDto>(200)
+            .Produces<WebAdminError>(400)
+            .Produces<WebAdminError>(401)
+            .Produces<WebAdminError>(403)
+            .Produces<WebAdminError>(503);
         return endpoints;
     }
 }
