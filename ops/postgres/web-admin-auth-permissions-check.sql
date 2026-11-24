@@ -33,6 +33,7 @@ SELECT set_config('lefteria.admin_auth_role', :'admin_auth_role', true) AS admin
 \ir admin-group-roster-boundary.sql
 \ir admin-roster-assignment-boundary.sql
 \ir admin-coach-directory-boundary.sql
+\ir admin-coach-assigned-groups-boundary.sql
 \ir admin-coach-assignment-boundary.sql
 \ir admin-native-coach-boundary.sql
 \ir admin-announcement-drafts-boundary.sql
