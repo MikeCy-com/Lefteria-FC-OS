@@ -1,7 +1,7 @@
 /** Public-only branding projection for the private mobile shell.
  * No session token, private player data or admin endpoints are involved. */
 export type ClubBrand = {
-  name:string;logoUrl:string|null;organizationId:'lefteria_fc'|'lefteria_fc_academy';
+  name:string;logoUrl:string|null;heroUrl:string|null;organizationId:'lefteria_fc'|'lefteria_fc_academy';
   email:string|null;phone:string|null;address:string|null;
   socialLinks:Partial<Record<'facebook'|'instagram'|'twitter'|'youtube'|'tiktok',string>>;
 };
@@ -25,6 +25,13 @@ export function publicLogoUrl(value:unknown):string|null{
     const url=new URL(value);
     return url.protocol==='https:'&&!url.username&&!url.password?value:null;
   }catch{return null;}
+}
+
+/** Only sanitized, published organization media can become a CSS image URL.
+ * Quotes, parens and controls are excluded to prevent inline-style injection. */
+export function publicHeroUrl(value:unknown):string|null{
+  const url=publicLogoUrl(value);
+  return url&&!/["'()\\\\\u0000-\u001f]/.test(url)?url:null;
 }
 
 export function readPublicBrand(raw:unknown,organizationId:BrandOwner):ClubBrand|null{
@@ -60,6 +67,19 @@ export function readPublicBrand(raw:unknown,organizationId:BrandOwner):ClubBrand
       }
     }
   }
-  return {organizationId,name:record.name,logoUrl:publicLogoUrl(record.logo_url),
+  // Public Academy landing selects a published, Academy-owned group banner.
+  // The private app uses that same public source, never a First Team hero
+  // nor an unpublished/player-private photo. No valid banner => dark hero.
+  let heroUrl:string|null=null;
+  if(organizationId==='lefteria_fc_academy'&&Array.isArray(site.academy_groups)){
+    for(const candidate of site.academy_groups){
+      if(!candidate||typeof candidate!=='object'||Array.isArray(candidate))continue;
+      const group=candidate as Record<string,unknown>;
+      if(group.organization_id!=='lefteria_fc_academy')continue;
+      heroUrl=publicHeroUrl(group.banner_url);
+      if(heroUrl)break;
+    }
+  }
+  return {organizationId,name:record.name,logoUrl:publicLogoUrl(record.logo_url),heroUrl,
     email,phone,address,socialLinks:socials};
 }
