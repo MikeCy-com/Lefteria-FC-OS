@@ -101,6 +101,22 @@ try {
   assert.deepEqual(document.components.schemas.AdminAudienceGroupDto.required,
     ['id','name','kind','active_players']);
 
+  // Coach-only summary is distinct from the manager's audience directory.
+  // No player counts or private member attributes are projected.
+  const coachAssigned = document.paths['/api/admin/football/assigned-groups'];
+  assert.deepEqual(Object.keys(coachAssigned), ['get']);
+  assert.deepEqual(coachAssigned.get.security, [{WebAdmin:[]}]);
+  assert.deepEqual(coachAssigned.get.parameters.filter(p => p.name === 'organization_id').map(p =>
+    ({required:p.required,values:p.schema.enum})),
+    [{required:true,values:['lefteria_fc','lefteria_fc_academy']}]);
+  assert.deepEqual(Object.keys(coachAssigned.get.responses).sort(), ['200','400','401','403','503']);
+  assert.equal(coachAssigned.get.responses['200'].content['application/json'].schema.$ref,
+    '#/components/schemas/AdminCoachAssignedGroupsDto');
+  assert.deepEqual(document.components.schemas.AdminCoachAssignedGroupsDto.required,
+    ['organization_id','ready','groups']);
+  assert.deepEqual(document.components.schemas.AdminCoachAssignedGroupDto.required,
+    ['id','name','kind']);
+
   const rosterPlayers = document.paths['/api/admin/football/players'];
   assert.deepEqual(Object.keys(rosterPlayers), ['get']);
   assert.deepEqual(rosterPlayers.get.security, [{WebAdmin:[]}]);
