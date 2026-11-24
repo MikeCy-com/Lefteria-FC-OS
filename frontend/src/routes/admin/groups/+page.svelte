@@ -34,9 +34,12 @@
   let groupSearch = $state('');
   let directoryView=$state<'groups'|'players'>('groups');
   let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
-  const visibleGroups = $derived((directory?.groups ?? []).filter(group=>
+  // Never render a directory or open an old group under a newly selected owner.
+  // The authenticated refetch clears it, but this also closes the render gap.
+  const visibleGroups = $derived((directory?.organization_id===organization?directory.groups:[]).filter(group=>
     group.name.toLocaleLowerCase('el-GR').includes(groupSearch.trim().toLocaleLowerCase('el-GR'))));
-  const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
+  const focusedGroup = $derived(directory?.organization_id===organization
+    ? directory.groups.find(item=>item.id===focusedGroupId)??null : null);
   const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
     organization==='lefteria_fc_academy' &&
@@ -530,7 +533,7 @@
           <button type="button" class="admin-secondary" onclick={() => retry++} disabled={loading}>Ανανέωση</button>
         </section>
 
-        {#if loading}
+        {#if loading || (directory !== null && directory.organization_id !== organization)}
           <section class="admin-panel" role="status" data-testid="admin-audiences-loading">Φόρτωση πραγματικών τμημάτων…</section>
         {:else if unavailable || !directory}
           <section class="admin-panel" role="alert" data-testid="admin-audiences-unavailable">
