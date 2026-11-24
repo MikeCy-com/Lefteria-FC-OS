@@ -91,6 +91,7 @@ export const reviewedAdminEntries = [
   ['put','/api/admin/football/academy-group-profiles/{groupId}/visibility'],
   ['put','/api/admin/football/assignments'],
   ['get','/api/admin/football/audiences'],
+  ['get','/api/admin/football/assigned-groups'],
   ['put','/api/admin/football/coach-assignments'],
   ['get','/api/admin/football/coaches'],
   ['get','/api/admin/football/first-team-profiles/{teamId}'],
