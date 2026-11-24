@@ -38,7 +38,7 @@ public sealed class PostgresAdminCoachAssignedGroupsReader(
             var result=raw is null?null:JsonSerializer.Deserialize<AdminCoachAssignedGroupsDto>(raw,Json);
             if(result is null || result.OrganizationId!=organizationId || !result.Ready ||
                 result.Groups is null || result.Groups.Count>150 ||
-                result.Groups.Any(g=>string.IsNullOrWhiteSpace(g.Id) || g.Id.Length>128 ||
+                result.Groups.Any(g=>g is null || string.IsNullOrWhiteSpace(g.Id) || g.Id.Length>128 ||
                     string.IsNullOrWhiteSpace(g.Name) || g.Name.Length>200 ||
                     g.Kind!=(organizationId=="lefteria_fc"?"team":"academy_group")) ||
                 result.Groups.Select(g=>g.Id).Distinct(StringComparer.Ordinal).Count()!=result.Groups.Count)
