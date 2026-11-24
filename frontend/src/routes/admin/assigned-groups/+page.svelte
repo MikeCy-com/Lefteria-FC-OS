@@ -105,7 +105,7 @@
                 const next=event.currentTarget.value;
                 if(assignedOwners.some(org=>org.id===next))owner=next as Owner;
               }}>
-              {#each assignedOwners as org(org.id)}
+              {#each assignedOwners as org (org.id)}
                 <option value={org.id}>{org.name}</option>
               {/each}
             </select>
@@ -115,7 +115,7 @@
           <button type="button" class="admin-secondary" disabled={loading}
             onclick={()=>refresh++}>Ανανέωση αναθέσεων</button>
         </section>
-        {#if loading || directory?.organization_id!==owner && directory!==null}
+        {#if loading || (directory!==null && directory.organization_id!==owner)}
           <section class="admin-panel" role="status" data-testid="coach-assigned-loading">Επαλήθευση αναθέσεων…</section>
         {:else if error || !directory}
           <section class="admin-panel" role="alert" data-testid="coach-assigned-unavailable">
