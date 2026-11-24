@@ -46,8 +46,8 @@ test('creation shortcuts live in their module forms and not on the dashboard',()
   assert.match(dashboard,/data-testid="admin-dashboard-refresh"/);
   assert.match(groups,/page\.url\.searchParams\.get\('new'\)/);
   assert.match(groups,/choices\.some\(item=>item\.id===requested\)/);
-  assert.match(groups,/if\\(!browser\\|\\|!selected\\|\\|!actor\\|\\|!loaded\\|\\|!allowed\\)return/);
-  assert.match(groups,/if\\(lastOpenedCreateRouteKey===key\\)return/);
+  assert.match(groups,/if\(!browser\|\|!selected\|\|!actor\|\|!loaded\|\|!allowed\)return/);
+  assert.match(groups,/if\(lastOpenedCreateRouteKey===key\)return/);
   assert.match(groups,/\/api\/admin\/football\/groups\/with-profile/);
   assert.match(territories,/id="create-city"/);
   assert.match(territories,/id="create-location"/);
