@@ -90,6 +90,9 @@
     const owner=organization,requested=page.url.searchParams.get('group_id')??'';
     const actor=$auth.session?.user.id??'';
     const available=directory?.organization_id===owner?directory.groups:[];
+    // A refreshed verified directory may reopen an explicitly linked group.
+    // Do not reopen after a manual Close while the directory stays current.
+    if(directory?.organization_id!==owner)lastAppliedGroupRouteKey='';
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
     if(!requested){lastAppliedGroupRouteKey='';return;}
     if(!actor||!owner||!available.some(group=>group.id===requested))return;
