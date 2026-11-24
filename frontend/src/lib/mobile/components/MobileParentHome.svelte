@@ -5,11 +5,11 @@
   import { matchingParentHomeCalendar, parentHomeCalendarMonth, parentHomeSchedule, parentHomeRsvp, parentHomeCancelledEvents } from '../parent-home.ts';
   import type { Family, ParentCalendar } from '../parent-home.ts';
   import './mobile-theme.css';
-  import { publicImages } from '../../public/images.ts';
 
   interface Props {
     identityId: string;
     parentName: string;
+    heroUrl?: string | null;
     family: Family | null;
     familyStatus: 'idle' | 'loading' | 'ready' | 'error';
     familyError: string | null;
@@ -28,7 +28,7 @@
     onRespond?: (event:MobileCalendarItem,status:AvailabilityStatus) => boolean | Promise<boolean>;
   }
 
-  let { identityId, parentName, family, familyStatus, familyError, calendar, calendarStatus, calendarError,
+  let { identityId, parentName, heroUrl = null, family, familyStatus, familyError, calendar, calendarStatus, calendarError,
     busy = false, today = clubToday(), onLoadFamily, onLoadCalendar, onChildren, onCalendar, onEducation, onMessages, onFinancials, onRespond }: Props = $props();
 
   const id = $props.id();
@@ -69,8 +69,10 @@
 </script>
 
 <section class="parent-home" aria-labelledby={id + '-home-heading'} data-testid="parent-dashboard-home">
-  <header class="parent-greeting" data-testid="parent-photo-hero"
-    style:background-image={`linear-gradient(90deg,#080909f4 0%,#080909e3 34%,#08090962 75%,#08090927),linear-gradient(0deg,#090a0bdd,transparent 40%),url("${publicImages.hero}")`}>
+  <header class="parent-greeting" class:parent-hero-photographic={!!heroUrl} data-testid="parent-photo-hero"
+    style:background-image={heroUrl
+      ? `linear-gradient(90deg,#080909f4 0%,#080909e3 34%,#08090962 75%,#08090927),linear-gradient(0deg,#090a0bdd,transparent 40%),url("${heroUrl}")`
+      : undefined}>
     <p class="parent-eyebrow">ΚΑΛΩΣ ΗΡΘΕΣ</p>
     <h1 id={id + '-home-heading'}>{parentName || 'Γονέας'}</h1>
     <p class="parent-hero-description">Το πρόγραμμα, οι αγώνες και η πορεία των παιδιών σου,
