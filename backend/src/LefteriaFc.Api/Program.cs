@@ -142,6 +142,7 @@ builder.Services.AddScoped<IAdminPosCatalogReader, PostgresAdminPosCatalogReader
 builder.Services.AddScoped<IAdminPosCategoryWriter, PostgresAdminPosCategoryWriter>();
 builder.Services.AddScoped<IAdminPosProductWriter, PostgresAdminPosProductWriter>();
 builder.Services.AddScoped<IAdminAudienceDirectory, PostgresAdminAudienceDirectory>();
+builder.Services.AddScoped<IAdminCoachAssignedGroupsReader, PostgresAdminCoachAssignedGroupsReader>();
 builder.Services.AddScoped<IAdminRosterGroupWriter, PostgresAdminRosterGroupWriter>();
 builder.Services.AddScoped<IAdminRosterPlayerDirectory, PostgresAdminRosterPlayerDirectory>();
 builder.Services.AddScoped<IAdminRosterAssignmentWriter, PostgresAdminRosterAssignmentWriter>();
