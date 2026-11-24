@@ -122,13 +122,6 @@ internal sealed partial class WebAdminHttpChecks
                     using var denied=await reader.SendAsync(post);
                     await ExpectStatusAsync(denied,405);
                 }
-                // Revocation and session expiry apply to the same browser cookie.
-                await database.RevokeOrganizationAsync(coachAccount,fc);
-                using(var revoked=await GetAsync(reader,fcAssigned,coachLogin.Cookie))
-                    await ExpectJsonAsync(revoked,403,"not_authorized");
-                await database.ExpireSessionAsync(coachAccount,coachLogin.Token);
-                using(var expired=await GetAsync(reader,fcAssigned,coachLogin.Cookie))
-                    await ExpectJsonAsync(expired,401,"not_authenticated");
             }
             using(var adminView=await GetAsync(client,fcAssigned,adminLogin.Cookie))
                 await ExpectJsonAsync(adminView,403,"not_authorized");
@@ -194,6 +187,43 @@ internal sealed partial class WebAdminHttpChecks
             }
             await database.VerifyNativeCoachAsync(academyStaff,academy,roster.Group2,
                 null,"Fictional Academy coach");
+
+            // Unlinked accounts receive an empty safe directory, never
+            // someone else's group merely because they share an organization.
+            using(var unlinkedClient=Client())
+            {
+                var login=await LoginAsync(unlinkedClient,academyCoachAccount);
+                using var empty=await GetAsync(unlinkedClient,academyAssigned,login.Cookie);
+                var body=await ExpectJsonAsync(empty,200);
+                Require(body.GetProperty("groups").GetArrayLength()==0,
+                    "Unlinked Academy Coach received inferred private group assignments.");
+            }
+            var linkedAcademyRequest=Guid.NewGuid();
+            requestIds.Add(linkedAcademyRequest);
+            string linkedAcademyStaff;
+            using(var linked=await CreateNativeCoachAsync(client,adminLogin.Cookie,new {
+                request_id=linkedAcademyRequest,organization_id=academy,
+                name="Fictional linked Academy coach",job_role="Youth Coach",
+                group_id=roster.Group2,account_id=(Guid?)academyCoachAccount.Id
+            }))
+            {
+                var body=await ExpectJsonAsync(linked,201);
+                linkedAcademyStaff=body.GetProperty("staff_id").GetString()!;
+            }
+            await database.VerifyNativeCoachAsync(linkedAcademyStaff,academy,roster.Group2,
+                academyCoachAccount.Id,"Fictional linked Academy coach");
+            using(var linkedClient=Client())
+            {
+                var login=await LoginAsync(linkedClient,academyCoachAccount);
+                using var visible=await GetAsync(linkedClient,academyAssigned,login.Cookie);
+                var body=await ExpectJsonAsync(visible,200);
+                Require(body.GetProperty("groups").GetArrayLength()==1 &&
+                    body.GetProperty("groups")[0].GetProperty("id").GetString()==roster.Group2 &&
+                    body.GetProperty("groups")[0].GetProperty("kind").GetString()=="academy_group" &&
+                    !body.GetRawText().Contains(roster.Group1,StringComparison.Ordinal) &&
+                    !body.GetRawText().Contains("active_players",StringComparison.Ordinal),
+                    "Academy Coach discovered a sibling location or private membership counts.");
+            }
             using(var cross=await CreateNativeCoachAsync(client,adminLogin.Cookie,
                 new {request_id=Guid.NewGuid(),organization_id=academy,
                     name="Fictional cross team",job_role="Youth Coach",
@@ -215,6 +245,18 @@ internal sealed partial class WebAdminHttpChecks
                     x.GetProperty("id").GetString()==academyStaff &&
                     x.GetProperty("group_ids")[0].GetString()==roster.Group2),
                     "Native coach not visible in actual Academy coach directory.");
+            }
+            // Fresh session and organization revocation must be enforced on
+            // the same previously successful coach credentials.
+            using(var revokedClient=Client())
+            {
+                var login=await LoginAsync(revokedClient,coachAccount);
+                await database.RevokeOrganizationAsync(coachAccount,fc);
+                using(var denied=await GetAsync(revokedClient,fcAssigned,login.Cookie))
+                    await ExpectJsonAsync(denied,403,"not_authorized");
+                await database.ExpireSessionAsync(coachAccount,login.Token);
+                using(var expired=await GetAsync(revokedClient,fcAssigned,login.Cookie))
+                    await ExpectJsonAsync(expired,401,"not_authenticated");
             }
         }
         finally
