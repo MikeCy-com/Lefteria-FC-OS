@@ -10,7 +10,7 @@
     user:WebAdminSession['user'];
     active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
-      'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages'|'media'|'sponsors';
+      'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages'|'media'|'sponsors'|'assigned-groups';
     busy?:boolean;onLogout:()=>void;children:Snippet;
   }=$props();
   const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
@@ -20,6 +20,7 @@
   const initials=$derived((user.name || user.username).trim().split(/\s+/u)
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
+  const hasAssignedGroups=$derived(liveIds.has('assigned_groups')&&user.role==='coach');
   const canManagePlayerCrm=$derived(hasGroupHub &&
     ['manager','super_admin'].includes(user.role) &&
     (hasAdminPermission(user.permissions,'academy:write') ||
@@ -63,12 +64,12 @@
            Group operations remain embedded inside the selected group. -->
       <a class="admin-nav-home" href="/admin" aria-current={active==='account'?'page':undefined}>Επισκόπηση</a>
 
-      {#if hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
+      {#if hasGroupHub || hasAssignedGroups || liveIds.has('territories') || canViewFirstTeamTrials(user)}
         <details class="admin-nav-disclosure"
-          open={['groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
+          open={['groups','assigned-groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
           data-testid="admin-football-navigation">
           <summary class="admin-nav-category" data-testid="admin-football-category">
-            Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
+            {hasAssignedGroups?'Τα τμήματά μου':'Ομάδες & Ακαδημία'} <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
             {#if hasGroupHub}
@@ -79,6 +80,11 @@
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
                   data-testid="admin-player-crm-link">Παίκτες CRM</a>
               {/if}
+            {/if}
+            {#if hasAssignedGroups}
+              <a class="admin-nav-section" href="/admin/assigned-groups"
+                aria-current={active==='assigned-groups'?'page':undefined}
+                data-testid="admin-coach-assigned-groups-link">Οι ανατεθειμένες ομάδες μου</a>
             {/if}
             {#if liveIds.has('territories')}
               <a class="admin-nav-tool" href="/admin/territories" aria-current={active==='territories'?'page':undefined}
