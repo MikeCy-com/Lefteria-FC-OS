@@ -345,6 +345,8 @@
     .parent-home-rsvp-actions{gap:8px}
     .parent-home-rsvp-actions button{flex:1 1 auto}
   }
+  /* Without a published Academy image, use content-driven height instead of a blank poster. */
+  .parent-greeting:not(.parent-hero-photographic){min-height:0}
   @media(max-width:359px){
     .parent-child-card .parent-select-schedule{min-width:88px}
     .parent-event-copy{flex-basis:calc(100% - 111px)}
