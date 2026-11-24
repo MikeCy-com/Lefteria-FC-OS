@@ -281,6 +281,10 @@ GRANT EXECUTE ON FUNCTION club.read_admin_app_announcement_readers(text,text,tex
 -- identities or memberships. No messages and no delivery authority.
 REVOKE ALL ON FUNCTION club.read_admin_audiences(text,text) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_audiences(text,text) TO :"admin_auth_role";
+-- Coach only: canonical names/IDs from the explicitly linked, active staff
+-- account. No member roster/contacts, no organization-wide audience access.
+REVOKE ALL ON FUNCTION club.read_admin_coach_assigned_groups(text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_coach_assigned_groups(text,text) TO :"admin_auth_role";
 -- Manager-only roster creation; role/grant and atomic audit checked INSIDE
 -- the reviewed function. No SELECT/INSERT rights on club player/team tables.
 REVOKE ALL ON FUNCTION club.create_admin_group(text,text,text,text) FROM PUBLIC, :"app_role";
@@ -501,6 +505,7 @@ BEGIN
                   'pos.write_admin_category(text,text,text,text,boolean,bigint)'::regprocedure,
                   'pos.write_admin_product(text,text,text,text,text,text,boolean,bigint,jsonb)'::regprocedure,
                   'club.read_admin_audiences(text,text)'::regprocedure,
+                  'club.read_admin_coach_assigned_groups(text,text)'::regprocedure,
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
                   'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
