@@ -46,6 +46,9 @@ public sealed class PostgresAdminCoachAssignedGroupsReader(
                     "Assigned group directory could not be verified.");
             return result;
         }
+        catch(JsonException)
+        { throw new WebAdminException(503,"assigned_groups_unavailable",
+            "Assigned groups returned invalid data."); }
         catch(PostgresException e) when (e.SqlState=="P0001" &&
             e.MessageText=="admin_club_session_lock_missing")
         { throw new WebAdminException(401,"not_authenticated","Sign in again."); }
