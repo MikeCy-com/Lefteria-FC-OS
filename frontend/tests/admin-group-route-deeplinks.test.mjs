@@ -31,6 +31,13 @@ test('a linked group must be present in the current verified organization direct
   ]) assert.ok(groups.includes(text),text);
 });
 
+test('render and selected workspace never show stale data from a prior organization',()=>{
+  assert.ok(groups.includes("const visibleGroups = $derived((directory?.organization_id===organization?directory.groups:[])"));
+  assert.ok(groups.includes("const focusedGroup = $derived(directory?.organization_id===organization"));
+  assert.ok(groups.includes("loading || (directory !== null && directory.organization_id !== organization)"));
+  assert.ok(groups.includes("const available=directory?.organization_id===owner?directory.groups:[];"));
+});
+
 test('query-selected organizations must belong to the authenticated session',()=>{
   for(const text of [
     "if(!browser||$auth.status!=='authenticated'||!actor||!choices.length)return;",
