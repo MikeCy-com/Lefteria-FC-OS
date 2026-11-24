@@ -134,16 +134,11 @@
   background: linear-gradient(115deg, transparent 72%, #f6bb382b 72%, #f6bb382b 76%, transparent 76%);
   pointer-events: none;
 }
+/* The published organization crest already belongs to MobileShell's header.
+   Never overlay a fixed FC crest on Academy or management home photos. */
 .lf-mobile-theme.mobile-shell .parent-greeting::after,
 .lf-mobile-theme.mobile-shell .role-home .hero::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 10px 12px 10px auto;
-  width: min(38%, 210px);
-  background: url('/mobile/club-logo.png') right center / contain no-repeat;
-  opacity: .13;
-  pointer-events: none;
+  content: none;
 }
 .lf-mobile-theme.mobile-shell .parent-greeting h1,
 .lf-mobile-theme.mobile-shell .role-home .hero h1 {
