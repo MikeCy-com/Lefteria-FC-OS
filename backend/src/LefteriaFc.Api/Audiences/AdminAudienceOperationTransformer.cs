@@ -12,7 +12,7 @@ public sealed class AdminAudienceOperationTransformer : IOpenApiOperationTransfo
         OpenApiOperationTransformerContext context, CancellationToken cancellationToken)
     {
         if (context.Description.RelativePath?.Split('?')[0].Trim('/') is not
-            ("api/admin/football/audiences" or "api/admin/football/groups" or
+            ("api/admin/football/audiences" or "api/admin/football/assigned-groups" or "api/admin/football/groups" or
               "api/admin/football/players" or "api/admin/football/assignments" or "api/admin/football/coaches" or "api/admin/football/coach-assignments" or "api/admin/communications/announcement-drafts") ||
             operation.Parameters is null)
             return Task.CompletedTask;
