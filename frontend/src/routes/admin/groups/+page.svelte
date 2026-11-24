@@ -82,25 +82,45 @@
   let creationLocationsLoading=$state(false);
   let creationLocationsError=$state('');
 
+  // SvelteKit preserves this route component when only query parameters
+  // change. Apply each newly requested *verified* group once. A user may close
+  // the group without the still-present URL reopening it on every render.
+  let lastAppliedGroupRouteKey='';
   $effect(()=>{
-    const requested=page.url.searchParams.get('group_id')??'';
-    const available=directory?.groups ?? [];
+    const owner=organization,requested=page.url.searchParams.get('group_id')??'';
+    const actor=$auth.session?.user.id??'';
+    const available=directory?.organization_id===owner?directory.groups:[];
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
-    if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
+    if(!requested){lastAppliedGroupRouteKey='';return;}
+    if(!actor||!owner||!available.some(group=>group.id===requested))return;
+    const key=actor+':'+owner+':'+requested;
+    if(lastAppliedGroupRouteKey===key)return;
+    lastAppliedGroupRouteKey=key;
+    focusedGroupId=requested;
   });
-  let appliedInitialOrganization=false;
-  let openedRequestedCreate=false;
-  let appliedRequestedView=false;
+  let lastAppliedOrganizationRouteKey='';
+  let lastAppliedViewRouteKey='';
+  let lastOpenedCreateRouteKey='';
   $effect(()=>{
-    if(!browser||appliedRequestedView||!canCreate)return;
-    appliedRequestedView=true;
-    if(page.url.searchParams.get('view')==='players')directoryView='players';
+    const actor=$auth.session?.user.id??'';
+    const requested=page.url.searchParams.get('view')??'';
+    const owner=organization,allowed=canCreate;
+    if(!browser||!actor||!owner)return;
+    const key=actor+':'+owner+':'+requested+':'+String(Boolean(allowed));
+    if(lastAppliedViewRouteKey===key)return;
+    lastAppliedViewRouteKey=key;
+    // Player CRM is never activated for a revoked/read-only write grant.
+    directoryView=requested==='players'&&allowed?'players':'groups';
   });
   $effect(()=>{
     const choices=assignments;
-    if(!browser||appliedInitialOrganization||$auth.status!=='authenticated'||!choices.length)return;
-    appliedInitialOrganization=true;
+    const actor=$auth.session?.user.id??'';
     const requested=page.url.searchParams.get('organization_id');
+    if(!browser||$auth.status!=='authenticated'||!actor||!choices.length)return;
+    const key=actor+':'+choices.map(org=>org.id).join(',')+':'+(requested??'');
+    if(lastAppliedOrganizationRouteKey===key)return;
+    lastAppliedOrganizationRouteKey=key;
+    // URL inputs are never a substitute for a current organization grant.
     if((requested==='lefteria_fc'||requested==='lefteria_fc_academy')&&
       choices.some(item=>item.id===requested))organization=requested;
   });
@@ -417,8 +437,13 @@
   $effect(()=>{
     const selected=organization,loaded=directory?.organization_id===selected;
     const wantsNew=page.url.searchParams.get('new')==='1';
-    if(!browser||openedRequestedCreate||!wantsNew||!loaded||!canCreate)return;
-    openedRequestedCreate=true;
+    const actor=$auth.session?.user.id??'';
+    const allowed=canCreate;
+    if(!wantsNew){lastOpenedCreateRouteKey='';return;}
+    if(!browser||!selected||!actor||!loaded||!allowed)return;
+    const key=actor+':'+selected+':new';
+    if(lastOpenedCreateRouteKey===key)return;
+    lastOpenedCreateRouteKey=key;
     showCreate=true;
   });
 
