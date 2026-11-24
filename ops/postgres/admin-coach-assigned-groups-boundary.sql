@@ -27,10 +27,10 @@ BEGIN
     OR position('v_role IS DISTINCT FROM ''coach''' in pg_get_functiondef(f.oid))=0
     OR EXISTS (
       SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-      WHERE (n.nspname='club' AND c.relname IN
+      WHERE ((n.nspname='club' AND c.relname IN
           ('staff','staff_teams','staff_academy_groups','academy_group_coaches',
            'teams','academy_groups','players','player_academy_groups'))
-        OR (n.nspname='identity' AND c.relname='admin_staff_links')
+        OR (n.nspname='identity' AND c.relname='admin_staff_links'))
       AND (has_any_column_privilege(auth_name,c.oid,'SELECT,INSERT,UPDATE,REFERENCES')
         OR has_table_privilege(auth_name,c.oid,'DELETE,TRUNCATE,TRIGGER'))
     )
