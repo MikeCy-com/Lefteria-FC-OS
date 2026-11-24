@@ -6,12 +6,12 @@
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
   import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,isTrustedRoleHomeContext,trustedRoleHomeCancelledEvents} from '../role-home.ts';
   import './mobile-theme.css';
-  import { publicImages } from '../../public/images.ts';
 
   type HomeRole=Exclude<MobileRole,'parent'>;
   interface Props {
     role:HomeRole;identityId:string;userName:string;
     clubName?:string;
+    heroUrl?:string|null;
     organizationId?:string|null;calendar:MobileCalendar|null;
     calendarStatus:'idle'|'loading'|'ready'|'error';calendarError:string|null;
     busy?:boolean;today?:string;
@@ -19,7 +19,7 @@
     onNavigate:(tab:MobileTab)=>Promise<void>|void;
     onRespond?:(item:MobileCalendarItem,status:AvailabilityStatus)=>Promise<boolean>|boolean;
   }
-  let {role,identityId,userName,clubName='ΛΕΥΤΕΡΙΑ FC',organizationId=null,calendar,calendarStatus,
+  let {role,identityId,userName,clubName='ΛΕΥΤΕΡΙΑ FC',heroUrl=null,organizationId=null,calendar,calendarStatus,
     calendarError,busy=false,today=clubToday(),onLoadCalendar,onNavigate,onRespond}:Props=$props();
   const id=$props.id();
   const needsOrganization=$derived(role==='management'&&!organizationId);
@@ -43,10 +43,10 @@
   });
 </script>
 <section class="role-home" data-testid={role+'-dashboard-home'} data-home-role={role} aria-labelledby={id+'-title'}>
-  <header class="hero" class:hero-photographic={role==='player'||role==='coach'}
+  <header class="hero" class:hero-photographic={!!heroUrl&&(role==='player'||role==='coach')}
     data-testid="mobile-role-photo-hero"
-    style:background-image={role==='player'||role==='coach'
-      ? `linear-gradient(90deg,#08090aef 0%,#08090abc 38%,#08090a36 100%),linear-gradient(0deg,#08090ad9,transparent 65%),url("${publicImages.hero}")`
+    style:background-image={heroUrl&&(role==='player'||role==='coach')
+      ? `linear-gradient(90deg,#08090aef 0%,#08090abc 38%,#08090a36 100%),linear-gradient(0deg,#08090ad9,transparent 65%),url("${heroUrl}")`
       : undefined}>
     <p class="eyebrow">{clubName} · {ROLE_NAMES[role]}</p>
     <h1 id={id+'-title'}>Καλώς ήρθες, <span>{userName}</span></h1>
