@@ -72,44 +72,47 @@
   const mobileClubName=$derived(publicClubBrand?.name ??
     (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':'ΛΕΥΤΕΡΙΑ FC'));
 
-  let notificationCount=$state(0);
+  let notificationSnapshot=$state<{scope:string;count:number}|null>(null);
   const notificationScope=$derived(
     $controller.status==='authenticated'&&user?.current_role_available&&role&&role!=='fan'&&
     (role!=='management'||($controller.organization?.organization_id&&
       !$controller.organization.requires_organization_selection))
       ?JSON.stringify([user.id,role,role==='management'?$controller.organization?.organization_id:null])
       :null);
-  const inboxOwnsCount=$derived(activeTab==='notifications'&&!composing);
+  const notificationCount=$derived(notificationSnapshot?.scope===notificationScope?notificationSnapshot?.count??0:0);
   let refreshNotificationBadge:()=>void=()=>{};
   $effect(()=>{
-    const scope=notificationScope,tab=activeTab,owned=inboxOwnsCount;
+    const scope=notificationScope,tab=activeTab;
     void tab;
-    notificationCount=0;
+    notificationSnapshot=null;
     refreshNotificationBadge=()=>{};
-    if(!browser||!scope||owned)return;
+    if(!browser||!scope)return;
     const badge=createNotificationBadgeRefresher(
-      async()=>(await controller.getAppNotificationInbox()).unread_count,
-      count=>{if(notificationScope===scope&&!inboxOwnsCount)notificationCount=count;});
+      async()=>(await controller.getNotificationUnreadSummary()).unread_count,
+      count=>{if(notificationScope===scope&&document.visibilityState==='visible')
+        notificationSnapshot={scope,count};});
     const refresh=()=>{
-      if(notificationScope===scope&&!inboxOwnsCount&&document.visibilityState==='visible')
-        void badge.refresh();
+      if(notificationScope===scope&&document.visibilityState==='visible')void badge.refresh();
     };
+    function visibility(){
+      if(document.visibilityState==='hidden')notificationSnapshot=null;
+      else refresh();
+    }
     refreshNotificationBadge=refresh;
     refresh();
-    document.addEventListener('visibilitychange',refresh);
+    document.addEventListener('visibilitychange',visibility);
     window.addEventListener('focus',refresh);
-    // Foreground refresh only; no provider/device push or persistent timer.
     const timer=window.setInterval(refresh,60000);
     return()=>{
       badge.dispose();
-      document.removeEventListener('visibilitychange',refresh);
+      document.removeEventListener('visibilitychange',visibility);
       window.removeEventListener('focus',refresh);
       window.clearInterval(timer);
     };
   });
-  function acceptInboxCount(scope:string|null,count:number){
-    if(scope&&scope===notificationScope&&inboxOwnsCount)
-      notificationCount=count;
+  function acceptInboxCount(scope:string|null,_count:number){
+    // An announcement-page response is only an invalidation, never the total.
+    if(scope&&scope===notificationScope)refreshNotificationBadge();
   }
   async function openNotification(notice:AppNotification){
     const query=new URLSearchParams({tab:'announcements',
@@ -377,9 +380,9 @@
           {/if}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode}
             {#if chatMode==='private' && (role==='parent'||role==='coach'||role==='management')}
-              <MobilePrivateChat {controller} actorId={user.id} {role}/>
+              <MobilePrivateChat {controller} actorId={user.id} {role} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {:else}
-              <MobileGroupChat {controller} actorId={user.id} {role} />
+              <MobileGroupChat {controller} actorId={user.id} {role} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {/if}
           {/key}
         {/if}
