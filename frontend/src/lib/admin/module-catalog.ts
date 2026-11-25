@@ -61,7 +61,7 @@ const catalog: readonly Section[] = [
     { id: 'trials', name: 'Δοκιμαστικά πρώτης ομάδας', description: 'Επαληθευμένη κατάσταση κλειστών εγγραφών.', status: 'live', href: '/admin/trials', scope: 'first-team', anyPermission: ['settings:read'] },
     { id: 'groups', name: 'Ομάδες & τμήματα', description: 'Πραγματικές ομάδες, μέλη και ελεγχόμενη δημιουργία τμημάτων ανά οργανισμό.', status: 'live', href: '/admin/groups', scope: 'any', anyPermission: ['teams:read', 'academy:read'] },
     { id: 'drills', name: 'Βιβλιοθήκη ασκήσεων', description: 'Κεντρική βιβλιοθήκη της Ακαδημίας για όλες τις πόλεις και τοποθεσίες.', status: 'live', href: '/admin/drills', scope: 'academy', anyPermission: ['training:read','training:read_assigned'] },
-    { id: 'assigned_groups', name: 'Τα ανατεθειμένα τμήματά μου', description: 'Ειδική προβολή προπονητή με ανατεθειμένα τμήματα· απαιτεί ξεχωριστή πολιτική ανάθεσης.', status: 'planned', scope: 'any', anyPermission: ['teams:read_assigned', 'academy:read_assigned'] },
+    { id: 'assigned_groups', name: 'Τα τμήματά μου', description: 'Ανατεθειμένα τμήματα, σχεδιασμός προπονήσεων, υποβολή για έγκριση και παρουσίες.', status: 'live', href: '/admin/schedule', scope: 'academy', anyPermission: ['training:read_assigned'] },
     { id: 'schedule', name: 'Πρόγραμμα & παρουσίες', description: 'Προπονήσεις και ημερολόγιο.', status: 'planned', scope: 'any', anyPermission: ['training:read', 'training:read_assigned', 'attendance:read'] },
     { id: 'territories', name: 'Πόλεις, γήπεδα & αγωνιστικοί κατάλογοι', description: 'Ασφαλείς κατάλογοι Ακαδημίας ανά πόλη/τοποθεσία και ανεξάρτητοι κατάλογοι πρώτης ομάδας, με πρόχειρους αγώνες.', status: 'live', href: '/admin/territories', scope: 'any', anyPermission: ['teams:read','academy:read'] },
   ] },
@@ -87,6 +87,7 @@ export function adminSectionsFor(user: AdminUser): AdminSection[] {
       if (!assigned) return false;
       if (item.scope === 'academy' && !organizations.includes('lefteria_fc_academy')) return false;
       if (item.scope === 'first-team' && !organizations.includes('lefteria_fc')) return false;
+      if (item.id === 'assigned_groups') return user.role==='coach' && hasAdminPermission(user.permissions,'training:read_assigned');
       if (item.id === 'drills') return ['super_admin','manager','coach'].includes(user.role) && item.anyPermission.some(permission=>hasAdminPermission(user.permissions,permission));
       if (item.id === 'club') return canReadClub(user);
       if (item.id === 'trials') return canViewFirstTeamTrials(user);
