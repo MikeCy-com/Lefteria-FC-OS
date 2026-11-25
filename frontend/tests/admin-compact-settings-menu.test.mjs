@@ -24,7 +24,9 @@ test('all admin roles share compact one-level navigation and one account header'
   assert.match(css,/font:600 15px\/1\.35 'Fira Sans'/);
   assert.match(css,/@media\(max-width:720px\)/);
   assert.match(css,/\.admin-app \.admin-sidebar \.admin-nav-category:focus-visible/);
-  assert.doesNotMatch(frame,/href="\/admin\/(?:schedule|matches|attendance|evaluations|documents)"/);
+  assert.match(frame,/\{#if liveIds\.has\('assigned_groups'\)\}\s*<a[^>]+href="\/admin\/schedule"[^>]+data-testid="admin-coach-workspace-link"/);
+  assert.equal((frame.match(/href="\/admin\/schedule"/g)||[]).length,1);
+  assert.doesNotMatch(frame,/href="\/admin\/(?:matches|attendance|evaluations|documents)"/);
 });
 
 test('settings is one entry point with grant-scoped real tools and no second nested submenu',()=>{
