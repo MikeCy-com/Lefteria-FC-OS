@@ -119,7 +119,7 @@ BEGIN
   IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
     WHERE x->>'id'=cp::text AND (x->>'submitted_version')::int=1)
     THEN RAISE EXCEPTION 'manager_submission_missing'; END IF;
-  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach revised draft','Pitch','',2,false);
+  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach revised draft','Pitch','',1,false);
   IF EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
     WHERE x->>'id'=cp::text AND x->>'submitted_version' IS NOT NULL)
     THEN RAISE EXCEPTION 'stale_coach_submission_visible'; END IF;
