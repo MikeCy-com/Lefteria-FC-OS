@@ -1,5 +1,6 @@
 <script lang="ts">
   import {onMount,tick} from 'svelte';
+  import {SvelteSet} from 'svelte/reactivity';
   import type {MobileAuthController} from '../controller.ts';
   import type {GroupChatRoom} from '../group-chat.ts';
   import type {AppAnnouncement} from '../app-announcements.ts';
@@ -8,10 +9,11 @@
   import type {AppAnnouncementMedia} from '../app-announcements.ts';
 
   let {controller,initialOrganization=null,initialGroup=null,
-    initialAnnouncementId=null}:{
+    initialAnnouncementId=null,onReadConfirmed}:{
       controller:MobileAuthController;
       initialOrganization?:string|null;initialGroup?:string|null;
       initialAnnouncementId?:string|null;
+      onReadConfirmed?:()=>void;
     }=$props();
   let rooms=$state.raw<GroupChatRoom[]>([]);
   let selected=$state.raw<GroupChatRoom|null>(null);
@@ -25,8 +27,9 @@
   let reactionFor=$state<string|null>(null);
   let reacting=$state<string|null>(null);
   let requestNumber=0,alive=true;
-  const acknowledged=new Set<string>();
-  const acknowledgmentsInFlight=new Set<string>();
+  const acknowledged=new SvelteSet<string>();
+  const acknowledgmentsInFlight=new SvelteSet<string>();
+  let readError=$state<string|null>(null);
 
   onMount(()=>{
     alive=true;void loadDirectory();
@@ -67,7 +70,7 @@
   async function loadFeed(room:GroupChatRoom,offset:number,history:number[],findTarget=false){
     const request=++requestNumber;
     // Do not retain earlier private rows across fresh access checks.
-    announcements=[];nextOffset=null;error=null;reactionFor=null;targetMessage=null;
+    announcements=[];nextOffset=null;error=null;reactionFor=null;targetMessage=null;readError=null;
     busy=true;
     const target=room.organization_id===initialOrganization&&room.group_id===initialGroup&&
       initialAnnouncementId&&/^ann_[a-f0-9]{32}$/.test(initialAnnouncementId)
@@ -117,21 +120,36 @@
     if(!room||!previousOffsets.length||busy||reacting!==null||downloading!==null)return;
     return loadFeed(room,previousOffsets[previousOffsets.length-1]!,previousOffsets.slice(0,-1));
   }
+  function readKey(room:GroupChatRoom,id:string){
+    return room.organization_id+'/'+room.group_id+'/'+id;
+  }
+  async function acknowledgeRead(room:GroupChatRoom,id:string,explicit=false){
+    const key=readKey(room,id);
+    if(!alive||document.visibilityState!=='visible'||!document.hasFocus()||
+      selected!==room||acknowledged.has(key)||acknowledgmentsInFlight.has(key)||
+      !announcements.some(item=>item.id===id))return;
+    const request=requestNumber;
+    acknowledgmentsInFlight.add(key);
+    if(explicit)readError=null;
+    try{
+      const confirmed=await controller.acknowledgeAppAnnouncementRead(room,id);
+      if(!confirmed)throw new Error('Unverified read acknowledgement.');
+      if(alive){
+        acknowledged.add(key);
+        // This is an invalidation, never an optimistic badge decrement.
+        onReadConfirmed?.();
+      }
+    }catch{
+      if(explicit&&alive&&request===requestNumber&&selected===room)
+        readError='Η επιβεβαίωση ανάγνωσης απέτυχε. Δοκίμασε ξανά.';
+    }finally{acknowledgmentsInFlight.delete(key);}
+  }
   function seenOnScreen(node:HTMLElement,notice:AppAnnouncement) {
     const room=selected;
     if(!room)return;
     let visible=false;
-    const key=room.organization_id+'/'+room.group_id+'/'+notice.id;
     function acknowledge(){
-      if(!alive||!visible||document.visibilityState!=='visible'||
-        !document.hasFocus()||selected!==room||
-        acknowledged.has(key)||acknowledgmentsInFlight.has(key)||
-        !announcements.some(item=>item.id===notice.id))return;
-      acknowledgmentsInFlight.add(key);
-      void controller.acknowledgeAppAnnouncementRead(room!,notice.id).then(confirmed=>{
-        if(confirmed)acknowledged.add(key);
-      }).catch(()=>{/* Unverified observations are never marked read. */})
-        .finally(()=>acknowledgmentsInFlight.delete(key));
+      if(visible)void acknowledgeRead(room!,notice.id);
     }
     const observer=new IntersectionObserver(entries=>{
       visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.75);
@@ -141,6 +159,7 @@
     document.addEventListener('visibilitychange',acknowledge);
     window.addEventListener('focus',acknowledge);
     return {destroy(){
+      visible=false;
       observer.disconnect();
       document.removeEventListener('visibilitychange',acknowledge);
       window.removeEventListener('focus',acknowledge);
@@ -236,6 +255,17 @@
                 </button>
               {/if}
             {/each}
+            <div class="read-actions">
+              {#if acknowledged.has(readKey(selected,notice.id))}
+                <span class="read-confirmed" role="status">✓ Διαβάστηκε</span>
+              {:else}
+                <button type="button" class="outline read-button"
+                  disabled={acknowledgmentsInFlight.has(readKey(selected,notice.id))}
+                  onclick={()=>void acknowledgeRead(selected!,notice.id,true)}>
+                  {acknowledgmentsInFlight.has(readKey(selected,notice.id))?'Επιβεβαίωση…':'Σήμανση ως αναγνωσμένη'}
+                </button>
+              {/if}
+            </div>
             <div class="reaction-summary" role="group" aria-label="Αντιδράσεις ανακοίνωσης">
               {#each notice.reactions as reaction (reaction.emoji)}
                 <button type="button" class:mine={reaction.mine} disabled={busy||reacting!==null||downloading!==null}
@@ -262,6 +292,7 @@
           </li>
         {/each}
       </ol>
+      {#if readError}<p role="alert" class="error">{readError}</p>{/if}
       {#if !busy&&!error&&(previousOffsets.length||nextOffset!==null)}
         <nav class="pagination" aria-label="Σελίδες ανακοινώσεων">
           <button type="button" class="outline" disabled={!previousOffsets.length||reacting!==null||downloading!==null}
@@ -295,6 +326,9 @@
   .official{font-size:10px;color:var(--lf-gold-light);font-weight:700;letter-spacing:.03em}
   time{font-size:10px;color:var(--lf-muted)}
   .feed li p{line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere;margin:0}
+  .read-actions{margin-top:12px;display:flex;align-items:center;min-height:44px}
+  .read-button{font-size:12px;text-align:left}
+  .read-confirmed{font-size:12px;color:var(--lf-gold-light)}
   .reaction-summary,.reaction-palette{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
   .reaction-summary button,.reaction-palette button{cursor:pointer;border-radius:20px;
     min-height:40px;min-width:45px;padding:7px 10px;color:var(--lf-text);
