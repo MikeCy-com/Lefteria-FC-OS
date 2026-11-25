@@ -22,3 +22,7 @@ public sealed record MobileAppNotificationDto(string AnnouncementId,string Organ
 public sealed record MobileAppNotificationInboxDto(
     IReadOnlyList<MobileAppNotificationDto> Notifications,int UnreadCount,
     int? NextOffset,bool Enabled);
+
+public sealed record MobileNotificationDestinationDto(int UnreadCount,bool Enabled);
+public sealed record MobileNotificationUnreadSummaryDto(MobileNotificationDestinationDto Announcements,
+    MobileNotificationDestinationDto GroupMessages,MobileNotificationDestinationDto PrivateMessages,int UnreadCount);
