@@ -2645,6 +2645,43 @@
         ],
         "type": "object"
       },
+      "DrillProposalCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "age_band": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "age_band",
+          "category",
+          "duration_minutes",
+          "instructions",
+          "objective",
+          "title"
+        ],
+        "type": "object"
+      },
       "Enrollment": {
         "properties": {
           "city_id": {
@@ -9615,6 +9652,42 @@
         ],
         "type": "object"
       },
+      "TrainingDeliveryCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "drills": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingDrillSelectionCommand"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "expected_sequence_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "schedule_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "schedule_version",
+          "expected_sequence_version",
+          "drills"
+        ],
+        "type": "object"
+      },
       "TrainingDrillSelectionCommand": {
         "additionalProperties": false,
         "properties": {
@@ -10246,6 +10319,64 @@
         ]
       }
     },
+    "/api/admin/academy/drills/proposals": {
+      "get": {
+        "operationId": "ReadCoachDrillProposals",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      },
+      "post": {
+        "operationId": "SubmitCoachDrillProposal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrillProposalCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      }
+    },
     "/api/admin/academy/drills/{drillId}": {
       "put": {
         "operationId": "ChangeCentralAcademyDrill",
@@ -10852,6 +10983,112 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CancelPublishedTrainingCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/delivery": {
+      "get": {
+        "operationId": "ReadAdminTrainingDelivery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      },
+      "put": {
+        "operationId": "WriteAdminTrainingDelivery",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingDeliveryCommand"
               }
             }
           },
