@@ -72,7 +72,10 @@ test('mobile announcements compile and are restricted to current member tab and 
   assert.match(route,/activeTab === 'announcements' && role !== 'fan'/);
   assert.match(route,/<MobileAppAnnouncements \{controller\}/);
   assert.match(feed,/controller\.getChatRooms\(\)/);
-  assert.match(feed,/controller\.getAppAnnouncements\(room,0\)/);
+  assert.match(feed,/if\(!rooms\.includes\(room\)\)return/);
+  assert.match(feed,/return loadFeed\(room,0,\[\],true\)/);
+  assert.match(feed,/controller\.getAppAnnouncements\(room,cursor\)/);
+  assert.match(feed,/page\.next_offset<=cursor/);
   assert.doesNotMatch(feed,/localStorage|sessionStorage|innerHTML|@html/);
 });
 
@@ -179,7 +182,10 @@ test('app-only notification inbox rechecks membership and preferences instead of
   assert.match(validator,/validAppNotificationInbox/);
   assert.match(validator,/new Set\(items\.map/);
   assert.match(controller,/getAppNotificationInbox/);
-  assert.match(routes,/notificationCount=\$state\(0\)/);
+  assert.match(routes,/notificationSnapshot=\$state<\{scope:string;count:number\}\|null>\(null\)/);
+  assert.match(routes,/notificationSnapshot\?\.scope===notificationScope\?notificationSnapshot\?\.count\?\?0:0/);
+  assert.match(routes,/controller\.getNotificationUnreadSummary\(\)/);
+  assert.match(routes,/if\(scope&&scope===notificationScope\)refreshNotificationBadge\(\)/);
   assert.match(routes,/MobileAppNotificationInbox/);
   assert.match(routes,/openNotification/);
   assert.match(notifications,/onUnreadChange/);
