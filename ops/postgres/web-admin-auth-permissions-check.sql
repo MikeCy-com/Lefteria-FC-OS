@@ -213,6 +213,8 @@ BEGIN
                   'club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text)'::regprocedure,
                   'club.read_admin_training_delivery(text,text,uuid,integer)'::regprocedure,
                   'club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb)'::regprocedure,
+                  'club.submit_linked_coach_drill_proposal(text,uuid,uuid,integer,text,text,text,text,text,integer,text,text)'::regprocedure,
+                  'club.apply_coach_drill_revision(text,uuid,integer,integer)'::regprocedure,
                   'club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text)'::regprocedure,
                   'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure,
                   'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure,
