@@ -13,44 +13,6 @@ public sealed class AcademyTrainingDrillBuilder : Migration
         ADD COLUMN drill_snapshots jsonb NOT NULL DEFAULT '[]'::jsonb
         CHECK(jsonb_typeof(drill_snapshots)='array' AND jsonb_array_length(drill_snapshots)<=24);
 
-      CREATE OR REPLACE FUNCTION club.read_admin_academy_training_plans(
-        _digest text,_owner text,_group text,_from date,_to date
-      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
-      SET search_path=pg_catalog,pg_temp AS $plan_read$
-      DECLARE v_rows jsonb;v_total integer;
-      BEGIN
-        IF _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
-          OR _group ~ '[[:cntrl:]]' OR _from IS NULL OR _to IS NULL
-          OR _to<_from OR _to>_from+93 THEN
-          RAISE EXCEPTION 'training_plan_filters_invalid' USING ERRCODE='22023';
-        END IF;
-        PERFORM club.require_academy_training_planner(_digest,_owner);
-        IF NOT EXISTS(SELECT 1 FROM club.academy_groups
-          WHERE organization_id=_owner AND id=_group) THEN
-          RAISE EXCEPTION 'training_plan_group_denied' USING ERRCODE='42501';
-        END IF;
-        SELECT count(*) INTO v_total FROM club.academy_training_plan_drafts p
-          WHERE p.organization_id=_owner AND p.group_id=_group
-            AND p.training_day BETWEEN _from AND _to;
-        IF v_total>500 THEN
-          RAISE EXCEPTION 'training_plan_list_too_large' USING ERRCODE='54000';
-        END IF;
-        SELECT coalesce(jsonb_agg(jsonb_build_object(
-          'id',p.id,'organization_id',p.organization_id,
-          'group_id',p.group_id,'day',p.training_day,
-          'start_time',to_char(p.start_time,'HH24:MI'),
-          'duration_minutes',p.duration_minutes,'title',p.title,
-          'location',p.location,'notes',p.notes,
-          'status',p.status,'version',p.version,'drill_count',jsonb_array_length(p.drill_snapshots))
-          ORDER BY p.training_day,p.start_time,p.id),'[]'::jsonb)
-        INTO v_rows FROM club.academy_training_plan_drafts p
-          WHERE p.organization_id=_owner AND p.group_id=_group
-            AND p.training_day BETWEEN _from AND _to;
-        RETURN jsonb_build_object('organization_id',_owner,
-          'group_id',_group,'from',_from,'to',_to,
-          'total',v_total,'plans',v_rows);
-      END $plan_read$;
-
       -- Private content is embedded in the exact plan revision, not linked live
       -- to a mutable catalogue. Existing plan writes preserve the snapshots.
       CREATE FUNCTION club.require_training_drill_group(_actor uuid,_group text)
@@ -74,6 +36,49 @@ public sealed class AcademyTrainingDrillBuilder : Migration
           NOT club.admin_football_allowed(_actor,v_role,'lefteria_fc_academy',v_scope,v_location,true)
         THEN RAISE EXCEPTION 'training_drill_group_denied' USING ERRCODE='42501'; END IF;
       END $scope$;
+
+      CREATE OR REPLACE FUNCTION club.read_admin_academy_training_plans(
+        _digest text,_owner text,_group text,_from date,_to date
+      ) RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER
+      SET search_path=pg_catalog,pg_temp AS $plan_read$
+      DECLARE v_rows jsonb;v_total integer;v_actor uuid;v_drill_scope boolean:=false;
+      BEGIN
+        IF _group IS NULL OR length(_group) NOT BETWEEN 1 AND 128
+          OR _group ~ '[[:cntrl:]]' OR _from IS NULL OR _to IS NULL
+          OR _to<_from OR _to>_from+93 THEN
+          RAISE EXCEPTION 'training_plan_filters_invalid' USING ERRCODE='22023';
+        END IF;
+        SELECT actor_id INTO v_actor FROM club.require_academy_training_planner(_digest,_owner);
+        -- Do not extend legacy plan-list disclosure with attachment metadata.
+        BEGIN
+          PERFORM club.require_training_drill_group(v_actor,_group);
+          v_drill_scope:=true;
+        EXCEPTION WHEN insufficient_privilege THEN v_drill_scope:=false; END;
+        IF NOT EXISTS(SELECT 1 FROM club.academy_groups
+          WHERE organization_id=_owner AND id=_group) THEN
+          RAISE EXCEPTION 'training_plan_group_denied' USING ERRCODE='42501';
+        END IF;
+        SELECT count(*) INTO v_total FROM club.academy_training_plan_drafts p
+          WHERE p.organization_id=_owner AND p.group_id=_group
+            AND p.training_day BETWEEN _from AND _to;
+        IF v_total>500 THEN
+          RAISE EXCEPTION 'training_plan_list_too_large' USING ERRCODE='54000';
+        END IF;
+        SELECT coalesce(jsonb_agg(jsonb_build_object(
+          'id',p.id,'organization_id',p.organization_id,
+          'group_id',p.group_id,'day',p.training_day,
+          'start_time',to_char(p.start_time,'HH24:MI'),
+          'duration_minutes',p.duration_minutes,'title',p.title,
+          'location',p.location,'notes',p.notes,
+          'status',p.status,'version',p.version,'drill_count',CASE WHEN v_drill_scope THEN jsonb_array_length(p.drill_snapshots) ELSE NULL END)
+          ORDER BY p.training_day,p.start_time,p.id),'[]'::jsonb)
+        INTO v_rows FROM club.academy_training_plan_drafts p
+          WHERE p.organization_id=_owner AND p.group_id=_group
+            AND p.training_day BETWEEN _from AND _to;
+        RETURN jsonb_build_object('organization_id',_owner,
+          'group_id',_group,'from',_from,'to',_to,
+          'total',v_total,'plans',v_rows);
+      END $plan_read$;
 
       CREATE FUNCTION club.guard_training_drill_plan()
       RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER
