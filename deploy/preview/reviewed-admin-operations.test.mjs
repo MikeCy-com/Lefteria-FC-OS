@@ -15,16 +15,16 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
     Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
       JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
       .map(([method])=>[method,path]));
-  assert.equal(guarded.length,116);
+  assert.equal(guarded.length,130);
   const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
-  assert.equal(reviewed.size,99);
+  assert.equal(reviewed.size,113);
   for(const [method,path] of reviewedAdminEntries){
     assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
     assert.equal(permitted(method.toUpperCase(),
       path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
       true,method+' '+path);
   }
-  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,116);
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,130);
   assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
     /handle @entry_get/);
 });
@@ -53,6 +53,20 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/access/users/status'],
     ['POST','/api/admin/access/users/role'],
     ['POST','/api/admin/staff/coaches'],
+    ['GET','/api/admin/academy/drills'],
+    ['POST','/api/admin/academy/drills'],
+    ['GET','/api/admin/academy/drills/proposals'],
+    ['POST','/api/admin/academy/drills/proposals'],
+    ['POST','/api/admin/academy/drills/proposals/linked'],
+    ['POST','/api/admin/academy/drills/proposals/11111111-2222-4333-8444-555555555555/apply-revision'],
+    ['PUT','/api/admin/academy/drills/11111111-2222-4333-8444-555555555555'],
+    ['GET','/api/admin/academy/training/plans/assigned-groups'],
+    ['POST','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/submit'],
+    ['GET','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/drills'],
+    ['PUT','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/drills'],
+    ['GET','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/delivery'],
+    ['PUT','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/delivery'],
+    ['POST','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/drills/approve'],
     ['GET','/api/admin/academy/training/plans'],
     ['POST','/api/admin/academy/training/plans'],
     ['POST','/api/admin/auth/profile/name'],
