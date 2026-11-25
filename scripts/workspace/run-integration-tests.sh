@@ -36,7 +36,7 @@ sql() { PGPASSWORD="$POSTGRES_PASSWORD" "$PGBIN/psql" -X -q -h 127.0.0.1 -p "$LE
 
 for f in founding-admin-checks.sql academy-private-evaluation-guards-checks.sql private-document-quarantine-checks.sql mobile-coach-goal-read-checks.sql \
   pos-location-ledger-checks.sql pos-cashier-ledger-checks.sql pos-site-isolation-checks.sql hub-recipient-learning-checks.sql hub-player-classroom-checks.sql hub-player-learning-position-checks.sql hub-classroom-curriculum-checks.sql hub-fan-overview-checks.sql academy-attendance-checks.sql \
-  academy-attendance-lifecycle-checks.sql academy-training-plans-checks.sql academy-training-plans-lifecycle-checks.sql central-academy-drills-checks.sql \
+  academy-attendance-lifecycle-checks.sql academy-training-plans-checks.sql academy-training-plans-lifecycle-checks.sql central-academy-drills-checks.sql academy-training-drill-builder-checks.sql \
   player-birthday-lifecycle-checks.sql academy-crm-inbox-checks.sql academy-registration-intake-security-checks.sql \
   academy-office-checks.sql academy-enrollment-checks.sql payabl-callback-state-checks.sql payabl-training-fee-checks.sql general-charge-private-ledger-checks.sql \
   admin-academy-profile-boundary.sql admin-first-team-profile-boundary.sql admin-profiled-group-create-boundary.sql guardian-permission-boundary.sql; do
