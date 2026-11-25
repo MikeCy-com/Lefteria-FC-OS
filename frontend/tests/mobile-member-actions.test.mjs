@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
+import {stripTypeScriptTypes} from 'node:module';
 import {calendarActions,feeActions} from '../src/lib/mobile/member-actions.ts';
 
 const read=path=>readFileSync(new URL('../src/'+path,import.meta.url),'utf8');
@@ -74,4 +75,45 @@ test('action panel compiles and is isolated from the calendar workspace and unre
   assert.doesNotMatch(component,/onUnreadChange|checkout_url|submitAvailability|localStorage|sessionStorage/);
   assert.match(route,/MobileMemberActions \{controller\} \{role\}/);
   assert.match(route,/onCalendar=\{childId=>openTab\('calendar',childId\)\}/);
+});
+
+function actionHarness(role,controller){
+  const start=component.indexOf('  async function loadCalendar(');
+  const end=component.indexOf('  onMount(',start);
+  assert.ok(start>=0&&end>start);
+  const handlers=stripTypeScriptTypes(component.slice(start,end));
+  return new Function('controller','role','clubToday','validParentTrainingFees','feeActions',`
+    let calendar=null,fees=null,calendarStatus='loading',feeStatus='loading';
+    let today=clubToday(),selectedChild,request=0,feeRequest=0,alive=true;
+    ${handlers}
+    return {loadCalendar,loadFees,refresh,
+      snapshot:()=>({calendar,fees,calendarStatus,feeStatus,selectedChild}),
+      dispose:()=>{alive=false;request++;feeRequest++;}};
+  `)(controller,role,()=>today,raw=>Array.isArray(raw?.fees),feeActions);
+}
+function deferred(){
+  let resolve,reject;
+  const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});
+  return {promise,resolve,reject};
+}
+test('child switch discards earlier private response and failure clears the previous snapshot',async()=>{
+  const old=deferred(),latest=deferred();let calls=0;
+  const h=actionHarness('parent',{getMemberActionCalendar:()=>++calls===1?old.promise:
+    calls===2?latest.promise:Promise.reject(new Error('Denied'))});
+  const a=h.loadCalendar('child-a'),b=h.loadCalendar('child-b');
+  latest.resolve(calendar([],{selected_player_id:'child-b'}));await b;
+  old.resolve(calendar([item('private-child-a')],{selected_player_id:'child-a'}));await a;
+  assert.equal(h.snapshot().selectedChild,'child-b');
+  assert.deepEqual(h.snapshot().calendar.items,[]);
+  await h.loadCalendar('child-b');
+  assert.equal(h.snapshot().calendar,null);assert.equal(h.snapshot().calendarStatus,'error');
+});
+test('finance calls are parent-only and disposed actions cannot expose private results',async()=>{
+  let calls=0;const response=deferred();
+  const coach=actionHarness('coach',{getTrainingFees:()=>{calls++;return response.promise;}});
+  await coach.loadFees();assert.equal(calls,0);
+  const parent=actionHarness('parent',{getTrainingFees:()=>{calls++;return response.promise;}});
+  const pending=parent.loadFees();parent.dispose();
+  response.resolve({fees:[{id:'a',status:'issued',payment_status:'ready'}]});await pending;
+  assert.equal(calls,1);assert.equal(parent.snapshot().fees,null);
 });
