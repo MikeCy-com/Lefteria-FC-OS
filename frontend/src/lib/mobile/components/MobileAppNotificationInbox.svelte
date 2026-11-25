@@ -4,10 +4,11 @@
   import type {MobileAuthController} from '../controller.ts';
   import type {AppNotification} from '../notification-inbox.ts';
 
-  let {controller,onOpen,onUnreadChange}:{
+  let {controller,onOpen,scopeKey,onUnreadChange}:{
     controller:MobileAuthController;
     onOpen:(notice:AppNotification)=>Promise<void>;
-    onUnreadChange?:(count:number)=>void;
+    scopeKey:string|null;
+    onUnreadChange?:(scope:string|null,count:number)=>void;
   }=$props();
   let items=$state<AppNotification[]>([]);
   let nextOffset=$state<number|null>(null);
@@ -20,16 +21,26 @@
 
   onMount(()=>{
     alive=true;void refresh();
-    return()=>{alive=false;request++;};
+    function refreshVisiblePage(){
+      if(document.visibilityState==='visible'&&!busy)
+        void loadPage(currentOffset,[...previousOffsets]);
+    }
+    document.addEventListener('visibilitychange',refreshVisiblePage);
+    window.addEventListener('focus',refreshVisiblePage);
+    return()=>{
+      alive=false;request++;
+      document.removeEventListener('visibilitychange',refreshVisiblePage);
+      window.removeEventListener('focus',refreshVisiblePage);
+    };
   });
   async function loadPage(offset:number,history:number[]){
-    const marker=++request;
+    const marker=++request,scope=scopeKey;
     // Each page is a fresh server-authorized view. Never append private
     // rows from earlier pages whose audience access may have changed.
     busy=true;error=null;items=[];nextOffset=null;enabled=true;
     try{
       const page=await controller.getAppNotificationInbox(offset);
-      if(!alive||marker!==request)return;
+      if(!alive||marker!==request||scope!==scopeKey)return;
       if(page.next_offset!==null&&page.next_offset<=offset)
         throw new Error('Non-advancing notification page.');
       enabled=page.enabled;
@@ -38,12 +49,12 @@
         ?page.next_offset:null;
       previousOffsets=page.enabled?history:[];
       currentOffset=page.enabled?offset:0;
-      onUnreadChange?.(page.unread_count);
+      onUnreadChange?.(scope,page.unread_count);
     }catch{
-      if(alive&&marker===request){
+      if(alive&&marker===request&&scope===scopeKey){
         items=[];nextOffset=null;previousOffsets=[];currentOffset=0;
         error='Δεν ήταν δυνατή η επαλήθευση των ειδοποιήσεων. Δοκίμασε ξανά.';
-        onUnreadChange?.(0);
+        onUnreadChange?.(scope,0);
       }
     }finally{if(alive&&marker===request)busy=false;}
   }
