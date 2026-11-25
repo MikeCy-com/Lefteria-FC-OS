@@ -19,6 +19,16 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
         UnmappedMemberHandling=System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow
     };
 
+    public Task<MobileNotificationActivityPageDto> NotificationActivityAsync(MobileSession actor,
+        string kind,int offset,CancellationToken token)
+    {
+        if(kind is not ("all" or "announcement" or "group_message" or "private_message") ||
+            offset is <0 or >100000)throw Invalid();
+        return QueryAsync<MobileNotificationActivityPageDto>("""
+            SELECT club.read_mobile_notification_activity(@identity,@phone,@role,@expires,@activityKind,@offset)::text
+            """,actor,null,null,offset,null,token,activityKind:kind);
+    }
+
     public Task<MobileNotificationUnreadSummaryDto> NotificationUnreadSummaryAsync(MobileSession actor,CancellationToken token)
         => QueryAsync<MobileNotificationUnreadSummaryDto>("""
             SELECT club.read_mobile_notification_unread_summary(@identity,@phone,@role,@expires)::text
@@ -199,7 +209,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
     private async Task<T> QueryAsync<T>(string sql,MobileSession actor,string? organization,
         string? group,int? offset,string? content,CancellationToken token,
         Guid? messageId=null,long? version=null,string? operation=null,
-        string? emoji=null,bool? active=null,string? announcementId=null,Guid? fileId=null)
+        string? emoji=null,bool? active=null,string? announcementId=null,Guid? fileId=null,string? activityKind=null)
     {
         try
         {
@@ -215,6 +225,7 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
                 if(organization is not null)command.Parameters.AddWithValue("organization",organization);
                 if(group is not null)command.Parameters.AddWithValue("group",group);
                 if(offset is not null)command.Parameters.AddWithValue("offset",offset.Value);
+                if(activityKind is not null)command.Parameters.AddWithValue("activityKind",activityKind);
                 if(emoji is not null && active is not null)
                 {
                     if(announcementId is null)command.Parameters.AddWithValue("message",messageId!.Value);
