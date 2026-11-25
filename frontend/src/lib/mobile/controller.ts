@@ -1821,6 +1821,22 @@ export function createMobileAuthController(options: {
         throw new Error('Unverified private coach feedback response.');
       return result;
     },
+    // Read-only calendar snapshot for the actions panel. Do not mutate the
+    // calendar tab's selected child, cached items, paging or RSVP state.
+    async getMemberActionCalendar(month:string,playerId?:string):Promise<MobileCalendar> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!isCalendarMonth(month)||
+        (playerId!==undefined&&(identity.role!=='parent'||!playerId.trim()||playerId.length>128)))
+        throw new Error('Invalid action calendar scope.');
+      const query=new URLSearchParams({month,offset:'0'});
+      if(playerId!==undefined)query.set('player_id',playerId);
+      const raw=await chatRequest('/api/mobile/calendar?'+query.toString());
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validCalendar(raw as MobileCalendar,identity,month,playerId,0))
+        throw new Error('Unverified action calendar.');
+      return raw as MobileCalendar;
+    },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
         throw new Error('Invalid notification page.');
