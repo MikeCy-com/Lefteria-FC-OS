@@ -499,6 +499,39 @@ public sealed class AcademyTrainingExactTerritory : Migration
           'cancelled',true,'cancel_reason',_reason,
           'notifications_sent',false);
       END $cancel_native_training$;
+      CREATE OR REPLACE FUNCTION club.approve_admin_training_drill_plan(_digest text,_group text,_plan uuid,_expected integer,_member_summary text,_confirm boolean)
+      RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $complete_review$
+      DECLARE v_actor uuid;v_session uuid;v_plan club.academy_training_plan_drafts%ROWTYPE;v_snapshot jsonb;
+      BEGIN
+        IF _plan IS NULL OR _expected IS NULL OR _expected NOT BETWEEN 1 AND 10000
+          OR _confirm IS DISTINCT FROM true OR _member_summary IS NULL
+          OR length(_member_summary) NOT BETWEEN 1 AND 1200
+          OR _member_summary<>btrim(_member_summary,' '||chr(10))
+          OR replace(_member_summary,chr(10),'') ~ '[[:cntrl:]]'
+        THEN RAISE EXCEPTION 'training_complete_review_invalid' USING ERRCODE='22023'; END IF;
+        SELECT actor_id,session_id INTO v_actor,v_session
+          FROM club.require_academy_training_planner(_digest,'lefteria_fc_academy');
+        PERFORM club.require_training_drill_group(v_actor,_group);
+        SELECT * INTO v_plan FROM club.academy_training_plan_drafts
+          WHERE id=_plan AND organization_id='lefteria_fc_academy' AND group_id=_group FOR UPDATE;
+        IF NOT FOUND OR v_plan.status<>'draft' OR v_plan.version<>_expected
+          OR jsonb_array_length(v_plan.drill_snapshots)=0
+          OR EXISTS(SELECT 1 FROM club.academy_training_plan_publications WHERE plan_id=_plan)
+        THEN RAISE EXCEPTION 'training_complete_review_conflict' USING ERRCODE='23505'; END IF;
+        IF v_plan.training_day<(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date
+        THEN RAISE EXCEPTION 'training_complete_review_in_past' USING ERRCODE='22023'; END IF;
+        -- Human explicitly reviews the frozen staff sequence and separately
+        -- writes a member-safe summary. Never copy notes or drill instructions.
+        v_snapshot:=(to_jsonb(v_plan)-'created_by'-'updated_by'-'created_at'-'updated_at')
+          ||jsonb_build_object('review_kind','complete_drill_plan','member_summary',_member_summary);
+        INSERT INTO club.academy_training_plan_approvals(id,plan_id,plan_version,approved_by,plan_snapshot)
+          VALUES(gen_random_uuid(),_plan,_expected,v_actor,v_snapshot);
+        INSERT INTO audit.security_events(id,actor_realm,occurred_at,actor_identity_id,device_session_id,action,outcome,organization_id,reason_code)
+          VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,v_session,'admin.training.plan.drills.approved','succeeded',
+            'lefteria_fc_academy','complete_human_review_not_published');
+        RETURN jsonb_build_object('id',_plan,'organization_id','lefteria_fc_academy','group_id',_group,
+          'approved_version',_expected,'approval_status','approved','published',false,'member_summary',_member_summary);
+      END $complete_review$;
       """);
 
     // A rollback must not reopen cross-location access. An audited forward
