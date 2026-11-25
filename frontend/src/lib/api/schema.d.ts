@@ -16,6 +16,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/drills/{drillId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ChangeCentralAcademyDrill"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/drills/proposals": {
         parameters: {
             query?: never;
@@ -26,22 +42,6 @@ export interface paths {
         get: operations["ReadCoachDrillProposals"];
         put?: never;
         post: operations["SubmitCoachDrillProposal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/academy/drills/proposals/linked": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["SubmitLinkedCoachDrillProposal"];
         delete?: never;
         options?: never;
         head?: never;
@@ -64,7 +64,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/academy/drills/{drillId}": {
+    "/api/admin/academy/drills/proposals/linked": {
         parameters: {
             query?: never;
             header?: never;
@@ -72,8 +72,8 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put: operations["ChangeCentralAcademyDrill"];
-        post?: never;
+        put?: never;
+        post: operations["SubmitLinkedCoachDrillProposal"];
         delete?: never;
         options?: never;
         head?: never;
@@ -272,22 +272,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/academy/training/plans/{planId}/drills": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReadAdminTrainingDrills"];
-        put: operations["WriteAdminTrainingDrills"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/academy/training/plans/{planId}/delivery": {
         parameters: {
             query?: never;
@@ -297,6 +281,22 @@ export interface paths {
         };
         get: operations["ReadAdminTrainingDelivery"];
         put: operations["WriteAdminTrainingDelivery"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/{planId}/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminTrainingDrills"];
+        put: operations["WriteAdminTrainingDrills"];
         post?: never;
         delete?: never;
         options?: never;
@@ -314,38 +314,6 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["ApproveAdminTrainingDrillPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/academy/training/plans/{planId}/submit": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["SubmitAssignedCoachTrainingPlan"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/academy/training/plans/assigned-groups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReadAssignedCoachTrainingGroups"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -384,6 +352,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitAssignedCoachTrainingPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans/approvals": {
         parameters: {
             query?: never;
@@ -392,6 +376,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["ReadAdminAcademyTrainingPlanApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/assigned-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAssignedCoachTrainingGroups"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3617,6 +3617,13 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        ApplyDrillRevisionCommand: {
+            /** Format: int32 */
+            base_version: number | string;
+            confirm_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+        };
         ApproveTrainingPlanCommand: {
             confirm_human_review: boolean;
             /** Format: int32 */
@@ -3766,6 +3773,12 @@ export interface components {
             /** Format: int32 */
             total: number | string;
         };
+        CompleteTrainingReviewCommand: {
+            confirm_human_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+            member_summary: null | string;
+        };
         CreateCityCommand: {
             name: null | string;
         };
@@ -3795,48 +3808,12 @@ export interface components {
             code: null | string;
             name: null | string;
         };
-        SubmitTrainingPlanCommand: {
-            confirm_submission: boolean;
-            /** Format: int32 */
-            expected_version: number | string;
-        };
-        CompleteTrainingReviewCommand: {
-            confirm_human_review: boolean;
-            /** Format: int32 */
-            expected_version: number | string;
-            member_summary: null | string;
-        };
         Decision: {
             /** Format: uuid */
             id: string;
             status: null | string;
             /** Format: int32 */
             version: number | string;
-        };
-        LinkedDrillProposalCommand: {
-            base_drill_id: string;
-            base_version: number | string;
-            proposal_kind: string;
-            difficulty: string;
-            title: string;
-            category: string;
-            age_band: string;
-            duration_minutes: number | string;
-            objective: string;
-            instructions: string;
-        };
-        ApplyDrillRevisionCommand: {
-            expected_version: number | string;
-            base_version: number | string;
-            confirm_review: boolean;
-        };
-        DrillProposalCommand: {
-            title: string;
-            category: string;
-            age_band: string;
-            duration_minutes: number | string;
-            objective: string;
-            instructions: string;
         };
         DrillCommand: {
             action: string;
@@ -3849,6 +3826,15 @@ export interface components {
             instructions: null | string;
             objective: null | string;
             title: null | string;
+        };
+        DrillProposalCommand: {
+            age_band: string;
+            category: string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+            instructions: string;
+            objective: string;
+            title: string;
         };
         Enrollment: {
             /** Format: uuid */
@@ -3996,6 +3982,21 @@ export interface components {
             phone: null | string;
         };
         JsonElement: unknown;
+        LinkedDrillProposalCommand: {
+            age_band: string;
+            /** Format: uuid */
+            base_drill_id: string;
+            /** Format: int32 */
+            base_version: number | string;
+            category: string;
+            difficulty: string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+            instructions: string;
+            objective: string;
+            proposal_kind: string;
+            title: string;
+        };
         MobileAppAnnouncementDto: {
             body: string;
             group_id: string;
@@ -5396,9 +5397,22 @@ export interface components {
             kind: string;
             publish: boolean;
         };
-        TrainingFeeSmsCommand: {
-            /** Format: uuid */
-            client_request_id: string;
+        SubmitTrainingPlanCommand: {
+            confirm_submission: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+        };
+        TrainingDeliveryCommand: {
+            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
+            /** Format: int32 */
+            expected_sequence_version: number | string;
+            /** Format: int32 */
+            schedule_version: number | string;
+        };
+        TrainingDrillsCommand: {
+            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
+            /** Format: int32 */
+            expected_version: number | string;
         };
         TrainingDrillSelectionCommand: {
             /** Format: uuid */
@@ -5408,15 +5422,9 @@ export interface components {
             /** Format: int32 */
             duration_minutes: number | string;
         };
-        TrainingDeliveryCommand: {
-            schedule_version: number | string;
-            expected_sequence_version: number | string;
-            drills: components["schemas"]["TrainingDrillSelectionCommand"][] | null;
-        };
-        TrainingDrillsCommand: {
-            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
-            /** Format: int32 */
-            expected_version: number | string;
+        TrainingFeeSmsCommand: {
+            /** Format: uuid */
+            client_request_id: string;
         };
         TrainingPlanCommand: {
             archive: boolean;
@@ -5555,24 +5563,6 @@ export interface operations {
             };
         };
     };
-    ReadCoachDrillProposals: {
-        parameters: {
-            query?: { offset?: number | string; };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     CreateCentralAcademyDrill: {
         parameters: {
             query?: never;
@@ -5585,6 +5575,50 @@ export interface operations {
                 "application/json": components["schemas"]["DrillCommand"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChangeCentralAcademyDrill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drillId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadCoachDrillProposals: {
+        parameters: {
+            query?: {
+                offset?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -5617,33 +5651,13 @@ export interface operations {
             };
         };
     };
-    SubmitLinkedCoachDrillProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     ApplyCoachDrillRevision: {
         parameters: {
             query?: never;
             header?: never;
-            path: { drillId: string; };
+            path: {
+                drillId: string;
+            };
             cookie?: never;
         };
         requestBody: {
@@ -5661,18 +5675,16 @@ export interface operations {
             };
         };
     };
-    ChangeCentralAcademyDrill: {
+    SubmitLinkedCoachDrillProposal: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                drillId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DrillCommand"];
+                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
             };
         };
         responses: {
@@ -6014,7 +6026,7 @@ export interface operations {
             };
         };
     };
-    ReadAdminTrainingDrills: {
+    ReadAdminTrainingDelivery: {
         parameters: {
             query?: {
                 group_id?: string;
@@ -6038,7 +6050,34 @@ export interface operations {
             };
         };
     };
-    ReadAdminTrainingDelivery: {
+    WriteAdminTrainingDelivery: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingDeliveryCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminTrainingDrills: {
         parameters: {
             query?: {
                 group_id?: string;
@@ -6089,33 +6128,6 @@ export interface operations {
             };
         };
     };
-    WriteAdminTrainingDelivery: {
-        parameters: {
-            query?: {
-                group_id?: string;
-                organization_id?: string;
-            };
-            header?: never;
-            path: {
-                planId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TrainingDeliveryCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     ApproveAdminTrainingDrillPlan: {
         parameters: {
             query?: {
@@ -6133,53 +6145,6 @@ export interface operations {
                 "application/json": components["schemas"]["CompleteTrainingReviewCommand"];
             };
         };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SubmitAssignedCoachTrainingPlan: {
-        parameters: {
-            query?: {
-                group_id?: string;
-                organization_id?: string;
-            };
-            header?: never;
-            path: {
-                planId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubmitTrainingPlanCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ReadAssignedCoachTrainingGroups: {
-        parameters: {
-            query?: {
-                organization_id?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -6239,6 +6204,33 @@ export interface operations {
             };
         };
     };
+    SubmitAssignedCoachTrainingPlan: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitTrainingPlanCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReadAdminAcademyTrainingPlanApprovals: {
         parameters: {
             query?: {
@@ -6246,6 +6238,26 @@ export interface operations {
                 group_id?: string;
                 organization_id?: string;
                 start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAssignedCoachTrainingGroups: {
+        parameters: {
+            query?: {
+                organization_id?: string;
             };
             header?: never;
             path?: never;
