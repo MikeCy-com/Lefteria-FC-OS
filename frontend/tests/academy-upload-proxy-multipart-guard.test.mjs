@@ -11,7 +11,7 @@ test('multipart content type is bounded and checked before body access or upstre
   assert.match(source,/contentType\.startsWith\('multipart\/form-data; boundary='\)/);
   assert.match(source,/contentType\.slice\('multipart\/form-data; boundary='\.length\)\.trim\(\)/);
   assert.match(source,/contentType\.length>200/);
-  assert.match(source,/\[\\r\\n\]\.test\(contentType\)/);
+  assert.match(source,/\/\[\\r\\n\]\/\.test\(contentType\)/);
   const typeGuard=source.indexOf("const contentType=request.headers.get('content-type')");
   const reader=source.indexOf('request.body?.getReader()');
   const upstream=source.indexOf('const response=await fetch(');
