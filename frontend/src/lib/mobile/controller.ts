@@ -38,6 +38,7 @@ import { isMobileRole, type MobileRole } from './navigation.ts';
 import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays } from './components/component-types.ts';
 import type { MobileSessionStorage } from './session.ts';
 import { calendarItemKey, isAvailabilityStatus, isCalendarDate, isCalendarKind, isCalendarMonth } from './calendar.ts';
+import {canOpenPrivateChat,pendingFamilyInvitationCount,pendingPrivateInvitations} from './invitation-actions.ts';
 import type { AvailabilityStatus, CalendarLoadStatus, MobileCalendar, MobileCalendarItem, MobileCalendarResponses } from './calendar.ts';
 
 type User = components['schemas']['MobileUserDto'];
@@ -1072,7 +1073,7 @@ export function createMobileAuthController(options: {
 
   async function loadRecipientInvitations() {
     const identity = state.user;
-    if (state.busy || state.recipientDecliningId || state.recipientStatus === 'loading' ||
+    if (state.busy || state.recipientDecliningId || state.recipientAcceptingId || state.recipientStatus === 'loading' ||
         state.status !== 'authenticated' || !identity?.current_role_available ||
         identity.role !== 'fan' || !token) return false;
     const operationRevision = ++recipientRevision;
@@ -1836,6 +1837,22 @@ export function createMobileAuthController(options: {
         !validCalendar(raw as MobileCalendar,identity,month,playerId,0))
         throw new Error('Unverified action calendar.');
       return raw as MobileCalendar;
+    },
+    async getPendingFamilyInvitationCount():Promise<number> {
+      if(state.user?.role!=='fan')throw new Error('Family recipient scope required.');
+      return pendingFamilyInvitationCount(await chatRequest('/api/mobile/family/invitations'));
+    },
+    async getPendingPrivateInvitationCount():Promise<number> {
+      const identity=state.user,owner=state.organization?.organization_id??null;
+      if(!identity||!canOpenPrivateChat(identity.role)||
+        (identity.role==='management'&&(!owner||state.organization?.requires_organization_selection)))
+        throw new Error('Private invitation scope required.');
+      const result=await chatRequest('/api/mobile/private/conversations');
+      if(!validPrivateInbox(result)||
+        (identity.role==='management'&&(state.organization?.organization_id!==owner||
+          state.organization?.requires_organization_selection)))
+        throw new Error('Unverified private invitation response.');
+      return pendingPrivateInvitations(result.conversations,identity.role,owner);
     },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
