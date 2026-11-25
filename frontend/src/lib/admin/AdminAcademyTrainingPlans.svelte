@@ -327,10 +327,16 @@
               data-testid="academy-native-cancel-open">Ακύρωση δημοσιευμένης</button>
           {/if}
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)}
-            <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;editing=null;preview=null;reviewConfirmed=false;publishConfirmed=false;}}>Ασκήσεις{plan.drill_count!==undefined?' · '+plan.drill_count:''}</button>
+            {#if typeof plan.drill_count==='number'}
+              <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;editing=null;preview=null;reviewConfirmed=false;publishConfirmed=false;}}>Ασκήσεις · {plan.drill_count}</button>
+            {:else}
+              <small>Απαιτείται επαληθευμένη ανάθεση τοποθεσίας για τον σχεδιασμό ασκήσεων.</small>
+            {/if}
             <button type="button" disabled={saving||!!drillTarget} onclick={()=>edit(plan)}>Επεξεργασία</button>
-            {#if plan.drill_count!==0}
+            {#if typeof plan.drill_count==='number'&&plan.drill_count>0}
               <small>Απαιτείται πλήρης έλεγχος ασκήσεων πριν από την έγκριση.</small>
+            {:else if plan.drill_count!==0}
+              <small>Η έγκριση απαιτεί επαληθευμένη πρόσβαση στο τμήμα.</small>
             {:else if !approvedIds.includes(plan.id)}
               <button type="button" disabled={saving||!!drillTarget||!reviewConfirmed}
                 onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
