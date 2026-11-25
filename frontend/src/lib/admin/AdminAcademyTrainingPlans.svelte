@@ -355,6 +355,10 @@
             {#if publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
               <small data-testid="academy-native-training-cancel-reason">Λόγος ακύρωσης: {publicationRows.find(p=>p.id===plan.id)?.cancel_reason}</small>
             {/if}</span>
+          {#if coachMode&&allowed&&typeof plan.drill_count==='number'&&plan.drill_count>0&&!coachEditable(plan)}
+            <button type="button" disabled={saving||loading||!!drillTarget}
+              onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;submitTarget=null;}}>Προβολή εγκεκριμένων ασκήσεων</button>
+          {/if}
           {#if canManage&&publishedIds.includes(plan.id)&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
             <button type="button" disabled={saving||loading}
               onclick={()=>{cancellationTarget=plan;cancellationReason='';cancellationConfirmed=false;preview=null;}}
@@ -395,7 +399,7 @@
   {/if}
   {#if drillTarget}
     {#key actor+':'+groupId+':'+drillTarget.id+':'+drillTarget.version}
-      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed} reviewMode={drillReviewMode}
+      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed&&coachEditable(drillTarget)} reviewMode={canManage&&drillReviewMode}
         onSaved={()=>{drillTarget=null;refreshNonce++;}} onClose={()=>{drillTarget=null;refreshNonce++;}}/>
     {/key}
   {/if}
