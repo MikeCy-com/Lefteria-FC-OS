@@ -15,6 +15,8 @@
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
   import MobileMemberActions from '../../../lib/mobile/components/MobileMemberActions.svelte';
   import MobileInvitationActions from '../../../lib/mobile/components/MobileInvitationActions.svelte';
+  import MobileNotificationActivity from '../../../lib/mobile/components/MobileNotificationActivity.svelte';
+  import {activityDestination,type NotificationActivity} from '../../../lib/mobile/notification-activity.ts';
   import MobileGroupUnreadActions from '../../../lib/mobile/components/MobileGroupUnreadActions.svelte';
   import {canOpenPrivateChat,privateChatMode} from '../../../lib/mobile/invitation-actions.ts';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
@@ -113,6 +115,10 @@
   function acceptInboxCount(scope:string|null,_count:number){
     // An announcement-page response is only an invalidation, never the total.
     if(scope&&scope===notificationScope)refreshNotificationBadge();
+  }
+  async function openActivity(item:NotificationActivity){
+    if(!notificationScope||item.kind==='private_message'&&!canOpenPrivateChat(role))return;
+    await goto(activityDestination(item),{reset:true});
   }
   async function openNotification(notice:AppNotification){
     const query=new URLSearchParams({tab:'announcements',
@@ -352,6 +358,8 @@
             <p>Επίλεξε πρώτα οργανισμό.</p></section>
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            <MobileNotificationActivity {controller} privateAllowed={canOpenPrivateChat(role)}
+              onOpen={openActivity} onRefresh={()=>refreshNotificationBadge()}/>
             <MobileAppNotificationInbox {controller}
               scopeKey={notificationScope}
               onUnreadChange={acceptInboxCount}
@@ -378,11 +386,11 @@
                 aria-pressed={chatMode==='private'} onclick={()=>void openChatMode('private')}>Ιδιωτικά</button>
             </div>
           {/if}
-          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode}
+          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode+':'+JSON.stringify([page.url.searchParams.get('organization_id'),page.url.searchParams.get('group'),page.url.searchParams.get('conversation')])}
             {#if chatMode==='private' && (role==='parent'||role==='coach'||role==='management')}
-              <MobilePrivateChat {controller} actorId={user.id} {role} onReadConfirmed={()=>refreshNotificationBadge()}/>
+              <MobilePrivateChat {controller} actorId={user.id} {role} initialConversation={page.url.searchParams.get('conversation')} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {:else}
-              <MobileGroupChat {controller} actorId={user.id} {role} onReadConfirmed={()=>refreshNotificationBadge()}/>
+              <MobileGroupChat {controller} actorId={user.id} {role} initialOrganization={page.url.searchParams.get('organization_id')} initialGroup={page.url.searchParams.get('group')} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {/if}
           {/key}
         {/if}
