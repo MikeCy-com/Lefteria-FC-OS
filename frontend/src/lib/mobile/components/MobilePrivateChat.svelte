@@ -9,7 +9,7 @@
   import MobileHoldAction from './MobileHoldAction.svelte';
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
 
-  let {controller,actorId,role,onReadConfirmed}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void}=$props();
+  let {controller,actorId,role,onReadConfirmed,initialConversation=null}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void;initialConversation?:string|null}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
   let roomKey=$state('');
   let contacts=$state<PrivateContact[]>([]);
@@ -52,6 +52,11 @@
       if(!directory.some(room=>room.organization_id+':'+room.group_id===roomKey))
         roomKey=directory.length?directory[0].organization_id+':'+directory[0].group_id:'';
       if(chosenRoom)void loadContacts(chosenRoom);
+      if(initialConversation!==null){
+        const target=inbox.find(item=>item.id===initialConversation&&item.status==='accepted');
+        if(target)void openConversation(target);
+        else error='Η ζητούμενη συνομιλία δεν είναι πλέον διαθέσιμη.';
+      }
     }catch(e){if(alive&&request===sequence){error=fault(e);conversations=[];rooms=[];}}
     finally{if(alive&&request===sequence)loading=false;}
   }
