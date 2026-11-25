@@ -80,3 +80,17 @@ UX-NOT-05 (P0): coded; scoped projection and simulated handler tests passed, com
 Commits: scoped calendar reader `00e03718579e3857e7b254e6c4605aa749112d38`; projections `0bd1efe8b462e5e70e36af18f7cc045aaa617ecc`; component `965c61f10d620b511a35d98bda6b51478a31f14f`; route `349fe6684b58a9cdc1b983833208a62280b2d22f`; tests `8cee04dcaddf46d297dafc16f632cd17f9e853f3` and `5bd244db22b54c8fd3fbe633164f71d69b7a77c4`.
 
 Remaining: unified persisted notification API, event delivery/preferences/read-state design, all-page calendar coverage, invitations/messages and role workflow acceptance. Production untouched.
+
+## Follow-up: family and private-conversation invitation actions (25 November)
+
+UX-NOT-06 (P0): coded and simulated handler-tested; build and runtime not verified.
+
+- Fan notification screen shows a bounded count of currently pending family invitations from the existing OTP recipient endpoint. The existing profile acceptance/decline workflow remains the only mutation path.
+- Parent, coach and management notification screen shows incoming pending private-chat consent requests from the existing authorized conversation directory. Outgoing and accepted conversations are excluded; management counts reject unexpected organization scopes. Player and fan identities cannot open private chat through the query parameter.
+- Direct navigation to private chat uses a role-checked URL mode. Invitation counts remain separate from announcement unread counts; neither message unread receipts nor unified persistent event notifications are implemented.
+- Invitation reads retain only a validated count and clear on hidden document, failures and disposal. Family invitation refresh is blocked during acceptance or decline.
+- Private-chat fixes: clear drafts on conversation change, refresh or hide; discard superseded contact queries including repeated same-room selection; require selected contact in returned directory; reject non-advancing page offsets, deduplicate page results and clear messages/draft on failed read or pagination. Does not guarantee immediate idle revocation or replace backend authorization.
+
+Implementation commits: `38a21934ca409b98adb0aeac4db561d9642397c7`, `188f22fa5c25fd4f2c50f855dd02b21c53970f98`, `b6f1e430814fb3f9bf328459f7e9036bc5c7667f`, `7a466b0ffbe918a5f76d2eb8e746e7efc570f8e6`, `6a0238b797c57818ba90e4140c3855dc33b926b9`, `d87ee0b63cae1237fc03d9af402ca9aedd2a47bf`, `2a75717427e450a1c0bbe00e810f55228afbf867`. Regression tests: `aa5eb1c3b76740d1c18ba1cac8ae44a676bb81af`, `23e6795b9f7f8b537b5cc530588b50e614e22793`.
+
+Verification: five functional/async cases and one source-assertion group passed from committed source after stripping TypeScript annotations and omitting Svelte compiler invocations. Initial failed pagination case exposed retained messages; corrected in 2a75717 and retested successfully. Full Node/Svelte build, authenticated role and DB verification, staging and CI still required. No provider, SQL grant, production or staging changes.
