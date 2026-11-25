@@ -12,8 +12,8 @@ public sealed class AcademyWeeklyCompleteSession : Migration
       -- Rolling seven calendar days in the Academy timezone, including today.
       CREATE FUNCTION club.coach_training_week_allows(_day date)
       RETURNS boolean LANGUAGE sql VOLATILE SET search_path=pg_catalog,pg_temp AS $week$
-        SELECT coalesce(_day BETWEEN (clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date
-          AND (clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+6,false)
+        SELECT coalesce(_day BETWEEN today AND today+6,false)
+        FROM (SELECT (statement_timestamp() AT TIME ZONE 'Asia/Nicosia')::date AS today) local_day
       $week$;
       CREATE FUNCTION club.training_delivery_game_minutes(_items jsonb)
       RETURNS integer LANGUAGE sql IMMUTABLE SET search_path=pg_catalog,pg_temp AS $game$
@@ -303,8 +303,6 @@ public sealed class AcademyWeeklyCompleteSession : Migration
         SELECT coalesce(sum((x->>'duration_minutes')::integer),0)::integer INTO v_total
         FROM jsonb_array_elements(coalesce((SELECT drills FROM club.academy_training_delivery_revisions WHERE plan_id=NEW.id
           ORDER BY sequence_version DESC LIMIT 1),'[]'::jsonb)) x;
-        IF EXISTS(SELECT 1 FROM club.academy_training_delivery_revisions WHERE plan_id=NEW.id) AND v_total<>NEW.duration_minutes THEN
-          RAISE EXCEPTION 'training_delivery_duration_change_requires_replanning' USING ERRCODE='22023'; END IF;
         IF v_total>NEW.duration_minutes THEN RAISE EXCEPTION 'training_delivery_exceeds_schedule' USING ERRCODE='22023'; END IF;
         RETURN NEW;
       END $delivery_guard$;
