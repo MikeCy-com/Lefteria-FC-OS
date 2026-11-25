@@ -37,7 +37,7 @@
   const query=()=>new URLSearchParams({organization_id:'lefteria_fc_academy',group_id:plan.group_id});
   const base=()=>'/api/admin/academy/training/plans/'+encodeURIComponent(plan.id)+(deliveryMode?'/delivery':'/drills');
   function current(owner:string,signal?:AbortSignal){return mounted&&scope()===owner&&!signal?.aborted;}
-  function rejectAccess(){ready=false;sequence=[];catalogue=[];void auth.bootstrap();}
+  function rejectAccess(){stopTicker();timerIndex=-1;remaining=0;ready=false;sequence=[];catalogue=[];void auth.bootstrap();}
   async function loadPlan(){
     planController?.abort();const controller=new AbortController();planController=controller;
     const owner=scope();loading=true;ready=false;error='';sequence=[];stopTicker();timerIndex=-1;remaining=0;dirty=false;
@@ -94,7 +94,7 @@
     if(canEdit&&ready&&!saving){invalidateTimer();sequence=sequence.map(row=>row.drill_id===id?{...row,duration_minutes:value}:row);}
   }
   async function save(){
-    if(!mounted||!canEdit||!ready||!valid||saving)return;
+    if(!mounted||!canEdit||!ready||!valid||saving||running)return;
     const owner=scope();const submitted=sequence.map(row=>({...row}));saving=true;error='';
     try{
       const response=await fetch(base()+'?'+query(),{method:'PUT',credentials:'same-origin',cache:'no-store',
@@ -197,7 +197,7 @@
         {:else if catalogueLoading}<p role="status">Φόρτωση βιβλιοθήκης…</p>
         {:else if !catalogue.length}<p class="hint">Δεν βρέθηκαν εγκεκριμένες ασκήσεις.</p>{/if}
         <ul class="catalogue">{#each catalogue as drill (drill.id)}
-          <li><div><strong>{drill.title}</strong><small>{drill.duration_minutes}′ · {drill.age_band.toUpperCase()} · {categoryLabels[drill.category]}</small></div>
+          <li><div><strong>{drill.title}</strong><small>{drill.duration_minutes}′ · {drill.age_band.toUpperCase()} · {categoryLabels[drill.category]}{drill.difficulty?' · '+({beginner:'Αρχάριοι',intermediate:'Μεσαίο επίπεδο',advanced:'Προχωρημένοι'}[drill.difficulty]):''}</small></div>
             <button type="button" disabled={saving||sequence.length>=24||sequence.some(r=>r.drill_id===drill.id)}
               onclick={()=>add(drill)}>Προσθήκη</button></li>
         {/each}</ul>
