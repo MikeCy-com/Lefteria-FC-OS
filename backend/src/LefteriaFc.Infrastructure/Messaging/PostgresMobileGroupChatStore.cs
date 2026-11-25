@@ -19,6 +19,11 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
         UnmappedMemberHandling=System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow
     };
 
+    public Task<MobileNotificationUnreadSummaryDto> NotificationUnreadSummaryAsync(MobileSession actor,CancellationToken token)
+        => QueryAsync<MobileNotificationUnreadSummaryDto>("""
+            SELECT club.read_mobile_notification_unread_summary(@identity,@phone,@role,@expires)::text
+            """,actor,null,null,null,null,token);
+
     public Task<MobileAppNotificationInboxDto> NotificationInboxAsync(
         MobileSession actor,int offset,CancellationToken token)
     {
