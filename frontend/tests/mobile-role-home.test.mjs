@@ -2,7 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
-import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents} from '../src/lib/mobile/role-home.ts';
+import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,
+  trustedPlayerTrainingResponsesNeeded} from '../src/lib/mobile/role-home.ts';
 
 const source=readFileSync(new URL('../src/lib/mobile/components/MobileRoleHome.svelte',import.meta.url),'utf8');
 const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',import.meta.url),'utf8');
@@ -45,4 +46,32 @@ test('no stale organization, cancelled or past event can appear in authorized ho
   assert.match(source,/role==='fan'\|\|!contextIsCurrent/);
   assert.match(source,/needsOrganization/);
   assert.doesNotMatch(source,/localStorage|fetch\(|{@html}|innerHTML|demoFixture|mockData/);
+});
+
+
+test('player home suggests only own unanswered training activities, never sibling or staff data',()=>{
+  const own={...event('own'),responses:[]};
+  const already={...event('already'),responses:[
+    {player_id:'player-own',status:'going'}
+  ]};
+  const wrong={...event('elsewhere','lefteria_fc'),responses:[]};
+  const cancelled={...event('cancelled'),is_cancelled:true,responses:[]};
+  const match={...event('match'),kind:'match',responses:[]};
+  const noSnapshot={...event('unknown')};
+  const payloadWith={...payload('player'),items:[
+    own,already,wrong,cancelled,match,noSnapshot,
+    {...event('other-person'),responses:[{player_id:'other',status:'going'}]}
+  ]};
+  const results=trustedPlayerTrainingResponsesNeeded(payloadWith,'coach-1',today);
+  assert.deepEqual(results.map(x=>x.id),['other-person','own']);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded(payloadWith,'other',today),[]);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded({...payloadWith,role:'coach'},'coach-1',today),[]);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded({...payloadWith,month:'2026-10'},'coach-1',today),[]);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded({...payloadWith,
+    selected_player_id:'other'},'coach-1',today),[]);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded(null,'coach-1',today),[]);
+  assert.deepEqual(trustedPlayerTrainingResponsesNeeded(payloadWith,'coach-1',today,0),[]);
+  assert.match(source,/data-testid="player-training-response-queue"/);
+  assert.match(source,/trustedPlayerTrainingResponsesNeeded\(calendar,identityId,today\)/);
+  assert.match(source,/role==='player' && trainingResponsesNeeded\.length>0 && onRespond/);
 });

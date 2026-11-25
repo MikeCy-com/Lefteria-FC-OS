@@ -12,10 +12,26 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     return json({code:'invalid_registration'},{status:400,headers});
   const contentType=request.headers.get('content-type')??'';
   if(!contentType.startsWith('multipart/form-data; boundary=')||
+     !contentType.slice('multipart/form-data; boundary='.length).trim()||
      contentType.length>200||/[\r\n]/.test(contentType))
     return json({code:'multipart_required'},{status:415,headers});
-  if(Number(request.headers.get('content-length')??'0')>11*1024*1024)
-    return json({code:'file_too_large'},{status:413,headers});
+  const declaredLength=request.headers.get('content-length');
+  if(declaredLength!==null){
+    if(!/^(0|[1-9][0-9]*)$/.test(declaredLength))
+      return json({code:'invalid_upload'},{status:400,headers});
+    if(Number(declaredLength)>11*1024*1024)
+      return json({code:'file_too_large'},{status:413,headers});
+  }
+  let apiOrigin:URL;
+  try {
+    apiOrigin=new URL(INTERNAL_API_ORIGIN);
+    if(!['http:','https:'].includes(apiOrigin.protocol)||
+      apiOrigin.username||apiOrigin.password||apiOrigin.pathname!=='/'||
+      apiOrigin.search||apiOrigin.hash)
+      throw Error('Invalid private upstream');
+  }catch{
+    return json({code:'upload_unavailable'},{status:503,headers});
+  }
   const reader=request.body?.getReader();
   if(!reader)return json({code:'invalid_upload'},{status:400,headers});
   let size=0;
@@ -29,17 +45,17 @@ export const POST: RequestHandler = async ({params,request,url}) => {
         return json({code:'file_too_large'},{status:413,headers});
       chunks.push(value);
     }
-    const apiOrigin=new URL(INTERNAL_API_ORIGIN);
-    if(!['http:','https:'].includes(apiOrigin.protocol)||
-      apiOrigin.username||apiOrigin.password||apiOrigin.pathname!=='/'||
-      apiOrigin.search||apiOrigin.hash)
-      throw Error('Invalid private upstream');
+    // Empty streams cannot contain a valid multipart document; do not forward them.
+    if(size===0)
+      return json({code:'invalid_upload'},{status:400,headers});
+    if(declaredLength!==null&&size!==Number(declaredLength))
+      return json({code:'invalid_upload'},{status:400,headers});
     const body=new Uint8Array(size);
     let offset=0;
     for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.byteLength;}
     const response=await fetch(new URL(
       '/api/public/academy/registration/'+params.registrationId+'/documents',apiOrigin),{
-        method:'POST',credentials:'omit',cache:'no-store',
+        method:'POST',credentials:'omit',cache:'no-store',redirect:'error',
         headers:{origin:url.origin,'content-type':contentType},
         body,signal:AbortSignal.timeout(30000)
       });
@@ -57,7 +73,8 @@ export const POST: RequestHandler = async ({params,request,url}) => {
     const code=response.status===403?'upload_capability_invalid':
       response.status===409?'document_slot_conflict':
       response.status===413?'file_too_large':
-      response.status===422?'invalid_upload':'upload_unavailable';
+      response.status===422?'invalid_upload':
+      response.status===429?'upload_rate_limited':'upload_unavailable';
     const status=[400,403,409,413,415,422,429].includes(response.status)
       ?response.status:503;
     return json({code},{status,headers});

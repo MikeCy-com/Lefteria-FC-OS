@@ -90,6 +90,9 @@
           <p role="status">Η διαχείριση ατομικών φακέλων απαιτεί επαληθευμένα δικαιώματα.</p>
         {/if}
       {:else if tab==='training' && canReadAttendance && range}
+        {#if organization==='lefteria_fc_academy'&&(hasAdminPermission(user.permissions,'training:read')||hasAdminPermission(user.permissions,'training:read_assigned'))}
+          <a href="/admin/drills">Βιβλιοθήκη ασκήσεων · Κεντρική Ακαδημίας</a>
+        {/if}
         <label class="group-month">Μήνας προπονήσεων
           <input type="month" bind:value={month} min="2024-01" max="2032-12"/>
         </label>
