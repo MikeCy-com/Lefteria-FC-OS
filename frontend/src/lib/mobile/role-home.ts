@@ -97,3 +97,23 @@ export const ROLE_HOME_SHORTCUTS={
   management:['calendar','teams','financials','chat','announcements'],
   fan:['matches','news','team','shop','hub']
 } as const;
+
+
+/** Player-only next training RSVP work queue. The calendar must belong to
+ * exactly this authenticated player and month; no coach/parent/management
+ * event is eligible. Missing or ambiguous response arrays are not assumed
+ * to represent an outstanding RSVP. */
+export function trustedPlayerTrainingResponsesNeeded(
+  calendar:MobileCalendar|null,identityId:string,
+  today:string,limit=3
+):MobileCalendarItem[]{
+  if(!isTrustedRoleHomeContext(calendar,'player',identityId,null,today)||
+    !calendar.selected_player_id)return [];
+  const playerId=calendar.selected_player_id;
+  return trustedRoleHomeItems(calendar,'player',identityId,null,today)
+    .filter(item=>{
+      if(item.kind!=='training'||!Array.isArray(item.responses))return false;
+      return item.responses.filter(r=>r.player_id===playerId).length===0;
+    })
+    .slice(0,Math.max(0,Math.min(limit,5)));
+}

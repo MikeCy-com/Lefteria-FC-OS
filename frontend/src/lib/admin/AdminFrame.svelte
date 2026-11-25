@@ -8,7 +8,7 @@
 
   let {user,active='account',busy=false,onLogout,children}:{
     user:WebAdminSession['user'];
-    active?:'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
+    active?:'drills'|'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
       'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages'|'media'|'sponsors';
     busy?:boolean;onLogout:()=>void;children:Snippet;
@@ -63,9 +63,9 @@
            Group operations remain embedded inside the selected group. -->
       <a class="admin-nav-home" href="/admin" aria-current={active==='account'?'page':undefined}>Επισκόπηση</a>
 
-      {#if hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
+      {#if liveIds.has('drills') || hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
         <details class="admin-nav-disclosure"
-          open={['groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
+          open={['drills','groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
           data-testid="admin-football-navigation">
           <summary class="admin-nav-category" data-testid="admin-football-category">
             Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
@@ -79,6 +79,9 @@
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
                   data-testid="admin-player-crm-link">Παίκτες CRM</a>
               {/if}
+            {/if}
+            {#if liveIds.has('drills')}
+              <a class="admin-nav-tool" href="/admin/drills" aria-current={active==='drills'?'page':undefined} data-testid="admin-drills-link">Βιβλιοθήκη ασκήσεων</a>
             {/if}
             {#if liveIds.has('territories')}
               <a class="admin-nav-tool" href="/admin/territories" aria-current={active==='territories'?'page':undefined}
