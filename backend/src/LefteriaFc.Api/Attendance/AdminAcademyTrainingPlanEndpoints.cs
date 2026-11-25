@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
@@ -17,6 +18,8 @@ namespace LefteriaFc.Api.Attendance;
 /// </summary>
 public static class AdminAcademyTrainingPlanEndpoints
 {
+    public sealed record TrainingDrillsCommand(int ExpectedVersion,JsonElement Drills);
+
     public sealed record CancelPublishedTrainingCommand(
         int ExpectedVersion,string Reason,bool ConfirmCancellation);
 
@@ -240,6 +243,46 @@ public static class AdminAcademyTrainingPlanEndpoints
             return await Run(command,ct);
         }).WithName("CancelAdminAcademyPublishedTraining")
           .Accepts<CancelPublishedTrainingCommand>("application/json");
+
+        admin.MapGet("/{planId:guid}/drills",async (
+            Guid planId,string? organization_id,string? group_id,int? version,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            if(planId==Guid.Empty||!ValidId(group_id)||version is null or <1 or >10000||
+              context.Request.Query["group_id"].Count!=1||context.Request.Query["version"].Count!=1)
+                throw new WebAdminException(422,"training_drill_selector_invalid","Select the exact group and plan version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.read_admin_training_drills(@digest,@group,@id,@expected)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",version.Value);
+            return await Run(command,ct);
+        }).WithName("ReadAdminTrainingDrills");
+
+        admin.MapPut("/{planId:guid}/drills",async (
+            Guid planId,string? organization_id,string? group_id,TrainingDrillsCommand body,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
+              body.ExpectedVersion is <1 or >9999||body.Drills.ValueKind!=JsonValueKind.Array||
+              body.Drills.GetArrayLength()>24||body.Drills.GetRawText().Length>16000)
+                throw new WebAdminException(422,"training_drill_input_invalid","Check the plan version and selected exercises.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.write_admin_training_drills(@digest,@group,@id,@expected,@items)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            command.Parameters.AddWithValue("items",NpgsqlDbType.Jsonb,body.Drills.GetRawText());
+            return await Run(command,ct);
+        }).WithName("WriteAdminTrainingDrills").Accepts<TrainingDrillsCommand>("application/json");
 
         return endpoints;
     }
