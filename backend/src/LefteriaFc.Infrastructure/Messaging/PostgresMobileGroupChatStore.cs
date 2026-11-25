@@ -90,6 +90,11 @@ public sealed class PostgresMobileGroupChatStore(LefteriaDbContext database)
             announcementId:announcementId,fileId:mediaId);
     }
 
+    public Task<MobileChatUnreadSummaryDto> UnreadSummaryAsync(MobileSession actor,CancellationToken token)
+        => QueryAsync<MobileChatUnreadSummaryDto>("""
+            SELECT club.read_mobile_chat_unread_summary(@identity,@phone,@role,@expires)::text
+            """,actor,null,null,null,null,token);
+
     public Task<MobileChatPageDto> MessagesAsync(MobileSession actor,string organization,
         string group,int offset,CancellationToken token)
     {
