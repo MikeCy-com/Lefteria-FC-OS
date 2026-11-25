@@ -2552,6 +2552,71 @@
         ],
         "type": "object"
       },
+      "DrillCommand": {
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "age_band": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "category": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "instructions": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "objective": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "expected_version",
+          "title",
+          "category",
+          "age_band",
+          "duration_minutes",
+          "objective",
+          "instructions"
+        ],
+        "type": "object"
+      },
       "Enrollment": {
         "properties": {
           "city_id": {
@@ -9988,6 +10053,131 @@
   },
   "openapi": "3.1.1",
   "paths": {
+    "/api/admin/academy/drills": {
+      "get": {
+        "operationId": "ReadCentralAcademyDrills",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "age",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      },
+      "post": {
+        "operationId": "CreateCentralAcademyDrill",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrillCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      }
+    },
+    "/api/admin/academy/drills/{drillId}": {
+      "put": {
+        "operationId": "ChangeCentralAcademyDrill",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drillId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DrillCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      }
+    },
     "/api/admin/academy/office/orders": {
       "post": {
         "operationId": "CreateAcademyInternalOrder",
