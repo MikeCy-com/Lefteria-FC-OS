@@ -34,8 +34,11 @@ test('top-right account entry owns profile and session, without dashboard clutte
   assert.match(home,/adminOrganizationsFor\(user\)/);
 });
 
-test('five group-only tools disappear from both global navigation and dashboard',()=>{
-  for(const slug of ['schedule','attendance','matches','evaluations','documents']){
+test('group-only tools stay contextual except the assigned coach schedule',()=>{
+  assert.match(frame,/\{#if liveIds\.has\('assigned_groups'\)\}\s*<a[^>]+href="\/admin\/schedule"[^>]+data-testid="admin-coach-workspace-link"/);
+  assert.equal((frame.match(/href="\/admin\/schedule"/g)||[]).length,1);
+  assert.doesNotMatch(home,/href="\/admin\/schedule"/);
+  for(const slug of ['attendance','matches','evaluations','documents']){
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+slug+'"'));
     assert.doesNotMatch(home,new RegExp('href="/admin/'+slug+'"'));
   }
