@@ -186,6 +186,7 @@
       }
       if(!response.ok)throw Error('Δεν ολοκληρώθηκε η δημοσίευση προπόνησης.');
       const raw:unknown=await response.json();
+      if(owner!==actor||group!==groupId||period!==from+':'+to||!allowed||!canWrite)return;
       if(!validPublishedTrainingResult(raw,plan))
         throw Error('Η απόκριση δημοσίευσης δεν επαληθεύτηκε.');
       preview=null;publishConfirmed=false;
@@ -196,7 +197,7 @@
   }
 
   async function inspect(plan:TrainingPlanDraft){
-    if(!browser||!allowed||drillTarget||plan.drill_count!==0||loading||saving||previewing||
+    if(!browser||!allowed||drillTarget||typeof plan.drill_count!=='number'||loading||saving||previewing||
       !approvedIds.includes(plan.id)||plan.status!=='draft')return;
     const owner=actor,group=groupId,period=from+':'+to;
     previewing=true;preview=null;publishConfirmed=false;error='';
