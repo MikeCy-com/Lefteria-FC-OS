@@ -21,6 +21,7 @@ import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachS
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
 } from './coach-feedback-composer.ts';
+import {validActivityFilter,validActivityPage,type ActivityFilter,type NotificationActivityPage} from './notification-activity.ts';
 import {validAppNotificationInbox,validNotificationUnreadSummary,type NotificationUnreadSummary,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
@@ -1853,6 +1854,20 @@ export function createMobileAuthController(options: {
           state.organization?.requires_organization_selection)))
         throw new Error('Unverified private invitation response.');
       return pendingPrivateInvitations(result.conversations,identity.role,owner);
+    },
+    async getNotificationActivity(filter:ActivityFilter='all',offset=0):Promise<NotificationActivityPage> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!validActivityFilter(filter)||!Number.isSafeInteger(offset)||offset<0||offset>100000||
+        (filter==='private_message'&&!canOpenPrivateChat(identity.role)))
+        throw new Error('Invalid notification activity scope.');
+      const query=new URLSearchParams({kind:filter,offset:String(offset)});
+      const result=await chatRequest('/api/mobile/app/notifications/activity?'+query.toString());
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validActivityPage(result,filter,offset,canOpenPrivateChat(identity.role),
+          identity.role==='management'?owner:null))
+        throw new Error('Unverified notification activity.');
+      return result;
     },
     async getNotificationUnreadSummary():Promise<NotificationUnreadSummary> {
       const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
