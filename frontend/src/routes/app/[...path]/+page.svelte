@@ -358,6 +358,7 @@
               onCalendar={childId=>openTab('calendar',childId)}
               onFinancials={()=>openTab('financials')}/>
             {#if canOpenPrivateChat(role)}
+              <MobileGroupUnreadActions {controller} privateMode={true} onOpen={()=>openChatMode('private')}/>
               <MobileInvitationActions {controller} {role} onOpen={()=>openChatMode('private')}/>
             {/if}
           {/key}
