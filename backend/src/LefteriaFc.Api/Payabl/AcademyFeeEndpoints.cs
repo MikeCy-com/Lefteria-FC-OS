@@ -25,6 +25,8 @@ public sealed record ParentTrainingFeePreferenceCommand(
 
 public sealed record TrainingFeeSmsCommand(Guid ClientRequestId);
 
+public sealed record CancelAcademyFutureFeeCommand(Guid ClientRequestId, string? Reason);
+
 /// <summary>
 /// Training-fee issuance is a deliberate manager action for ONE child and ONE
 /// selected YYYY-MM. There is no annual schedule, yearly batch generation,
@@ -99,6 +101,48 @@ public static class AcademyFeeEndpoints
             }
         }).WithName("IssueAdminAcademyTrainingFee")
         .Accepts<AcademyTrainingFeeIssueCommand>("application/json");
+
+
+        // Retains the invoice and original payment history. This is NOT a
+        // refund or a delete, and never acts on a linked Payabl attempt.
+        admin.MapPost("/{feeId:guid}/cancel", async (
+            Guid feeId, string? organization_id, CancelAcademyFutureFeeCommand body,
+            WebAdminService service, WebAdminConnections connections,
+            IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var cookie=await AdminCookie(organization_id,service,context,true,ct);
+            if(feeId==Guid.Empty || body.ClientRequestId==Guid.Empty ||
+               body.Reason is null || body.Reason.Length is < 8 or > 240 ||
+               body.Reason!=body.Reason.Trim() ||
+               body.Reason.Any(char.IsControl))
+                throw new WebAdminException(422,"invalid_future_fee_cancellation",
+                    "Provide a reason (8-240 characters) and a unique request ID.");
+            await using var db=await connections.OpenAsync(ct);
+            await using var cmd=new NpgsqlCommand("""
+              SELECT finance.cancel_admin_future_training_fee(
+                @digest,@owner,@fee,@request,@reason)::text
+              """,db);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            cmd.Parameters.AddWithValue("owner",organization_id!);
+            cmd.Parameters.AddWithValue("fee",feeId);
+            cmd.Parameters.AddWithValue("request",body.ClientRequestId);
+            cmd.Parameters.AddWithValue("reason",body.Reason);
+            try
+            {
+                var json=await cmd.ExecuteScalarAsync(ct) as string;
+                return json is null ? Results.Problem(statusCode:503)
+                    : Results.Content(json,"application/json",Encoding.UTF8,200);
+            }
+            catch(PostgresException e) when (e.SqlState is "23505" or "42501" or "22023")
+            {
+                throw new WebAdminException(e.SqlState=="23505" ? 409 : e.SqlState=="42501" ? 403 : 422,
+                    "future_fee_cancellation_rejected",
+                    "Only an unlinked, unpaid future month can be cancelled; otherwise request payment review.");
+            }
+        }).WithName("CancelAdminAcademyFutureFee")
+        // Private admin operation used directly by the authenticated finance UI.
+        .ExcludeFromDescription()
+        .Accepts<CancelAcademyFutureFeeCommand>("application/json");
 
         admin.MapPost("/{feeId:guid}/sms", async (
             Guid feeId, string? organization_id, TrainingFeeSmsCommand body,
