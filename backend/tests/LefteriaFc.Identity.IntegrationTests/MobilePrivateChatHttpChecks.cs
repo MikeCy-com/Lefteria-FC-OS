@@ -119,6 +119,16 @@ internal sealed partial class IdentityHttpChecks
                 "A peer's newly sent message must count as unread.");
             Check.Equal(parentUnreadBefore,(await GetAsync(parent,unreadPath,200)).GetProperty("unread_count").GetInt32(),
                 "Own messages must not count as unread.");
+            const string activityPath="/api/mobile/app/notifications/activity?kind=private_message";
+            var coachActivity=(await GetAsync(coach,activityPath,200)).GetProperty("items");
+            Check.True(coachActivity.EnumerateArray().Any(row=>
+                row.GetProperty("entity_id").GetString()==messageId.ToString() &&
+                row.GetProperty("conversation_id").GetGuid()==id &&
+                row.GetProperty("title").ValueKind==JsonValueKind.Null &&
+                row.GetProperty("group_name").ValueKind==JsonValueKind.Null),
+                "Private unread activity omitted authorized message or disclosed private text.");
+            var playerActivity=(await GetAsync(player,activityPath,200)).GetProperty("items");
+            Check.Equal(0,playerActivity.GetArrayLength(),"Player received private conversation activity.");
             var fromCoach=(await GetAsync(coach,path+"/messages",200)).GetProperty("messages");
             Check.Equal(coachUnreadBefore+1,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
                 "GET must not mark private messages read.");
@@ -131,6 +141,9 @@ internal sealed partial class IdentityHttpChecks
                 seen.GetProperty("message_id").GetGuid()==messageId&&seen.GetProperty("version").GetInt64()==1,
                 "Private receipt must confirm exact message, conversation and version.");
             await PostAsync(coach,messagePath+"/seen",new{version=1},200);
+            Check.True(!(await GetAsync(coach,activityPath,200)).GetProperty("items").EnumerateArray()
+                .Any(row=>row.GetProperty("entity_id").GetString()==messageId.ToString()),
+                "Acknowledged message remained in unread activity.");
             Check.Equal(coachUnreadBefore,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
                 "Repeated reads must be idempotent.");
             Check.Equal(1,fromCoach.GetArrayLength(),"Accepted coach cannot read approved message.");
