@@ -8,7 +8,7 @@
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
   import type {ChatReaction} from '../chat-actions.ts';
 
-  let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
+  let {controller,actorId,role,onReadConfirmed}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void}=$props();
   let rooms=$state.raw<GroupChatRoom[]>([]);
   let selected=$state.raw<GroupChatRoom|null>(null);
   let messages=$state<GroupChatMessage[]>([]);
@@ -123,7 +123,7 @@
          !messages.some(m=>m.id===current.id&&!m.is_deleted&&m.version===current.version))return;
       acknowledgmentsInFlight.add(key);
       void controller.acknowledgeChatRead(room!,current.id,current.version).then(confirmed=>{
-        if(confirmed)acknowledged.add(key);
+        if(confirmed&&alive&&selected===room){acknowledged.add(key);onReadConfirmed?.();}
       }).catch(()=>{/* Never infer read status from a stale or rejected version. */})
         .finally(()=>acknowledgmentsInFlight.delete(key));
     }
