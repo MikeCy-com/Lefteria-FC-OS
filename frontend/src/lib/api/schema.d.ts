@@ -1,5 +1,37 @@
 // Generated from contracts/openapi.json. Run npm run api:generate; do not edit.
 export interface paths {
+    "/api/admin/academy/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadCentralAcademyDrills"];
+        put?: never;
+        post: operations["CreateCentralAcademyDrill"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/drills/{drillId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ChangeCentralAcademyDrill"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/{collection}": {
         parameters: {
             query?: never;
@@ -3642,6 +3674,18 @@ export interface components {
             /** Format: int32 */
             version: number | string;
         };
+        DrillCommand: {
+            action: string;
+            age_band: null | string;
+            category: null | string;
+            /** Format: int32 */
+            duration_minutes: null | number | string;
+            /** Format: int32 */
+            expected_version: number | string;
+            instructions: null | string;
+            objective: null | string;
+            title: null | string;
+        };
         Enrollment: {
             /** Format: uuid */
             city_id: string;
@@ -5305,6 +5349,76 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ReadCentralAcademyDrills: {
+        parameters: {
+            query?: {
+                age?: string;
+                category?: string;
+                offset?: number | string;
+                search?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateCentralAcademyDrill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ChangeCentralAcademyDrill: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drillId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReadAcademyOffice: {
         parameters: {
             query?: {
