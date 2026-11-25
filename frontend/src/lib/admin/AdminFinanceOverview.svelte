@@ -2,7 +2,7 @@
   import { untrack } from 'svelte';
 
   type Bucket={issued_count:number;issued_cents:number;paid_cents:number;
-    open_cents:number;review_cents:number};
+    open_cents:number;review_cents:number;cancelled_count:number;cancelled_cents:number};
   type General={issued_count:number;issued_cents:number;collected_cents:number;
     outstanding_cents:number;overdue_count:number};
   type Payabl={request_count:number;confirmed_count:number;review_count:number};
@@ -31,7 +31,7 @@
     const d=value as Record<string,unknown>;
     return d.organization_id===organization&&d.month===period+'-01'&&
       d.currency==='EUR'&&d.scope==='organization'&&d.is_statutory_statement===false&&
-      keys(d.academy_training_fees,['issued_count','issued_cents','paid_cents','open_cents','review_cents'])&&
+      keys(d.academy_training_fees,['issued_count','issued_cents','paid_cents','open_cents','review_cents','cancelled_count','cancelled_cents'])&&
       keys(d.general_charges,['issued_count','issued_cents','collected_cents',
         'outstanding_cents','overdue_count'])&&
       keys(d.payabl_sandbox,['request_count','confirmed_count','review_count']);
@@ -83,6 +83,7 @@
         <div><strong>{euro(data.academy_training_fees.paid_cents)}</strong><span>Επαληθευμένα εξοφλημένα</span></div>
         <div><strong>{euro(data.academy_training_fees.open_cents)}</strong><span>Ανοικτές χρεώσεις</span></div>
         <div><strong>{euro(data.academy_training_fees.review_cents)}</strong><span>Προς συμφωνία</span></div>
+        <div data-testid="academy-fees-cancelled-stat"><strong>{euro(data.academy_training_fees.cancelled_cents)}</strong><span>Ακυρωμένες χρεώσεις · {data.academy_training_fees.cancelled_count} (δεν υπολογίζονται ως έσοδα ή οφειλές)</span></div>
       </div>
     {/if}
     <h3>Λοιπές χρεώσεις · εκδοθείσες στην περίοδο</h3>

@@ -2,6 +2,7 @@
   import {browser} from '$app/env';
   type Site={city_id:string;location_id:string;
     training_issued_count:number;training_issued_cents:number;training_paid_cents:number;
+    training_cancelled_count:number;training_cancelled_cents:number;
     training_review_count:number;general_issued_count:number;general_issued_cents:number;
     general_paid_cents:number;general_overdue_count:number};
   type BacklogIssue={kind:'training_fee'|'general_charge';id:string;
@@ -57,6 +58,7 @@
         if(d.locations.length>3000||!d.locations.every(x=>
           typeof x.city_id==='string'&&typeof x.location_id==='string'&&
           ['training_issued_count','training_issued_cents','training_paid_cents',
+            'training_cancelled_count','training_cancelled_cents',
           'training_review_count','general_issued_count','general_issued_cents',
           'general_paid_cents','general_overdue_count']
           .every(k=>Number.isSafeInteger(x[k as keyof Site])&&
@@ -138,6 +140,7 @@
     <div class="finance-cards">
       <div><strong>{euro(site.training_issued_cents)}</strong><span>Μηνιαία δίδακτρα · εκδόθηκαν ({site.training_issued_count})</span></div>
       <div><strong>{euro(site.training_paid_cents)}</strong><span>Δίδακτρα · εξοφλημένα</span></div>
+      <div><strong>{euro(site.training_cancelled_cents)}</strong><span>Δίδακτρα · ακυρωμένα ({site.training_cancelled_count})</span></div>
       <div><strong>{euro(site.general_issued_cents)}</strong><span>Λοιπές χρεώσεις · εκδόθηκαν ({site.general_issued_count})</span></div>
       <div><strong>{euro(site.general_paid_cents)}</strong><span>Λοιπές χρεώσεις · καταχωρισμένες πληρωμές</span></div>
     </div>
