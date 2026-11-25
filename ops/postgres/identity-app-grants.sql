@@ -677,4 +677,8 @@ GRANT EXECUTE ON FUNCTION club.ack_mobile_private_read(
 GRANT EXECUTE ON FUNCTION club.read_mobile_private_unread_summary(
   uuid,text,text,timestamptz) TO :"app_role";
 
+REVOKE ALL ON FUNCTION club.read_mobile_notification_unread_summary(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_notification_unread_summary(
+  uuid,text,text,timestamptz) TO :"app_role";
 COMMIT;
