@@ -53,10 +53,10 @@ test('new UI stays separate from announcement counts and uses scoped controller'
   assert.doesNotMatch(panel,/onUnreadChange|localStorage|sessionStorage/);
 });
 
-function harness(controller){
+function harness(controller,initialOrganization=null,initialGroup=null){
   const start=chat.indexOf('  async function refreshRooms('),end=chat.indexOf('  async function mutateMessage(',start);
   const handlers=stripTypeScriptTypes(chat.slice(start,end));
-  return new Function('controller',`
+  return new Function('controller','initialOrganization','initialGroup',`
     let requestNumber=0,alive=true,rooms=[],selected=null,messages=[],nextOffset=null;
     let directoryBusy=true,messageBusy=false,mutationBusy=false,sending=false;
     let menuMessage=null,error=null,sendError=null,draft='';
@@ -64,7 +64,7 @@ function harness(controller){
     ${handlers}
     return {refreshRooms,chooseRoom,loadMessages,setDraft:value=>{draft=value;},
       snapshot:()=>({rooms,selected,messages,nextOffset,draft,error,messageBusy})};
-  `)(controller);
+  `)(controller,initialOrganization,initialGroup);
 }
 const first={organization_id:'lefteria_fc',group_id:'a'};
 const second={organization_id:'lefteria_fc_academy',group_id:'b'};
@@ -97,4 +97,13 @@ test('older room response cannot overwrite current room after rapid selection',a
   const old=h.chooseRoom(first);await h.chooseRoom(second);
   resolve({messages:[{id:'stale'}],next_offset:null});await old;
   assert.deepEqual(h.snapshot().messages,[{id:'current'}]);
+});
+
+test('unavailable requested room never falls back to the only authorized room',async()=>{
+  let calls=0;
+  const h=harness({getChatRooms:async()=>[first],getChatMessages:async()=>{calls++;
+    return {messages:[],next_offset:null};}},second.organization_id,second.group_id);
+  await h.refreshRooms();
+  assert.equal(calls,0);assert.equal(h.snapshot().selected,null);
+  assert.ok(h.snapshot().error);
 });
