@@ -31,7 +31,7 @@ import {validPrivateContact,validPrivateContacts,validPrivateConversation,
   validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
   type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
 } from './private-chat.ts';
-import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
+import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,validGroupChatUnreadSummary,type GroupChatUnreadSummary,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
@@ -1923,6 +1923,16 @@ export function createMobileAuthController(options: {
         (active&&!response.reactions.some(r=>r.emoji===emoji&&r.mine)))
         throw new Error('Server did not confirm announcement reaction.');
       return response;
+    },
+    async getGroupChatUnreadSummary():Promise<GroupChatUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity)throw new Error('Group chat scope required.');
+      const result=await chatRequest('/api/mobile/chat/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validGroupChatUnreadSummary(result))
+        throw new Error('Unverified group chat unread summary.');
+      return result;
     },
     async getChatRooms():Promise<GroupChatRoom[]> {
       const result=await chatRequest('/api/mobile/chat/groups');
