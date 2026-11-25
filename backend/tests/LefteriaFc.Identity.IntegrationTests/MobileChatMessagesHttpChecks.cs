@@ -38,11 +38,19 @@ internal sealed partial class IdentityHttpChecks
     private async Task ChatMessageHttpChecksAsync(AccountImportFixture fixture,
         HttpClient parent,HttpClient player,HttpClient coach,HttpClient management,HttpClient fan)
     {
+        const string unreadPath="/api/mobile/chat/unread-summary";
         var team=MessagePath(OrganizationIds.Club,fixture.TeamId);
         var academy=MessagePath(OrganizationIds.Academy,fixture.GroupId);
         var sentByFixture=fixture.Plan.Mobiles.Select(row=>row.Id).ToArray();
         try
         {
+            const string activityPath="/api/mobile/app/notifications/activity";
+            await GetAsync(fan,activityPath,403);
+            await GetAsync(parent,activityPath+"?kind=invalid",422);
+            await GetAsync(parent,activityPath+"?kind=all&kind=announcement",422);
+            await GetAsync(parent,activityPath+"?offset=-1",422);
+            await GetAsync(fan,unreadPath,403);
+            var unreadBefore=(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32();
             var empty=await GetAsync(parent,academy,200);
             Check.Equal(0,empty.GetProperty("messages").GetArrayLength(),
                 "New scoped chat should have no fabricated messages.");
@@ -69,7 +77,27 @@ internal sealed partial class IdentityHttpChecks
             var teamId=Guid.Parse(teamSent.GetProperty("id").GetString()!);
             Check.True(academyId!=teamId,"Independent member messages shared an ID.");
 
+            var unreadAfter=(await GetAsync(coach,unreadPath,200));
+            Check.True(unreadAfter.GetProperty("enabled").GetBoolean(),
+                "Message notifications should be enabled in the default fixture.");
+            Check.Equal(Math.Min(unreadBefore+2,999),unreadAfter.GetProperty("unread_count").GetInt32(),
+                "Current group messages were not counted for assigned coach.");
+            var coachActivity=(await GetAsync(coach,activityPath+"?kind=group_message",200)).GetProperty("items");
+            Check.True(coachActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==academyId.ToString()),
+                "Assigned coach activity omitted unread Academy message.");
+            Check.True(coachActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==teamId.ToString()),
+                "Assigned coach activity omitted unread team message.");
+            foreach(var row in coachActivity.EnumerateArray())
+                Check.True(row.GetProperty("kind").GetString()=="group_message" &&
+                    row.GetProperty("title").ValueKind==JsonValueKind.Null &&
+                    !row.TryGetProperty("content",out _),"Activity leaked message bodies or wrong destination.");
+            var parentActivity=(await GetAsync(parent,activityPath+"?kind=group_message",200)).GetProperty("items");
+            Check.True(!parentActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==teamId.ToString()),
+                "Parent activity leaked unrelated First Team message.");
             var coachAcademy=await GetAsync(coach,academy,200);
+            Check.Equal(unreadAfter.GetProperty("unread_count").GetInt32(),
+                (await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Message GET must not create read receipts.");
             Check.Equal(1,coachAcademy.GetProperty("messages").GetArrayLength(),
                 "Currently assigned coach cannot read the Academy message.");
             Check.Equal(academyId.ToString(),coachAcademy.GetProperty("messages")[0]
@@ -117,12 +145,17 @@ internal sealed partial class IdentityHttpChecks
             await AcknowledgeAsync(management,managerPath,403);
             await AcknowledgeAsync(parent,managerPath,403);
             await AcknowledgeAsync(fan,managerPath,403);
+            var beforeSeen=(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32();
             var coachSeen=await AcknowledgeAsync(coach,managerPath,200);
+            var afterSeen=(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32();
+            Check.Equal(beforeSeen-1,afterSeen,"Confirmed current-version read should reduce unread count.");
             Check.True(coachSeen.GetProperty("seen").GetBoolean() &&
                 coachSeen.GetProperty("message_id").GetString()==managerMessageId.ToString() &&
                 coachSeen.GetProperty("version").GetInt64()==1,
                 "Coach explicit read did not acknowledge the manager's exact message.");
             await AcknowledgeAsync(coach,managerPath,200);
+            Check.Equal(afterSeen,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Repeated receipt must not decrement unread count twice.");
             await AcknowledgeAsync(player,managerPath,200);
             var readers=(await GetAsync(management,managerPath+"/readers",200))
                 .GetProperty("readers");
@@ -150,6 +183,8 @@ internal sealed partial class IdentityHttpChecks
             Check.Equal(0,(await GetAsync(management,managerPath+"/readers",200))
                 .GetProperty("readers").GetArrayLength(),
                 "Old-version receipts falsely counted as readers of newly edited content.");
+            Check.Equal(beforeSeen,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "A newly edited version must be unread until explicitly acknowledged.");
             await AcknowledgeAsync(coach,managerPath,403,1);
             await AcknowledgeAsync(coach,managerPath,200,2);
             Check.Equal(1,(await GetAsync(management,managerPath+"/readers",200))

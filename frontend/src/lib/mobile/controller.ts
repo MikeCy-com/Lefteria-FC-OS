@@ -21,7 +21,8 @@ import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachS
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
 } from './coach-feedback-composer.ts';
-import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
+import {validActivityFilter,validActivityPage,type ActivityFilter,type NotificationActivityPage} from './notification-activity.ts';
+import {validAppNotificationInbox,validNotificationUnreadSummary,type NotificationUnreadSummary,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
   validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
@@ -31,13 +32,14 @@ import {validPrivateContact,validPrivateContacts,validPrivateConversation,
   validPrivateInbox,validPrivateMessage,validPrivatePage,validPrivateText,validUuid,
   type PrivateContact,type PrivateConversation,type PrivateMessage,type PrivatePage
 } from './private-chat.ts';
-import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
+import {validChatDirectory,validMessage,validPage,validRoom,validTextMessage,validReactionSnapshot,validGroupChatUnreadSummary,type GroupChatUnreadSummary,type GroupChatRoom,type GroupChatMessage,type GroupChatPage,type GroupChatReactionSnapshot} from './group-chat.ts';
 import { createApiClient } from '../api/client.ts';
 import type { components } from '../api/schema';
 import { isMobileRole, type MobileRole } from './navigation.ts';
 import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays } from './components/component-types.ts';
 import type { MobileSessionStorage } from './session.ts';
 import { calendarItemKey, isAvailabilityStatus, isCalendarDate, isCalendarKind, isCalendarMonth } from './calendar.ts';
+import {canOpenPrivateChat,pendingFamilyInvitationCount,pendingPrivateInvitations} from './invitation-actions.ts';
 import type { AvailabilityStatus, CalendarLoadStatus, MobileCalendar, MobileCalendarItem, MobileCalendarResponses } from './calendar.ts';
 
 type User = components['schemas']['MobileUserDto'];
@@ -1072,7 +1074,7 @@ export function createMobileAuthController(options: {
 
   async function loadRecipientInvitations() {
     const identity = state.user;
-    if (state.busy || state.recipientDecliningId || state.recipientStatus === 'loading' ||
+    if (state.busy || state.recipientDecliningId || state.recipientAcceptingId || state.recipientStatus === 'loading' ||
         state.status !== 'authenticated' || !identity?.current_role_available ||
         identity.role !== 'fan' || !token) return false;
     const operationRevision = ++recipientRevision;
@@ -1821,6 +1823,62 @@ export function createMobileAuthController(options: {
         throw new Error('Unverified private coach feedback response.');
       return result;
     },
+    // Read-only calendar snapshot for the actions panel. Do not mutate the
+    // calendar tab's selected child, cached items, paging or RSVP state.
+    async getMemberActionCalendar(month:string,playerId?:string):Promise<MobileCalendar> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!isCalendarMonth(month)||
+        (playerId!==undefined&&(identity.role!=='parent'||!playerId.trim()||playerId.length>128)))
+        throw new Error('Invalid action calendar scope.');
+      const query=new URLSearchParams({month,offset:'0'});
+      if(playerId!==undefined)query.set('player_id',playerId);
+      const raw=await chatRequest('/api/mobile/calendar?'+query.toString());
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validCalendar(raw as MobileCalendar,identity,month,playerId,0))
+        throw new Error('Unverified action calendar.');
+      return raw as MobileCalendar;
+    },
+    async getPendingFamilyInvitationCount():Promise<number> {
+      if(state.user?.role!=='fan')throw new Error('Family recipient scope required.');
+      return pendingFamilyInvitationCount(await chatRequest('/api/mobile/family/invitations'));
+    },
+    async getPendingPrivateInvitationCount():Promise<number> {
+      const identity=state.user,owner=state.organization?.organization_id??null;
+      if(!identity||!canOpenPrivateChat(identity.role)||
+        (identity.role==='management'&&(!owner||state.organization?.requires_organization_selection)))
+        throw new Error('Private invitation scope required.');
+      const result=await chatRequest('/api/mobile/private/conversations');
+      if(!validPrivateInbox(result)||
+        (identity.role==='management'&&(state.organization?.organization_id!==owner||
+          state.organization?.requires_organization_selection)))
+        throw new Error('Unverified private invitation response.');
+      return pendingPrivateInvitations(result.conversations,identity.role,owner);
+    },
+    async getNotificationActivity(filter:ActivityFilter='all',offset=0):Promise<NotificationActivityPage> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!validActivityFilter(filter)||!Number.isSafeInteger(offset)||offset<0||offset>100000||
+        (filter==='private_message'&&!canOpenPrivateChat(identity.role)))
+        throw new Error('Invalid notification activity scope.');
+      const query=new URLSearchParams({kind:filter,offset:String(offset)});
+      const result=await chatRequest('/api/mobile/app/notifications/activity?'+query.toString());
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validActivityPage(result,filter,offset,canOpenPrivateChat(identity.role),
+          identity.role==='management'?owner:null))
+        throw new Error('Unverified notification activity.');
+      return result;
+    },
+    async getNotificationUnreadSummary():Promise<NotificationUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity)throw new Error('Notification scope required.');
+      const result=await chatRequest('/api/mobile/app/notifications/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validNotificationUnreadSummary(result,canOpenPrivateChat(identity.role)))
+        throw new Error('Unverified notification summary.');
+      return result;
+    },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
         throw new Error('Invalid notification page.');
@@ -1890,6 +1948,16 @@ export function createMobileAuthController(options: {
         (active&&!response.reactions.some(r=>r.emoji===emoji&&r.mine)))
         throw new Error('Server did not confirm announcement reaction.');
       return response;
+    },
+    async getGroupChatUnreadSummary():Promise<GroupChatUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity)throw new Error('Group chat scope required.');
+      const result=await chatRequest('/api/mobile/chat/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validGroupChatUnreadSummary(result))
+        throw new Error('Unverified group chat unread summary.');
+      return result;
     },
     async getChatRooms():Promise<GroupChatRoom[]> {
       const result=await chatRequest('/api/mobile/chat/groups');
@@ -1994,6 +2062,33 @@ export function createMobileAuthController(options: {
       if(!accept)return null;
       if(!validPrivateConversation(result))throw new Error('Invalid private conversation.');
       return result;
+    },
+    async getPrivateChatUnreadSummary():Promise<GroupChatUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!canOpenPrivateChat(identity.role))
+        throw new Error('Private chat scope required.');
+      const result=await chatRequest('/api/mobile/private/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validGroupChatUnreadSummary(result))
+        throw new Error('Unverified private chat unread summary.');
+      return result;
+    },
+    async acknowledgePrivateRead(conversation:string,message:string,version:number):Promise<boolean> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!canOpenPrivateChat(identity.role)||!validUuid(conversation)||
+        !validUuid(message)||!Number.isSafeInteger(version)||version<1)
+        throw new Error('Invalid private receipt scope.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(conversation)+
+        '/messages/'+encodeURIComponent(message)+'/seen','POST',{version});
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !result||typeof result!=='object'||Array.isArray(result)||
+        !('conversation_id' in result)||result.conversation_id!==conversation||
+        !('message_id' in result)||result.message_id!==message||
+        !('seen' in result)||result.seen!==true||!('version' in result)||result.version!==version)
+        throw new Error('Private read acknowledgement not confirmed.');
+      return true;
     },
     async getPrivateMessages(id:string,offset=0):Promise<PrivatePage> {
       if(!validUuid(id)||!Number.isInteger(offset)||offset<0||offset>100000)

@@ -61,6 +61,19 @@ public sealed class PostgresMobilePrivateChatStore(LefteriaDbContext database)
               @actor,@phone,@role,@expires,@conversation,@offset)::text
             """,actor,token,conversation:conversation,offset:offset);
     }
+    public Task<MobilePrivateUnreadSummaryDto> UnreadSummaryAsync(MobileSession actor,CancellationToken token)
+        => QueryAsync<MobilePrivateUnreadSummaryDto>("""
+            SELECT club.read_mobile_private_unread_summary(@actor,@phone,@role,@expires)::text
+            """,actor,token);
+    public Task<MobilePrivateSeenAckDto> AcknowledgeReadAsync(MobileSession actor,
+        Guid conversation,Guid message,long version,CancellationToken token)
+    {
+        if(conversation==Guid.Empty||message==Guid.Empty||version<1)throw Invalid();
+        return QueryAsync<MobilePrivateSeenAckDto>("""
+            SELECT club.ack_mobile_private_read(
+              @actor,@phone,@role,@expires,@conversation,@message,@version)::text
+            """,actor,token,conversation:conversation,message:message,version:version);
+    }
     public Task<MobilePrivateMessageDto> SendAsync(MobileSession actor,
         Guid conversation,string? content,CancellationToken token)=>
         WriteAsync(actor,conversation,"send",null,null,content,token);
@@ -130,6 +143,11 @@ public sealed class PostgresMobilePrivateChatStore(LefteriaDbContext database)
                     command.Parameters.Add("message",NpgsqlDbType.Uuid).Value=(object?)message??DBNull.Value;
                     command.Parameters.Add("version",NpgsqlDbType.Bigint).Value=(object?)version??DBNull.Value;
                     command.Parameters.Add("content",NpgsqlDbType.Text).Value=(object?)content??DBNull.Value;
+                }
+                else if(message is not null && version is not null)
+                {
+                    command.Parameters.AddWithValue("message",message.Value);
+                    command.Parameters.AddWithValue("version",version.Value);
                 }
                 var raw=await command.ExecuteScalarAsync(token) as string;
                 var dto=raw is null?default:JsonSerializer.Deserialize<T>(raw,Json);

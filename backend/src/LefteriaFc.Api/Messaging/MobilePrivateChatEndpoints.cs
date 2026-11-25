@@ -14,6 +14,27 @@ public static class MobilePrivateChatEndpoints
             .WithTags("Mobile app private messaging")
             .RequireAuthorization(IdentityServices.Policy);
 
+        chat.MapGet("/unread-summary",(HttpContext context,PostgresMobilePrivateChatStore store,
+            CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.UnreadSummaryAsync(MobilePrincipal.Read(context.User),token),context);
+            })
+            .WithName("GetMobilePrivateUnreadSummary")
+            .Produces<MobilePrivateUnreadSummaryDto>().WithMobileErrors();
+
+        chat.MapPost("/conversations/{conversationId:guid}/messages/{messageId:guid}/seen",(
+            Guid conversationId,Guid messageId,MobilePrivateSeenBody body,HttpContext context,
+            PostgresMobilePrivateChatStore store,CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(()=>store.AcknowledgeReadAsync(
+                    MobilePrincipal.Read(context.User),conversationId,messageId,body.Version,token),context);
+            })
+            .WithName("AcknowledgeMobilePrivateRead")
+            .Produces<MobilePrivateSeenAckDto>().WithMobileErrors();
+
         chat.MapGet("/contacts",(string? organization,string? group,
             HttpContext context,PostgresMobilePrivateChatStore store,CancellationToken token)=>
             MobileIdentityEndpoints.Execute(()=>store.ContactsAsync(

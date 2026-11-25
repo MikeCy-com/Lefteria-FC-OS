@@ -39,3 +39,25 @@ export function validAppNotificationInbox(value:unknown):value is AppNotificatio
     Number.isSafeInteger(value.next_offset)&&
     (value.next_offset as number)>=0&&(value.next_offset as number)<=100030;
 }
+
+export type NotificationDestination={unread_count:number;enabled:boolean};
+export type NotificationUnreadSummary={
+  announcements:NotificationDestination;
+  group_messages:NotificationDestination;
+  private_messages:NotificationDestination;
+  unread_count:number;
+};
+function validDestination(value:unknown):value is NotificationDestination {
+  return plain(value)&&Object.keys(value).sort().join(',')==='enabled,unread_count'&&
+    typeof value.enabled==='boolean'&&Number.isSafeInteger(value.unread_count)&&
+    (value.unread_count as number)>=0&&(value.unread_count as number)<=999&&
+    (value.enabled||value.unread_count===0);
+}
+export function validNotificationUnreadSummary(value:unknown,privateAllowed:boolean):value is NotificationUnreadSummary {
+  if(!plain(value)||Object.keys(value).sort().join(',')!=='announcements,group_messages,private_messages,unread_count'||
+    !validDestination(value.announcements)||!validDestination(value.group_messages)||
+    !validDestination(value.private_messages)||
+    (!privateAllowed&&(value.private_messages.enabled||value.private_messages.unread_count!==0)))return false;
+  return value.unread_count===Math.min(999,value.announcements.unread_count+
+    value.group_messages.unread_count+value.private_messages.unread_count);
+}

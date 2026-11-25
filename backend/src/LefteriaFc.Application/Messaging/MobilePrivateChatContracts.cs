@@ -16,3 +16,7 @@ public sealed record MobilePrivateMessagePageDto(IReadOnlyList<MobilePrivateMess
 public sealed record MobilePrivateSendBody(string? Content);
 public sealed record MobilePrivateEditBody(string? Content,long Version);
 public sealed record MobilePrivateHiddenDto(Guid ConversationId,bool Hidden);
+
+public sealed record MobilePrivateSeenBody(long Version);
+public sealed record MobilePrivateSeenAckDto(Guid ConversationId,Guid MessageId,bool Seen,long Version);
+public sealed record MobilePrivateUnreadSummaryDto(int UnreadCount,bool Enabled);
