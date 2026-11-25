@@ -54,7 +54,7 @@ function harness(controller){
   return new Function('controller',`
     const actorId='me',peer={id:'m',conversation_id:'c',sender_id:'other',version:1,is_deleted:false};
     let alive=true,sequence=0,selected={id:'c',status:'accepted'},messages=[peer],messageLoading=false;
-    let receiptError=null;
+    let receiptError=null;const onReadConfirmed=()=>{};
     const acknowledged=new Set(),receiptPending=new Set();
     const document={visibilityState:'visible',hasFocus:()=>true};
     ${handlers}
