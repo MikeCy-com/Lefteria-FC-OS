@@ -19,7 +19,7 @@
   const org='lefteria_fc_academy';
   const canManage=$derived(canWrite&&!coachMode);
   let submitTarget=$state<string|null>(null);
-  function deliveryEditable(plan:TrainingPlanDraft){return allowed&&canWrite&&plan.status==='draft'&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled&&plan.day>=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
+  function deliveryEditable(plan:TrainingPlanDraft){return allowed&&canWrite&&(!coachMode||plan.day>=from&&plan.day<=to)&&plan.status==='draft'&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled&&plan.day>=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
   function coachEditable(plan:TrainingPlanDraft){return !coachMode||(!approvedIds.includes(plan.id)&&!publishedIds.includes(plan.id));}
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
@@ -268,7 +268,7 @@
 
   async function submit(plan:TrainingPlanDraft){
     if(!browser||!allowed||!coachMode||!canWrite||saving||loading||drillTarget||submitTarget!==reviewKey(plan)||
-      plan.status!=='draft'||!coachEditable(plan)||plan.submitted_version===plan.version||
+      plan.status!=='draft'||!coachEditable(plan)||plan.delivery_complete!==true||plan.submitted_version===plan.version||
       !rows.some(row=>row.id===plan.id&&row.version===plan.version))return;
     const owner=actor,group=groupId,period=from+':'+to;
     submitTarget=null;saving=true;error='';
@@ -290,7 +290,7 @@
   }
   async function save(archive=false){
     if(!browser||!canWrite||drillTarget||saving||loading||!validTrainingPlanForm(form)||
-      form.day<from||form.day>to||
+      form.day<from||form.day>to||form.duration_minutes<20||
       (coachMode&&(archive||(editing&&!coachEditable(editing))))||
       archive&&(!editing||!archiveConfirmed))return;
     const current=editing,expected=current?.version??0;
@@ -356,6 +356,7 @@
             {#if publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
               <small data-testid="academy-native-training-cancel-reason">Λόγος ακύρωσης: {publicationRows.find(p=>p.id===plan.id)?.cancel_reason}</small>
             {/if}</span>
+          {#if typeof plan.delivery_complete==='boolean'}<small class="delivery-status">{plan.delivery_complete?'Πλήρες πλάνο':'Ελλιπές πλάνο'} · Παιχνίδι {plan.delivery_game_minutes??0}/20′</small>{/if}
           {#if allowed&&typeof plan.delivery_drill_count==='number'}
             <button type="button" disabled={saving||loading||previewing||!!drillTarget}
               onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;submitTarget=null;reviewConfirmed=null;publishConfirmed=false;}}>
@@ -369,11 +370,12 @@
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)&&coachEditable(plan)}
             <button type="button" disabled={saving||!!drillTarget} onclick={()=>edit(plan)}>Επεξεργασία</button>
             {#if coachMode}
+              {#if plan.delivery_complete!==true}<small>Συμπληρώστε όλη τη διάρκεια και τουλάχιστον 20′ παιχνιδιού.</small>{/if}
               {#if plan.submitted_version!==plan.version}
                 <label class="review-confirm"><input type="checkbox" checked={submitTarget===reviewKey(plan)}
-                  disabled={saving||loading||!!drillTarget} onchange={e=>submitTarget=e.currentTarget.checked?reviewKey(plan):null}/>
+                  disabled={saving||loading||!!drillTarget||plan.delivery_complete!==true} onchange={e=>submitTarget=e.currentTarget.checked?reviewKey(plan):null}/>
                   Έλεγξα την έκδοση {plan.version} για υποβολή.</label>
-                <button type="button" disabled={saving||loading||!!drillTarget||submitTarget!==reviewKey(plan)}
+                <button type="button" disabled={saving||loading||!!drillTarget||plan.delivery_complete!==true||submitTarget!==reviewKey(plan)}
                   onclick={()=>void submit(plan)}>Υποβολή προγράμματος για έγκριση</button>
               {:else}<small>Η αλλαγή του πρόχειρου απαιτεί νέα υποβολή.</small>{/if}
             {:else if !approvedIds.includes(plan.id)}
@@ -457,7 +459,7 @@
       <div class="plan-fields">
         <label>Ημερομηνία <input type="date" bind:value={form.day} min={from} max={to} required disabled={saving}/></label>
         <label>Ώρα έναρξης <input type="time" bind:value={form.start_time} required disabled={saving}/></label>
-        <label>Διάρκεια (λεπτά) <input type="number" bind:value={form.duration_minutes} min="15" max="240" step="5" required disabled={saving}/></label>
+        <label>Διάρκεια (λεπτά) <input type="number" bind:value={form.duration_minutes} min="20" max="240" step="5" required disabled={saving}/></label>
         <label>Τίτλος <input type="text" bind:value={form.title} maxlength="180" required disabled={saving}/></label>
         <label>Γήπεδο / τοποθεσία <input type="text" bind:value={form.location} maxlength="200" disabled={saving}/></label>
         <label class="full">Σημειώσεις σχεδιασμού <textarea bind:value={form.notes} maxlength="2000" rows="3" disabled={saving}/></label>
