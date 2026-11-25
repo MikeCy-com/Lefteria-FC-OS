@@ -146,7 +146,7 @@ public static class AdminProfilePhotoEndpoints
         _=>new(503,"admin_photo_storage_unavailable","Profile photo storage is unavailable.")
     };
 
-    private static async Task<(byte[] Data,string? ContentType)> ReadSinglePhotoAsync(
+    internal static async Task<(byte[] Data,string? ContentType)> ReadSinglePhotoAsync(
         HttpRequest request,CancellationToken token)
     {
         if(request.ContentLength>MobileAvatarLimits.RequestBytes)

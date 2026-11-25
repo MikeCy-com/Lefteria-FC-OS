@@ -32,6 +32,7 @@ public static class WebAdminEndpoints
         endpoints.MapAdminSelfService();
         endpoints.MapAdminContactEmail();
         endpoints.MapAdminProfilePhoto();
+        endpoints.MapAdminPlayerProfiles();
         return endpoints;
     }
 
