@@ -51,3 +51,17 @@ responses. This is not the full Node/Svelte test suite or an actual browser.
 Real API authorization, long announcements/read acknowledgments, live badge
 refresh, scope revocation while idle, exact-head CI and staging remain open.
 No generic notification endpoint, new SQL permission or production change.
+
+## Follow-up: confirmed read receipts and unread badge (25 November)
+
+UX-NOT-04 (P0): coded and simulated handler-tested, full build/browser and live API not verified.
+
+- Long announcements now offer a deliberate "mark as read" action in addition to the existing focused-card observation; duplicate in-flight requests are suppressed and a confirmed indicator appears only after the existing authorized POST succeeds.
+- The unread badge is refreshed from the server after a confirmed receipt, on foreground return and every 60 seconds on visible non-inbox tabs. No optimistic decrement or new provider is introduced.
+- The active inbox owns its count while open; count callbacks carry the initiating identity/role/management organization scope. Old counts are cleared when scope/tab changes. Other tabs serialize and coalesce refreshes, discarding superseded responses and disposing the reader when scope changes.
+- Deep-link parameter changes remount the announcement feed, so navigation between targets does not reuse an earlier target.
+- Inbox focus/visibility events request a fresh authorized page; the inbox does not poll in place.
+
+Commits: badge reader `ca9375298958f8f9c43a9bb53f786fb144aec0c0`; explicit read `9e3895de826458dd33e4bf6509bc972eec03f6e8`; route scope `743543fc3f90687673ed544cfba8184d4b4d57bb`; inbox scope `b0c276eb22d47ceedf45fb3db1ca4a2ecfcb0083`; tests `a1abb5725da2aca160ef6b26c9245772e2980009`.
+
+Re-read the committed files and executed 11 asynchronous JavaScript tests (five new and six previous), using simulated API responses and stripped TypeScript annotations; all passed. Also executed 23 source assertions from the notification safety test file; all passed. Svelte compiler invocations, the full test suite, database persistence, actual role changes in browsers, idle access revocation and staging remain unverified. No new generic notifications API or SQL grants. Production remains untouched.
