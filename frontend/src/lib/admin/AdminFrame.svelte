@@ -82,7 +82,6 @@
             {/if}
             {#if liveIds.has('assigned_groups')}
               <a class="admin-nav-tool" href="/admin/schedule" aria-current={active==='schedule'?'page':undefined} data-testid="admin-coach-workspace-link">Τα τμήματά μου</a>
-              <a class="admin-nav-tool" href="/admin/attendance" aria-current={active==='attendance'?'page':undefined}>Παρουσίες τμημάτων</a>
             {/if}
             {#if liveIds.has('drills')}
               <a class="admin-nav-tool" href="/admin/drills" aria-current={active==='drills'?'page':undefined} data-testid="admin-drills-link">Βιβλιοθήκη ασκήσεων</a>
