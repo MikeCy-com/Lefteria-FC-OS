@@ -173,7 +173,7 @@ provision() {
   for f in create-app-role.sql; do step "$f"; done
   check_as "$LEFTERIA_APP_ROLE" "$DATABASE_APP_PASSWORD" identity-app-permissions-check.sql
   for f in guardian-permission-grants.sql create-web-admin-auth-role.sql academy-attendance-admin-grants.sql \
-    academy-training-plans-admin-grants.sql player-birthday-admin-grants.sql academy-crm-admin-grants.sql; do step "$f"; done
+    academy-training-plans-admin-grants.sql central-academy-drills-admin-grants.sql player-birthday-admin-grants.sql academy-crm-admin-grants.sql; do step "$f"; done
   check_as "$LEFTERIA_ADMIN_AUTH_ROLE" "$DATABASE_ADMIN_AUTH_PASSWORD" web-admin-auth-permissions-check.sql
   step payabl-finance-grants.sql
   echo "$now" > "$STATE_DIR/grants.sha256"

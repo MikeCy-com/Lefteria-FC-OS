@@ -264,6 +264,7 @@ app.MapAdminAcademyDocuments();
 app.MapAdminPrivateDocumentUploads();
 app.MapAdminAcademyAttendance();
 app.MapAdminAcademyTrainingPlans();
+app.MapAdminAcademyDrills();
 app.MapAcademyLeadAdmin();
 app.MapAcademyOffice();
 app.MapAcademyGuardianProof();
