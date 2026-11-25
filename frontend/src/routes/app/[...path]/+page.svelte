@@ -13,7 +13,14 @@
   import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
   import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
+  import MobileMemberActions from '../../../lib/mobile/components/MobileMemberActions.svelte';
+  import MobileInvitationActions from '../../../lib/mobile/components/MobileInvitationActions.svelte';
+  import MobileNotificationActivity from '../../../lib/mobile/components/MobileNotificationActivity.svelte';
+  import {activityDestination,type NotificationActivity} from '../../../lib/mobile/notification-activity.ts';
+  import MobileGroupUnreadActions from '../../../lib/mobile/components/MobileGroupUnreadActions.svelte';
+  import {canOpenPrivateChat,privateChatMode} from '../../../lib/mobile/invitation-actions.ts';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
+  import {createNotificationBadgeRefresher} from '../../../lib/mobile/notification-badge.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileRoleHome from '../../../lib/mobile/components/MobileRoleHome.svelte';
@@ -34,10 +41,10 @@
 
   const controller = getContext<MobileAuthController>(MOBILE_AUTH_CONTEXT);
   let composing = $state(false);
-  let chatMode = $state<'groups'|'private'>('groups');
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
+  const chatMode=$derived(privateChatMode(role,page.url.searchParams.get('chat_mode')));
   const publicDestination = $derived(fanPublicDestination(activeTab, role));
   const brandOwner=$derived(brandOwnerForRole(role,
     $controller.organization?.organization_id??null));
@@ -67,23 +74,52 @@
   const mobileClubName=$derived(publicClubBrand?.name ??
     (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':'ΛΕΥΤΕΡΙΑ FC'));
 
-  let notificationCount=$state(0);
+  let notificationSnapshot=$state<{scope:string;count:number}|null>(null);
+  const notificationScope=$derived(
+    $controller.status==='authenticated'&&user?.current_role_available&&role&&role!=='fan'&&
+    (role!=='management'||($controller.organization?.organization_id&&
+      !$controller.organization.requires_organization_selection))
+      ?JSON.stringify([user.id,role,role==='management'?$controller.organization?.organization_id:null])
+      :null);
+  const notificationCount=$derived(notificationSnapshot?.scope===notificationScope?notificationSnapshot?.count??0:0);
+  let refreshNotificationBadge:()=>void=()=>{};
   $effect(()=>{
-    const id=user?.id,currentRole=role,currentTab=activeTab,
-      managementOwner=$controller.organization?.organization_id,
-      hasSelection=$controller.organization?.requires_organization_selection;
-    void currentTab;void managementOwner;
-    if(!browser||!id||!currentRole||currentRole==='fan'||
-      !user?.current_role_available||(currentRole==='management'&&hasSelection)){
-      notificationCount=0;return;
+    const scope=notificationScope,tab=activeTab;
+    void tab;
+    notificationSnapshot=null;
+    refreshNotificationBadge=()=>{};
+    if(!browser||!scope)return;
+    const badge=createNotificationBadgeRefresher(
+      async()=>(await controller.getNotificationUnreadSummary()).unread_count,
+      count=>{if(notificationScope===scope&&document.visibilityState==='visible')
+        notificationSnapshot={scope,count};});
+    const refresh=()=>{
+      if(notificationScope===scope&&document.visibilityState==='visible')void badge.refresh();
+    };
+    function visibility(){
+      if(document.visibilityState==='hidden')notificationSnapshot=null;
+      else refresh();
     }
-    let valid=true;
-    void controller.getAppNotificationInbox().then(result=>{
-      if(valid&&user?.id===id&&role===currentRole)
-        notificationCount=result.unread_count;
-    }).catch(()=>{if(valid)notificationCount=0;});
-    return()=>{valid=false;};
+    refreshNotificationBadge=refresh;
+    refresh();
+    document.addEventListener('visibilitychange',visibility);
+    window.addEventListener('focus',refresh);
+    const timer=window.setInterval(refresh,60000);
+    return()=>{
+      badge.dispose();
+      document.removeEventListener('visibilitychange',visibility);
+      window.removeEventListener('focus',refresh);
+      window.clearInterval(timer);
+    };
   });
+  function acceptInboxCount(scope:string|null,_count:number){
+    // An announcement-page response is only an invalidation, never the total.
+    if(scope&&scope===notificationScope)refreshNotificationBadge();
+  }
+  async function openActivity(item:NotificationActivity){
+    if(!notificationScope||item.kind==='private_message'&&!canOpenPrivateChat(role))return;
+    await goto(activityDestination(item),{reset:true});
+  }
   async function openNotification(notice:AppNotification){
     const query=new URLSearchParams({tab:'announcements',
       organization_id:notice.organization_id,
@@ -92,7 +128,11 @@
   }
   $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
   $effect(() => { void role; composing = false; });
-  $effect(() => { void user?.id; void role; chatMode='groups'; });
+  async function openChatMode(mode:'groups'|'private'){
+    if(!role||role==='fan'||(mode==='private'&&!canOpenPrivateChat(role)))return;
+    composing=false;
+    await goto('/app?'+new URLSearchParams({tab:'chat',chat_mode:mode}).toString(),{reset:true});
+  }
 
   async function openTab(tab: MobileTab, childId?: string) {
     composing = false;
@@ -292,10 +332,13 @@
           </section>
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            {#key JSON.stringify([page.url.searchParams.get('organization_id'),page.url.searchParams.get('group'),page.url.searchParams.get('notice')])}
             <MobileAppAnnouncements {controller}
+              onReadConfirmed={()=>refreshNotificationBadge()}
               initialOrganization={page.url.searchParams.get('organization_id')}
               initialGroup={page.url.searchParams.get('group')}
               initialAnnouncementId={page.url.searchParams.get('notice')}/>
+            {/key}
           {/key}
         {/if}
       {:else if activeTab === 'notifications' && !composing}
@@ -305,6 +348,9 @@
             <p>Οι ομαδικές ανακοινώσεις είναι διαθέσιμες μόνο στα ενεργά
               μέλη ομάδων και Ακαδημίας.</p>
           </section>
+          {#key JSON.stringify([user.id,user.phone,role])}
+            <MobileInvitationActions {controller} {role} onOpen={()=>openTab('profile')}/>
+          {/key}
         {:else if role==='management' &&
             (!$controller.organization?.organization_id ||
              $controller.organization.requires_organization_selection)}
@@ -312,9 +358,20 @@
             <p>Επίλεξε πρώτα οργανισμό.</p></section>
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            <MobileNotificationActivity {controller} privateAllowed={canOpenPrivateChat(role)}
+              onOpen={openActivity} onRefresh={()=>refreshNotificationBadge()}/>
             <MobileAppNotificationInbox {controller}
-              onUnreadChange={count=>notificationCount=count}
+              scopeKey={notificationScope}
+              onUnreadChange={acceptInboxCount}
               onOpen={openNotification}/>
+            <MobileGroupUnreadActions {controller} onOpen={()=>openChatMode('groups')}/>
+            <MobileMemberActions {controller} {role}
+              onCalendar={childId=>openTab('calendar',childId)}
+              onFinancials={()=>openTab('financials')}/>
+            {#if canOpenPrivateChat(role)}
+              <MobileGroupUnreadActions {controller} privateMode={true} onOpen={()=>openChatMode('private')}/>
+              <MobileInvitationActions {controller} {role} onOpen={()=>openChatMode('private')}/>
+            {/if}
           {/key}
         {/if}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
@@ -324,16 +381,16 @@
           {#if role==='parent'||role==='coach'||role==='management'}
             <div class="chat-mode-tabs" role="group" aria-label="Τύπος συνομιλίας">
               <button type="button" class:current={chatMode==='groups'}
-                aria-pressed={chatMode==='groups'} onclick={()=>{chatMode='groups';}}>Ομάδες</button>
+                aria-pressed={chatMode==='groups'} onclick={()=>void openChatMode('groups')}>Ομάδες</button>
               <button type="button" class:current={chatMode==='private'}
-                aria-pressed={chatMode==='private'} onclick={()=>{chatMode='private';}}>Ιδιωτικά</button>
+                aria-pressed={chatMode==='private'} onclick={()=>void openChatMode('private')}>Ιδιωτικά</button>
             </div>
           {/if}
-          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode}
+          {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode+':'+JSON.stringify([page.url.searchParams.get('organization_id'),page.url.searchParams.get('group'),page.url.searchParams.get('conversation')])}
             {#if chatMode==='private' && (role==='parent'||role==='coach'||role==='management')}
-              <MobilePrivateChat {controller} actorId={user.id} {role}/>
+              <MobilePrivateChat {controller} actorId={user.id} {role} initialConversation={page.url.searchParams.get('conversation')} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {:else}
-              <MobileGroupChat {controller} actorId={user.id} {role} />
+              <MobileGroupChat {controller} actorId={user.id} {role} initialOrganization={page.url.searchParams.get('organization_id')} initialGroup={page.url.searchParams.get('group')} onReadConfirmed={()=>refreshNotificationBadge()}/>
             {/if}
           {/key}
         {/if}

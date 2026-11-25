@@ -72,7 +72,10 @@ test('mobile announcements compile and are restricted to current member tab and 
   assert.match(route,/activeTab === 'announcements' && role !== 'fan'/);
   assert.match(route,/<MobileAppAnnouncements \{controller\}/);
   assert.match(feed,/controller\.getChatRooms\(\)/);
-  assert.match(feed,/controller\.getAppAnnouncements\(room,0\)/);
+  assert.match(feed,/if\(!rooms\.includes\(room\)\)return/);
+  assert.match(feed,/return loadFeed\(room,0,\[\],true\)/);
+  assert.match(feed,/controller\.getAppAnnouncements\(room,cursor\)/);
+  assert.match(feed,/page\.next_offset<=cursor/);
   assert.doesNotMatch(feed,/localStorage|sessionStorage|innerHTML|@html/);
 });
 
@@ -179,7 +182,10 @@ test('app-only notification inbox rechecks membership and preferences instead of
   assert.match(validator,/validAppNotificationInbox/);
   assert.match(validator,/new Set\(items\.map/);
   assert.match(controller,/getAppNotificationInbox/);
-  assert.match(routes,/notificationCount=\$state\(0\)/);
+  assert.match(routes,/notificationSnapshot=\$state<\{scope:string;count:number\}\|null>\(null\)/);
+  assert.match(routes,/notificationSnapshot\?\.scope===notificationScope\?notificationSnapshot\?\.count\?\?0:0/);
+  assert.match(routes,/controller\.getNotificationUnreadSummary\(\)/);
+  assert.match(routes,/if\(scope&&scope===notificationScope\)refreshNotificationBadge\(\)/);
   assert.match(routes,/MobileAppNotificationInbox/);
   assert.match(routes,/openNotification/);
   assert.match(notifications,/onUnreadChange/);
@@ -231,20 +237,22 @@ test('Web Push remains opt-in, generic, private and disabled without operator ke
 function announcementDirectoryHarness(controller, initial = {}) {
   const feed = read('frontend/src/lib/mobile/components/MobileAppAnnouncements.svelte');
   const start = feed.indexOf('  async function loadDirectory(){');
-  const end = feed.indexOf('  async function loadMore(){', start);
+  const end = feed.indexOf('  function seenOnScreen(', start);
   assert.ok(start >= 0 && end > start, 'Announcement request handlers must exist');
   const handlers = stripTypeScriptTypes(feed.slice(start, end));
   return new Function('controller', 'initial', `
     let rooms=[],selected=null,announcements=[],nextOffset=null;
-    let loading=true,busy=false,error=null,reactionFor=null,reacting=null;
+    let loading=true,busy=false,error=null,reactionFor=null,reacting=null,downloading=null;
+    let previousOffsets=[],currentOffset=0,targetMessage=null;
     let requestNumber=0,alive=true;
     const {initialOrganization=null,initialGroup=null,initialAnnouncementId=null}=initial;
     const fault=error=>error.message;
     const tick=async()=>{};
     const document={getElementById:()=>null};
     ${handlers}
-    return {loadDirectory,chooseRoom,
-      snapshot:()=>({loading,busy,error,rooms,selected,announcements}),
+    return {loadDirectory,chooseRoom,loadMore,loadPrevious,
+      snapshot:()=>({loading,busy,error,rooms,selected,announcements,nextOffset,previousOffsets,currentOffset,targetMessage}),
+      setAction:action=>{reacting=action==='reaction'?'notice':null;downloading=action==='download'?'file':null;},
       dispose:()=>{alive=false;requestNumber++;}};
   `)(controller, initial);
 }
@@ -308,4 +316,91 @@ test('announcement directory ignores stale and disposed results without selectin
   await request;
   assert.deepEqual(unmounted.snapshot().rooms,[]);
   assert.equal(feedCalls,0);
+});
+
+const noticeId='ann_'+ 'a'.repeat(32);
+const announcementRoom={organization_id:'lefteria_fc_academy',group_id:'group-one',name:'First'};
+const announcementTarget={initialOrganization:announcementRoom.organization_id,
+  initialGroup:announcementRoom.group_id,initialAnnouncementId:noticeId};
+
+test('notification deep link searches only authorized room and finds an older page',async()=>{
+  const calls=[];
+  const harness=announcementDirectoryHarness({
+    getChatRooms:async()=>[announcementRoom],
+    getAppAnnouncements:async(room,offset)=>{
+      calls.push([room,offset]);
+      return offset===0?{announcements:[{id:'newer'}],next_offset:50}:
+        {announcements:[{id:noticeId}],next_offset:null};
+    }
+  },announcementTarget);
+  await harness.loadDirectory();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(calls,[[announcementRoom,0],[announcementRoom,50]]);
+  assert.deepEqual(harness.snapshot().announcements,[{id:noticeId}]);
+  assert.equal(harness.snapshot().targetMessage,null);
+  assert.equal(harness.snapshot().busy,false);
+  assert.deepEqual(harness.snapshot().previousOffsets,[0]);
+  await harness.loadPrevious();
+  assert.deepEqual(harness.snapshot().announcements,[{id:'newer'}]);
+  assert.equal(calls.length,3);
+});
+
+test('missing target group does not silently open a different authorized room',async()=>{
+  let calls=0;
+  const harness=announcementDirectoryHarness({
+    getChatRooms:async()=>[announcementRoom],
+    getAppAnnouncements:async()=>{calls++;return {announcements:[],next_offset:null};}
+  },{...announcementTarget,initialGroup:'revoked-group'});
+  await harness.loadDirectory();
+  assert.equal(harness.snapshot().selected,null);
+  assert.equal(calls,0);
+  assert.ok(harness.snapshot().targetMessage);
+  await harness.chooseRoom({...announcementRoom});
+  assert.equal(calls,0,'Room must come from current directory');
+  await harness.chooseRoom(announcementRoom);
+  assert.equal(calls,1);
+});
+
+test('deep link scan is bounded, pagination is serialized, and revoked page clears private data',async()=>{
+  const offsets=[];
+  const harness=announcementDirectoryHarness({
+    getChatRooms:async()=>[announcementRoom],
+    getAppAnnouncements:async(room,offset)=>{
+      offsets.push(offset);
+      if(offset===250)throw new Error('Access changed');
+      return {announcements:[{id:'page-'+offset}],next_offset:offset+50};
+    }
+  },announcementTarget);
+  await harness.loadDirectory();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(offsets,[0,50,100,150,200]);
+  assert.deepEqual(harness.snapshot().announcements,[{id:'page-200'}]);
+  assert.ok(harness.snapshot().targetMessage);
+  for(const action of ['reaction','download']){
+    harness.setAction(action);
+    await harness.loadMore();
+    await harness.loadPrevious();
+    await harness.chooseRoom(announcementRoom);
+  }
+  assert.equal(offsets.length,5);
+  harness.setAction(null);
+  await harness.loadMore();
+  assert.deepEqual(offsets,[0,50,100,150,200,250]);
+  assert.deepEqual(harness.snapshot().announcements,[]);
+  assert.deepEqual(harness.snapshot().previousOffsets,[]);
+  assert.equal(harness.snapshot().nextOffset,null);
+  assert.equal(harness.snapshot().busy,false);
+  assert.equal(harness.snapshot().error,'Access changed');
+});
+
+test('non-advancing announcement cursor is rejected without exposing the page',async()=>{
+  const harness=announcementDirectoryHarness({
+    getChatRooms:async()=>[announcementRoom],
+    getAppAnnouncements:async()=>({announcements:[{id:'invalid'}],next_offset:0})
+  });
+  await harness.loadDirectory();
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(harness.snapshot().announcements,[]);
+  assert.equal(harness.snapshot().nextOffset,null);
+  assert.ok(harness.snapshot().error);
 });

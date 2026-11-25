@@ -28,6 +28,11 @@ internal sealed partial class IdentityHttpChecks
         var created=new List<Guid>();
         try
         {
+            const string unreadPath=PrivateBase+"/unread-summary";
+            await GetAsync(fan,unreadPath,403);
+            await GetAsync(player,unreadPath,403);
+            var coachUnreadBefore=(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32();
+            var parentUnreadBefore=(await GetAsync(parent,unreadPath,200)).GetProperty("unread_count").GetInt32();
             await GetAsync(fan,PrivateBase+"/conversations",403);
             await GetAsync(player,PrivateBase+"/conversations",403);
             await GetAsync(fan,contactsPath,403);
@@ -110,13 +115,47 @@ internal sealed partial class IdentityHttpChecks
                 sent.GetProperty("conversation_id").GetGuid()==id,
                 "Sender was not derived from the authenticated identity.");
             var messagePath=path+"/messages/"+messageId;
+            Check.Equal(coachUnreadBefore+1,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "A peer's newly sent message must count as unread.");
+            Check.Equal(parentUnreadBefore,(await GetAsync(parent,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Own messages must not count as unread.");
+            const string activityPath="/api/mobile/app/notifications/activity?kind=private_message";
+            var coachActivity=(await GetAsync(coach,activityPath,200)).GetProperty("items");
+            Check.True(coachActivity.EnumerateArray().Any(row=>
+                row.GetProperty("entity_id").GetString()==messageId.ToString() &&
+                row.GetProperty("conversation_id").GetGuid()==id &&
+                row.GetProperty("title").ValueKind==JsonValueKind.Null &&
+                row.GetProperty("group_name").ValueKind==JsonValueKind.Null),
+                "Private unread activity omitted authorized message or disclosed private text.");
+            var playerActivity=(await GetAsync(player,activityPath,200)).GetProperty("items");
+            Check.Equal(0,playerActivity.GetArrayLength(),"Player received private conversation activity.");
             var fromCoach=(await GetAsync(coach,path+"/messages",200)).GetProperty("messages");
+            Check.Equal(coachUnreadBefore+1,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "GET must not mark private messages read.");
+            await PostAsync(parent,messagePath+"/seen",new{version=1},403);
+            await PostAsync(player,messagePath+"/seen",new{version=1},403);
+            await PostAsync(fan,messagePath+"/seen",new{version=1},403);
+            await PostAsync(management,messagePath+"/seen",new{version=1},403);
+            var seen=await PostAsync(coach,messagePath+"/seen",new{version=1},200);
+            Check.True(seen.GetProperty("seen").GetBoolean()&&seen.GetProperty("conversation_id").GetGuid()==id&&
+                seen.GetProperty("message_id").GetGuid()==messageId&&seen.GetProperty("version").GetInt64()==1,
+                "Private receipt must confirm exact message, conversation and version.");
+            await PostAsync(coach,messagePath+"/seen",new{version=1},200);
+            Check.True(!(await GetAsync(coach,activityPath,200)).GetProperty("items").EnumerateArray()
+                .Any(row=>row.GetProperty("entity_id").GetString()==messageId.ToString()),
+                "Acknowledged message remained in unread activity.");
+            Check.Equal(coachUnreadBefore,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Repeated reads must be idempotent.");
             Check.Equal(1,fromCoach.GetArrayLength(),"Accepted coach cannot read approved message.");
             Check.Equal(messageId,fromCoach[0].GetProperty("id").GetGuid(),
                 "Private history returned a message from the wrong room.");
             await PutAsync(coach,messagePath,new{content="Impersonation",version=1},403);
             await PrivateDeleteAsync(coach,messagePath+"?version=1",403);
             await PutAsync(parent,messagePath,new{content="Edited private Academy note",version=1},200);
+            Check.Equal(coachUnreadBefore+1,(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Editing must invalidate the old private read version.");
+            await PostAsync(coach,messagePath+"/seen",new{version=1},403);
+            await PostAsync(coach,messagePath+"/seen",new{version=2},200);
             await PutAsync(parent,messagePath,new{content="Stale update",version=1},409);
             await PrivateDeleteAsync(parent,messagePath+"?version=1",409);
             await PutAsync(parent,messagePath,new{content="Bad",version=0},422);
@@ -138,7 +177,12 @@ internal sealed partial class IdentityHttpChecks
             var coachMessageId=coachSent.GetProperty("id").GetGuid();
             Check.True(coachSent.GetProperty("sender_id").GetGuid()==coachId,
                 "Coach private sender ID was not source-bound.");
+            Check.Equal(parentUnreadBefore+1,(await GetAsync(parent,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Unread reply must be counted before viewer-only hide.");
             var hidden=await PrivateDeleteAsync(parent,path+"/for-me",200);
+            Check.Equal(parentUnreadBefore,(await GetAsync(parent,unreadPath,200)).GetProperty("unread_count").GetInt32(),
+                "Hidden history must be excluded from unread count.");
+            await PostAsync(parent,path+"/messages/"+coachMessageId+"/seen",new{version=1},403);
             Check.True(hidden.GetProperty("conversation_id").GetGuid()==id&&
                 hidden.GetProperty("hidden").GetBoolean(),
                 "Delete-for-me did not confirm viewer-only visibility cursor.");
@@ -174,6 +218,7 @@ internal sealed partial class IdentityHttpChecks
                     await GetAsync(parent,path+"/messages",403);
                     await PostAsync(parent,path+"/messages",new{content="Forbidden after transfer"},403);
                     await GetAsync(parent,PrivateBase+"/conversations",403);
+                    await GetAsync(parent,unreadPath,403);
                 }
                 finally
                 {
@@ -212,6 +257,8 @@ internal sealed partial class IdentityHttpChecks
             {
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_private_conversation_views WHERE conversation_id={id}");
+                await db.Database.ExecuteSqlInterpolatedAsync(
+                    $"DELETE FROM club.app_private_read_receipts WHERE message_id IN (SELECT id FROM club.app_private_messages WHERE conversation_id={id})");
                 await db.Database.ExecuteSqlInterpolatedAsync(
                     $"DELETE FROM club.app_private_message_revisions WHERE message_id IN (SELECT id FROM club.app_private_messages WHERE conversation_id={id})");
                 await db.Database.ExecuteSqlInterpolatedAsync(
