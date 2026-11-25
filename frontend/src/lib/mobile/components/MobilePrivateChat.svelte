@@ -1,5 +1,6 @@
 <script lang="ts">
   import {onMount} from 'svelte';
+  import {SvelteSet} from 'svelte/reactivity';
   import type {MobileAuthController} from '../controller.ts';
   import type {MobileRole} from '../navigation.ts';
   import type {GroupChatRoom} from '../group-chat.ts';
@@ -23,6 +24,9 @@
   let busy=$state(false),loading=$state(true),messageLoading=$state(false),contactLoading=$state(false);
   let error=$state<string|null>(null),messageError=$state<string|null>(null);
   let sequence=0,contactSequence=0,alive=true;
+  const acknowledged=new SvelteSet<string>();
+  const receiptPending=new SvelteSet<string>();
+  let receiptError=$state<string|null>(null);
   const chosenRoom=$derived(rooms.find(r=>r.organization_id+':'+r.group_id===roomKey));
   const allowedRole=$derived(role==='parent'||role==='coach'||role==='management');
 
@@ -91,6 +95,7 @@
   async function openConversation(item:PrivateConversation){
     if(busy||item.status!=='accepted')return;
     const request=++sequence;
+    receiptError=null;
     selected=item;messages=[];nextOffset=null;messageError=null;draft='';
     menuMessage=null;menuConversation=null;messageLoading=true;
     try{
@@ -104,7 +109,7 @@
     const item=selected;
     if(!item||messageLoading||busy||(more&&nextOffset===null))return;
     const request=++sequence;
-    messageLoading=true;messageError=null;
+    messageLoading=true;messageError=null;receiptError=null;
     try{
       const offset=more?(nextOffset??0):0;
       const page=await controller.getPrivateMessages(item.id,offset);
@@ -114,6 +119,43 @@
       nextOffset=page.next_offset;
     }catch(e){if(alive&&request===sequence){messages=[];nextOffset=null;draft='';messageError=fault(e);}}
     finally{if(alive&&request===sequence)messageLoading=false;}
+  }
+  function receiptKey(message:PrivateMessage){
+    return message.conversation_id+'/'+message.id+':'+message.version;
+  }
+  async function confirmRead(message:PrivateMessage){
+    const conv=selected,key=receiptKey(message),request=sequence;
+    if(!alive||!conv||conv.status!=='accepted'||message.conversation_id!==conv.id||
+      message.sender_id===actorId||message.is_deleted||messageLoading||
+      document.visibilityState!=='visible'||!document.hasFocus()||
+      acknowledged.has(key)||receiptPending.has(key)||
+      !messages.some(m=>m.id===message.id&&m.version===message.version&&!m.is_deleted))return;
+    receiptPending.add(key);receiptError=null;
+    try{
+      if(!await controller.acknowledgePrivateRead(conv.id,message.id,message.version))
+        throw new Error('Read not confirmed.');
+      if(alive&&sequence===request&&selected?.id===conv.id)
+        acknowledged.add(key);
+    }catch{
+      if(alive&&sequence===request&&selected?.id===conv.id)
+        receiptError='Δεν επιβεβαιώθηκε η ανάγνωση. Δοκίμασε ξανά.';
+    }finally{receiptPending.delete(key);}
+  }
+  function seenOnScreen(node:HTMLElement,initial:PrivateMessage){
+    let current=initial,visible=false;
+    function acknowledge(){if(visible)void confirmRead(current);}
+    if(typeof IntersectionObserver==='undefined')return {};
+    const observer=new IntersectionObserver(entries=>{
+      visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.75);
+      acknowledge();
+    },{threshold:0.75});
+    observer.observe(node);
+    document.addEventListener('visibilitychange',acknowledge);
+    window.addEventListener('focus',acknowledge);
+    return {update(message:PrivateMessage){current=message;acknowledge();},
+      destroy(){visible=false;observer.disconnect();
+        document.removeEventListener('visibilitychange',acknowledge);
+        window.removeEventListener('focus',acknowledge);}};
   }
   async function send(){
     const item=selected,body=draft.trim();
@@ -236,7 +278,7 @@
         {#if messageLoading}<p role="status">Φόρτωση μηνυμάτων…</p>{/if}
         <ol class="messages" aria-live="polite">
           {#each [...messages].reverse() as message (message.id)}
-            <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}>
+            <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted} use:seenOnScreen={message}>
               <MobileHoldAction enabled={message.sender_id===actorId&&!message.is_deleted&&!busy&&!messageLoading}
                 onOpen={()=>{menuMessage=message;menuConversation=null;}} label="Ενέργειες μηνύματος">
                 <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
@@ -245,6 +287,17 @@
                 <p>{message.is_deleted?'Το μήνυμα διαγράφηκε':message.content}</p>
                 {#if message.edited_at&&!message.is_deleted}<small>Επεξεργάστηκε</small>{/if}
               </MobileHoldAction>
+              {#if !message.is_deleted&&message.sender_id!==actorId}
+                {#if acknowledged.has(receiptKey(message))}
+                  <small class="read-confirmed">✓ Διαβάστηκε</small>
+                {:else}
+                  <button type="button" class="outline read-action"
+                    disabled={messageLoading||receiptPending.has(receiptKey(message))}
+                    onclick={()=>void confirmRead(message)}>
+                    {receiptPending.has(receiptKey(message))?'Επιβεβαίωση…':'Σήμανση ως αναγνωσμένο'}
+                  </button>
+                {/if}
+              {/if}
             </li>
           {/each}
         </ol>
@@ -254,6 +307,7 @@
             disabled={busy||messageLoading} placeholder="Γράψε ένα μήνυμα…" />
           <button type="submit" class="gold" disabled={busy||messageLoading||!validPrivateText(draft.trim())}>Αποστολή</button>
         </form>
+        {#if receiptError}<p role="alert" class="error">{receiptError}</p>{/if}
         {#if messageError}<p role="alert" class="error">{messageError}</p>{/if}
       </section>
     {/if}
@@ -310,6 +364,7 @@
   .messages li.own{align-self:flex-end;border-color:#7d581f;background:#2a2319}
   .messages li.deleted{opacity:.7}
   .messages li p{margin:7px 0 0;white-space:pre-wrap}
+  .read-action{margin-top:8px;font-size:12px;text-align:left}.read-confirmed{display:block;margin-top:7px;color:var(--lf-gold-light);font-size:12px}
   .message-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .message-head strong{font-size:11px;color:var(--lf-gold-light)}
   .message-head time{font-size:10px;color:var(--lf-muted)}
