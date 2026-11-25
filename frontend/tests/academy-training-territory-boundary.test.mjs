@@ -47,3 +47,20 @@ test('rollback-only lifecycle covers sibling location, foreign city, active gran
   }
   assert.match(lifecycle,/ROLLBACK;/);
 });
+
+test('attendance register and writes check every explicit host group, not just Academy membership',()=>{
+  const attendance=read('../../backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125094000_AcademyTrainingAttendanceExactTerritory.cs');
+  const grants=read('../../ops/postgres/academy-attendance-admin-grants.sql');
+  const checks=read('../../ops/postgres/academy-attendance-lifecycle-checks.sql');
+  assert.match(attendance,/AND s.scope_kind<>'group'/);
+  assert.match(attendance,/ORDER BY s.academy_group_id FOR SHARE/);
+  assert.match(attendance,/PERFORM club.require_training_drill_group\(_actor,v_group\)/);
+  assert.match(attendance,/RETURN v_groups>0/);
+  assert.match(attendance,/PERFORM club.require_training_drill_group\(v_actor,_group\)/);
+  assert.ok((attendance.match(/AND club.admin_training_event_scope_allowed\(v_actor,_owner,c.id\)/g)||[]).length===2);
+  assert.ok((attendance.match(/IF NOT club.admin_training_event_scope_allowed\(v_actor,_owner,_event\)/g)||[]).length===2);
+  assert.match(grants,/REVOKE ALL ON FUNCTION club.admin_training_event_scope_allowed\(uuid,text,text\) FROM PUBLIC/);
+  for(const marker of ['foreign_attendance_list_accepted','foreign_attendance_roster_accepted','foreign_attendance_write_accepted',
+    'multi_site_event_list_exposed','multi_site_event_roster_exposed','inactive_attendance_site_accepted'])
+    assert.ok(checks.includes(marker),marker);
+});
