@@ -1,5 +1,6 @@
 <script lang="ts">
   import {getContext,untrack} from 'svelte';
+  import AdminTrainingDrillBuilder from './AdminTrainingDrillBuilder.svelte';
   import {browser} from '$app/env';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
@@ -26,6 +27,7 @@
   let preview=$state<TrainingDistributionPreview|null>(null),previewing=$state(false);
   let error=$state(''),notice=$state(''),refreshNonce=$state(0);
   let editing=$state<TrainingPlanDraft|null>(null);
+  let drillTarget=$state<TrainingPlanDraft|null>(null);
   let archiveConfirmed=$state(false);
   let form=$state<TrainingPlanForm>({
     day:from,start_time:'17:00',duration_minutes:75,
@@ -59,7 +61,7 @@
     void refreshNonce;void scope;
     rows=[];approvedIds=[];publishedIds=[];publicationRows=[];
     cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;
-    preview=null;editing=null;
+    preview=null;editing=null;drillTarget=null;
     archiveConfirmed=false;reviewConfirmed=false;publishConfirmed=false;notice='';error='';
     if(!browser||!valid)return;
     const controller=new AbortController();
@@ -120,7 +122,7 @@
   });
 
   async function cancelPublished(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||loading||saving||!cancellationConfirmed||
+    if(!browser||!canWrite||drillTarget||loading||saving||!cancellationConfirmed||
       !validCancellationReason||cancellationTarget?.id!==plan.id||
       !publishedIds.includes(plan.id)||
       publicationRows.find(row=>row.id===plan.id)?.is_cancelled)return;
@@ -156,7 +158,7 @@
   }
 
   async function publish(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||loading||saving||previewing||!publishConfirmed||
+    if(!browser||!canWrite||drillTarget||plan.drill_count!==0||loading||saving||previewing||!publishConfirmed||
       !preview||preview.id!==plan.id||preview.version!==plan.version||
       preview.eligible_player_count<1||!approvedIds.includes(plan.id)||
       publishedIds.includes(plan.id)||plan.status!=='draft')return;
@@ -191,7 +193,7 @@
   }
 
   async function inspect(plan:TrainingPlanDraft){
-    if(!browser||!allowed||loading||saving||previewing||
+    if(!browser||!allowed||drillTarget||plan.drill_count!==0||loading||saving||previewing||
       !approvedIds.includes(plan.id)||plan.status!=='draft')return;
     const owner=actor,group=groupId,period=from+':'+to;
     previewing=true;preview=null;publishConfirmed=false;error='';
@@ -220,7 +222,7 @@
   }
 
   async function approve(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||loading||saving||!reviewConfirmed||
+    if(!browser||!canWrite||drillTarget||plan.drill_count!==0||loading||saving||!reviewConfirmed||
       approvedIds.includes(plan.id)||publishedIds.includes(plan.id)||
       plan.status!=='draft')return;
     const owner=actor,group=groupId,period=from+':'+to;
@@ -254,7 +256,7 @@
   }
 
   async function save(archive=false){
-    if(!browser||!canWrite||saving||loading||!validTrainingPlanForm(form)||
+    if(!browser||!canWrite||drillTarget||saving||loading||!validTrainingPlanForm(form)||
       form.day<from||form.day>to||
       archive&&(!editing||!archiveConfirmed))return;
     const current=editing,expected=current?.version??0;
@@ -301,7 +303,7 @@
   <header class="plan-header">
     <div><p class="plan-eyebrow">ΜΟΝΟ ΓΙΑ ΔΙΑΧΕΙΡΙΣΤΕΣ · ΠΡΟΧΕΙΡΑ</p>
       <h2 id="training-plan-heading">Ιδιωτικός σχεδιασμός προπονήσεων</h2></div>
-    <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving}>Ανανέωση</button>
+    <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving||!!drillTarget}>Ανανέωση</button>
   </header>
   <p class="plan-note">Τα πρόχειρα μένουν ιδιωτικά μέχρι να εγκριθούν και να δημοσιευτούν από διαχειριστή. Οι δημοσιευμένες προπονήσεις εμφανίζονται στο ημερολόγιο του σωστού τμήματος. Οι ακυρώσεις δεν στέλνουν αυτόματες ειδοποιήσεις.</p>
   {#if error}<p class="plan-error" role="alert">{error}</p>{/if}
@@ -309,7 +311,7 @@
   {#if loading}
     <p role="status">Επαλήθευση ιδιωτικών προπονήσεων…</p>
   {:else}
-    {#if !rows.length}<p class="plan-note">Δεν έχουν δημιουργηθεί ιδιωτικά πρόχειρα για τον μήνα και το επιλεγμένο τμήμα.</p>{/if}
+    {#if !rows.length&&!error}<p class="plan-note">Δεν έχουν δημιουργηθεί ιδιωτικά πρόχειρα για τον μήνα και το επιλεγμένο τμήμα.</p>{/if}
     <ul class="plan-list">
       {#each rows as plan (plan.id)}
         <li class:archived={plan.status==='archived'}>
@@ -325,18 +327,27 @@
               data-testid="academy-native-cancel-open">Ακύρωση δημοσιευμένης</button>
           {/if}
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)}
-            <button type="button" disabled={saving} onclick={()=>edit(plan)}>Επεξεργασία</button>
-            {#if !approvedIds.includes(plan.id)}
-              <button type="button" disabled={saving||!reviewConfirmed}
+            <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;editing=null;preview=null;reviewConfirmed=false;publishConfirmed=false;}}>Ασκήσεις{plan.drill_count!==undefined?' · '+plan.drill_count:''}</button>
+            <button type="button" disabled={saving||!!drillTarget} onclick={()=>edit(plan)}>Επεξεργασία</button>
+            {#if plan.drill_count!==0}
+              <small>Απαιτείται πλήρης έλεγχος ασκήσεων πριν από την έγκριση.</small>
+            {:else if !approvedIds.includes(plan.id)}
+              <button type="button" disabled={saving||!!drillTarget||!reviewConfirmed}
                 onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
             {:else}
-              <button type="button" disabled={saving||previewing}
+              <button type="button" disabled={saving||previewing||!!drillTarget}
                 onclick={()=>void inspect(plan)}>Προεπισκόπηση αποδεκτών</button>
             {/if}
           {/if}
         </li>
       {/each}
     </ul>
+  {/if}
+  {#if drillTarget}
+    {#key actor+':'+groupId+':'+drillTarget.id+':'+drillTarget.version}
+      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed}
+        onSaved={()=>{drillTarget=null;refreshNonce++;}} onClose={()=>{drillTarget=null;refreshNonce++;}}/>
+    {/key}
   {/if}
   {#if cancellationTarget}
     <section class="training-distribution" data-testid="academy-native-cancel-panel"
@@ -405,7 +416,7 @@
         <label class="full">Σημειώσεις σχεδιασμού <textarea bind:value={form.notes} maxlength="2000" rows="3" disabled={saving}/></label>
       </div>
       <button class="save" type="submit"
-        disabled={loading||saving||!validTrainingPlanForm(form)||form.day<from||form.day>to}>
+        disabled={loading||saving||!!drillTarget||!validTrainingPlanForm(form)||form.day<from||form.day>to}>
         {saving?'Αποθήκευση…':editing?'Ενημέρωση πρόχειρου':'Δημιουργία ιδιωτικού πρόχειρου'}
       </button>
     </form>
