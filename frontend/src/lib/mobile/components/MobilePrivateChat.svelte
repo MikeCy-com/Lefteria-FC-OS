@@ -22,20 +22,22 @@
   let menuConversation=$state<PrivateConversation|null>(null);
   let busy=$state(false),loading=$state(true),messageLoading=$state(false),contactLoading=$state(false);
   let error=$state<string|null>(null),messageError=$state<string|null>(null);
-  let sequence=0,alive=true;
+  let sequence=0,contactSequence=0,alive=true;
   const chosenRoom=$derived(rooms.find(r=>r.organization_id+':'+r.group_id===roomKey));
   const allowedRole=$derived(role==='parent'||role==='coach'||role==='management');
 
   onMount(()=>{
     alive=true;void refresh();
-    return ()=>{alive=false;sequence++;};
+    return ()=>{alive=false;sequence++;contactSequence++;};
   });
   function fault(e:unknown){
     return e instanceof Error&&e.message.length<=240?e.message:'Η υπηρεσία δεν είναι διαθέσιμη.';
   }
   async function refresh(){
     const request=++sequence;
+    ++contactSequence;
     busy=false;loading=true;error=null;selected=null;messages=[];nextOffset=null;
+    draft='';messageLoading=false;contactLoading=false;contacts=[];contactId='';conversations=[];rooms=[];
     menuConversation=null;menuMessage=null;
     try{
       const [inbox,directory]=await Promise.all([
@@ -50,22 +52,22 @@
     finally{if(alive&&request===sequence)loading=false;}
   }
   async function loadContacts(room:GroupChatRoom){
-    const key=room.organization_id+':'+room.group_id;
+    const key=room.organization_id+':'+room.group_id,request=++contactSequence;
     contactLoading=true;contacts=[];contactId='';
     try{
       const found=await controller.getPrivateContacts(room);
-      if(!alive||roomKey!==key)return;
+      if(!alive||request!==contactSequence||roomKey!==key)return;
       contacts=found;
-    }catch(e){if(alive&&roomKey===key)error=fault(e);}
-    finally{if(alive&&roomKey===key)contactLoading=false;}
+    }catch(e){if(alive&&request===contactSequence&&roomKey===key)error=fault(e);}
+    finally{if(alive&&request===contactSequence&&roomKey===key)contactLoading=false;}
   }
   function changeRoom(){
     if(chosenRoom)void loadContacts(chosenRoom);
-    else{contacts=[];contactId='';}
+    else{++contactSequence;contacts=[];contactId='';contactLoading=false;}
   }
   async function invite(){
     const room=chosenRoom,target=contactId;
-    if(!room||!target||busy)return;
+    if(!room||!target||busy||contactLoading||!contacts.some(c=>c.id===target))return;
     busy=true;error=null;
     try{
       await controller.invitePrivateContact(room,target);
@@ -89,24 +91,26 @@
   async function openConversation(item:PrivateConversation){
     if(busy||item.status!=='accepted')return;
     const request=++sequence;
-    selected=item;messages=[];nextOffset=null;messageError=null;
+    selected=item;messages=[];nextOffset=null;messageError=null;draft='';
     menuMessage=null;menuConversation=null;messageLoading=true;
     try{
       const page=await controller.getPrivateMessages(item.id,0);
       if(!alive||request!==sequence||selected?.id!==item.id)return;
       messages=page.messages;nextOffset=page.next_offset;
-    }catch(e){if(alive&&request===sequence)messageError=fault(e);}
+    }catch(e){if(alive&&request===sequence){messages=[];nextOffset=null;draft='';messageError=fault(e);}}
     finally{if(alive&&request===sequence)messageLoading=false;}
   }
   async function reloadMessages(more=false){
     const item=selected;
-    if(!item||messageLoading||busy)return;
+    if(!item||messageLoading||busy||(more&&nextOffset===null))return;
     const request=++sequence;
     messageLoading=true;messageError=null;
     try{
-      const page=await controller.getPrivateMessages(item.id,more?(nextOffset??0):0);
+      const offset=more?(nextOffset??0):0;
+      const page=await controller.getPrivateMessages(item.id,offset);
       if(!alive||request!==sequence||selected?.id!==item.id)return;
-      messages=more?[...messages,...page.messages]:page.messages;
+      if(page.next_offset!==null&&page.next_offset<=offset)throw new Error('Μη έγκυρη σελίδα μηνυμάτων.');
+      messages=more?[...new Map([...messages,...page.messages].map(m=>[m.id,m])).values()]:page.messages;
       nextOffset=page.next_offset;
     }catch(e){if(alive&&request===sequence)messageError=fault(e);}
     finally{if(alive&&request===sequence)messageLoading=false;}
@@ -149,7 +153,7 @@
     try{
       const confirmed=await controller.hidePrivateConversationForMe(conv.id);
       if(!confirmed||!alive)return false;
-      ++sequence;selected=null;messages=[];nextOffset=null;menuConversation=null;
+      ++sequence;selected=null;messages=[];nextOffset=null;menuConversation=null;draft='';messageLoading=false;
       conversations=await controller.getPrivateConversations();
       return true;
     }catch(e){if(alive)messageError=fault(e);return false;}
