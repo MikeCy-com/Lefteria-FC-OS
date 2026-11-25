@@ -29,3 +29,25 @@ disabled preference and failed next-page scenarios; mobile narrow viewport,
 keyboard navigation and deep link; exact-head CI and staging acceptance.
 Source assertions do not establish browser behavior. No staging or production
 deployment or external-provider request was performed in this checkpoint.
+
+## Follow-up: authorized announcement navigation (25 November)
+
+UX-NOT-03 (P0): coded and handler-tested, browser/CI not verified.
+- Resolve notification deep links only inside the currently authorized directory group.
+- Search up to five pages using the existing scoped endpoint; provide previous/next
+  navigation when the target is older or no longer visible. Do not substitute
+  another group when an explicitly linked group is missing.
+- Use raw directory and selection state to preserve reference identity across
+  Svelte state assignment; replace displayed rows after each authorized request.
+- Reject non-advancing cursors, clear feed data/history on failure, and prevent
+  reactions or attachment downloads from overlapping page/group transitions.
+
+Implementation: `118ce3a323e8918743c533044f21948c9625ce46`.
+Test updates: `e05944b78640d6d49f7efe3492355cd224c048ac`.
+Executed the six directory/feed handler tests from committed source in an
+isolated JavaScript harness, removing TypeScript annotations and substituting
+microtask flushing for Node's setImmediate. All six passed with simulated API
+responses. This is not the full Node/Svelte test suite or an actual browser.
+Real API authorization, long announcements/read acknowledgments, live badge
+refresh, scope revocation while idle, exact-head CI and staging remain open.
+No generic notification endpoint, new SQL permission or production change.
