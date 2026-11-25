@@ -195,18 +195,9 @@ public sealed class AcademyWeeklyCompleteSession : Migration
           IF NOT (v_item ?& ARRAY['drill_id','drill_version','duration_minutes'])
             OR (SELECT count(*) FROM jsonb_object_keys(v_item))<>3
             OR jsonb_typeof(v_item->'drill_id')<>'string'
-            OR v_item->>'drill_id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(MigrationBuilder migrationBuilder) =>
-        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
-      }
-
-            OR jsonb_typeof(v_item->'drill_version')<>'number' OR v_item->>'drill_version' !~ '^[0-9]{1,5}(MigrationBuilder migrationBuilder) =>
-        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
-      }
-
-            OR jsonb_typeof(v_item->'duration_minutes')<>'number' OR v_item->>'duration_minutes' !~ '^[0-9]{1,3}(MigrationBuilder migrationBuilder) =>
-        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
-      }
-
+            OR v_item->>'drill_id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+            OR jsonb_typeof(v_item->'drill_version')<>'number' OR v_item->>'drill_version' !~ '^[0-9]{1,5}$'
+            OR jsonb_typeof(v_item->'duration_minutes')<>'number' OR v_item->>'duration_minutes' !~ '^[0-9]{1,3}$'
           THEN RAISE EXCEPTION 'training_drill_item_invalid' USING ERRCODE='22023'; END IF;
           v_id:=(v_item->>'drill_id')::uuid;v_version:=(v_item->>'drill_version')::integer;
           v_minutes:=(v_item->>'duration_minutes')::integer;
