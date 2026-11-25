@@ -4,7 +4,7 @@ export type TrainingPlanStatus='draft'|'archived';
 export interface TrainingPlanDraft {
   id:string;organization_id:'lefteria_fc_academy';group_id:string;
   day:string;start_time:string;duration_minutes:number;
-  title:string;location:string;notes:string;status:TrainingPlanStatus;version:number;drill_count?:number|null;submitted_version?:number|null;delivery_drill_count?:number;
+  title:string;location:string;notes:string;status:TrainingPlanStatus;version:number;drill_count?:number|null;submitted_version?:number|null;delivery_drill_count?:number;delivery_game_minutes?:number;delivery_complete?:boolean;
 }
 export interface TrainingPlanPage {
   organization_id:'lefteria_fc_academy';group_id:string;
@@ -37,6 +37,8 @@ export function validTrainingPlanDraft(
     (value.status==='draft'||value.status==='archived')&&
     Number.isSafeInteger(value.version)&&(value.version as number)>=1&&
     (value.version as number)<=10000&&
+    (value.delivery_complete===undefined||typeof value.delivery_complete==='boolean')&&
+    (value.delivery_game_minutes===undefined||(Number.isSafeInteger(value.delivery_game_minutes)&&(value.delivery_game_minutes as number)>=0&&(value.delivery_game_minutes as number)<=240))&&
     (value.delivery_drill_count===undefined||(Number.isSafeInteger(value.delivery_drill_count)&&(value.delivery_drill_count as number)>=0&&(value.delivery_drill_count as number)<=24))&&
     (value.submitted_version===undefined||value.submitted_version===null||value.submitted_version===value.version)&&
     (value.drill_count===undefined||value.drill_count===null||(Number.isSafeInteger(value.drill_count)&&(value.drill_count as number)>=0&&(value.drill_count as number)<=24));
