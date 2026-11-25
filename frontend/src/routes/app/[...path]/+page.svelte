@@ -13,6 +13,7 @@
   import MobilePrivateChat from '../../../lib/mobile/components/MobilePrivateChat.svelte';
   import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
+  import MobileMemberActions from '../../../lib/mobile/components/MobileMemberActions.svelte';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import {createNotificationBadgeRefresher} from '../../../lib/mobile/notification-badge.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
@@ -342,6 +343,9 @@
               scopeKey={notificationScope}
               onUnreadChange={acceptInboxCount}
               onOpen={openNotification}/>
+            <MobileMemberActions {controller} {role}
+              onCalendar={childId=>openTab('calendar',childId)}
+              onFinancials={()=>openTab('financials')}/>
           {/key}
         {/if}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
