@@ -37,7 +37,7 @@ export function validDrill(x:unknown,allowProposal=false):x is Drill {
     allowed.push('variant_of','variant_base_version');
   }
   if(Object.hasOwn(value,'proposal_kind')){
-    if(!allowProposal||!['revision','variant'].includes(String(value.proposal_kind))||!id(value.base_drill_id)||
+    if(!allowProposal||(value.proposal_kind!=='revision'&&value.proposal_kind!=='variant')||!id(value.base_drill_id)||
       value.base_drill_id===value.id||!version(value.base_version)||!value.difficulty||
       !(value.applied_version===null||version(value.applied_version))||
       (value.proposal_kind==='variant'&&(value.variant_of!==value.base_drill_id||value.variant_base_version!==value.base_version||value.applied_version!==null))||
