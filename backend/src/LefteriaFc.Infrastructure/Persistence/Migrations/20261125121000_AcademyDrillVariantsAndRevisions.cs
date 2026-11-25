@@ -48,16 +48,28 @@ public sealed class AcademyDrillVariantsAndRevisions : Migration
           THEN RAISE EXCEPTION 'linked_drill_proposal_invalid' USING ERRCODE='22023'; END IF;
         SELECT * INTO v_source FROM club.academy_coaching_drills WHERE id=_base AND status='approved' AND version=_base_version FOR SHARE;
         IF NOT FOUND THEN RAISE EXCEPTION 'linked_drill_base_conflict' USING ERRCODE='23505'; END IF;
-        PERFORM club.submit_coach_drill_proposal(_digest,_id,_title,_category,_age,_duration,_objective,_instructions);
-        UPDATE club.academy_coaching_drills SET difficulty=_difficulty,
-          variant_of=CASE WHEN _kind='variant' THEN _base ELSE NULL END,
-          variant_base_version=CASE WHEN _kind='variant' THEN _base_version ELSE NULL END
-          WHERE id=_id RETURNING * INTO v_row;
-        UPDATE club.academy_coach_drill_proposals SET proposal_kind=_kind,base_drill_id=_base,base_version=_base_version
-          WHERE drill_id=_id RETURNING * INTO v_proposal;
-        -- Replace only the newly created, uncommitted version-1 snapshot, before transaction visibility.
-        UPDATE club.academy_coaching_drill_versions SET snapshot=club.coach_drill_proposal_view(v_row,v_proposal)
-          WHERE drill_id=_id AND version=1;
+          IF _title IS NULL OR length(_title) NOT BETWEEN 1 AND 180 OR _title<>btrim(_title) OR _title ~ '[[:cntrl:]]'
+            OR _category IS NULL OR _category NOT IN ('technical','tactical','physical','goalkeeping','warmup','game','recovery','other')
+            OR _age IS NULL OR _age NOT IN ('all','u6-u8','u9-u11','u12-u14','u15-u18','adult')
+            OR _duration IS NULL OR _duration NOT BETWEEN 1 AND 120
+            OR _objective IS NULL OR length(_objective) NOT BETWEEN 1 AND 1000 OR _objective<>btrim(_objective) OR _objective ~ '[[:cntrl:]]'
+            OR _instructions IS NULL OR length(_instructions) NOT BETWEEN 1 AND 4000 OR _instructions<>btrim(_instructions,' '||chr(10)) OR replace(_instructions,chr(10),'') ~ '[[:cntrl:]]'
+          THEN RAISE EXCEPTION 'drill_content_invalid' USING ERRCODE='22023'; END IF;
+        -- Serialize the pending quota per coach without exposing any table.
+        PERFORM pg_advisory_xact_lock(hashtextextended('coach_drill_proposal:'||v_actor::text,0));
+        IF (SELECT count(*) FROM club.academy_coach_drill_proposals p JOIN club.academy_coaching_drills d ON d.id=p.drill_id
+          WHERE p.coach_id=v_actor AND d.status='draft')>=50
+        THEN RAISE EXCEPTION 'drill_proposal_pending_limit' USING ERRCODE='54000'; END IF;
+        INSERT INTO club.academy_coaching_drills(id,organization_id,title,category,age_band,duration_minutes,objective,instructions,status,version,difficulty,variant_of,variant_base_version)
+          VALUES(_id,'lefteria_fc_academy',_title,_category,_age,_duration,_objective,_instructions,'draft',1,_difficulty,
+            CASE WHEN _kind='variant' THEN _base ELSE NULL END,CASE WHEN _kind='variant' THEN _base_version ELSE NULL END)
+          RETURNING * INTO v_row;
+        INSERT INTO club.academy_coach_drill_proposals(drill_id,coach_id,proposal_kind,base_drill_id,base_version)
+          VALUES(_id,v_actor,_kind,_base,_base_version) RETURNING * INTO v_proposal;
+        INSERT INTO club.academy_coaching_drill_versions(drill_id,version,action,actor_id,snapshot)
+          VALUES(_id,1,'create',v_actor,club.coach_drill_proposal_view(v_row,v_proposal));
+        INSERT INTO audit.security_events(id,actor_realm,occurred_at,actor_identity_id,device_session_id,action,outcome,organization_id,reason_code)
+          VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,v_session,'admin.drill.proposed','succeeded','lefteria_fc_academy','coach_linked_proposal_not_approved');
         RETURN club.coach_drill_proposal_view(v_row,v_proposal);
       END $linked$;
       CREATE FUNCTION club.apply_coach_drill_revision(_digest text,_id uuid,_expected integer,_base_version integer)
