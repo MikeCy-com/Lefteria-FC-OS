@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
+import {stripTypeScriptTypes} from 'node:module';
 import {privateChatMode,pendingPrivateInvitations,pendingFamilyInvitationCount} from '../src/lib/mobile/invitation-actions.ts';
 
 const read=path=>readFileSync(new URL('../src/'+path,import.meta.url),'utf8');
@@ -64,4 +65,54 @@ test('invitation UI uses existing guarded APIs and no unread count or payment si
   assert.match(chat,/!contacts\.some\(c=>c\.id===target\)/);
   assert.match(chat,/page\.next_offset!==null&&page\.next_offset<=offset/);
   assert.match(chat,/messages=\[\];nextOffset=null;draft='';messageError=fault\(e\)/);
+});
+
+function deferred(){
+  let resolve,reject;
+  const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});
+  return {promise,resolve,reject};
+}
+function chatHarness(controller){
+  const range=(start,end)=>chat.slice(chat.indexOf(start),chat.indexOf(end,chat.indexOf(start)));
+  const handlers=stripTypeScriptTypes(range('  async function loadContacts(','  function changeRoom(')+
+    range('  async function openConversation(','  async function send('));
+  return new Function('controller',`
+    let alive=true,sequence=0,contactSequence=0,roomKey='',contactLoading=false;
+    let contacts=[],contactId='',error=null,selected=null,messages=[],nextOffset=null;
+    let messageError=null,menuMessage=null,menuConversation=null,messageLoading=false,busy=false,draft='';
+    const fault=e=>e.message;
+    ${handlers}
+    return {loadContacts,openConversation,reloadMessages,
+      setRoom:room=>{roomKey=room.organization_id+':'+room.group_id;},
+      setDraft:value=>{draft=value;},
+      snapshot:()=>({contacts,contactLoading,selected,messages,nextOffset,messageError,messageLoading,draft})};
+  `)(controller);
+}
+test('same-room contact request races cannot overwrite a newer authorized directory',async()=>{
+  const old=deferred(),latest=deferred();let calls=0;
+  const room={organization_id:owner,group_id:'g1'};
+  const h=chatHarness({getPrivateContacts:()=>++calls===1?old.promise:latest.promise});
+  h.setRoom(room);
+  const a=h.loadContacts(room),b=h.loadContacts(room);
+  latest.resolve([{id:'current'}]);await b;old.resolve([{id:'stale'}]);await a;
+  assert.deepEqual(h.snapshot().contacts,[{id:'current'}]);
+  assert.equal(h.snapshot().contactLoading,false);
+});
+test('conversation changes clear draft and invalid or denied pagination removes displayed data',async()=>{
+  const a={id:'a',status:'accepted'},b={id:'b',status:'accepted'};
+  let denied=false;
+  const h=chatHarness({getPrivateMessages:async(id,offset)=>{
+    if(denied)throw new Error('Denied');
+    return {messages:[{id:id+'-message'}],next_offset:offset===0?50:50};
+  }});
+  await h.openConversation(a);h.setDraft('Draft for A');
+  await h.openConversation(b);assert.equal(h.snapshot().draft,'');
+  assert.deepEqual(h.snapshot().messages,[{id:'b-message'}]);
+  await h.reloadMessages(true);
+  assert.deepEqual(h.snapshot().messages,[]);assert.equal(h.snapshot().nextOffset,null);
+  await h.openConversation(b);h.setDraft('Private draft');denied=true;
+  await h.reloadMessages();
+  assert.equal(h.snapshot().messageError,'Denied');
+  assert.deepEqual(h.snapshot().messages,[]);assert.equal(h.snapshot().draft,'');
+  assert.equal(h.snapshot().messageLoading,false);
 });
