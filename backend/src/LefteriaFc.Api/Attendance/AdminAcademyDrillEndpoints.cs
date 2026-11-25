@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json.Serialization;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
 using LefteriaFc.Domain.AdminAuth;
@@ -12,6 +13,9 @@ public static class AdminAcademyDrillEndpoints
 {
     public sealed record DrillCommand(string Action,int ExpectedVersion,string? Title,
         string? Category,string? AgeBand,int? DurationMinutes,string? Objective,string? Instructions);
+
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record DrillProposalCommand(string Title,string Category,string AgeBand,int DurationMinutes,string Objective,string Instructions);
 
     public static IEndpointRouteBuilder MapAdminAcademyDrills(this IEndpointRouteBuilder endpoints)
     {
@@ -54,6 +58,37 @@ public static class AdminAcademyDrillEndpoints
                 throw new WebAdminException(422,"invalid_drill_change","Select the exact current drill version.");
             return await Write(drillId,body,cookie,connections,secrets,ct,200);
         }).WithName("ChangeCentralAcademyDrill").Accepts<DrillCommand>("application/json");
+        group.MapGet("/proposals",async (int? offset,WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,false,ct);
+            if(context.Request.Query.Keys.Any(k=>k!="offset")||context.Request.Query["offset"].Count>1)
+                throw new WebAdminException(400,"invalid_drill_proposal_filters","Invalid proposal filters.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("SELECT club.read_coach_drill_proposals(@digest,@offset)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("offset",offset??0);
+            return await Run(command,ct);
+        }).WithName("ReadCoachDrillProposals");
+        group.MapPost("/proposals",async (DrillProposalCommand body,WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,false,ct);
+            if(context.Request.Query.Count!=0||body.Title is null||body.Category is null||body.AgeBand is null||
+                body.Objective is null||body.Instructions is null)
+                throw new WebAdminException(422,"invalid_drill_proposal","Supply the exercise content for central review.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.submit_coach_drill_proposal(@digest,@id,@title,@category,@age,@duration,@objective,@instructions)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("id",Guid.NewGuid());
+            command.Parameters.AddWithValue("title",body.Title);
+            command.Parameters.AddWithValue("category",body.Category);
+            command.Parameters.AddWithValue("age",body.AgeBand);
+            command.Parameters.AddWithValue("duration",body.DurationMinutes);
+            command.Parameters.AddWithValue("objective",body.Objective);
+            command.Parameters.AddWithValue("instructions",body.Instructions);
+            return await Run(command,ct,201);
+        }).WithName("SubmitCoachDrillProposal").Accepts<DrillProposalCommand>("application/json");
         return endpoints;
     }
 
@@ -101,9 +136,9 @@ public static class AdminAcademyDrillEndpoints
             var raw=await command.ExecuteScalarAsync(ct) as string;
             return raw is null?Results.Problem(statusCode:503):Results.Content(raw,"application/json",Encoding.UTF8,status);
         }
-        catch(PostgresException e) when(e.SqlState is "42501" or "22023" or "23505" or "42883")
+        catch(PostgresException e) when(e.SqlState is "42501" or "22023" or "23505" or "42883" or "54000")
         {
-            var code=e.SqlState switch {"42501"=>403,"22023"=>422,"23505"=>409,_=>503};
+            var code=e.SqlState switch {"42501"=>403,"22023"=>422,"23505"=>409,"54000"=>413,_=>503};
             throw new WebAdminException(code,"central_drill_unavailable","The central drill or requested revision is unavailable.");
         }
     }
