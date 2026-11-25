@@ -18,7 +18,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.deepEqual(groups(all), ['website', 'hub', 'app', 'crm', 'pos', 'finance', 'football', 'operations']);
   const available = modules(all).filter(module => module.status === 'live');
   assert.deepEqual(available.map(module => [module.id, module.href]), [
-    ['pages', '/admin/website-pages'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['territories', '/admin/territories'], ['club', '/admin/club'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
+    ['pages', '/admin/website-pages'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['drills', '/admin/drills'], ['territories', '/admin/territories'], ['club', '/admin/club'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   const planned = modules(all).filter(module => module.status === 'planned');
   assert.ok(planned.length >= 10, 'remaining placeholder modules are explicitly planned');
@@ -26,7 +26,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
   assert.ok(planned.some(module => module.id === 'social'));
   for(const item of modules(all)) {
     assert.equal(item.status === 'live', item.href !== undefined, item.id);
-    assert.ok(!item.href || ['/admin/club', '/admin/website-pages', '/admin/news', '/admin/media', '/admin/sponsors', '/admin/hub', '/admin/hub/subscriptions', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
+    assert.ok(!item.href || ['/admin/club', '/admin/website-pages', '/admin/news', '/admin/media', '/admin/sponsors', '/admin/hub', '/admin/hub/subscriptions', '/admin/pos', '/admin/trials', '/admin/groups', '/admin/drills', '/admin/announcements', '/admin/communications', '/admin/onboarding', '/admin/leads', '/admin/finance', '/admin/attendance', '/admin/schedule', '/admin/documents', '/admin/evaluations', '/admin/academy-office', '/admin/matches','/admin/staff','/admin/users','/admin/territories'].includes(item.href));
   }
 });
 
