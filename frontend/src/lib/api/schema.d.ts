@@ -32,6 +32,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/office/{collection}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAcademyOffice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/orders": {
         parameters: {
             query?: never;
@@ -112,22 +128,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/academy/office/{collection}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReadAcademyOffice"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/academy/training": {
         parameters: {
             query?: never;
@@ -144,6 +144,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/{eventId}/attendance": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingAttendance"];
+        put?: never;
+        post: operations["RecordAdminAcademyTrainingAttendance"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans": {
         parameters: {
             query?: never;
@@ -154,38 +170,6 @@ export interface paths {
         get: operations["ReadAdminAcademyTrainingPlanDrafts"];
         put?: never;
         post: operations["CreateAdminAcademyTrainingPlanDraft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/academy/training/plans/approvals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReadAdminAcademyTrainingPlanApprovals"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/academy/training/plans/publications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["ReadAdminAcademyTrainingPublications"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -272,16 +256,32 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/academy/training/{eventId}/attendance": {
+    "/api/admin/academy/training/plans/approvals": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["ReadAdminAcademyTrainingAttendance"];
+        get: operations["ReadAdminAcademyTrainingPlanApprovals"];
         put?: never;
-        post: operations["RecordAdminAcademyTrainingAttendance"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/publications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminAcademyTrainingPublications"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -544,22 +544,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/finance/payabl/invoices/multi.pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DownloadAdminAcademyMultiInvoicePdf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/finance/payabl/invoices/{invoiceId}.pdf": {
         parameters: {
             query?: never;
@@ -568,6 +552,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["DownloadAdminAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/finance/payabl/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadAdminAcademyMultiInvoicePdf"];
         put?: never;
         post?: never;
         delete?: never;
@@ -896,22 +896,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/hub/editorial/{id}/images/quarantine": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["QuarantineAdminHubImage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/admin/hub/editorial/{id}/images/{mediaId}/preview": {
         parameters: {
             query?: never;
@@ -938,6 +922,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["RejectAdminHubImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/hub/editorial/{id}/images/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["QuarantineAdminHubImage"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2283,22 +2283,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/mobile/family/guardian-permissions/bulk": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["IssueManyGuardianPermissions"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/mobile/family/guardian-permissions/{permissionId}/revoke": {
         parameters: {
             query?: never;
@@ -2309,6 +2293,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["RevokeIssuedGuardianPermission"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/family/guardian-permissions/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["IssueManyGuardianPermissions"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2395,22 +2395,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/mobile/finance/invoices/multi.pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["DownloadParentAcademyMultiInvoicePdf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/mobile/finance/invoices/{invoiceId}.pdf": {
         parameters: {
             query?: never;
@@ -2419,6 +2403,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["DownloadParentAcademyInvoicePdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/mobile/finance/invoices/multi.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["DownloadParentAcademyMultiInvoicePdf"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3045,22 +3045,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/uploads/avatars/{fileName}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["GetMobileAvatar"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head: operations["HeadMobileAvatar"];
-        patch?: never;
-        trace?: never;
-    };
     "/api/uploads/{folder}/{fileName}": {
         parameters: {
             query?: never;
@@ -3074,6 +3058,22 @@ export interface paths {
         delete?: never;
         options?: never;
         head: operations["HeadPublicMedia"];
+        patch?: never;
+        trace?: never;
+    };
+    "/api/uploads/avatars/{fileName}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMobileAvatar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head: operations["HeadMobileAvatar"];
         patch?: never;
         trace?: never;
     };
@@ -4973,6 +4973,34 @@ export interface components {
             website: null | string;
             youtube: null | string;
         };
+        PublicSectionsResult: {
+            academy_groups: components["schemas"]["PublicSectionGroup"][];
+            academy_stats: null | components["schemas"]["PublicSectionAcademyStats"];
+            archived_seasons: components["schemas"]["PublicSectionArchive"][];
+            branding: null | components["schemas"]["PublicSectionBranding"];
+            events: components["schemas"]["PublicSectionEvent"][];
+            fixtures: components["schemas"]["PublicSectionFixtureView"][];
+            gallery: components["schemas"]["PublicSectionGallery"][];
+            /** Format: date-time */
+            generated_at: string;
+            modules: components["schemas"]["PublicSectionModule"][];
+            organization_id: string;
+            partners: components["schemas"]["PublicSectionPartner"][];
+            players: components["schemas"]["PublicSectionPlayer"][];
+            potm: components["schemas"]["PublicSectionPotm"];
+            products: components["schemas"]["PublicSectionProduct"][];
+            reviews: components["schemas"]["PublicSectionReview"][];
+            seasons: components["schemas"]["PublicSectionSeason"][];
+            /** Format: date-time */
+            snapshot_at: string;
+            sponsors: components["schemas"]["PublicSectionSponsor"][];
+            staff: components["schemas"]["PublicSectionStaff"][];
+            standings: components["schemas"]["PublicSectionStanding"][];
+            tickets: components["schemas"]["PublicSectionTicket"][];
+            time_zone: string;
+            trial_settings: null | components["schemas"]["PublicSectionTrials"];
+            venues: components["schemas"]["PublicSectionVenue"][];
+        };
         PublicSectionStaff: {
             academy_group_ids: string[];
             badges: string[];
@@ -5071,34 +5099,6 @@ export interface components {
             name: string;
             organization_id: string;
             surface: null | string;
-        };
-        PublicSectionsResult: {
-            academy_groups: components["schemas"]["PublicSectionGroup"][];
-            academy_stats: null | components["schemas"]["PublicSectionAcademyStats"];
-            archived_seasons: components["schemas"]["PublicSectionArchive"][];
-            branding: null | components["schemas"]["PublicSectionBranding"];
-            events: components["schemas"]["PublicSectionEvent"][];
-            fixtures: components["schemas"]["PublicSectionFixtureView"][];
-            gallery: components["schemas"]["PublicSectionGallery"][];
-            /** Format: date-time */
-            generated_at: string;
-            modules: components["schemas"]["PublicSectionModule"][];
-            organization_id: string;
-            partners: components["schemas"]["PublicSectionPartner"][];
-            players: components["schemas"]["PublicSectionPlayer"][];
-            potm: components["schemas"]["PublicSectionPotm"];
-            products: components["schemas"]["PublicSectionProduct"][];
-            reviews: components["schemas"]["PublicSectionReview"][];
-            seasons: components["schemas"]["PublicSectionSeason"][];
-            /** Format: date-time */
-            snapshot_at: string;
-            sponsors: components["schemas"]["PublicSectionSponsor"][];
-            staff: components["schemas"]["PublicSectionStaff"][];
-            standings: components["schemas"]["PublicSectionStanding"][];
-            tickets: components["schemas"]["PublicSectionTicket"][];
-            time_zone: string;
-            trial_settings: null | components["schemas"]["PublicSectionTrials"];
-            venues: components["schemas"]["PublicSectionVenue"][];
         };
         PublicSiteResult: {
             academy_groups: components["schemas"]["PublicAcademyGroup"][];
@@ -5423,6 +5423,29 @@ export interface operations {
             };
         };
     };
+    ReadAcademyOffice: {
+        parameters: {
+            query?: {
+                offset?: number | string;
+                search?: string;
+            };
+            header?: never;
+            path: {
+                collection: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateAcademyInternalOrder: {
         parameters: {
             query?: never;
@@ -5533,15 +5556,37 @@ export interface operations {
             };
         };
     };
-    ReadAcademyOffice: {
+    ReadAdminAcademyTrainingSessions: {
         parameters: {
             query?: {
-                offset?: number | string;
-                search?: string;
+                end?: string;
+                group_id?: string;
+                organization_id?: string;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminAcademyTrainingAttendance: {
+        parameters: {
+            query?: {
+                organization_id?: string;
             };
             header?: never;
             path: {
-                collection: string;
+                eventId: string;
             };
             cookie?: never;
         };
@@ -5556,19 +5601,22 @@ export interface operations {
             };
         };
     };
-    ReadAdminAcademyTrainingSessions: {
+    RecordAdminAcademyTrainingAttendance: {
         parameters: {
             query?: {
-                end?: string;
-                group_id?: string;
                 organization_id?: string;
-                start?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                eventId: string;
+            };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AttendanceMarkCommand"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -5616,52 +5664,6 @@ export interface operations {
                 "application/json": components["schemas"]["TrainingPlanCommand"];
             };
         };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ReadAdminAcademyTrainingPlanApprovals: {
-        parameters: {
-            query?: {
-                end?: string;
-                group_id?: string;
-                organization_id?: string;
-                start?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ReadAdminAcademyTrainingPublications: {
-        parameters: {
-            query?: {
-                end?: string;
-                group_id?: string;
-                organization_id?: string;
-                start?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -5799,15 +5801,16 @@ export interface operations {
             };
         };
     };
-    ReadAdminAcademyTrainingAttendance: {
+    ReadAdminAcademyTrainingPlanApprovals: {
         parameters: {
             query?: {
+                end?: string;
+                group_id?: string;
                 organization_id?: string;
+                start?: string;
             };
             header?: never;
-            path: {
-                eventId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -5821,22 +5824,19 @@ export interface operations {
             };
         };
     };
-    RecordAdminAcademyTrainingAttendance: {
+    ReadAdminAcademyTrainingPublications: {
         parameters: {
             query?: {
+                end?: string;
+                group_id?: string;
                 organization_id?: string;
+                start?: string;
             };
             header?: never;
-            path: {
-                eventId: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AttendanceMarkCommand"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -7401,14 +7401,15 @@ export interface operations {
             };
         };
     };
-    DownloadAdminAcademyMultiInvoicePdf: {
+    DownloadAdminAcademyInvoicePdf: {
         parameters: {
             query?: {
-                ids?: string;
                 organization_id?: string;
             };
             header?: never;
-            path?: never;
+            path: {
+                invoiceId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -7422,15 +7423,14 @@ export interface operations {
             };
         };
     };
-    DownloadAdminAcademyInvoicePdf: {
+    DownloadAdminAcademyMultiInvoicePdf: {
         parameters: {
             query?: {
+                ids?: string;
                 organization_id?: string;
             };
             header?: never;
-            path: {
-                invoiceId: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -8844,95 +8844,6 @@ export interface operations {
             };
         };
     };
-    QuarantineAdminHubImage: {
-        parameters: {
-            query?: {
-                organization_id?: string;
-            };
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["HubQuarantineImageCommand"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Conflict */
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["WebAdminError"];
-                };
-            };
-        };
-    };
     PreviewAdminHubQuarantinedImage: {
         parameters: {
             query?: {
@@ -9030,6 +8941,95 @@ export interface operations {
         responses: {
             /** @description OK */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebAdminError"];
+                };
+            };
+        };
+    };
+    QuarantineAdminHubImage: {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HubQuarantineImageCommand"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12391,7 +12391,7 @@ export interface operations {
             };
         };
     };
-    UnsubscribeMobileWebPushDevice: {
+    SubscribeMobileWebPushDevice: {
         parameters: {
             query?: never;
             header?: never;
@@ -12400,7 +12400,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MobilePushUnsubscribeBody"];
+                "application/json": components["schemas"]["MobilePushSubscriptionBody"];
             };
         };
         responses: {
@@ -12478,7 +12478,7 @@ export interface operations {
             };
         };
     };
-    SubscribeMobileWebPushDevice: {
+    UnsubscribeMobileWebPushDevice: {
         parameters: {
             query?: never;
             header?: never;
@@ -12487,7 +12487,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MobilePushSubscriptionBody"];
+                "application/json": components["schemas"]["MobilePushUnsubscribeBody"];
             };
         };
         responses: {
@@ -13705,11 +13705,9 @@ export interface operations {
             };
         };
     };
-    DeleteMobileChatMessage: {
+    EditMobileChatMessage: {
         parameters: {
-            query?: {
-                version?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 group: string;
@@ -13718,7 +13716,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileChatEditBody"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -13803,9 +13805,11 @@ export interface operations {
             };
         };
     };
-    EditMobileChatMessage: {
+    DeleteMobileChatMessage: {
         parameters: {
-            query?: never;
+            query?: {
+                version?: string;
+            };
             header?: never;
             path: {
                 group: string;
@@ -13814,11 +13818,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MobileChatEditBody"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -15411,6 +15411,91 @@ export interface operations {
             };
         };
     };
+    RevokeIssuedGuardianPermission: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                permissionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FamilyOperationResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
     IssueManyGuardianPermissions: {
         parameters: {
             query?: never;
@@ -15471,91 +15556,6 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Unprocessable Entity */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Too Many Requests */
-            429: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Service Unavailable */
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-        };
-    };
-    RevokeIssuedGuardianPermission: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                permissionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["FamilyOperationResult"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Unauthorized */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MobileAuthError"];
-                };
-            };
-            /** @description Not Found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -16031,13 +16031,13 @@ export interface operations {
             };
         };
     };
-    DownloadParentAcademyMultiInvoicePdf: {
+    DownloadParentAcademyInvoicePdf: {
         parameters: {
-            query?: {
-                ids?: string;
-            };
+            query?: never;
             header?: never;
-            path?: never;
+            path: {
+                invoiceId: string;
+            };
             cookie?: never;
         };
         requestBody?: never;
@@ -16051,13 +16051,13 @@ export interface operations {
             };
         };
     };
-    DownloadParentAcademyInvoicePdf: {
+    DownloadParentAcademyMultiInvoicePdf: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                invoiceId: string;
+            query?: {
+                ids?: string;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
@@ -18254,11 +18254,9 @@ export interface operations {
             };
         };
     };
-    DeleteMobilePrivateMessage: {
+    EditMobilePrivateMessage: {
         parameters: {
-            query?: {
-                version?: string;
-            };
+            query?: never;
             header?: never;
             path: {
                 conversationId: string;
@@ -18266,7 +18264,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobilePrivateEditBody"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -18351,9 +18353,11 @@ export interface operations {
             };
         };
     };
-    EditMobilePrivateMessage: {
+    DeleteMobilePrivateMessage: {
         parameters: {
-            query?: never;
+            query?: {
+                version?: string;
+            };
             header?: never;
             path: {
                 conversationId: string;
@@ -18361,11 +18365,7 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MobilePrivateEditBody"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -19132,6 +19132,62 @@ export interface operations {
             };
         };
     };
+    GetPublicMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileName: string;
+                folder: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    HeadPublicMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                fileName: string;
+                folder: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetMobileAvatar: {
         parameters: {
             query?: never;
@@ -19193,62 +19249,6 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    GetPublicMedia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                fileName: string;
-                folder: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    HeadPublicMedia: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                fileName: string;
-                folder: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Not Found */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };
