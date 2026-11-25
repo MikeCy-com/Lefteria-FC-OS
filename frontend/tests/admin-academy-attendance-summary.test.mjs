@@ -27,7 +27,7 @@ test('summary is computed only on verified private register, without mutating RS
   assert.match(page,/summary\.responses\.going/);
   assert.match(page,/summary\.actual\.present/);
   assert.match(page,/Η δήλωση συμμετοχής δεν υποκαθιστά/);
-  assert.match(page,/hasAdminPermission\(\$auth\.session\.user\.permissions,'attendance:read'\)/);
+  assert.match(page,/hasAdminPermission\(\$auth\.session\.user\.permissions,coachMode\?'attendance:read_assigned':'attendance:read'\)/);
   assert.doesNotMatch(page,/mockAttendance|fakeRsvp/);
   assert.ok(compile(page,{filename:'AdminAcademyAttendance.svelte',generate:'server'}).js.code.length>0);
 });
