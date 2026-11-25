@@ -1,3 +1,5 @@
+import {validMemberTrainingSummary} from './academy-training-drills.ts';
+
 export type TrainingPlanStatus='draft'|'archived';
 export interface TrainingPlanDraft {
   id:string;organization_id:'lefteria_fc_academy';group_id:string;
@@ -103,7 +105,7 @@ export interface TrainingDistributionPreview {
   id:string;organization_id:'lefteria_fc_academy';group_id:string;
   version:number;day:string;start_time:string;duration_minutes:number;
   title:string;location:string;eligible_player_count:number;
-  human_approved:true;published:false;
+  human_approved:true;published:false;member_summary?:string;
 }
 export function validTrainingDistributionPreview(
   value:unknown,plan:TrainingPlanDraft
@@ -117,9 +119,12 @@ export function validTrainingDistributionPreview(
     !Number.isSafeInteger(value.eligible_player_count)||
     (value.eligible_player_count as number)<0||
     (value.eligible_player_count as number)>100000||
-    'notes' in value||'players' in value||'player_ids' in value||
-    'phone' in value||'emails' in value)return false;
-  return true;
+    false)return false;
+  const keys=['id','organization_id','group_id','version','day','start_time','duration_minutes','title','location','eligible_player_count','human_approved','published'];
+  const hasDrills=typeof plan.drill_count==='number'&&plan.drill_count>0;
+  if(hasDrills)keys.push('member_summary');
+  return Object.keys(value).length===keys.length&&Object.keys(value).every(k=>keys.includes(k))&&
+    (!hasDrills||validMemberTrainingSummary(value.member_summary));
 }
 
 export interface TrainingPublicationRecord {
