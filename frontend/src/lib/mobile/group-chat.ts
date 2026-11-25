@@ -63,3 +63,11 @@ export function validTextMessage(content:string):boolean {
   return content.length>0&&content.length<=10000&&content===content.trim()&&
     !/[\u0000-\u001f\u007f]/.test(content);
 }
+
+export type GroupChatUnreadSummary={unread_count:number;enabled:boolean};
+export function validGroupChatUnreadSummary(raw:unknown):raw is GroupChatUnreadSummary {
+  return value(raw)&&Object.keys(raw).sort().join(',')==='enabled,unread_count'&&
+    typeof raw.enabled==='boolean'&&Number.isSafeInteger(raw.unread_count)&&
+    (raw.unread_count as number)>=0&&(raw.unread_count as number)<=999&&
+    (raw.enabled||raw.unread_count===0);
+}
