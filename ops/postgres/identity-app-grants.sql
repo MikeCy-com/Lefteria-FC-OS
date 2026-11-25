@@ -681,4 +681,8 @@ REVOKE ALL ON FUNCTION club.read_mobile_notification_unread_summary(
   uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_mobile_notification_unread_summary(
   uuid,text,text,timestamptz) TO :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_notification_activity(
+  uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_notification_activity(
+  uuid,text,text,timestamptz,text,integer) TO :"app_role";
 COMMIT;
