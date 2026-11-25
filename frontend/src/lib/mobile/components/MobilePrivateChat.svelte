@@ -9,7 +9,7 @@
   import MobileHoldAction from './MobileHoldAction.svelte';
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
 
-  let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
+  let {controller,actorId,role,onReadConfirmed}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
   let roomKey=$state('');
   let contacts=$state<PrivateContact[]>([]);
@@ -134,8 +134,9 @@
     try{
       if(!await controller.acknowledgePrivateRead(conv.id,message.id,message.version))
         throw new Error('Read not confirmed.');
-      if(alive&&sequence===request&&selected?.id===conv.id)
-        acknowledged.add(key);
+      if(alive&&sequence===request&&selected?.id===conv.id){
+        acknowledged.add(key);onReadConfirmed?.();
+      }
     }catch{
       if(alive&&sequence===request&&selected?.id===conv.id)
         receiptError='Δεν επιβεβαιώθηκε η ανάγνωση. Δοκίμασε ξανά.';
@@ -195,6 +196,7 @@
     try{
       const confirmed=await controller.hidePrivateConversationForMe(conv.id);
       if(!confirmed||!alive)return false;
+      onReadConfirmed?.();
       ++sequence;selected=null;messages=[];nextOffset=null;menuConversation=null;draft='';messageLoading=false;
       conversations=await controller.getPrivateConversations();
       return true;
