@@ -110,7 +110,7 @@ public sealed class AcademyCoachDrillAutonomy : Migration
             OR _instructions IS NULL OR length(_instructions) NOT BETWEEN 1 AND 4000 OR _instructions<>btrim(_instructions,' '||chr(10)) OR replace(_instructions,chr(10),'') ~ '[[:cntrl:]]'
           THEN RAISE EXCEPTION 'drill_content_invalid' USING ERRCODE='22023'; END IF;
         -- Serialize the pending quota per coach without exposing any table.
-        PERFORM 1 FROM identity.admin_accounts WHERE id=v_actor FOR NO KEY UPDATE;
+        PERFORM pg_advisory_xact_lock(hashtextextended('coach_drill_proposal:'||v_actor::text,0));
         IF (SELECT count(*) FROM club.academy_coach_drill_proposals p JOIN club.academy_coaching_drills d ON d.id=p.drill_id
           WHERE p.coach_id=v_actor AND d.status='draft')>=50
         THEN RAISE EXCEPTION 'drill_proposal_pending_limit' USING ERRCODE='54000'; END IF;
@@ -522,6 +522,73 @@ public sealed class AcademyCoachDrillAutonomy : Migration
           'event_id',v_event,'event_type','training','published_version',
           _expected,'published',true,'notifications_sent',false);
       END $os_publish_training$;
+      CREATE OR REPLACE FUNCTION club.write_admin_training_drills(_digest text,_group text,_plan uuid,_expected integer,_items jsonb)
+      RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $write$
+      DECLARE v_actor uuid;v_session uuid;v_role text;v_plan club.academy_training_plan_drafts%ROWTYPE;
+        v_item jsonb;v_snapshot jsonb;v_result jsonb:='[]'::jsonb;v_ids uuid[]:=ARRAY[]::uuid[];
+        v_id uuid;v_version integer;v_minutes integer;v_total integer:=0;
+        v_drill club.academy_coaching_drills%ROWTYPE;
+      BEGIN
+        SELECT actor_id,session_id,actor_role INTO v_actor,v_session,v_role FROM club.require_training_draft_actor(_digest,'lefteria_fc_academy',_group);
+        IF _plan IS NULL OR _expected IS NULL OR _expected NOT BETWEEN 1 AND 9999 OR _items IS NULL
+          OR jsonb_typeof(_items)<>'array' THEN RAISE EXCEPTION 'training_drill_input_invalid' USING ERRCODE='22023'; END IF;
+        IF jsonb_array_length(_items)>24 THEN RAISE EXCEPTION 'training_drill_limit' USING ERRCODE='22023'; END IF;
+        SELECT * INTO v_plan FROM club.academy_training_plan_drafts
+          WHERE id=_plan AND organization_id='lefteria_fc_academy' AND group_id=_group FOR UPDATE;
+        IF NOT FOUND OR v_plan.version<>_expected OR v_plan.status<>'draft' OR
+          EXISTS(SELECT 1 FROM club.academy_training_plan_publications WHERE plan_id=_plan)
+        THEN RAISE EXCEPTION 'training_drill_plan_conflict' USING ERRCODE='23505'; END IF;
+        IF v_role='coach' AND (v_plan.training_day<(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date
+          OR EXISTS(SELECT 1 FROM club.academy_training_plan_approvals WHERE plan_id=_plan AND plan_version=_expected))
+        THEN RAISE EXCEPTION 'training_coach_reviewed_plan_locked' USING ERRCODE='23505'; END IF;
+        IF EXISTS(SELECT 1 FROM club.academy_training_delivery_revisions WHERE plan_id=_plan)
+        THEN RAISE EXCEPTION 'training_delivery_use_independent_sequence' USING ERRCODE='23505'; END IF;
+        FOR v_item IN SELECT value FROM jsonb_array_elements(_items) LOOP
+          IF jsonb_typeof(v_item)<>'object' THEN RAISE EXCEPTION 'training_drill_item_invalid' USING ERRCODE='22023'; END IF;
+          IF NOT (v_item ?& ARRAY['drill_id','drill_version','duration_minutes'])
+            OR (SELECT count(*) FROM jsonb_object_keys(v_item))<>3
+            OR jsonb_typeof(v_item->'drill_id')<>'string'
+            OR v_item->>'drill_id' !~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(MigrationBuilder migrationBuilder) =>
+        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
+}
+
+            OR jsonb_typeof(v_item->'drill_version')<>'number' OR v_item->>'drill_version' !~ '^[0-9]{1,5}(MigrationBuilder migrationBuilder) =>
+        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
+}
+
+            OR jsonb_typeof(v_item->'duration_minutes')<>'number' OR v_item->>'duration_minutes' !~ '^[0-9]{1,3}(MigrationBuilder migrationBuilder) =>
+        throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
+}
+
+          THEN RAISE EXCEPTION 'training_drill_item_invalid' USING ERRCODE='22023'; END IF;
+          v_id:=(v_item->>'drill_id')::uuid;v_version:=(v_item->>'drill_version')::integer;
+          v_minutes:=(v_item->>'duration_minutes')::integer;
+          IF v_id=ANY(v_ids) OR v_version NOT BETWEEN 1 AND 10000 OR v_minutes NOT BETWEEN 1 AND 120
+          THEN RAISE EXCEPTION 'training_drill_item_invalid' USING ERRCODE='22023'; END IF;
+          v_ids:=array_append(v_ids,v_id);v_total:=v_total+v_minutes;
+          -- Retain the existing frozen version when merely reordering/timing.
+          SELECT value INTO v_snapshot FROM jsonb_array_elements(v_plan.drill_snapshots)
+            WHERE value->>'drill_id'=v_id::text AND value->>'drill_version'=v_version::text;
+          IF NOT FOUND THEN
+            SELECT * INTO v_drill FROM club.academy_coaching_drills
+              WHERE id=v_id AND organization_id='lefteria_fc_academy' AND status='approved' AND version=v_version FOR SHARE;
+            IF NOT FOUND THEN RAISE EXCEPTION 'training_drill_catalogue_conflict' USING ERRCODE='23505'; END IF;
+            v_snapshot:=jsonb_build_object('drill_id',v_id,'drill_version',v_version,'title',v_drill.title,
+              'category',v_drill.category,'age_band',v_drill.age_band,'objective',v_drill.objective,'instructions',v_drill.instructions);
+          END IF;
+          v_result:=v_result||jsonb_build_array(v_snapshot||jsonb_build_object('duration_minutes',v_minutes));
+        END LOOP;
+        IF v_total>v_plan.duration_minutes THEN RAISE EXCEPTION 'training_drills_exceed_duration' USING ERRCODE='22023'; END IF;
+        UPDATE club.academy_training_plan_drafts SET drill_snapshots=v_result,version=version+1,
+          updated_by=v_actor,updated_at=clock_timestamp() WHERE id=_plan AND version=_expected RETURNING * INTO v_plan;
+        INSERT INTO club.academy_training_plan_events(id,plan_id,version,action,actor_id,snapshot)
+          VALUES(gen_random_uuid(),_plan,v_plan.version,'updated',v_actor,
+            to_jsonb(v_plan)-'created_by'-'updated_by'-'created_at'-'updated_at');
+        INSERT INTO audit.security_events(id,actor_realm,occurred_at,actor_identity_id,device_session_id,action,outcome,organization_id,reason_code)
+          VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,v_session,'admin.training.plan.drills.updated','succeeded',
+            'lefteria_fc_academy','private_versioned_drill_plan');
+        RETURN club.training_drill_plan_view(v_plan);
+      END $write$;
       """);
     protected override void Down(MigrationBuilder migrationBuilder) =>
         throw new System.NotSupportedException("Preserve coaching revisions and proposals using forward recovery.");
