@@ -10,6 +10,18 @@ public static class MobileAppAnnouncementEndpoints
 {
     public static IEndpointRouteBuilder MapMobileAppAnnouncements(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/mobile/app/notifications/unread-summary",(
+                HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.NotificationUnreadSummaryAsync(MobilePrincipal.Read(context.User),token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile app notifications")
+            .WithName("GetMobileNotificationUnreadSummary")
+            .Produces<MobileNotificationUnreadSummaryDto>().WithMobileErrors();
+
         app.MapGet("/api/mobile/app/notifications",(
                 string? offset,HttpContext context,PostgresMobileGroupChatStore store,
                 CancellationToken token)=>
