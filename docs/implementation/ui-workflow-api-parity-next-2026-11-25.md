@@ -65,3 +65,18 @@ UX-NOT-04 (P0): coded and simulated handler-tested, full build/browser and live 
 Commits: badge reader `ca9375298958f8f9c43a9bb53f786fb144aec0c0`; explicit read `9e3895de826458dd33e4bf6509bc972eec03f6e8`; route scope `743543fc3f90687673ed544cfba8184d4b4d57bb`; inbox scope `b0c276eb22d47ceedf45fb3db1ca4a2ecfcb0083`; tests `a1abb5725da2aca160ef6b26c9245772e2980009`.
 
 Re-read the committed files and executed 11 asynchronous JavaScript tests (five new and six previous), using simulated API responses and stripped TypeScript annotations; all passed. Also executed 23 source assertions from the notification safety test file; all passed. Svelte compiler invocations, the full test suite, database persistence, actual role changes in browsers, idle access revocation and staging remain unverified. No new generic notifications API or SQL grants. Production remains untouched.
+
+## Follow-up: calendar and finance actions (25 November)
+
+UX-NOT-05 (P0): coded; scoped projection and simulated handler tests passed, complete runtime verification pending.
+
+- Notification workspace now includes a separately labelled live actions section, using the existing authorized GET calendar and parent training-fees routes. No new event delivery, notification preference bypass, unread count, payment request, or persistence contract is introduced.
+- Calendar read is independently validated against current identity, role, selected child, month and management organization. It does not change the main calendar store. Parents can switch among returned authorized children; players can see their own no-RSVP matches/training; staff see cancellation information but no player RSVP prompts.
+- Current-month first-page coverage only, with up to three cancellations and three unanswered activities; additional records link to the calendar. No-RSVP does not imply mandatory attendance or overdue action.
+- Parent-only fee summary separates issued outstanding, settlement pending and review required. No amount, checkout URL or payment initiation is exposed in this panel; paid fees excluded unless flagged for review. Existing finance preferences and payment permissions are unchanged.
+- Data clears on refresh, hidden document, failure and stale-request rejection. Separate calendar/finance status prevents a failed source being shown as a verified empty source.
+- Functional tests: six pure/async cases passed from the committed source using stripped TypeScript annotations and simulated responses; one additional source assertion group passed (compiler calls omitted). Full Svelte/Node test suite, API integration, database, actual permissions in browser and staging still outstanding.
+
+Commits: scoped calendar reader `00e03718579e3857e7b254e6c4605aa749112d38`; projections `0bd1efe8b462e5e70e36af18f7cc045aaa617ecc`; component `965c61f10d620b511a35d98bda6b51478a31f14f`; route `349fe6684b58a9cdc1b983833208a62280b2d22f`; tests `8cee04dcaddf46d297dafc16f632cd17f9e853f3` and `5bd244db22b54c8fd3fbe633164f71d69b7a77c4`.
+
+Remaining: unified persisted notification API, event delivery/preferences/read-state design, all-page calendar coverage, invitations/messages and role workflow acceptance. Production untouched.
