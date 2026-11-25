@@ -14,43 +14,47 @@
   let enabled=$state(true);
   let busy=$state(true);
   let error=$state<string|null>(null);
+  let previousOffsets=$state<number[]>([]);
+  let currentOffset=$state(0);
   let request=0,alive=false;
 
   onMount(()=>{
     alive=true;void refresh();
     return()=>{alive=false;request++;};
   });
-  async function refresh(){
+  async function loadPage(offset:number,history:number[]){
     const marker=++request;
-    busy=true;error=null;items=[];nextOffset=null;
+    // Each page is a fresh server-authorized view. Never append private
+    // rows from earlier pages whose audience access may have changed.
+    busy=true;error=null;items=[];nextOffset=null;enabled=true;
     try{
-      const page=await controller.getAppNotificationInbox(0);
+      const page=await controller.getAppNotificationInbox(offset);
       if(!alive||marker!==request)return;
-      items=page.notifications;
-      nextOffset=page.next_offset;
+      if(page.next_offset!==null&&page.next_offset<=offset)
+        throw new Error('Non-advancing notification page.');
       enabled=page.enabled;
+      items=page.enabled?page.notifications:[];
+      nextOffset=page.enabled&&page.next_offset!==null&&page.next_offset<=100000
+        ?page.next_offset:null;
+      previousOffsets=page.enabled?history:[];
+      currentOffset=page.enabled?offset:0;
       onUnreadChange?.(page.unread_count);
     }catch{
       if(alive&&marker===request){
-        error='Δεν ήταν δυνατή η επαλήθευση των ειδοποιήσεων.';
+        items=[];nextOffset=null;previousOffsets=[];currentOffset=0;
+        error='Δεν ήταν δυνατή η επαλήθευση των ειδοποιήσεων. Δοκίμασε ξανά.';
         onUnreadChange?.(0);
       }
     }finally{if(alive&&marker===request)busy=false;}
   }
-  async function loadMore(){
+  function refresh(){return loadPage(0,[]);}
+  function loadMore(){
     if(nextOffset===null||busy)return;
-    const marker=++request,offset=nextOffset;
-    busy=true;error=null;
-    try{
-      const page=await controller.getAppNotificationInbox(offset);
-      if(!alive||marker!==request)return;
-      items=[...items,...page.notifications.filter(item=>
-        !items.some(previous=>previous.announcement_id===item.announcement_id))];
-      nextOffset=page.next_offset;
-      enabled=page.enabled;
-      onUnreadChange?.(page.unread_count);
-    }catch{if(alive&&marker===request)error='Δεν φορτώθηκαν άλλες ειδοποιήσεις.';}
-    finally{if(alive&&marker===request)busy=false;}
+    return loadPage(nextOffset,[...previousOffsets,currentOffset]);
+  }
+  function loadPrevious(){
+    if(busy||!previousOffsets.length)return;
+    return loadPage(previousOffsets[previousOffsets.length-1]!,previousOffsets.slice(0,-1));
   }
 </script>
 
@@ -73,7 +77,7 @@
       προτιμήσεις του προφίλ σου. Μπορείς να διαβάζεις τις ανακοινώσεις από την
       αντίστοιχη καρτέλα.</p>
   {:else if !busy&&items.length===0&&!error}
-    <p class="notice" role="status">Δεν υπάρχουν νέες ανακοινώσεις στα τμήματά σου.</p>
+    <p class="notice" role="status">Δεν υπάρχουν ανακοινώσεις σε αυτή τη σελίδα.</p>
   {/if}
   {#if items.length}
     <ol class="items">
@@ -97,11 +101,20 @@
       {/each}
     </ol>
   {/if}
-  {#if nextOffset!==null}
-    <button type="button" class="outline more" disabled={busy}
-      onclick={()=>void loadMore()}>Περισσότερες ειδοποιήσεις</button>
+  {#if enabled&&!error&&!busy&&(previousOffsets.length||nextOffset!==null)}
+    <nav class="pagination" aria-label="Σελίδες ειδοποιήσεων">
+      <button type="button" class="outline" disabled={!previousOffsets.length}
+        onclick={()=>void loadPrevious()}>Προηγούμενη</button>
+      <span aria-live="polite">Σελίδα {previousOffsets.length+1}</span>
+      <button type="button" class="outline" disabled={nextOffset===null}
+        onclick={()=>void loadMore()}>Επόμενη</button>
+    </nav>
   {/if}
-  {#if error}<p class="error" role="alert">{error}</p>{/if}
+  {#if error}
+    <div class="error" role="alert">{error}
+      <button type="button" class="outline retry" onclick={()=>void refresh()}>Δοκίμασε ξανά</button>
+    </div>
+  {/if}
 </section>
 <style>
   .notification-layout{padding:16px 14px 28px;color:var(--lf-text);
@@ -124,7 +137,9 @@
   strong{font-family:var(--lf-heading);font-size:19px}
   time{font-size:11px;color:var(--lf-muted)}
   .open-link{font-size:12px;color:var(--lf-gold-light);text-decoration:underline}
-  .more{width:100%;margin-top:14px}
+  .pagination{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .pagination span{font-size:12px;color:var(--lf-muted)}
+  .retry{display:block;margin-top:10px}
   .error{padding:12px;border:1px solid #7b3e35;background:#2a1b1a;
     color:#ffcdbe;border-radius:8px;font-size:12px}
   button:disabled{opacity:.5;cursor:default}
