@@ -94,3 +94,20 @@ UX-NOT-06 (P0): coded and simulated handler-tested; build and runtime not verifi
 Implementation commits: `38a21934ca409b98adb0aeac4db561d9642397c7`, `188f22fa5c25fd4f2c50f855dd02b21c53970f98`, `b6f1e430814fb3f9bf328459f7e9036bc5c7667f`, `7a466b0ffbe918a5f76d2eb8e746e7efc570f8e6`, `6a0238b797c57818ba90e4140c3855dc33b926b9`, `d87ee0b63cae1237fc03d9af402ca9aedd2a47bf`, `2a75717427e450a1c0bbe00e810f55228afbf867`. Regression tests: `aa5eb1c3b76740d1c18ba1cac8ae44a676bb81af`, `23e6795b9f7f8b537b5cc530588b50e614e22793`.
 
 Verification: five functional/async cases and one source-assertion group passed from committed source after stripping TypeScript annotations and omitting Svelte compiler invocations. Initial failed pagination case exposed retained messages; corrected in 2a75717 and retested successfully. Full Node/Svelte build, authenticated role and DB verification, staging and CI still required. No provider, SQL grant, production or staging changes.
+
+## Follow-up: real group-chat unread API and safe group navigation (25 November)
+
+API-NOT-02a / UX-NOT-07 (P0): coded; focused JavaScript and source tests passed. SQL, compiled API, generated contract and authenticated browser not verified.
+
+Original read-only API comparison: original notification centre returns unread counts by destination and supports conversation read and mark-all operations. OS group messaging already persists exact message-version read receipts, but previously exposed no member unread summary. Implemented an incremental, independently authorized group count, not a complete unified inbox.
+
+- New GET /api/mobile/chat/unread-summary with bearer policy and private/no-store cache. SQL uses live roster directory and actor identity/role/expiry, selected management organization, messages notification preference, and current-version receipt for the same actor. Excludes self-authored and deleted rows. Count caps at 999; no message bodies, reader names, writes or additional raw-table privileges. Existing group read acknowledgement remains the source of truth.
+- New migration 20261125070000_MobileGroupChatUnreadSummary and narrow runtime EXECUTE grant. C# DTO, store and endpoint are wired. Checked-in OpenAPI contract amended in canonical sorted format; regeneration from the compiled host remains required.
+- Mobile notification workspace displays the group-message count separately from announcements, consent invitations and operational actions. Fans excluded; management scope remains required. Fresh foreground/manual read and error state; no private-message unread or device push implementation.
+- Group chat clears drafts on group changes, denies non-directory room selections, discards delayed responses, deduplicates pagination, caps supported offsets and clears private rows on failed read. No claim of immediate revocation during idle or every possible mutation path.
+
+Migration: e1c99f7; C# DTO/store/endpoint: a54e418, 2f3cf2e, a1cdf49; grants: 2431d8f; contract: bcfb300; validator/controller: 423533a, 66b0f30; UI/route: 05f595b, e73913b; group fixes: 73b97ec; HTTP integration assertions: 25feaaa; frontend tests: 9736b67.
+
+Verification: three functional/async cases and two source assertion groups passed when executing committed source with TypeScript annotations stripped and Svelte compile calls omitted. Added HTTP integration coverage for fan denial, assigned coach unread count, GET not marking read, explicit receipt, repeated receipt and edit invalidation. Those database/HTTP tests have not been executed: local runtime has Node 22 but no dotnet or PostgreSQL client/server available. No CI or staging verification, no production change.
+
+Remaining: generated-contract comparison, disposable database migrations/grants and actual integration tests, preference and role/organization revocation checks, private conversation read receipts, explicit long-message acknowledgement, generic durable notification events and cross-destination unread totals. Keep draft unmerged until mandatory checks pass.
