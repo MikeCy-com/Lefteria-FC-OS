@@ -108,13 +108,38 @@ jobs:
           PY
       - run: dotnet restore backend/tests/LefteriaFc.Identity.IntegrationTests --locked-mode
       - run: dotnet build backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-restore
-      - name: Migration apply, rollback and reapply
+      - name: Migration rollback, forward-only security guards and reapply
         run: |
+          set -euo pipefail
           dotnet tool restore
+          ef_args=(--context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build)
+          # Exercise every reversible migration before the first deliberately
+          # forward-only training authorization change, including its Down guards.
+          reversible=20261125092000_AcademyTrainingCompleteReview
+          dotnet ef database update "$reversible" "${ef_args[@]}"
+          dotnet ef database update 0 "${ef_args[@]}"
+          dotnet ef database update "$reversible" "${ef_args[@]}"
+          # Each irreversible boundary must reject reverse SQL with its exact
+          # expected reason. A build error or unexpected exception must fail CI.
+          assert_forward_only() {
+            local from="$1" to="$2" reason="$3"
+            local log="$RUNNER_TEMP/migration-forward-only.log"
+            if dotnet ef migrations script "$from" "$to" "${ef_args[@]}" >"$log" 2>&1; then
+              echo "Unexpected rollback support: $from"; exit 1
+            fi
+            grep -F "System.NotSupportedException: $reason" "$log"
+          }
+          assert_forward_only 20261125093000_AcademyTrainingExactTerritory "$reversible" 'Training territory security requires forward recovery.'
+          assert_forward_only 20261125094000_AcademyTrainingAttendanceExactTerritory 20261125093000_AcademyTrainingExactTerritory 'Training attendance territory security requires forward recovery.'
+          assert_forward_only 20261125100000_AcademyAssignedCoachWorkspace 20261125094000_AcademyTrainingAttendanceExactTerritory 'Assigned coach workflow requires audited forward recovery.'
+          assert_forward_only 20261125110000_AcademyCoachDrillAutonomy 20261125100000_AcademyAssignedCoachWorkspace 'Preserve coaching revisions and proposals using forward recovery.'
+          assert_forward_only 20261125120000_AcademyWeeklyCompleteSession 20261125110000_AcademyCoachDrillAutonomy 'Preserve weekly training policy using forward recovery.'
+          assert_forward_only 20261125121000_AcademyDrillVariantsAndRevisions 20261125120000_AcademyWeeklyCompleteSession 'Preserve reviewed drill lineage using forward recovery.'
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
-          dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+          # Repeat full forward migration to check idempotency. The next step
+          # exercises the separate disposable PostgreSQL backup/restore drill.
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
-          dotnet ef migrations has-pending-model-changes --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
+          dotnet ef migrations has-pending-model-changes "${ef_args[@]}"
       - name: Verify disposable PostgreSQL backup and isolated restore
         env:
           LEFTERIA_RESTORE_DRILL_DISPOSABLE_ONLY: "1"
