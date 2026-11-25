@@ -86,7 +86,9 @@ test('admin navigation exposes real operational destinations without five orphan
   assert.match(frame,/href="\/admin\/profile#access"/);
   assert.match(frame,/href="\/admin\/settings"/);
   assert.match(frame,/href="\/admin\/groups"/);
-  for(const orphan of ['schedule','attendance','matches','evaluations','documents']){
+  assert.match(frame,/\{#if liveIds\.has\('assigned_groups'\)\}\s*<a[^>]+href="\/admin\/schedule"[^>]+data-testid="admin-coach-workspace-link"/);
+  assert.equal((frame.match(/href="\/admin\/schedule"/g)||[]).length,1);
+  for(const orphan of ['attendance','matches','evaluations','documents']){
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
   }
   assert.doesNotMatch(workspace,/data-testid="admin-quick-navigation"/);
