@@ -2,7 +2,7 @@
   import {onMount} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {GroupChatUnreadSummary} from '../group-chat.ts';
-  let {controller,onOpen}:{controller:MobileAuthController;onOpen:()=>void|Promise<void>}=$props();
+  let {controller,onOpen,privateMode=false}:{controller:MobileAuthController;onOpen:()=>void|Promise<void>;privateMode?:boolean}=$props();
   let summary=$state<GroupChatUnreadSummary|null>(null);
   let status=$state<'loading'|'ready'|'error'>('loading');
   let alive=false,request=0;
@@ -11,7 +11,7 @@
     const marker=++request;
     status='loading';summary=null;
     try{
-      const result=await controller.getGroupChatUnreadSummary();
+      const result=privateMode?await controller.getPrivateChatUnreadSummary():await controller.getGroupChatUnreadSummary();
       if(!alive||marker!==request)return;
       summary=result;status='ready';
     }catch{if(alive&&marker===request){summary=null;status='error';}}
@@ -26,16 +26,16 @@
     return()=>{alive=false;request++;document.removeEventListener('visibilitychange',visibility);};
   });
 </script>
-<section class="unread-actions" aria-label="Ομαδικά μηνύματα" data-testid="mobile-group-unread-actions">
-  <header><h2>Ομαδικά μηνύματα</h2>
+<section class="unread-actions" aria-label={privateMode?'Ιδιωτικά μηνύματα':'Ομαδικά μηνύματα'} data-testid={privateMode?'mobile-private-unread-actions':'mobile-group-unread-actions'}>
+  <header><h2>{privateMode?'Ιδιωτικά μηνύματα':'Ομαδικά μηνύματα'}</h2>
     <button type="button" disabled={status==='loading'} onclick={()=>void refresh()}>Ανανέωση</button></header>
   {#if status==='loading'}<p role="status">Έλεγχος μηνυμάτων…</p>
   {:else if status==='error'}<p role="alert">Τα μη αναγνωσμένα μηνύματα δεν επαληθεύτηκαν.</p>
   {:else if summary?.enabled}
-    <p><strong>{summary.unread_count===999?'999+':summary.unread_count}</strong> μη αναγνωσμένα ομαδικά μηνύματα</p>
+    <p><strong>{summary.unread_count===999?'999+':summary.unread_count}</strong> {privateMode?'μη αναγνωσμένα ιδιωτικά μηνύματα':'μη αναγνωσμένα ομαδικά μηνύματα'}</p>
   {:else}<p>Οι ειδοποιήσεις μηνυμάτων είναι απενεργοποιημένες στις προτιμήσεις σου.</p>{/if}
-  <button type="button" class="destination" onclick={()=>void onOpen()}>Άνοιγμα ομαδικών μηνυμάτων <span aria-hidden="true">›</span></button>
-  <p class="hint">Μόνο μηνύματα ενεργών ομάδων. Οι ιδιωτικές συνομιλίες δεν περιλαμβάνονται.</p>
+  <button type="button" class="destination" onclick={()=>void onOpen()}>{privateMode?'Άνοιγμα ιδιωτικών συνομιλιών':'Άνοιγμα ομαδικών μηνυμάτων'} <span aria-hidden="true">›</span></button>
+  <p class="hint">{privateMode?'Μόνο αποδεκτές ιδιωτικές συνομιλίες με ενεργή κοινή ομάδα.':'Μόνο μηνύματα ενεργών ομάδων. Οι ιδιωτικές συνομιλίες δεν περιλαμβάνονται.'}</p>
 </section>
 <style>
   .unread-actions{margin:12px 14px;padding:14px;border:1px solid var(--lf-line);border-radius:12px;background:var(--lf-surface);color:var(--lf-text);font-family:var(--lf-body)}
