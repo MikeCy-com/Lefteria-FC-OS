@@ -3,12 +3,15 @@
   import {hasAdminPermission} from './permissions.ts';
   import AdminFrame from './AdminFrame.svelte';
   import AdminClubMetrics from './AdminClubMetrics.svelte';
+  import AdminRoleWorkboard from './AdminRoleWorkboard.svelte';
+  import {adminRoleActions} from './admin-role-workflows.ts';
   import {adminOrganizationsFor} from './admin-organization.ts';
 
   let {session,busy=false,onLogout,onRefresh}:{
     session:WebAdminSession;busy?:boolean;onLogout:()=>void;onRefresh:()=>void;
   }=$props();
   const user=$derived(session.user);
+  const availableTasks=$derived(adminRoleActions(user));
   const canSeeOverviewMetrics=$derived(
     ['teams:read','academy:read','news:read'].some(permission=>
       hasAdminPermission(user.permissions,permission)) ||
@@ -24,13 +27,14 @@
     <button type="button" class="admin-secondary" disabled={busy}
       onclick={onRefresh} data-testid="admin-dashboard-refresh">Ανανέωση</button>
   </div>
+  <AdminRoleWorkboard {user}/>
   {#if canSeeOverviewMetrics}
     <section class="admin-dashboard-metrics" aria-label="Επιβεβαιωμένα στοιχεία οργανισμών">
       {#each adminOrganizationsFor(user) as organization (organization)}
         <AdminClubMetrics {user} {organization}/>
       {/each}
     </section>
-  {:else}
+  {:else if availableTasks.length===0}
     <section class="admin-panel" data-testid="admin-no-modules">
       <p class="admin-muted">Δεν υπάρχουν διαθέσιμα στοιχεία επισκόπησης για τον ρόλο σας.</p>
     </section>
