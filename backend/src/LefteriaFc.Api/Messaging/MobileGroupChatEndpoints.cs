@@ -13,6 +13,14 @@ public static class MobileGroupChatEndpoints
         var chat=app.MapGroup("/api/mobile/chat")
             .WithTags("Mobile app messaging")
             .RequireAuthorization(IdentityServices.Policy);
+        chat.MapGet("/unread-summary",(HttpContext context,PostgresMobileGroupChatStore store,
+                CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.UnreadSummaryAsync(MobilePrincipal.Read(context.User),token),context);
+            })
+            .WithName("GetMobileChatUnreadSummary").Produces<MobileChatUnreadSummaryDto>().WithMobileErrors();
         chat.MapGet("/groups/{organization}/{group}/messages",(
                 string organization,string group,string? offset,HttpContext context,
                 PostgresMobileGroupChatStore store,CancellationToken token)=>
