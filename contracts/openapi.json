@@ -9594,6 +9594,27 @@
         ],
         "type": "object"
       },
+      "SubmitTrainingPlanCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_submission": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_version",
+          "confirm_submission"
+        ],
+        "type": "object"
+      },
       "TrainingDrillSelectionCommand": {
         "additionalProperties": false,
         "properties": {
@@ -10636,6 +10657,33 @@
         ]
       }
     },
+    "/api/admin/academy/training/plans/assigned-groups": {
+      "get": {
+        "operationId": "ReadAssignedCoachTrainingGroups",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
     "/api/admin/academy/training/plans/publications": {
       "get": {
         "operationId": "ReadAdminAcademyTrainingPublications",
@@ -11057,6 +11105,59 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PublishTrainingPlanCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/submit": {
+      "post": {
+        "operationId": "SubmitAssignedCoachTrainingPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitTrainingPlanCommand"
               }
             }
           },
