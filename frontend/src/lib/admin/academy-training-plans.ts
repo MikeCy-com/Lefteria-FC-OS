@@ -61,7 +61,7 @@ export function validTrainingPlanPage(
 export function validTrainingPlanForm(value:TrainingPlanForm):boolean{
   return isDate(value.day)&&clock.test(value.start_time)&&
     Number.isSafeInteger(value.duration_minutes)&&
-    value.duration_minutes>=15&&value.duration_minutes<=240&&
+    value.duration_minutes>=20&&value.duration_minutes<=240&&
     safe(value.title,180)&&value.title===value.title.trim()&&
     safe(value.location,200,true)&&safe(value.notes,2000,true);
 }
