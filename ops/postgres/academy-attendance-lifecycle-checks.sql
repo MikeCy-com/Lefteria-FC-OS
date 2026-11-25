@@ -15,6 +15,8 @@ DECLARE
   v_outsider text:='ci_outsider_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
   v_row jsonb;
+  v_coach uuid:=gen_random_uuid();v_coach_digest text:=repeat('9',64);
+  v_staff text:='ci_attcoach_'||left(replace(gen_random_uuid()::text,'-',''),12);
   v_city uuid:=gen_random_uuid();v_site uuid:=gen_random_uuid();v_other_site uuid:=gen_random_uuid();v_scope uuid:=gen_random_uuid();
   v_foreign uuid:=gen_random_uuid();v_foreign_digest text:=repeat('e',64);
   v_other_group text:='ci_other_'||left(replace(gen_random_uuid()::text,'-',''),16);
@@ -187,6 +189,35 @@ BEGIN
           AND player_id=v_player)<>'present' THEN
     RAISE EXCEPTION 'Corrected presence did not preserve source data and audit';
   END IF;
+  INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,password_hash)
+    VALUES(v_coach,'ci_attcoach_'||left(v_coach::text,8),'CI Assigned Coach','coach',true,'ci_not_real');
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id) VALUES(v_coach,v_owner);
+  INSERT INTO identity.admin_sessions(id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
+    VALUES(gen_random_uuid(),v_coach_digest,v_coach,repeat('b',64),clock_timestamp(),clock_timestamp()+interval '1 hour');
+  INSERT INTO club.staff(id,name,job_role,team_type,is_active,is_archived,has_explicit_active,has_explicit_archived)
+    VALUES(v_staff,'CI Assigned Coach','Youth Coach','Academy',true,false,true,true);
+  INSERT INTO identity.admin_staff_links(admin_account_id,staff_id) VALUES(v_coach,v_staff);
+  INSERT INTO club.staff_academy_groups(staff_id,academy_group_id,organization_id,from_plural,from_singular,from_group_coach,from_admin)
+    VALUES(v_staff,v_group,v_owner,false,false,false,true);
+  v_result:=club.read_admin_academy_training_attendance(v_coach_digest,v_owner,v_event);
+  IF (v_result->>'total')::int<>1 OR v_result->'players'->0->>'player_id'<>v_player
+    THEN RAISE EXCEPTION 'coach_attendance_roster_missing'; END IF;
+  BEGIN
+    PERFORM club.record_admin_academy_training_attendance(v_coach_digest,v_owner,v_event,v_outsider,'present',0);
+    RAISE EXCEPTION 'coach_outsider_attendance_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_result:=club.record_admin_academy_training_attendance(v_coach_digest,v_owner,v_event,v_player,'absent',2);
+  IF (v_result->>'version')::int<>3 OR (v_result->>'changed')::boolean IS DISTINCT FROM true
+    THEN RAISE EXCEPTION 'coach_attendance_write_failed'; END IF;
+  DELETE FROM club.staff_academy_groups WHERE staff_id=v_staff AND academy_group_id=v_group;
+  BEGIN
+    PERFORM club.read_admin_academy_training_attendance(v_coach_digest,v_owner,v_event);
+    RAISE EXCEPTION 'coach_removed_attendance_read_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.record_admin_academy_training_attendance(v_coach_digest,v_owner,v_event,v_player,'present',3);
+    RAISE EXCEPTION 'coach_removed_attendance_write_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   UPDATE club.football_locations SET is_active=false WHERE id=v_site;
   BEGIN
     PERFORM club.read_admin_academy_training_attendance(v_digest,v_owner,v_event);
