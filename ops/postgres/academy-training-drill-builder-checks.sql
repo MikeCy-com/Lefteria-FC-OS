@@ -12,7 +12,7 @@ DECLARE
   g text:='ci_drill_'||left(replace(gen_random_uuid()::text,'-',''),14);
   p uuid:=gen_random_uuid();d uuid:=gen_random_uuid();e uuid:=gen_random_uuid();
   day date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+3;
-  r jsonb;items jsonb;event_id text;
+  r jsonb;items jsonb;v_event text;
   player text:='ci_review_'||left(replace(gen_random_uuid()::text,'-',''),14);
   summary constant text:=E'Passing and warm-up\nBring water';
 BEGIN
@@ -133,15 +133,15 @@ BEGIN
     RAISE EXCEPTION 'foreign_complete_publication_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   r:=club.publish_admin_academy_training_plan(da,owner,p,5,true);
-  event_id:=r->>'event_id';
+  v_event:=r->>'event_id';
   IF r->>'published'<>'true' OR NOT EXISTS(
     SELECT 1 FROM club.calendar_items c JOIN club.calendar_item_scopes s ON s.kind=c.kind AND s.event_id=c.id
-    WHERE c.id=event_id AND c.organization_id=owner AND s.record_id=g AND s.scope_kind='group'
+    WHERE c.id=v_event AND c.organization_id=owner AND s.record_id=g AND s.scope_kind='group'
       AND c.member_projection_json->>'summary'=summary
       AND NOT (c.member_projection_json ?| ARRAY['notes','drill_snapshots','instructions','review_kind'])
       AND position('Jog safely' in c.member_projection_json::text)=0)
     THEN RAISE EXCEPTION 'unsafe_complete_publication'; END IF;
-  IF NOT club.os_native_training_primary_member(owner,event_id,player)
+  IF NOT club.os_native_training_primary_member(owner,v_event,player)
     THEN RAISE EXCEPTION 'native_member_scope_missing'; END IF;
   BEGIN
     PERFORM club.write_admin_training_drills(da,g,p,5,'[]'::jsonb);
