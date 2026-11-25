@@ -179,6 +179,38 @@ public sealed class AcademyDrillVariantsAndRevisions : Migration
           VALUES(gen_random_uuid(),'admin',clock_timestamp(),v_actor,v_session,'admin.drill.'||_action,'succeeded','lefteria_fc_academy','central_coaching_library');
         RETURN v_snapshot;
       END $write$;
+      CREATE OR REPLACE FUNCTION club.read_central_academy_drills(_digest text,_search text,_category text,_age text,_status text,_offset integer)
+      RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $read$
+      DECLARE v_role text;v_rows jsonb;v_count integer;
+      BEGIN
+        SELECT actor_role INTO v_role FROM club.require_central_academy_drills(_digest,false);
+        IF _search IS NULL OR length(_search)>100 OR _search ~ '[[:cntrl:]]'
+          OR _category IS NULL OR _category NOT IN ('all','technical','tactical','physical','goalkeeping','warmup','game','recovery','other')
+          OR _age IS NULL OR _age NOT IN ('any','all','u6-u8','u9-u11','u12-u14','u15-u18','adult')
+          OR _status IS NULL OR _status NOT IN ('all','draft','approved','archived')
+          OR _offset IS NULL OR _offset NOT BETWEEN 0 AND 100000 THEN
+          RAISE EXCEPTION 'drill_filters_invalid' USING ERRCODE='22023';
+        END IF;
+        IF v_role<>'super_admin' AND _status<>'approved' THEN
+          RAISE EXCEPTION 'drill_drafts_denied' USING ERRCODE='42501';
+        END IF;
+        WITH page AS (
+          SELECT d AS drill,d.title,d.id FROM club.academy_coaching_drills d
+          WHERE d.organization_id='lefteria_fc_academy'
+            AND NOT EXISTS(SELECT 1 FROM club.academy_coach_drill_proposals p WHERE p.drill_id=d.id AND p.proposal_kind='revision')
+            AND (_status='all' OR d.status=_status)
+            AND (_category='all' OR d.category=_category)
+            AND (_age='any' OR d.age_band=_age OR d.age_band='all')
+            AND (_search='' OR strpos(lower(d.title),lower(_search))>0 OR strpos(lower(d.objective),lower(_search))>0)
+          ORDER BY d.title COLLATE "C",d.id LIMIT 31 OFFSET _offset
+        ), numbered AS (
+          SELECT drill,row_number() OVER (ORDER BY title COLLATE "C",id) AS rn FROM page
+        )
+        SELECT coalesce(jsonb_agg(club.central_academy_drill_view(drill) ORDER BY rn)
+          FILTER (WHERE rn<=30),'[]'::jsonb),count(*)::integer INTO v_rows,v_count FROM numbered;
+        RETURN jsonb_build_object('organization_id','lefteria_fc_academy','drills',v_rows,
+          'next_offset',CASE WHEN v_count=31 AND _offset<=99970 THEN _offset+30 ELSE NULL END);
+      END $read$;
       """);
     protected override void Down(MigrationBuilder migrationBuilder) =>
         throw new System.NotSupportedException("Preserve reviewed drill lineage using forward recovery.");
