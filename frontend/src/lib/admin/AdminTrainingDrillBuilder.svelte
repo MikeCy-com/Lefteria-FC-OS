@@ -25,15 +25,16 @@
   const valid=$derived(deliveryMode?completeTrainingSession(sequence,plan.duration_minutes):validTrainingDrillSequence(sequence,plan.duration_minutes));
   let timerIndex=$state(-1),remaining=$state(0),deadline=$state<number|null>(null),dirty=$state(false);
   let ticker:ReturnType<typeof setInterval>|null=null;
+  let remainingMs=0;
   const timerDrill=$derived(sequence[timerIndex]);
   const running=$derived(deadline!==null);
   function stopTicker(){if(ticker!==null){clearInterval(ticker);ticker=null;}deadline=null;}
-  function tick(){if(deadline===null)return;remaining=drillRemainingSeconds(deadline,Date.now());if(remaining===0)stopTicker();}
-  function chooseTimer(index:number){if(!ready||dirty||!valid||!deliveryMode||index<0||index>=sequence.length)return;stopTicker();timerIndex=index;remaining=sequence[index].duration_minutes*60;}
-  function startTimer(){if(!timerDrill||dirty||!valid||remaining<=0||running)return;deadline=Date.now()+remaining*1000;ticker=setInterval(tick,200);}
+  function tick(){if(deadline===null)return;const now=Date.now();remainingMs=Math.max(0,deadline-now);remaining=drillRemainingSeconds(deadline,now);if(remaining===0)stopTicker();}
+  function chooseTimer(index:number){if(!ready||saving||dirty||!valid||!deliveryMode||index<0||index>=sequence.length)return;stopTicker();timerIndex=index;remaining=sequence[index].duration_minutes*60;remainingMs=remaining*1000;}
+  function startTimer(){if(!timerDrill||saving||dirty||!valid||remainingMs<=0||running)return;deadline=Date.now()+remainingMs;ticker=setInterval(tick,200);}
   function pauseTimer(){tick();stopTicker();}
   function resetTimer(){if(timerDrill)chooseTimer(timerIndex);}
-  function invalidateTimer(){dirty=true;stopTicker();timerIndex=-1;remaining=0;}
+  function invalidateTimer(){dirty=true;stopTicker();timerIndex=-1;remaining=0;remainingMs=0;}
   const query=()=>new URLSearchParams({organization_id:'lefteria_fc_academy',group_id:plan.group_id});
   const base=()=>'/api/admin/academy/training/plans/'+encodeURIComponent(plan.id)+(deliveryMode?'/delivery':'/drills');
   function current(owner:string,signal?:AbortSignal){return mounted&&scope()===owner&&!signal?.aborted;}
@@ -107,7 +108,7 @@
       const value:unknown=await response.json();
       if(!current(owner)||!canEdit)return;
       if(!(deliveryMode?matchingTrainingDeliverySave(value,plan,sequenceVersion,submitted):matchingTrainingDrillSave(value,plan,submitted))){ready=false;throw Error('Η νέα έκδοση δεν επαληθεύτηκε. Κλείστε και ανανεώστε.');}
-      if(deliveryMode){sequenceVersion+=1;dirty=false;error='';chooseTimer(0);}else{ready=false;onSaved();}
+      if(deliveryMode){sequenceVersion+=1;dirty=false;error='';saving=false;chooseTimer(0);}else{ready=false;onSaved();}
     }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η αποθήκευση δεν επιβεβαιώθηκε.';}}
     finally{if(current(owner))saving=false;}
   }
