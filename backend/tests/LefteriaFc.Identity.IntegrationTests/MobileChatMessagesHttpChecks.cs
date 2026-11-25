@@ -44,6 +44,11 @@ internal sealed partial class IdentityHttpChecks
         var sentByFixture=fixture.Plan.Mobiles.Select(row=>row.Id).ToArray();
         try
         {
+            const string activityPath="/api/mobile/app/notifications/activity";
+            await GetAsync(fan,activityPath,403);
+            await GetAsync(parent,activityPath+"?kind=invalid",422);
+            await GetAsync(parent,activityPath+"?kind=all&kind=announcement",422);
+            await GetAsync(parent,activityPath+"?offset=-1",422);
             await GetAsync(fan,unreadPath,403);
             var unreadBefore=(await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32();
             var empty=await GetAsync(parent,academy,200);
@@ -77,6 +82,18 @@ internal sealed partial class IdentityHttpChecks
                 "Message notifications should be enabled in the default fixture.");
             Check.Equal(Math.Min(unreadBefore+2,999),unreadAfter.GetProperty("unread_count").GetInt32(),
                 "Current group messages were not counted for assigned coach.");
+            var coachActivity=(await GetAsync(coach,activityPath+"?kind=group_message",200)).GetProperty("items");
+            Check.True(coachActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==academyId.ToString()),
+                "Assigned coach activity omitted unread Academy message.");
+            Check.True(coachActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==teamId.ToString()),
+                "Assigned coach activity omitted unread team message.");
+            foreach(var row in coachActivity.EnumerateArray())
+                Check.True(row.GetProperty("kind").GetString()=="group_message" &&
+                    row.GetProperty("title").ValueKind==JsonValueKind.Null &&
+                    !row.TryGetProperty("content",out _),"Activity leaked message bodies or wrong destination.");
+            var parentActivity=(await GetAsync(parent,activityPath+"?kind=group_message",200)).GetProperty("items");
+            Check.True(!parentActivity.EnumerateArray().Any(row=>row.GetProperty("entity_id").GetString()==teamId.ToString()),
+                "Parent activity leaked unrelated First Team message.");
             var coachAcademy=await GetAsync(coach,academy,200);
             Check.Equal(unreadAfter.GetProperty("unread_count").GetInt32(),
                 (await GetAsync(coach,unreadPath,200)).GetProperty("unread_count").GetInt32(),
