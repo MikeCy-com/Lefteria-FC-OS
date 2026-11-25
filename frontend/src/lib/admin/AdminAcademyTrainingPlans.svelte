@@ -339,7 +339,7 @@
       <h2 id="training-plan-heading">Ιδιωτικός σχεδιασμός προπονήσεων</h2></div>
     <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving||!!drillTarget}>Ανανέωση</button>
   </header>
-  {#if coachMode}<p class="plan-note">Επιλέξτε ελεύθερα εγκεκριμένες ασκήσεις για το τμήμα σας, χωρίς έγκριση. Υποβολή απαιτείται μόνο για το επίσημο πρόγραμμα όταν χρειάζεται δημοσίευση.</p>{/if}
+  {#if coachMode}<p class="plan-note">Επιλέξτε ελεύθερα εγκεκριμένες ασκήσεις για το τμήμα σας, χωρίς έγκριση. Η υποβολή του επίσημου προγράμματος είναι ξεχωριστή από την επιλογή ασκήσεων.</p>{/if}
   <p class="plan-note">Τα πρόχειρα μένουν ιδιωτικά μέχρι να εγκριθούν και να δημοσιευτούν από διαχειριστή. Οι δημοσιευμένες προπονήσεις εμφανίζονται στο ημερολόγιο του σωστού τμήματος. Οι ακυρώσεις δεν στέλνουν αυτόματες ειδοποιήσεις.</p>
   {#if error}<p class="plan-error" role="alert">{error}</p>{/if}
   {#if notice}<p class="plan-notice" role="status">{notice}</p>{/if}
@@ -374,7 +374,7 @@
                   disabled={saving||loading||!!drillTarget} onchange={e=>submitTarget=e.currentTarget.checked?reviewKey(plan):null}/>
                   Έλεγξα την έκδοση {plan.version} για υποβολή.</label>
                 <button type="button" disabled={saving||loading||!!drillTarget||submitTarget!==reviewKey(plan)}
-                  onclick={()=>void submit(plan)}>Υποβολή για έγκριση</button>
+                  onclick={()=>void submit(plan)}>Υποβολή προγράμματος για έγκριση</button>
               {:else}<small>Η αλλαγή του πρόχειρου απαιτεί νέα υποβολή.</small>{/if}
             {:else if !approvedIds.includes(plan.id)}
               {#if typeof plan.drill_count==='number'&&plan.drill_count>0}
