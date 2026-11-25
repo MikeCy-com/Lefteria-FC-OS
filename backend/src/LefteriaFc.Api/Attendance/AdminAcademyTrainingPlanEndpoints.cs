@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using LefteriaFc.Api.WebAdmin;
 using LefteriaFc.Application.WebAdmin;
@@ -18,7 +19,11 @@ namespace LefteriaFc.Api.Attendance;
 /// </summary>
 public static class AdminAcademyTrainingPlanEndpoints
 {
-    public sealed record TrainingDrillsCommand(int ExpectedVersion,JsonElement Drills);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record TrainingDrillSelectionCommand(Guid DrillId,int DrillVersion,int DurationMinutes);
+
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record TrainingDrillsCommand(int ExpectedVersion,TrainingDrillSelectionCommand[]? Drills);
 
     public sealed record CancelPublishedTrainingCommand(
         int ExpectedVersion,string Reason,bool ConfirmCancellation);
@@ -269,8 +274,8 @@ public static class AdminAcademyTrainingPlanEndpoints
             HttpContext context,CancellationToken ct)=>{
             var cookie=await Authorized(auth,context,organization_id,true,ct);
             if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
-              body.ExpectedVersion is <1 or >9999||body.Drills.ValueKind!=JsonValueKind.Array||
-              body.Drills.GetArrayLength()>24||body.Drills.GetRawText().Length>16000)
+              body.ExpectedVersion is <1 or >9999||body.Drills is null||body.Drills.Length>24||
+              body.Drills.Any(x=>x is null||x.DrillId==Guid.Empty||x.DrillVersion is <1 or >10000||x.DurationMinutes is <1 or >120))
                 throw new WebAdminException(422,"training_drill_input_invalid","Check the plan version and selected exercises.");
             await using var connection=await connections.OpenAsync(ct);
             await using var command=new NpgsqlCommand("""
@@ -280,7 +285,9 @@ public static class AdminAcademyTrainingPlanEndpoints
             command.Parameters.AddWithValue("group",group_id!);
             command.Parameters.AddWithValue("id",planId);
             command.Parameters.AddWithValue("expected",body.ExpectedVersion);
-            command.Parameters.AddWithValue("items",NpgsqlDbType.Jsonb,body.Drills.GetRawText());
+            command.Parameters.AddWithValue("items",NpgsqlDbType.Jsonb,JsonSerializer.Serialize(body.Drills.Select(x=>new {
+                drill_id=x.DrillId,drill_version=x.DrillVersion,duration_minutes=x.DurationMinutes
+            })));
             return await Run(command,ct);
         }).WithName("WriteAdminTrainingDrills").Accepts<TrainingDrillsCommand>("application/json");
 
