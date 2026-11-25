@@ -85,7 +85,7 @@ public sealed class CentralAcademyDrillLibrary : Migration
           RAISE EXCEPTION 'drill_drafts_denied' USING ERRCODE='42501';
         END IF;
         WITH page AS (
-          SELECT d.* FROM club.academy_coaching_drills d
+          SELECT d AS drill,d.title,d.id FROM club.academy_coaching_drills d
           WHERE d.organization_id='lefteria_fc_academy'
             AND (_status='all' OR d.status=_status)
             AND (_category='all' OR d.category=_category)
@@ -93,9 +93,9 @@ public sealed class CentralAcademyDrillLibrary : Migration
             AND (_search='' OR strpos(lower(d.title),lower(_search))>0 OR strpos(lower(d.objective),lower(_search))>0)
           ORDER BY d.title COLLATE "C",d.id LIMIT 31 OFFSET _offset
         ), numbered AS (
-          SELECT page AS drill,row_number() OVER (ORDER BY title COLLATE "C",id) AS rn FROM page
+          SELECT drill,row_number() OVER (ORDER BY title COLLATE "C",id) AS rn FROM page
         )
-        SELECT coalesce(jsonb_agg(club.central_academy_drill_view(drill::club.academy_coaching_drills) ORDER BY rn)
+        SELECT coalesce(jsonb_agg(club.central_academy_drill_view(drill) ORDER BY rn)
           FILTER (WHERE rn<=30),'[]'::jsonb),count(*)::integer INTO v_rows,v_count FROM numbered;
         RETURN jsonb_build_object('organization_id','lefteria_fc_academy','drills',v_rows,
           'next_offset',CASE WHEN v_count=31 AND _offset<=99970 THEN _offset+30 ELSE NULL END);
