@@ -2038,6 +2038,33 @@ export function createMobileAuthController(options: {
       if(!validPrivateConversation(result))throw new Error('Invalid private conversation.');
       return result;
     },
+    async getPrivateChatUnreadSummary():Promise<GroupChatUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!canOpenPrivateChat(identity.role))
+        throw new Error('Private chat scope required.');
+      const result=await chatRequest('/api/mobile/private/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validGroupChatUnreadSummary(result))
+        throw new Error('Unverified private chat unread summary.');
+      return result;
+    },
+    async acknowledgePrivateRead(conversation:string,message:string,version:number):Promise<boolean> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity||!canOpenPrivateChat(identity.role)||!validUuid(conversation)||
+        !validUuid(message)||!Number.isSafeInteger(version)||version<1)
+        throw new Error('Invalid private receipt scope.');
+      const result=await chatRequest('/api/mobile/private/conversations/'+encodeURIComponent(conversation)+
+        '/messages/'+encodeURIComponent(message)+'/seen','POST',{version});
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !result||typeof result!=='object'||Array.isArray(result)||
+        !('conversation_id' in result)||result.conversation_id!==conversation||
+        !('message_id' in result)||result.message_id!==message||
+        !('seen' in result)||result.seen!==true||!('version' in result)||result.version!==version)
+        throw new Error('Private read acknowledgement not confirmed.');
+      return true;
+    },
     async getPrivateMessages(id:string,offset=0):Promise<PrivatePage> {
       if(!validUuid(id)||!Number.isInteger(offset)||offset<0||offset>100000)
         throw new Error('Invalid private message page.');
