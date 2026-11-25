@@ -118,8 +118,7 @@ export function validTrainingDistributionPreview(
     value.human_approved!==true||value.published!==false||
     !Number.isSafeInteger(value.eligible_player_count)||
     (value.eligible_player_count as number)<0||
-    (value.eligible_player_count as number)>100000||
-    false)return false;
+    (value.eligible_player_count as number)>100000)return false;
   const keys=['id','organization_id','group_id','version','day','start_time','duration_minutes','title','location','eligible_player_count','human_approved','published'];
   const hasDrills=typeof plan.drill_count==='number'&&plan.drill_count>0;
   if(hasDrills)keys.push('member_summary');
