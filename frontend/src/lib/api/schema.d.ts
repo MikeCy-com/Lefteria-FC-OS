@@ -32,6 +32,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/drills/proposals/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitLinkedCoachDrillProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/drills/proposals/{drillId}/apply-revision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ApplyCoachDrillRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/drills/{drillId}": {
         parameters: {
             query?: never;
@@ -3781,6 +3813,23 @@ export interface components {
             /** Format: int32 */
             version: number | string;
         };
+        LinkedDrillProposalCommand: {
+            base_drill_id: string;
+            base_version: number | string;
+            proposal_kind: string;
+            difficulty: string;
+            title: string;
+            category: string;
+            age_band: string;
+            duration_minutes: number | string;
+            objective: string;
+            instructions: string;
+        };
+        ApplyDrillRevisionCommand: {
+            expected_version: number | string;
+            base_version: number | string;
+            confirm_review: boolean;
+        };
         DrillProposalCommand: {
             title: string;
             category: string;
@@ -5556,6 +5605,50 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DrillProposalCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitLinkedCoachDrillProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApplyCoachDrillRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: { drillId: string; };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyDrillRevisionCommand"];
             };
         };
         responses: {
