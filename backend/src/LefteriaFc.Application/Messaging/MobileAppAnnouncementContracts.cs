@@ -26,3 +26,7 @@ public sealed record MobileAppNotificationInboxDto(
 public sealed record MobileNotificationDestinationDto(int UnreadCount,bool Enabled);
 public sealed record MobileNotificationUnreadSummaryDto(MobileNotificationDestinationDto Announcements,
     MobileNotificationDestinationDto GroupMessages,MobileNotificationDestinationDto PrivateMessages,int UnreadCount);
+
+public sealed record MobileNotificationActivityDto(string Kind,string EntityId,string OrganizationId,
+    string GroupId,Guid? ConversationId,DateTimeOffset OccurredAt,string? Title,string? GroupName);
+public sealed record MobileNotificationActivityPageDto(IReadOnlyList<MobileNotificationActivityDto> Items,int? NextOffset);
