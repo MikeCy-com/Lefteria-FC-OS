@@ -8,7 +8,7 @@
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
   import type {ChatReaction} from '../chat-actions.ts';
 
-  let {controller,actorId,role,onReadConfirmed}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void}=$props();
+  let {controller,actorId,role,onReadConfirmed,initialOrganization=null,initialGroup=null}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void;initialOrganization?:string|null;initialGroup?:string|null}=$props();
   let rooms=$state.raw<GroupChatRoom[]>([]);
   let selected=$state.raw<GroupChatRoom|null>(null);
   let messages=$state<GroupChatMessage[]>([]);
@@ -42,7 +42,11 @@
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
       rooms=result;directoryBusy=false;
-      if(result.length===1)void chooseRoom(result[0]);
+      if(initialOrganization!==null||initialGroup!==null){
+        const target=result.find(room=>room.organization_id===initialOrganization&&room.group_id===initialGroup);
+        if(target)void chooseRoom(target);
+        else error='Η ζητούμενη ομάδα δεν είναι πλέον διαθέσιμη.';
+      }else if(result.length===1)void chooseRoom(result[0]);
     }catch(caught){if(alive&&request===requestNumber){rooms=[];error=messageOf(caught);}}
     finally{if(alive&&request===requestNumber)directoryBusy=false;}
   }
