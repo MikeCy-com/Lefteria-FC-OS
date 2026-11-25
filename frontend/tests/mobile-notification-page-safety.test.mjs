@@ -41,8 +41,8 @@ test('notification shell and inbox have one count owner and scope-bound response
   compile(feed,{filename:'MobileAppAnnouncements.svelte',generate:'client'});
   compile(route,{filename:'+page.svelte',generate:'client'});
   assert.match(route,/if\(!browser\|\|!scope\|\|owned\)return/);
-  assert.match(route,/notificationScope===scope&&!inboxOwnsCount/);
-  assert.match(route,/scope===notificationScope&&inboxOwnsCount/);
+  assert.match(route,/notificationScope===scope&&document.visibilityState==='visible'/);
+  assert.match(route,/if\(scope&&scope===notificationScope\)refreshNotificationBadge\(\)/);
   assert.match(route,/onReadConfirmed=\{\(\)=>refreshNotificationBadge\(\)\}/);
   assert.match(route,/window\.clearInterval\(timer\)/);
   assert.match(inbox,/const marker=\+\+request,scope=scopeKey/);
