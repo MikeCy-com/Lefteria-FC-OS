@@ -36,6 +36,7 @@
     const owner=scope,s=appliedSearch,c=category,a=age,st=canWrite?status:'approved',o=offset;
     void refresh;
     rows=[];nextOffset=null;loaded=false;error='';loading=false;
+    untrack(()=>{if(editing){editing=null;form=blank();}});
     if(!browser||!owner)return;
     const controller=new AbortController();
     loading=true;
@@ -125,6 +126,7 @@
         {#if loading}<p role="status">Φόρτωση βιβλιοθήκης…</p>
         {:else if error}<p role="alert">{error}</p><button type="button" disabled={saving} onclick={()=>refresh++}>Δοκιμή ξανά</button>
         {:else if loaded&&!rows.length}<p>Δεν βρέθηκαν ασκήσεις.</p>
+          {#if offset>0}<button type="button" disabled={saving} onclick={()=>offset=Math.max(0,offset-30)}>Προηγούμενη σελίδα</button>{/if}
         {:else if loaded}
           <div class="drill-grid">
             {#each rows as row (row.id)}
