@@ -164,7 +164,7 @@
               <label>Ηλικία<select bind:value={form.age_band} disabled={saving}>{#each drillAges as a}<option value={a}>{a==='all'?'Κάθε ηλικία':a.toUpperCase()}</option>{/each}</select></label>
               <label>Διάρκεια (λεπτά)<input type="number" bind:value={form.duration_minutes} min="1" max="120" required disabled={saving}/></label>
               <label class="wide">Στόχος<input bind:value={form.objective} maxlength="1000" required disabled={saving}/></label>
-              <label class="wide">Οδηγίες<input bind:value={form.instructions} maxlength="4000" required disabled={saving}/></label>
+              <label class="wide">Οδηγίες<textarea bind:value={form.instructions} maxlength="4000" rows="5" required disabled={saving}></textarea></label>
               <div class="actions wide"><button type="submit" disabled={saving||loading||!validDrillForm(form)}>Αποθήκευση πρόχειρου</button>
                 {#if editing}<button type="button" disabled={saving} onclick={reset}>Ακύρωση επεξεργασίας</button>{/if}</div>
             </form>
@@ -173,19 +173,20 @@
       {/if}
     </section>
   </AdminFrame>
-{:else}<AdminSessionStatus status={$auth.status}/>{/if}
+{:else}<AdminSessionStatus unavailable={$auth.status==='unavailable'} busy={$auth.busy}
+  error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>{/if}
 <style>
   .library{display:grid;gap:1rem;max-width:1240px;margin:auto}
   h1{font-size:1.65rem;margin:0}h2{font-size:1.1rem;margin:.35rem 0}
   p{overflow-wrap:anywhere}.muted{color:#b9b9b9;font-size:.9rem;margin:0}
   .filters,.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:.75rem;align-items:end}
   label{display:grid;gap:.35rem;font-size:.85rem;color:#ddd}
-  input,select,button{box-sizing:border-box;min-width:0;min-height:42px;border:1px solid #464646;background:#1c1c1c;color:#fff;padding:.5rem .65rem;border-radius:6px;font:inherit}
+  input,select,button,textarea{box-sizing:border-box;min-width:0;min-height:42px;border:1px solid #464646;background:#1c1c1c;color:#fff;padding:.5rem .65rem;border-radius:6px;font:inherit}
   button{cursor:pointer;color:#f6bb38;border-color:#74602e}button:disabled{opacity:.5;cursor:not-allowed}
-  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
   .drill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:.8rem}
   .drill,.editor{background:#151515;border:1px solid #383838;border-radius:8px;padding:1rem;min-width:0}
-  .metadata{font-size:.8rem;color:#f6bb38}.actions{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
+  .drill details p{white-space:pre-wrap}.metadata{font-size:.8rem;color:#f6bb38}.actions{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem}
   summary{cursor:pointer;color:#f6bb38}.wide{grid-column:1/-1}
   [role=alert]{color:#ffb3b3}
 </style>
