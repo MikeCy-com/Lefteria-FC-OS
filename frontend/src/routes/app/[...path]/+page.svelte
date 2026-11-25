@@ -14,6 +14,8 @@
   import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
   import MobileMemberActions from '../../../lib/mobile/components/MobileMemberActions.svelte';
+  import MobileInvitationActions from '../../../lib/mobile/components/MobileInvitationActions.svelte';
+  import {canOpenPrivateChat,privateChatMode} from '../../../lib/mobile/invitation-actions.ts';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import {createNotificationBadgeRefresher} from '../../../lib/mobile/notification-badge.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
@@ -36,10 +38,10 @@
 
   const controller = getContext<MobileAuthController>(MOBILE_AUTH_CONTEXT);
   let composing = $state(false);
-  let chatMode = $state<'groups'|'private'>('groups');
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
   const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
+  const chatMode=$derived(privateChatMode(role,page.url.searchParams.get('chat_mode')));
   const publicDestination = $derived(fanPublicDestination(activeTab, role));
   const brandOwner=$derived(brandOwnerForRole(role,
     $controller.organization?.organization_id??null));
@@ -116,7 +118,11 @@
   }
   $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
   $effect(() => { void role; composing = false; });
-  $effect(() => { void user?.id; void role; chatMode='groups'; });
+  async function openChatMode(mode:'groups'|'private'){
+    if(!role||role==='fan'||(mode==='private'&&!canOpenPrivateChat(role)))return;
+    composing=false;
+    await goto('/app?'+new URLSearchParams({tab:'chat',chat_mode:mode}).toString(),{reset:true});
+  }
 
   async function openTab(tab: MobileTab, childId?: string) {
     composing = false;
@@ -332,6 +338,9 @@
             <p>Οι ομαδικές ανακοινώσεις είναι διαθέσιμες μόνο στα ενεργά
               μέλη ομάδων και Ακαδημίας.</p>
           </section>
+          {#key JSON.stringify([user.id,user.phone,role])}
+            <MobileInvitationActions {controller} {role} onOpen={()=>openTab('profile')}/>
+          {/key}
         {:else if role==='management' &&
             (!$controller.organization?.organization_id ||
              $controller.organization.requires_organization_selection)}
@@ -346,6 +355,9 @@
             <MobileMemberActions {controller} {role}
               onCalendar={childId=>openTab('calendar',childId)}
               onFinancials={()=>openTab('financials')}/>
+            {#if canOpenPrivateChat(role)}
+              <MobileInvitationActions {controller} {role} onOpen={()=>openChatMode('private')}/>
+            {/if}
           {/key}
         {/if}
       {:else if activeTab === 'chat' && role !== 'fan' && !composing}
@@ -355,9 +367,9 @@
           {#if role==='parent'||role==='coach'||role==='management'}
             <div class="chat-mode-tabs" role="group" aria-label="Τύπος συνομιλίας">
               <button type="button" class:current={chatMode==='groups'}
-                aria-pressed={chatMode==='groups'} onclick={()=>{chatMode='groups';}}>Ομάδες</button>
+                aria-pressed={chatMode==='groups'} onclick={()=>void openChatMode('groups')}>Ομάδες</button>
               <button type="button" class:current={chatMode==='private'}
-                aria-pressed={chatMode==='private'} onclick={()=>{chatMode='private';}}>Ιδιωτικά</button>
+                aria-pressed={chatMode==='private'} onclick={()=>void openChatMode('private')}>Ιδιωτικά</button>
             </div>
           {/if}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')+':'+chatMode}
