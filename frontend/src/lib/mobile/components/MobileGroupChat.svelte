@@ -9,8 +9,8 @@
   import type {ChatReaction} from '../chat-actions.ts';
 
   let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
-  let rooms=$state<GroupChatRoom[]>([]);
-  let selected=$state<GroupChatRoom|null>(null);
+  let rooms=$state.raw<GroupChatRoom[]>([]);
+  let selected=$state.raw<GroupChatRoom|null>(null);
   let messages=$state<GroupChatMessage[]>([]);
   let nextOffset=$state<number|null>(null);
   let draft=$state('');
@@ -34,8 +34,10 @@
       ?error.message:'Η υπηρεσία δεν είναι διαθέσιμη.';
   }
   async function refreshRooms(){
+    if(sending||mutationBusy)return;
     const request=++requestNumber;
     directoryBusy=true;messageBusy=false;menuMessage=null;error=null;selected=null;messages=[];nextOffset=null;
+    rooms=[];draft='';sendError=null;
     try{
       const result=await controller.getChatRooms();
       if(!alive||request!==requestNumber)return;
@@ -45,25 +47,28 @@
     finally{if(alive&&request===requestNumber)directoryBusy=false;}
   }
   async function chooseRoom(room:GroupChatRoom){
-    if(sending||mutationBusy)return;
+    if(sending||mutationBusy||directoryBusy||!rooms.includes(room))return;
     menuMessage=null;
     // Invalidate any in-flight read before changing rooms. A response from
     // the previous group must never appear in the newly selected room.
     ++requestNumber;messageBusy=false;
-    selected=room;messages=[];nextOffset=null;error=null;sendError=null;
+    selected=room;messages=[];nextOffset=null;error=null;sendError=null;draft='';
     await loadMessages(false);
   }
   async function loadMessages(more:boolean){
     const room=selected;
-    if(!room||messageBusy||sending||mutationBusy)return;
+    if(!room||messageBusy||sending||mutationBusy||(more&&nextOffset===null))return;
     const request=++requestNumber;
-    messageBusy=true;error=null;
+    messageBusy=true;error=null;menuMessage=null;
+    const offset=more?(nextOffset??0):0;
+    if(!more){messages=[];nextOffset=null;}
     try{
-      const page=await controller.getChatMessages(room,more?(nextOffset??0):0);
+      const page=await controller.getChatMessages(room,offset);
       if(!alive||request!==requestNumber)return;
-      messages=more?[...messages,...page.messages]:page.messages;
-      nextOffset=page.next_offset;
-    }catch(caught){if(alive&&request===requestNumber)error=messageOf(caught);}
+      if(page.next_offset!==null&&page.next_offset<=offset)throw new Error('Μη έγκυρη σελίδα μηνυμάτων.');
+      messages=more?[...new Map([...messages,...page.messages].map(m=>[m.id,m])).values()]:page.messages;
+      nextOffset=page.next_offset!==null&&page.next_offset<=100000?page.next_offset:null;
+    }catch(caught){if(alive&&request===requestNumber){messages=[];nextOffset=null;draft='';error=messageOf(caught);}}
     finally{if(alive&&request===requestNumber)messageBusy=false;}
   }
   async function mutateMessage(target:GroupChatMessage|null,operation:'edit'|'delete',content?:string):Promise<boolean> {
@@ -137,6 +142,7 @@
         acknowledge();
       },
       destroy(){
+        visible=false;
         observer.disconnect();
         document.removeEventListener('visibilitychange',acknowledge);
         window.removeEventListener('focus',acknowledge);
@@ -146,7 +152,7 @@
 
   async function send(){
     const room=selected,body=draft.trim();
-    if(!room||sending||messageBusy||!validTextMessage(body))return;
+    if(!room||sending||messageBusy||mutationBusy||error||!validTextMessage(body))return;
     sending=true;sendError=null;
     try{
       const sent=await controller.sendChatMessage(room,body);
@@ -157,7 +163,7 @@
       const page=await controller.getChatMessages(room,0);
       if(!alive||selected!==room)return;
       messages=page.messages;nextOffset=page.next_offset;
-    }catch(caught){if(alive)sendError=messageOf(caught);}
+    }catch(caught){if(alive&&selected===room){messages=[];nextOffset=null;sendError=messageOf(caught);error='Ανανέωσε τη συνομιλία πριν συνεχίσεις.';}}
     finally{if(alive)sending=false;}
   }
 </script>
@@ -225,8 +231,8 @@
       <form onsubmit={event=>{event.preventDefault();void send();}}>
         <label for="group-message-input">Νέο μήνυμα</label>
         <input id="group-message-input" type="text" bind:value={draft} maxlength="10000"
-          disabled={sending} placeholder="Γράψε μήνυμα στην ομάδα…" />
-        <button class="send" type="submit" disabled={sending||messageBusy||mutationBusy||!validTextMessage(draft.trim())}>
+          disabled={sending||messageBusy||mutationBusy||!!error} placeholder="Γράψε μήνυμα στην ομάδα…" />
+        <button class="send" type="submit" disabled={sending||messageBusy||mutationBusy||!!error||!validTextMessage(draft.trim())}>
           {sending?'Αποστολή…':'Αποστολή'}
         </button>
       </form>
