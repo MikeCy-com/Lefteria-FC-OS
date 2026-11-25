@@ -59,6 +59,9 @@ const entryOperations = [
 // method, path, mandatory parameters and WebAdmin security is rechecked
 // against the immutable contract; new routes must be explicitly reviewed.
 export const reviewedAdminEntries = [
+  ['get','/api/admin/academy/drills'],
+  ['post','/api/admin/academy/drills'],
+  ['put','/api/admin/academy/drills/{drillId}'],
   ['get','/api/admin/academy/training'],
   ['get','/api/admin/academy/training/plans'],
   ['post','/api/admin/academy/training/plans'],
