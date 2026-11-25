@@ -112,7 +112,7 @@
       if(page.next_offset!==null&&page.next_offset<=offset)throw new Error('Μη έγκυρη σελίδα μηνυμάτων.');
       messages=more?[...new Map([...messages,...page.messages].map(m=>[m.id,m])).values()]:page.messages;
       nextOffset=page.next_offset;
-    }catch(e){if(alive&&request===sequence)messageError=fault(e);}
+    }catch(e){if(alive&&request===sequence){messages=[];nextOffset=null;draft='';messageError=fault(e);}}
     finally{if(alive&&request===sequence)messageLoading=false;}
   }
   async function send(){
