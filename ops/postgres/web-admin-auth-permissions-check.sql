@@ -204,6 +204,8 @@ BEGIN
                   'club.read_admin_academy_training_attendance(text,text,text)'::regprocedure,
                   'club.record_admin_academy_training_attendance(text,text,text,text,text,integer)'::regprocedure,
                   'club.read_central_academy_drills(text,text,text,text,text,integer)'::regprocedure,
+                  'club.read_admin_training_drills(text,text,uuid,integer)'::regprocedure,
+                  'club.write_admin_training_drills(text,text,uuid,integer,jsonb)'::regprocedure,
                   'club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text)'::regprocedure,
                   'club.read_admin_academy_training_plans(text,text,text,date,date)'::regprocedure,
                   'club.write_admin_academy_training_plan(text,text,uuid,text,date,time,integer,text,text,text,integer,boolean)'::regprocedure,
