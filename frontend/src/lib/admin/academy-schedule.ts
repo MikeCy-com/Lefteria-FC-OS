@@ -51,3 +51,11 @@ export function academyMonthWindow(month:string):{start:string;end:string}|null{
   last.setUTCMonth(last.getUTCMonth()+1,0);
   return {start:month+'-01',end:last.toISOString().slice(0,10)};
 }
+
+export function academyCoachWeek(now=new Date()):{start:string;end:string}{
+  const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+  const part=(kind:string)=>parts.find(p=>p.type===kind)?.value??'';
+  const start=part('year')+'-'+part('month')+'-'+part('day');
+  const last=new Date(start+'T12:00:00Z');last.setUTCDate(last.getUTCDate()+6);
+  return {start,end:last.toISOString().slice(0,10)};
+}
