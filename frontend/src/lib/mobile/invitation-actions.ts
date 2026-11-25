@@ -1,7 +1,7 @@
 import type {PrivateConversation} from './private-chat.ts';
 import type {MobileRole} from './navigation.ts';
 
-export function canOpenPrivateChat(role:MobileRole|null):boolean {
+export function canOpenPrivateChat(role:unknown):role is 'parent'|'coach'|'management' {
   return role==='parent'||role==='coach'||role==='management';
 }
 export function privateChatMode(role:MobileRole|null,requested:string|null):'groups'|'private' {
