@@ -2,7 +2,7 @@
   import {onMount} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {MobileCalendar} from '../calendar.ts';
-  import {clubToday,formatCalendarDate,CALENDAR_KIND_LABELS} from '../calendar.ts';
+  import {clubToday,formatCalendarDate,CALENDAR_KIND_LABELS,isCalendarKind} from '../calendar.ts';
   import {validParentTrainingFees} from '../finance.ts';
   import {calendarActions,feeActions} from '../member-actions.ts';
 
@@ -105,7 +105,7 @@
           <h4>Ακυρωμένες δραστηριότητες</h4>
           <ul>{#each actions.cancelled as item (item.kind+':'+item.id)}
             <li><strong>{item.title}</strong>
-              <span>{formatCalendarDate(item.date,{day:'numeric',month:'short'})} · {CALENDAR_KIND_LABELS[item.kind]}</span>
+              <span>{formatCalendarDate(item.date,{day:'numeric',month:'short'})} · {isCalendarKind(item.kind)?CALENDAR_KIND_LABELS[item.kind]:'Δραστηριότητα'}</span>
               <span class="cancelled">Ακυρώθηκε</span>
             </li>
           {/each}</ul>
