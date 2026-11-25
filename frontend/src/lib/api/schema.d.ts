@@ -240,6 +240,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/drills/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ApproveAdminTrainingDrillPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans/{planId}/publication-preview": {
         parameters: {
             query?: never;
@@ -3683,6 +3699,12 @@ export interface components {
             code: null | string;
             name: null | string;
         };
+        CompleteTrainingReviewCommand: {
+            confirm_human_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+            member_summary: null | string;
+        };
         Decision: {
             /** Format: uuid */
             id: string;
@@ -5816,6 +5838,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TrainingDrillsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApproveAdminTrainingDrillPlan: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteTrainingReviewCommand"];
             };
         };
         responses: {
