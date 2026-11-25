@@ -21,7 +21,7 @@ import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachS
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
 } from './coach-feedback-composer.ts';
-import {validAppNotificationInbox,type AppNotificationInbox} from './notification-inbox.ts';
+import {validAppNotificationInbox,validNotificationUnreadSummary,type NotificationUnreadSummary,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
 import {validAppAnnouncementPage,validAppAnnouncementReactionSnapshot,
   validAppAnnouncementMedia,validAppAnnouncementMediaDownload,
@@ -1853,6 +1853,16 @@ export function createMobileAuthController(options: {
           state.organization?.requires_organization_selection)))
         throw new Error('Unverified private invitation response.');
       return pendingPrivateInvitations(result.conversations,identity.role,owner);
+    },
+    async getNotificationUnreadSummary():Promise<NotificationUnreadSummary> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      if(!identity)throw new Error('Notification scope required.');
+      const result=await chatRequest('/api/mobile/app/notifications/unread-summary');
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validNotificationUnreadSummary(result,canOpenPrivateChat(identity.role)))
+        throw new Error('Unverified notification summary.');
+      return result;
     },
     async getAppNotificationInbox(offset=0):Promise<AppNotificationInbox> {
       if(!Number.isSafeInteger(offset)||offset<0||offset>100000)
