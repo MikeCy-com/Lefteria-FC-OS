@@ -12,7 +12,9 @@ DECLARE
   g text:='ci_drill_'||left(replace(gen_random_uuid()::text,'-',''),14);
   p uuid:=gen_random_uuid();d uuid:=gen_random_uuid();e uuid:=gen_random_uuid();
   day date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+3;
-  r jsonb;items jsonb;
+  r jsonb;items jsonb;event_id text;
+  player text:='ci_review_'||left(replace(gen_random_uuid()::text,'-',''),14);
+  summary constant text:=E'Passing and warm-up\nBring water';
 BEGIN
   INSERT INTO club.football_cities(id,name,slug) VALUES
     (ca,'CI Builder A','ci-builder-a-'||left(ca::text,8)),(cb,'CI Builder B','ci-builder-b-'||left(cb::text,8));
@@ -87,9 +89,72 @@ BEGIN
     PERFORM club.write_admin_training_drills(da,g,p,4,items);
     RAISE EXCEPTION 'archived_catalogue_reattached';
   EXCEPTION WHEN unique_violation THEN NULL; END;
+  -- Complete review of the new exact version, using only explicit
+  -- member-safe text. The original schedule-only route stays blocked.
+  r:=club.write_admin_training_drills(da,g,p,4,jsonb_build_array(items->1));
+  IF (r->>'version')::int<>5 THEN RAISE EXCEPTION 'review_setup_version_wrong'; END IF;
+  BEGIN
+    PERFORM club.approve_admin_training_drill_plan(db,g,p,5,summary,true);
+    RAISE EXCEPTION 'foreign_complete_review_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.approve_admin_training_drill_plan(da,g,p,5,summary,false);
+    RAISE EXCEPTION 'unconfirmed_complete_review_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM club.approve_admin_training_drill_plan(da,g,p,4,summary,true);
+    RAISE EXCEPTION 'stale_complete_review_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  r:=club.approve_admin_training_drill_plan(da,g,p,5,summary,true);
+  IF r->>'published'<>'false' OR r->>'member_summary'<>summary OR
+    NOT EXISTS(SELECT 1 FROM club.academy_training_plan_approvals
+      WHERE plan_id=p AND plan_version=5 AND plan_snapshot->>'review_kind'='complete_drill_plan'
+        AND plan_snapshot->'drill_snapshots'->0->>'instructions'='Jog safely')
+    THEN RAISE EXCEPTION 'complete_review_snapshot_missing'; END IF;
+  INSERT INTO club.roster_import_state(id,digest,source_repository,source_commit,environment,
+    teams_count,academy_groups_count,players_count,memberships_count,applied_at)
+    VALUES('initial',repeat('a',64),'MikeCy-com/Lefteria-FC',repeat('a',40),'development',0,1,1,0,clock_timestamp());
+  INSERT INTO club.players(id,organization_id,name,number,position,team_type,team_id,primary_academy_group_id,image_url,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+    VALUES(player,owner,'Synthetic member',17,'Midfielder','Academy',NULL,g,NULL,true,false,false,true);
+  INSERT INTO club.calendar_import_state(id,digest,roster_digest,source_commit,environment,time_zone,is_complete,
+    exported_at,applied_at,counts_json,manifest_bytes)
+    VALUES('initial',repeat('c',64),repeat('a',64),repeat('b',40),'development','Asia/Nicosia',true,
+      clock_timestamp(),clock_timestamp(),'{"quarantined_rows":0}'::jsonb,decode('7b7d','hex'));
+  BEGIN
+    PERFORM club.preview_admin_academy_training_distribution(db,owner,p,5);
+    RAISE EXCEPTION 'foreign_complete_preview_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  r:=club.preview_admin_academy_training_distribution(da,owner,p,5);
+  IF r->>'member_summary'<>summary OR r ? 'drill_snapshots' OR r ? 'notes' OR (r->>'eligible_player_count')::int<>1
+    THEN RAISE EXCEPTION 'unsafe_complete_preview'; END IF;
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(db,owner,p,5,true);
+    RAISE EXCEPTION 'foreign_complete_publication_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  r:=club.publish_admin_academy_training_plan(da,owner,p,5,true);
+  event_id:=r->>'event_id';
+  IF r->>'published'<>'true' OR NOT EXISTS(
+    SELECT 1 FROM club.calendar_items c JOIN club.calendar_item_scopes s ON s.kind=c.kind AND s.event_id=c.id
+    WHERE c.id=event_id AND c.organization_id=owner AND s.record_id=g AND s.scope_kind='group'
+      AND c.member_projection_json->>'summary'=summary
+      AND NOT (c.member_projection_json ?| ARRAY['notes','drill_snapshots','instructions','review_kind'])
+      AND position('Jog safely' in c.member_projection_json::text)=0)
+    THEN RAISE EXCEPTION 'unsafe_complete_publication'; END IF;
+  IF NOT club.os_native_training_primary_member(owner,event_id,player)
+    THEN RAISE EXCEPTION 'native_member_scope_missing'; END IF;
+  BEGIN
+    PERFORM club.write_admin_training_drills(da,g,p,5,'[]'::jsonb);
+    RAISE EXCEPTION 'published_sequence_edit_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(db,owner,p,5,'Synthetic cancellation',true);
+    RAISE EXCEPTION 'foreign_complete_cancel_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  PERFORM club.cancel_admin_academy_training_publication(da,owner,p,5,'Synthetic cancellation',true);
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp() WHERE token_digest=da;
   BEGIN
-    PERFORM club.read_admin_training_drills(da,g,p,4);
+    PERFORM club.read_admin_training_drills(da,g,p,5);
     RAISE EXCEPTION 'revoked_access_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 END $verify$;
