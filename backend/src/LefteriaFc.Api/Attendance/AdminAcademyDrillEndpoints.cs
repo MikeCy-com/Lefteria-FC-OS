@@ -17,6 +17,12 @@ public static class AdminAcademyDrillEndpoints
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record DrillProposalCommand(string Title,string Category,string AgeBand,int DurationMinutes,string Objective,string Instructions);
 
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record LinkedDrillProposalCommand(Guid BaseDrillId,int BaseVersion,string ProposalKind,string Difficulty,
+        string Title,string Category,string AgeBand,int DurationMinutes,string Objective,string Instructions);
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record ApplyDrillRevisionCommand(int ExpectedVersion,int BaseVersion,bool ConfirmReview);
+
     public static IEndpointRouteBuilder MapAdminAcademyDrills(this IEndpointRouteBuilder endpoints)
     {
         var group=endpoints.MapGroup("/api/admin/academy/drills")
@@ -89,6 +95,44 @@ public static class AdminAcademyDrillEndpoints
             command.Parameters.AddWithValue("instructions",body.Instructions);
             return await Run(command,ct,201);
         }).WithName("SubmitCoachDrillProposal").Accepts<DrillProposalCommand>("application/json");
+        group.MapPost("/proposals/linked",async (LinkedDrillProposalCommand body,WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,false,ct);
+            if(context.Request.Query.Count!=0||body.BaseDrillId==Guid.Empty||body.BaseVersion is <1 or >10000||
+              body.ProposalKind is not ("revision" or "variant")||body.Difficulty is not ("beginner" or "intermediate" or "advanced")||
+              body.Title is null||body.Category is null||body.AgeBand is null||body.Objective is null||body.Instructions is null)
+                throw new WebAdminException(422,"invalid_linked_drill_proposal","Select the exact approved source version and difficulty.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.submit_linked_coach_drill_proposal(@digest,@id,@base,@baseVersion,@kind,@difficulty,@title,@category,@age,@duration,@objective,@instructions)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("id",Guid.NewGuid());
+            command.Parameters.AddWithValue("base",body.BaseDrillId);
+            command.Parameters.AddWithValue("baseVersion",body.BaseVersion);
+            command.Parameters.AddWithValue("kind",body.ProposalKind);
+            command.Parameters.AddWithValue("difficulty",body.Difficulty);
+            command.Parameters.AddWithValue("title",body.Title);
+            command.Parameters.AddWithValue("category",body.Category);
+            command.Parameters.AddWithValue("age",body.AgeBand);
+            command.Parameters.AddWithValue("duration",body.DurationMinutes);
+            command.Parameters.AddWithValue("objective",body.Objective);
+            command.Parameters.AddWithValue("instructions",body.Instructions);
+            return await Run(command,ct,201);
+        }).WithName("SubmitLinkedCoachDrillProposal").Accepts<LinkedDrillProposalCommand>("application/json");
+        group.MapPost("/proposals/{drillId:guid}/apply-revision",async (Guid drillId,ApplyDrillRevisionCommand body,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,true,ct);
+            if(drillId==Guid.Empty||context.Request.Query.Count!=0||body.ExpectedVersion is <1 or >9999||body.BaseVersion is <1 or >9999||!body.ConfirmReview)
+                throw new WebAdminException(422,"invalid_drill_revision_review","Confirm the proposed version and exact base version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("SELECT club.apply_coach_drill_revision(@digest,@id,@expected,@baseVersion)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("id",drillId);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            command.Parameters.AddWithValue("baseVersion",body.BaseVersion);
+            return await Run(command,ct);
+        }).WithName("ApplyCoachDrillRevision").Accepts<ApplyDrillRevisionCommand>("application/json");
         return endpoints;
     }
 
