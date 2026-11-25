@@ -30,7 +30,7 @@
   let loadingSessions=$state(false);
   let error=$state('');
   let refresh=$state(0);
-  const window=$derived(coachMode?(refresh,academyCoachWeek()):academyMonthWindow(month));
+  const window=$derived.by(()=>{if(coachMode){void refresh;return academyCoachWeek();}return academyMonthWindow(month);});
   const upcoming=$derived(sessions?upcomingAcademySessions(sessions,
     new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):[]);
 
