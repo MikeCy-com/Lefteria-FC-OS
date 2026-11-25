@@ -403,7 +403,7 @@ public static class AdminAcademyTrainingPlanEndpoints
     private static TimeOnly Validate(TrainingPlanCommand body,bool create)
     {
         if(!ValidId(body.GroupId) ||
-            body.DurationMinutes is <15 or >240 ||
+            body.DurationMinutes is <20 or >240 ||
             body.Title is not { Length: >=1 and <=180 } ||
             body.Title!=body.Title.Trim() || body.Title.Any(char.IsControl) ||
             body.Location is null || body.Location.Length>200 ||
