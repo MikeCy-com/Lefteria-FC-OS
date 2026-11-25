@@ -10,6 +10,20 @@ public static class MobileAppAnnouncementEndpoints
 {
     public static IEndpointRouteBuilder MapMobileAppAnnouncements(this IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/mobile/app/notifications/activity",(
+                string? kind,string? offset,HttpContext context,PostgresMobileGroupChatStore store,
+                CancellationToken token)=>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                return MobileIdentityEndpoints.Execute(
+                    ()=>store.NotificationActivityAsync(MobilePrincipal.Read(context.User),
+                        ParseKind(context,kind),ParseOffset(context,offset),token),context);
+            })
+            .RequireAuthorization(IdentityServices.Policy)
+            .WithTags("Mobile app notifications")
+            .WithName("GetMobileNotificationActivity")
+            .Produces<MobileNotificationActivityPageDto>().WithMobileErrors();
+
         app.MapGet("/api/mobile/app/notifications/unread-summary",(
                 HttpContext context,PostgresMobileGroupChatStore store,CancellationToken token)=>
             {
@@ -84,6 +98,15 @@ public static class MobileAppAnnouncementEndpoints
             .Produces<AppAnnouncementMediaDownloadDto>().WithMobileErrors();
         return app;
     }
+    private static string ParseKind(HttpContext context,string? raw)
+    {
+        if(context.Request.Query["kind"].Count>1 ||
+            (raw is not null && raw is not ("all" or "announcement" or "group_message" or "private_message")))
+            throw new MobileAuthException(MobileAuthFaultKind.Validation,
+                MobileAuthErrorCode.InvalidInput,"Invalid notification activity filter.");
+        return raw??"all";
+    }
+
     private static int ParseOffset(HttpContext context,string? raw)
     {
         if(context.Request.Query["offset"].Count>1||
