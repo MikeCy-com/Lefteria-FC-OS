@@ -13,11 +13,11 @@ export interface Drill extends DrillForm {
 export type DrillPage={organization_id:'lefteria_fc_academy';drills:Drill[];next_offset:number|null};
 const rec=(x:unknown):x is Record<string,unknown>=>x!==null&&typeof x==='object'&&!Array.isArray(x);
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const text=(x:unknown,max:number)=>typeof x==='string'&&x.length>=1&&x.length<=max&&x===x.trim()&&!/[\x00-\x1f\x7f-\x9f]/.test(x);
+const text=(x:unknown,max:number,multiline=false)=>typeof x==='string'&&x.length>=1&&x.length<=max&&x===x.trim()&&!/[\x00-\x1f\x7f-\x9f]/.test(multiline?x.replaceAll('\n',''):x);
 export function validDrillForm(x:unknown):x is DrillForm {
   return rec(x)&&text(x.title,180)&&drillCategories.some(v=>v===x.category)&&drillAges.some(v=>v===x.age_band)&&
     Number.isSafeInteger(x.duration_minutes)&&(x.duration_minutes as number)>=1&&(x.duration_minutes as number)<=120&&
-    text(x.objective,1000)&&text(x.instructions,4000);
+    text(x.objective,1000)&&text(x.instructions,4000,true);
 }
 export function validDrill(x:unknown):x is Drill {
   if(!rec(x)||!validDrillForm(x))return false;
