@@ -15,6 +15,7 @@
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
   import MobileMemberActions from '../../../lib/mobile/components/MobileMemberActions.svelte';
   import MobileInvitationActions from '../../../lib/mobile/components/MobileInvitationActions.svelte';
+  import MobileGroupUnreadActions from '../../../lib/mobile/components/MobileGroupUnreadActions.svelte';
   import {canOpenPrivateChat,privateChatMode} from '../../../lib/mobile/invitation-actions.ts';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
   import {createNotificationBadgeRefresher} from '../../../lib/mobile/notification-badge.ts';
@@ -352,6 +353,7 @@
               scopeKey={notificationScope}
               onUnreadChange={acceptInboxCount}
               onOpen={openNotification}/>
+            <MobileGroupUnreadActions {controller} onOpen={()=>openChatMode('groups')}/>
             <MobileMemberActions {controller} {role}
               onCalendar={childId=>openTab('calendar',childId)}
               onFinancials={()=>openTab('financials')}/>
