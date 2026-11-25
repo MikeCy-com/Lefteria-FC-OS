@@ -667,3 +667,14 @@ END
 $ddl_guard$;
 \ir public-sections-app-grants.sql
 COMMIT;
+
+-- Private receipt data is never available through direct runtime reads.
+REVOKE ALL ON TABLE club.app_private_read_receipts FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.ack_mobile_private_read(
+  uuid,text,text,timestamptz,uuid,uuid,bigint) FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_private_unread_summary(
+  uuid,text,text,timestamptz) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.ack_mobile_private_read(
+  uuid,text,text,timestamptz,uuid,uuid,bigint) TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_private_unread_summary(
+  uuid,text,text,timestamptz) TO :"app_role";
