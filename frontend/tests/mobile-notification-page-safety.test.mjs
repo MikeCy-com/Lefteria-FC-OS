@@ -40,7 +40,7 @@ const route=readFileSync(new URL('../src/routes/app/[...path]/+page.svelte',impo
 test('notification shell and inbox have one count owner and scope-bound responses',()=>{
   compile(feed,{filename:'MobileAppAnnouncements.svelte',generate:'client'});
   compile(route,{filename:'+page.svelte',generate:'client'});
-  assert.match(route,/if\(!browser\|\|!scope\|\|owned\)return/);
+  assert.match(route,/if\(!browser\|\|!scope\)return/);
   assert.match(route,/notificationScope===scope&&document.visibilityState==='visible'/);
   assert.match(route,/if\(scope&&scope===notificationScope\)refreshNotificationBadge\(\)/);
   assert.match(route,/onReadConfirmed=\{\(\)=>refreshNotificationBadge\(\)\}/);
