@@ -14,6 +14,7 @@
   import MobileAppAnnouncements from '../../../lib/mobile/components/MobileAppAnnouncements.svelte';
   import MobileAppNotificationInbox from '../../../lib/mobile/components/MobileAppNotificationInbox.svelte';
   import type {AppNotification} from '../../../lib/mobile/notification-inbox.ts';
+  import {createNotificationBadgeRefresher} from '../../../lib/mobile/notification-badge.ts';
   import MobileFamily from '../../../lib/mobile/components/MobileFamily.svelte';
   import MobileParentHome from '../../../lib/mobile/components/MobileParentHome.svelte';
   import MobileRoleHome from '../../../lib/mobile/components/MobileRoleHome.svelte';
@@ -68,22 +69,44 @@
     (brandOwner==='lefteria_fc_academy'?'ΛΕΥΤΕΡΙΑ FC ACADEMY':'ΛΕΥΤΕΡΙΑ FC'));
 
   let notificationCount=$state(0);
+  const notificationScope=$derived(
+    $controller.status==='authenticated'&&user?.current_role_available&&role&&role!=='fan'&&
+    (role!=='management'||($controller.organization?.organization_id&&
+      !$controller.organization.requires_organization_selection))
+      ?JSON.stringify([user.id,role,role==='management'?$controller.organization?.organization_id:null])
+      :null);
+  const inboxOwnsCount=$derived(activeTab==='notifications'&&!composing);
+  let refreshNotificationBadge:()=>void=()=>{};
   $effect(()=>{
-    const id=user?.id,currentRole=role,currentTab=activeTab,
-      managementOwner=$controller.organization?.organization_id,
-      hasSelection=$controller.organization?.requires_organization_selection;
-    void currentTab;void managementOwner;
-    if(!browser||!id||!currentRole||currentRole==='fan'||
-      !user?.current_role_available||(currentRole==='management'&&hasSelection)){
-      notificationCount=0;return;
-    }
-    let valid=true;
-    void controller.getAppNotificationInbox().then(result=>{
-      if(valid&&user?.id===id&&role===currentRole)
-        notificationCount=result.unread_count;
-    }).catch(()=>{if(valid)notificationCount=0;});
-    return()=>{valid=false;};
+    const scope=notificationScope,tab=activeTab,owned=inboxOwnsCount;
+    void tab;
+    notificationCount=0;
+    refreshNotificationBadge=()=>{};
+    if(!browser||!scope||owned)return;
+    const badge=createNotificationBadgeRefresher(
+      async()=>(await controller.getAppNotificationInbox()).unread_count,
+      count=>{if(notificationScope===scope&&!inboxOwnsCount)notificationCount=count;});
+    const refresh=()=>{
+      if(notificationScope===scope&&!inboxOwnsCount&&document.visibilityState==='visible')
+        void badge.refresh();
+    };
+    refreshNotificationBadge=refresh;
+    refresh();
+    document.addEventListener('visibilitychange',refresh);
+    window.addEventListener('focus',refresh);
+    // Foreground refresh only; no provider/device push or persistent timer.
+    const timer=window.setInterval(refresh,60000);
+    return()=>{
+      badge.dispose();
+      document.removeEventListener('visibilitychange',refresh);
+      window.removeEventListener('focus',refresh);
+      window.clearInterval(timer);
+    };
   });
+  function acceptInboxCount(scope:string|null,count:number){
+    if(scope&&scope===notificationScope&&inboxOwnsCount)
+      notificationCount=count;
+  }
   async function openNotification(notice:AppNotification){
     const query=new URLSearchParams({tab:'announcements',
       organization_id:notice.organization_id,
@@ -292,10 +315,13 @@
           </section>
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
+            {#key JSON.stringify([page.url.searchParams.get('organization_id'),page.url.searchParams.get('group'),page.url.searchParams.get('notice')])}
             <MobileAppAnnouncements {controller}
+              onReadConfirmed={()=>refreshNotificationBadge()}
               initialOrganization={page.url.searchParams.get('organization_id')}
               initialGroup={page.url.searchParams.get('group')}
               initialAnnouncementId={page.url.searchParams.get('notice')}/>
+            {/key}
           {/key}
         {/if}
       {:else if activeTab === 'notifications' && !composing}
@@ -313,7 +339,8 @@
         {:else}
           {#key user.id+':'+role+':'+(role==='management'?$controller.organization?.organization_id:'')}
             <MobileAppNotificationInbox {controller}
-              onUnreadChange={count=>notificationCount=count}
+              scopeKey={notificationScope}
+              onUnreadChange={acceptInboxCount}
               onOpen={openNotification}/>
           {/key}
         {/if}
