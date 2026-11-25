@@ -2703,12 +2703,12 @@
           }
         },
         "required": [
-          "age_band",
+          "title",
           "category",
+          "age_band",
           "duration_minutes",
-          "instructions",
           "objective",
-          "title"
+          "instructions"
         ],
         "type": "object"
       },
@@ -3351,16 +3351,16 @@
           }
         },
         "required": [
-          "age_band",
-          "category",
-          "duration_minutes",
-          "instructions",
-          "objective",
-          "title",
           "base_drill_id",
           "base_version",
           "proposal_kind",
-          "difficulty"
+          "difficulty",
+          "title",
+          "category",
+          "age_band",
+          "duration_minutes",
+          "objective",
+          "instructions"
         ],
         "type": "object"
       },
