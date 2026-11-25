@@ -21,7 +21,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
     ['pages', '/admin/website-pages'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['drills', '/admin/drills'], ['territories', '/admin/territories'], ['club', '/admin/club'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   const planned = modules(all).filter(module => module.status === 'planned');
-  assert.ok(planned.length >= 10, 'remaining placeholder modules are explicitly planned');
+  assert.deepEqual(planned.map(module => module.id), ['social','messages','app_notifications','app_media','campaigns','charges','reports','schedule','organization']);
   assert.ok(!planned.some(module => module.id === 'sponsors'), 'verified sponsor editorial module is no longer a placeholder');
   assert.ok(planned.some(module => module.id === 'social'));
   for(const item of modules(all)) {
