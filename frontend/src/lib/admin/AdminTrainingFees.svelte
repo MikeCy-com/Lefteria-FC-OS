@@ -3,7 +3,8 @@
 
   type Fee={
     id:string;player_id:string;child_name:string;fee_month:string;amount_cents:number;
-    currency:'EUR';status:'issued'|'paid'|'review_required';payer_email:string;
+    currency:'EUR';status:'issued'|'paid'|'review_required'|'cancelled';payer_email:string;
+    cancelled_at:string|null;cancel_reason:string|null;
     payer_first_name:string;payer_last_name:string;
     payment_request_id:string|null;payment_status:string;checkout_url:string|null;
     sms_status:'reserved'|'accepted'|'unknown'|null;
@@ -37,6 +38,16 @@
   let attemptIds=$state<Record<string,string>>({});
   let cashIds=$state<Record<string,string>>({});
   let cashBusy=$state<string|null>(null);
+  let cancellationDraft=$state<string|null>(null);
+  let cancellationReason=$state('');
+  let cancelling=$state<string|null>(null);
+  let cancellationRequestIds=$state<Record<string,string>>({});
+  // Eligibility is also checked transactionally in PostgreSQL. This
+  // client-side hint never grants permission or authorizes cancellation.
+  const localNow=new Intl.DateTimeFormat('en-GB',
+    {timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+  const currentFeeMonth=(localNow.find(p=>p.type==='year')?.value??'')+'-'+
+    (localNow.find(p=>p.type==='month')?.value??'')+'-01';
   let downloading=$state(false);
   let selectedInvoiceIds=$state<string[]>([]);
 
@@ -55,7 +66,9 @@
       typeof f.fee_month==='string'&&/^20\d{2}-(0[1-9]|1[0-2])-01$/.test(f.fee_month)&&
       typeof f.amount_cents==='number'&&Number.isSafeInteger(f.amount_cents)&&f.amount_cents>0&&
       f.amount_cents<=100000000&&f.currency==='EUR'&&
-      (f.status==='issued'||f.status==='paid'||f.status==='review_required')&&
+      (f.status==='issued'||f.status==='paid'||f.status==='review_required'||f.status==='cancelled')&&
+       (f.cancelled_at===null || typeof f.cancelled_at==='string')&&
+       (f.cancel_reason===null || typeof f.cancel_reason==='string')&&
       typeof f.payer_email==='string'&&typeof f.payer_first_name==='string'&&
       typeof f.payer_last_name==='string'&&typeof f.payment_status==='string'&&
       (f.payment_request_id===null||typeof f.payment_request_id==='string')&&
@@ -218,6 +231,41 @@
     }finally{cashBusy=null;}
   }
 
+
+  function canCancelFuture(fee:Fee):boolean {
+    return canWrite && fee.status==='issued' && fee.payment_request_id===null &&
+      fee.sms_status===null && fee.fee_month>currentFeeMonth;
+  }
+
+  async function cancelFuture(fee:Fee) {
+    const reason=cancellationReason.trim();
+    if(!canCancelFuture(fee)||cancelling||pending||reason.length<8||
+       reason.length>240||/[\x00-\x1f\x7f]/.test(reason)) {
+      message='Συμπληρώστε συγκεκριμένη αιτιολογία 8–240 χαρακτήρων.';
+      return;
+    }
+    if(!window.confirm('Ακύρωση ΜΟΝΟ της μελλοντικής, ανεξόφλητης χρέωσης '+fee.fee_month.slice(0,7)+
+      ' για '+fee.child_name+'; Θα διατηρηθεί στο ιστορικό, χωρίς διαγραφή εισπράξεων;'))return;
+    cancelling=fee.id;message='';
+    cancellationRequestIds[fee.id]??=crypto.randomUUID();
+    try {
+      const result=await post('/api/admin/finance/payabl/training-fees/'+fee.id+
+        '/cancel?organization_id=lefteria_fc_academy',{
+          client_request_id:cancellationRequestIds[fee.id],reason
+        });
+      if(result.id!==fee.id||result.status!=='cancelled')
+        throw new Error('Η ακύρωση δεν επαληθεύτηκε.');
+      delete cancellationRequestIds[fee.id];
+      cancellationDraft=null;cancellationReason='';
+      selectedInvoiceIds=selectedInvoiceIds.filter(id=>id!==fee.id);
+      message=result.replay===true?'Η ακύρωση είχε ήδη καταχωριστεί.':
+        'Η μελλοντική χρέωση ακυρώθηκε. Το ιστορικό και οι εισπράξεις δεν διαγράφηκαν.';
+      refresh+=1;
+    }catch(error){
+      message=error instanceof Error?error.message:'Απαιτείται οικονομικός έλεγχος πριν την ακύρωση.';
+    }finally{cancelling=null;}
+  }
+
   async function downloadInvoice(ids:string[]) {
     if(downloading||owner!=='lefteria_fc_academy'||ids.length<1||ids.length>20||
       ids.some(id=>!/^[0-9a-f-]{36}$/i.test(id)))return;
@@ -273,6 +321,8 @@
         <a href="/admin/finance?organization_id=lefteria_fc_academy">Όλες οι χρεώσεις της Ακαδημίας ↗</a>
       </div>
     {/if}
+    <p>Οι ακυρωμένες μελλοντικές χρεώσεις παραμένουν στο ιστορικό, δεν
+      υπολογίζονται ως ενεργές οφειλές και δεν επηρεάζουν τις εισπράξεις.</p>
     <p>Εκδίδετε μόνο τους μήνες που επιλέγετε. Δεν δημιουργούνται αυτόματα 12 χρεώσεις.
       Κάθε μήνας αντιστοιχίζεται στον επαληθευμένο γονέα και στο συγκεκριμένο παιδί.</p>
     {#if canWrite}
@@ -318,7 +368,7 @@
           <li>
             <label class="fee-choice"><input type="checkbox"
               checked={selectedInvoiceIds.includes(fee.id)}
-              disabled={downloading||(!selectedInvoiceIds.includes(fee.id)&&selectedInvoiceIds.length>=20)}
+              disabled={downloading||fee.status==='cancelled'||(!selectedInvoiceIds.includes(fee.id)&&selectedInvoiceIds.length>=20)}
               onchange={event=>{
                 selectedInvoiceIds=event.currentTarget.checked
                   ? [...selectedInvoiceIds,fee.id]
@@ -328,14 +378,44 @@
               <small>ID: {fee.player_id}</small>
               <span>{money(fee.amount_cents)} · {fee.status==='paid'?'Εξοφλημένο':
                 fee.status==='review_required'?'Χρειάζεται συμφωνία':
+                fee.status==='cancelled'?'Ακυρωμένη · δεν είναι οφειλή':
                 fee.payment_status==='awaiting_settlement'?'Αναμονή εκκαθάρισης':
                 fee.payment_status==='ready'?'Έτοιμο για πληρωμή':'Οφειλή'}</span>
               <small>Πληρωτής: {fee.payer_email}</small>
+              {#if fee.status==='cancelled'}
+                <small data-testid="admin-fee-cancellation-audit">
+                  Αιτιολογία: {fee.cancel_reason ?? 'Δεν υπάρχει'} ·
+                  Καταχώριση: {fee.cancelled_at ? new Date(fee.cancelled_at).toLocaleDateString('el-CY') : '—'}
+                </small>
+              {/if}
             </div>
             <div class="fee-actions">
-              <button type="button" class="fee-pdf" disabled={downloading}
+              <button type="button" class="fee-pdf" disabled={downloading||fee.status==='cancelled'}
                 onclick={()=>void downloadInvoice([fee.id])}
                 data-testid="admin-download-invoice">Λήψη PDF παραστατικού</button>
+              {#if canCancelFuture(fee)}
+                {#if cancellationDraft===fee.id}
+                  <div class="fee-cancel-editor" data-testid="admin-fee-cancel-editor">
+                    <label for={'future-fee-cancel-'+fee.id}>Αιτιολογία ακύρωσης</label>
+                    <textarea id={'future-fee-cancel-'+fee.id} bind:value={cancellationReason}
+                      maxlength="240" rows="3" placeholder="Π.χ. Αποχώρηση αθλητή από την Ακαδημία"></textarea>
+                    <p>Ακυρώνει μόνο τον συγκεκριμένο μελλοντικό μήνα. Δεν διαγράφει ιστορικό και δεν επιστρέφει χρήματα.</p>
+                    <button type="button" disabled={cancelling!==null||pending||
+                        cancellationReason.trim().length<8}
+                      onclick={()=>void cancelFuture(fee)}>
+                      {cancelling===fee.id?'Ακύρωση…':'Επιβεβαίωση ακύρωσης'}
+                    </button>
+                    <button type="button" class="admin-secondary" disabled={cancelling!==null}
+                      onclick={()=>{cancellationDraft=null;cancellationReason='';}}>Επιστροφή</button>
+                  </div>
+                {:else}
+                  <button type="button" class="admin-secondary"
+                    data-testid="admin-cancel-future-fee" disabled={cancelling!==null||pending}
+                    onclick={()=>{cancellationDraft=fee.id;cancellationReason='';}}>
+                    Ακύρωση μελλοντικής χρέωσης
+                  </button>
+                {/if}
+              {/if}
               {#if fee.status==='issued'&&fee.payment_request_id===null&&canWrite}
                 <button type="button" disabled={cashBusy!==null||pending}
                   data-testid="admin-record-cash"
@@ -402,5 +482,10 @@
   .fee-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
   .fee-actions a{font-weight:700}
   .fee-choice input{width:17px;height:17px;cursor:pointer}
+  .fee-cancel-editor{display:grid;gap:8px;border:1px solid var(--border-color,#827553);
+    border-radius:9px;padding:12px;max-width:25rem}
+  .fee-cancel-editor textarea{min-height:88px;background:var(--surface,#171a1c);
+    color:inherit;border:1px solid var(--border-color,#777);border-radius:7px;padding:10px}
+  .fee-cancel-editor p{font-size:12px;margin:0}
   .fee-pdf{background:transparent;color:inherit}
 </style>

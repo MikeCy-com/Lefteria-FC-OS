@@ -37,7 +37,7 @@ test('all active Lefteria FC screens and backend visuals use the new gold', () =
   const admin = readFileSync(join(frontend, 'lib/admin/admin.css'), 'utf8');
   const mobile = readFileSync(join(frontend, 'lib/mobile/components/mobile-theme.css'), 'utf8');
   for (const [name, source, token] of [
-    ['public', css, '--public-gold:#f6bb38'],
+    ['public', css, '--public-gold:var(--lf-color-accent,#f6bb38)'],
     ['admin', admin, '--admin-gold:#f6bb38'],
     ['mobile', mobile, '--lf-gold: #f6bb38']
   ]) assert.ok(source.includes(token), name + ' gold token is missing');

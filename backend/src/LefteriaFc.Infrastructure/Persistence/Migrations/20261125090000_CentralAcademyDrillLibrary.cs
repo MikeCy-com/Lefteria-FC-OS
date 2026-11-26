@@ -18,7 +18,7 @@ public sealed class CentralAcademyDrillLibrary : Migration
         age_band text NOT NULL CHECK(age_band IN ('all','u6-u8','u9-u11','u12-u14','u15-u18','adult')),
         duration_minutes integer NOT NULL CHECK(duration_minutes BETWEEN 1 AND 120),
         objective text NOT NULL CHECK(length(objective) BETWEEN 1 AND 1000 AND objective=btrim(objective) AND objective !~ '[[:cntrl:]]'),
-        instructions text NOT NULL CHECK(length(instructions) BETWEEN 1 AND 4000 AND instructions=btrim(instructions,E' \\n') AND replace(instructions,chr(10),'') !~ '[[:cntrl:]]'),
+        instructions text NOT NULL CHECK(length(instructions) BETWEEN 1 AND 4000 AND instructions=btrim(instructions,' '||chr(10)) AND replace(instructions,chr(10),'') !~ '[[:cntrl:]]'),
         status text NOT NULL CHECK(status IN ('draft','approved','archived')),
         version integer NOT NULL CHECK(version BETWEEN 1 AND 10000)
       );
@@ -118,7 +118,7 @@ public sealed class CentralAcademyDrillLibrary : Migration
             OR _age IS NULL OR _age NOT IN ('all','u6-u8','u9-u11','u12-u14','u15-u18','adult')
             OR _duration IS NULL OR _duration NOT BETWEEN 1 AND 120
             OR _objective IS NULL OR length(_objective) NOT BETWEEN 1 AND 1000 OR _objective<>btrim(_objective) OR _objective ~ '[[:cntrl:]]'
-            OR _instructions IS NULL OR length(_instructions) NOT BETWEEN 1 AND 4000 OR _instructions<>btrim(_instructions,E' \\n') OR replace(_instructions,chr(10),'') ~ '[[:cntrl:]]'
+            OR _instructions IS NULL OR length(_instructions) NOT BETWEEN 1 AND 4000 OR _instructions<>btrim(_instructions,' '||chr(10)) OR replace(_instructions,chr(10),'') ~ '[[:cntrl:]]'
           THEN RAISE EXCEPTION 'drill_content_invalid' USING ERRCODE='22023'; END IF;
         ELSE
           IF _title IS NOT NULL OR _category IS NOT NULL OR _age IS NOT NULL OR _duration IS NOT NULL

@@ -4121,6 +4121,26 @@
         ],
         "type": "object"
       },
+      "MobileChatUnreadSummaryDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "unread_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "unread_count",
+          "enabled"
+        ],
+        "type": "object"
+      },
       "MobileFanHubCheckout": {
         "properties": {
           "amount_cents": {
@@ -4840,6 +4860,128 @@
         ],
         "type": "object"
       },
+      "MobileNotificationActivityDto": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "group_name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "entity_id",
+          "organization_id",
+          "group_id",
+          "conversation_id",
+          "occurred_at",
+          "title",
+          "group_name"
+        ],
+        "type": "object"
+      },
+      "MobileNotificationActivityPageDto": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/MobileNotificationActivityDto"
+            },
+            "type": "array"
+          },
+          "next_offset": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_offset"
+        ],
+        "type": "object"
+      },
+      "MobileNotificationDestinationDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "unread_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "unread_count",
+          "enabled"
+        ],
+        "type": "object"
+      },
+      "MobileNotificationUnreadSummaryDto": {
+        "properties": {
+          "announcements": {
+            "$ref": "#/components/schemas/MobileNotificationDestinationDto"
+          },
+          "group_messages": {
+            "$ref": "#/components/schemas/MobileNotificationDestinationDto"
+          },
+          "private_messages": {
+            "$ref": "#/components/schemas/MobileNotificationDestinationDto"
+          },
+          "unread_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "announcements",
+          "group_messages",
+          "private_messages",
+          "unread_count"
+        ],
+        "type": "object"
+      },
       "MobileOrganizationContextDto": {
         "properties": {
           "available_organizations": {
@@ -5169,6 +5311,52 @@
         ],
         "type": "object"
       },
+      "MobilePrivateSeenAckDto": {
+        "properties": {
+          "conversation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "message_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "seen": {
+            "type": "boolean"
+          },
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "conversation_id",
+          "message_id",
+          "seen",
+          "version"
+        ],
+        "type": "object"
+      },
+      "MobilePrivateSeenBody": {
+        "properties": {
+          "version": {
+            "format": "int64",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "type": "object"
+      },
       "MobilePrivateSendBody": {
         "properties": {
           "content": {
@@ -5180,6 +5368,26 @@
         },
         "required": [
           "content"
+        ],
+        "type": "object"
+      },
+      "MobilePrivateUnreadSummaryDto": {
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "unread_count": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "unread_count",
+          "enabled"
         ],
         "type": "object"
       },
@@ -9963,6 +10171,25 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "margin_bottom": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "margin_top": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
               "integer",
               "string"
             ]
@@ -9971,6 +10198,7 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
               "integer",
               "string"
             ]
@@ -9979,16 +10207,12 @@
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
             "type": [
+              "null",
               "integer",
               "string"
             ]
           }
         },
-        "required": [
-          "max_width",
-          "gap",
-          "side_padding"
-        ],
         "type": "object"
       },
       "WebsitePagePublication": {
@@ -19885,6 +20109,212 @@
         ]
       }
     },
+    "/api/mobile/app/notifications/activity": {
+      "get": {
+        "operationId": "GetMobileNotificationActivity",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileNotificationActivityPageDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app notifications"
+        ]
+      }
+    },
+    "/api/mobile/app/notifications/unread-summary": {
+      "get": {
+        "operationId": "GetMobileNotificationUnreadSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileNotificationUnreadSummaryDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app notifications"
+        ]
+      }
+    },
     "/api/mobile/app/push": {
       "get": {
         "operationId": "GetMobileWebPushConfig",
@@ -22161,6 +22591,101 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MobileChatSeenAckDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app messaging"
+        ]
+      }
+    },
+    "/api/mobile/chat/unread-summary": {
+      "get": {
+        "operationId": "GetMobileChatUnreadSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileChatUnreadSummaryDto"
                 }
               }
             },
@@ -27533,6 +28058,131 @@
         ]
       }
     },
+    "/api/mobile/private/conversations/{conversationId}/messages/{messageId}/seen": {
+      "post": {
+        "operationId": "AcknowledgeMobilePrivateRead",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversationId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobilePrivateSeenBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePrivateSeenAckDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app private messaging"
+        ]
+      }
+    },
     "/api/mobile/private/conversations/{conversationId}/respond": {
       "post": {
         "operationId": "RespondMobilePrivateConversation",
@@ -27668,6 +28318,101 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MobilePrivateConversationDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile app private messaging"
+        ]
+      }
+    },
+    "/api/mobile/private/unread-summary": {
+      "get": {
+        "operationId": "GetMobilePrivateUnreadSummary",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobilePrivateUnreadSummaryDto"
                 }
               }
             },
@@ -28614,6 +29359,9 @@
     },
     {
       "name": "Academy private training plans"
+    },
+    {
+      "name": "Central Academy coaching library"
     },
     {
       "name": "Academy CRM"

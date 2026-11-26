@@ -88,32 +88,32 @@
 
 
 <style>
-  .academy-group-roster,.academy-group-statistics,.academy-group-gallery{scroll-margin-top:100px;background:#0c0d0e}
+  .academy-group-roster,.academy-group-statistics,.academy-group-gallery{scroll-margin-top:100px;background:var(--lf-color-bg,#0c0d0e)}
   .academy-group-roster h2,.academy-group-statistics h2,.academy-group-gallery h2{font:900 clamp(30px,3vw,48px)/1.06 'Fira Sans Extra Condensed',sans-serif;margin:8px 0 24px}
-  .academy-group-coaches{display:flex;align-items:center;flex-wrap:wrap;gap:15px;border-block:1px solid #353535;margin-bottom:24px;padding:14px}
-  .academy-group-coaches span{color:#f6bb38;font-weight:800;font-size:12px}
+  .academy-group-coaches{display:flex;align-items:center;flex-wrap:wrap;gap:15px;border-block:1px solid var(--lf-color-border,#353535);margin-bottom:24px;padding:14px}
+  .academy-group-coaches span{color:var(--public-gold);font-weight:800;font-size:12px}
   .academy-group-coaches strong{font-size:14px}
   .academy-roster-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:15px}
-  .academy-roster-player{display:block;background:#18191a;border:1px solid #585044;min-width:0;color:#fff;text-decoration:none}
-  .academy-roster-player:hover,.academy-roster-player:focus-visible{border-color:#f6bb38}
-  .academy-player-photo{position:relative;aspect-ratio:3/4;overflow:hidden;background:#111}
+  .academy-roster-player{display:block;background:var(--lf-color-surface,#18191a);border:1px solid var(--lf-color-border,#585044);min-width:0;color:var(--lf-color-text,#ffffff);text-decoration:none}
+  .academy-roster-player:hover,.academy-roster-player:focus-visible{border-color:var(--public-gold)}
+  .academy-player-photo{position:relative;aspect-ratio:3/4;overflow:hidden;background:var(--lf-color-surface,#111111)}
   .academy-player-photo :global(img){width:100%;height:100%;object-fit:cover}
-  .academy-player-photo>span{position:absolute;left:12px;bottom:10px;color:#f6bb38;font:900 28px 'Fira Sans Extra Condensed',sans-serif}
+  .academy-player-photo>span{position:absolute;left:12px;bottom:10px;color:var(--public-gold);font:900 28px 'Fira Sans Extra Condensed',sans-serif}
   .academy-player-text{padding:14px}
   .academy-player-text h3{font:800 21px/1.15 'Fira Sans Extra Condensed',sans-serif;overflow-wrap:anywhere}
-  .academy-player-text p{font-size:12px;color:#c0c0c0;margin-top:9px}
-  .group-stats-description{color:#c2c2c2;margin-bottom:20px;max-width:78ch;font-size:14px}
-  .group-stats-scroll{overflow-x:auto;border:1px solid #585044}
-  .group-stats-scroll:focus-visible{outline:2px solid #f6bb38;outline-offset:4px}
+  .academy-player-text p{font-size:12px;color:var(--lf-color-muted,#c0c0c0);margin-top:9px}
+  .group-stats-description{color:var(--lf-color-muted,#c2c2c2);margin-bottom:20px;max-width:78ch;font-size:14px}
+  .group-stats-scroll{overflow-x:auto;border:1px solid var(--lf-color-border,#585044)}
+  .group-stats-scroll:focus-visible{outline:2px solid var(--public-gold);outline-offset:4px}
   table{border-collapse:collapse;width:100%;min-width:500px}
-  th,td{padding:15px 13px;text-align:left;border-bottom:1px solid #363636}
-  thead th{font-size:12px;color:#f6bb38}
+  th,td{padding:15px 13px;text-align:left;border-bottom:1px solid var(--lf-color-border,#363636)}
+  thead th{font-size:12px;color:var(--public-gold)}
   tbody th{font-weight:600;font-size:14px}
   tbody td{font-size:14px}
   .academy-gallery-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
-  .academy-gallery-grid figure{margin:0;background:#161616;border:1px solid #54514b}
+  .academy-gallery-grid figure{margin:0;background:var(--lf-color-surface,#161616);border:1px solid var(--lf-color-border,#54514b)}
   .academy-gallery-grid :global(img){width:100%;aspect-ratio:4/3;object-fit:cover}
-  .academy-gallery-grid figcaption{font-size:13px;line-height:1.5;padding:12px;color:#e1e1e1}
+  .academy-gallery-grid figcaption{font-size:13px;line-height:1.5;padding:12px;color:var(--lf-color-text,#e1e1e1)}
   @media(max-width:1050px){.academy-roster-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
   @media(max-width:650px){.academy-roster-grid,.academy-gallery-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.academy-group-roster,.academy-group-statistics,.academy-group-gallery{padding:25px 15px}.academy-player-text h3{font-size:18px}.academy-gallery-grid figcaption{font-size:12px}}
   @media(max-width:390px){.academy-roster-grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}

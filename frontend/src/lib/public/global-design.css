@@ -1,5 +1,5 @@
 /* Approved tenant design tokens only. No arbitrary CSS is accepted. */
-.public-site[data-global-design="true"]{background:var(--lf-color-bg);color:var(--lf-color-text)}
+.public-site[data-global-design="true"]{background:var(--lf-color-bg);color:var(--lf-color-text);color-scheme:var(--lf-color-scheme,dark)}
 .public-site[data-global-design="true"] .public-main{color:var(--lf-color-text)}
 .public-site[data-global-design="true"] .public-main h1{font-family:var(--lf-h1-family)!important;font-size:var(--lf-h1-desktop)!important;font-weight:var(--lf-h1-weight)!important;line-height:var(--lf-h1-line)!important}
 .public-site[data-global-design="true"] .public-main h2{font-family:var(--lf-h2-family)!important;font-size:var(--lf-h2-desktop)!important;font-weight:var(--lf-h2-weight)!important;line-height:var(--lf-h2-line)!important}
@@ -44,3 +44,213 @@
 .public-site[data-global-design="true"] .website-block-wrap{background:var(--lf-color-surface);border-color:var(--lf-color-border)}
 .public-site[data-global-design="true"] .section-dark{background:var(--lf-color-bg)}
 .public-site[data-global-design="true"] .section-heading>a{color:var(--lf-color-link)!important}
+
+/*
+ * Bridge the published WYSIWYG palette into the legacy public component
+ * variables. Existing heroes, cards, navigation and new UI skin then consume
+ * the same organization-scoped tokens instead of a second fixed palette.
+ * This is active only for an approved, published canonical global design.
+ */
+.public-site[data-global-design="true"] {
+  --public-gold:var(--lf-color-accent);
+  --public-black:var(--lf-color-bg);
+  --public-muted:var(--lf-color-muted);
+  --public-panel:var(--lf-color-surface);
+  --public-panel-raised:color-mix(in srgb,var(--lf-color-surface) 80%,var(--lf-color-bg));
+  --public-panel-edge:var(--lf-color-border);
+  --public-line:var(--lf-color-border);
+  --gold:var(--lf-color-accent);
+  --line:var(--lf-color-border);
+  --home-card-edge:var(--lf-color-border);
+}
+
+/* The public CMS editor defines these shared spacing controls; scoped WYSIWYG
+ * --cms-* max-width/gap/padding still belongs exclusively to each page/block. */
+.public-site[data-global-design="true"] .public-news-grid,
+.public-site[data-global-design="true"] .public-group-grid,
+.public-site[data-global-design="true"] .catalog-grid {
+  gap:var(--lf-layout-card-gap,16px);
+}
+/* A single centered content inset applies page width AND section spacing.
+ * A plain 28px gutter previously overrode the chosen max page width. */
+.public-site[data-global-design="true"] .public-section:not(.public-embedded-page):not(.team-cms-region) {
+  padding-inline:max(var(--lf-layout-gutter,28px),var(--public-page-inset,24px));
+}
+/* Embedded CMS sections delegate their horizontal space to the page editor.
+ * The original .public-section gutter plus the nested .website-blocks padding
+ * otherwise adds the same margin twice and defeats a page-only override. */
+.public-site[data-global-design="true"] .public-section.public-embedded-page {
+  padding-inline:0;
+}
+/* Team editorial content contains only WYSIWYG blocks: it cannot inherit a
+ * second native page inset above the block editor's own CMS side padding. */
+.public-site[data-global-design="true"] .public-section.team-cms-region {
+  padding-inline:0;
+}
+/* Sponsors' CMS blocks are nested inside the native catalog wrapper; cancel
+ * only that wrapper's gutter so the block's own page-specific inset aligns
+ * with ordinary catalog content rather than being counted twice. */
+.public-site[data-global-design="true"] .catalog-cms-region {
+  margin-inline:calc(0px - var(--public-page-gutter,16px));
+}
+.public-site[data-global-design="true"] :is(
+  .public-news-card,.catalog-card,.public-group-card,
+  .person-card,.venue-card,.academy-review-card
+) {
+  border-color:var(--lf-color-border);
+  border-radius:var(--lf-layout-card-radius,9px);
+}
+.public-site[data-global-design="true"] :is(.public-button,.public-search-trigger) {
+  border-radius:var(--lf-layout-button-radius,5px);
+}
+
+/* Global defaults for all native public pages. Keep the established page
+ * geometry in the default palette; custom published values are tenant-scoped.
+ * Individual WebsitePageBlocks use independent --cms-* overrides. */
+.public-site[data-global-design="true"] {
+  --public-content-width:var(--lf-layout-page-max-width,1280px);
+  --public-page-gutter:var(--lf-layout-page-side-padding,16px);
+  --public-page-inset:max(var(--public-page-gutter),calc((100% - var(--public-content-width)) / 2));
+}
+.public-site[data-global-design="true"] .home-reference {
+  --home-gutter:var(--lf-layout-page-side-padding,16px);
+}
+.public-site[data-global-design="true"] :is(
+  .public-page-heading,.public-section:not(.public-embedded-page),
+  .catalog,.person-content,.match-detail
+) {
+  border-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-reference-fees,.academy-key-figures,
+  .academy-public-reviews,.academy-reviews-summary,.academy-review-card,
+  .academy-group-preview,.academy-player-preview,.registration-card,
+  .registration-child,.registration-choice-card,.registration-costs,
+  .registration-koa,.contact-info-card,.contact-message-form,
+  .roster-filters,.catalog-filters,.event-chip-filters,
+  .team-section .public-team-overview,.public-empty
+) {
+  background-color:var(--lf-color-surface);
+  border-color:var(--lf-color-border);
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-review-card,.registration-card,
+  .registration-child,.registration-costs,.contact-info-card,
+  .contact-message-form,.person-card,.venue-card
+) {
+  border-radius:var(--lf-layout-card-radius,9px);
+}
+.public-site[data-global-design="true"] :is(
+  .registration-card,.registration-child,.contact-message-form,.roster-filters
+) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+  background-color:var(--lf-color-bg);
+  color:var(--lf-color-text);
+  border-color:var(--lf-color-border);
+  border-radius:var(--lf-layout-button-radius,5px);
+}
+.public-site[data-global-design="true"] :is(
+  .contact-info-card p,.contact-section-caption,.contact-form-note,
+  .academy-description,.academy-review-body,.registration-note,
+  .registration-family-note,.registration-notice
+) {
+  color:var(--lf-color-muted);
+}
+.public-site[data-global-design="true"] :is(
+  .academy-enquiry,.academy-directory,.contact-original-layout
+) {
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] .website-page {
+  background:var(--lf-color-bg);
+  color:var(--lf-color-text);
+}
+.public-site[data-global-design="true"] .website-page-content {
+  max-width:var(--lf-page-content-max-width,var(--lf-layout-page-max-width,1280px));
+  /* The nested WYSIWYG grid already owns side padding. Avoid applying it twice. */
+  padding-inline:0;
+}
+.public-site[data-global-design="true"] .website-page-return {
+  border-top-color:var(--lf-color-border);
+}
+
+/* Width and side padding for native feature-page containers are governed by
+ * the same published defaults as public sections and CMS pages. Specific
+ * cards, forms and readable article columns keep their deliberate sub-widths. */
+.public-site[data-global-design="true"] :is(.catalog,.match-detail) {
+  padding-inline:var(--public-page-gutter,16px);
+}
+.public-site[data-global-design="true"] .shop-container {
+  width:min(var(--public-content-width,1280px),calc(100% - var(--public-page-gutter,16px) - var(--public-page-gutter,16px)));
+}
+
+/* Native layouts still own their imagery and information architecture, but
+ * their previously fixed decorative panels now follow published WYSIWYG theme
+ * colors. No background image/crop/photo source is touched. */
+.public-site[data-global-design="true"] :is(
+  .academy-program-overview,.academy-reference-fees,.academy-review-card,
+  .registration-card,.registration-child,.registration-choice-card,
+  .registration-costs,.registration-koa,.contact-info-card,
+  .contact-message-form,.catalog-filters,.roster-filters,
+  .academy-groups-philosophy,.academy-philosophy-copy,
+  .catalog-empty,.catalog-facts
+) {
+  background:var(--lf-color-surface);
+  border-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] .website-page-header {
+  background:linear-gradient(125deg,var(--lf-color-surface),var(--lf-color-bg));
+  border-bottom-color:var(--lf-color-border);
+}
+.public-site[data-global-design="true"] .website-page-header::before {
+  background:repeating-linear-gradient(121deg,transparent 0,transparent 145px,
+    color-mix(in srgb,var(--lf-color-accent) 6%,transparent) 147px,transparent 152px);
+}
+.public-site[data-global-design="true"] .website-page-header::after {
+  background:linear-gradient(90deg,transparent 0 35%,
+    color-mix(in srgb,var(--lf-color-accent) 16%,transparent) 35% 44%,
+    transparent 44% 61%,
+    color-mix(in srgb,var(--lf-color-accent) 9%,transparent) 61% 75%,transparent 75%);
+}
+.public-site[data-global-design="true"] .website-page-breadcrumbs a,
+.public-site[data-global-design="true"] .website-page-return a {
+  color:var(--lf-color-link);
+}
+.public-site[data-global-design="true"] .website-page-return a {
+  border-color:var(--lf-color-border);
+  background:color-mix(in srgb,var(--lf-color-accent) 8%,transparent);
+}
+.public-site[data-global-design="true"] .website-page-return a:hover {
+  background:var(--lf-color-accent);
+  color:var(--lf-color-bg);
+}
+.public-site[data-global-design="true"] .website-page-summary,
+.public-site[data-global-design="true"] .website-page-breadcrumbs,
+.public-site[data-global-design="true"] .website-page-breadcrumbs>span:last-child {
+  color:var(--lf-color-muted);
+}
+.public-site[data-global-design="true"] .website-page-header h1 {
+  color:var(--lf-color-text);
+  text-shadow:none;
+}
+.public-site[data-global-design="true"] .contact-send-button:not(:disabled),
+.public-site[data-global-design="true"] .registration-add-child {
+  border-color:var(--lf-color-accent);
+}
+.public-site[data-global-design="true"] :is(
+  .contact-other-links a,.contact-info-card a,
+  .registration-card a:not(.public-button),.shop-back
+) {
+  color:var(--lf-color-link);
+}
+
+/* Top/bottom page margins apply once to native public routes. Standalone CMS
+ * documents use WebsitePageBlocks' per-field overrides instead, preventing a
+ * double margin when a page chooses its own value. */
+.public-site[data-global-design="true"] .public-main:not(:has(> .website-page)) {
+  padding-top:var(--lf-layout-page-margin-top,0px);
+  padding-bottom:var(--lf-layout-page-margin-bottom,0px);
+}
+.public-site[data-global-design="true"] .public-main:has(> .website-page) {
+  padding-block:0;
+}

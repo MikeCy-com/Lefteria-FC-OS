@@ -64,5 +64,5 @@
 </PublicShell>
 
 <style>
-  .event-registration-status{font-size:14px;color:#ddd;line-height:1.65;border-left:3px solid #f6bb38;padding:10px 0 10px 14px;margin:20px 0}
+  .event-registration-status{font-size:14px;color:var(--lf-color-text,#dddddd);line-height:1.65;border-left:3px solid var(--public-gold);padding:10px 0 10px 14px;margin:20px 0}
 </style>

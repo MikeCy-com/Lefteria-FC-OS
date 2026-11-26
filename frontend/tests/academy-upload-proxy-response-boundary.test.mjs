@@ -1,0 +1,69 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+
+const source=readFileSync(
+  new URL('../src/routes/api/public/academy/registration/[registrationId]/documents/+server.ts',import.meta.url),
+  'utf8'
+);
+
+test('public document relay does not forward browser credentials or expose upstream payloads',()=>{
+  assert.match(source,/credentials:'omit'/);
+  assert.match(source,/headers:\{origin:url\.origin,'content-type':contentType\}/);
+  assert.match(source,/cache:'no-store'/);
+  assert.doesNotMatch(source,/request\.headers\.get\(['"](?:cookie|authorization)['"]\)/i);
+  assert.doesNotMatch(source,/return\s+response\b|return\s+json\(result\b|return\s+json\(payload\b/);
+});
+
+test('successful relay responses expose only an allowlisted slot, quarantine status and replay flag',()=>{
+  assert.match(source,/response\.status===202/);
+  assert.match(source,/\['id_front','id_back','birth_certificate','passport_photo'\]\.includes/);
+  assert.match(source,/payload\.status==='quarantined'/);
+  assert.match(source,/typeof payload\.replay==='boolean'/);
+  assert.match(source,/return json\(\{slot:payload\.slot,status:'quarantined',\s*replay:payload\.replay\},\{status:202,headers\}\)/);
+  assert.match(source,/return json\(\{code\},\{status,headers\}\)/);
+  assert.match(source,/return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
+});
+
+test('relay rejects cross-origin requests and bounds streamed uploads independently of content length',()=>{
+  assert.match(source,/request\.headers\.get\('origin'\)!==url\.origin/);
+  assert.match(source,/\^\[0-9a-f\]\{32\}\$/);
+  assert.match(source,/size\+=value\.byteLength/);
+  assert.match(source,/if\(size>11\*1024\*1024\)/);
+  assert.match(source,/AbortSignal\.timeout\(30000\)/);
+});
+
+test('relay rejects malformed declared lengths before reading a body or contacting upstream',()=>{
+  assert.match(source,/const declaredLength=request\.headers\.get\('content-length'\)/);
+  assert.match(source,/if\(declaredLength!==null\)/);
+  assert.match(source,/if\(!\/\^\(0\|\[1-9\]\[0-9\]\*\)\$\/\.test\(declaredLength\)\)/);
+  assert.match(source,/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
+  assert.match(source,/if\(Number\(declaredLength\)>11\*1024\*1024\)/);
+  assert.ok(source.indexOf('const declaredLength=')<source.indexOf('request.body?.getReader()'));
+});
+
+test('relay rejects unsafe private API origins before forwarding uploaded bytes',()=>{
+  assert.match(source,/apiOrigin=new URL\(INTERNAL_API_ORIGIN\)/);
+  assert.match(source,/!\['http:','https:'\]\.includes\(apiOrigin\.protocol\)/);
+  assert.match(source,/apiOrigin\.username\|\|apiOrigin\.password/);
+  assert.match(source,/apiOrigin\.pathname!=='\/'/);
+  assert.match(source,/apiOrigin\.search\|\|apiOrigin\.hash/);
+  assert.match(source,/throw Error\('Invalid private upstream'\)/);
+  assert.ok(source.indexOf('apiOrigin=new URL(')<source.indexOf('request.body?.getReader()'));
+  assert.match(source,/catch\s*\{\s*return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
+});
+
+test('relay rejects declared and streamed length mismatch before constructing upstream request',()=>{
+  assert.match(source,/if\(declaredLength!==null&&size!==Number\(declaredLength\)\)/);
+  const guard=source.indexOf('if(declaredLength!==null&&size!==Number(declaredLength))');
+  assert.ok(guard>source.indexOf('size+=value.byteLength'));
+  assert.ok(guard<source.indexOf('const body=new Uint8Array(size)'));
+  assert.ok(guard<source.indexOf('const response=await fetch('));
+  assert.match(source.slice(guard,source.indexOf('const body=new Uint8Array(size)')),/return json\(\{code:'invalid_upload'\},\{status:400,headers\}\)/);
+});
+
+test('private document relay refuses upstream redirects before any second-hop upload',()=>{
+  assert.match(source,/method:'POST',credentials:'omit',cache:'no-store',redirect:'error'/);
+  assert.match(source,/catch\s*\{\s*return json\(\{code:'upload_unavailable'\},\{status:503,headers\}\)/);
+  assert.doesNotMatch(source,/redirect:'follow'/);
+});

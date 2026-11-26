@@ -8,14 +8,22 @@ test('public skin retains exact original Lefteria FC type, palette and geometry'
   const shell=read('lib/public/PublicShell.svelte');
   assert.match(css,/Fira Sans Extra Condensed/);
   assert.match(css,/Fira Sans/);
-  assert.match(css,/--public-gold:#f6bb38/);
-  assert.match(css,/--public-black:#080808/);
+  assert.match(css,/--public-gold:var\(--lf-color-accent,#f6bb38\)/);
+  assert.match(css,/--public-black:var\(--lf-color-bg,#080808\)/);
   assert.match(css,/--public-rail:116px/);
   assert.match(css,/--public-header:76px/);
   assert.match(css,/body:has\(\.public-site\) \{ font-family:'Fira Sans'/);
   assert.doesNotMatch(css,/fonts\.googleapis/,'Public fonts are self-hosted.');
   assert.match(read('lib/public/fonts.ts'),/@fontsource\/manrope[\s\S]*@fontsource\/bebas-neue[\s\S]*@fontsource\/fira-sans-extra-condensed/);
-  assert.deepEqual([...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]), ['public.css','club-polish.css','global-design.css']);
+  // Keep the original font/layout styles in their canonical order; the new
+  // visual-only skin is an opt-in extension, never a replacement.
+  const publicStyles=[...shell.matchAll(/import '\.\/([^']+\.css)'/g)].map(match=>match[1]);
+  assert.deepEqual(publicStyles, ['public.css','club-polish.css','global-design.css','ui-refresh.css']);
+  assert.match(shell,/data-ui-refresh="2026"/);
+  const refresh=read('lib/public/ui-refresh.css');
+  assert.match(refresh,/\.public-site\[data-ui-refresh="2026"\]/);
+  assert.doesNotMatch(refresh, /(?:background-image|object-fit|object-position|font-family|font-size)\s*:/);
+  assert.doesNotMatch(refresh, /url\s*\(/);
   assert.match(shell,/data-global-design=\{globalTheme \? "true" : undefined\}/);
   assert.match(shell,/publishedGlobalDesign\(page\.data\?\.websitePages/);
   assert.match(read('lib/public/global-design.css'),/\.public-site\[data-global-design="true"\]/);

@@ -25,7 +25,7 @@ test('the OS retains original brand typography while adding accessibility overri
   assert.match(mobile, /Fira Sans Extra Condensed/);
   assert.match(publicCss, /Fira Sans Extra Condensed/);
   assert.match(mobile, /--lf-type-body: 13px/);
-  assert.match(publicCss, /--public-gold:#f6bb38/);
+  assert.match(publicCss, /--public-gold:var\(--lf-color-accent,#f6bb38\)/);
 });
 
 test('fixture details remain reachable when the mobile venue column is hidden', () => {

@@ -23,7 +23,8 @@
   let publicationRows=$state<TrainingPublicationRecord[]>([]);
   let cancellationTarget=$state<TrainingPlanDraft|null>(null);
   let cancellationReason=$state(''),cancellationConfirmed=$state(false);
-  let reviewConfirmed=$state(false),publishConfirmed=$state(false);
+  let reviewConfirmed=$state<string|null>(null),publishConfirmed=$state(false);
+  const reviewKey=(plan:TrainingPlanDraft)=>`${plan.id}:${plan.version}`;
   let preview=$state<TrainingDistributionPreview|null>(null),previewing=$state(false);
   let error=$state(''),notice=$state(''),refreshNonce=$state(0);
   let editing=$state<TrainingPlanDraft|null>(null);
@@ -34,7 +35,7 @@
     title:'',location:'',notes:''
   });
   function reset(){
-    editing=null;archiveConfirmed=false;reviewConfirmed=false;
+    editing=null;archiveConfirmed=false;reviewConfirmed=null;
     publishConfirmed=false;preview=null;notice='';error='';
     cancellationTarget=null;cancellationConfirmed=false;cancellationReason='';
     form={day:from,start_time:'17:00',duration_minutes:75,
@@ -42,6 +43,7 @@
   }
   function edit(row:TrainingPlanDraft){
     if(row.status!=='draft')return;
+    reviewConfirmed=null;
     editing=row;archiveConfirmed=false;notice='';error='';
     form={day:row.day,start_time:row.start_time,
       duration_minutes:row.duration_minutes,title:row.title,
@@ -62,7 +64,7 @@
     rows=[];approvedIds=[];publishedIds=[];publicationRows=[];
     cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;
     preview=null;editing=null;drillTarget=null;
-    archiveConfirmed=false;reviewConfirmed=false;publishConfirmed=false;notice='';error='';
+    archiveConfirmed=false;reviewConfirmed=null;publishConfirmed=false;notice='';error='';
     if(!browser||!valid)return;
     const controller=new AbortController();
     loading=true;
@@ -222,10 +224,11 @@
   }
 
   async function approve(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||drillTarget||plan.drill_count!==0||loading||saving||!reviewConfirmed||
+    if(!browser||!allowed||!canWrite||drillTarget||plan.drill_count!==0||loading||saving||reviewConfirmed!==reviewKey(plan)||
       approvedIds.includes(plan.id)||publishedIds.includes(plan.id)||
-      plan.status!=='draft')return;
+      plan.status!=='draft'||!rows.some(row=>row.id===plan.id&&row.version===plan.version&&row.status==='draft'))return;
     const owner=actor,group=groupId,period=from+':'+to;
+    reviewConfirmed=null;
     saving=true;error='';notice='';
     try{
       const response=await fetch(
@@ -246,9 +249,10 @@
       }
       if(!response.ok)throw Error('Δεν εγκρίθηκε το πρόχειρο.');
       const raw:unknown=await response.json();
+      if(owner!==actor||group!==groupId||period!==from+':'+to||!allowed||!canWrite)return;
       if(!validTrainingPlanApprovalResult(raw,plan))
         throw Error('Η έγκριση δεν επαληθεύτηκε.');
-      reviewConfirmed=false;
+      reviewConfirmed=null;
       notice='Η συγκεκριμένη έκδοση εγκρίθηκε από άνθρωπο. ΔΕΝ δημοσιεύτηκε.';
       refreshNonce++;
     }catch(e){error=e instanceof Error?e.message:'Δεν εγκρίθηκε το πρόχειρο.';}
@@ -328,7 +332,7 @@
           {/if}
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)}
             {#if typeof plan.drill_count==='number'}
-              <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;editing=null;preview=null;reviewConfirmed=false;publishConfirmed=false;}}>Ασκήσεις · {plan.drill_count}</button>
+              <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Ασκήσεις · {plan.drill_count}</button>
             {:else}
               <small>Απαιτείται επαληθευμένη ανάθεση τοποθεσίας για τον σχεδιασμό ασκήσεων.</small>
             {/if}
@@ -338,7 +342,12 @@
             {:else if plan.drill_count!==0}
               <small>Η έγκριση απαιτεί επαληθευμένη πρόσβαση στο τμήμα.</small>
             {:else if !approvedIds.includes(plan.id)}
-              <button type="button" disabled={saving||!!drillTarget||!reviewConfirmed}
+              <label class="review-confirm"><input type="checkbox"
+                checked={reviewConfirmed===reviewKey(plan)} disabled={saving||loading||!!drillTarget}
+                onchange={e=>{reviewConfirmed=e.currentTarget.checked?reviewKey(plan):null;}}/>
+                Εξέτασα την ημερομηνία, ώρα, διάρκεια και ομάδα αυτής της έκδοσης.
+              </label>
+              <button type="button" disabled={saving||loading||!!drillTarget||reviewConfirmed!==reviewKey(plan)}
                 onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
             {:else}
               <button type="button" disabled={saving||previewing||!!drillTarget}
@@ -404,10 +413,7 @@
     </section>
   {/if}
   {#if canWrite}
-    <label class="review-confirm"><input type="checkbox"
-      bind:checked={reviewConfirmed} disabled={saving||loading}/>
-      Εξέτασα προσωπικά την ακριβή ημερομηνία, ώρα, διάρκεια και ομάδα. Η έγκριση ΔΕΝ δημοσιεύει προπόνηση.
-    </label>
+    <p class="plan-note">Η έγκριση αφορά μόνο την επιλεγμένη έκδοση και ΔΕΝ δημοσιεύει προπόνηση.</p>
     <form class="plan-form" onsubmit={e=>{e.preventDefault();void save();}}>
       <div class="plan-header">
         <h3>{editing?'Επεξεργασία πρόχειρου':'Νέο ιδιωτικό πρόχειρο'}</h3>

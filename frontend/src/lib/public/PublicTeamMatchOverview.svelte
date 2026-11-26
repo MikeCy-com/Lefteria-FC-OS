@@ -39,7 +39,7 @@
     <a class="view-all" href={moreHref}>ΟΛΟ ΤΟ ΠΡΟΓΡΑΜΜΑ <Icon name="arrow" size={17}/></a>
   </header>
   <div class="match-overview-grid">
-    <article class="match-panel next-match" data-testid="team-featured-next-match" style:background-image={`linear-gradient(125deg,#0b0d0de8,#0e1111e0 76%),url("${publicImages.pitch}")`}>
+    <article class="match-panel next-match" data-testid="team-featured-next-match" style:background-image={`linear-gradient(125deg,color-mix(in srgb,var(--lf-color-bg,#0b0d0d) 90.98%,transparent),color-mix(in srgb,var(--lf-color-bg,#0e1111) 87.843%,transparent) 76%),url("${publicImages.pitch}")`}>
       <h3><Icon name="calendar" size={20}/> ΕΠΟΜΕΝΟΣ ΑΓΩΝΑΣ</h3>
       {#if next}
         <p class="competition">{next.competition||'ΑΓΩΝΑΣ'}</p>
@@ -108,59 +108,59 @@
 </section>
 
 <style>
-  .match-overview{margin:0 0 35px;color:#f7f7f5}
+  .match-overview{margin:0 0 35px;color:var(--lf-color-text,#f7f7f5)}
   .match-overview-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
-  .eyebrow{color:#ffc548;font-size:12px;font-weight:800;letter-spacing:.08em;margin:0 0 6px}
+  .eyebrow{color:var(--lf-color-accent,#ffc548);font-size:12px;font-weight:800;letter-spacing:.08em;margin:0 0 6px}
   h2{font:900 clamp(27px,2.8vw,42px)/1.06 'Fira Sans Extra Condensed',sans-serif;
     font-style:italic;margin:0}
-  .view-all{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:#ffc548;
+  .view-all{display:inline-flex;align-items:center;gap:10px;min-height:44px;color:var(--lf-color-accent,#ffc548);
     font:800 14px 'Fira Sans Extra Condensed',sans-serif;text-decoration:none}
   .match-overview-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,.9fr);gap:16px}
-  .match-panel{min-width:0;position:relative;overflow:hidden;border:1px solid #77706a;border-radius:6px;
-    background:linear-gradient(130deg,#1b1e1e,#090b0b 72%,#32200b);padding:16px;box-shadow:inset 0 1px #ffffff23}
+  .match-panel{min-width:0;position:relative;overflow:hidden;border:1px solid var(--lf-color-border,#77706a);border-radius:6px;
+    background:linear-gradient(130deg,var(--lf-color-surface,#1b1e1e),var(--lf-color-bg,#090b0b) 72%,var(--lf-color-surface,#32200b));padding:16px;box-shadow:inset 0 1px color-mix(in srgb,var(--lf-color-text,#ffffff) 13.725%,transparent)}
   .match-panel::before{content:"";position:absolute;pointer-events:none;left:0;right:0;top:0;height:2px;
-    background:linear-gradient(90deg,transparent,#ffc754,#ffbf3660,transparent);box-shadow:0 0 10px #ffb82a6b}
+    background:linear-gradient(90deg,transparent,var(--lf-color-accent,#ffc754),color-mix(in srgb,var(--lf-color-accent,#ffbf36) 37.647%,transparent),transparent);box-shadow:0 0 10px color-mix(in srgb,var(--lf-color-accent,#ffb82a) 41.961%,transparent)}
   .next-match{background-size:cover;background-position:center;}
   .match-panel h3{font:800 clamp(19px,1.5vw,25px)/1.1 'Fira Sans Extra Condensed',sans-serif;
     font-style:italic;display:flex;align-items:center;gap:9px;
-    padding:0 0 12px;margin:0;border-bottom:1px solid #ffffff27}
-  .match-panel h3 :global(svg){color:#ffc548;flex:none}
-  .competition{font-size:12px;color:#ffca6a;margin:12px 0 4px}
+    padding:0 0 12px;margin:0;border-bottom:1px solid color-mix(in srgb,var(--lf-color-text,#ffffff) 15.294%,transparent)}
+  .match-panel h3 :global(svg){color:var(--lf-color-accent,#ffc548);flex:none}
+  .competition{font-size:12px;color:var(--lf-color-accent,#ffca6a);margin:12px 0 4px}
   .match-pair{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:12px;
-    align-items:center;text-align:center;margin:16px 0;color:#fff}
+    align-items:center;text-align:center;margin:16px 0;color:var(--lf-color-text,#ffffff)}
   .match-pair>div{display:flex;flex-direction:column;align-items:center;gap:10px;min-width:0}
   .match-pair :global(.public-team-crest){width:70px;height:70px;margin:auto}
   .match-pair strong{font:750 clamp(15px,1.3vw,22px)/1.17 'Fira Sans Extra Condensed',sans-serif;
     overflow-wrap:anywhere}
   .match-pair>span{font:900 29px 'Fira Sans Extra Condensed',sans-serif;font-style:italic}
   .match-facts{display:flex;align-items:center;justify-content:center;gap:8px 19px;
-    flex-wrap:wrap;border-top:1px solid #ffffff3b;padding-top:14px}
+    flex-wrap:wrap;border-top:1px solid color-mix(in srgb,var(--lf-color-text,#ffffff) 23.137%,transparent);padding-top:14px}
   .match-facts p{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin:0}
-  .match-facts :global(svg){color:#ffc548;flex:none}
+  .match-facts :global(svg){color:var(--lf-color-accent,#ffc548);flex:none}
   .match-detail{display:flex;align-items:center;justify-content:center;gap:10px;
-    min-height:45px;margin-top:18px;background:#f6bb38;color:#070809;
+    min-height:45px;margin-top:18px;background:var(--public-gold);color:var(--lf-color-bg,#070809);
     font-weight:850;font-size:13px;border-radius:3px;padding:10px}
   .upcoming-matches ol{list-style:none;margin:0;padding:0}
-  .upcoming-matches li+li{border-top:1px solid #ffffff28}
+  .upcoming-matches li+li{border-top:1px solid color-mix(in srgb,var(--lf-color-text,#ffffff) 15.686%,transparent)}
   .upcoming-matches li a{min-height:81px;display:grid;grid-template-columns:minmax(92px,.8fr) minmax(0,1.5fr) 18px;
-    align-items:center;gap:12px;padding:8px 0;color:#fff}
-  .match-day{border:1px solid #81754d;min-height:55px;display:flex;justify-content:center;
+    align-items:center;gap:12px;padding:8px 0;color:var(--lf-color-text,#ffffff)}
+  .match-day{border:1px solid var(--lf-color-accent,#81754d);min-height:55px;display:flex;justify-content:center;
     flex-direction:column;text-align:center;padding:6px}
   .match-day strong{font-size:11px;font-weight:800}
-  .match-day small,.match-name small{font-size:11px;color:#bdc1bf}
+  .match-day small,.match-name small{font-size:11px;color:var(--lf-color-muted,#bdc1bf)}
   .match-name{display:grid;gap:4px;min-width:0;overflow-wrap:anywhere}
   .match-name strong{font-size:12px;line-height:1.3}
-  .upcoming-matches li a :global(svg){color:#ffc548}
+  .upcoming-matches li a :global(svg){color:var(--lf-color-accent,#ffc548)}
   .standings-scroll{overflow-x:auto}
   table{width:100%;border-collapse:collapse;text-align:left;margin-top:13px;font-size:12px}
-  th,td{border-bottom:1px solid #ffffff24;padding:8px 3px}
-  thead th{color:#f8c34b;font-weight:850;font-size:10px}
+  th,td{border-bottom:1px solid color-mix(in srgb,var(--lf-color-text,#ffffff) 14.118%,transparent);padding:8px 3px}
+  thead th{color:var(--lf-color-accent,#f8c34b);font-weight:850;font-size:10px}
   tbody th{font-weight:700;overflow-wrap:anywhere}
   td{text-align:center}
-  td.points{color:#f6bb38;font-weight:800}
+  td.points{color:var(--public-gold);font-weight:800}
   .bottom{margin-top:10px}
-  .empty{font-size:13px;line-height:1.6;color:#c8cac7;padding-top:20px}
-  .match-panel a:focus-visible{outline:3px solid #ffd357;outline-offset:3px}
+  .empty{font-size:13px;line-height:1.6;color:var(--lf-color-muted,#c8cac7);padding-top:20px}
+  .match-panel a:focus-visible{outline:3px solid var(--lf-color-accent,#ffd357);outline-offset:3px}
   @media(max-width:1240px){.match-overview-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .league-table{grid-column:1/-1}}
   @media(max-width:780px){.match-overview-grid{grid-template-columns:minmax(0,1fr)}

@@ -16,6 +16,7 @@
   type Directory = {organization_id: Organization; ready: true; unassigned_players: number; groups: Audience[]};
   type CreationLocation = {id:string;city_id:string;label:string};
   type CreationCity = {id:string;name:string;canCreateLocation:boolean};
+  type GroupPlacement = {cityId:string;locationId:string;cityName:string;locationName:string};
   type AcademyCardProfile = {group_id:string;organization_id:string;age_range:string;
     coach_name:string;training_schedule:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -32,10 +33,31 @@
   let directory = $state<Directory | null>(null);
   let focusedGroupId = $state('');
   let groupSearch = $state('');
+  let groupPlacements=$state<Record<string,GroupPlacement>>({});
+  let placementsReady=$state(false);
+  let cityFilter=$state('');
+  let siteFilter=$state('');
   let directoryView=$state<'groups'|'players'>('groups');
   let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
-  const visibleGroups = $derived((directory?.groups ?? []).filter(group=>
-    group.name.toLocaleLowerCase('el-GR').includes(groupSearch.trim().toLocaleLowerCase('el-GR'))));
+  const placementCities=$derived([...new Map(Object.values(groupPlacements)
+    .map(p=>[p.cityId,p.cityName])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'el')));
+  const placementSites=$derived([...new Map(Object.values(groupPlacements)
+    .filter(p=>!cityFilter||p.cityId===cityFilter)
+    .map(p=>[p.locationId,p.locationName])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'el')));
+  const visibleGroups=$derived((directory?.groups ?? []).filter(group=>{
+    const p=groupPlacements[group.id],term=groupSearch.trim().toLocaleLowerCase('el-GR');
+    if(organization==='lefteria_fc_academy' &&
+      ((cityFilter && p?.cityId!==cityFilter) ||
+       (siteFilter && p?.locationId!==siteFilter)))return false;
+    return !term||[group.name,p?.cityName??'',p?.locationName??'']
+      .some(value=>value.toLocaleLowerCase('el-GR').includes(term));
+  }).sort((a,b)=>{
+    if(organization!=='lefteria_fc_academy')return a.name.localeCompare(b.name,'el');
+    const pa=groupPlacements[a.id],pb=groupPlacements[b.id];
+    return (pa?.cityName??'Ω').localeCompare(pb?.cityName??'Ω','el')||
+      (pa?.locationName??'Ω').localeCompare(pb?.locationName??'Ω','el')||
+      a.name.localeCompare(b.name,'el');
+  }));
   const focusedGroup = $derived(directory?.groups.find(item=>item.id===focusedGroupId)??null);
   const canSeeAcademyAttendance = $derived(Boolean($auth.session &&
     ['manager','super_admin'].includes($auth.session.user.role) &&
@@ -151,6 +173,63 @@
         $auth.session?.user.id===actor && directoryView===view)academyCardProfiles=result;
     })();
     return ()=>controller.abort();
+  });
+
+
+  // Group ownership comes ONLY from independently authorized exact territory
+  // assignments. Missing placement must stay unknown, never inferred from name.
+  $effect(()=>{
+    const owner=organization,actor=$auth.session?.user.id,view=directoryView;
+    const groups=directory?.groups??[],allowed=canCreate;
+    groupPlacements={};placementsReady=false;cityFilter='';siteFilter='';
+    if(!browser||owner!=='lefteria_fc_academy'||!actor||!allowed||
+       view!=='groups'||!directory||!groups.length)return;
+    const controller=new AbortController();
+    void(async()=>{
+      try{
+        const response=await fetch('/api/admin/football/territories?organization_id=lefteria_fc_academy',{
+          credentials:'same-origin',cache:'no-store',signal:controller.signal
+        });
+        if(response.status===401){auth.invalidateSession();return;}
+        if(response.status===403){void auth.bootstrap();return;}
+        if(!response.ok)return;
+        const raw:unknown=await response.json();
+        if(!raw||typeof raw!=='object'||Array.isArray(raw))return;
+        const data=raw as Record<string,unknown>;
+        if(data.organization_id!=='lefteria_fc_academy'||
+          !Array.isArray(data.cities)||!Array.isArray(data.locations)||
+          !Array.isArray(data.groups)||data.groups.length>3000)return;
+        const cities=new Map<string,string>();
+        for(const row of data.cities){
+          if(row&&typeof row==='object'&&!Array.isArray(row) &&
+            typeof row.id==='string'&&typeof row.name==='string'&&row.is_active===true)
+            cities.set(row.id,row.name);
+        }
+        const locations=new Map<string,{cityId:string;name:string}>();
+        for(const row of data.locations){
+          if(row&&typeof row==='object'&&!Array.isArray(row)&&
+            typeof row.id==='string'&&typeof row.city_id==='string'&&
+            typeof row.name==='string'&&row.is_active===true&&
+            cities.has(row.city_id))
+            locations.set(row.id,{cityId:row.city_id,name:row.name});
+        }
+        const visible=new Set(groups.map(g=>g.id));
+        const proven:Record<string,GroupPlacement>={};
+        for(const row of data.groups){
+          if(!row||typeof row!=='object'||Array.isArray(row)||
+            typeof row.id!=='string'||!visible.has(row.id)||
+            typeof row.city_id!=='string'||typeof row.location_id!=='string')continue;
+          const site=locations.get(row.location_id);
+          if(!site||site.cityId!==row.city_id||!cities.has(row.city_id))continue;
+          proven[row.id]={cityId:row.city_id,locationId:row.location_id,
+            cityName:cities.get(row.city_id)!,locationName:site.name};
+        }
+        if(controller.signal.aborted||organization!==owner||
+          $auth.session?.user.id!==actor||directoryView!==view)return;
+        groupPlacements=proven;placementsReady=true;
+      }catch{ /* Keep the verified roster usable without guessed geography. */ }
+    })();
+    return()=>controller.abort();
   });
 
   // The server returns only currently authorized Academy locations. This
@@ -533,6 +612,7 @@
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
               groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
+                $auth.session.user.role==='super_admin' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
               onExpired={()=>auth.invalidateSession()}
               onRevoked={()=>void auth.bootstrap()} onChanged={()=>retry++}/>
@@ -611,6 +691,11 @@
                           {/each}
                         </select>
                       </label>
+                      {#if $auth.session?.user.role==='super_admin'}
+                        <a class="admin-add-city-link"
+                          href="/admin/territories?organization_id=lefteria_fc_academy#create-city"
+                          data-testid="admin-new-city-route">+ Νέα πόλη · κεντρικός κατάλογος</a>
+                      {/if}
                       <label>Τοποθεσία Ακαδημίας *
                         <select bind:value={creationLocationId}
                           disabled={saving || locationSaving || creationLocationsLoading || !creationCityId}
@@ -728,6 +813,28 @@
                   placeholder="Όνομα ομάδας ή ηλικιακού τμήματος…" autocomplete="off"
                   data-testid="admin-group-search"/>
               </label>
+              {#if organization==='lefteria_fc_academy' && placementsReady}
+                <div class="admin-group-hierarchy-filters" data-testid="academy-city-location-hierarchy">
+                  <label>Πόλη
+                    <select value={cityFilter} onchange={event=>{cityFilter=event.currentTarget.value;siteFilter='';}}>
+                      <option value="">Όλες οι εξουσιοδοτημένες πόλεις</option>
+                      {#each placementCities as [id,label] (id)}
+                        <option value={id}>{label}</option>
+                      {/each}
+                    </select>
+                  </label>
+                  <label>Τοποθεσία
+                    <select value={siteFilter} onchange={event=>siteFilter=event.currentTarget.value}>
+                      <option value="">Όλες οι τοποθεσίες</option>
+                      {#each placementSites as [id,label] (id)}
+                        <option value={id}>{label}</option>
+                      {/each}
+                    </select>
+                  </label>
+                  <a href="/admin/territories?organization_id=lefteria_fc_academy"
+                    data-testid="academy-shared-city-directory">Πόλεις, εγκαταστάσεις & κοινά γήπεδα/αντίπαλοι</a>
+                </div>
+              {/if}
             {/if}
             {#if directory.groups.length === 0}
               {#if $auth.session.user.role==='super_admin'}
@@ -769,11 +876,25 @@
               {/if}
             {:else}
               <ul class="admin-audiences-list" data-testid="admin-audiences-groups">
-                {#each visibleGroups as group (group.id)}
+                {#each visibleGroups as group,i (group.id)}
+                  {#if organization==='lefteria_fc_academy' && groupPlacements[group.id] &&
+                    (i===0||groupPlacements[visibleGroups[i-1].id]?.locationId!==groupPlacements[group.id].locationId)}
+                    <li class="admin-group-location-heading" data-testid="academy-group-location-heading">
+                      <strong>{groupPlacements[group.id].cityName}</strong>
+                      <span>{groupPlacements[group.id].locationName}</span>
+                    </li>
+                  {/if}
                   <li class:admin-audience-selected={focusedGroupId===group.id}>
                     <div class="admin-audience-card-title">
                       <span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
                       <strong>{group.name}</strong>
+                      {#if organization==='lefteria_fc_academy'}
+                        <span class="admin-group-placement" data-testid="academy-group-exact-placement">
+                          {groupPlacements[group.id]
+                            ? groupPlacements[group.id].cityName+' / '+groupPlacements[group.id].locationName
+                            : 'Επίσημη τοποθεσία: μη επαληθευμένη'}
+                        </span>
+                      {/if}
                     </div>
                     {#if organization==='lefteria_fc_academy' && academyCardProfiles[group.id]}
                       <div class="admin-audience-card-meta" data-testid="admin-academy-card-profile">
@@ -861,6 +982,20 @@
     align-content:space-between;min-height:174px;padding:17px!important;border:1px solid #303335!important;
     border-radius:11px;background:#141515;transition:border-color .15s,background .15s}
   .admin-audiences-list li:hover{border-color:#907139!important;background:#1a1915}
+  .admin-group-hierarchy-filters{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:12px 0 18px}
+  .admin-group-hierarchy-filters label{display:grid;gap:5px;min-width:min(100%,215px);
+    flex:1;font-size:12px;color:var(--admin-muted,#c5c7c7)}
+  .admin-group-hierarchy-filters select{min-height:43px;width:100%}
+  .admin-group-hierarchy-filters a{font-size:12px;color:var(--admin-accent,#f6bb38);
+    min-height:43px;display:flex;align-items:center;text-decoration:underline}
+  .admin-audiences-list li.admin-group-location-heading{grid-column:1/-1;display:flex!important;
+    flex-wrap:wrap;align-items:center;min-height:0;border:0!important;
+    border-bottom:1px solid var(--admin-accent,#f6bb38)!important;
+    background:transparent!important;padding:12px 0 7px!important;border-radius:0;gap:10px}
+  .admin-group-location-heading strong{font-size:17px;color:var(--admin-accent,#f6bb38)}
+  .admin-group-location-heading span{font-size:13px;color:var(--admin-muted,#ccc)}
+  .admin-group-placement{font-size:12px;color:var(--admin-muted,#c7c8c8)}
+
   .admin-audiences-list li.admin-audience-selected{border-color:#11af79!important;background:#101a16}
   .admin-audience-card-title{grid-column:1/-1;min-width:0;display:grid;gap:8px}
   .admin-audience-card-title strong{font:800 20px/1.2 'Fira Sans Extra Condensed',sans-serif;
@@ -895,6 +1030,8 @@
     padding:14px;border:1px solid #4b3b20;border-radius:10px;background:#161714}
   .admin-academy-placement label,.admin-inline-location label{display:grid;gap:6px;font-size:12px;color:#cfd0cc}
   .admin-academy-placement select,.admin-inline-location input{width:100%;min-width:0}
+  .admin-add-city-link{align-self:end;min-height:41px;color:var(--admin-accent,#f6bb38);
+    font-size:12px;display:inline-flex;align-items:center;text-decoration:underline}
   .admin-location-toggle{grid-column:1/-1;justify-self:start}
   .admin-location-note{grid-column:1/-1;margin:0}
   .admin-inline-location{grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));

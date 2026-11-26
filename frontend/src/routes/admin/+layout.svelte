@@ -3,6 +3,7 @@
   import { browser } from '$app/env';
   import { ADMIN_AUTH_CONTEXT, createAdminAuthController } from '../../lib/admin/controller.ts';
   import '../../lib/admin/admin.css';
+  import '../../lib/admin/admin-ui-refresh.css';
 
   let { children }: { children: Snippet } = $props();
   const controller = createAdminAuthController({ baseUrl: browser ? window.location.origin : '' });
@@ -17,4 +18,4 @@
 </script>
 
 <svelte:head><meta name="robots" content="noindex, nofollow" /></svelte:head>
-<div class="admin-app">{@render children()}</div>
+<div class="admin-app" data-ui-refresh="2026">{@render children()}</div>

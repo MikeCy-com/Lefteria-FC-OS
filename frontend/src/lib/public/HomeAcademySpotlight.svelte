@@ -12,7 +12,7 @@
 <section class="home-academy-spotlight" aria-labelledby="home-academy-title"
   data-testid="home-academy-spotlight">
   <div class="home-academy-image" aria-hidden="true"
-    style:background-image={`linear-gradient(90deg,#080a0add 0%,#080a0aa0 50%,#080a0a16 100%),url("${publicImages.hero}")`}></div>
+    style:background-image={`linear-gradient(90deg,color-mix(in srgb,var(--lf-color-bg,#080a0a) 86.667%,transparent) 0%,color-mix(in srgb,var(--lf-color-bg,#080a0a) 62.745%,transparent) 50%,color-mix(in srgb,var(--lf-color-bg,#080a0a) 8.627%,transparent) 100%),url("${publicImages.hero}")`}></div>
   <div class="home-academy-content">
     <p class="home-academy-eyebrow">ΛΕΥΤΕΡΙΑ FC <span>ACADEMY</span></p>
     {#if spotlightWords}
@@ -41,8 +41,8 @@
     position:relative;isolation:isolate;min-height:196px;
     padding:28px clamp(18px,3.5vw,56px);
     display:flex;align-items:center;gap:24px;justify-content:space-between;
-    border-block:1px solid #776044;background:#101112;overflow:hidden;
-    color:#fff;
+    border-block:1px solid var(--lf-color-accent,#776044);background:var(--lf-color-bg,#101112);overflow:hidden;
+    color:var(--lf-color-text,#ffffff);
   }
   .home-academy-image {
     position:absolute;inset:0;z-index:-1;
@@ -51,27 +51,27 @@
   }
   .home-academy-content{max-width:740px;min-width:0;}
   .home-academy-eyebrow {
-    color:#fff;font:800 clamp(18px,2.4vw,30px)/1.1 'Fira Sans Extra Condensed',sans-serif;
+    color:var(--lf-color-text,#ffffff);font:800 clamp(18px,2.4vw,30px)/1.1 'Fira Sans Extra Condensed',sans-serif;
     font-style:italic;margin:0 0 6px;
   }
-  .home-academy-eyebrow span{color:#f6bb38;}
+  .home-academy-eyebrow span{color:var(--lf-color-accent,#f6bb38);}
   h2{font:800 clamp(20px,2vw,29px)/1.16 'Fira Sans Extra Condensed',sans-serif;
-    margin:0 0 9px;color:#fff;}
-  h2 span{color:#f6bb38}
+    margin:0 0 9px;color:var(--lf-color-text,#ffffff);}
+  h2 span{color:var(--lf-color-accent,#f6bb38)}
   .home-academy-content>p:not(.home-academy-eyebrow) {
     font-size:clamp(13px,1.1vw,16px);max-width:62ch;line-height:1.4;
-    margin:0;color:#e0e0dd;
+    margin:0;color:var(--lf-color-text,#e0e0dd);
   }
-  .home-academy-content>.home-academy-groups {color:#f4c050!important;font-size:12px!important;margin-top:10px!important;}
+  .home-academy-content>.home-academy-groups {color:var(--lf-color-accent,#f4c050)!important;font-size:12px!important;margin-top:10px!important;}
   .home-academy-link {
     flex:none;min-height:48px;display:inline-flex;align-items:center;gap:12px;
-    justify-content:center;border:1px solid #ffc749;border-radius:3px;
-    background:linear-gradient(135deg,#ffcd52,#efad13);color:#080909;
+    justify-content:center;border:1px solid var(--lf-color-accent,#ffc749);border-radius:3px;
+    background:linear-gradient(135deg,var(--lf-color-accent,#ffcd52),var(--lf-color-accent,#efad13));color:var(--lf-color-bg,#080909);
     font:800 15px 'Fira Sans Extra Condensed',sans-serif;
     padding:12px 20px;text-decoration:none;
   }
   .home-academy-link:hover{filter:brightness(1.08)}
-  .home-academy-link:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .home-academy-link:focus-visible{outline:3px solid var(--lf-color-text,#ffffff);outline-offset:3px}
   @media(max-width:760px){
     .home-academy-spotlight{min-height:260px;align-items:flex-start;flex-direction:column;gap:18px;padding:26px 19px;}
     .home-academy-image{background-position:70% center;}

@@ -1,0 +1,375 @@
+/*
+ * Public redesign is a presentation layer, NEVER a second CMS theme.
+ *
+ * The published organization theme owns typography and colors; the native
+ * WYSIWYG page/block layouts own their own --cms-* geometry. New global
+ * layout choices come from the same approved canonical-global-design page.
+ * These fallbacks apply only when no theme has been published.
+ */
+.public-site[data-ui-refresh="2026"] {
+  --ui-bg:var(--lf-color-bg,var(--public-black,#090909));
+  --ui-ink:var(--lf-color-text,#ffffff);
+  --ui-accent:var(--lf-color-accent,var(--public-gold,#f6bb38));
+  --ui-link:var(--lf-color-link,var(--public-gold,#f6bb38));
+  --ui-surface:var(--lf-color-surface,var(--public-panel,#171717));
+  --ui-border:var(--lf-color-border,var(--public-panel-edge,#494949));
+  --ui-muted:var(--lf-color-muted,#bdbdbd);
+  --ui-card-gap:var(--lf-layout-card-gap,16px);
+  --ui-section-gap:var(--lf-layout-section-gap,32px);
+  --ui-gutter:var(--lf-layout-gutter,28px);
+  --ui-card-radius:var(--lf-layout-card-radius,9px);
+  --ui-button-radius:var(--lf-layout-button-radius,5px);
+  --ui-motto-height:var(--lf-layout-motto-height,120px);
+  --ui-raised:color-mix(in srgb,var(--ui-surface) 85%,var(--ui-bg));
+  --ui-emphasis:color-mix(in srgb,var(--ui-accent) 26%,transparent);
+  --ui-hairline:color-mix(in srgb,var(--ui-border) 58%,transparent);
+  --ui-shadow:0 14px 40px color-mix(in srgb,var(--ui-bg) 30%,transparent);
+}
+
+/* Page widths and gutters belong to public.css + global-design.css.
+ * The luxury visual layer must not redefine native or CMS page geometry. */
+
+/* Navigation still owns its existing hierarchy, rail width and actions. */
+.public-site[data-ui-refresh="2026"] .public-header {
+  background:color-mix(in srgb,var(--ui-bg) 93%,transparent);
+  border-bottom:1px solid var(--ui-emphasis);
+  box-shadow:0 10px 30px color-mix(in srgb,var(--ui-bg) 30%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-rail {
+  border-right:1px solid var(--ui-hairline);
+  background:var(--ui-bg);
+}
+.public-site[data-ui-refresh="2026"] .public-rail nav :is(a,button) {
+  transition:color .16s ease,background-color .16s ease,box-shadow .16s ease;
+}
+.public-site[data-ui-refresh="2026"] .public-rail nav :is(a,button):is(:hover,:focus-visible) {
+  box-shadow:inset 3px 0 var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button,.public-search-trigger) {
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] .public-header-tools :is(.public-icon-button,.public-search-trigger):is(:hover,:focus-visible) {
+  background:color-mix(in srgb,var(--ui-accent) 12%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-menu-dialog {
+  background:var(--ui-raised);
+  border-right:1px solid var(--ui-emphasis);
+  box-shadow:20px 0 60px color-mix(in srgb,var(--ui-bg) 48%,transparent);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-menu-row,.public-submenu a) {
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-menu-row,.public-submenu a):is(:hover,:focus-visible) {
+  background:color-mix(in srgb,var(--ui-accent) 10%,transparent);
+}
+
+/* Default title fonts/sizes remain in public.css and the published theme. */
+.public-site[data-ui-refresh="2026"] .public-page-heading:not(.academy-intro):not(.team-heading) {
+  background:linear-gradient(140deg,var(--ui-surface),var(--ui-bg));
+  border-bottom:1px solid var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-section-heading,.section-heading) {
+  border-bottom:1px solid var(--ui-hairline);
+  padding-bottom:clamp(12px,1vw,var(--ui-card-gap));
+}
+.public-site[data-ui-refresh="2026"] :is(.public-section-heading,.section-heading) > a {
+  text-underline-offset:5px;
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] .public-eyebrow {
+  color:var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] .public-section {
+  scroll-margin-top:calc(var(--public-header) + 14px);
+}
+.public-site[data-ui-refresh="2026"] .public-button {
+  border-radius:var(--ui-button-radius);
+  box-shadow:0 4px 14px color-mix(in srgb,var(--ui-bg) 20%,transparent);
+  transition:box-shadow .16s ease,border-color .16s ease;
+}
+.public-site[data-ui-refresh="2026"][data-global-design="true"] .public-button:not(.public-button-outline) {
+  background:var(--ui-accent);
+  border-color:var(--ui-accent);
+  color:var(--ui-bg);
+}
+.public-site[data-ui-refresh="2026"] .public-button:hover {
+  box-shadow:0 8px 26px var(--ui-emphasis);
+}
+
+/* Homepage: original CMS photos, headlines, next match and news filters. */
+.public-site[data-ui-refresh="2026"] .home-reference .public-hero-fixture {
+  border-color:var(--ui-emphasis);
+  box-shadow:0 18px 48px color-mix(in srgb,var(--ui-bg) 46%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .home-reference .public-destinations {
+  gap:var(--ui-card-gap);
+}
+.public-site[data-ui-refresh="2026"] .home-reference .public-destination {
+  border-color:var(--ui-hairline);
+  border-radius:var(--ui-card-radius);
+  box-shadow:var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"] .home-reference .public-destination:is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+  box-shadow:0 14px 35px color-mix(in srgb,var(--ui-bg) 38%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+  min-height:var(--ui-motto-height);
+  padding-block:clamp(16px,2vw,var(--ui-section-gap));
+  justify-content:center;
+  border-block:1px solid var(--ui-hairline);
+  background:linear-gradient(180deg,var(--ui-surface),var(--ui-bg));
+}
+.public-site[data-ui-refresh="2026"] .home-reference .public-news-section {
+  padding-top:var(--ui-section-gap);
+  padding-bottom:var(--ui-section-gap);
+  background:linear-gradient(165deg,var(--ui-surface),var(--ui-bg));
+  border-block:1px solid var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] .home-reference .public-news-grid {
+  gap:var(--ui-card-gap);
+}
+.public-site[data-ui-refresh="2026"] .public-news-filters {
+  gap:clamp(4px,1vw,var(--ui-card-gap));
+}
+.public-site[data-ui-refresh="2026"] .public-news-filters button {
+  min-height:40px;
+  padding-inline:13px;
+  border:1px solid transparent;
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] .public-news-filters button[aria-pressed="true"] {
+  border-color:var(--ui-emphasis);
+  background:color-mix(in srgb,var(--ui-accent) 12%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-news-filters button:hover {
+  border-color:var(--ui-emphasis);
+}
+
+/* One editor-controlled card and border system across every public route. */
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-age-card,
+  .academy-review-card,.academy-player-preview,.academy-group-preview,
+  .shop-ticket,.shop-product,.contact-info-card,.contact-message-form
+) {
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  box-shadow:var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"][data-global-design="true"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-review-card,
+  .shop-ticket,.shop-product,.contact-info-card,.contact-message-form
+) {
+  background-color:var(--ui-surface);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.public-group-card,.person-card,
+  .venue-card,.academy-destination,.academy-age-card,
+  .academy-review-card,.academy-player-preview,.academy-group-preview,
+  .shop-ticket,.shop-product,.contact-info-card
+):is(:hover,:focus-within) {
+  border-color:var(--ui-accent);
+  box-shadow:0 16px 40px color-mix(in srgb,var(--ui-bg) 33%,transparent);
+}
+.public-site[data-ui-refresh="2026"] :is(.person-card,.venue-card,.academy-age-card,.academy-review-card,.catalog-card) {
+  overflow:hidden;
+}
+.public-site[data-ui-refresh="2026"] :is(.person-card-copy,.public-news-body,.catalog-card-body) {
+  min-width:0;
+}
+
+/* Match rows, tabs and directories remain operational as written. */
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
+  margin-block:clamp(8px,1vw,var(--ui-card-gap));
+  padding-inline:var(--ui-card-gap);
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  background:var(--ui-surface);
+}
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row:is(:hover,:focus-within) {
+  border-color:var(--ui-accent);
+  background:var(--ui-raised);
+}
+.public-site[data-ui-refresh="2026"] :is(.team-tabs,.public-subnav) > :is(a,button) {
+  border-radius:var(--ui-button-radius) var(--ui-button-radius) 0 0;
+}
+.public-site[data-ui-refresh="2026"] :is(.roster-filters,.catalog-filters,.event-chip-filters,.catalog-empty) {
+  border:1px solid var(--ui-border);
+  border-radius:var(--ui-card-radius);
+  background-color:var(--ui-surface);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-landing-city-index,.academy-city-index,.academy-section-links
+) a {
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .academy-city-block,.academy-city-section,.academy-location-block,.academy-location-section
+) {
+  scroll-margin-top:calc(var(--public-header) + var(--ui-card-gap));
+}
+
+/* Academy form/finance summaries: style only, keep validation intact. */
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-child,.registration-choice-card,.registration-costs,
+  .registration-koa,.registration-child-documents
+) {
+  border-color:var(--ui-border);
+  border-radius:var(--ui-card-radius);
+}
+.public-site[data-ui-refresh="2026"] .registration-card {
+  border-color:var(--ui-border);
+  box-shadow:var(--ui-shadow);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.roster-filters,.catalog-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea) {
+  border-radius:var(--ui-button-radius);
+  border-color:var(--ui-border);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.roster-filters,.catalog-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):focus-visible {
+  outline:2px solid var(--ui-accent);
+  outline-offset:2px;
+  border-color:var(--ui-accent);
+}
+
+/* Explicit CMS page layout, media sources and inline block spacing win. */
+.public-site[data-ui-refresh="2026"] :is(.catalog-block,.catalog-facts,.catalog-detail-columns,.source-legal-document) {
+  border-color:var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] .public-footer {
+  background:var(--ui-bg);
+  border-top:1px solid var(--ui-emphasis);
+}
+.public-site[data-ui-refresh="2026"] .public-footer-grid {
+  column-gap:var(--ui-section-gap);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-footer-links a,.public-footer-account a) {
+  text-underline-offset:4px;
+  border-radius:var(--ui-button-radius);
+}
+.public-site[data-ui-refresh="2026"] :is(.public-footer-links a,.public-footer-account a):is(:hover,:focus-visible) {
+  color:var(--ui-link);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-button,.public-news-card,.catalog-card,.public-group-card,
+  .public-destination,.academy-age-card,.academy-review-card,.shop-product
+):focus-visible {
+  outline:3px solid var(--ui-accent);
+  outline-offset:3px;
+}
+@media (max-width: 767px) {
+  .public-site[data-ui-refresh="2026"] .home-reference .public-destinations {
+    gap:var(--ui-card-gap);
+  }
+  .public-site[data-ui-refresh="2026"] .home-reference[data-testid="home-page"] .home-brand-interval {
+    min-height:var(--ui-motto-height);
+  }
+  .public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
+    padding:var(--ui-card-gap);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-site[data-ui-refresh="2026"] :is(.public-button,.public-rail nav a,.public-rail nav button) {
+    transition:none;
+  }
+}
+@media (prefers-contrast: more) {
+  .public-site[data-ui-refresh="2026"] {
+    --ui-hairline:var(--ui-border);
+  }
+}
+
+
+/*
+ * LEFTERIA EDITORIAL FINISH
+ * Juventus-like hierarchy, sculpted premium panels, precision-crafted
+ * details. Every tint and measurement derives from the published brand
+ * palette/layout. Original imagery, typography, words and interactions
+ * remain solely owned by existing page components and the WYSIWYG editor.
+ */
+.public-site[data-ui-refresh="2026"] .public-header {
+  backdrop-filter:blur(14px) saturate(1.18);
+  -webkit-backdrop-filter:blur(14px) saturate(1.18);
+  box-shadow:0 1px 0 var(--ui-emphasis),0 16px 36px color-mix(in srgb,var(--ui-bg) 26%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-menu-dialog {
+  background:linear-gradient(150deg,var(--ui-raised),var(--ui-bg));
+  box-shadow:inset -1px 0 var(--ui-hairline),26px 0 50px color-mix(in srgb,var(--ui-bg) 42%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-page-heading:not(.academy-intro):not(.team-heading) {
+  background:linear-gradient(115deg,var(--ui-surface),var(--ui-bg) 78%);
+  box-shadow:inset 0 -2px 0 var(--ui-emphasis);
+}
+.public-site[data-ui-refresh="2026"] :is(.section-heading,.public-section-heading) {
+  border-bottom-color:var(--ui-emphasis);
+  box-shadow:inset 0 -1px 0 var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.person-card,.venue-card,
+  .academy-destination,.academy-review-card,.academy-age-card,
+  .shop-product,.contact-info-card
+) {
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ui-ink) 7%,transparent),
+    0 18px 45px color-mix(in srgb,var(--ui-bg) 23%,transparent);
+  transition:border-color .2s ease,box-shadow .2s ease;
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .public-news-card,.catalog-card,.person-card,.venue-card,
+  .academy-destination,.academy-review-card,.academy-age-card,
+  .shop-product,.contact-info-card
+):is(:hover,:focus-within) {
+  box-shadow:inset 0 2px 0 var(--ui-emphasis),
+    0 19px 47px color-mix(in srgb,var(--ui-bg) 32%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row {
+  box-shadow:inset 3px 0 color-mix(in srgb,var(--ui-accent) 36%,transparent),
+    0 11px 28px color-mix(in srgb,var(--ui-bg) 18%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-fixtures .fixture-row:is(:hover,:focus-within) {
+  box-shadow:inset 3px 0 var(--ui-accent),
+    0 15px 36px color-mix(in srgb,var(--ui-bg) 32%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-button:not(.public-button-outline) {
+  background:linear-gradient(132deg,var(--ui-accent),
+    color-mix(in srgb,var(--ui-accent) 83%,var(--ui-surface)));
+  border-color:var(--ui-accent);
+  box-shadow:inset 0 1px 0 color-mix(in srgb,var(--ui-ink) 18%,transparent),
+    0 8px 22px color-mix(in srgb,var(--ui-accent) 14%,transparent);
+}
+.public-site[data-ui-refresh="2026"] .public-button-outline {
+  border-color:var(--ui-emphasis);
+  box-shadow:inset 0 0 0 1px var(--ui-hairline);
+}
+.public-site[data-ui-refresh="2026"] .public-button-outline:is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+  box-shadow:inset 0 0 0 1px var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-card,.registration-costs,.registration-child,
+  .contact-message-form,.roster-filters,.catalog-filters
+) {
+  box-shadow:inset 0 1px color-mix(in srgb,var(--ui-ink) 8%,transparent),
+    0 12px 36px color-mix(in srgb,var(--ui-bg) 19%,transparent);
+}
+.public-site[data-ui-refresh="2026"] :is(
+  .registration-fields,.contact-message-form,.catalog-filters,.roster-filters
+) :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea):is(:hover,:focus-visible) {
+  border-color:var(--ui-accent);
+}
+.public-site[data-ui-refresh="2026"] .public-footer {
+  box-shadow:inset 0 2px 0 var(--ui-emphasis);
+}
+@media (prefers-reduced-motion: reduce) {
+  .public-site[data-ui-refresh="2026"] :is(
+    .public-news-card,.catalog-card,.person-card,.venue-card,
+    .academy-destination,.academy-review-card,.academy-age-card,
+    .shop-product,.contact-info-card
+  ) {
+    transition:none;
+  }
+}

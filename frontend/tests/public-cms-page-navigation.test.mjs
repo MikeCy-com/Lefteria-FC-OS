@@ -154,6 +154,6 @@ test('published page retains semantic article, escaped editor blocks, SEO and po
   assert.match(source,/seo_description \|\| content.summary/);
   assert.match(navigation,/class:is-current=\{navigationActive\(item, page.url, organization\)\}/);
   assert.match(source,/@media\(max-width:650px\)/);
-  assert.match(source,/outline:3px solid #f6bb38/);
+  assert.match(source,/outline:3px solid var\(--public-gold\)/);
   assert.doesNotMatch(source,/<main\b|\{@html\}|onclick=\{.*publish/);
 });

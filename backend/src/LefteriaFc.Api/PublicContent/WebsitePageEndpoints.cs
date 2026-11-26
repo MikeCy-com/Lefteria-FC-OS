@@ -23,12 +23,18 @@ public sealed record WebsiteBlockLayout(string Width, int MinHeight, int MarginT
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
-public sealed record WebsitePageLayout(int MaxWidth, int Gap, int SidePadding)
+public sealed record WebsitePageLayout(
+    int? MaxWidth = null, int? Gap = null, int? SidePadding = null,
+    int? MarginTop = null, int? MarginBottom = null)
 {
+    // Every field is an independent override. Null/omitted means inherit the
+    // published organization's global page layout, not a hardcoded page value.
     public bool Valid() =>
-        MaxWidth is 960 or 1120 or 1280 or 1440 &&
-        Gap is 8 or 16 or 24 or 32 or 48 &&
-        SidePadding is 12 or 16 or 24 or 32 or 48;
+        MaxWidth is null or 960 or 1120 or 1280 or 1440 &&
+        Gap is null or 8 or 16 or 24 or 32 or 48 &&
+        SidePadding is null or 12 or 16 or 24 or 32 or 48 &&
+        MarginTop is null or 0 or 8 or 12 or 16 or 24 or 32 or 48 or 64 or 80 &&
+        MarginBottom is null or 0 or 8 or 12 or 16 or 24 or 32 or 48 or 64 or 80;
 }
 
 [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -462,7 +468,8 @@ public static class WebsitePageEndpoints
         {
             using var json = JsonDocument.Parse(content.Blocks[0].Text);
             var root = json.RootElement;
-            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() != 2 ||
+            if (root.ValueKind != JsonValueKind.Object || root.EnumerateObject().Count() is not (2 or 3) ||
+                (root.EnumerateObject().Count() == 3 && !root.TryGetProperty("layout", out _)) ||
                 !root.TryGetProperty("text", out var styles) || styles.ValueKind != JsonValueKind.Object ||
                 !root.TryGetProperty("colors", out var colors) || colors.ValueKind != JsonValueKind.Object ||
                 colors.EnumerateObject().Count() != 7 ||
@@ -498,6 +505,44 @@ public static class WebsitePageEndpoints
                     !t.TryGetProperty("line_height", out var line) ||
                     !line.TryGetDouble(out var h) || h is not (1.0 or 1.15 or 1.2 or 1.35 or 1.5 or 1.6 or 1.8))
                     throw Invalid();
+            }
+            // Optional six-key design layout is backward compatible with the
+            // original two-key published themes. Unknown keys/CSS are refused.
+            if (root.TryGetProperty("layout", out var layout))
+            {
+                if (layout.ValueKind != JsonValueKind.Object ||
+                    (layout.EnumerateObject().Count() != 6 && layout.EnumerateObject().Count() != 11))
+                    throw Invalid();
+                foreach (var item in new[]
+                {
+                    (Name: "gutter", Choices: new[] {12,16,20,24,28,32,40,48,56,64}),
+                    (Name: "section_gap", Choices: new[] {12,16,20,24,32,40,48,64,80}),
+                    (Name: "card_gap", Choices: new[] {8,12,16,20,24,32,40}),
+                    (Name: "card_radius", Choices: new[] {0,4,6,9,12,16,20,24}),
+                    (Name: "button_radius", Choices: new[] {0,4,5,8,12,16,24}),
+                    (Name: "motto_height", Choices: new[] {80,100,120,160,240,320,360})
+                })
+                {
+                    if (!layout.TryGetProperty(item.Name, out var token) ||
+                        !token.TryGetInt32(out var number) || !item.Choices.Contains(number))
+                        throw Invalid();
+                }
+                if (layout.EnumerateObject().Count() == 11)
+                {
+                    foreach (var item in new[]
+                    {
+                        (Name: "page_max_width", Choices: new[] {960,1120,1280,1440}),
+                        (Name: "page_gap", Choices: new[] {8,16,24,32,48}),
+                        (Name: "page_side_padding", Choices: new[] {12,16,24,32,48}),
+                        (Name: "page_margin_top", Choices: new[] {0,8,12,16,24,32,48,64,80}),
+                        (Name: "page_margin_bottom", Choices: new[] {0,8,12,16,24,32,48,64,80})
+                    })
+                    {
+                        if (!layout.TryGetProperty(item.Name, out var token) ||
+                            !token.TryGetInt32(out var number) || !item.Choices.Contains(number))
+                            throw Invalid();
+                    }
+                }
             }
         }
         catch (JsonException) { throw Invalid(); }

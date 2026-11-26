@@ -14,8 +14,8 @@
   import WebsiteGlobalDesignEditor from '../../../lib/admin/WebsiteGlobalDesignEditor.svelte';
   import WebsiteNavigationEditor from '../../../lib/admin/WebsiteNavigationEditor.svelte';
   import {parseNavigationDesign} from '../../../lib/public/navigation-design.ts';
-  import {DEFAULT_GLOBAL_DESIGN,parseGlobalDesign} from '../../../lib/public/global-design.ts';
-  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, CANONICAL_NAVIGATION_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, DEFAULT_PAGE_LAYOUT, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, validHeadingLevel, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
+  import {DEFAULT_GLOBAL_DESIGN,globalPageDefaults,parseGlobalDesign} from '../../../lib/public/global-design.ts';
+  import { websitePagePath, websiteMenuParentAllowed, HOMEPAGE_HERO_SLUGS, HOMEPAGE_ACADEMY_SPOTLIGHT_SLUG, CANONICAL_ABOUT_INTRO_SLUG, CANONICAL_CONTACT_LEAD_SLUG, CANONICAL_ABOUT_HISTORY_SLUG, CANONICAL_ACADEMY_INTRO_SLUG, CANONICAL_ACADEMY_PHILOSOPHY_LEAD_SLUG, CANONICAL_ACADEMY_GROUPS_LEAD_SLUG, CANONICAL_ACADEMY_REGISTRATION_LEAD_SLUG, CANONICAL_SHOP_LEAD_SLUG, CANONICAL_GLOBAL_DESIGN_SLUG, CANONICAL_NAVIGATION_DESIGN_SLUG, NATIVE_EDITORIAL_REGIONS, nativeEditorialOwnerAllowed, type NativeEditorialRegion, PAGE_LAYOUT_CHOICES, resolveWebsitePageLayout, DEFAULT_BLOCK_LAYOUT, validPageLayout, validBlockLayout, validHeadingLevel, type WebsitePageLayout, type WebsiteBlockLayout, type WebsiteBlock, type WebsitePageContent, type WebsitePageRecord } from '../../../lib/public/website-pages.ts';
   import type { PublicOrganization } from '../../../lib/public/types.ts';
 
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
@@ -47,6 +47,9 @@
   let creating = $state(false);
   let slug = $state('');
   let draft = $state<WebsitePageContent>(blank());
+  const publishedPageDefaults=$derived(globalPageDefaults(parseGlobalDesign(
+    records.find(row=>row.slug===CANONICAL_GLOBAL_DESIGN_SLUG)?.published?.blocks[0]?.text??''
+  )));
   let loading = $state(false);
   let saving = $state(false);
   let retry = $state(0);
@@ -377,9 +380,12 @@
     mediaPickerIndex=null;
     notice='Η εικόνα προστέθηκε στο πρόχειρο. Αποθηκεύστε και δημοσιεύστε χωριστά.';
   }
-  function setPageLayout(key:keyof WebsitePageLayout,value:number) {
+  function setPageLayout(key:keyof WebsitePageLayout,value:number|null) {
     if(!canWrite || saving || isLockedRegion)return;
-    draft.layout={...DEFAULT_PAGE_LAYOUT,...draft.layout,[key]:value};
+    const next:WebsitePageLayout={...draft.layout};
+    if(value===null)delete next[key];
+    else (next as unknown as Record<string,number|null|undefined>)[key]=value;
+    if(validPageLayout(next))draft.layout=Object.keys(next).length?next:null;
   }
   function setBlockLayout(index:number,next:WebsiteBlockLayout) {
     if(!canWrite || saving || isLockedRegion || !validBlockLayout(next) || !draft.blocks[index])return;
@@ -631,28 +637,29 @@
                   </div>
                   {#if !isLockedRegion}
                     <fieldset class="cms-layout-fieldset" data-testid="cms-global-layout">
-                      <legend>Διάταξη σελίδας · πλάτος και αποστάσεις</legend>
-                      <div class="cms-field-grid">
-                        <label>Μέγιστο πλάτος περιεχομένου
-                          <select value={draft.layout?.max_width ?? DEFAULT_PAGE_LAYOUT.max_width}
-                            onchange={e=>setPageLayout('max_width',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
-                            {#each [960,1120,1280,1440] as width}<option value={width}>{width} px</option>{/each}
-                          </select>
-                        </label>
-                        <label>Κενό μεταξύ blocks
-                          <select value={draft.layout?.gap ?? DEFAULT_PAGE_LAYOUT.gap}
-                            onchange={e=>setPageLayout('gap',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
-                            {#each [8,16,24,32,48] as gap}<option value={gap}>{gap} px</option>{/each}
-                          </select>
-                        </label>
-                        <label>Πλευρικό περιθώριο
-                          <select value={draft.layout?.side_padding ?? DEFAULT_PAGE_LAYOUT.side_padding}
-                            onchange={e=>setPageLayout('side_padding',Number(e.currentTarget.value))} disabled={!canWrite||saving}>
-                            {#each [12,16,24,32,48] as padding}<option value={padding}>{padding} px</option>{/each}
-                          </select>
-                        </label>
+                      <legend>Διάταξη σελίδας · προαιρετικές εξαιρέσεις από τις γενικές ρυθμίσεις</legend>
+                      <p class="admin-muted">Κάθε πεδίο ακολουθεί τη δημοσιευμένη γενική ρύθμιση του οργανισμού, εκτός αν επιλέξετε δική του τιμή. Οι εξαιρέσεις ισχύουν μόνο σε αυτή τη σελίδα.</p>
+                      <div class="cms-field-grid" data-testid="cms-page-layout-overrides">
+                        {#each Object.keys(PAGE_LAYOUT_CHOICES) as key (key)}
+                          <label>{key==='max_width'?'Μέγιστο πλάτος περιεχομένου':key==='gap'?'Κενό μεταξύ blocks':key==='side_padding'?'Πλευρικό περιθώριο':key==='margin_top'?'Άνω περιθώριο σελίδας':'Κάτω περιθώριο σελίδας'}
+                            <select value={draft.layout?.[key as keyof WebsitePageLayout] ?? ''}
+                              data-testid={'cms-page-override-'+key}
+                              onchange={e=>setPageLayout(key as keyof WebsitePageLayout,e.currentTarget.value===''?null:Number(e.currentTarget.value))}
+                              disabled={!canWrite||saving}>
+                              <option value="">Γενική ρύθμιση ({publishedPageDefaults[key as keyof WebsitePageLayout]} px)</option>
+                              {#each PAGE_LAYOUT_CHOICES[key as keyof typeof PAGE_LAYOUT_CHOICES] as option (option)}
+                                <option value={option}>{option} px</option>
+                              {/each}
+                            </select>
+                          </label>
+                        {/each}
                       </div>
-                      <p class="admin-muted">Οι ρυθμίσεις ισχύουν για τις επεξεργάσιμες ενότητες, όχι για προστατευμένα δεδομένα και φόρμες.</p>
+                      <button type="button" class="admin-secondary" data-testid="cms-page-reset-inheritance"
+                        disabled={!canWrite||saving||!draft.layout}
+                        onclick={()=>{if(canWrite&&!saving&&!isLockedRegion)draft.layout=null;}}>
+                        Επαναφορά όλων στις γενικές ρυθμίσεις
+                      </button>
+                      <p class="admin-muted">Αποθηκεύστε το ιδιωτικό πρόχειρο και δημοσιεύστε για να εφαρμοστεί η αλλαγή. Τα δεδομένα και οι προστατευμένες φόρμες δεν επηρεάζονται.</p>
                     </fieldset>
                   {/if}
                   {#if isHero}<p class="admin-muted">Η αλλαγή αφορά μόνο το κείμενο της κεντρικής εικόνας στην αρχική σελίδα. Καρουζέλ, εικόνες, επόμενος αγώνας και σύνδεσμοι μένουν δυναμικοί. Απαιτείται ξεχωριστή έγκριση και δημοσίευση.</p>{/if}
@@ -789,7 +796,7 @@
                     <p class="cms-hero-copy">{draft.blocks[1]?.text}</p>
                   {:else}
                     <WebsiteVisualCanvas blocks={draft.blocks} maxBlocks={maxBlocks}
-                      pageLayout={draft.layout ?? DEFAULT_PAGE_LAYOUT} onLayout={setBlockLayout} onLevel={setHeadingLevel}
+                      pageLayout={resolveWebsitePageLayout(draft.layout,publishedPageDefaults)} onLayout={setBlockLayout} onLevel={setHeadingLevel}
                       editable={canWrite} locked={isLockedRegion} busy={saving}
                       onEdit={editCanvasText} onMove={moveCanvasBlock}
                       onInsert={insertBlock} onSelect={selectCanvasBlock}/>

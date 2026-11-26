@@ -32,7 +32,7 @@
 </a>
 
 <style>
-  .card-coaches,.card-training{font-size:13px;line-height:1.55;color:#cacaca;margin:16px 0;overflow-wrap:anywhere}
-  .card-coaches{color:#e7c47f;font-weight:700}
-  .card-training{border-left:2px solid #e7b644;padding-left:11px;white-space:pre-line}
+  .card-coaches,.card-training{font-size:13px;line-height:1.55;color:var(--lf-color-muted,#cacaca);margin:16px 0;overflow-wrap:anywhere}
+  .card-coaches{color:var(--lf-color-accent,#e7c47f);font-weight:700}
+  .card-training{border-left:2px solid var(--lf-color-accent,#e7b644);padding-left:11px;white-space:pre-line}
 </style>

@@ -100,3 +100,84 @@ test('design settings use existing private draft approval with exact API validat
   assert.ok(compile(editor,{filename:'WebsiteGlobalDesignEditor.svelte',generate:'server'}).js.code.length>100);
   assert.ok(compile(shell,{filename:'PublicShell.svelte',generate:'server'}).js.code.length>100);
 });
+
+test('published WYSIWYG layout choices are typed, strict, organization-scoped and legacy compatible',()=>{
+  const oldTheme={text:DEFAULT_GLOBAL_DESIGN.text,colors:DEFAULT_GLOBAL_DESIGN.colors};
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(oldTheme)),oldTheme,'Old published themes must continue working');
+  assert.match(globalDesignCssVars(oldTheme),/--lf-layout-motto-height:120px/);
+  const changed=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  changed.layout.gutter=64;
+  changed.layout.card_gap=40;
+  changed.layout.card_radius=24;
+  changed.layout.button_radius=16;
+  changed.layout.motto_height=360;
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(changed)),changed);
+  const result=globalDesignCssVars(changed);
+  for(const token of [
+    '--lf-layout-gutter:64px','--lf-layout-card-gap:40px',
+    '--lf-layout-card-radius:24px','--lf-layout-button-radius:16px',
+    '--lf-layout-motto-height:360px'
+  ])assert.ok(result.includes(token),token);
+  for(const [key,value] of [
+    ['gutter',999],['section_gap',500],['card_gap',-1],
+    ['card_radius',3],['button_radius','999px'],['motto_height',999]
+  ]) {
+    const invalid=structuredClone(changed);invalid.layout[key]=value;
+    assert.equal(parseGlobalDesign(JSON.stringify(invalid)),null,key);
+  }
+  const injected=structuredClone(changed);
+  injected.layout['css']='display:none';
+  assert.equal(parseGlobalDesign(JSON.stringify(injected)),null);
+  assert.match(api,/layout\.EnumerateObject\(\)\.Count\(\) != 6/);
+  assert.match(api,/root\.TryGetProperty\("layout", out var layout\)/);
+  assert.match(api,/item\.Choices\.Contains\(number\)/);
+  assert.match(editor,/data-testid="global-design-layout-controls"/);
+  assert.match(editor,/updateLayout\(key as keyof GlobalDesignLayout/);
+  assert.match(editor,/--preview-h1-mobile/);
+  assert.doesNotMatch(editor,/clamp\(18px,8vw,36px\)!important/);
+});
+
+test('redesign consumes the published palette and layout instead of hardcoded values',()=>{
+  const skin=read('frontend/src/lib/public/ui-refresh.css');
+  const palette=read('frontend/src/lib/public/global-design.css');
+  for(const key of [
+    'bg','text','accent','surface','muted','border','link'
+  ]) assert.ok((skin+palette).includes('--lf-color-'+key),'not wired: '+key);
+  for(const key of [
+    'gutter','section-gap','card-gap','card-radius','button-radius','motto-height'
+  ]) assert.ok(skin.includes('--lf-layout-'+key),'layout not wired: '+key);
+  assert.match(palette,/--public-gold:var\(--lf-color-accent\)/);
+  assert.match(palette,/--public-panel:var\(--lf-color-surface\)/);
+  assert.doesNotMatch(skin,/rgb\(246[, ]+187[, ]+56/i);
+  assert.doesNotMatch(skin,/(?:background|border-color|color)\s*:\s*#[a-f0-9]{3,8}\b/i);
+  // Native CMS per-block WYSIWYG spacing must not be overwritten by new skin.
+  assert.doesNotMatch(skin,/\.website-block-wrap\b|\.website-blocks\b|--cms-(?:gap|side|max-width|mt|mb)/);
+  assert.match(read('frontend/src/lib/public/WebsitePageBlocks.svelte'),/--cms-gap:\$\{dimension\('gap','page-gap'\)\}/);
+});
+
+test('global editor now controls default page width, padding and top/bottom margins',()=>{
+  const theme=structuredClone(DEFAULT_GLOBAL_DESIGN);
+  theme.layout.page_max_width=1440;
+  theme.layout.page_gap=48;
+  theme.layout.page_side_padding=32;
+  theme.layout.page_margin_top=64;
+  theme.layout.page_margin_bottom=80;
+  assert.deepEqual(parseGlobalDesign(JSON.stringify(theme)),theme);
+  const vars=globalDesignCssVars(theme);
+  for(const pair of [
+    '--lf-layout-page-max-width:1440px',
+    '--lf-layout-page-gap:48px',
+    '--lf-layout-page-side-padding:32px',
+    '--lf-layout-page-margin-top:64px',
+    '--lf-layout-page-margin-bottom:80px'
+  ])assert.ok(vars.includes(pair),pair);
+  for(const key of ['page_max_width','page_gap','page_side_padding','page_margin_top','page_margin_bottom']){
+    const invalid=structuredClone(theme); invalid.layout[key]=999;
+    assert.equal(parseGlobalDesign(JSON.stringify(invalid)),null,key+' must be allowlisted');
+    assert.ok(editor.includes(key),key+' must appear in the WYSIWYG editor');
+    assert.ok(api.includes('"'+key+'"'),key+' must be validated by server');
+  }
+  const oldSix={...theme.layout};
+  for(const key of ['page_max_width','page_gap','page_side_padding','page_margin_top','page_margin_bottom'])delete oldSix[key];
+  assert.ok(parseGlobalDesign(JSON.stringify({...theme,layout:oldSix})),'6-option published layouts remain valid');
+});

@@ -1,5 +1,6 @@
 <script lang="ts">
   import {onMount} from 'svelte';
+  import {SvelteSet} from 'svelte/reactivity';
   import type {MobileAuthController} from '../controller.ts';
   import type {MobileRole} from '../navigation.ts';
   import type {GroupChatRoom} from '../group-chat.ts';
@@ -8,7 +9,7 @@
   import MobileHoldAction from './MobileHoldAction.svelte';
   import MobileMessageActionMenu from './MobileMessageActionMenu.svelte';
 
-  let {controller,actorId,role}:{controller:MobileAuthController;actorId:string;role:MobileRole}=$props();
+  let {controller,actorId,role,onReadConfirmed,initialConversation=null}:{controller:MobileAuthController;actorId:string;role:MobileRole;onReadConfirmed?:()=>void;initialConversation?:string|null}=$props();
   let rooms=$state<GroupChatRoom[]>([]);
   let roomKey=$state('');
   let contacts=$state<PrivateContact[]>([]);
@@ -22,20 +23,25 @@
   let menuConversation=$state<PrivateConversation|null>(null);
   let busy=$state(false),loading=$state(true),messageLoading=$state(false),contactLoading=$state(false);
   let error=$state<string|null>(null),messageError=$state<string|null>(null);
-  let sequence=0,alive=true;
+  let sequence=0,contactSequence=0,alive=true;
+  const acknowledged=new SvelteSet<string>();
+  const receiptPending=new SvelteSet<string>();
+  let receiptError=$state<string|null>(null);
   const chosenRoom=$derived(rooms.find(r=>r.organization_id+':'+r.group_id===roomKey));
   const allowedRole=$derived(role==='parent'||role==='coach'||role==='management');
 
   onMount(()=>{
     alive=true;void refresh();
-    return ()=>{alive=false;sequence++;};
+    return ()=>{alive=false;sequence++;contactSequence++;};
   });
   function fault(e:unknown){
     return e instanceof Error&&e.message.length<=240?e.message:'Η υπηρεσία δεν είναι διαθέσιμη.';
   }
   async function refresh(){
     const request=++sequence;
+    ++contactSequence;
     busy=false;loading=true;error=null;selected=null;messages=[];nextOffset=null;
+    draft='';messageLoading=false;contactLoading=false;contacts=[];contactId='';conversations=[];rooms=[];
     menuConversation=null;menuMessage=null;
     try{
       const [inbox,directory]=await Promise.all([
@@ -46,26 +52,31 @@
       if(!directory.some(room=>room.organization_id+':'+room.group_id===roomKey))
         roomKey=directory.length?directory[0].organization_id+':'+directory[0].group_id:'';
       if(chosenRoom)void loadContacts(chosenRoom);
+      if(initialConversation!==null){
+        const target=inbox.find(item=>item.id===initialConversation&&item.status==='accepted');
+        if(target)void openConversation(target);
+        else error='Η ζητούμενη συνομιλία δεν είναι πλέον διαθέσιμη.';
+      }
     }catch(e){if(alive&&request===sequence){error=fault(e);conversations=[];rooms=[];}}
     finally{if(alive&&request===sequence)loading=false;}
   }
   async function loadContacts(room:GroupChatRoom){
-    const key=room.organization_id+':'+room.group_id;
+    const key=room.organization_id+':'+room.group_id,request=++contactSequence;
     contactLoading=true;contacts=[];contactId='';
     try{
       const found=await controller.getPrivateContacts(room);
-      if(!alive||roomKey!==key)return;
+      if(!alive||request!==contactSequence||roomKey!==key)return;
       contacts=found;
-    }catch(e){if(alive&&roomKey===key)error=fault(e);}
-    finally{if(alive&&roomKey===key)contactLoading=false;}
+    }catch(e){if(alive&&request===contactSequence&&roomKey===key)error=fault(e);}
+    finally{if(alive&&request===contactSequence&&roomKey===key)contactLoading=false;}
   }
   function changeRoom(){
     if(chosenRoom)void loadContacts(chosenRoom);
-    else{contacts=[];contactId='';}
+    else{++contactSequence;contacts=[];contactId='';contactLoading=false;}
   }
   async function invite(){
     const room=chosenRoom,target=contactId;
-    if(!room||!target||busy)return;
+    if(!room||!target||busy||contactLoading||!contacts.some(c=>c.id===target))return;
     busy=true;error=null;
     try{
       await controller.invitePrivateContact(room,target);
@@ -89,27 +100,68 @@
   async function openConversation(item:PrivateConversation){
     if(busy||item.status!=='accepted')return;
     const request=++sequence;
-    selected=item;messages=[];nextOffset=null;messageError=null;
+    receiptError=null;
+    selected=item;messages=[];nextOffset=null;messageError=null;draft='';
     menuMessage=null;menuConversation=null;messageLoading=true;
     try{
       const page=await controller.getPrivateMessages(item.id,0);
       if(!alive||request!==sequence||selected?.id!==item.id)return;
       messages=page.messages;nextOffset=page.next_offset;
-    }catch(e){if(alive&&request===sequence)messageError=fault(e);}
+    }catch(e){if(alive&&request===sequence){messages=[];nextOffset=null;draft='';messageError=fault(e);}}
     finally{if(alive&&request===sequence)messageLoading=false;}
   }
   async function reloadMessages(more=false){
     const item=selected;
-    if(!item||messageLoading||busy)return;
+    if(!item||messageLoading||busy||(more&&nextOffset===null))return;
     const request=++sequence;
-    messageLoading=true;messageError=null;
+    messageLoading=true;messageError=null;receiptError=null;
     try{
-      const page=await controller.getPrivateMessages(item.id,more?(nextOffset??0):0);
+      const offset=more?(nextOffset??0):0;
+      const page=await controller.getPrivateMessages(item.id,offset);
       if(!alive||request!==sequence||selected?.id!==item.id)return;
-      messages=more?[...messages,...page.messages]:page.messages;
+      if(page.next_offset!==null&&page.next_offset<=offset)throw new Error('Μη έγκυρη σελίδα μηνυμάτων.');
+      messages=more?[...new Map([...messages,...page.messages].map(m=>[m.id,m])).values()]:page.messages;
       nextOffset=page.next_offset;
-    }catch(e){if(alive&&request===sequence)messageError=fault(e);}
+    }catch(e){if(alive&&request===sequence){messages=[];nextOffset=null;draft='';messageError=fault(e);}}
     finally{if(alive&&request===sequence)messageLoading=false;}
+  }
+  function receiptKey(message:PrivateMessage){
+    return message.conversation_id+'/'+message.id+':'+message.version;
+  }
+  async function confirmRead(message:PrivateMessage){
+    const conv=selected,key=receiptKey(message),request=sequence;
+    if(!alive||!conv||conv.status!=='accepted'||message.conversation_id!==conv.id||
+      message.sender_id===actorId||message.is_deleted||messageLoading||
+      document.visibilityState!=='visible'||!document.hasFocus()||
+      acknowledged.has(key)||receiptPending.has(key)||
+      !messages.some(m=>m.id===message.id&&m.version===message.version&&!m.is_deleted))return;
+    receiptPending.add(key);receiptError=null;
+    try{
+      if(!await controller.acknowledgePrivateRead(conv.id,message.id,message.version))
+        throw new Error('Read not confirmed.');
+      if(alive&&sequence===request&&selected?.id===conv.id){
+        acknowledged.add(key);onReadConfirmed?.();
+      }
+    }catch{
+      if(alive&&sequence===request&&selected?.id===conv.id)
+        receiptError='Δεν επιβεβαιώθηκε η ανάγνωση. Δοκίμασε ξανά.';
+    }finally{receiptPending.delete(key);}
+  }
+  function seenOnScreen(node:HTMLElement,initial:PrivateMessage){
+    let current=initial,visible=false;
+    function acknowledge(){if(visible)void confirmRead(current);}
+    if(typeof IntersectionObserver==='undefined')return {};
+    const observer=new IntersectionObserver(entries=>{
+      visible=entries.some(entry=>entry.isIntersecting&&entry.intersectionRatio>=0.75);
+      acknowledge();
+    },{threshold:0.75});
+    observer.observe(node);
+    document.addEventListener('visibilitychange',acknowledge);
+    window.addEventListener('focus',acknowledge);
+    return {update(message:PrivateMessage){current=message;acknowledge();},
+      destroy(){visible=false;observer.disconnect();
+        document.removeEventListener('visibilitychange',acknowledge);
+        window.removeEventListener('focus',acknowledge);}};
   }
   async function send(){
     const item=selected,body=draft.trim();
@@ -149,7 +201,8 @@
     try{
       const confirmed=await controller.hidePrivateConversationForMe(conv.id);
       if(!confirmed||!alive)return false;
-      ++sequence;selected=null;messages=[];nextOffset=null;menuConversation=null;
+      onReadConfirmed?.();
+      ++sequence;selected=null;messages=[];nextOffset=null;menuConversation=null;draft='';messageLoading=false;
       conversations=await controller.getPrivateConversations();
       return true;
     }catch(e){if(alive)messageError=fault(e);return false;}
@@ -232,7 +285,7 @@
         {#if messageLoading}<p role="status">Φόρτωση μηνυμάτων…</p>{/if}
         <ol class="messages" aria-live="polite">
           {#each [...messages].reverse() as message (message.id)}
-            <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted}>
+            <li class:own={message.sender_id===actorId} class:deleted={message.is_deleted} use:seenOnScreen={message}>
               <MobileHoldAction enabled={message.sender_id===actorId&&!message.is_deleted&&!busy&&!messageLoading}
                 onOpen={()=>{menuMessage=message;menuConversation=null;}} label="Ενέργειες μηνύματος">
                 <div class="message-head"><strong>{message.sender_id===actorId?'Εσύ':message.sender_name}</strong>
@@ -241,6 +294,17 @@
                 <p>{message.is_deleted?'Το μήνυμα διαγράφηκε':message.content}</p>
                 {#if message.edited_at&&!message.is_deleted}<small>Επεξεργάστηκε</small>{/if}
               </MobileHoldAction>
+              {#if !message.is_deleted&&message.sender_id!==actorId}
+                {#if acknowledged.has(receiptKey(message))}
+                  <small class="read-confirmed">✓ Διαβάστηκε</small>
+                {:else}
+                  <button type="button" class="outline read-action"
+                    disabled={messageLoading||receiptPending.has(receiptKey(message))}
+                    onclick={()=>void confirmRead(message)}>
+                    {receiptPending.has(receiptKey(message))?'Επιβεβαίωση…':'Σήμανση ως αναγνωσμένο'}
+                  </button>
+                {/if}
+              {/if}
             </li>
           {/each}
         </ol>
@@ -250,6 +314,7 @@
             disabled={busy||messageLoading} placeholder="Γράψε ένα μήνυμα…" />
           <button type="submit" class="gold" disabled={busy||messageLoading||!validPrivateText(draft.trim())}>Αποστολή</button>
         </form>
+        {#if receiptError}<p role="alert" class="error">{receiptError}</p>{/if}
         {#if messageError}<p role="alert" class="error">{messageError}</p>{/if}
       </section>
     {/if}
@@ -306,6 +371,7 @@
   .messages li.own{align-self:flex-end;border-color:#7d581f;background:#2a2319}
   .messages li.deleted{opacity:.7}
   .messages li p{margin:7px 0 0;white-space:pre-wrap}
+  .read-action{margin-top:8px;font-size:12px;text-align:left}.read-confirmed{display:block;margin-top:7px;color:var(--lf-gold-light);font-size:12px}
   .message-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .message-head strong{font-size:11px;color:var(--lf-gold-light)}
   .message-head time{font-size:10px;color:var(--lf-muted)}
