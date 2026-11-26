@@ -5380,9 +5380,10 @@ export interface components {
             kind: string;
             publish: boolean;
         };
-        TrainingFeeSmsCommand: {
-            /** Format: uuid */
-            client_request_id: string;
+        TrainingDrillsCommand: {
+            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
+            /** Format: int32 */
+            expected_version: number | string;
         };
         TrainingDrillSelectionCommand: {
             /** Format: uuid */
@@ -5392,10 +5393,9 @@ export interface components {
             /** Format: int32 */
             duration_minutes: number | string;
         };
-        TrainingDrillsCommand: {
-            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
-            /** Format: int32 */
-            expected_version: number | string;
+        TrainingFeeSmsCommand: {
+            /** Format: uuid */
+            client_request_id: string;
         };
         TrainingPlanCommand: {
             archive: boolean;
