@@ -152,7 +152,7 @@ test('exact-main release browser coverage runs for every main push, even backend
     new URL('../../.github/workflows/browser-ui-visual-audit.yml',import.meta.url),
     'utf8');
   assert.match(workflow,/on:\s*\n\s*#.*\n\s*#.*\n\s*push:\s*\n\s*branches: \[main\]/);
-  assert.match(workflow,/pull_request:\s*\n\s*branches: \[main\]\s*\n\s*paths:/);
+  assert.match(workflow,/pull_request:\s*\n\s*branches: \[main, 'rewrite\/\*\*', 'feat\/\*\*', 'fix\/\*\*'\]\s*\n\s*paths:/);
   // The browser audit on main must not have a paths filter;
   // otherwise backend-only release candidates have no exact-SHA proof.
   const push=workflow.slice(workflow.indexOf('  push:'),workflow.indexOf('  pull_request:'));
@@ -171,4 +171,13 @@ test('manual release audit has no deployments or privileged environment credenti
   assert.match(workflow,/verify-release-authorization[.]mjs/);
   assert.doesNotMatch(workflow,/^\s*environment:\s*(?:production|live)\s*$/m);
   assert.doesNotMatch(workflow,/^\s*-\s*run:\s*(?:docker\s+compose\s+up|ssh|scp|kubectl|helm)/m);
+});
+
+test('rewrite CI covers stacked branches without widening main push or permissions',()=>{
+  const workflow=readFileSync(
+    new URL('../../.github/workflows/rewrite-build.yml',import.meta.url),'utf8');
+  assert.match(workflow,/push:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*pull_request:/);
+  assert.match(workflow,/pull_request:\s*\n\s*branches:\s*\n\s*- main\s*\n\s*- rewrite\/\*\*\s*\n\s*- feat\/\*\*\s*\n\s*- fix\/\*\*\s*\n\s*workflow_dispatch:/);
+  assert.match(workflow,/permissions:\s*\n\s*contents: read\s*\n\s*concurrency:/);
+  assert.doesNotMatch(workflow,/pull_request_target:/);
 });
