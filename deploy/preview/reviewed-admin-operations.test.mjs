@@ -15,16 +15,16 @@ test('fixed WebAdmin contract inventory is reviewed exactly by path, method and 
     Object.entries(operations).filter(([method,operation])=>path.startsWith('/api/admin/')&&
       JSON.stringify(operation.security)==='[{"WebAdmin":[]}]')
       .map(([method])=>[method,path]));
-  assert.equal(guarded.length,119);
+  assert.equal(guarded.length,121);
   const reviewed=new Set(reviewedAdminEntries.map(([method,path])=>method+'|'+path));
-  assert.equal(reviewed.size,102);
+  assert.equal(reviewed.size,104);
   for(const [method,path] of reviewedAdminEntries){
     assert.equal(JSON.stringify(contract.paths[path]?.[method]?.security),'[{"WebAdmin":[]}]');
     assert.equal(permitted(method.toUpperCase(),
       path.replaceAll(/\{[A-Za-z_][A-Za-z0-9_]*\}/g,'11111111-2222-4333-8444-555555555555')),
       true,method+' '+path);
   }
-  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,119);
+  assert.equal(new Set(guarded.map(([method,path])=>method+'|'+path)).size,121);
   assert.match(generateEdge(contract,'srv1649602.hstgr.cloud','a'.repeat(64)),
     /handle @entry_get/);
 });
@@ -58,6 +58,8 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['PUT','/api/admin/academy/drills/11111111-2222-4333-8444-555555555555'],
     ['GET','/api/admin/academy/training/plans'],
     ['POST','/api/admin/academy/training/plans'],
+    ['GET','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/drills'],
+    ['PUT','/api/admin/academy/training/plans/11111111-2222-4333-8444-555555555555/drills'],
     ['POST','/api/admin/auth/profile/name'],
     ['POST','/api/admin/auth/profile/password'],
     ['GET','/api/admin/auth/profile/contact-email'],
@@ -139,4 +141,16 @@ test('hidden admin routes are pinned to independently authorized source instead 
   assert.doesNotMatch(generator,/path_regexp entry_.*\^\/api\/admin\/\[\^\/\]/);
   assert.match(generator,/Unreviewed admin API requires explicit preview route approval/);
   assert.match(generator,/Reviewed application entry security changed/);
+});
+
+test('training drill builder permits only reviewed read and write verbs and requires WebAdmin security',()=>{
+  const route='/api/admin/academy/training/plans/{planId}/drills';
+  const path=route.replace('{planId}','11111111-2222-4333-8444-555555555555');
+  for(const verb of ['POST','PATCH','DELETE','HEAD','OPTIONS'])
+    assert.equal(permitted(verb,path),false,verb+' '+path);
+  for(const method of ['get','put']){
+    const tampered=structuredClone(contract);
+    tampered.paths[route][method].security=[];
+    assert.throws(()=>entryRouteGroups(tampered),/Reviewed application entry security changed/);
+  }
 });
