@@ -45,6 +45,149 @@ const viewports = [
   { name:'4k', width:3840, height:2160 }
 ];
 
+/* No production content or API mutation: simulate a validated published
+ * WYSIWYG theme in a throwaway Chromium context and inspect computed CSS. */
+async function verifyPublishedThemeControls(browser, base) {
+  const context = await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+  try {
+    const page=await context.newPage();
+    await page.goto(base+'/',{waitUntil:'domcontentloaded'});
+    const computed=await page.evaluate(()=>{
+      const site=document.querySelector('[data-testid="public-site"]');
+      const tile=document.querySelector('[data-testid="public-destinations"] .public-destination');
+      const tiles=document.querySelector('[data-testid="public-destinations"]');
+      const button=document.querySelector('.public-hero-actions .public-button');
+      const motto=document.querySelector('[data-testid="home-brand-interval"]');
+      const header=document.querySelector('.public-header');
+      const heading=document.querySelector('.public-hero-copy h1');
+      const headingTwo=document.querySelector('[data-testid="public-destinations"] h2');
+      const paragraph=document.querySelector('[data-testid="public-hero-description"]');
+      const navigation=document.querySelector('.public-rail nav a');
+      if(!site||!tile||!tiles||!button||!motto||!header||!heading||!headingTwo||!paragraph||!navigation)
+        throw Error('missing real public UI nodes');
+      site.setAttribute('data-global-design','true');
+      for(const [key,value] of Object.entries({
+        '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
+        '--lf-color-accent':'#145db3','--lf-color-surface':'#ffffff',
+        '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
+        '--lf-color-link':'#145db3','--lf-layout-card-radius':'24px',
+        '--lf-layout-button-radius':'16px','--lf-layout-card-gap':'40px',
+        '--lf-layout-motto-height':'160px','--lf-layout-page-max-width':'1120px',
+        '--lf-layout-page-side-padding':'32px','--lf-layout-page-margin-top':'48px',
+        '--lf-layout-page-margin-bottom':'64px','--lf-h1-family':'Georgia,serif',
+        '--lf-h1-desktop':'44px','--lf-h1-mobile':'30px',
+        '--lf-h1-weight':'700','--lf-h1-line':'1.2',
+        '--lf-h2-family':'Georgia,serif','--lf-h2-desktop':'33px','--lf-h2-mobile':'27px',
+        '--lf-h2-weight':'600','--lf-h2-line':'1.35',
+        '--lf-p-family':'Georgia,serif','--lf-p-desktop':'17px','--lf-p-mobile':'15px',
+        '--lf-p-weight':'400','--lf-p-line':'1.6',
+        '--lf-nav-family':'Georgia,serif','--lf-nav-desktop':'16px',
+        '--lf-nav-mobile':'14px','--lf-nav-weight':'500','--lf-nav-line':'1.35',
+        '--lf-button-family':'Georgia,serif','--lf-button-desktop':'16px',
+        '--lf-button-mobile':'14px','--lf-button-weight':'700','--lf-button-line':'1.2'
+      }))site.style.setProperty(key,value);
+      const sampleCard=document.createElement('div');sampleCard.className='card';site.appendChild(sampleCard);
+      const sampleLegacyButton=document.createElement('button');sampleLegacyButton.className='btn-primary';site.appendChild(sampleLegacyButton);
+      const sampleInput=document.createElement('input');sampleInput.type='text';site.appendChild(sampleInput);
+      const style=x=>getComputedStyle(x);
+      return {
+        legacyCardRadius:style(sampleCard).borderTopLeftRadius,
+        legacyButtonRadius:style(sampleLegacyButton).borderTopLeftRadius,
+        nativeInputRadius:style(sampleInput).borderTopLeftRadius,
+        h2Size:style(headingTwo).fontSize,h2Family:style(headingTwo).fontFamily,
+        paragraphSize:style(paragraph).fontSize,paragraphFamily:style(paragraph).fontFamily,
+        navigationSize:style(navigation).fontSize,navigationFamily:style(navigation).fontFamily,
+        buttonSize:style(button).fontSize,buttonFamily:style(button).fontFamily,
+        tileRadius:style(tile).borderTopLeftRadius,
+        tilesGap:style(tiles).columnGap,
+        buttonRadius:style(button).borderTopLeftRadius,
+        mottoHeight:style(motto).minHeight,
+        headingSize:style(heading).fontSize,
+        headingFamily:style(heading).fontFamily,
+        headerBackground:style(header).backgroundColor,
+        accent:style(site).getPropertyValue('--public-gold').trim(),
+        bodyBackground:style(site).backgroundColor,
+        nativePageTop:style(document.querySelector('.public-main')).paddingTop,
+        nativePageBottom:style(document.querySelector('.public-main')).paddingBottom,
+        globalWidth:style(site).getPropertyValue('--public-content-width').trim(),
+        globalSide:style(site).getPropertyValue('--public-page-gutter').trim()
+      };
+    });
+    assert.equal(computed.tileRadius,'24px','Published card radius must override redesign');
+    assert.equal(computed.legacyCardRadius,'24px','Original generic cards must inherit global card radius');
+    assert.equal(computed.legacyButtonRadius,'16px','Original generic buttons must inherit global button radius');
+    assert.equal(computed.nativeInputRadius,'16px','Native inputs must inherit global control radius');
+    assert.equal(computed.h2Size,'33px','Published H2 role must override original destination heading');
+    assert.match(computed.h2Family,/Georgia/,'Published H2 font family must override original');
+    assert.equal(computed.paragraphSize,'17px','Published paragraph size must override original');
+    assert.match(computed.paragraphFamily,/Georgia/,'Published paragraph family must override original');
+    assert.equal(computed.navigationSize,'16px','Published navigation size must override original');
+    assert.match(computed.navigationFamily,/Georgia/,'Published navigation font must override original');
+    assert.equal(computed.buttonSize,'16px','Published button size must override original');
+    assert.match(computed.buttonFamily,/Georgia/,'Published button font must override original');
+    assert.equal(computed.tilesGap,'40px','Published card spacing must override redesign');
+    assert.equal(computed.buttonRadius,'16px','Published button radius must override redesign');
+    assert.equal(computed.mottoHeight,'160px','Published motto height must override redesign');
+    assert.equal(computed.nativePageTop,'48px','Native public page must follow global top margin');
+    assert.equal(computed.nativePageBottom,'64px','Native public page must follow global bottom margin');
+    assert.equal(computed.globalWidth,'1120px','Native content width must inherit published global setting');
+    assert.equal(computed.globalSide,'32px','Native side padding must inherit published global setting');
+    assert.equal(computed.headingSize,'44px','Published H1 size must override redesign');
+    assert.match(computed.headingFamily,/Georgia/,'Published H1 family must override redesign');
+    assert.equal(computed.bodyBackground,'rgb(245, 245, 240)');
+    assert.ok(computed.accent.includes('#145db3')||computed.accent.includes('20, 93, 179'),
+      'Brand accent must resolve from published WYSIWYG setting');
+    return computed;
+  } finally { await context.close(); }
+}
+
+/* Verify native templates, not only the homepage: a published tenant palette
+ * must win over old page-local styles for the same nondefault light theme. */
+async function verifyNativeThemePages(browser, base) {
+  const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce'});
+  const checked=[];
+  try {
+    const page=await context.newPage();
+    for(const {route,selector,property,expected,centered} of [
+      {route:'/academy',selector:'.academy-key-figures',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
+      {route:'/academy/registration',selector:'.registration-card',property:'backgroundColor',expected:'rgb(255, 255, 255)'},
+      {route:'/contact',selector:'.contact-lead',property:'color',expected:'rgb(77, 77, 77)'},
+      {route:'/team?tab=schedule',selector:'.matches-reference-tabs a[aria-current="page"]',property:'backgroundColor',expected:'rgb(20, 93, 179)'},
+      {route:'/about',selector:'.source-about .max-w-7xl',property:'maxWidth',expected:'1120px'},
+      {route:'/shop',selector:'.shop-container',property:'width',expected:'1120px'},
+      {route:'/team',selector:'.public-page-heading.team-heading',property:'paddingLeft',centered:true}
+    ]) {
+      await page.goto(base+route,{waitUntil:'domcontentloaded'});
+      const actual=await page.evaluate(({selector,property,centered})=>{
+        const site=document.querySelector('[data-testid="public-site"]');
+        const element=document.querySelector(selector);
+        if(!site||!element)throw Error('Missing native page element: '+selector);
+        site.setAttribute('data-global-design','true');
+        for(const [key,value] of Object.entries({
+          '--lf-color-bg':'#f5f5f0','--lf-color-text':'#151515',
+          '--lf-color-accent':'#145db3','--lf-color-surface':'#ffffff',
+          '--lf-color-border':'#666666','--lf-color-muted':'#4d4d4d',
+          '--lf-color-link':'#145db3',
+          '--lf-layout-page-max-width':'1120px',
+          '--lf-layout-page-side-padding':'32px',
+          '--lf-layout-gutter':'28px'
+        }))site.style.setProperty(key,value);
+        const actual=getComputedStyle(element)[property];
+        if(!centered)return actual;
+        const vars=getComputedStyle(site);
+        const maxWidth=parseFloat(vars.getPropertyValue('--lf-layout-page-max-width'));
+        const minSide=parseFloat(vars.getPropertyValue('--lf-layout-page-side-padding'));
+        return {actual, expectedInset:Math.max(minSide,(element.getBoundingClientRect().width-maxWidth)/2)};
+      },{selector,property,centered});
+      if(expected!==undefined)assert.equal(actual,expected,route+' '+selector+' ignores published '+property);
+      if(centered)assert.ok(Math.abs(parseFloat(actual.actual)-actual.expectedInset)<1.5,
+        route+' '+selector+' does not center the published page max width: '+JSON.stringify(actual));
+      checked.push({route,selector,actual});
+    }
+    return checked;
+  }finally{await context.close();}
+}
+
 async function verifyAppInstall(browser, base, artifacts) {
   const checks = [];
   const context = await browser.newContext({ viewport:{width:390,height:844}, reducedMotion:'reduce', locale:'el-GR' });
@@ -578,12 +721,12 @@ try {
                fixture.right < hero.right-100 || fixture.right > hero.right+2 ||
                fixture.x < copy.right+12)
               failures.push('home: compact next-match must remain on the right, without covering the headline or hero picture '+JSON.stringify({fixture,hero,copy}));
-            if(motto.y<tiles.bottom-2 || motto.y>tiles.bottom+4 || motto.height<250 || motto.height>380)
-              failures.push('home: original dark brand interval must follow four tiles before news '+JSON.stringify(motto));
+            if(motto.y<tiles.bottom-2 || motto.y>tiles.bottom+4 || motto.height<85 || motto.height>140)
+              failures.push('home: compact club identity band must follow four photo tiles before news '+JSON.stringify(motto));
             if(news.y<motto.bottom-2||news.y>motto.bottom+100)
               failures.push('home: CMS news must follow the club motto and preserve source image section order '+JSON.stringify({news,motto}));
-            if(news.y<900)
-              failures.push('home: source reference places news below the cinematic hero and club identity band');
+            if(news.y<tiles.bottom+70 || news.y>900)
+              failures.push('home: editorial news should follow the compact identity band within the first viewport');
             if(Math.abs(top.x-rail.width)>2)
               failures.push('home: topbar should begin at the rail boundary');
           }
@@ -756,13 +899,19 @@ try {
     }
     await context.close();
   }
+  let publishedTheme={};
+  try {publishedTheme=await verifyPublishedThemeControls(browser,base);}
+  catch(error){failures.push('Published WYSIWYG theme override: '+(error.stack??error.message));}
+  let nativeThemePages=[];
+  try {nativeThemePages=await verifyNativeThemePages(browser,base);}
+  catch(error){failures.push('Native WYSIWYG palette override: '+(error.stack??error.message));}
   let installation = [];
   try { installation = await verifyAppInstall(browser, base, artifacts); }
   catch (error) { failures.push('App installation: ' + (error.stack ?? error.message)); }
   let adminNavigation=[];
   try { adminNavigation=await verifyAuthenticatedAdminNavigation(browser,base,artifacts); }
   catch(error) { failures.push('Authenticated admin sidebar visual check: '+(error.stack ?? error.message)); }
-  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, installation, adminNavigation, failures }, null, 2) + '\n');
+  await writeFile(path.join(artifacts, 'results.json'), JSON.stringify({ results, publishedTheme, nativeThemePages, installation, adminNavigation, failures }, null, 2) + '\n');
   console.log(JSON.stringify({results:results.length,installation,failures},null,2));
   assert.equal(failures.length,0,'UI viewport smoke detected regressions; inspect results.json and screenshots');
 } finally {

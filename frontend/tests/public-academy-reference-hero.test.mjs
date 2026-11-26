@@ -13,7 +13,7 @@ test('Academy reference hero is full-bleed and safe when CMS has no academy grou
   assert.match(source,/<h1>ΛΕΥΤΕΡΙΑ FC <span class="academy-title-gold">ΑΚΑΔΗΜΙΑ<\/span><\/h1>/);
   assert.match(source,/ΔΙΑΠΛΑΣΗ <span>·<\/span> ΑΝΑΠΤΥΞΗ/);
   assert.match(source,/object-fit:cover;object-position:center 42%/);
-  assert.match(source,/linear-gradient\(90deg,#080909f3/);
+  assert.match(source,/linear-gradient\(90deg,color-mix\(in srgb,var\(--lf-color-bg,#080909\) 95\.294%,transparent\)/);
   assert.match(source,/min-height:clamp\(320px,21vw,385px\)/);
   assert.match(source,/class="academy-program-overview"/);
   assert.match(source,/data-testid="academy-age-groups"/);

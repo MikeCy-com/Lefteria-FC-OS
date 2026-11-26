@@ -37,7 +37,10 @@ test('public display hierarchy matches source Fira while body text stays legible
   assert.ok(academy.includes('.academy-intro h1{font-size:46px}'),'Phone override must not restore 64px headings');
   assert.ok(shared.includes('font:italic 900 clamp(38px,3.6vw,58px)'),'First Team masthead reduced');
   assert.match(team,/font:italic 900 clamp\(43px,3\.9vw,66px\)/);
-  assert.match(published,/font:italic 900 clamp\(36px,5vw,78px\)/);
+  assert.match(published,/font-style:italic/);
+  assert.match(published,/font-family:var\(--lf-h1-family/);
+  assert.match(published,/font-size:var\(--lf-h1-desktop,clamp\(36px,5vw,78px\)\)/);
+  assert.match(published,/font-size:var\(--lf-h1-mobile,clamp\(36px,9vw,54px\)\)/);
   assert.match(home,/public-news-card:first-child h3/);
   assert.match(shared,/\.public-group-card h3 \{font-size:clamp\(23px,1\.9vw,29px\)/);
   assert.match(base,/:where\(\.public-site,\.public-dialog\) \{[^\n]*font-size:16px/);

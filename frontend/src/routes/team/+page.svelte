@@ -65,7 +65,7 @@
 <PublicShell site={data.site} branding={data.branding} organization="lefteria_fc" navigationGroups={data.navigationGroups}>
   <section class="public-page-heading team-heading" class:matches-reference-heading={data.tab === 'schedule' || data.tab === 'results'}>
     {#if data.tab === 'schedule' || data.tab === 'results'}
-      <div class="matches-reference-banner" style:background-image={`linear-gradient(90deg,#060808f2,#0608089c 42%,#07080824 80%),url("${publicImages.pitch}")`}>
+      <div class="matches-reference-banner" style:background-image={`linear-gradient(90deg,color-mix(in srgb,var(--lf-color-bg,#060808) 94.902%,transparent),color-mix(in srgb,var(--lf-color-bg,#060808) 61.176%,transparent) 42%,color-mix(in srgb,var(--lf-color-bg,#070808) 14.118%,transparent) 80%),url("${publicImages.pitch}")`}>
         <p class="public-eyebrow">ΛΕΥΤΕΡΙΑ FC</p>
         <h1>ΑΓΩΝΕΣ</h1>
         <p>Πρόγραμμα αγώνων, αποτελέσματα και επιβεβαιωμένη βαθμολογία.</p>
@@ -169,44 +169,44 @@
   :global(.public-site[data-route="/team"]) .team-title-gold{color:var(--public-gold)}
   .public-team-selector{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0 18px}
   .public-team-selector a{display:inline-flex;min-height:44px;align-items:center;
-    padding:9px 15px;border:1px solid #837448;border-radius:6px;
-    color:#ffca46;background:#101112;font-size:14px;font-weight:700}
-  .public-team-selector a[aria-current="page"]{background:#ffbf32;color:#080808;border-color:#ffbf32}
-  .public-team-selector a:focus-visible{outline:2px solid #ffd068;outline-offset:3px}
+    padding:9px 15px;border:1px solid var(--lf-color-border,#837448);border-radius:6px;
+    color:var(--public-gold);background:var(--lf-color-surface,#101112);font-size:14px;font-weight:700}
+  .public-team-selector a[aria-current="page"]{background:var(--public-gold);color:var(--public-black);border-color:var(--public-gold)}
+  .public-team-selector a:focus-visible{outline:2px solid var(--public-gold);outline-offset:3px}
 
   /* First Team matches hub at the club's 1536×1024 reference hierarchy.
      Keep the eight existing team sections in an expandable utility nav. */
   :global(.public-site[data-route="/team"]) .matches-reference-heading{
-    min-height:0!important;padding:0!important;background:#080a0b;
+    min-height:0!important;padding:0!important;background:var(--lf-color-bg,#080a0b);
   }
   .matches-reference-banner{
     position:relative;min-height:154px;display:flex;flex-direction:column;
     align-items:flex-start;justify-content:center;gap:5px;
     padding:17px clamp(23px,3vw,50px);
-    background-color:#080a0b;background-size:cover;background-position:center 60%;
+    background-color:var(--lf-color-bg,#080a0b);background-size:cover;background-position:center 60%;
   }
   .matches-reference-banner .public-eyebrow{margin:0;font:800 16px 'Fira Sans Extra Condensed',sans-serif}
   .matches-reference-banner h1{
     font:italic 900 clamp(43px,3.9vw,66px)/1.01 'Fira Sans Extra Condensed',sans-serif;
-    letter-spacing:-.02em;margin:0;color:#fff;
+    letter-spacing:-.02em;margin:0;color:var(--lf-color-text,#ffffff);
   }
-  .matches-reference-banner>p:last-child{margin:0;color:#eee;font-size:14px}
-  .matches-reference-tabs{display:flex;align-items:center;flex-wrap:wrap;min-height:49px;padding:0 clamp(20px,2vw,33px);border-bottom:2px solid #a78024}
+  .matches-reference-banner>p:last-child{margin:0;color:var(--lf-color-text,#eeeeee);font-size:14px}
+  .matches-reference-tabs{display:flex;align-items:center;flex-wrap:wrap;min-height:49px;padding:0 clamp(20px,2vw,33px);border-bottom:2px solid var(--public-gold)}
   .matches-reference-tabs :is(a,button){
     display:inline-flex;align-items:center;justify-content:center;gap:10px;
-    min-height:47px;padding:10px 21px;border:1px solid #454646;border-bottom:0;
-    border-radius:0;background:linear-gradient(180deg,#151719,#0b0b0c);
-    color:#eee;text-decoration:none;font:800 14px 'Fira Sans Extra Condensed',sans-serif;
+    min-height:47px;padding:10px 21px;border:1px solid var(--lf-color-border,#454646);border-bottom:0;
+    border-radius:0;background:linear-gradient(180deg,var(--lf-color-surface,#151719),var(--lf-color-bg,#0b0b0c));
+    color:var(--lf-color-text,#eeeeee);text-decoration:none;font:800 14px 'Fira Sans Extra Condensed',sans-serif;
     cursor:pointer;
   }
-  .matches-reference-tabs :is(a,button) :global(svg){color:#eec052}
+  .matches-reference-tabs :is(a,button) :global(svg){color:var(--public-gold)}
   .matches-reference-tabs a[aria-current='page'],.matches-reference-tabs button[aria-pressed='true']{
-    background:linear-gradient(135deg,#ffd469,#e8a519);color:#060606;border-color:#e8ad23;
+    background:var(--public-gold);color:var(--public-black);border-color:var(--public-gold);
   }
   .matches-reference-tabs a[aria-current='page'] :global(svg),
-  .matches-reference-tabs button[aria-pressed='true'] :global(svg){color:#080808}
-  .matches-extra-navigation{padding:7px clamp(20px,2vw,33px);background:#0c0c0c;border-bottom:1px solid #4b3a21}
-  .matches-extra-navigation summary{font:800 12px 'Fira Sans Extra Condensed',sans-serif;color:#f6c261;cursor:pointer}
+  .matches-reference-tabs button[aria-pressed='true'] :global(svg){color:var(--public-black)}
+  .matches-extra-navigation{padding:7px clamp(20px,2vw,33px);background:var(--lf-color-bg,#0c0c0c);border-bottom:1px solid var(--lf-color-border,#4b3a21)}
+  .matches-extra-navigation summary{font:800 12px 'Fira Sans Extra Condensed',sans-serif;color:var(--public-gold);cursor:pointer}
   .matches-extra-navigation .team-tabs{display:flex;margin-top:10px;flex-wrap:wrap;position:static}
   :global(.public-site[data-route="/team"]) .matches-reference-heading+.team-section{padding-top:23px}
    :global(.public-site[data-route="/team"] .team-section:has(.match-overview)){padding-top:20px}
@@ -218,7 +218,7 @@
   }
   :global(.public-site[data-route="/team"] .team-section .match-overview-grid){gap:14px}
   :global(.public-site[data-route="/team"] .team-section .match-overview-grid .match-panel){
-    background:linear-gradient(140deg,#1b1b1b,#090a0b 70%);border-radius:0;padding:13px;
+    background:linear-gradient(140deg,var(--lf-color-surface,#1b1b1b),var(--lf-color-bg,#090a0b) 70%);border-radius:0;padding:13px;
   }
   @media(max-width:780px){
     .matches-reference-banner{min-height:180px;padding:26px 19px}
