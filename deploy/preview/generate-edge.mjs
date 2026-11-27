@@ -63,6 +63,8 @@ export const reviewedAdminEntries = [
   ['post','/api/admin/academy/drills'],
   ['get','/api/admin/academy/drills/proposals'],
   ['post','/api/admin/academy/drills/proposals'],
+  ['post','/api/admin/academy/drills/proposals/linked'],
+  ['post','/api/admin/academy/drills/proposals/{drillId}/apply-revision'],
   ['put','/api/admin/academy/drills/{drillId}'],
   ['get','/api/admin/academy/training'],
   ['get','/api/admin/academy/training/plans'],

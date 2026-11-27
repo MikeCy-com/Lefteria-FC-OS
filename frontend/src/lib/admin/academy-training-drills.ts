@@ -70,3 +70,16 @@ export function matchingTrainingDeliverySave(x:unknown,plan:TrainingPlanDraft,ex
     x.drills.every((row,i)=>{const expected=drills[i];return !!expected&&keys.every(k=>
       row[k as keyof TrainingDrillSnapshot]===expected[k as keyof TrainingDrillSnapshot]);});
 }
+
+export function gameMinutes(drills:readonly TrainingDrillSnapshot[]):number {
+  return drills.reduce((sum,row)=>sum+(row.category==='game'?row.duration_minutes:0),0);
+}
+export function completeTrainingSession(drills:readonly TrainingDrillSnapshot[],duration:number):boolean {
+  return validTrainingDrillSequence(drills,duration)&&plannedMinutes(drills)===duration&&gameMinutes(drills)>=20;
+}
+export function drillRemainingSeconds(deadline:number,now:number):number {
+  return Math.max(0,Math.ceil((deadline-now)/1000));
+}
+export function formatDrillTimer(seconds:number):string{
+  return String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');
+}

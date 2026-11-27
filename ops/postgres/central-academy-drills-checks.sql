@@ -11,6 +11,7 @@ DECLARE
   loc_b uuid:=gen_random_uuid();drill uuid:=gen_random_uuid();
   title text:='CI Drill '||drill::text;
   i integer;result jsonb;shared jsonb;
+  revision uuid:=gen_random_uuid();variant uuid:=gen_random_uuid();stale_revision uuid:=gen_random_uuid();
   proposed uuid:=gen_random_uuid();other_coach uuid:=gen_random_uuid();other_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   staff_a text:='ci_propose_'||substr(md5(gen_random_uuid()::text),1,12);staff_b text:='ci_propose_'||substr(md5(gen_random_uuid()::text),1,12);
 BEGIN
@@ -104,6 +105,49 @@ BEGIN
     OR club.read_coach_drill_proposals(tokens[4],0)->'drills'->0->>'status'<>'approved'
     OR EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_coach_drill_proposals(tokens[1],0)->'drills') x WHERE x->>'id'=proposed::text)
     THEN RAISE EXCEPTION 'proposal_approval_not_propagated'; END IF;
+  -- Approved base is version 2. Proposals do not remove it from the library.
+  result:=club.submit_linked_coach_drill_proposal(tokens[4],revision,proposed,2,'revision','intermediate',
+    'CI Proposal '||proposed::text,'technical','all',20,'Revised passing','Pass then move');
+  IF result->>'proposal_kind'<>'revision' OR result->>'status'<>'draft' OR (result->>'base_version')::int<>2
+    THEN RAISE EXCEPTION 'linked_revision_invalid'; END IF;
+  result:=club.submit_linked_coach_drill_proposal(tokens[4],variant,proposed,2,'variant','advanced',
+    'CI Advanced '||variant::text,'technical','u15-u18',25,'Advanced passing','Pass under pressure');
+  IF result->>'variant_of'<>proposed::text OR result->>'difficulty'<>'advanced' OR result->>'status'<>'draft'
+    THEN RAISE EXCEPTION 'linked_variant_invalid'; END IF;
+  PERFORM club.submit_linked_coach_drill_proposal(tokens[4],stale_revision,proposed,2,'revision','beginner',
+    'CI Stale','technical','all',10,'Other proposal','Pass');
+  IF NOT EXISTS(SELECT 1 FROM club.academy_coaching_drills WHERE id=proposed AND version=2 AND status='approved')
+    THEN RAISE EXCEPTION 'pending_revision_mutated_approved_base'; END IF;
+  IF jsonb_array_length(club.read_central_academy_drills(other_token,'CI Advanced '||variant::text,'all','any','approved',0)->'drills')<>0
+    THEN RAISE EXCEPTION 'unreviewed_variant_visible'; END IF;
+  BEGIN
+    PERFORM club.apply_coach_drill_revision(tokens[4],revision,1,2);
+    RAISE EXCEPTION 'coach_applied_own_revision';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_central_academy_drill(tokens[1],revision,1,'approve',NULL,NULL,NULL,NULL,NULL,NULL);
+    RAISE EXCEPTION 'revision_published_as_duplicate';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  result:=club.apply_coach_drill_revision(tokens[1],revision,1,2);
+  IF result->>'applied_version'<>'3' OR result->>'status'<>'archived'
+    OR NOT EXISTS(SELECT 1 FROM club.academy_coaching_drills WHERE id=proposed AND version=3 AND status='approved' AND difficulty='intermediate')
+    OR NOT EXISTS(SELECT 1 FROM club.academy_coaching_drill_versions WHERE drill_id=proposed AND version=2 AND snapshot->>'duration_minutes'='15')
+    THEN RAISE EXCEPTION 'revision_application_history_failed'; END IF;
+  BEGIN
+    PERFORM club.apply_coach_drill_revision(tokens[1],stale_revision,1,2);
+    RAISE EXCEPTION 'stale_base_revision_applied';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.submit_linked_coach_drill_proposal(tokens[4],gen_random_uuid(),proposed,2,'variant','advanced','CI stale','technical','all',10,'Pass','Pass');
+    RAISE EXCEPTION 'stale_base_variant_submitted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  PERFORM club.write_central_academy_drill(tokens[1],variant,1,'approve',NULL,NULL,NULL,NULL,NULL,NULL);
+  result:=club.read_central_academy_drills(other_token,'CI Advanced '||variant::text,'all','any','approved',0);
+  IF jsonb_array_length(result->'drills')<>1 OR result->'drills'->0->>'variant_of'<>proposed::text
+    OR result->'drills'->0->>'difficulty'<>'advanced' OR (result->'drills'->0->>'variant_base_version')::int<>2
+    THEN RAISE EXCEPTION 'approved_variant_lineage_missing'; END IF;
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_central_academy_drills(tokens[1],'','all','any','all',0)->'drills') x WHERE x->>'id'=revision::text)
+    THEN RAISE EXCEPTION 'revision_candidate_leaked_to_catalogue'; END IF;
   UPDATE club.staff SET is_active=false WHERE id=staff_a;
   BEGIN
     PERFORM club.submit_coach_drill_proposal(tokens[4],gen_random_uuid(),'CI disabled coach','technical','all',10,'Passing','Pass');

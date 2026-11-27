@@ -10,9 +10,9 @@ DECLARE
   la uuid:=gen_random_uuid();lb uuid:=gen_random_uuid();
   sa uuid:=gen_random_uuid();sb uuid:=gen_random_uuid();
   g text:='ci_drill_'||left(replace(gen_random_uuid()::text,'-',''),14);
-  p uuid:=gen_random_uuid();d uuid:=gen_random_uuid();e uuid:=gen_random_uuid();
+  p uuid:=gen_random_uuid();d uuid:=gen_random_uuid();e uuid:=gen_random_uuid();game_id uuid:=gen_random_uuid();
   day date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+3;
-  r jsonb;items jsonb;v_event text;
+  r jsonb;items jsonb;full_plan jsonb;v_event text;
   coach uuid:=gen_random_uuid();dc text:=repeat('9',64);cp uuid:=gen_random_uuid();
   coach_staff text:='ci_coach_'||left(replace(gen_random_uuid()::text,'-',''),14);
   other_group text:='ci_other_'||left(replace(gen_random_uuid()::text,'-',''),14);
@@ -36,7 +36,8 @@ BEGIN
   INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role) VALUES(a,la,'location_manager'),(b,lb,'location_manager');
   INSERT INTO club.academy_coaching_drills(id,organization_id,title,category,age_band,duration_minutes,objective,instructions,status,version) VALUES
     (d,owner,'CI Passing','technical','all',15,'Passing','Pass in pairs','approved',1),
-    (e,owner,'CI Warm up','warmup','all',10,'Prepare','Jog safely','approved',1);
+    (e,owner,'CI Warm up','warmup','all',10,'Prepare','Jog safely','approved',1),
+    (game_id,owner,'CI Game','game','all',20,'Play','Play a match','approved',1);
   -- Canonical staff assignment, not just an Academy organization grant.
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,password_hash)
     VALUES(coach,'ci_coach_'||left(coach::text,8),'CI Assigned Coach','coach',true,'ci_not_real');
@@ -63,70 +64,98 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach draft','Pitch','',0,false);
   IF (r->>'version')::int<>1 THEN RAISE EXCEPTION 'coach_draft_create_failed'; END IF;
-  r:=club.write_admin_training_drills(dc,g,cp,1,jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',20)));
-  IF (r->>'version')::int<>2 THEN RAISE EXCEPTION 'coach_drill_save_failed'; END IF;
   BEGIN
-    PERFORM club.approve_admin_training_drill_plan(dc,g,cp,2,'Coach must not approve',true);
+    PERFORM club.write_admin_academy_training_plan(dc,owner,gen_random_uuid(),g,day+30,TIME '18:00',60,'Too early','Pitch','',0,false);
+    RAISE EXCEPTION 'coach_month_ahead_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_training_drills(dc,g,cp,1,'[]'::jsonb);
+    RAISE EXCEPTION 'coach_legacy_delivery_bypass';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.submit_admin_training_plan(dc,g,cp,1,true);
+    RAISE EXCEPTION 'incomplete_session_submitted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_training_delivery(dc,g,cp,1,0,jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',60)));
+    RAISE EXCEPTION 'missing_game_time_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_training_delivery(dc,g,cp,1,0,jsonb_build_array(
+      jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',41),jsonb_build_object('drill_id',game_id,'drill_version',1,'duration_minutes',19)));
+    RAISE EXCEPTION 'nineteen_game_minutes_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_training_delivery(dc,g,cp,1,0,jsonb_build_array(jsonb_build_object('drill_id',game_id,'drill_version',1,'duration_minutes',20)));
+    RAISE EXCEPTION 'underallocated_session_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  full_plan:=jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',25),
+    jsonb_build_object('drill_id',e,'drill_version',1,'duration_minutes',15),
+    jsonb_build_object('drill_id',game_id,'drill_version',1,'duration_minutes',20));
+  r:=club.write_admin_training_delivery(dc,g,cp,1,0,full_plan);
+  IF (r->>'version')::int<>1 OR (r->>'sequence_version')::int<>1 THEN RAISE EXCEPTION 'coach_drill_save_failed'; END IF;
+  BEGIN
+    PERFORM club.approve_admin_training_drill_plan(dc,g,cp,1,'Coach must not approve',true);
     RAISE EXCEPTION 'coach_self_approval_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.approve_admin_academy_training_plan(dc,owner,cp,2);
+    PERFORM club.approve_admin_academy_training_plan(dc,owner,cp,1);
     RAISE EXCEPTION 'coach_legacy_approval_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.preview_admin_academy_training_distribution(dc,owner,cp,2);
+    PERFORM club.preview_admin_academy_training_distribution(dc,owner,cp,1);
     RAISE EXCEPTION 'coach_publication_preview_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.publish_admin_academy_training_plan(dc,owner,cp,2,true);
+    PERFORM club.publish_admin_academy_training_plan(dc,owner,cp,1,true);
     RAISE EXCEPTION 'coach_publish_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.submit_admin_training_plan(dc,g,cp,2,false);
+    PERFORM club.submit_admin_training_plan(dc,g,cp,1,false);
     RAISE EXCEPTION 'coach_unconfirmed_submit_accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
-  r:=club.submit_admin_training_plan(dc,g,cp,2,true);
+  r:=club.submit_admin_training_plan(dc,g,cp,1,true);
   IF r->>'submitted'<>'true' OR r->>'published'<>'false' THEN RAISE EXCEPTION 'coach_submit_result_invalid'; END IF;
   IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
-    WHERE x->>'id'=cp::text AND (x->>'submitted_version')::int=2)
+    WHERE x->>'id'=cp::text AND (x->>'submitted_version')::int=1)
     THEN RAISE EXCEPTION 'manager_submission_missing'; END IF;
-  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach revised draft','Pitch','',2,false);
+  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach revised draft','Pitch','',1,false);
   IF EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
     WHERE x->>'id'=cp::text AND x->>'submitted_version' IS NOT NULL)
     THEN RAISE EXCEPTION 'stale_coach_submission_visible'; END IF;
-  PERFORM club.submit_admin_training_plan(dc,g,cp,3,true);
-  PERFORM club.approve_admin_academy_training_plan(da,owner,cp,3);
-  IF NOT EXISTS(SELECT 1 FROM club.academy_training_plan_approvals WHERE plan_id=cp AND plan_version=3
+  PERFORM club.submit_admin_training_plan(dc,g,cp,2,true);
+  PERFORM club.approve_admin_academy_training_plan(da,owner,cp,2);
+  IF NOT EXISTS(SELECT 1 FROM club.academy_training_plan_approvals WHERE plan_id=cp AND plan_version=2
     AND plan_snapshot->>'review_kind'='schedule_only' AND NOT (plan_snapshot ?| ARRAY['notes','drill_snapshots','member_summary']))
     THEN RAISE EXCEPTION 'schedule_only_approval_missing'; END IF;
-  r:=club.write_admin_training_delivery(dc,g,cp,3,0,jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',25)));
-  IF (r->>'sequence_version')::int<>1 OR (r->>'version')::int<>3 OR (r->'drills'->0->>'duration_minutes')::int<>25
+  r:=club.write_admin_training_delivery(dc,g,cp,2,1,full_plan);
+  IF (r->>'sequence_version')::int<>2 OR (r->>'version')::int<>2 OR (r->'drills'->0->>'duration_minutes')::int<>25
     THEN RAISE EXCEPTION 'coach_independent_delivery_failed'; END IF;
-  IF NOT EXISTS(SELECT 1 FROM club.academy_training_plan_approvals WHERE plan_id=cp AND plan_version=3)
+  IF NOT EXISTS(SELECT 1 FROM club.academy_training_plan_approvals WHERE plan_id=cp AND plan_version=2)
     THEN RAISE EXCEPTION 'coach_delivery_invalidated_schedule_approval'; END IF;
   BEGIN
-    PERFORM club.write_admin_training_delivery(dc,g,cp,3,0,'[]'::jsonb);
+    PERFORM club.write_admin_training_delivery(dc,g,cp,2,0,'[]'::jsonb);
     RAISE EXCEPTION 'stale_delivery_write_accepted';
   EXCEPTION WHEN unique_violation THEN NULL; END;
   BEGIN
-    PERFORM club.write_admin_training_delivery(dc,other_group,cp,3,1,'[]'::jsonb);
+    PERFORM club.write_admin_training_delivery(dc,other_group,cp,2,2,'[]'::jsonb);
     RAISE EXCEPTION 'foreign_delivery_group_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.write_admin_training_delivery(dc,g,cp,3,1,jsonb_build_array(jsonb_build_object('drill_id',e,'drill_version',1,'duration_minutes',61)));
+    PERFORM club.write_admin_training_delivery(dc,g,cp,2,2,jsonb_build_array(jsonb_build_object('drill_id',e,'drill_version',1,'duration_minutes',61)));
     RAISE EXCEPTION 'delivery_duration_overflow_accepted';
   EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   BEGIN
-    PERFORM club.write_admin_training_drills(dc,g,cp,3,'[]'::jsonb);
+    PERFORM club.write_admin_training_drills(dc,g,cp,2,'[]'::jsonb);
     RAISE EXCEPTION 'coach_approved_edit_accepted';
   EXCEPTION WHEN unique_violation THEN NULL; END;
   DELETE FROM club.staff_academy_groups WHERE staff_id=coach_staff AND academy_group_id=g;
   BEGIN
-    PERFORM club.read_admin_training_drills(dc,g,cp,3);
+    PERFORM club.read_admin_training_drills(dc,g,cp,2);
     RAISE EXCEPTION 'revoked_coach_assignment_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   BEGIN
-    PERFORM club.read_admin_training_delivery(dc,g,cp,3);
+    PERFORM club.read_admin_training_delivery(dc,g,cp,2);
     RAISE EXCEPTION 'revoked_delivery_access_accepted';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   IF jsonb_array_length(club.read_admin_coach_training_groups(dc)->'groups')<>0 THEN RAISE EXCEPTION 'revoked_coach_directory_stale'; END IF;
@@ -250,23 +279,23 @@ BEGIN
   PERFORM club.cancel_admin_academy_training_publication(da,owner,p,5,'Synthetic cancellation',true);
   -- Publish the schedule-only version with private delivery selection.
   -- A coach can still update the sequence without changing the calendar.
-  r:=club.preview_admin_academy_training_distribution(da,owner,cp,3);
+  r:=club.preview_admin_academy_training_distribution(da,owner,cp,2);
   IF r ?| ARRAY['member_summary','drill_snapshots','notes','drills'] THEN RAISE EXCEPTION 'delivery_leaked_to_preview'; END IF;
-  r:=club.publish_admin_academy_training_plan(da,owner,cp,3,true);
+  r:=club.publish_admin_academy_training_plan(da,owner,cp,2,true);
   IF r->>'published'<>'true' OR NOT EXISTS(SELECT 1 FROM club.calendar_items c
     WHERE c.id='os-training-'||cp::text AND c.member_projection_json->>'summary' IS NULL)
     THEN RAISE EXCEPTION 'schedule_only_publication_failed'; END IF;
   INSERT INTO club.staff_academy_groups(staff_id,academy_group_id,organization_id,from_plural,from_singular,from_group_coach,from_admin)
     VALUES(coach_staff,g,owner,false,false,false,true);
-  r:=club.write_admin_training_delivery(dc,g,cp,3,1,jsonb_build_array(items->1));
-  IF (r->>'version')::int<>3 OR (r->>'sequence_version')::int<>2 OR NOT EXISTS(
-    SELECT 1 FROM club.academy_training_plan_publications WHERE plan_id=cp AND plan_version=3)
-    OR (SELECT count(*) FROM club.academy_training_delivery_revisions WHERE plan_id=cp)<>2
+  r:=club.write_admin_training_delivery(dc,g,cp,2,2,jsonb_build_array(jsonb_build_object('drill_id',e,'drill_version',1,'duration_minutes',40),jsonb_build_object('drill_id',game_id,'drill_version',1,'duration_minutes',20)));
+  IF (r->>'version')::int<>2 OR (r->>'sequence_version')::int<>3 OR NOT EXISTS(
+    SELECT 1 FROM club.academy_training_plan_publications WHERE plan_id=cp AND plan_version=2)
+    OR (SELECT count(*) FROM club.academy_training_delivery_revisions WHERE plan_id=cp)<>3
     OR NOT EXISTS(SELECT 1 FROM club.calendar_items WHERE id='os-training-'||cp::text AND member_projection_json->>'summary' IS NULL)
     THEN RAISE EXCEPTION 'published_delivery_change_mutated_schedule'; END IF;
-  PERFORM club.cancel_admin_academy_training_publication(da,owner,cp,3,'Synthetic cancellation',true);
+  PERFORM club.cancel_admin_academy_training_publication(da,owner,cp,2,'Synthetic cancellation',true);
   BEGIN
-    PERFORM club.write_admin_training_delivery(dc,g,cp,3,2,'[]'::jsonb);
+    PERFORM club.write_admin_training_delivery(dc,g,cp,2,3,'[]'::jsonb);
     RAISE EXCEPTION 'cancelled_delivery_write_accepted';
   EXCEPTION WHEN unique_violation THEN NULL; END;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp() WHERE token_digest=da;

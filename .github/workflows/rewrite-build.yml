@@ -120,6 +120,14 @@ jobs:
           # second disposable database instead.
           grep -Fq 'Training attendance territory security requires forward recovery.' \
             backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125094000_AcademyTrainingAttendanceExactTerritory.cs
+          grep -Fq 'Assigned coach workflow requires audited forward recovery.' \
+            backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125100000_AcademyAssignedCoachWorkspace.cs
+          grep -Fq 'Preserve coaching revisions and proposals using forward recovery.' \
+            backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125110000_AcademyCoachDrillAutonomy.cs
+          grep -Fq 'Preserve weekly training policy using forward recovery.' \
+            backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125120000_AcademyWeeklyCompleteSession.cs
+          grep -Fq 'Preserve reviewed drill lineage using forward recovery.' \
+            backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125121000_AcademyDrillVariantsAndRevisions.cs
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
           probe_db=lefteria_identity_forward_probe

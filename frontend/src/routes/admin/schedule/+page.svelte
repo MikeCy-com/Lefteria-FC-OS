@@ -8,7 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminAcademyTrainingPlans from '../../../lib/admin/AdminAcademyTrainingPlans.svelte';
-  import {academyMonthWindow,isAcademyScheduleGroupList,isAcademyTrainingList,upcomingAcademySessions}
+  import {academyCoachWeek,academyMonthWindow,isAcademyScheduleGroupList,isAcademyTrainingList,upcomingAcademySessions}
     from '../../../lib/admin/academy-schedule.ts';
   import type {AdminRosterGroup,AcademyTrainingList} from '../../../lib/admin/academy-schedule.ts';
 
@@ -30,7 +30,7 @@
   let loadingSessions=$state(false);
   let error=$state('');
   let refresh=$state(0);
-  const window=$derived(academyMonthWindow(month));
+  const window=$derived.by(()=>{if(coachMode){void refresh;return academyCoachWeek();}return academyMonthWindow(month);});
   const upcoming=$derived(sessions?upcomingAcademySessions(sessions,
     new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):[]);
 
@@ -104,9 +104,10 @@
               {/each}
             </select>
           </label>
-          <label>Μήνας
+          {#if coachMode}<div class="notice" data-testid="coach-week-window"><strong>Επόμενες 7 ημέρες</strong> · {window?.start} – {window?.end}</div>
+          {:else}<label>Μήνας
             <input type="month" bind:value={month} min="2024-01" max="2032-12"/>
-          </label>
+          </label>{/if}
           <button type="button" onclick={()=>refresh++} disabled={loadingGroups||loadingSessions}>Ανανέωση</button>
         </div>
         {#if error}<p class="notice error" role="alert">{error}</p>{/if}
@@ -115,7 +116,7 @@
         {:else if sessions}
           <p class="notice" role="status">{sessions.total} συνολικές καταχωρίσεις · {upcoming.length} επόμενες ενεργές</p>
           {#if sessions.sessions.length===0}
-            <p class="notice">Δεν υπάρχουν καταχωρημένες προπονήσεις για αυτό το τμήμα και τον μήνα.</p>
+            <p class="notice">Δεν υπάρχουν καταχωρημένες προπονήσεις για αυτό το τμήμα και την επιλεγμένη περίοδο.</p>
           {:else}
             <ol class="schedule-list">
               {#each [...sessions.sessions].sort((a,b)=>a.day.localeCompare(b.day)||a.id.localeCompare(b.id)) as session (session.id)}

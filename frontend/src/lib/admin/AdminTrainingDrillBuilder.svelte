@@ -3,7 +3,7 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validDrillPage,drillCategories,drillAges,type Drill} from './central-academy-drills.ts';
   import {validTrainingDrillPlan,validTrainingDrillSequence,plannedMinutes,snapshotDrill,drillSelections,
-    matchingTrainingDrillSave,validTrainingDelivery,matchingTrainingDeliverySave,validMemberTrainingSummary,matchingCompleteTrainingReview,type TrainingDrillSnapshot} from './academy-training-drills.ts';
+    matchingTrainingDrillSave,completeTrainingSession,gameMinutes,drillRemainingSeconds,formatDrillTimer,validTrainingDelivery,matchingTrainingDeliverySave,validMemberTrainingSummary,matchingCompleteTrainingReview,type TrainingDrillSnapshot} from './academy-training-drills.ts';
   import type {TrainingPlanDraft} from './academy-training-plans.ts';
   let {plan,actor,canWrite,reviewMode=false,deliveryMode=false,onSaved,onClose}:{plan:TrainingPlanDraft;actor:string;canWrite:boolean;
     reviewMode?:boolean;deliveryMode?:boolean;onSaved:()=>void;onClose:()=>void}=$props();
@@ -21,14 +21,27 @@
   const categoryLabels:Record<string,string>={technical:'Τεχνική',tactical:'Τακτική',physical:'Φυσική κατάσταση',
     goalkeeping:'Τερματοφύλακες',warmup:'Προθέρμανση',game:'Παιχνίδι',recovery:'Αποκατάσταση',other:'Άλλο'};
   const total=$derived(plannedMinutes(sequence));
-  const valid=$derived(validTrainingDrillSequence(sequence,plan.duration_minutes));
+  const gameTotal=$derived(gameMinutes(sequence));
+  const valid=$derived(deliveryMode?completeTrainingSession(sequence,plan.duration_minutes):validTrainingDrillSequence(sequence,plan.duration_minutes));
+  let timerIndex=$state(-1),remaining=$state(0),deadline=$state<number|null>(null),dirty=$state(false);
+  let ticker:ReturnType<typeof setInterval>|null=null;
+  let remainingMs=0;
+  const timerDrill=$derived(sequence[timerIndex]);
+  const running=$derived(deadline!==null);
+  function stopTicker(){if(ticker!==null){clearInterval(ticker);ticker=null;}deadline=null;}
+  function tick(){if(deadline===null)return;const now=Date.now();remainingMs=Math.max(0,deadline-now);remaining=drillRemainingSeconds(deadline,now);if(remaining===0)stopTicker();}
+  function chooseTimer(index:number){if(!ready||saving||dirty||!valid||!deliveryMode||index<0||index>=sequence.length)return;stopTicker();timerIndex=index;remaining=sequence[index].duration_minutes*60;remainingMs=remaining*1000;}
+  function startTimer(){if(!timerDrill||saving||dirty||!valid||remainingMs<=0||running)return;deadline=Date.now()+remainingMs;ticker=setInterval(tick,200);}
+  function pauseTimer(){tick();stopTicker();}
+  function resetTimer(){if(timerDrill)chooseTimer(timerIndex);}
+  function invalidateTimer(){dirty=true;stopTicker();timerIndex=-1;remaining=0;remainingMs=0;}
   const query=()=>new URLSearchParams({organization_id:'lefteria_fc_academy',group_id:plan.group_id});
   const base=()=>'/api/admin/academy/training/plans/'+encodeURIComponent(plan.id)+(deliveryMode?'/delivery':'/drills');
   function current(owner:string,signal?:AbortSignal){return mounted&&scope()===owner&&!signal?.aborted;}
-  function rejectAccess(){ready=false;sequence=[];catalogue=[];void auth.bootstrap();}
+  function rejectAccess(){stopTicker();timerIndex=-1;remaining=0;ready=false;sequence=[];catalogue=[];void auth.bootstrap();}
   async function loadPlan(){
     planController?.abort();const controller=new AbortController();planController=controller;
-    const owner=scope();loading=true;ready=false;error='';sequence=[];
+    const owner=scope();loading=true;ready=false;error='';sequence=[];stopTicker();timerIndex=-1;remaining=0;dirty=false;
     try{
       const params=query();params.set('version',String(plan.version));
       const response=await fetch(base()+'?'+params,{credentials:'same-origin',cache:'no-store',signal:controller.signal});
@@ -69,20 +82,20 @@
   }
   function add(drill:Drill){
     if(!canEdit||!ready||saving||sequence.length>=24||sequence.some(r=>r.drill_id===drill.id))return;
-    sequence=[...sequence,snapshotDrill(drill)];
+    invalidateTimer();sequence=[...sequence,snapshotDrill(drill)];
   }
   function move(index:number,delta:number){
     if(!canEdit||saving||!ready)return;
     const target=index+delta;if(target<0||target>=sequence.length)return;
     const items=[...sequence];const item=items[index];if(!item)return;
-    items.splice(index,1);items.splice(target,0,item);sequence=items;
+    items.splice(index,1);items.splice(target,0,item);invalidateTimer();sequence=items;
   }
-  function remove(id:string){if(canEdit&&ready&&!saving)sequence=sequence.filter(row=>row.drill_id!==id);}
+  function remove(id:string){if(canEdit&&ready&&!saving){invalidateTimer();sequence=sequence.filter(row=>row.drill_id!==id);}}
   function minutes(id:string,value:number){
-    if(canEdit&&ready&&!saving)sequence=sequence.map(row=>row.drill_id===id?{...row,duration_minutes:value}:row);
+    if(canEdit&&ready&&!saving){invalidateTimer();sequence=sequence.map(row=>row.drill_id===id?{...row,duration_minutes:value}:row);}
   }
   async function save(){
-    if(!mounted||!canEdit||!ready||!valid||saving)return;
+    if(!mounted||!canEdit||!ready||!valid||saving||running)return;
     const owner=scope();const submitted=sequence.map(row=>({...row}));saving=true;error='';
     try{
       const response=await fetch(base()+'?'+query(),{method:'PUT',credentials:'same-origin',cache:'no-store',
@@ -95,7 +108,7 @@
       const value:unknown=await response.json();
       if(!current(owner)||!canEdit)return;
       if(!(deliveryMode?matchingTrainingDeliverySave(value,plan,sequenceVersion,submitted):matchingTrainingDrillSave(value,plan,submitted))){ready=false;throw Error('Η νέα έκδοση δεν επαληθεύτηκε. Κλείστε και ανανεώστε.');}
-      ready=false;onSaved();
+      if(deliveryMode){sequenceVersion+=1;dirty=false;error='';saving=false;chooseTimer(0);}else{ready=false;onSaved();}
     }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η αποθήκευση δεν επιβεβαιώθηκε.';}}
     finally{if(current(owner))saving=false;}
   }
@@ -117,7 +130,7 @@
     }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η έγκριση δεν επιβεβαιώθηκε.';}}
     finally{if(current(owner))saving=false;}
   }
-  onMount(()=>{mounted=true;void loadPlan();return()=>{mounted=false;planController?.abort();catalogueController?.abort();};});
+  onMount(()=>{mounted=true;void loadPlan();return()=>{mounted=false;stopTicker();planController?.abort();catalogueController?.abort();};});
 </script>
 
 <section class="builder" aria-label="Σχεδιασμός ασκήσεων" data-testid="academy-training-drill-builder">
@@ -132,11 +145,33 @@
       <span>{sequence.length} ασκήσεις · {Math.max(0,plan.duration_minutes-total)}′ διαθέσιμα</span>
       <progress max={plan.duration_minutes} value={Math.min(plan.duration_minutes,total)} aria-label="Κατανομή διάρκειας προπόνησης"></progress>
     </div>
-    {#if !valid}<p class="error" role="alert">Ελέγξτε τη διάρκεια κάθε άσκησης και το συνολικό χρόνο.</p>{/if}
+    {#if deliveryMode}
+      <div class="game-quota" class:met={gameTotal>=20}><strong>Παιχνίδι: {gameTotal}′ / 20′ ελάχιστο</strong>
+        <progress value={Math.min(gameTotal,20)} max="20" aria-label="Ελάχιστος χρόνος παιχνιδιού"></progress></div>
+      {#if !valid}<p class="error" role="alert">Το πλήρες πλάνο πρέπει να καλύπτει ακριβώς {plan.duration_minutes}′ και τουλάχιστον 20′ παιχνιδιού.</p>{/if}
+      {#if valid&&dirty}<p class="hint">Αποθηκεύστε το πλήρες πλάνο για να ενεργοποιήσετε το χρονόμετρο.</p>{/if}
+      {#if valid&&!dirty&&sequence.length}
+        <section class="timer" aria-label="Χρονόμετρο εκτέλεσης άσκησης" data-testid="training-execution-timer">
+          <h4>Χρονόμετρο άσκησης</h4>
+          {#if timerDrill}
+            <strong>{timerIndex+1}. {timerDrill.title}</strong>
+            <output aria-label="Υπόλοιπος χρόνος" class="clock">{formatDrillTimer(remaining)}</output>
+            {#if remaining===0}<p role="status">Ο χρόνος της άσκησης ολοκληρώθηκε.</p>{/if}
+            <div class="actions">
+              <button type="button" disabled={running||remaining===0} onclick={startTimer}>Έναρξη / συνέχεια</button>
+              <button type="button" disabled={!running} onclick={pauseTimer}>Παύση</button>
+              <button type="button" onclick={resetTimer}>Επαναφορά</button>
+              <button type="button" disabled={timerIndex+1>=sequence.length} onclick={()=>chooseTimer(timerIndex+1)}>Επόμενη άσκηση</button>
+            </div>
+          {:else}<button type="button" onclick={()=>chooseTimer(0)}>Επιλογή πρώτης άσκησης</button>{/if}
+        </section>
+      {/if}
+    {:else if !valid}<p class="error" role="alert">Ελέγξτε τη διάρκεια κάθε άσκησης και το συνολικό χρόνο.</p>{/if}
     {#if !sequence.length}<p class="hint">Δεν έχουν προστεθεί ασκήσεις.</p>{/if}
     <ol class="sequence">
       {#each sequence as row,i (row.drill_id)}
         <li><div><strong>{i+1}. {row.title}</strong><small>{categoryLabels[row.category]} · {row.age_band.toUpperCase()} · έκδοση {row.drill_version}</small>
+          {#if deliveryMode&&valid&&!dirty}<button type="button" onclick={()=>chooseTimer(i)} disabled={running}>Χρονόμετρο {row.duration_minutes}′</button>{/if}
           <details open={reviewMode}><summary>Στόχος & οδηγίες</summary><p>{row.objective}</p><p>{row.instructions}</p></details></div>
           {#if canEdit}
             <label>Λεπτά<input type="number" min="1" max="120" value={row.duration_minutes}
@@ -163,7 +198,7 @@
         {:else if catalogueLoading}<p role="status">Φόρτωση βιβλιοθήκης…</p>
         {:else if !catalogue.length}<p class="hint">Δεν βρέθηκαν εγκεκριμένες ασκήσεις.</p>{/if}
         <ul class="catalogue">{#each catalogue as drill (drill.id)}
-          <li><div><strong>{drill.title}</strong><small>{drill.duration_minutes}′ · {drill.age_band.toUpperCase()} · {categoryLabels[drill.category]}</small></div>
+          <li><div><strong>{drill.title}</strong><small>{drill.duration_minutes}′ · {drill.age_band.toUpperCase()} · {categoryLabels[drill.category]}{drill.difficulty?' · '+({beginner:'Αρχάριοι',intermediate:'Μεσαίο επίπεδο',advanced:'Προχωρημένοι'}[drill.difficulty]):''}</small></div>
             <button type="button" disabled={saving||sequence.length>=24||sequence.some(r=>r.drill_id===drill.id)}
               onclick={()=>add(drill)}>Προσθήκη</button></li>
         {/each}</ul>
@@ -173,7 +208,7 @@
         </nav>
       </div>
       <p class="hint">{deliveryMode?'Οι εγκεκριμένες ασκήσεις αποθηκεύονται άμεσα για χρήση του προπονητή. Δεν απαιτείται έγκριση και δεν αλλάζει το δημοσιευμένο πρόγραμμα.':'Η προαιρετική περίληψη για τα μέλη χρειάζεται ξεχωριστό ανθρώπινο έλεγχο.'}</p>
-      <button type="button" class="save" disabled={saving||!valid} onclick={()=>void save()}>{saving?'Αποθήκευση…':'Αποθήκευση ιδιωτικής σειράς'}</button>
+      <button type="button" class="save" disabled={saving||!valid||running} onclick={()=>void save()}>{saving?'Αποθήκευση…':deliveryMode?'Αποθήκευση πλήρους πλάνου':'Αποθήκευση ιδιωτικής σειράς'}</button>
     {/if}
     {#if reviewMode&&canWrite}
       <section class="picker" aria-label="Έλεγχος περιεχομένου και αποδεκτών">
@@ -211,4 +246,5 @@
   .review{display:flex;align-items:center;gap:8px}.review input{min-height:18px;accent-color:#f6bb38}textarea{width:100%;resize:vertical}
   .picker{display:grid;gap:10px}.save{background:#53401c;color:white}.error{color:#ffadad}
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+.game-quota,.timer{border:1px solid #555;border-radius:8px;padding:1rem;display:grid;gap:.65rem}.game-quota.met{border-color:#f6bb38}.clock{font-size:2.5rem;font-variant-numeric:tabular-nums;color:#f6bb38}.timer button{min-height:44px}
 </style>

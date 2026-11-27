@@ -48,6 +48,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/drills/proposals/{drillId}/apply-revision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ApplyCoachDrillRevision"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/drills/proposals/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitLinkedCoachDrillProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/{collection}": {
         parameters: {
             query?: never;
@@ -3665,6 +3697,13 @@ export interface components {
             /** Format: int32 */
             size: number | string;
         };
+        ApplyDrillRevisionCommand: {
+            /** Format: int32 */
+            base_version: number | string;
+            confirm_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+        };
         ApproveTrainingPlanCommand: {
             confirm_human_review: boolean;
             /** Format: int32 */
@@ -4023,6 +4062,21 @@ export interface components {
             phone: null | string;
         };
         JsonElement: unknown;
+        LinkedDrillProposalCommand: {
+            age_band: string;
+            /** Format: uuid */
+            base_drill_id: string;
+            /** Format: int32 */
+            base_version: number | string;
+            category: string;
+            difficulty: string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+            instructions: string;
+            objective: string;
+            proposal_kind: string;
+            title: string;
+        };
         MobileAppAnnouncementDto: {
             body: string;
             group_id: string;
@@ -5621,6 +5675,52 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ApplyCoachDrillRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drillId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyDrillRevisionCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitLinkedCoachDrillProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReadCentralAcademyDrills: {
         parameters: {
             query?: {

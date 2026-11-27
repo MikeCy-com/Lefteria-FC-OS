@@ -1792,6 +1792,36 @@
         ],
         "type": "object"
       },
+      "ApplyDrillRevisionCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "confirm_review": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_version",
+          "base_version",
+          "confirm_review"
+        ],
+        "type": "object"
+      },
       "ApproveTrainingPlanCommand": {
         "properties": {
           "confirm_human_review": {
@@ -3275,6 +3305,65 @@
         "type": "object"
       },
       "JsonElement": {},
+      "LinkedDrillProposalCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "age_band": {
+            "type": "string"
+          },
+          "base_drill_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "base_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "category": {
+            "type": "string"
+          },
+          "difficulty": {
+            "type": "string"
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "instructions": {
+            "type": "string"
+          },
+          "objective": {
+            "type": "string"
+          },
+          "proposal_kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "base_drill_id",
+          "base_version",
+          "proposal_kind",
+          "difficulty",
+          "title",
+          "category",
+          "age_band",
+          "duration_minutes",
+          "objective",
+          "instructions"
+        ],
+        "type": "object"
+      },
       "MobileAppAnnouncementDto": {
         "properties": {
           "body": {
@@ -10581,6 +10670,73 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DrillProposalCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      }
+    },
+    "/api/admin/academy/drills/proposals/linked": {
+      "post": {
+        "operationId": "SubmitLinkedCoachDrillProposal",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkedDrillProposalCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Central Academy coaching library"
+        ]
+      }
+    },
+    "/api/admin/academy/drills/proposals/{drillId}/apply-revision": {
+      "post": {
+        "operationId": "ApplyCoachDrillRevision",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "drillId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyDrillRevisionCommand"
               }
             }
           },
