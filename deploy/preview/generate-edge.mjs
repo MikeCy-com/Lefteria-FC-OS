@@ -61,6 +61,8 @@ const entryOperations = [
 export const reviewedAdminEntries = [
   ['get','/api/admin/academy/drills'],
   ['post','/api/admin/academy/drills'],
+  ['get','/api/admin/academy/drills/proposals'],
+  ['post','/api/admin/academy/drills/proposals'],
   ['put','/api/admin/academy/drills/{drillId}'],
   ['get','/api/admin/academy/training'],
   ['get','/api/admin/academy/training/plans'],
@@ -75,6 +77,8 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/academy/training/plans/{planId}/publication-preview'],
   ['get','/api/admin/academy/training/plans/{planId}/drills'],
   ['put','/api/admin/academy/training/plans/{planId}/drills'],
+  ['get','/api/admin/academy/training/plans/{planId}/delivery'],
+  ['put','/api/admin/academy/training/plans/{planId}/delivery'],
   ['post','/api/admin/academy/training/plans/{planId}/drills/approve'],
   ['post','/api/admin/academy/training/plans/{planId}/publish'],
   ['get','/api/admin/academy/training/{eventId}/attendance'],

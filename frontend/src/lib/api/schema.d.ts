@@ -32,6 +32,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/drills/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadCoachDrillProposals"];
+        put?: never;
+        post: operations["SubmitCoachDrillProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/office/{collection}": {
         parameters: {
             query?: never;
@@ -218,6 +234,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["CancelAdminAcademyPublishedTraining"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/{planId}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminTrainingDelivery"];
+        put: operations["WriteAdminTrainingDelivery"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3836,6 +3868,15 @@ export interface components {
             objective: null | string;
             title: null | string;
         };
+        DrillProposalCommand: {
+            age_band: string;
+            category: string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+            instructions: string;
+            objective: string;
+            title: string;
+        };
         Enrollment: {
             /** Format: uuid */
             city_id: string;
@@ -5439,6 +5480,13 @@ export interface components {
             /** Format: int32 */
             expected_version: number | string;
         };
+        TrainingDeliveryCommand: {
+            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
+            /** Format: int32 */
+            expected_sequence_version: number | string;
+            /** Format: int32 */
+            schedule_version: number | string;
+        };
         TrainingDrillsCommand: {
             drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
             /** Format: int32 */
@@ -5631,6 +5679,48 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DrillCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadCoachDrillProposals: {
+        parameters: {
+            query?: {
+                offset?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitCoachDrillProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillProposalCommand"];
             };
         };
         responses: {
@@ -5960,6 +6050,57 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CancelPublishedTrainingCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminTrainingDelivery: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+                version?: number | string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WriteAdminTrainingDelivery: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingDeliveryCommand"];
             };
         };
         responses: {
