@@ -13,6 +13,9 @@ DECLARE
   p uuid:=gen_random_uuid();d uuid:=gen_random_uuid();e uuid:=gen_random_uuid();
   day date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+3;
   r jsonb;items jsonb;v_event text;
+  coach uuid:=gen_random_uuid();dc text:=repeat('9',64);cp uuid:=gen_random_uuid();
+  coach_staff text:='ci_coach_'||left(replace(gen_random_uuid()::text,'-',''),14);
+  other_group text:='ci_other_'||left(replace(gen_random_uuid()::text,'-',''),14);
   player text:='ci_review_'||left(replace(gen_random_uuid()::text,'-',''),14);
   summary constant text:=E'Passing and warm-up\nBring water';
 BEGIN
@@ -34,6 +37,75 @@ BEGIN
   INSERT INTO club.academy_coaching_drills(id,organization_id,title,category,age_band,duration_minutes,objective,instructions,status,version) VALUES
     (d,owner,'CI Passing','technical','all',15,'Passing','Pass in pairs','approved',1),
     (e,owner,'CI Warm up','warmup','all',10,'Prepare','Jog safely','approved',1);
+  -- Canonical staff assignment, not just an Academy organization grant.
+  INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,password_hash)
+    VALUES(coach,'ci_coach_'||left(coach::text,8),'CI Assigned Coach','coach',true,'ci_not_real');
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id) VALUES(coach,owner);
+  INSERT INTO identity.admin_sessions(id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
+    VALUES(gen_random_uuid(),dc,coach,repeat('c',64),clock_timestamp(),clock_timestamp()+interval '1 hour');
+  INSERT INTO club.staff(id,name,job_role,team_type,is_active,is_archived,has_explicit_active,has_explicit_archived)
+    VALUES(coach_staff,'CI Coach','Youth Coach','Academy',true,false,true,true);
+  INSERT INTO identity.admin_staff_links(admin_account_id,staff_id) VALUES(coach,coach_staff);
+  INSERT INTO club.staff_academy_groups(staff_id,academy_group_id,organization_id,from_plural,from_singular,from_group_coach,from_admin)
+    VALUES(coach_staff,g,owner,false,false,false,true);
+  INSERT INTO club.academy_groups(id,organization_id,name) VALUES(other_group,owner,'CI Other Group');
+  INSERT INTO club.academy_group_location_assignments(organization_id,group_id,city_id,location_id,scope_id)
+    VALUES(owner,other_group,cb,lb,sb);
+  r:=club.read_admin_coach_training_groups(dc);
+  IF jsonb_array_length(r->'groups')<>1 OR r->'groups'->0->>'id'<>g THEN RAISE EXCEPTION 'coach_directory_scope_invalid'; END IF;
+  BEGIN
+    PERFORM club.read_admin_academy_training_plans(dc,owner,other_group,day,day+1);
+    RAISE EXCEPTION 'coach_foreign_group_read_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(dc,owner,gen_random_uuid(),other_group,day,TIME '20:00',60,'Foreign draft','Pitch','',0,false);
+    RAISE EXCEPTION 'coach_foreign_group_write_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach draft','Pitch','',0,false);
+  IF (r->>'version')::int<>1 THEN RAISE EXCEPTION 'coach_draft_create_failed'; END IF;
+  r:=club.write_admin_training_drills(dc,g,cp,1,jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',20)));
+  IF (r->>'version')::int<>2 THEN RAISE EXCEPTION 'coach_drill_save_failed'; END IF;
+  BEGIN
+    PERFORM club.approve_admin_training_drill_plan(dc,g,cp,2,'Coach must not approve',true);
+    RAISE EXCEPTION 'coach_self_approval_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(dc,owner,cp,2);
+    RAISE EXCEPTION 'coach_legacy_approval_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.preview_admin_academy_training_distribution(dc,owner,cp,2);
+    RAISE EXCEPTION 'coach_publication_preview_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(dc,owner,cp,2,true);
+    RAISE EXCEPTION 'coach_publish_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.submit_admin_training_plan(dc,g,cp,2,false);
+    RAISE EXCEPTION 'coach_unconfirmed_submit_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  r:=club.submit_admin_training_plan(dc,g,cp,2,true);
+  IF r->>'submitted'<>'true' OR r->>'published'<>'false' THEN RAISE EXCEPTION 'coach_submit_result_invalid'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
+    WHERE x->>'id'=cp::text AND (x->>'submitted_version')::int=2)
+    THEN RAISE EXCEPTION 'manager_submission_missing'; END IF;
+  r:=club.write_admin_academy_training_plan(dc,owner,cp,g,day+1,TIME '18:00',60,'Coach revised draft','Pitch','',2,false);
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(club.read_admin_academy_training_plans(da,owner,g,day,day+1)->'plans') x
+    WHERE x->>'id'=cp::text AND x->>'submitted_version' IS NOT NULL)
+    THEN RAISE EXCEPTION 'stale_coach_submission_visible'; END IF;
+  PERFORM club.submit_admin_training_plan(dc,g,cp,3,true);
+  PERFORM club.approve_admin_training_drill_plan(da,g,cp,3,'Approved coach plan',true);
+  BEGIN
+    PERFORM club.write_admin_training_drills(dc,g,cp,3,'[]'::jsonb);
+    RAISE EXCEPTION 'coach_approved_edit_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  DELETE FROM club.staff_academy_groups WHERE staff_id=coach_staff AND academy_group_id=g;
+  BEGIN
+    PERFORM club.read_admin_training_drills(dc,g,cp,3);
+    RAISE EXCEPTION 'revoked_coach_assignment_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF jsonb_array_length(club.read_admin_coach_training_groups(dc)->'groups')<>0 THEN RAISE EXCEPTION 'revoked_coach_directory_stale'; END IF;
   PERFORM club.write_admin_academy_training_plan(da,owner,p,g,day,TIME '17:00',60,'CI plan','CI pitch','',0,false);
   PERFORM club.approve_admin_academy_training_plan(da,owner,p,1);
   items:=jsonb_build_array(jsonb_build_object('drill_id',d,'drill_version',1,'duration_minutes',20),

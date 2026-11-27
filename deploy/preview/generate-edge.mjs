@@ -66,6 +66,8 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/academy/training/plans'],
   ['post','/api/admin/academy/training/plans'],
   ['get','/api/admin/academy/training/plans/approvals'],
+  ['get','/api/admin/academy/training/plans/assigned-groups'],
+  ['post','/api/admin/academy/training/plans/{planId}/submit'],
   ['get','/api/admin/academy/training/plans/publications'],
   ['put','/api/admin/academy/training/plans/{planId}'],
   ['post','/api/admin/academy/training/plans/{planId}/approve'],

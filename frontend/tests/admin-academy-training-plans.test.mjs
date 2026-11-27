@@ -52,7 +52,7 @@ test('private plans list rejects duplicate, foreign, out-of-range or missing rec
 test('manager-only editor compiles and writes via existing authenticated admin boundary',()=>{
   assert.ok(compile(panel,{filename:'AdminAcademyTrainingPlans.svelte',generate:'server'}).js.code.length>0);
   assert.match(page,/AdminAcademyTrainingPlans/);
-  assert.match(page,/hasAdminPermission\(\$auth\.session\.user\.permissions,'training:write'\)/);
+  assert.match(page,/hasAdminPermission\(\$auth\.session\.user\.permissions,coachMode\?'training:write_assigned':'training:write'\)/);
   assert.match(panel,/X-Lefteria-Admin/);
   assert.match(panel,/credentials:'same-origin',cache:'no-store'/);
   assert.match(panel,/matchingTrainingPlanWrite/);
