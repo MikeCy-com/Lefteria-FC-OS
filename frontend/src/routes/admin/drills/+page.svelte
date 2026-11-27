@@ -19,6 +19,9 @@
       hasAdminPermission($auth.session.user.permissions,'training:read_assigned')));
   const canWrite=$derived(allowed&&$auth.session?.user.role==='super_admin'&&
     hasAdminPermission($auth.session.user.permissions,'training:write'));
+  const canPropose=$derived(allowed&&$auth.session?.user.role==='coach'&&hasAdminPermission($auth.session.user.permissions,'training:write_assigned'));
+  const canSeeProposals=$derived(canPropose||canWrite);
+  let view=$state<'catalogue'|'proposals'>('catalogue');
   const scope=$derived(allowed?$auth.session?.user.id+':'+$auth.session?.user.role:'');
   let search=$state(''),appliedSearch=$state(''),category=$state('all'),age=$state('any'),status=$state('approved');
   let offset=$state(0),nextOffset=$state<number|null>(null),refresh=$state(0);
@@ -29,34 +32,35 @@
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
   $effect(()=>{
     void scope;
-    untrack(()=>{search='';appliedSearch='';category='all';age='any';status='approved';offset=0;
+    untrack(()=>{view='catalogue';search='';appliedSearch='';category='all';age='any';status='approved';offset=0;
       form=blank();editing=null;notice='';writeError='';saving=false;});
   });
   $effect(()=>{
-    const owner=scope,s=appliedSearch,c=category,a=age,st=canWrite?status:'approved',o=offset;
+    const owner=scope,s=appliedSearch,c=category,a=age,st=canWrite?status:'approved',o=offset,proposals=view==='proposals';
     void refresh;
     rows=[];nextOffset=null;loaded=false;error='';loading=false;
     untrack(()=>{if(editing){editing=null;form=blank();}});
-    if(!browser||!owner)return;
+    if(!browser||!owner||(proposals&&!canSeeProposals))return;
     const controller=new AbortController();
     loading=true;
     untrack(()=>{void(async()=>{
       try{
         const query=new URLSearchParams({search:s,category:c,age:a,status:st,offset:String(o)});
-        const response=await fetch(base+'?'+query,{credentials:'same-origin',cache:'no-store',
+        const response=await fetch(proposals?base+'proposals?offset='+o:base+'?'+query,{credentials:'same-origin',cache:'no-store',
           headers:{Accept:'application/json'},signal:controller.signal});
         if(controller.signal.aborted||scope!==owner)return;
         if(response.status===401||response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε.');}
         if(!response.ok)throw Error('Η βιβλιοθήκη δεν είναι διαθέσιμη.');
         const value:unknown=await response.json();
         if(controller.signal.aborted||scope!==owner)return;
-        if(!validDrillPage(value,st,o))throw Error('Μη επαληθευμένη απόκριση βιβλιοθήκης.');
+        if(!validDrillPage(value,proposals?(canWrite?'draft':'all'):st,o))throw Error('Μη επαληθευμένη απόκριση βιβλιοθήκης.');
         rows=value.drills;nextOffset=value.next_offset;loaded=true;
       }catch(e){if(!controller.signal.aborted&&scope===owner)error=e instanceof Error?e.message:'Αποτυχία φόρτωσης.';}
       finally{if(!controller.signal.aborted&&scope===owner)loading=false;}
     })();});
     return()=>controller.abort();
   });
+  function switchView(next:'catalogue'|'proposals'){view=next;offset=0;editing=null;form=blank();notice='';writeError='';refresh++;}
   function searchNow(){appliedSearch=search.trim();offset=0;refresh++;}
   function edit(row:Drill){
     if(!canWrite||saving||loading||row.status==='archived')return;
@@ -65,6 +69,27 @@
     notice='';writeError='';
   }
   function reset(){editing=null;form=blank();}
+  async function propose(){
+    if(!browser||!canPropose||saving||loading||!scope||!validDrillForm(form))return;
+    if(!window.confirm('Υποβολή της νέας άσκησης για έλεγχο από τον διαχειριστή της κεντρικής βιβλιοθήκης;'))return;
+    const owner=scope,body={...form};
+    saving=true;notice='';writeError='';
+    try{
+      const response=await fetch(base+'proposals',{method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json',Accept:'application/json','X-Lefteria-Admin':'1'},body:JSON.stringify(body)});
+      if(scope!==owner||!canPropose)return;
+      if(response.status===401||response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε.');}
+      if(!response.ok)throw Error('Η υποβολή δεν επιβεβαιώθηκε.');
+      const value:unknown=await response.json();
+      if(scope!==owner||!canPropose)return;
+      if(!validDrill(value)||value.status!=='draft'||value.version!==1||
+        value.title!==body.title||value.category!==body.category||value.age_band!==body.age_band||
+        value.duration_minutes!==body.duration_minutes||value.objective!==body.objective||value.instructions!==body.instructions)
+        throw Error('Η νέα πρόταση δεν επαληθεύτηκε.');
+      reset();view='proposals';offset=0;notice='Η πρόταση υποβλήθηκε για έλεγχο. Δεν είναι ακόμη διαθέσιμη στην κοινή βιβλιοθήκη.';
+    }catch(e){if(scope===owner&&canPropose)writeError=e instanceof Error?e.message:'Η υποβολή δεν επιβεβαιώθηκε.';}
+    finally{if(scope===owner){saving=false;refresh++;}}
+  }
   async function write(action:'create'|'edit'|'approve'|'archive'|'restore',row:Drill|null){
     if(!browser||!canWrite||saving||loading||!scope)return;
     const content=action==='create'||action==='edit';
@@ -109,6 +134,11 @@
       {#if !allowed}
         <p role="alert">Δεν έχετε δικαίωμα πρόσβασης στην κεντρική βιβλιοθήκη.</p>
       {:else}
+        {#if canSeeProposals}<nav class="actions" aria-label="Βιβλιοθήκη και προτάσεις">
+          <button type="button" aria-pressed={view==='catalogue'} disabled={saving} onclick={()=>switchView('catalogue')}>Κεντρική βιβλιοθήκη</button>
+          <button type="button" aria-pressed={view==='proposals'} disabled={saving} onclick={()=>switchView('proposals')}>{canPropose?'Οι προτάσεις μου':'Προτάσεις προπονητών · έλεγχος'}</button>
+        </nav>{/if}
+        {#if view==='catalogue'}
         <form class="filters" onsubmit={e=>{e.preventDefault();searchNow();}}>
           <label>Αναζήτηση<input bind:value={search} maxlength="100" disabled={saving} placeholder="Τίτλος ή στόχος"/></label>
           <label>Κατηγορία<select bind:value={category} disabled={saving} onchange={()=>{offset=0;}}>
@@ -123,6 +153,7 @@
           </select></label>{/if}
           <button type="submit" disabled={saving}>Αναζήτηση</button>
         </form>
+        {:else}<p class="muted">{canPropose?'Παρακολουθήστε τις δικές σας προτάσεις. Μόνο οι εγκεκριμένες ασκήσεις προστίθενται στην κεντρική βιβλιοθήκη.':'Ελέγξτε τις προτάσεις των προπονητών και εγκρίνετε την ακριβή έκδοση ή αρχειοθετήστε την.'}</p>{/if}
         {#if loading}<p role="status">Φόρτωση βιβλιοθήκης…</p>
         {:else if error}<p role="alert">{error}</p><button type="button" disabled={saving} onclick={()=>refresh++}>Δοκιμή ξανά</button>
         {:else if loaded&&!rows.length}<p>Δεν βρέθηκαν ασκήσεις.</p>
@@ -135,6 +166,7 @@
                 <h2>{row.title}</h2>
                 <p>{row.objective}</p>
                 <details><summary>Οδηγίες άσκησης</summary><p>{row.instructions}</p></details>
+                {#if view==='proposals'&&canPropose}<p class="muted">{row.status==='draft'?'Αναμένει έλεγχο':row.status==='approved'?'Εγκρίθηκε για κοινή χρήση':'Αρχειοθετήθηκε'} · Έκδοση {row.version}</p>{/if}
                 {#if canWrite}
                   <p class="muted">{labels[row.status]} · Έκδοση {row.version}</p>
                   <div class="actions">
@@ -154,20 +186,20 @@
             <button type="button" disabled={saving||nextOffset===null} onclick={()=>{if(nextOffset!==null)offset=nextOffset;}}>Επόμενη</button>
           </nav>
         {/if}
-        {#if canWrite}
+        {#if canWrite||canPropose}
           <section class="editor" aria-labelledby="editor-title">
-            <h2 id="editor-title">{editing?'Επεξεργασία · έκδοση '+editing.version:'Νέα άσκηση'}</h2>
-            <p class="muted">Η αποθήκευση δημιουργεί πρόχειρη έκδοση. Η επεξεργασία εγκεκριμένης άσκησης απαιτεί νέα έγκριση.</p>
+            <h2 id="editor-title">{editing?'Επεξεργασία · έκδοση '+editing.version:canPropose?'Πρόταση νέας άσκησης':'Νέα άσκηση'}</h2>
+            <p class="muted">{canPropose?'Υποβάλετε νέο εκπαιδευτικό περιεχόμενο για έγκριση από τον διαχειριστή. Οι υπάρχουσες εγκεκριμένες ασκήσεις επιλέγονται ελεύθερα στις προπονήσεις.':'Η αποθήκευση δημιουργεί πρόχειρη έκδοση. Η επεξεργασία εγκεκριμένης άσκησης απαιτεί νέα έγκριση.'}</p>
             {#if notice}<p role="status">{notice}</p>{/if}
             {#if writeError}<p role="alert">{writeError}</p>{/if}
-            <form class="fields" onsubmit={e=>{e.preventDefault();void write(editing?'edit':'create',editing);}}>
+            <form class="fields" onsubmit={e=>{e.preventDefault();if(canPropose)void propose();else void write(editing?'edit':'create',editing);}}>
               <label>Τίτλος<input bind:value={form.title} maxlength="180" required disabled={saving}/></label>
               <label>Κατηγορία<select bind:value={form.category} disabled={saving}>{#each drillCategories as c}<option value={c}>{labels[c]}</option>{/each}</select></label>
               <label>Ηλικία<select bind:value={form.age_band} disabled={saving}>{#each drillAges as a}<option value={a}>{a==='all'?'Κάθε ηλικία':a.toUpperCase()}</option>{/each}</select></label>
               <label>Διάρκεια (λεπτά)<input type="number" bind:value={form.duration_minutes} min="1" max="120" required disabled={saving}/></label>
               <label class="wide">Στόχος<input bind:value={form.objective} maxlength="1000" required disabled={saving}/></label>
               <label class="wide">Οδηγίες<textarea bind:value={form.instructions} maxlength="4000" rows="5" required disabled={saving}></textarea></label>
-              <div class="actions wide"><button type="submit" disabled={saving||loading||!validDrillForm(form)}>Αποθήκευση πρόχειρου</button>
+              <div class="actions wide"><button type="submit" disabled={saving||loading||!validDrillForm(form)}>{canPropose?'Υποβολή για κεντρικό έλεγχο':'Αποθήκευση πρόχειρου'}</button>
                 {#if editing}<button type="button" disabled={saving} onclick={reset}>Ακύρωση επεξεργασίας</button>{/if}</div>
             </form>
           </section>
@@ -184,7 +216,7 @@
   .filters,.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:.75rem;align-items:end}
   label{display:grid;gap:.35rem;font-size:.85rem;color:#ddd}
   input,select,button,textarea{box-sizing:border-box;min-width:0;min-height:42px;border:1px solid #464646;background:#1c1c1c;color:#fff;padding:.5rem .65rem;border-radius:6px;font:inherit}
-  button{cursor:pointer;color:#f6bb38;border-color:#74602e}button:disabled{opacity:.5;cursor:not-allowed}
+  button{cursor:pointer;color:#f6bb38;border-color:#74602e}button[aria-pressed=true]{background:#f6bb38;color:#141414;border-color:#f6bb38}button:disabled{opacity:.5;cursor:not-allowed}
   button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
   .drill-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:.8rem}
   .drill,.editor{background:#151515;border:1px solid #383838;border-radius:8px;padding:1rem;min-width:0}

@@ -3,14 +3,15 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validDrillPage,drillCategories,drillAges,type Drill} from './central-academy-drills.ts';
   import {validTrainingDrillPlan,validTrainingDrillSequence,plannedMinutes,snapshotDrill,drillSelections,
-    matchingTrainingDrillSave,validMemberTrainingSummary,matchingCompleteTrainingReview,type TrainingDrillSnapshot} from './academy-training-drills.ts';
+    matchingTrainingDrillSave,validTrainingDelivery,matchingTrainingDeliverySave,validMemberTrainingSummary,matchingCompleteTrainingReview,type TrainingDrillSnapshot} from './academy-training-drills.ts';
   import type {TrainingPlanDraft} from './academy-training-plans.ts';
-  let {plan,actor,canWrite,reviewMode=false,onSaved,onClose}:{plan:TrainingPlanDraft;actor:string;canWrite:boolean;
-    reviewMode?:boolean;onSaved:()=>void;onClose:()=>void}=$props();
+  let {plan,actor,canWrite,reviewMode=false,deliveryMode=false,onSaved,onClose}:{plan:TrainingPlanDraft;actor:string;canWrite:boolean;
+    reviewMode?:boolean;deliveryMode?:boolean;onSaved:()=>void;onClose:()=>void}=$props();
   const canEdit=$derived(canWrite&&!reviewMode);
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const scope=()=>actor+':'+plan.group_id+':'+plan.id+':'+plan.version;
   let mounted=false;
+  let sequenceVersion=$state(0);
   let sequence=$state<TrainingDrillSnapshot[]>([]),catalogue=$state<Drill[]>([]);
   let loading=$state(true),catalogueLoading=$state(false),saving=$state(false),ready=$state(false);
   let error=$state(''),catalogueError=$state(''),search=$state(''),category=$state('all'),age=$state('any');
@@ -22,7 +23,7 @@
   const total=$derived(plannedMinutes(sequence));
   const valid=$derived(validTrainingDrillSequence(sequence,plan.duration_minutes));
   const query=()=>new URLSearchParams({organization_id:'lefteria_fc_academy',group_id:plan.group_id});
-  const base=()=>'/api/admin/academy/training/plans/'+encodeURIComponent(plan.id)+'/drills';
+  const base=()=>'/api/admin/academy/training/plans/'+encodeURIComponent(plan.id)+(deliveryMode?'/delivery':'/drills');
   function current(owner:string,signal?:AbortSignal){return mounted&&scope()===owner&&!signal?.aborted;}
   function rejectAccess(){ready=false;sequence=[];catalogue=[];void auth.bootstrap();}
   async function loadPlan(){
@@ -37,8 +38,14 @@
       if(!response.ok)throw Error('Δεν φορτώθηκαν οι ασκήσεις της προπόνησης.');
       const value:unknown=await response.json();
       if(!current(owner,controller.signal))return;
-      if(!validTrainingDrillPlan(value,plan,plan.version))throw Error('Μη επαληθευμένο πλάνο ασκήσεων.');
-      sequence=value.drills;ready=true;
+      if(deliveryMode){
+        if(!validTrainingDelivery(value,plan))throw Error('Μη επαληθευμένο πλάνο ασκήσεων.');
+        sequenceVersion=value.sequence_version;sequence=value.drills;
+      }else{
+        if(!validTrainingDrillPlan(value,plan,plan.version))throw Error('Μη επαληθευμένο πλάνο ασκήσεων.');
+        sequence=value.drills;
+      }
+      ready=true;
       if(canEdit)void loadCatalogue(0);
     }catch(e){if(current(owner,controller.signal))error=e instanceof Error?e.message:'Αποτυχία φόρτωσης.';}
     finally{if(current(owner,controller.signal))loading=false;}
@@ -80,20 +87,20 @@
     try{
       const response=await fetch(base()+'?'+query(),{method:'PUT',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json',Accept:'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({expected_version:plan.version,drills:drillSelections(submitted)})});
+        body:JSON.stringify(deliveryMode?{schedule_version:plan.version,expected_sequence_version:sequenceVersion,drills:drillSelections(submitted)}:{expected_version:plan.version,drills:drillSelections(submitted)})});
       if(!current(owner)||!canEdit)return;
       if(response.status===401||response.status===403){rejectAccess();throw Error('Η εξουσιοδότηση άλλαξε.');}
       if(response.status===409){ready=false;throw Error('Άλλαξε η προπόνηση ή η έκδοση άσκησης. Κλείστε και ανανεώστε.');}
       if(!response.ok)throw Error('Η νέα έκδοση δεν επιβεβαιώθηκε.');
       const value:unknown=await response.json();
       if(!current(owner)||!canEdit)return;
-      if(!matchingTrainingDrillSave(value,plan,submitted)){ready=false;throw Error('Η νέα έκδοση δεν επαληθεύτηκε. Κλείστε και ανανεώστε.');}
+      if(!(deliveryMode?matchingTrainingDeliverySave(value,plan,sequenceVersion,submitted):matchingTrainingDrillSave(value,plan,submitted))){ready=false;throw Error('Η νέα έκδοση δεν επαληθεύτηκε. Κλείστε και ανανεώστε.');}
       ready=false;onSaved();
     }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η αποθήκευση δεν επιβεβαιώθηκε.';}}
     finally{if(current(owner))saving=false;}
   }
   async function approveComplete(){
-    if(!mounted||!reviewMode||!canWrite||!ready||!valid||!sequence.length||saving||!reviewConfirmed||!validMemberTrainingSummary(memberSummary))return;
+    if(!mounted||!reviewMode||deliveryMode||!canWrite||!ready||!valid||!sequence.length||saving||!reviewConfirmed||!validMemberTrainingSummary(memberSummary))return;
     const owner=scope(),summary=memberSummary;
     reviewConfirmed=false;saving=true;error='';
     try{
@@ -114,7 +121,7 @@
 </script>
 
 <section class="builder" aria-label="Σχεδιασμός ασκήσεων" data-testid="academy-training-drill-builder">
-  <header><div><h3>{reviewMode?'Πλήρης έλεγχος προπόνησης':'Ασκήσεις προπόνησης'}</h3><p>{plan.title} · Έκδοση {plan.version} · {plan.duration_minutes}′</p></div>
+  <header><div><h3>{reviewMode?'Πλήρης έλεγχος προπόνησης':'Ασκήσεις προπόνησης'}</h3><p>{plan.title} · {deliveryMode?'Έκδοση προγράμματος':'Έκδοση'} {plan.version} {#if deliveryMode}· Σειρά {sequenceVersion}{/if} · {plan.duration_minutes}′</p></div>
     <button type="button" disabled={saving} onclick={onClose}>Κλείσιμο & ανανέωση</button></header>
   <p class="hint">Οι ασκήσεις προέρχονται από την κοινή βιβλιοθήκη όλων των πόλεων και τοποθεσιών.</p>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
@@ -165,7 +172,7 @@
           <button type="button" disabled={saving||catalogueLoading||nextOffset===null} onclick={()=>{if(nextOffset!==null)void loadCatalogue(nextOffset);}}>Επόμενη</button>
         </nav>
       </div>
-      <p class="hint">Η νέα έκδοση χρειάζεται πλήρη ανθρώπινο έλεγχο ασκήσεων πριν από τη δημοσίευση.</p>
+      <p class="hint">{deliveryMode?'Οι εγκεκριμένες ασκήσεις αποθηκεύονται άμεσα για χρήση του προπονητή. Δεν απαιτείται έγκριση και δεν αλλάζει το δημοσιευμένο πρόγραμμα.':'Η προαιρετική περίληψη για τα μέλη χρειάζεται ξεχωριστό ανθρώπινο έλεγχο.'}</p>
       <button type="button" class="save" disabled={saving||!valid} onclick={()=>void save()}>{saving?'Αποθήκευση…':'Αποθήκευση ιδιωτικής σειράς'}</button>
     {/if}
     {#if reviewMode&&canWrite}

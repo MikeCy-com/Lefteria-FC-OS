@@ -29,7 +29,7 @@ test('recipient preview allows the reviewed summary but excludes all private dat
     {...preview,drill_snapshots:[]},{...preview,member_summary:'x'.repeat(1201)},{...preview,member_summary:null}])
     assert.equal(validTrainingDistributionPreview(bad,plan),false);
   const {member_summary,...legacy}=preview;
-  assert.equal(validTrainingDistributionPreview(legacy,plan),false);
+  assert.equal(validTrainingDistributionPreview(legacy,plan),true); // schedule-only approval does not distribute coaching content
   assert.equal(validTrainingDistributionPreview(legacy,{...plan,drill_count:0}),true);
   assert.equal(validTrainingDistributionPreview(preview,{...plan,drill_count:0}),false);
 });
