@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, 'rewrite/**', 'feat/**', 'fix/**']
     paths:
       - 'frontend/**'
       - '.github/workflows/browser-ui-visual-audit.yml'
