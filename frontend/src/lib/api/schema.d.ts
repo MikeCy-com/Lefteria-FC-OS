@@ -5675,52 +5675,6 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    ApplyCoachDrillRevision: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                drillId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApplyDrillRevisionCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    SubmitLinkedCoachDrillProposal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     ReadCentralAcademyDrills: {
         parameters: {
             query?: {
@@ -5821,6 +5775,52 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DrillProposalCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApplyCoachDrillRevision: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                drillId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyDrillRevisionCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitLinkedCoachDrillProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkedDrillProposalCommand"];
             };
         };
         responses: {
