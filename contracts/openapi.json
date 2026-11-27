@@ -2673,12 +2673,12 @@
           }
         },
         "required": [
-          "age_band",
+          "title",
           "category",
+          "age_band",
           "duration_minutes",
-          "instructions",
           "objective",
-          "title"
+          "instructions"
         ],
         "type": "object"
       },
