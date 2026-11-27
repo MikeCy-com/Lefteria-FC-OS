@@ -16,6 +16,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/drills/proposals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadCoachDrillProposals"];
+        put?: never;
+        post: operations["SubmitCoachDrillProposal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/drills/{drillId}": {
         parameters: {
             query?: never;
@@ -233,6 +249,22 @@ export interface paths {
         };
         get: operations["ReadAdminTrainingDrills"];
         put: operations["WriteAdminTrainingDrills"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/{planId}/delivery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminTrainingDelivery"];
+        put: operations["WriteAdminTrainingDelivery"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3829,6 +3861,14 @@ export interface components {
             /** Format: int32 */
             version: number | string;
         };
+        DrillProposalCommand: {
+            title: string;
+            category: string;
+            age_band: string;
+            duration_minutes: number | string;
+            objective: string;
+            instructions: string;
+        };
         DrillCommand: {
             action: string;
             age_band: null | string;
@@ -5439,6 +5479,11 @@ export interface components {
             kind: string;
             publish: boolean;
         };
+        TrainingDeliveryCommand: {
+            schedule_version: number | string;
+            expected_sequence_version: number | string;
+            drills: components["schemas"]["TrainingDrillSelectionCommand"][] | null;
+        };
         TrainingDrillsCommand: {
             drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
             /** Format: int32 */
@@ -5597,6 +5642,24 @@ export interface operations {
             };
         };
     };
+    ReadCoachDrillProposals: {
+        parameters: {
+            query?: { offset?: number | string; };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateCentralAcademyDrill: {
         parameters: {
             query?: never;
@@ -5607,6 +5670,28 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DrillCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SubmitCoachDrillProposal: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DrillProposalCommand"];
             };
         };
         responses: {
@@ -5996,6 +6081,30 @@ export interface operations {
             };
         };
     };
+    ReadAdminTrainingDelivery: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+                version?: number | string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     WriteAdminTrainingDrills: {
         parameters: {
             query?: {
@@ -6011,6 +6120,33 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["TrainingDrillsCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WriteAdminTrainingDelivery: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingDeliveryCommand"];
             };
         };
         responses: {

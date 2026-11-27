@@ -19,6 +19,7 @@
   const org='lefteria_fc_academy';
   const canManage=$derived(canWrite&&!coachMode);
   let submitTarget=$state<string|null>(null);
+  function deliveryEditable(plan:TrainingPlanDraft){return allowed&&canWrite&&plan.status==='draft'&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled&&plan.day>=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());}
   function coachEditable(plan:TrainingPlanDraft){return !coachMode||(!approvedIds.includes(plan.id)&&!publishedIds.includes(plan.id));}
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
@@ -230,7 +231,7 @@
   }
 
   async function approve(plan:TrainingPlanDraft){
-    if(!browser||!allowed||!canManage||drillTarget||plan.drill_count!==0||loading||saving||reviewConfirmed!==reviewKey(plan)||
+    if(!browser||!allowed||!canManage||drillTarget||loading||saving||reviewConfirmed!==reviewKey(plan)||
       approvedIds.includes(plan.id)||publishedIds.includes(plan.id)||
       plan.status!=='draft'||!rows.some(row=>row.id===plan.id&&row.version===plan.version&&row.status==='draft'))return;
     const owner=actor,group=groupId,period=from+':'+to;
@@ -338,7 +339,7 @@
       <h2 id="training-plan-heading">Ιδιωτικός σχεδιασμός προπονήσεων</h2></div>
     <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving||!!drillTarget}>Ανανέωση</button>
   </header>
-  {#if coachMode}<p class="plan-note">Δημιουργήστε το πρόχειρο, προσθέστε ασκήσεις και υποβάλετε την ακριβή έκδοση στον υπεύθυνο Ακαδημίας. Η υποβολή δεν δημοσιεύει προπόνηση.</p>{/if}
+  {#if coachMode}<p class="plan-note">Επιλέξτε ελεύθερα εγκεκριμένες ασκήσεις για το τμήμα σας, χωρίς έγκριση. Η υποβολή του επίσημου προγράμματος είναι ξεχωριστή από την επιλογή ασκήσεων.</p>{/if}
   <p class="plan-note">Τα πρόχειρα μένουν ιδιωτικά μέχρι να εγκριθούν και να δημοσιευτούν από διαχειριστή. Οι δημοσιευμένες προπονήσεις εμφανίζονται στο ημερολόγιο του σωστού τμήματος. Οι ακυρώσεις δεν στέλνουν αυτόματες ειδοποιήσεις.</p>
   {#if error}<p class="plan-error" role="alert">{error}</p>{/if}
   {#if notice}<p class="plan-notice" role="status">{notice}</p>{/if}
@@ -355,8 +356,10 @@
             {#if publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
               <small data-testid="academy-native-training-cancel-reason">Λόγος ακύρωσης: {publicationRows.find(p=>p.id===plan.id)?.cancel_reason}</small>
             {/if}</span>
-          {#if coachMode&&allowed&&typeof plan.drill_count==='number'&&plan.drill_count>0&&!coachEditable(plan)}
-            <button type="button" disabled={saving||loading||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;submitTarget=null;}}>Προβολή εγκεκριμένων ασκήσεων</button>
+          {#if allowed&&typeof plan.delivery_drill_count==='number'}
+            <button type="button" disabled={saving||loading||previewing||!!drillTarget}
+              onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;submitTarget=null;reviewConfirmed=null;publishConfirmed=false;}}>
+              {deliveryEditable(plan)?'Σχεδιασμός ασκήσεων':'Προβολή ασκήσεων'} · {plan.delivery_drill_count}</button>
           {/if}
           {#if canManage&&publishedIds.includes(plan.id)&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
             <button type="button" disabled={saving||loading}
@@ -364,11 +367,6 @@
               data-testid="academy-native-cancel-open">Ακύρωση δημοσιευμένης</button>
           {/if}
           {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)&&coachEditable(plan)}
-            {#if typeof plan.drill_count==='number'}
-              <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Ασκήσεις · {plan.drill_count}</button>
-            {:else}
-              <small>Απαιτείται επαληθευμένη ανάθεση τοποθεσίας για τον σχεδιασμό ασκήσεων.</small>
-            {/if}
             <button type="button" disabled={saving||!!drillTarget} onclick={()=>edit(plan)}>Επεξεργασία</button>
             {#if coachMode}
               {#if plan.submitted_version!==plan.version}
@@ -376,20 +374,19 @@
                   disabled={saving||loading||!!drillTarget} onchange={e=>submitTarget=e.currentTarget.checked?reviewKey(plan):null}/>
                   Έλεγξα την έκδοση {plan.version} για υποβολή.</label>
                 <button type="button" disabled={saving||loading||!!drillTarget||submitTarget!==reviewKey(plan)}
-                  onclick={()=>void submit(plan)}>Υποβολή για έγκριση</button>
+                  onclick={()=>void submit(plan)}>Υποβολή προγράμματος για έγκριση</button>
               {:else}<small>Η αλλαγή του πρόχειρου απαιτεί νέα υποβολή.</small>{/if}
-            {:else if typeof plan.drill_count==='number'&&plan.drill_count>0&&!approvedIds.includes(plan.id)}
-              <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=true;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Πλήρης έλεγχος & έγκριση</button>
-            {:else if typeof plan.drill_count!=='number'}
-              <small>Η έγκριση απαιτεί επαληθευμένη πρόσβαση στο τμήμα.</small>
             {:else if !approvedIds.includes(plan.id)}
+              {#if typeof plan.drill_count==='number'&&plan.drill_count>0}
+                <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=true;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Προαιρετικός έλεγχος περίληψης μελών</button>
+              {/if}
               <label class="review-confirm"><input type="checkbox"
                 checked={reviewConfirmed===reviewKey(plan)} disabled={saving||loading||!!drillTarget}
                 onchange={e=>{reviewConfirmed=e.currentTarget.checked?reviewKey(plan):null;}}/>
-                Εξέτασα την ημερομηνία, ώρα, διάρκεια και ομάδα αυτής της έκδοσης.
+                Εξέτασα το επίσημο πρόγραμμα αυτής της έκδοσης (όχι τις ιδιωτικές ασκήσεις).
               </label>
               <button type="button" disabled={saving||loading||!!drillTarget||reviewConfirmed!==reviewKey(plan)}
-                onclick={()=>void approve(plan)}>Έγκριση έκδοσης {plan.version}</button>
+                onclick={()=>void approve(plan)}>Έγκριση προγράμματος {plan.version}</button>
             {:else}
               <button type="button" disabled={saving||previewing||!!drillTarget}
                 onclick={()=>void inspect(plan)}>Προεπισκόπηση αποδεκτών</button>
@@ -401,7 +398,7 @@
   {/if}
   {#if drillTarget}
     {#key actor+':'+groupId+':'+drillTarget.id+':'+drillTarget.version}
-      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed&&coachEditable(drillTarget)} reviewMode={canManage&&drillReviewMode}
+      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={drillReviewMode?canManage&&allowed:deliveryEditable(drillTarget)} reviewMode={canManage&&drillReviewMode} deliveryMode={!drillReviewMode}
         onSaved={()=>{drillTarget=null;refreshNonce++;}} onClose={()=>{drillTarget=null;refreshNonce++;}}/>
     {/key}
   {/if}

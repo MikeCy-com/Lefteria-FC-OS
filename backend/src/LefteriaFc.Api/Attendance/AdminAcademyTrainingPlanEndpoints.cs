@@ -26,6 +26,9 @@ public static class AdminAcademyTrainingPlanEndpoints
     public sealed record TrainingDrillsCommand(int ExpectedVersion,TrainingDrillSelectionCommand[]? Drills);
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record TrainingDeliveryCommand(int ScheduleVersion,int ExpectedSequenceVersion,TrainingDrillSelectionCommand[]? Drills);
+
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record CompleteTrainingReviewCommand(int ExpectedVersion,string? MemberSummary,bool ConfirmHumanReview);
 
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
@@ -296,6 +299,49 @@ public static class AdminAcademyTrainingPlanEndpoints
             })));
             return await Run(command,ct);
         }).WithName("WriteAdminTrainingDrills").Accepts<TrainingDrillsCommand>("application/json");
+
+        admin.MapGet("/{planId:guid}/delivery",async (
+            Guid planId,string? organization_id,string? group_id,int? version,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
+            if(planId==Guid.Empty||!ValidId(group_id)||version is null or <1 or >10000||
+              context.Request.Query["group_id"].Count!=1||context.Request.Query["version"].Count!=1)
+                throw new WebAdminException(422,"training_drill_selector_invalid","Select the exact group and plan version.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.read_admin_training_delivery(@digest,@group,@id,@expected)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",version.Value);
+            return await Run(command,ct);
+        }).WithName("ReadAdminTrainingDelivery");
+
+        admin.MapPut("/{planId:guid}/delivery",async (
+            Guid planId,string? organization_id,string? group_id,TrainingDeliveryCommand body,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,true,ct,allowAssigned:true);
+            if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
+              body.ScheduleVersion is <1 or >10000||body.ExpectedSequenceVersion is <0 or >9999||body.Drills is null||body.Drills.Length>24||
+              body.Drills.Any(x=>x is null||x.DrillId==Guid.Empty||x.DrillVersion is <1 or >10000||x.DurationMinutes is <1 or >120))
+                throw new WebAdminException(422,"training_drill_input_invalid","Check the plan version and selected exercises.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.write_admin_training_delivery(@digest,@group,@id,@schedule,@expected,@items)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("schedule",body.ScheduleVersion);
+            command.Parameters.AddWithValue("expected",body.ExpectedSequenceVersion);
+            command.Parameters.AddWithValue("items",NpgsqlDbType.Jsonb,JsonSerializer.Serialize(body.Drills.Select(x=>new {
+                drill_id=x.DrillId,drill_version=x.DrillVersion,duration_minutes=x.DurationMinutes
+            })));
+            return await Run(command,ct);
+        }).WithName("WriteAdminTrainingDelivery").Accepts<TrainingDeliveryCommand>("application/json");
 
         admin.MapPost("/{planId:guid}/drills/approve",async (
             Guid planId,string? organization_id,string? group_id,CompleteTrainingReviewCommand body,

@@ -57,3 +57,16 @@ export function matchingCompleteTrainingReview(value:unknown,plan:TrainingPlanDr
     value.group_id===plan.group_id&&value.approved_version===plan.version&&value.approval_status==='approved'&&
     value.published===false&&validMemberTrainingSummary(summary)&&value.member_summary===summary;
 }
+
+export interface TrainingDelivery extends TrainingDrillPlan {sequence_version:number}
+export function validTrainingDelivery(x:unknown,plan:TrainingPlanDraft):x is TrainingDelivery {
+  if(!rec(x)||Object.keys(x).length!==8||!Number.isSafeInteger(x.sequence_version)||
+    (x.sequence_version as number)<0||(x.sequence_version as number)>10000)return false;
+  const {sequence_version,...rest}=x;
+  return validTrainingDrillPlan(rest,plan,plan.version);
+}
+export function matchingTrainingDeliverySave(x:unknown,plan:TrainingPlanDraft,expected:number,drills:readonly TrainingDrillSnapshot[]):x is TrainingDelivery {
+  return validTrainingDelivery(x,plan)&&x.sequence_version===expected+1&&x.drills.length===drills.length&&
+    x.drills.every((row,i)=>{const expected=drills[i];return !!expected&&keys.every(k=>
+      row[k as keyof TrainingDrillSnapshot]===expected[k as keyof TrainingDrillSnapshot]);});
+}
