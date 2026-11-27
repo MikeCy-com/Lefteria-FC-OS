@@ -35,10 +35,14 @@ test('top-right account entry owns profile and session, without dashboard clutte
 });
 
 test('five group-only tools disappear from both global navigation and dashboard',()=>{
-  for(const slug of ['schedule','attendance','matches','evaluations','documents']){
-    assert.doesNotMatch(frame,new RegExp('href="/admin/'+slug+'"'));
+  for(const slug of ['schedule','attendance','matches','evaluations','documents'])
     assert.doesNotMatch(home,new RegExp('href="/admin/'+slug+'"'));
-  }
+  for(const slug of ['matches','evaluations','documents'])
+    assert.doesNotMatch(frame,new RegExp('href="/admin/'+slug+'"'));
+  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  assert.match(assigned,/href="\/admin\/schedule"/);
+  assert.match(assigned,/href="\/admin\/attendance"/);
+  assert.equal((frame.match(/href="\/admin\/(?:schedule|attendance)"/g)||[]).length,2);
   assert.match(groups,/data-testid="admin-group-workspace"/);
   assert.match(groups,/focusedGroupId/);
   assert.match(groups,/group\.id===focusedGroupId|focusedGroupId===group\.id/);

@@ -30,10 +30,14 @@ test('Academy schedule rejects foreign, duplicate or invalid groups',()=>{
   assert.equal(isAcademyScheduleGroupList({...dir,organization_id:'lefteria_fc'}),false);
   assert.equal(isAcademyScheduleGroupList({...dir,groups:[dir.groups[0],dir.groups[0]]}),false);
 });
-test('admin schedule uses real cookie-scoped existing backend and only manager grant',()=>{
+test('admin schedule uses real cookie-scoped APIs and assigned-coach or management grants',()=>{
   assert.match(component,/\['manager','super_admin'\]/);
-  assert.match(component,/hasAdminPermission\(\$auth\.session\.user\.permissions,'attendance:read'\)/);
-  assert.match(component,/\/api\/admin\/football\/audiences\?organization_id=lefteria_fc_academy/);
+  assert.match(component,/coachMode\?'training:read_assigned':'training:read'/);
+  assert.match(component,/coachMode\?'training:write_assigned':'training:write'/);
+  assert.match(component,/const coachMode=\$derived\(\$auth\.session\?\.user\.role==='coach'\)/);
+  assert.match(component,/\/api\/admin\/academy\/training\/plans\/assigned-groups/);
+  assert.match(component,/\/api\/admin\/football\/audiences/);
+  assert.match(component,/organizations\.some\(org=>org\.id==='lefteria_fc_academy'\)/);
   assert.match(component,/\/api\/admin\/academy\/training\/\?/);
   assert.match(component,/credentials:'same-origin',cache:'no-store'/);
   assert.match(component,/onExpired|auth\.bootstrap\(\)/);

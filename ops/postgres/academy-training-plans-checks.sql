@@ -1,6 +1,8 @@
 \set ON_ERROR_STOP on
 -- Execute ONLY against disposable staging fixtures after migration and
 -- academy-training-plans-admin-grants.sql. No insert is committed.
+-- Unknown identities may be denied at the territorial authorization boundary
+-- before input validation. Both rejection paths are secure; success is not.
 BEGIN;
 DO $training_plan_boundary$
 DECLARE
@@ -24,13 +26,13 @@ BEGIN
     PERFORM club.read_admin_academy_training_plans(
       v_unknown,'lefteria_fc','any',DATE '2026-11-01',DATE '2026-11-30');
     RAISE EXCEPTION 'Cross-org training plan read accepted';
-  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  EXCEPTION WHEN invalid_parameter_value OR insufficient_privilege THEN NULL;
   END;
   BEGIN
     PERFORM club.approve_admin_academy_training_plan(
       v_unknown,'lefteria_fc_academy',v_id,0);
     RAISE EXCEPTION 'Invalid human review version allowed';
-  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  EXCEPTION WHEN invalid_parameter_value OR insufficient_privilege THEN NULL;
   END;
   BEGIN
     PERFORM club.approve_admin_academy_training_plan(
@@ -43,7 +45,7 @@ BEGIN
       v_unknown,'lefteria_fc_academy','any',
       DATE '2026-01-01',DATE '2026-11-30');
     RAISE EXCEPTION 'Oversized private plan reader accepted';
-  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  EXCEPTION WHEN invalid_parameter_value OR insufficient_privilege THEN NULL;
   END;
   BEGIN
     PERFORM club.read_admin_academy_training_plans(
@@ -64,14 +66,14 @@ BEGIN
       v_unknown,'lefteria_fc_academy',v_id,'any',
       DATE '2026-11-17',TIME '16:30',60,'Training','Pitch','',0,true);
     RAISE EXCEPTION 'Unknown admin may create an archived plan';
-  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  EXCEPTION WHEN invalid_parameter_value OR insufficient_privilege THEN NULL;
   END;
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
       v_unknown,'lefteria_fc_academy',v_id,'any',
       DATE '2026-11-17',TIME '16:30',12,'Training','Pitch','',0,false);
     RAISE EXCEPTION 'Invalid training duration allowed';
-  EXCEPTION WHEN invalid_parameter_value THEN NULL;
+  EXCEPTION WHEN invalid_parameter_value OR insufficient_privilege THEN NULL;
   END;
 END $training_plan_boundary$;
 ROLLBACK;

@@ -23,10 +23,13 @@ test('all shared admin routes and contextual player records compile in Svelte',(
 });
 
 test('global navigation has no standalone player or match tools; profile and settings apply to every role',()=>{
-  for(const path of ['schedule','matches','attendance','evaluations','documents']){
-    assert.doesNotMatch(frame,new RegExp('href="/admin/'+path+'"'));
+  for(const path of ['schedule','matches','attendance','evaluations','documents'])
     assert.doesNotMatch(dashboard,new RegExp('href="/admin/'+path+'"'));
-  }
+  for(const path of ['matches','evaluations','documents'])
+    assert.doesNotMatch(frame,new RegExp('href="/admin/'+path+'"'));
+  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  assert.match(assigned,/href="\/admin\/schedule"/);
+  assert.match(assigned,/href="\/admin\/attendance"/);
   assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
   assert.match(frame,/href="\/admin\/profile"/);
   assert.match(frame,/href="\/admin\/settings"/);
