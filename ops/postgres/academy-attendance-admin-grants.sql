@@ -44,6 +44,7 @@ BEGIN
 END $boundary$;
 
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.admin_training_event_scope_allowed(uuid,text,text) FROM PUBLIC, :"admin_auth_role", :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_sessions(
   text,text,text,date,date) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_academy_training_attendance(
@@ -71,6 +72,9 @@ BEGIN
      OR has_function_privilege(v_mobile,
        'club.academy_training_player_eligible(text,text,text)','EXECUTE')
   THEN RAISE EXCEPTION 'attendance_private_eligibility_helper_exposed'; END IF;
+  IF has_function_privilege(v_admin,'club.admin_training_event_scope_allowed(uuid,text,text)','EXECUTE')
+    OR has_function_privilege(v_mobile,'club.admin_training_event_scope_allowed(uuid,text,text)','EXECUTE')
+  THEN RAISE EXCEPTION 'attendance_private_territory_helper_exposed'; END IF;
   IF EXISTS (
     SELECT 1 FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
     WHERE n.nspname='club' AND c.relname IN

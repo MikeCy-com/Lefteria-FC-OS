@@ -110,12 +110,26 @@ jobs:
           PY
       - run: dotnet restore backend/tests/LefteriaFc.Identity.IntegrationTests --locked-mode
       - run: dotnet build backend/tests/LefteriaFc.Identity.IntegrationTests --configuration Release --no-restore
-      - name: Migration apply, rollback and reapply
+      - name: Migration apply, idempotent replay and isolated forward recovery
         run: |
+          set -euo pipefail
           dotnet tool restore
+          # Security migrations 20261125093000 and 20261125094000 explicitly
+          # prohibit reversing policy boundaries. Never attempt a destructive
+          # EF rollback after those migrations; check forward recovery in a
+          # second disposable database instead.
+          grep -Fq 'Training attendance territory security requires forward recovery.' \
+            backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261125094000_AcademyTrainingAttendanceExactTerritory.cs
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
-          dotnet ef database update 0 --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
           dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
+          probe_db=lefteria_identity_forward_probe
+          docker exec identity-postgres createdb -p 54329 -U "$POSTGRES_USER" "$probe_db"
+          trap 'docker exec identity-postgres dropdb --if-exists -p 54329 -U "$POSTGRES_USER" lefteria_identity_forward_probe' EXIT
+          LEFTERIA_MIGRATION_CONNECTION="Host=127.0.0.1;Port=54329;Database=$probe_db;Username=$POSTGRES_USER;Password=$POSTGRES_PASSWORD" \
+            dotnet backend/src/LefteriaFc.Api/bin/Release/net10.0/LefteriaFc.Api.dll --migrate
+          primary_count="$(docker exec identity-postgres psql -X -At -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c 'SELECT count(*) FROM "__EFMigrationsHistory"')"
+          probe_count="$(docker exec identity-postgres psql -X -At -p 54329 -U "$POSTGRES_USER" -d "$probe_db" -c 'SELECT count(*) FROM "__EFMigrationsHistory"')"
+          [[ "$primary_count" =~ ^[0-9]+$ && "$primary_count" == "$probe_count" && "$primary_count" -gt 0 ]]
           dotnet ef migrations has-pending-model-changes --context LefteriaDbContext --project backend/src/LefteriaFc.Infrastructure --startup-project backend/src/LefteriaFc.Api --configuration Release --no-build
       - name: Verify disposable PostgreSQL backup and isolated restore
         env:
