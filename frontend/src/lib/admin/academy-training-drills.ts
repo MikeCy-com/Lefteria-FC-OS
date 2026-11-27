@@ -47,3 +47,13 @@ export function matchingTrainingDrillSave(x:unknown,plan:TrainingPlanDraft,drill
     x.drills.every((row,i)=>{const expected=drills[i];return !!expected&&keys.every(k=>
       row[k as keyof TrainingDrillSnapshot]===expected[k as keyof TrainingDrillSnapshot]);});
 }
+
+export function validMemberTrainingSummary(value:unknown):value is string {
+  return typeof value==='string'&&value.length>=1&&value.length<=1200&&value===value.trim()&&
+    !/[\x00-\x09\x0b-\x1f\x7f-\x9f]/.test(value);
+}
+export function matchingCompleteTrainingReview(value:unknown,plan:TrainingPlanDraft,summary:string):boolean {
+  return rec(value)&&Object.keys(value).length===7&&value.id===plan.id&&value.organization_id==='lefteria_fc_academy'&&
+    value.group_id===plan.group_id&&value.approved_version===plan.version&&value.approval_status==='approved'&&
+    value.published===false&&validMemberTrainingSummary(summary)&&value.member_summary===summary;
+}

@@ -73,6 +73,7 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/academy/training/plans/{planId}/publication-preview'],
   ['get','/api/admin/academy/training/plans/{planId}/drills'],
   ['put','/api/admin/academy/training/plans/{planId}/drills'],
+  ['post','/api/admin/academy/training/plans/{planId}/drills/approve'],
   ['post','/api/admin/academy/training/plans/{planId}/publish'],
   ['get','/api/admin/academy/training/{eventId}/attendance'],
   ['post','/api/admin/academy/training/{eventId}/attendance'],
