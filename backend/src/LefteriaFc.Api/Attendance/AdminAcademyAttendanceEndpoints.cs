@@ -9,9 +9,9 @@ using NpgsqlTypes;
 namespace LefteriaFc.Api.Attendance;
 
 /// <summary>
-/// The OS manager's actual attendance register, linked to the imported
-/// training calendar. RSVP data and source attendance remain immutable.
-/// No coach/parent/public write delegation is implied by this initial slice.
+/// The Academy's actual attendance register, linked to the imported training
+/// calendar. RSVP and source attendance remain immutable. Assigned coaches
+/// use separate group-scoped permissions; parents/public receive no write access.
 /// </summary>
 public static class AdminAcademyAttendanceEndpoints
 {

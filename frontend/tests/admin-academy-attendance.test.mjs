@@ -29,7 +29,7 @@ test('Actual attendance is a new audited overlay, never a source import or RSVP 
   assert.doesNotMatch(migration,/UPDATE club\.calendar_responses/);
 });
 
-test('Only scoped, verified Academy managers can see or mark children',()=>{
+test('Only scoped Academy managers or explicitly assigned coaches can see or mark children',()=>{
   assert.match(migration,/identity\.lock_admin_club_authority\(_digest,_owner\)/);
   assert.match(migration,/v_role NOT IN \('manager','super_admin'\)/);
   assert.match(migration,/academy_training_player_eligible\(\s*_owner,_event,_player\)/);
@@ -39,7 +39,10 @@ test('Only scoped, verified Academy managers can see or mark children',()=>{
   assert.match(migration,/v_day>\(clock_timestamp\(\) AT TIME ZONE 'Asia\/Nicosia'\)::date/);
   assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
   assert.match(api,/org!="lefteria_fc_academy"/);
-  assert.match(api,/session\.User\.Role is not \("manager" or "super_admin"\)/);
+  assert.match(api,/var manager=session\.User\.Role is \("manager" or "super_admin"\)/);
+  assert.match(api,/var assigned=session\.User\.Role=="coach"/);
+  assert.match(api,/attendance:write_assigned/);
+  assert.match(api,/!manager&&!assigned/);
   assert.match(api,/attendance:write/);
   assert.match(api,/Count!=1/);
   assert.match(grants,/GRANT EXECUTE ON FUNCTION club\.record_admin_academy_training_attendance/);
@@ -79,7 +82,9 @@ test('Admin UI separates RSVP from presence, shows provenance and verifies write
   const player=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
   assert.match(group,/AdminGroupAttendancePanel/);
   assert.match(player,/AdminGroupAttendancePanel/);
-  assert.doesNotMatch(frame,/href="\/admin\/attendance"/);
+  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  assert.match(assigned,/href="\/admin\/attendance"/);
+  assert.equal((frame.match(/href="\/admin\/attendance"/g)||[]).length,1);
   assert.match(read('frontend/src/lib/admin/AdminGroupWorkspace.svelte'),/admin-group-attendance-link/);
   assert.match(program,/app\.MapAdminAcademyAttendance\(\)/);
 });
