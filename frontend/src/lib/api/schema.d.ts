@@ -3750,6 +3750,12 @@ export interface components {
             /** Format: int32 */
             total: number | string;
         };
+        CompleteTrainingReviewCommand: {
+            confirm_human_review: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+            member_summary: null | string;
+        };
         CreateCityCommand: {
             name: null | string;
         };
@@ -3778,12 +3784,6 @@ export interface components {
             city_id: null | string;
             code: null | string;
             name: null | string;
-        };
-        CompleteTrainingReviewCommand: {
-            confirm_human_review: boolean;
-            /** Format: int32 */
-            expected_version: number | string;
-            member_summary: null | string;
         };
         Decision: {
             /** Format: uuid */
