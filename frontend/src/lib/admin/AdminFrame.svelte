@@ -63,7 +63,7 @@
            Group operations remain embedded inside the selected group. -->
       <a class="admin-nav-home" href="/admin" aria-current={active==='account'?'page':undefined}>Επισκόπηση</a>
 
-      {#if liveIds.has('drills') || hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
+      {#if liveIds.has('assigned_groups') || liveIds.has('drills') || hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
         <details class="admin-nav-disclosure"
           open={['drills','groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
           data-testid="admin-football-navigation">
@@ -79,6 +79,10 @@
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
                   data-testid="admin-player-crm-link">Παίκτες CRM</a>
               {/if}
+            {/if}
+            {#if liveIds.has('assigned_groups')}
+              <a class="admin-nav-tool" href="/admin/schedule" aria-current={active==='schedule'?'page':undefined} data-testid="admin-coach-workspace-link">Τα τμήματά μου</a>
+              <a class="admin-nav-tool" href="/admin/attendance" aria-current={active==='attendance'?'page':undefined}>Παρουσίες τμημάτων</a>
             {/if}
             {#if liveIds.has('drills')}
               <a class="admin-nav-tool" href="/admin/drills" aria-current={active==='drills'?'page':undefined} data-testid="admin-drills-link">Βιβλιοθήκη ασκήσεων</a>

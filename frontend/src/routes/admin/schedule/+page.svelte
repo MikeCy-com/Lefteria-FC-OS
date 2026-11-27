@@ -14,13 +14,13 @@
 
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   $effect(()=>{if(browser&&$auth.status==='anonymous')void goto('/admin/login',{replace:true});});
+  const coachMode=$derived($auth.session?.user.role==='coach');
   const permitted=$derived($auth.status==='authenticated'&&!!$auth.session&&
-    ['manager','super_admin'].includes($auth.session.user.role)&&
+    (['manager','super_admin'].includes($auth.session.user.role)||coachMode)&&
     $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy')&&
-    hasAdminPermission($auth.session.user.permissions,'attendance:read')&&
-    hasAdminPermission($auth.session.user.permissions,'attendance:read'));
+    hasAdminPermission($auth.session.user.permissions,coachMode?'training:read_assigned':'training:read'));
   const canWritePlans=$derived(permitted&&!!$auth.session&&
-    hasAdminPermission($auth.session.user.permissions,'training:write'));
+    hasAdminPermission($auth.session.user.permissions,coachMode?'training:write_assigned':'training:write'));
   let month=$state(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit'})
     .format(new Date()).slice(0,7));
   let groups=$state<AdminRosterGroup[]>([]);
@@ -35,7 +35,7 @@
     new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())):[]);
 
   $effect(()=>{
-    const allowed=permitted,actor=$auth.session?.user.id;
+    const allowed=permitted,actor=$auth.session?.user.id,coach=coachMode;
     const requestedGroup=page.url.searchParams.get('group_id');
     void actor;void refresh;
     groups=[];groupId='';sessions=null;
@@ -43,7 +43,7 @@
     const ctrl=new AbortController();loadingGroups=true;error='';
     untrack(()=>{void(async()=>{
       try{
-        const res=await fetch('/api/admin/football/audiences?organization_id=lefteria_fc_academy',{
+        const res=await fetch((coach?'/api/admin/academy/training/plans/assigned-groups':'/api/admin/football/audiences')+'?organization_id=lefteria_fc_academy',{
           credentials:'same-origin',cache:'no-store',signal:ctrl.signal});
         if(ctrl.signal.aborted)return;
         if(res.status===401||res.status===403){void auth.bootstrap();throw Error('Η εξουσιοδότηση άλλαξε.');}
@@ -89,11 +89,12 @@
   <AdminFrame user={$auth.session.user} active="schedule" busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <section class="academy-schedule" aria-labelledby="academy-schedule-title" data-testid="admin-academy-schedule">
       
-      <h1 id="academy-schedule-title">Πρόγραμμα προπονήσεων</h1>
-      <p class="intro">Πραγματικές προπονήσεις Ακαδημίας από το επαληθευμένο ημερολόγιο. Η δημιουργία και η αλλαγή προπονήσεων δεν έχουν ενεργοποιηθεί ακόμη.</p>
+      <h1 id="academy-schedule-title">{coachMode?'Τα τμήματά μου':'Πρόγραμμα προπονήσεων'}</h1>
+      <p class="intro">{coachMode?'Προετοιμάστε προπονήσεις, ασκήσεις και παρουσίες μόνο για τα ανατεθειμένα τμήματά σας.':'Εγκεκριμένο ημερολόγιο και ιδιωτικός σχεδιασμός προπονήσεων.'}</p>
       {#if !permitted}
         <p role="alert">Η προβολή επιτρέπεται μόνο στην εξουσιοδοτημένη διαχείριση της Ακαδημίας.</p>
       {:else}
+        {#if coachMode}<a class="go-attendance" href="/admin/drills">Κεντρική βιβλιοθήκη ασκήσεων ›</a>{/if}
         <div class="filters">
           <label>Τμήμα
             <select bind:value={groupId} disabled={loadingGroups||loadingSessions}>
@@ -137,7 +138,7 @@
             <AdminAcademyTrainingPlans {groupId}
               from={window.start} to={window.end}
               actor={$auth.session.user.id} allowed={permitted}
-              canWrite={canWritePlans}/>
+              canWrite={canWritePlans} {coachMode}/>
           {/key}
         {/if}
       {/if}

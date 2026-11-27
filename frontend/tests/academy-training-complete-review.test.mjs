@@ -59,5 +59,5 @@ test('review UI separates approval and publication and pins confirmation to plan
   assert.match(ui,/oninput=\{\(\)=>reviewConfirmed=false\}/);
   assert.match(workspace,/reviewConfirmed!==reviewKey\(plan\)/);
   assert.match(workspace,/preview.member_summary/);
-  assert.match(workspace,/async function inspect\(plan:TrainingPlanDraft\)\{\s*if\(!browser\|\|!allowed\|\|drillTarget\|\|typeof plan.drill_count!=='number'/);
+  assert.match(workspace,/async function inspect\(plan:TrainingPlanDraft\)\{\s*if\(!browser\|\|!allowed\|\|coachMode\|\|drillTarget\|\|typeof plan.drill_count!=='number'/);
 });

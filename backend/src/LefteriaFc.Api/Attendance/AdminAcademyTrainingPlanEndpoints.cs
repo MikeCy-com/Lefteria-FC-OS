@@ -28,6 +28,9 @@ public static class AdminAcademyTrainingPlanEndpoints
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record CompleteTrainingReviewCommand(int ExpectedVersion,string? MemberSummary,bool ConfirmHumanReview);
 
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record SubmitTrainingPlanCommand(int ExpectedVersion,bool ConfirmSubmission);
+
     public sealed record CancelPublishedTrainingCommand(
         int ExpectedVersion,string Reason,bool ConfirmCancellation);
 
@@ -54,7 +57,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             WebAdminService auth,WebAdminConnections connections,
             IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
         {
-            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
             if(context.Request.Query["group_id"].Count!=1 ||
                 context.Request.Query["start"].Count!=1 ||
                 context.Request.Query["end"].Count!=1 ||
@@ -80,7 +83,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             WebAdminService auth,WebAdminConnections connections,
             IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
         {
-            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            var cookie=await Authorized(auth,context,organization_id,true,ct,allowAssigned:true);
             var start=Validate(body,true);
             return await Write(Guid.NewGuid(),0,false,start,body,organization_id!,
                 cookie,connections,secrets,ct,true);
@@ -92,7 +95,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             WebAdminService auth,WebAdminConnections connections,
             IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
         {
-            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            var cookie=await Authorized(auth,context,organization_id,true,ct,allowAssigned:true);
             var start=Validate(body,false);
             if(planId==Guid.Empty)
                 throw new WebAdminException(422,"invalid_training_plan",
@@ -107,7 +110,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             WebAdminService auth,WebAdminConnections connections,
             IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
         {
-            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
             if(context.Request.Query["group_id"].Count!=1 ||
                 context.Request.Query["start"].Count!=1 ||
                 context.Request.Query["end"].Count!=1 ||
@@ -203,7 +206,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             WebAdminService auth,WebAdminConnections connections,
             IWebAdminSecrets secrets,HttpContext context,CancellationToken ct) =>
         {
-            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
             if(context.Request.Query["group_id"].Count!=1 ||
                 context.Request.Query["start"].Count!=1 ||
                 context.Request.Query["end"].Count!=1 ||
@@ -256,7 +259,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             Guid planId,string? organization_id,string? group_id,int? version,
             WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
             HttpContext context,CancellationToken ct)=>{
-            var cookie=await Authorized(auth,context,organization_id,false,ct);
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
             if(planId==Guid.Empty||!ValidId(group_id)||version is null or <1 or >10000||
               context.Request.Query["group_id"].Count!=1||context.Request.Query["version"].Count!=1)
                 throw new WebAdminException(422,"training_drill_selector_invalid","Select the exact group and plan version.");
@@ -275,7 +278,7 @@ public static class AdminAcademyTrainingPlanEndpoints
             Guid planId,string? organization_id,string? group_id,TrainingDrillsCommand body,
             WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
             HttpContext context,CancellationToken ct)=>{
-            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            var cookie=await Authorized(auth,context,organization_id,true,ct,allowAssigned:true);
             if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
               body.ExpectedVersion is <1 or >9999||body.Drills is null||body.Drills.Length>24||
               body.Drills.Any(x=>x is null||x.DrillId==Guid.Empty||x.DrillVersion is <1 or >10000||x.DurationMinutes is <1 or >120))
@@ -316,6 +319,34 @@ public static class AdminAcademyTrainingPlanEndpoints
             command.Parameters.AddWithValue("confirmed",body.ConfirmHumanReview);
             return await Run(command,ct);
         }).WithName("ApproveAdminTrainingDrillPlan").Accepts<CompleteTrainingReviewCommand>("application/json");
+
+        admin.MapGet("/assigned-groups",async (
+            string? organization_id,WebAdminService auth,WebAdminConnections connections,
+            IWebAdminSecrets secrets,HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,false,ct,allowAssigned:true);
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("SELECT club.read_admin_coach_training_groups(@digest)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            return await Run(command,ct);
+        }).WithName("ReadAssignedCoachTrainingGroups");
+
+        admin.MapPost("/{planId:guid}/submit",async (
+            Guid planId,string? organization_id,string? group_id,SubmitTrainingPlanCommand body,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,true,ct,allowAssigned:true);
+            if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
+                body.ExpectedVersion is <1 or >10000||!body.ConfirmSubmission)
+                throw new WebAdminException(422,"training_submission_invalid","Confirm the exact draft version and group.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("SELECT club.submit_admin_training_plan(@digest,@group,@id,@expected,@confirm)::text",connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            command.Parameters.AddWithValue("confirm",body.ConfirmSubmission);
+            return await Run(command,ct);
+        }).WithName("SubmitAssignedCoachTrainingPlan").Accepts<SubmitTrainingPlanCommand>("application/json");
 
         return endpoints;
     }
@@ -393,7 +424,7 @@ public static class AdminAcademyTrainingPlanEndpoints
 
     private static async Task<string> Authorized(
         WebAdminService auth,HttpContext context,string? owner,
-        bool write,CancellationToken ct)
+        bool write,CancellationToken ct,bool allowAssigned=false)
     {
         context.Response.Headers.CacheControl="private, no-store";
         context.Response.Headers.Pragma="no-cache";
@@ -405,12 +436,13 @@ public static class AdminAcademyTrainingPlanEndpoints
         var session=await auth.CurrentAsync(cookie,ct);
         if(session is null)
             throw new WebAdminException(401,"not_authenticated","Sign in again.");
-        if(session.User.Role is not ("manager" or "super_admin") ||
-           !AdminPermissions.Has(session.User.Role,
-              write?"training:write":"training:read") ||
-           !session.User.Organizations.Any(x=>x.Id==owner))
+        var manager=session.User.Role is ("manager" or "super_admin") &&
+            AdminPermissions.Has(session.User.Role,write?"training:write":"training:read");
+        var assigned=allowAssigned && session.User.Role=="coach" &&
+            AdminPermissions.Has(session.User.Role,write?"training:write_assigned":"training:read_assigned");
+        if((!manager&&!assigned)||!session.User.Organizations.Any(x=>x.Id==owner))
             throw new WebAdminException(403,"training_plan_denied",
-                "Only Academy managers may access private training plans.");
+                "This account does not have the required Academy training permission.");
         return cookie!;
     }
 }

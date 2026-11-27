@@ -144,12 +144,13 @@ public static class AdminAcademyAttendanceEndpoints
         if(session is null)
             throw new WebAdminException(401,"not_authenticated",
                 "Sign in again.");
-        if(session.User.Role is not ("manager" or "super_admin") ||
-           !AdminPermissions.Has(session.User.Role,
-                write?"attendance:write":"attendance:read") ||
-           !session.User.Organizations.Any(x=>x.Id==org))
+        var manager=session.User.Role is ("manager" or "super_admin") &&
+            AdminPermissions.Has(session.User.Role,write?"attendance:write":"attendance:read");
+        var assigned=session.User.Role=="coach" &&
+            AdminPermissions.Has(session.User.Role,write?"attendance:write_assigned":"attendance:read_assigned");
+        if((!manager&&!assigned)||!session.User.Organizations.Any(x=>x.Id==org))
             throw new WebAdminException(403,"attendance_denied",
-                "Only authorized Academy managers may manage attendance.");
+                "Only authorized Academy managers and assigned coaches may manage attendance.");
         return cookie!;
     }
 }

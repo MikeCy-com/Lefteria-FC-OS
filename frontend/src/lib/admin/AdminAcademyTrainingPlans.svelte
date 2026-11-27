@@ -6,17 +6,20 @@
   import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
     validTrainingPlanApprovals,validTrainingPlanApprovalResult,
     validTrainingDistributionPreview,validTrainingPublicationsPage,
-    validPublishedTrainingResult,validTrainingCancellationResult}
+    validPublishedTrainingResult,validTrainingCancellationResult,validTrainingSubmission}
     from './academy-training-plans.ts';
   import type {TrainingPlanDraft,TrainingPlanForm,TrainingDistributionPreview,
     TrainingPublicationRecord} from './academy-training-plans.ts';
 
-  let {groupId,from,to,actor,allowed,canWrite}:{
+  let {groupId,from,to,actor,allowed,canWrite,coachMode=false}:{
     groupId:string;from:string;to:string;actor:string;
-    allowed:boolean;canWrite:boolean;
+    allowed:boolean;canWrite:boolean;coachMode?:boolean;
   }=$props();
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const org='lefteria_fc_academy';
+  const canManage=$derived(canWrite&&!coachMode);
+  let submitTarget=$state<string|null>(null);
+  function coachEditable(plan:TrainingPlanDraft){return !coachMode||(!approvedIds.includes(plan.id)&&!publishedIds.includes(plan.id));}
   let rows=$state<TrainingPlanDraft[]>([]);
   let loading=$state(false),saving=$state(false);
   let approvedIds=$state<string[]>([]),publishedIds=$state<string[]>([]);
@@ -43,7 +46,7 @@
       title:'',location:'',notes:''};
   }
   function edit(row:TrainingPlanDraft){
-    if(row.status!=='draft')return;
+    if(row.status!=='draft'||!coachEditable(row))return;
     reviewConfirmed=null;
     editing=row;archiveConfirmed=false;notice='';error='';
     form={day:row.day,start_time:row.start_time,
@@ -62,7 +65,7 @@
     const scope=actor+':'+groupId+':'+from+':'+to;
     const valid=allowed&&!!actor&&!!groupId&&!!from&&!!to;
     void refreshNonce;void scope;
-    rows=[];approvedIds=[];publishedIds=[];publicationRows=[];
+    submitTarget=null;rows=[];approvedIds=[];publishedIds=[];publicationRows=[];
     cancellationTarget=null;cancellationReason='';cancellationConfirmed=false;
     preview=null;editing=null;drillTarget=null;
     archiveConfirmed=false;reviewConfirmed=null;publishConfirmed=false;notice='';error='';
@@ -125,7 +128,7 @@
   });
 
   async function cancelPublished(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||drillTarget||loading||saving||!cancellationConfirmed||
+    if(!browser||!canManage||drillTarget||loading||saving||!cancellationConfirmed||
       !validCancellationReason||cancellationTarget?.id!==plan.id||
       !publishedIds.includes(plan.id)||
       publicationRows.find(row=>row.id===plan.id)?.is_cancelled)return;
@@ -161,7 +164,7 @@
   }
 
   async function publish(plan:TrainingPlanDraft){
-    if(!browser||!canWrite||drillTarget||typeof plan.drill_count!=='number'||loading||saving||previewing||!publishConfirmed||
+    if(!browser||!canManage||drillTarget||typeof plan.drill_count!=='number'||loading||saving||previewing||!publishConfirmed||
       !preview||preview.id!==plan.id||preview.version!==plan.version||
       preview.eligible_player_count<1||!approvedIds.includes(plan.id)||
       publishedIds.includes(plan.id)||plan.status!=='draft')return;
@@ -197,7 +200,7 @@
   }
 
   async function inspect(plan:TrainingPlanDraft){
-    if(!browser||!allowed||drillTarget||typeof plan.drill_count!=='number'||loading||saving||previewing||
+    if(!browser||!allowed||coachMode||drillTarget||typeof plan.drill_count!=='number'||loading||saving||previewing||
       !approvedIds.includes(plan.id)||plan.status!=='draft')return;
     const owner=actor,group=groupId,period=from+':'+to;
     previewing=true;preview=null;publishConfirmed=false;error='';
@@ -227,7 +230,7 @@
   }
 
   async function approve(plan:TrainingPlanDraft){
-    if(!browser||!allowed||!canWrite||drillTarget||plan.drill_count!==0||loading||saving||reviewConfirmed!==reviewKey(plan)||
+    if(!browser||!allowed||!canManage||drillTarget||plan.drill_count!==0||loading||saving||reviewConfirmed!==reviewKey(plan)||
       approvedIds.includes(plan.id)||publishedIds.includes(plan.id)||
       plan.status!=='draft'||!rows.some(row=>row.id===plan.id&&row.version===plan.version&&row.status==='draft'))return;
     const owner=actor,group=groupId,period=from+':'+to;
@@ -262,9 +265,32 @@
     finally{saving=false;}
   }
 
+  async function submit(plan:TrainingPlanDraft){
+    if(!browser||!allowed||!coachMode||!canWrite||saving||loading||drillTarget||submitTarget!==reviewKey(plan)||
+      plan.status!=='draft'||!coachEditable(plan)||plan.submitted_version===plan.version||
+      !rows.some(row=>row.id===plan.id&&row.version===plan.version))return;
+    const owner=actor,group=groupId,period=from+':'+to;
+    submitTarget=null;saving=true;error='';
+    try{
+      const params=new URLSearchParams({organization_id:org,group_id:group});
+      const response=await fetch(base+encodeURIComponent(plan.id)+'/submit?'+params,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json',Accept:'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({expected_version:plan.version,confirm_submission:true})});
+      if(owner!==actor||group!==groupId||period!==from+':'+to||!allowed||!coachMode)return;
+      if(response.status===401||response.status===403){void auth.bootstrap();throw Error('Η εξουσιοδότηση άλλαξε.');}
+      if(!response.ok)throw Error('Η υποβολή δεν επιβεβαιώθηκε. Ανανεώστε τη λίστα.');
+      const raw:unknown=await response.json();
+      if(owner!==actor||group!==groupId||period!==from+':'+to||!allowed||!coachMode)return;
+      if(!validTrainingSubmission(raw,plan))throw Error('Η απόκριση υποβολής δεν επαληθεύτηκε.');
+      refreshNonce++;
+    }catch(e){if(owner===actor&&group===groupId&&period===from+':'+to){error=e instanceof Error?e.message:'Αποτυχία υποβολής.';}}
+    finally{if(owner===actor&&group===groupId&&period===from+':'+to)saving=false;}
+  }
   async function save(archive=false){
     if(!browser||!canWrite||drillTarget||saving||loading||!validTrainingPlanForm(form)||
       form.day<from||form.day>to||
+      (coachMode&&(archive||(editing&&!coachEditable(editing))))||
       archive&&(!editing||!archiveConfirmed))return;
     const current=editing,expected=current?.version??0;
     const owner=actor,group=groupId,period=from+':'+to;
@@ -308,10 +334,11 @@
 
 <section class="plan-drafts" aria-labelledby="training-plan-heading" data-testid="academy-private-training-plans">
   <header class="plan-header">
-    <div><p class="plan-eyebrow">ΜΟΝΟ ΓΙΑ ΔΙΑΧΕΙΡΙΣΤΕΣ · ΠΡΟΧΕΙΡΑ</p>
+    <div><p class="plan-eyebrow">{coachMode?'ΠΡΟΠΟΝΗΤΗΣ · ΑΝΑΤΕΘΕΙΜΕΝΑ ΤΜΗΜΑΤΑ':'ΔΙΑΧΕΙΡΙΣΗ · ΠΡΟΧΕΙΡΑ'}</p>
       <h2 id="training-plan-heading">Ιδιωτικός σχεδιασμός προπονήσεων</h2></div>
     <button type="button" onclick={()=>refreshNonce++} disabled={loading||saving||!!drillTarget}>Ανανέωση</button>
   </header>
+  {#if coachMode}<p class="plan-note">Δημιουργήστε το πρόχειρο, προσθέστε ασκήσεις και υποβάλετε την ακριβή έκδοση στον υπεύθυνο Ακαδημίας. Η υποβολή δεν δημοσιεύει προπόνηση.</p>{/if}
   <p class="plan-note">Τα πρόχειρα μένουν ιδιωτικά μέχρι να εγκριθούν και να δημοσιευτούν από διαχειριστή. Οι δημοσιευμένες προπονήσεις εμφανίζονται στο ημερολόγιο του σωστού τμήματος. Οι ακυρώσεις δεν στέλνουν αυτόματες ειδοποιήσεις.</p>
   {#if error}<p class="plan-error" role="alert">{error}</p>{/if}
   {#if notice}<p class="plan-notice" role="status">{notice}</p>{/if}
@@ -324,23 +351,34 @@
         <li class:archived={plan.status==='archived'}>
           <span><strong>{plan.title}</strong><small>{plan.day} · {plan.start_time} · {plan.duration_minutes}′
             {plan.location?' · '+plan.location:''}</small>
-            <small>Έκδοση {plan.version} · {publicationRows.find(p=>p.id===plan.id)?.is_cancelled?'Ακυρώθηκε στο ημερολόγιο':publishedIds.includes(plan.id)?'Δημοσιευμένο στο ημερολόγιο':plan.status==='archived'?'Αρχειοθετημένο':approvedIds.includes(plan.id)?'Εγκρίθηκε · Αναμένει δημοσίευση':'Αναμένει ανθρώπινη έγκριση'}</small>
+            <small>Έκδοση {plan.version} · {publicationRows.find(p=>p.id===plan.id)?.is_cancelled?'Ακυρώθηκε στο ημερολόγιο':publishedIds.includes(plan.id)?'Δημοσιευμένο στο ημερολόγιο':plan.status==='archived'?'Αρχειοθετημένο':approvedIds.includes(plan.id)?'Εγκρίθηκε · Αναμένει δημοσίευση':plan.submitted_version===plan.version?'Υποβλήθηκε για έγκριση':'Πρόχειρο · αναμένει έγκριση'}</small>
             {#if publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
               <small data-testid="academy-native-training-cancel-reason">Λόγος ακύρωσης: {publicationRows.find(p=>p.id===plan.id)?.cancel_reason}</small>
             {/if}</span>
-          {#if canWrite&&publishedIds.includes(plan.id)&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
+          {#if coachMode&&allowed&&typeof plan.drill_count==='number'&&plan.drill_count>0&&!coachEditable(plan)}
+            <button type="button" disabled={saving||loading||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;submitTarget=null;}}>Προβολή εγκεκριμένων ασκήσεων</button>
+          {/if}
+          {#if canManage&&publishedIds.includes(plan.id)&&!publicationRows.find(p=>p.id===plan.id)?.is_cancelled}
             <button type="button" disabled={saving||loading}
               onclick={()=>{cancellationTarget=plan;cancellationReason='';cancellationConfirmed=false;preview=null;}}
               data-testid="academy-native-cancel-open">Ακύρωση δημοσιευμένης</button>
           {/if}
-          {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)}
+          {#if canWrite&&plan.status==='draft'&&!publishedIds.includes(plan.id)&&coachEditable(plan)}
             {#if typeof plan.drill_count==='number'}
               <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=false;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Ασκήσεις · {plan.drill_count}</button>
             {:else}
               <small>Απαιτείται επαληθευμένη ανάθεση τοποθεσίας για τον σχεδιασμό ασκήσεων.</small>
             {/if}
             <button type="button" disabled={saving||!!drillTarget} onclick={()=>edit(plan)}>Επεξεργασία</button>
-            {#if typeof plan.drill_count==='number'&&plan.drill_count>0&&!approvedIds.includes(plan.id)}
+            {#if coachMode}
+              {#if plan.submitted_version!==plan.version}
+                <label class="review-confirm"><input type="checkbox" checked={submitTarget===reviewKey(plan)}
+                  disabled={saving||loading||!!drillTarget} onchange={e=>submitTarget=e.currentTarget.checked?reviewKey(plan):null}/>
+                  Έλεγξα την έκδοση {plan.version} για υποβολή.</label>
+                <button type="button" disabled={saving||loading||!!drillTarget||submitTarget!==reviewKey(plan)}
+                  onclick={()=>void submit(plan)}>Υποβολή για έγκριση</button>
+              {:else}<small>Η αλλαγή του πρόχειρου απαιτεί νέα υποβολή.</small>{/if}
+            {:else if typeof plan.drill_count==='number'&&plan.drill_count>0&&!approvedIds.includes(plan.id)}
               <button type="button" disabled={saving||previewing||!!drillTarget} onclick={()=>{drillTarget=plan;drillReviewMode=true;editing=null;preview=null;reviewConfirmed=null;publishConfirmed=false;cancellationTarget=null;}}>Πλήρης έλεγχος & έγκριση</button>
             {:else if typeof plan.drill_count!=='number'}
               <small>Η έγκριση απαιτεί επαληθευμένη πρόσβαση στο τμήμα.</small>
@@ -363,11 +401,11 @@
   {/if}
   {#if drillTarget}
     {#key actor+':'+groupId+':'+drillTarget.id+':'+drillTarget.version}
-      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed} reviewMode={drillReviewMode}
+      <AdminTrainingDrillBuilder plan={drillTarget} {actor} canWrite={canWrite&&allowed&&coachEditable(drillTarget)} reviewMode={canManage&&drillReviewMode}
         onSaved={()=>{drillTarget=null;refreshNonce++;}} onClose={()=>{drillTarget=null;refreshNonce++;}}/>
     {/key}
   {/if}
-  {#if cancellationTarget}
+  {#if canManage&&cancellationTarget}
     <section class="training-distribution" data-testid="academy-native-cancel-panel"
       aria-label="Ακύρωση δημοσιευμένης προπόνησης">
       <h3>Ακύρωση δημοσιευμένης προπόνησης</h3>
@@ -391,7 +429,7 @@
       </button>
     </section>
   {/if}
-  {#if preview}
+  {#if !coachMode&&preview}
     <section class="training-distribution" aria-label="Προεπισκόπηση αποδεκτών" data-testid="training-distribution-preview">
       <h3>Προεπισκόπηση · χωρίς δημοσίευση</h3>
       <p><strong>{preview.title}</strong> · {preview.day} {preview.start_time} · {preview.duration_minutes} λεπτά</p>
@@ -402,7 +440,7 @@
         <p class="plan-error">Δεν υπάρχουν επιλέξιμοι αθλητές στο τμήμα.</p>
       {/if}
       <p class="plan-note">Εγκρίθηκε από άνθρωπο · Δεν δημοσιεύτηκε ακόμη. Ο αριθμός αθλητών μπορεί να αλλάξει με τις αναθέσεις.</p>
-      {#if canWrite&&preview.eligible_player_count>0&&!publishedIds.includes(preview.id)}
+      {#if canManage&&preview.eligible_player_count>0&&!publishedIds.includes(preview.id)}
         <label class="review-confirm"><input type="checkbox"
           bind:checked={publishConfirmed} disabled={saving||previewing}/>
           Επιβεβαιώνω τη δημοσίευση στο ημερολόγιο του τμήματος. Οι γονείς και οι αθλητές θα μπορούν να τη δουν και να απαντήσουν. Δεν θα σταλούν αυτόματες ειδοποιήσεις.
@@ -436,7 +474,7 @@
         {saving?'Αποθήκευση…':editing?'Ενημέρωση πρόχειρου':'Δημιουργία ιδιωτικού πρόχειρου'}
       </button>
     </form>
-    {#if editing}
+    {#if editing&&!coachMode}
       <div class="archive-actions">
         <label><input type="checkbox" bind:checked={archiveConfirmed} disabled={saving}/>
           Επιβεβαιώνω την αρχειοθέτηση του συγκεκριμένου πρόχειρου.</label>

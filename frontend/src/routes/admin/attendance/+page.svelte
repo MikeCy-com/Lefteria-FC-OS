@@ -30,13 +30,14 @@
     is_cancelled:boolean;is_archived:boolean;writable:boolean;total:number;players:PlayerRow[];
   };
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
+  const coachMode=$derived($auth.session?.user.role==='coach');
   const permitted=$derived($auth.status==='authenticated'&&$auth.session &&
-    ['manager','super_admin'].includes($auth.session.user.role)&&
-    hasAdminPermission($auth.session.user.permissions,'attendance:read')&&
+    (['manager','super_admin'].includes($auth.session.user.role)||coachMode)&&
+    hasAdminPermission($auth.session.user.permissions,coachMode?'attendance:read_assigned':'attendance:read')&&
     $auth.session.user.organizations.some(org=>org.id==='lefteria_fc_academy') &&
-    hasAdminPermission($auth.session.user.permissions,'attendance:read'));
+    hasAdminPermission($auth.session.user.permissions,coachMode?'attendance:read_assigned':'attendance:read'));
   const canWrite=$derived(!!permitted&&$auth.session&&
-    hasAdminPermission($auth.session.user.permissions,'attendance:write'));
+    hasAdminPermission($auth.session.user.permissions,coachMode?'attendance:write_assigned':'attendance:write'));
 
   let groups=$state<Group[]>([]);
   let groupId=$state('');
@@ -132,7 +133,7 @@
 
   $effect(()=>{
     const actor=$auth.session?.user.id;
-    const allowed=permitted;
+    const allowed=permitted,coach=coachMode;
     const requestedGroup=page.url.searchParams.get('group_id');
     void groupReload;void actor;
     let active=true;
@@ -140,7 +141,7 @@
     loadingGroups=true;error='';
     untrack(()=>{void(async()=>{
       try{
-        const response=await fetch('/api/admin/football/audiences?'+scope,
+        const response=await fetch((coach?'/api/admin/academy/training/plans/assigned-groups':'/api/admin/football/audiences')+'?'+scope,
           {credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}});
         if(!active)return;
         if(response.status===401||response.status===403){
