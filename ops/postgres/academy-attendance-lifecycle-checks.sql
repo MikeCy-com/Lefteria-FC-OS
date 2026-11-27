@@ -15,6 +15,9 @@ DECLARE
   v_outsider text:='ci_outsider_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
   v_row jsonb;
+  v_city uuid:=gen_random_uuid();v_site uuid:=gen_random_uuid();v_other_site uuid:=gen_random_uuid();v_scope uuid:=gen_random_uuid();
+  v_foreign uuid:=gen_random_uuid();v_foreign_digest text:=repeat('e',64);
+  v_other_group text:='ci_other_'||left(replace(gen_random_uuid()::text,'-',''),16);
 BEGIN
   INSERT INTO club.roster_import_state(
     id,digest,source_repository,source_commit,environment,
@@ -81,6 +84,46 @@ BEGIN
   VALUES(gen_random_uuid(),v_digest,v_actor,repeat('b',64),
     clock_timestamp(),clock_timestamp()+interval '1 hour',NULL);
 
+  INSERT INTO club.football_cities(id,name,slug)
+    VALUES(v_city,'CI Attendance City','ci-att-city-'||left(v_city::text,8));
+  INSERT INTO club.football_locations(id,city_id,name,slug) VALUES
+    (v_site,v_city,'CI Attendance Site','ci-att-site-'||left(v_site::text,8)),
+    (v_other_site,v_city,'CI Attendance Sibling','ci-att-sibling-'||left(v_other_site::text,8));
+  INSERT INTO club.football_operational_scopes(id,organization_id,academy_city_id)
+    VALUES(v_scope,v_owner,v_city);
+  INSERT INTO club.academy_groups(id,organization_id,name) VALUES(v_other_group,v_owner,'CI Other Group');
+  INSERT INTO club.academy_group_location_assignments(organization_id,group_id,city_id,location_id,scope_id)
+    VALUES(v_owner,v_group,v_city,v_site,v_scope),(v_owner,v_other_group,v_city,v_other_site,v_scope);
+  INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,password_hash)
+    VALUES(v_foreign,'ci_att_foreign_'||left(v_foreign::text,8),'CI Sibling Manager','manager',true,'ci_not_real');
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id) VALUES(v_foreign,v_owner);
+  INSERT INTO identity.admin_sessions(id,token_digest,admin_account_id,credential_digest,created_at,expires_at)
+    VALUES(gen_random_uuid(),v_foreign_digest,v_foreign,repeat('b',64),clock_timestamp(),clock_timestamp()+interval '1 hour');
+  INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role)
+    VALUES(v_actor,v_site,'location_manager'),(v_foreign,v_other_site,'location_manager');
+  BEGIN
+    PERFORM club.read_admin_academy_training_sessions(v_foreign_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-09');
+    RAISE EXCEPTION 'foreign_attendance_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_training_attendance(v_foreign_digest,v_owner,v_event);
+    RAISE EXCEPTION 'foreign_attendance_roster_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.record_admin_academy_training_attendance(v_foreign_digest,v_owner,v_event,v_player,'absent',0);
+    RAISE EXCEPTION 'foreign_attendance_write_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  -- Shared multi-site events cannot expose all children to one site manager.
+  INSERT INTO club.calendar_item_scopes(kind,event_id,scope_kind,record_id,organization_id,team_id,academy_group_id)
+    VALUES('training',v_event,'group',v_other_group,v_owner,NULL,v_other_group);
+  IF (club.read_admin_academy_training_sessions(v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-09')->>'total')::integer<>0
+    THEN RAISE EXCEPTION 'multi_site_event_list_exposed'; END IF;
+  BEGIN
+    PERFORM club.read_admin_academy_training_attendance(v_digest,v_owner,v_event);
+    RAISE EXCEPTION 'multi_site_event_roster_exposed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  DELETE FROM club.calendar_item_scopes WHERE kind='training' AND event_id=v_event AND record_id=v_other_group;
+
   v_result:=club.read_admin_academy_training_sessions(
     v_digest,v_owner,v_group,DATE '2026-11-01',DATE '2026-11-09');
   IF (v_result->>'total')::integer<>1
@@ -144,6 +187,12 @@ BEGIN
           AND player_id=v_player)<>'present' THEN
     RAISE EXCEPTION 'Corrected presence did not preserve source data and audit';
   END IF;
+  UPDATE club.football_locations SET is_active=false WHERE id=v_site;
+  BEGIN
+    PERFORM club.read_admin_academy_training_attendance(v_digest,v_owner,v_event);
+    RAISE EXCEPTION 'inactive_attendance_site_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE club.football_locations SET is_active=true WHERE id=v_site;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE token_digest=v_digest;
   BEGIN

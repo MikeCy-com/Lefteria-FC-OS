@@ -14,6 +14,12 @@ DECLARE
   v_digest text:=repeat('d',64);
   v_group text:='ci_plan_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
+  v_city uuid:=gen_random_uuid();v_other_city uuid:=gen_random_uuid();
+  v_site uuid:=gen_random_uuid();v_sibling_site uuid:=gen_random_uuid();v_other_site uuid:=gen_random_uuid();
+  v_scope uuid:=gen_random_uuid();v_other_scope uuid:=gen_random_uuid();
+  v_sibling uuid:=gen_random_uuid();v_foreign uuid:=gen_random_uuid();v_city_manager uuid:=gen_random_uuid();
+  v_sibling_digest text:=repeat('e',64);v_foreign_digest text:=repeat('f',64);v_city_digest text:=repeat('1',64);
+  v_unmapped text:='ci_unmapped_'||left(replace(gen_random_uuid()::text,'-',''),12);
   -- Relative future Cyprus-local dates keep the approval test valid all year;
   -- live policy still rejects actual past training sessions.
   v_day1 date:=(clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date+4;
@@ -50,6 +56,32 @@ BEGIN
   VALUES(v_session,v_digest,v_actor,repeat('b',64),
     clock_timestamp(),clock_timestamp()+interval '1 hour',NULL);
 
+  INSERT INTO club.football_cities(id,name,slug) VALUES
+    (v_city,'CI Training City','ci-plan-city-'||left(v_city::text,8)),
+    (v_other_city,'CI Other City','ci-plan-other-'||left(v_other_city::text,8));
+  INSERT INTO club.football_locations(id,city_id,name,slug) VALUES
+    (v_site,v_city,'CI Training Site','ci-plan-site-'||left(v_site::text,8)),
+    (v_sibling_site,v_city,'CI Sibling Site','ci-plan-sibling-'||left(v_sibling_site::text,8)),
+    (v_other_site,v_other_city,'CI Other Site','ci-plan-foreign-'||left(v_other_site::text,8));
+  INSERT INTO club.football_operational_scopes(id,organization_id,academy_city_id) VALUES
+    (v_scope,v_owner,v_city),(v_other_scope,v_owner,v_other_city);
+  INSERT INTO club.academy_group_location_assignments(organization_id,group_id,city_id,location_id,scope_id)
+    VALUES(v_owner,v_group,v_city,v_site,v_scope);
+  INSERT INTO club.academy_groups(id,organization_id,name) VALUES(v_unmapped,v_owner,'CI Unmapped Group');
+  INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,password_hash) VALUES
+    (v_sibling,'ci_plan_sib_'||left(v_sibling::text,8),'CI Sibling Manager','manager',true,'ci_not_real'),
+    (v_foreign,'ci_plan_for_'||left(v_foreign::text,8),'CI Foreign Manager','manager',true,'ci_not_real'),
+    (v_city_manager,'ci_plan_city_'||left(v_city_manager::text,8),'CI City Manager','manager',true,'ci_not_real');
+  INSERT INTO identity.admin_organization_grants(admin_account_id,organization_id) VALUES
+    (v_sibling,v_owner),(v_foreign,v_owner),(v_city_manager,v_owner);
+  INSERT INTO identity.admin_sessions(id,token_digest,admin_account_id,credential_digest,created_at,expires_at) VALUES
+    (gen_random_uuid(),v_sibling_digest,v_sibling,repeat('b',64),clock_timestamp(),clock_timestamp()+interval '1 hour'),
+    (gen_random_uuid(),v_foreign_digest,v_foreign,repeat('b',64),clock_timestamp(),clock_timestamp()+interval '1 hour'),
+    (gen_random_uuid(),v_city_digest,v_city_manager,repeat('b',64),clock_timestamp(),clock_timestamp()+interval '1 hour');
+  INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role) VALUES
+    (v_actor,v_site,'location_manager'),(v_sibling,v_sibling_site,'location_manager'),(v_foreign,v_other_site,'location_manager');
+  INSERT INTO club.football_city_admin_grants(admin_account_id,city_id,role) VALUES(v_city_manager,v_city,'city_manager');
+
   v_result:=club.write_admin_academy_training_plan(
     v_digest,v_owner,v_id,v_group,
     v_day1,TIME '17:00',75,'Original private plan',
@@ -57,6 +89,39 @@ BEGIN
   IF v_result->>'status'<>'draft' OR (v_result->>'version')::integer<>1 THEN
     RAISE EXCEPTION 'Training plan draft create failed';
   END IF;
+  -- Same-city wrong location and other-city manager must both be denied.
+  BEGIN
+    PERFORM club.read_admin_academy_training_plans(v_sibling_digest,v_owner,v_group,v_day1,v_day3);
+    RAISE EXCEPTION 'same_city_foreign_site_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(v_foreign_digest,v_owner,gen_random_uuid(),v_group,v_day3,
+      TIME '20:00',60,'Foreign plan','Pitch','',0,false);
+    RAISE EXCEPTION 'foreign_city_plan_create_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(v_sibling_digest,v_owner,v_id,v_group,v_day1,
+      TIME '17:00',75,'Foreign edit','Pitch','',1,false);
+    RAISE EXCEPTION 'same_city_foreign_site_edit_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.approve_admin_academy_training_plan(v_sibling_digest,v_owner,v_id,1);
+    RAISE EXCEPTION 'same_city_foreign_site_approval_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_training_plan_approvals(v_foreign_digest,v_owner,v_group,v_day1,v_day3);
+    RAISE EXCEPTION 'foreign_city_approval_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_training_publications(v_sibling_digest,v_owner,v_group,v_day1,v_day3);
+    RAISE EXCEPTION 'same_city_foreign_site_publication_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_training_plans(v_digest,v_owner,v_unmapped,v_day1,v_day3);
+    RAISE EXCEPTION 'unmapped_group_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  IF (club.read_admin_academy_training_plans(v_city_digest,v_owner,v_group,v_day1,v_day3)->>'total')::integer<>1
+    THEN RAISE EXCEPTION 'city_manager_valid_site_denied'; END IF;
   -- Two drafts for the same group may not overlap, even with different IDs.
   BEGIN
     PERFORM club.write_admin_academy_training_plan(
@@ -83,6 +148,14 @@ BEGIN
      OR v_result->>'published'<>'false' THEN
     RAISE EXCEPTION 'Training approval did not confirm an unpublished exact revision';
   END IF;
+  BEGIN
+    PERFORM club.preview_admin_academy_training_distribution(v_sibling_digest,v_owner,v_id,1);
+    RAISE EXCEPTION 'same_city_foreign_site_preview_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.publish_admin_academy_training_plan(v_foreign_digest,v_owner,v_id,1,true);
+    RAISE EXCEPTION 'foreign_city_publish_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   -- Preview is bounded to a current human-approved version and never
   -- includes planning notes or child identity information.
   v_result:=club.preview_admin_academy_training_distribution(
@@ -272,6 +345,16 @@ BEGIN
     RAISE EXCEPTION 'Archived plan was editable';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
+  BEGIN
+    PERFORM club.cancel_admin_academy_training_publication(v_sibling_digest,v_owner,v_other,1,'Synthetic wrong-site cancel',true);
+    RAISE EXCEPTION 'same_city_foreign_site_cancel_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE club.football_locations SET is_active=false WHERE id=v_site;
+  BEGIN
+    PERFORM club.read_admin_academy_training_plans(v_city_digest,v_owner,v_group,v_day1,v_day3);
+    RAISE EXCEPTION 'inactive_location_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE club.football_locations SET is_active=true WHERE id=v_site;
   -- Cancellation retains the original published training, preserves
   -- historical RSVP and blocks new writes through canonical is_cancelled.
   BEGIN
@@ -319,6 +402,12 @@ BEGIN
     RAISE EXCEPTION 'Duplicate native training cancellation was allowed';
   EXCEPTION WHEN unique_violation THEN NULL;
   END;
+  DELETE FROM club.football_location_admin_grants WHERE admin_account_id=v_actor AND location_id=v_site;
+  BEGIN
+    PERFORM club.read_admin_academy_training_plans(v_digest,v_owner,v_group,v_day1,v_day3);
+    RAISE EXCEPTION 'revoked_territory_list_accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role) VALUES(v_actor,v_site,'location_manager');
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE id=v_session;
   BEGIN
