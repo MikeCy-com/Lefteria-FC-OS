@@ -1,0 +1,29 @@
+# Coach drill autonomy and central proposal review — 25 November 2026
+
+Owner correction: a coach may select, order, time and change already-approved library drills for an assigned group's training without manager approval of the exercise sequence. New coach-created drills must be reviewed before central reuse. This replaces the previous mandatory complete exercise-plan review policy. The official member-visible schedule remains a distinct managed publication workflow.
+
+Stacked on #480 (4db4d51508db93b3c61793d04f6ccce35ec3eaef), then #479/#478/#477/#476. Overlapping #475 requires reconciliation before merging. No main, staging or production mutation.
+
+## Coded implementation
+
+- Independent append-only private delivery revisions keyed by native training plan and sequence revision, with schedule version, actor, time and frozen approved drill content. Existing attached snapshots are the initial fallback. The assigned coach can change exercises for current/future unpublished, approved and published OS-native training. Every write checks live assigned-group/active territory authority, exact schedule version and exact previous sequence revision, approved catalogue versions, duplicates and duration. Retained frozen versions can be reordered/timed after catalogue changes. The schedule row serializes writes and the schedule duration guard checks the latest independent sequence. Past/archived/cancelled plans are read-only. No change to publication row, calendar event, schedule version or approval. Legacy attachment writes fail closed once an independent sequence exists.
+- Schedule approval explicitly excludes private drill snapshots and notes. Existing optional human-reviewed legacy member summary remains possible, but is not required for approval of the official schedule. Private delivery revisions are never copied to member-visible calendar/preview. Coach still cannot publish, cancel or approve the official schedule.
+- New coach proposal creates a private central draft at version 1, with submitter provenance, immutable catalogue history and audit event. Active canonical staff link and Academy grant required, 50-pending-proposal cap serialized per coach. Coaches see only their own proposal list/status; Super Admin sees pending proposals and can edit, approve exact version or archive with existing catalogue lifecycle. Managers and other roles do not gain central editing. Approved proposals appear in the single Academy-wide library; unapproved proposals cannot be newly selected in a training session.
+- Greek training planner uses independent delivery endpoints for normal exercise selection, including published plans; central library includes "Οι προτάσεις μου" and Super Admin "Προτάσεις προπονητών · έλεγχος". Structured proposal form includes title, category, age, duration, objective and instructions. No binary upload/media attachments or feedback message workflow added in this slice.
+- Four HTTP entry points wired: GET/POST /api/admin/academy/drills/proposals and GET/PUT /api/admin/academy/training/plans/{planId}/delivery. Runtime execution allowlists and private table/helper revokes updated; edge allowlist and OpenAPI/TypeScript snapshots staged manually pending compiled regeneration.
+- Corrected prior LF trimming bug in central instruction validation and table constraint. Forward recovery only; preserve revisions/provenance. No notifications, live billing, member privacy changes or new organization switch.
+
+## Tracker
+
+| ID | Priority | State | Acceptance / evidence |
+| --- | --- | --- | --- |
+| DRILL-AUTONOMY-19 | P0 | Coded; focused checks passed | 8965c36, ce5f027, 840ea6a, d145759, e1fb1af: separate private delivery revision without schedule reapproval, exact assigned scope, immutable schedule and calendar. |
+| DRILL-PROPOSE-20 | P0 | Coded; focused checks passed | 8965c36, bc6f41e, bbb685b: structured coach submission, owner-only status, central admin queue, catalogue approval boundary. |
+| DRILL-SECURITY-21 | P0 | Coded; SQL not run | cddd80a, eb2a11b, b3c0022: grants, edge; de005e8, 00d0a01: rollback-only lifecycle fixtures; cc52938: focused tests. |
+| DRILL-IMPORT-22 | P1 | Pending | Attach independent exercise sequences to imported legacy calendar sessions, not only OS-native training plans; reconcile legacy attachments/constraints and migrate reviewed original catalogue. |
+| DRILL-MEDIA-23 | P1 | Pending | Protected coach-proposed diagrams, pictures, video/document uploads, central review of media, rejection feedback and resubmission UX. |
+| RELEASE-13 | P0 | Blocked | Compile backend and Svelte, regenerate contracts, run all disposable SQL fixtures and least-privilege checks, reconcile stacked PRs, confirm mandatory CI and browser/API acceptance in isolated staging. |
+
+Evidence: five focused test bodies executed from reread committed sources (one behavioral validation test using extracted TypeScript functions with type annotations stripped, four source/fixture assertions); five passed. Sixth Svelte compile test not executed. Four new operations checked against parsed OpenAPI, unique declaration entries and grant/migration signatures. This is not a compiled build or runtime authorization test. Node 22.16.0 is available here, Svelte compiler/.NET/PostgreSQL executables unavailable, project requires Node 24. Existing SQL test scripts extended but not executed. No manual CI rerun per owner billing constraint; no merge, no deployment.
+
+Known scope decisions: private independent delivery is implemented for OS-native sessions; imported legacy calendar events still need parity. New central content review remains Super Admin-only under existing authority; other coach proposals are not visible. Past/cancelled sessions retain history. Official schedule publication remains manager/Super Admin-controlled, independent of drill selection. Actual image/video/file upload remains pending. 

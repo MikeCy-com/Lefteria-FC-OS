@@ -51,7 +51,8 @@ test('library and navigation compile without granting session or player access',
   for(const [filename,source] of [['+page.svelte',ui],['AdminFrame.svelte',frame],['AdminGroupWorkspace.svelte',workspace]])
     for(const generate of ['client','server'])compile(source,{filename,generate});
   assert.match(ui,/if\(scope!==owner\|\|!canWrite\)return/);
-  assert.match(ui,/validDrillPage\(value,st,o\)/);
+  assert.match(ui,/validDrillPage\(value,proposals\?\(canWrite\?'draft':'all'\):st,o\)/);
+  assert.match(ui,/proposals&&!canSeeProposals/);
   assert.match(frame,/data-testid="admin-drills-link"/);
   assert.match(workspace,/href="\/admin\/drills"/);
 });

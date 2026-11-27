@@ -50,7 +50,7 @@ test('private exercise builder has exact territory and publication gates at data
   assert.match(sql,/CASE WHEN v_drill_scope THEN jsonb_array_length\(p.drill_snapshots\) ELSE NULL END/);
   assert.match(api,/body.Drills.Length>24/);
   assert.match(api,/JsonUnmappedMemberHandling.Disallow/);
-  for(const marker of ['foreign_site_write_accepted','foreign_site_read_accepted','exercise_edit_preserved_stale_approval','frozen_snapshot_lost','revoked_access_accepted','schedule_only_approval_accepted'])
+  for(const marker of ['foreign_site_write_accepted','foreign_site_read_accepted','exercise_edit_preserved_stale_approval','frozen_snapshot_lost','revoked_access_accepted','schedule_only_approval_missing'])
     assert.ok(lifecycle.includes(marker));
 });
 test('editor uses approved central catalogue and exact server response, no local persistence',()=>{
@@ -62,7 +62,7 @@ test('editor uses approved central catalogue and exact server response, no local
   assert.match(ui,/matchingTrainingDrillSave\(value,plan,submitted\)/);
   assert.match(ui,/drills:drillSelections\(submitted\)/);
   assert.match(ui,/sequence=items/);
-  assert.match(workspace,/plan.drill_count!==0/);
+  assert.match(workspace,/deliveryMode=\{!drillReviewMode\}/);
   assert.match(workspace,/\{#key actor\+':'\+groupId\+':'\+drillTarget.id\+':'\+drillTarget.version\}/);
   assert.doesNotMatch(ui,/localStorage|sessionStorage/);
 });
