@@ -25,6 +25,9 @@ public static class AdminAcademyTrainingPlanEndpoints
     [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
     public sealed record TrainingDrillsCommand(int ExpectedVersion,TrainingDrillSelectionCommand[]? Drills);
 
+    [JsonUnmappedMemberHandling(JsonUnmappedMemberHandling.Disallow)]
+    public sealed record CompleteTrainingReviewCommand(int ExpectedVersion,string? MemberSummary,bool ConfirmHumanReview);
+
     public sealed record CancelPublishedTrainingCommand(
         int ExpectedVersion,string Reason,bool ConfirmCancellation);
 
@@ -290,6 +293,29 @@ public static class AdminAcademyTrainingPlanEndpoints
             })));
             return await Run(command,ct);
         }).WithName("WriteAdminTrainingDrills").Accepts<TrainingDrillsCommand>("application/json");
+
+        admin.MapPost("/{planId:guid}/drills/approve",async (
+            Guid planId,string? organization_id,string? group_id,CompleteTrainingReviewCommand body,
+            WebAdminService auth,WebAdminConnections connections,IWebAdminSecrets secrets,
+            HttpContext context,CancellationToken ct)=>{
+            var cookie=await Authorized(auth,context,organization_id,true,ct);
+            if(planId==Guid.Empty||!ValidId(group_id)||context.Request.Query["group_id"].Count!=1||
+              body.ExpectedVersion is <1 or >10000||!body.ConfirmHumanReview||
+              body.MemberSummary is null||body.MemberSummary.Length is <1 or >1200||
+              body.MemberSummary!=body.MemberSummary.Trim()||body.MemberSummary.Any(c=>char.IsControl(c)&&c!='\n'))
+                throw new WebAdminException(422,"training_complete_review_invalid","Review the exact version and enter a member-safe summary.");
+            await using var connection=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand("""
+                SELECT club.approve_admin_training_drill_plan(@digest,@group,@id,@expected,@summary,@confirmed)::text
+                """,connection);
+            command.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            command.Parameters.AddWithValue("group",group_id!);
+            command.Parameters.AddWithValue("id",planId);
+            command.Parameters.AddWithValue("expected",body.ExpectedVersion);
+            command.Parameters.AddWithValue("summary",body.MemberSummary);
+            command.Parameters.AddWithValue("confirmed",body.ConfirmHumanReview);
+            return await Run(command,ct);
+        }).WithName("ApproveAdminTrainingDrillPlan").Accepts<CompleteTrainingReviewCommand>("application/json");
 
         return endpoints;
     }

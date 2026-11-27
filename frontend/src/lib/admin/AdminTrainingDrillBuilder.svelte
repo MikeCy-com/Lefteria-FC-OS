@@ -3,16 +3,18 @@
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validDrillPage,drillCategories,drillAges,type Drill} from './central-academy-drills.ts';
   import {validTrainingDrillPlan,validTrainingDrillSequence,plannedMinutes,snapshotDrill,drillSelections,
-    matchingTrainingDrillSave,type TrainingDrillSnapshot} from './academy-training-drills.ts';
+    matchingTrainingDrillSave,validMemberTrainingSummary,matchingCompleteTrainingReview,type TrainingDrillSnapshot} from './academy-training-drills.ts';
   import type {TrainingPlanDraft} from './academy-training-plans.ts';
-  let {plan,actor,canWrite,onSaved,onClose}:{plan:TrainingPlanDraft;actor:string;canWrite:boolean;
-    onSaved:()=>void;onClose:()=>void}=$props();
+  let {plan,actor,canWrite,reviewMode=false,onSaved,onClose}:{plan:TrainingPlanDraft;actor:string;canWrite:boolean;
+    reviewMode?:boolean;onSaved:()=>void;onClose:()=>void}=$props();
+  const canEdit=$derived(canWrite&&!reviewMode);
   const auth=getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
   const scope=()=>actor+':'+plan.group_id+':'+plan.id+':'+plan.version;
   let mounted=false;
   let sequence=$state<TrainingDrillSnapshot[]>([]),catalogue=$state<Drill[]>([]);
   let loading=$state(true),catalogueLoading=$state(false),saving=$state(false),ready=$state(false);
   let error=$state(''),catalogueError=$state(''),search=$state(''),category=$state('all'),age=$state('any');
+  let memberSummary=$state(''),reviewConfirmed=$state(false);
   let offset=$state(0),nextOffset=$state<number|null>(null);
   let planController:AbortController|null=null,catalogueController:AbortController|null=null;
   const categoryLabels:Record<string,string>={technical:'Τεχνική',tactical:'Τακτική',physical:'Φυσική κατάσταση',
@@ -37,12 +39,12 @@
       if(!current(owner,controller.signal))return;
       if(!validTrainingDrillPlan(value,plan,plan.version))throw Error('Μη επαληθευμένο πλάνο ασκήσεων.');
       sequence=value.drills;ready=true;
-      if(canWrite)void loadCatalogue(0);
+      if(canEdit)void loadCatalogue(0);
     }catch(e){if(current(owner,controller.signal))error=e instanceof Error?e.message:'Αποτυχία φόρτωσης.';}
     finally{if(current(owner,controller.signal))loading=false;}
   }
   async function loadCatalogue(page:number){
-    if(!mounted||!canWrite||!ready||saving)return;
+    if(!mounted||!canEdit||!ready||saving)return;
     catalogueController?.abort();const controller=new AbortController();catalogueController=controller;
     const owner=scope();catalogueLoading=true;catalogue=[];nextOffset=null;catalogueError='';
     try{
@@ -59,44 +61,62 @@
     finally{if(current(owner,controller.signal))catalogueLoading=false;}
   }
   function add(drill:Drill){
-    if(!canWrite||!ready||saving||sequence.length>=24||sequence.some(r=>r.drill_id===drill.id))return;
+    if(!canEdit||!ready||saving||sequence.length>=24||sequence.some(r=>r.drill_id===drill.id))return;
     sequence=[...sequence,snapshotDrill(drill)];
   }
   function move(index:number,delta:number){
-    if(!canWrite||saving||!ready)return;
+    if(!canEdit||saving||!ready)return;
     const target=index+delta;if(target<0||target>=sequence.length)return;
     const items=[...sequence];const item=items[index];if(!item)return;
     items.splice(index,1);items.splice(target,0,item);sequence=items;
   }
-  function remove(id:string){if(canWrite&&ready&&!saving)sequence=sequence.filter(row=>row.drill_id!==id);}
+  function remove(id:string){if(canEdit&&ready&&!saving)sequence=sequence.filter(row=>row.drill_id!==id);}
   function minutes(id:string,value:number){
-    if(canWrite&&ready&&!saving)sequence=sequence.map(row=>row.drill_id===id?{...row,duration_minutes:value}:row);
+    if(canEdit&&ready&&!saving)sequence=sequence.map(row=>row.drill_id===id?{...row,duration_minutes:value}:row);
   }
   async function save(){
-    if(!mounted||!canWrite||!ready||!valid||saving)return;
+    if(!mounted||!canEdit||!ready||!valid||saving)return;
     const owner=scope();const submitted=sequence.map(row=>({...row}));saving=true;error='';
     try{
       const response=await fetch(base()+'?'+query(),{method:'PUT',credentials:'same-origin',cache:'no-store',
         headers:{'Content-Type':'application/json',Accept:'application/json','X-Lefteria-Admin':'1'},
         body:JSON.stringify({expected_version:plan.version,drills:drillSelections(submitted)})});
-      if(!current(owner)||!canWrite)return;
+      if(!current(owner)||!canEdit)return;
       if(response.status===401||response.status===403){rejectAccess();throw Error('Η εξουσιοδότηση άλλαξε.');}
       if(response.status===409){ready=false;throw Error('Άλλαξε η προπόνηση ή η έκδοση άσκησης. Κλείστε και ανανεώστε.');}
       if(!response.ok)throw Error('Η νέα έκδοση δεν επιβεβαιώθηκε.');
       const value:unknown=await response.json();
-      if(!current(owner)||!canWrite)return;
+      if(!current(owner)||!canEdit)return;
       if(!matchingTrainingDrillSave(value,plan,submitted)){ready=false;throw Error('Η νέα έκδοση δεν επαληθεύτηκε. Κλείστε και ανανεώστε.');}
       ready=false;onSaved();
     }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η αποθήκευση δεν επιβεβαιώθηκε.';}}
+    finally{if(current(owner))saving=false;}
+  }
+  async function approveComplete(){
+    if(!mounted||!reviewMode||!canWrite||!ready||!valid||!sequence.length||saving||!reviewConfirmed||!validMemberTrainingSummary(memberSummary))return;
+    const owner=scope(),summary=memberSummary;
+    reviewConfirmed=false;saving=true;error='';
+    try{
+      const response=await fetch(base()+'/approve?'+query(),{method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json',Accept:'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({expected_version:plan.version,member_summary:summary,confirm_human_review:true})});
+      if(!current(owner)||!canWrite)return;
+      if(response.status===401||response.status===403){rejectAccess();throw Error('Η εξουσιοδότηση άλλαξε.');}
+      if(!response.ok)throw Error('Η έγκριση δεν επιβεβαιώθηκε. Κλείστε και ανανεώστε.');
+      const value:unknown=await response.json();
+      if(!current(owner)||!canWrite)return;
+      if(!matchingCompleteTrainingReview(value,plan,summary))throw Error('Η απόκριση έγκρισης δεν επαληθεύτηκε.');
+      ready=false;onSaved();
+    }catch(e){if(current(owner)){ready=false;error=e instanceof Error?e.message:'Η έγκριση δεν επιβεβαιώθηκε.';}}
     finally{if(current(owner))saving=false;}
   }
   onMount(()=>{mounted=true;void loadPlan();return()=>{mounted=false;planController?.abort();catalogueController?.abort();};});
 </script>
 
 <section class="builder" aria-label="Σχεδιασμός ασκήσεων" data-testid="academy-training-drill-builder">
-  <header><div><h3>Ασκήσεις προπόνησης</h3><p>{plan.title} · Έκδοση {plan.version} · {plan.duration_minutes}′</p></div>
+  <header><div><h3>{reviewMode?'Πλήρης έλεγχος προπόνησης':'Ασκήσεις προπόνησης'}</h3><p>{plan.title} · Έκδοση {plan.version} · {plan.duration_minutes}′</p></div>
     <button type="button" disabled={saving} onclick={onClose}>Κλείσιμο & ανανέωση</button></header>
-  <p class="hint">Οι ασκήσεις προέρχονται από την κοινή βιβλιοθήκη όλων των πόλεων και τοποθεσιών. Αποθηκεύονται σε νέα ιδιωτική έκδοση της προπόνησης.</p>
+  <p class="hint">Οι ασκήσεις προέρχονται από την κοινή βιβλιοθήκη όλων των πόλεων και τοποθεσιών.</p>
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if loading}<p role="status">Φόρτωση επαληθευμένης έκδοσης…</p>
   {:else if ready}
@@ -110,8 +130,8 @@
     <ol class="sequence">
       {#each sequence as row,i (row.drill_id)}
         <li><div><strong>{i+1}. {row.title}</strong><small>{categoryLabels[row.category]} · {row.age_band.toUpperCase()} · έκδοση {row.drill_version}</small>
-          <details><summary>Στόχος & οδηγίες</summary><p>{row.objective}</p><p>{row.instructions}</p></details></div>
-          {#if canWrite}
+          <details open={reviewMode}><summary>Στόχος & οδηγίες</summary><p>{row.objective}</p><p>{row.instructions}</p></details></div>
+          {#if canEdit}
             <label>Λεπτά<input type="number" min="1" max="120" value={row.duration_minutes}
               disabled={saving} oninput={e=>minutes(row.drill_id,e.currentTarget.valueAsNumber)}/></label>
             <div class="actions"><button type="button" aria-label={'Μετακίνηση πάνω: '+row.title} disabled={saving||i===0} onclick={()=>move(i,-1)}>↑</button>
@@ -121,7 +141,7 @@
         </li>
       {/each}
     </ol>
-    {#if canWrite}
+    {#if canEdit}
       <div class="picker">
         <h4>Επιλογή από την κεντρική βιβλιοθήκη</h4>
         <form class="filters" onsubmit={e=>{e.preventDefault();void loadCatalogue(0);}}>
@@ -145,8 +165,24 @@
           <button type="button" disabled={saving||catalogueLoading||nextOffset===null} onclick={()=>{if(nextOffset!==null)void loadCatalogue(nextOffset);}}>Επόμενη</button>
         </nav>
       </div>
-      <p class="hint">Η νέα έκδοση χρειάζεται πλήρη έλεγχο ασκήσεων πριν από τη δημοσίευση. Η δημοσίευση ασκήσεων δεν έχει ενεργοποιηθεί ακόμη.</p>
+      <p class="hint">Η νέα έκδοση χρειάζεται πλήρη ανθρώπινο έλεγχο ασκήσεων πριν από τη δημοσίευση.</p>
       <button type="button" class="save" disabled={saving||!valid} onclick={()=>void save()}>{saving?'Αποθήκευση…':'Αποθήκευση ιδιωτικής σειράς'}</button>
+    {/if}
+    {#if reviewMode&&canWrite}
+      <section class="picker" aria-label="Έλεγχος περιεχομένου και αποδεκτών">
+        <h4>Έλεγχος ακριβούς έκδοσης {plan.version}</h4>
+        <p>{plan.day} · {plan.start_time} · {plan.duration_minutes}′ · {plan.location||'Χωρίς τοποθεσία'}</p>
+        <p>Ιδιωτικές σημειώσεις: {plan.notes||'—'}</p>
+        <label>Περίληψη για γονείς και αθλητές
+          <textarea rows="5" maxlength="1200" bind:value={memberSummary} disabled={saving}
+            oninput={()=>reviewConfirmed=false} placeholder="Περιγράψτε με κατάλληλο τρόπο τις ασκήσεις και τους στόχους της προπόνησης."></textarea>
+        </label>
+        <p class="hint">Μόνο η εγκεκριμένη περίληψη και τα στοιχεία προγράμματος θα εμφανιστούν στο ημερολόγιο. Μην συμπεριλάβετε προσωπικά στοιχεία, ιδιωτικές σημειώσεις ή ευαίσθητο περιεχόμενο.</p>
+        <label class="review"><input type="checkbox" bind:checked={reviewConfirmed} disabled={saving}/>
+          Επιβεβαιώνω ότι εξέτασα όλες τις ασκήσεις, τη σειρά, τη διάρκεια, τις ιδιωτικές σημειώσεις και την ακριβή περίληψη για τα μέλη του τμήματος.</label>
+        <button type="button" class="save" disabled={saving||!valid||!sequence.length||!reviewConfirmed||!validMemberTrainingSummary(memberSummary)}
+          onclick={()=>void approveComplete()}>Έγκριση πλήρους έκδοσης {plan.version} · χωρίς δημοσίευση</button>
+      </section>
     {/if}
   {/if}
 </section>
@@ -162,9 +198,10 @@
   li{display:flex;align-items:start;flex-wrap:wrap;gap:10px;justify-content:space-between;border:1px solid #424242;padding:10px;border-radius:6px}
   li>div:first-child{flex:1;min-width:min(100%,160px)}
   details{margin-top:6px}details p{white-space:pre-wrap;overflow-wrap:anywhere}summary{cursor:pointer;color:#f6bb38;font-size:.8rem}
-  label{display:grid;gap:4px;font-size:.8rem;color:#ddd}input,select,button{min-height:42px;box-sizing:border-box;font:inherit;background:#222;color:#fff;border:1px solid #666;border-radius:6px;padding:7px}
+  label{display:grid;gap:4px;font-size:.8rem;color:#ddd}input,select,button,textarea{min-height:42px;box-sizing:border-box;font:inherit;background:#222;color:#fff;border:1px solid #666;border-radius:6px;padding:7px}
   input[type=number]{width:76px}button{cursor:pointer;color:#f6bb38;border-color:#7c6231}button:disabled{opacity:.5;cursor:not-allowed}
   .filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));gap:8px;align-items:end}
+  .review{display:flex;align-items:center;gap:8px}.review input{min-height:18px;accent-color:#f6bb38}textarea{width:100%;resize:vertical}
   .picker{display:grid;gap:10px}.save{background:#53401c;color:white}.error{color:#ffadad}
-  button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
 </style>

@@ -2386,6 +2386,34 @@
         ],
         "type": "object"
       },
+      "CompleteTrainingReviewCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_human_review": {
+            "type": "boolean"
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "member_summary": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_version",
+          "member_summary",
+          "confirm_human_review"
+        ],
+        "type": "object"
+      },
       "CreateCityCommand": {
         "properties": {
           "name": {
@@ -11106,6 +11134,59 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/TrainingDrillsCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/drills/approve": {
+      "post": {
+        "operationId": "ApproveAdminTrainingDrillPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteTrainingReviewCommand"
               }
             }
           },
