@@ -288,6 +288,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SubmitAssignedCoachTrainingPlan"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans/approvals": {
         parameters: {
             query?: never;
@@ -296,6 +312,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["ReadAdminAcademyTrainingPlanApprovals"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/academy/training/plans/assigned-groups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAssignedCoachTrainingGroups"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5402,6 +5434,11 @@ export interface components {
             kind: string;
             publish: boolean;
         };
+        SubmitTrainingPlanCommand: {
+            confirm_submission: boolean;
+            /** Format: int32 */
+            expected_version: number | string;
+        };
         TrainingDrillsCommand: {
             drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
             /** Format: int32 */
@@ -6062,6 +6099,33 @@ export interface operations {
             };
         };
     };
+    SubmitAssignedCoachTrainingPlan: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubmitTrainingPlanCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ReadAdminAcademyTrainingPlanApprovals: {
         parameters: {
             query?: {
@@ -6069,6 +6133,26 @@ export interface operations {
                 group_id?: string;
                 organization_id?: string;
                 start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAssignedCoachTrainingGroups: {
+        parameters: {
+            query?: {
+                organization_id?: string;
             };
             header?: never;
             path?: never;

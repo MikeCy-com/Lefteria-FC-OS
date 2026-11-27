@@ -59,5 +59,8 @@ test('visibility remains driven only by live modules, verified roles and organiz
   for(const id of ['admin-news-link','admin-announcements-link','admin-payabl-link',
     'admin-groups-link','admin-territories-link','admin-hub-subscriptions-link',
     'admin-settings-link'])assert.ok(frame.includes(id),id);
-  assert.doesNotMatch(frame,/href="\/admin\/(?:schedule|attendance|evaluations|documents|matches)"/);
+  assert.doesNotMatch(frame,/href="\/admin\/(?:evaluations|documents|matches)"/);
+  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  assert.match(assigned,/href="\/admin\/schedule"/);
+  assert.match(assigned,/href="\/admin\/attendance"/);
 });

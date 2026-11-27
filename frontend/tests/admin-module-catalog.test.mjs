@@ -21,7 +21,7 @@ test('admin categories follow legacy website, CRM, POS, finance and football own
     ['pages', '/admin/website-pages'], ['news', '/admin/news'], ['sponsors', '/admin/sponsors'], ['media', '/admin/media'], ['hub_editorial', '/admin/hub'], ['hub_subscriptions', '/admin/hub/subscriptions'], ['communications', '/admin/communications'], ['announcements', '/admin/announcements'], ['leads', '/admin/leads'], ['registrations', '/admin/academy-office'], ['registers', '/admin/pos'], ['products', '/admin/pos'], ['orders', '/admin/pos'], ['payabl', '/admin/finance'], ['trials', '/admin/trials'], ['groups', '/admin/groups'], ['drills', '/admin/drills'], ['territories', '/admin/territories'], ['club', '/admin/club'], ['onboarding', '/admin/onboarding'], ['staff', '/admin/staff'], ['facilities', '/admin/territories'], ['users', '/admin/users']
   ]);
   const planned = modules(all).filter(module => module.status === 'planned');
-  assert.ok(planned.length >= 10, 'remaining placeholder modules are explicitly planned');
+  assert.ok(planned.length >= 9, 'remaining placeholder modules are explicitly planned');
   assert.ok(!planned.some(module => module.id === 'sponsors'), 'verified sponsor editorial module is no longer a placeholder');
   assert.ok(planned.some(module => module.id === 'social'));
   for(const item of modules(all)) {
@@ -54,7 +54,8 @@ test('the dashboard cannot leak first-team, financial, POS or Academy modules ac
   assert.deepEqual(groups(user(['shop:read'], ['lefteria_fc'], 'editor')), ['pos']);
   assert.deepEqual(legacyIds(user(['finance:read'], ['lefteria_fc_academy'], 'editor')), []);
   assert.ok(!legacyIds(user(['academy:read_assigned'], ['lefteria_fc'], 'coach')).includes('registrations'));
-  assert.deepEqual(legacyIds(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')), ['assigned_groups']);
+  assert.ok(!ids(user(['academy:read_assigned'], ['lefteria_fc_academy'], 'coach')).includes('assigned_groups'));
+  assert.ok(modules(user(['training:read_assigned'], ['lefteria_fc_academy'], 'coach')).some(m=>m.id==='assigned_groups'&&m.status==='live'&&m.href==='/admin/schedule'));
   assert.deepEqual(legacyIds(user(['marketing:read'], ['lefteria_fc_academy'], 'marketing')), ['campaigns']);
   assert.ok(!legacyIds(user(['marketing:read'], ['lefteria_fc'], 'marketing')).includes('trials'));
   assert.equal(legacyIds(user(['training:read_assigned'], ['lefteria_fc'], 'coach')).includes('groups'), false);
@@ -85,9 +86,11 @@ test('admin navigation exposes real operational destinations without five orphan
   assert.match(frame,/href="\/admin\/profile#access"/);
   assert.match(frame,/href="\/admin\/settings"/);
   assert.match(frame,/href="\/admin\/groups"/);
-  for(const orphan of ['schedule','attendance','matches','evaluations','documents']){
+  for(const orphan of ['matches','evaluations','documents'])
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
-  }
+  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  assert.match(assigned,/href="\/admin\/schedule"/);
+  assert.match(assigned,/href="\/admin\/attendance"/);
   assert.doesNotMatch(workspace,/data-testid="admin-quick-navigation"/);
   assert.match(workspace,/AdminClubMetrics/);
   assert.doesNotMatch(workspace,/admin-overview-stats|Under Developments|admin-account-grid|admin-tool-planned/);
