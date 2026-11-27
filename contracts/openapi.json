@@ -9774,6 +9774,64 @@
         ],
         "type": "object"
       },
+      "TrainingDrillSelectionCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "drill_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "drill_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "drill_id",
+          "drill_version",
+          "duration_minutes"
+        ],
+        "type": "object"
+      },
+      "TrainingDrillsCommand": {
+        "additionalProperties": false,
+        "properties": {
+          "drills": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingDrillSelectionCommand"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "expected_version",
+          "drills"
+        ],
+        "type": "object"
+      },
       "TrainingFeeSmsCommand": {
         "properties": {
           "client_request_id": {
@@ -10942,6 +11000,112 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/CancelPublishedTrainingCommand"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      }
+    },
+    "/api/admin/academy/training/plans/{planId}/drills": {
+      "get": {
+        "operationId": "ReadAdminTrainingDrills",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "version",
+            "schema": {
+              "format": "int32",
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        },
+        "security": [
+          {
+            "WebAdmin": []
+          }
+        ],
+        "tags": [
+          "Academy private training plans"
+        ]
+      },
+      "put": {
+        "operationId": "WriteAdminTrainingDrills",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "planId",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "group_id",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingDrillsCommand"
               }
             }
           },

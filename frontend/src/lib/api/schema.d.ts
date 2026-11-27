@@ -224,6 +224,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/academy/training/plans/{planId}/drills": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ReadAdminTrainingDrills"];
+        put: operations["WriteAdminTrainingDrills"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/academy/training/plans/{planId}/publication-preview": {
         parameters: {
             query?: never;
@@ -5364,6 +5380,19 @@ export interface components {
             kind: string;
             publish: boolean;
         };
+        TrainingDrillsCommand: {
+            drills: null | components["schemas"]["TrainingDrillSelectionCommand"][];
+            /** Format: int32 */
+            expected_version: number | string;
+        };
+        TrainingDrillSelectionCommand: {
+            /** Format: uuid */
+            drill_id: string;
+            /** Format: int32 */
+            drill_version: number | string;
+            /** Format: int32 */
+            duration_minutes: number | string;
+        };
         TrainingFeeSmsCommand: {
             /** Format: uuid */
             client_request_id: string;
@@ -5872,6 +5901,57 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["CancelPublishedTrainingCommand"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReadAdminTrainingDrills: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+                version?: number | string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    WriteAdminTrainingDrills: {
+        parameters: {
+            query?: {
+                group_id?: string;
+                organization_id?: string;
+            };
+            header?: never;
+            path: {
+                planId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TrainingDrillsCommand"];
             };
         };
         responses: {
