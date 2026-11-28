@@ -27,14 +27,14 @@
       <p>Γνώρισε τους ποδοσφαιριστές της πρώτης ομάδας και δες τα διαθέσιμα δημοσιευμένα αποτελέσματα.</p>
       <div class="links">
         <a class="public-button" href="/team?tab=roster">ΡΟΣΤΕΡ ↗</a>
-        <a class="public-button" href="/app">ΕΦΑΡΜΟΓΗ ↗</a>
+        <a class="public-button" href="/app?tab=potm">ΨΗΦΟΦΟΡΙΑ ΣΤΗΝ ΕΦΑΡΜΟΓΗ ↗</a>
       </div>
     </section>
 
     <section class="potm-results" aria-labelledby="potm-results-title">
       <div class="vote-notice" role="status" data-testid="potm-voting-disabled">
         <strong>ΕΝΗΜΕΡΩΣΗ ΨΗΦΟΦΟΡΙΑΣ</strong>
-        <p>Η νέα ψηφοφορία δεν έχει ενεργοποιηθεί ακόμη στο OS. Δεν υποβάλλονται ούτε αλλάζουν ψήφοι από αυτή τη σελίδα.</p>
+        <p>Η ψηφοφορία γίνεται μόνο στην εφαρμογή με επαληθευμένο λογαριασμό φιλάθλου, όταν η περίοδος είναι ανοικτή. Δεν υποβάλλονται ούτε αλλάζουν ψήφοι από αυτή τη δημόσια σελίδα.</p>
       </div>
       <h2 id="potm-results-title">{result.status === 'published' ? 'ΔΗΜΟΣΙΕΥΜΕΝΑ ΑΠΟΤΕΛΕΣΜΑΤΑ' : 'ΠΟΔΟΣΦΑΙΡΙΣΤΕΣ ΠΡΩΤΗΣ ΟΜΑΔΑΣ'}</h2>
       {#if result.status === 'published'}

@@ -4,11 +4,14 @@
   import { AVAILABILITY_LABELS, CALENDAR_KIND_LABELS, WEEKDAY_LABELS, calendarItemKey, calendarItemOnDate,
     calendarMonthDays, calendarOrganizationLabel, calendarWeekDays, clubToday, formatCalendarDate, safeCalendarLink, shiftCalendarMonth } from '../calendar.ts';
   import type { AvailabilityStatus, CalendarKind, CalendarLoadStatus, MobileCalendar, MobileCalendarItem, MobileCalendarResponses } from '../calendar.ts';
+  import MobileMatchWorkspace from './MobileMatchWorkspace.svelte';
+  import type {MobileAuthController} from '../controller.ts';
   import MobileMatchPreparation from './MobileMatchPreparation.svelte';
   import './mobile-theme.css';
 
   interface Props {
     role: Exclude<MobileRole, 'fan'>;
+    matchController?: MobileAuthController;
     initialPlayerId?: string | null;
     initialFilter?: 'all' | CalendarKind;
     calendar: MobileCalendar | null;
@@ -28,7 +31,7 @@
     onCloseResponses: () => void;
   }
 
-  let { role, initialPlayerId = null, initialFilter = 'all', calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
+  let { role, matchController, initialPlayerId = null, initialFilter = 'all', calendar, status, error, loadingMore = false, busy = false, responses, responsesKey, responsesStatus,
     responsesError, responsesLoadingMore = false, onLoad, onLoadMore, onRespond, onLoadResponses, onCloseResponses }: Props = $props();
   const id = $props.id();
   let month = $state(untrack(() => calendar?.month ?? clubToday().slice(0, 7)));
@@ -37,6 +40,7 @@
   let showMonth = $state(false);
   let filter = $state<'all' | CalendarKind>(untrack(() => initialFilter));
   const staff = $derived(role === 'coach' || role === 'management');
+  let matchWorkspaceKey=$state<string|null>(null);
   const timeZone = $derived(calendar?.time_zone ?? 'Asia/Nicosia');
   const visibleItems = $derived((calendar?.items ?? []).filter((item) => filter === 'all' || item.kind === filter));
   const dayItems = $derived(visibleItems.filter((item) => calendarItemOnDate(item, selectedDate))
@@ -158,6 +162,15 @@
               </fieldset>
               <p class="reply-state">{ownResponse ? `Αποθηκευμένη απάντηση: ${responseLabel(ownResponse.status)}` : 'Δεν έχει δοθεί απάντηση.'}</p>
             {:else if staff}
+              {#if matchController && item.kind==='match' && !item.is_cancelled && (role==='coach'||role==='management')}
+                <button type="button" class="replies-toggle" aria-expanded={matchWorkspaceKey===key} disabled={busy}
+                  onclick={()=>matchWorkspaceKey=matchWorkspaceKey===key?null:key}>Αποστολή, εναλλαγές & στατιστικά {matchWorkspaceKey===key?'−':'+'}</button>
+                {#if matchWorkspaceKey===key}
+                  {#key item.organization_id+':'+key}
+                    <MobileMatchWorkspace controller={matchController} {item} {role}/>
+                  {/key}
+                {/if}
+              {/if}
               <button type="button" class="replies-toggle" aria-expanded={responsesKey === key} disabled={busy}
                 onclick={() => { if (responsesKey === key) onCloseResponses(); else void onLoadResponses(item); }}>{item.kind==='match'?'Προετοιμασία αγώνα · Απαντήσεις συμμετοχής':'Απαντήσεις συμμετοχής'} {responsesKey === key ? '−' : '+'}</button>
               {#if responsesKey === key}

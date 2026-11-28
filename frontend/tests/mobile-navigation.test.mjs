@@ -140,8 +140,7 @@ test('fan public tabs use their existing API-backed club destinations', () => {
     standings:'/team?tab=overview#standings',
     news:'/news',
     team:'/team',
-    shop:'/shop',
-    potm:'/vote'
+    shop:'/shop'
   };
   for (const [tab,href] of Object.entries(destinations)) {
     assert.equal(fanPublicDestination(tab,'fan'),href);
@@ -158,7 +157,7 @@ test('fan shortcuts never substitute public data for private role or unfinished 
     for (const tab of Object.keys(TAB_NAMES)) assert.equal(fanPublicDestination(tab,role),null);
   }
   for (const tab of ['children','calendar','chat','announcements','financials','hub','profile',
-    'notifications','gamehub','predict','missing','__proto__','toString',
+    'notifications','gamehub','predict','potm','missing','__proto__','toString',
     '/admin','https://example.invalid']) assert.equal(fanPublicDestination(tab,'fan'),null);
 });
 
