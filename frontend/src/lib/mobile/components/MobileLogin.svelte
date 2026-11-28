@@ -1,7 +1,8 @@
 <script lang="ts">
   import { tick } from 'svelte';
-  import { ROLE_NAMES } from '../navigation.ts';
-  import type { MobileRole } from '../navigation.ts';
+  import { ROLE_NAMES, TAB_NAMES } from '../navigation.ts';
+  import { roleCanResumeTab } from '../guest-navigation.ts';
+  import type { MobileRole, MobileTab } from '../navigation.ts';
   import type { FanRegistrationForm, MobileIdentityOption, MobileLoginStep, RememberDays, UiAction } from './component-types.ts';
   import MobileIcon from './MobileIcon.svelte';
   import './mobile-theme.css';
@@ -16,6 +17,7 @@
     busy?: boolean;
     error?: string | null;
     resendSeconds?: number;
+    returnTab?: MobileTab | null;
     onRequestOtp: (phone: string) => UiAction;
     onVerifyOtp: (code: string, rememberDays: RememberDays) => UiAction;
     onChooseRole: (role: MobileRole, rememberDays: RememberDays) => UiAction;
@@ -25,7 +27,7 @@
 
   let {
     step = 'phone', phone = $bindable(''), rememberDays = $bindable<RememberDays>(null),
-    identities = [], detectedRole = null, busy = false, error = null, resendSeconds = 0,
+    identities = [], detectedRole = null, busy = false, error = null, resendSeconds = 0, returnTab = null,
     onRequestOtp, onVerifyOtp, onChooseRole, onRegisterFan, onStepChange
   }: Props = $props();
   const id = $props.id();
@@ -199,11 +201,16 @@
           <div class="step-icon"><MobileIcon name="shield" size={25} /></div>
           <h2 bind:this={roleHeading} tabindex="-1">Πώς θέλεις να συνδεθείς;</h2>
           <p class="intro">Επίλεξε έναν από τους διαθέσιμους ρόλους σου.</p>
+          {#if returnTab && returnTab !== 'home'}
+            <p class="return-intent" data-testid="role-return-intent">Ζητούμενη σελίδα: <strong>{TAB_NAMES[returnTab]}</strong>. Επίλεξε ρόλο με πρόσβαση ή συνέχισε στην αρχική του άλλου ρόλου.</p>
+          {/if}
           {@render rememberChoice()}
           <div class="identity-options">
             {#each identities as identity (identity.role)}
               <button class="identity-option" type="button" disabled={isBusy} onclick={() => void run(() => onChooseRole(identity.role, rememberDays))} data-testid={`choose-role-${identity.role}`}>
-                <span><strong>{ROLE_NAMES[identity.role]}</strong><small>{identity.name}</small></span><MobileIcon name="arrow" size={19} />
+                <span><strong>{ROLE_NAMES[identity.role]}</strong><small>{identity.name}</small>
+                  {#if returnTab && returnTab !== 'home'}<small class="intent-role-hint" data-testid={`role-intent-${identity.role}`}>{roleCanResumeTab(returnTab, identity.role) ? 'Πρόσβαση στη ζητούμενη σελίδα' : 'Μετάβαση στην αρχική του ρόλου'}</small>{/if}
+                </span><MobileIcon name="arrow" size={19} />
               </button>
             {/each}
           </div>
@@ -265,6 +272,8 @@
   .otp-actions span { color:#8b9094; font-size:12px; }
   .back { display:flex; align-items:center; justify-content:center; gap:7px; width:100%; margin-top:10px; }
   .identity-options { display:grid; gap:10px; }
+  .return-intent { color:var(--lf-muted); font-size:13px; line-height:1.5; margin:0 0 12px; }
+  .identity-option .intent-role-hint { color:var(--lf-gold-light); font-size:12px; }
   .identity-option { display:flex; align-items:center; justify-content:space-between; gap:12px; width:100%; min-height:76px; padding:14px 16px; border:1px solid var(--lf-line); border-radius:8px; background:linear-gradient(120deg,#151819,#101112); color:var(--lf-gold); text-align:left; }
   .identity-option:hover:not(:disabled) { border-color:var(--lf-gold); background:#1a1c1d; }
   .identity-option strong { display:block; color:#fff; font-size:14px; font-weight:600; }

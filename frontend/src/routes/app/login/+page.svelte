@@ -44,7 +44,7 @@
     <AppInstallButton />
   </aside>
   <MobileLogin step={$controller.step} bind:phone bind:rememberDays identities={$controller.identities}
-    detectedRole={$controller.detectedRole} busy={$controller.busy} error={$controller.error} {resendSeconds}
+    detectedRole={$controller.detectedRole} busy={$controller.busy} error={$controller.error} {resendSeconds} {returnTab}
     onRequestOtp={async (value) => { await controller.requestOtp(value); }}
     onVerifyOtp={async (code, selection) => { await controller.verifyOtp(code, selection); }}
     onChooseRole={async (role, selection) => { await controller.chooseRole(role, selection); }}

@@ -3,6 +3,7 @@
   import type { components } from '../../api/schema';
   import type { FavoriteTeam, MobilePlayerOption, MobilePlayerOptionsStatus, MobileProfileUpdate } from '../controller.ts';
   import { AVATAR_FILE_TYPES, avatarFileError } from '../controller.ts';
+  import { ROLE_NAMES, isMobileRole, type MobileRole } from '../navigation.ts';
   import './mobile-theme.css';
 
   interface Props {
@@ -17,10 +18,11 @@
     onUploadAvatar: (file: File) => boolean | Promise<boolean>;
     onLoadPlayerOptions: () => boolean | Promise<boolean>;
     onLogout: () => void;
+    onSwitchRole?: (role: MobileRole) => void | Promise<void>;
   }
 
   let { user, busy = false, error = null, playerOptions = [], playerOptionsStatus = 'idle', playerOptionsError = null,
-    onSaveFavoriteTeam, onSaveProfile, onUploadAvatar, onLoadPlayerOptions, onLogout }: Props = $props();
+    onSaveFavoriteTeam, onSaveProfile, onUploadAvatar, onLoadPlayerOptions, onLogout, onSwitchRole }: Props = $props();
   const id = $props.id();
   let draft = $state('');
   let submitting = $state(false);
@@ -66,6 +68,9 @@
     { label: 'Παιχνίδια', options: [{ key: 'game_hub_giveaways', label: 'Διαγωνισμοί Game Hub' }] }
   ] as const;
   const identityId = $derived(user.id);
+  const activeRole = $derived(isMobileRole(user.role) ? user.role : null);
+  const accountRoles = $derived(user.current_role_available && activeRole ?
+    [...new Set((user.available_roles ?? []).filter(isMobileRole))].filter(role => role !== activeRole) : []);
   const savedPreference = $derived(user.favorite_team ?? null);
   const savedPlayerId = $derived(user.favourite_player_id ?? '');
   const storedPlayerUnlisted = $derived(savedPlayerId !== '' && !playerOptions.some((player) => player.id === savedPlayerId));
@@ -231,6 +236,7 @@
 
   <dl class="identity-details">
     <div><dt>Τηλέφωνο</dt><dd>{user.phone}</dd></div>
+    {#if activeRole}<div><dt>Ενεργός ρόλος</dt><dd data-testid="profile-active-role">{ROLE_NAMES[activeRole]}</dd></div>{/if}
     {#if user.birthday}<div><dt>Ημερομηνία γέννησης</dt><dd>{user.birthday}</dd></div>{/if}
     {#if user.email}<div><dt>Email</dt><dd>{user.email}</dd></div>{/if}
     {#if updatedAt && user.updated_at}<div><dt>Τελευταία ενημέρωση</dt><dd><time datetime={user.updated_at}>{updatedAt}</time></dd></div>{/if}
@@ -361,6 +367,17 @@
 
   {/if}
 
+  {#if onSwitchRole && accountRoles.length > 0 && editor === null}
+    <section class="account-roles" aria-labelledby={`${id}-roles-title`} data-testid="profile-account-roles">
+      <h2 id={`${id}-roles-title`}>Οι ρόλοι μου</h2>
+      <p>Ένας αριθμός τηλεφώνου, ξεχωριστό προφίλ και δικαιώματα για κάθε ρόλο.</p>
+      {#each accountRoles as target (target)}
+        <button class="secondary" type="button" disabled={isBusy || (activeRole === 'fan' && changed)} onclick={() => void onSwitchRole?.(target)} data-testid={`profile-switch-role-${target}`}>Μετάβαση: {ROLE_NAMES[target]}</button>
+      {/each}
+      {#if activeRole === 'fan' && changed}<p role="status">Αποθήκευσε την προτίμηση ομάδας ή επανάφερε την επιλογή πριν αλλάξεις ρόλο.</p>{/if}
+    </section>
+  {/if}
+
   <button class="logout" type="button" disabled={isBusy} onclick={onLogout} data-testid="profile-logout">Αποσύνδεση</button>
 </section>
 
@@ -410,5 +427,8 @@
   .error { padding:11px; border:1px solid #ef444455; border-radius:6px; background:#ef444411; color:#fca5a5; font-size:13px; overflow-wrap:anywhere; }
   .success { color:#a4deb2; font-size:13px; }
   form .success { margin:13px 0 0; }
+  .account-roles { display:grid; gap:9px; margin-top:24px; padding-top:18px; border-top:1px solid var(--lf-line); }
+  .account-roles p { color:var(--lf-muted); font-size:12px; line-height:1.5; margin:0 0 5px; }
+  .account-roles button { text-align:left; }
   .logout { margin-top:20px; border:1px solid #383c3e; background:#151718; color:var(--lf-gold-light); }
 </style>

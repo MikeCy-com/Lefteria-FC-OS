@@ -119,6 +119,8 @@ export function fanPublicDestination(tab: string, role: MobileRole | null): stri
     case 'standings': return '/team?tab=overview#standings';
     case 'news': return '/news';
     case 'team': return '/team';
+    // Published catalogue only; this does not enable checkout or payments.
+    case 'shop': return '/shop';
     default: return null;
   }
 }
