@@ -113,7 +113,7 @@ try {
           state:'visible',timeout:25000
         });
         await page.evaluate(()=>document.fonts.ready);
-        if(role==='fan')assert.equal(await page.getByTestId('fan-home-potm').getAttribute('href'),'/vote');
+        if(role==='fan')assert.equal(await page.getByTestId('fan-home-potm').getAttribute('href'),'/app?tab=potm');
         const snapshot=await page.evaluate(()=>({
           pathname:location.pathname,
           tab:new URLSearchParams(location.search).get('tab'),
@@ -224,6 +224,99 @@ try {
     results.push({kind:'synthetic-profile-role-roundtrip',switches,otpRequests,logout:'guest'});
   } catch(error){failures.push('profile role roundtrip: '+(error.stack||error.message));}
   finally{await profileContext.close();}
+  // Real Svelte route/controller with synthetic ballot service responses.
+  // This is a browser UX check, not real native voting activation.
+  const ballotContext=await browser.newContext({viewport:{width:390,height:844},locale:'el-GR'});
+  try {
+    const month='2026-11';
+    let ballot={month_key:month,voting_open:false,my_vote_player_id:null,revision:0};
+    let writes=0,publicReads=0,pickerReads=0,conflictNext=false;
+    const candidate=(id,name,extra={})=>({id,name,number:9,position:'Forward',image_url:null,
+      organization_id:'lefteria_fc',team_type:'First Team',...extra});
+    const publicRoster={organization_id:'lefteria_fc',time_zone:'Asia/Nicosia',
+      generated_at:'2026-11-28T11:00:00Z',snapshot_at:'2026-11-27T10:00:00Z',
+      players:[candidate('a','Published A'),candidate('b','Published B'),
+        candidate('inactive','Inactive Candidate'),candidate('youth','PRIVATE YOUTH SENTINEL',{organization_id:'lefteria_fc_academy',team_type:'Academy'})],
+      modules:[{id:'potm',organization_id:'lefteria_fc',status:'empty',quarantined_count:0}],
+      potm:{organization_id:'lefteria_fc',month_key:month,total_votes:0,results:[]}};
+    const fan={id:'11111111-1111-4111-8111-111111111111',phone:'+35799123456',role:'fan',
+      name:'Synthetic Ballot Fan',platform:'Web/PWA',created_at:'2026-01-01T00:00:00Z',
+      last_login:'2026-11-28T00:00:00Z',available_roles:['fan'],current_role_available:true,
+      avatar_url:null,linked_player_ids:[],academy_group_ids:[]};
+    await ballotContext.addInitScript(()=>{localStorage.setItem('mobile_token','synthetic-ballot-token');
+      localStorage.setItem('mobile_available_roles','["fan","management"]');});
+    await ballotContext.route('**/api/public/sections?*',async route=>{
+      publicReads++;
+      assert.equal(route.request().headers().authorization,undefined);
+      assert.equal(new URL(route.request().url()).searchParams.get('organization_id'),'lefteria_fc');
+      return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(publicRoster)});
+    });
+    await ballotContext.route('**/api/mobile/**',async route=>{
+      const req=route.request(), endpoint=new URL(req.url()).pathname;
+      const send=(status,body)=>route.fulfill({status,contentType:'application/json',headers:{'Cache-Control':'private, no-store'},body:JSON.stringify(body)});
+      if(req.headers().authorization!=='Bearer synthetic-ballot-token')return send(401,{code:'invalid_bearer'});
+      if(endpoint==='/api/mobile/auth/me'&&req.method()==='GET')return send(200,fan);
+      if(endpoint==='/api/mobile/players-list'&&req.method()==='GET'){
+        pickerReads++;
+        return send(200,{players:[{id:'a',name:'PRIVATE CANONICAL SENTINEL'},{id:'b'},{id:'youth'}]});
+      }
+      if(endpoint==='/api/mobile/potm/ballot'){
+        if(req.method()==='GET')return send(200,ballot);
+        if(req.method()==='PUT'){
+          writes++;
+          const body=req.postDataJSON();
+          assert.deepEqual(Object.keys(body).sort(),['expected_revision','month_key','player_id']);
+          assert.equal(body.month_key,month);
+          if(conflictNext){conflictNext=false;ballot={...ballot,my_vote_player_id:'b',revision:2};
+            return send(409,{code:'potm_revision_conflict',detail:'Refresh required'});}
+          assert.equal(body.expected_revision,ballot.revision);
+          ballot={...ballot,my_vote_player_id:body.player_id,revision:ballot.revision+1};
+          return send(200,ballot);
+        }
+      }
+      return send(503,{detail:'No private fixture supplied'});
+    });
+    const page=await ballotContext.newPage();
+    await page.goto(origin+'/app?tab=home',{waitUntil:'domcontentloaded'});
+    await page.getByTestId('fan-home-potm').click();
+    const screen=page.getByTestId('mobile-potm-ballot');
+    await screen.getByTestId('mobile-potm-closed').waitFor();
+    assert.equal(writes,0);assert.equal(pickerReads,0);assert.equal(publicReads,0);
+    assert.equal(await screen.getByTestId('mobile-potm-save').count(),0);
+    ballot={...ballot,voting_open:true};
+    await screen.getByTestId('mobile-potm-refresh').click();
+    await screen.getByTestId('mobile-potm-candidate-a').waitFor();
+    assert.equal(await screen.getByTestId('mobile-potm-candidate-inactive').count(),0);
+    assert.equal(await screen.getByTestId('mobile-potm-candidate-youth').count(),0);
+    assert.doesNotMatch(await screen.textContent(),/PRIVATE.*SENTINEL/);
+    await screen.getByTestId('mobile-potm-candidate-a').check();
+    await screen.getByTestId('mobile-potm-save').click();
+    await screen.getByTestId('mobile-potm-confirmation').waitFor();
+    assert.equal(writes,0,'Vote must require explicit confirmation');
+    await screen.getByTestId('mobile-potm-confirm').click();
+    await screen.getByTestId('mobile-potm-success').waitFor();
+    assert.equal(writes,1);assert.equal(ballot.my_vote_player_id,'a');
+    await screen.getByTestId('mobile-potm-candidate-b').check();
+    await screen.getByTestId('mobile-potm-save').click();
+    conflictNext=true;
+    await screen.getByTestId('mobile-potm-confirm').click();
+    await screen.getByTestId('mobile-potm-error').waitFor();
+    assert.equal(writes,2);
+    assert.equal(await screen.getByTestId('mobile-potm-save').count(),0,'Conflict must require explicit refresh');
+    await screen.getByTestId('mobile-potm-refresh').click();
+    await screen.getByTestId('mobile-potm-withdraw').waitFor();
+    assert.match(await screen.getByTestId('mobile-potm-current').textContent(),/Published B/);
+    await screen.getByTestId('mobile-potm-withdraw').click();
+    assert.equal(writes,2);
+    await screen.getByTestId('mobile-potm-confirm').click();
+    await screen.getByTestId('mobile-potm-success').waitFor();
+    assert.equal(ballot.my_vote_player_id,null);assert.equal(ballot.revision,3);assert.equal(writes,3);
+    const dimensions=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);
+    assert.ok(dimensions[0]<=dimensions[1]+2,'Ballot screen overflows phone viewport');
+    await page.screenshot({path:path.join(artifacts,'authenticated-fan-potm-phone.png'),fullPage:true,animations:'disabled'});
+    results.push({kind:'synthetic-potm-ballot-lifecycle',writes,publicReads,pickerReads,revision:ballot.revision});
+  }catch(error){failures.push('POTM ballot lifecycle: '+(error.stack||error.message));}
+  finally{await ballotContext.close();}
   await writeFile(path.join(artifacts,'authenticated-role-results.json'),
     JSON.stringify({kind:'real-app-controller-with-synthetic-identity-not-real-backend-auth',
       results,failures},null,2)+'\n');
