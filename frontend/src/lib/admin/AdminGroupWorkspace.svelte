@@ -49,6 +49,11 @@
 </script>
 
 <section class="group-operating-space" data-testid="admin-group-embedded-workspace">
+  <div class="group-context-summary" data-testid="admin-group-summary">
+    <div><small>Ενεργοί αθλητές</small><strong>{group.active_players}</strong></div>
+    <div><small>Οργανισμός</small><strong>{organization==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</strong></div>
+    {#if access.settings}<button type="button" class="admin-secondary" onclick={()=>tab='settings'}>Επεξεργασία στοιχείων & banner</button>{/if}
+  </div>
   <div class="group-operation-tabs" role="group" aria-label={'Ενότητες '+group.name}
     data-testid="admin-group-tabs">
     {#if access.players}<button type="button" aria-pressed={tab==='players'} onclick={()=>tab='players'}
@@ -76,7 +81,7 @@
     {/if}
     {#if access.settings}
       <button type="button" aria-pressed={tab==='settings'} onclick={()=>tab='settings'}
-        data-testid="admin-group-settings-link">Ρυθμίσεις τμήματος</button>
+        data-testid="admin-group-settings-link">Στοιχεία & ρυθμίσεις</button>
     {/if}
   </div>
 
@@ -119,9 +124,8 @@
         {/if}
       {:else if tab==='coaches' && access.coaches}
         <AdminCoachDirectoryPanel owner={organization} actorId={user.id}
-          groups={[group]} {onExpired} {onRevoked}/>
+          {groups} focusGroupId={group.id} {onExpired} {onRevoked}/>
       {:else if tab==='settings' && access.settings}
-        <AdminGroupMatchSettings {organization} groupId={group.id}/>
         {#if organization==='lefteria_fc'}
           <AdminFirstTeamProfilePanel actorId={user.id} groups={[group]}
             {onExpired} {onRevoked}/>
@@ -129,12 +133,18 @@
           <AdminAcademyGroupProfilePanel actorId={user.id} groups={[group]}
             {onExpired} {onRevoked}/>
         {/if}
+        <AdminGroupMatchSettings {organization} groupId={group.id}/>
       {/if}
     </div>
   {/key}
 </section>
 <style>
   .group-operating-space{min-width:0;max-width:100%}
+  .group-context-summary{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px;background:var(--admin-surface);border:1px solid var(--admin-line);border-radius:8px}
+  .group-context-summary>div{display:grid;gap:4px;min-width:110px}
+  .group-context-summary>div strong{font-size:18px}
+  .group-context-summary>div small{font-size:12px}
+  .group-context-summary>button{margin-left:auto}
   .group-operation-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0;padding-bottom:10px;
     border-bottom:1px solid #38332a;overflow-x:auto}
   .group-operation-tabs button,.group-operation-tabs a{display:inline-flex;align-items:center;justify-content:center;
