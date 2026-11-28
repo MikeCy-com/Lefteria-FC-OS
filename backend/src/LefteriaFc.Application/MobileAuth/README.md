@@ -7,10 +7,16 @@ provider dependency. The API maps typed faults and publishes the DTOs directly.
 
 ## Boundary and response contracts
 
-- Request OTP returns message, phone, nullable role_detected and expires_in=300.
+- Request OTP returns message, phone, role_detected=null and expires_in=300.
+  The internal SMS sender routing is not exposed to the unauthenticated caller.
+  Actual role discovery happens only after successful OTP verification.
 - Fan signup accepts first_name/last_name or the legacy name fallback, phone and
   ISO yyyy-MM-dd birthday. Successful signup returns phone, role_detected=fan
-  and simulated=false. It never returns a debug code. Names are limited to 100
+  and simulated=false, irrespective of an existing formal account. Existing
+  formal phones resume normal OTP login and do not stage replacement profile
+  fields; inactive fan records cannot be reactivated by registration. The fan
+  value identifies the submitted flow, not a discovered account role. It never
+  returns a debug code. Names are limited to 100
   characters each, control characters are rejected, and birthday cannot be future.
 - Verification returns either MobileRolePickerResult (multi_role=true,
   identities and phone, no token) or MobileLoginResult (token, user, role and
