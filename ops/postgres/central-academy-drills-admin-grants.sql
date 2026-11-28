@@ -29,7 +29,9 @@ BEGIN
     'club.read_coach_drill_proposals(text,integer)'::regprocedure::oid,
     'club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text)'::regprocedure::oid,
     'club.read_admin_training_delivery(text,text,uuid,integer)'::regprocedure::oid,
-    'club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb)'::regprocedure::oid
+    'club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb)'::regprocedure::oid,
+    'club.submit_linked_coach_drill_proposal(text,uuid,uuid,integer,text,text,text,text,text,integer,text,text)'::regprocedure::oid,
+    'club.apply_coach_drill_revision(text,uuid,integer,integer)'::regprocedure::oid
   ] LOOP
     IF NOT (SELECT prosecdef AND NOT EXISTS(SELECT 1 FROM aclexplode(coalesce(proacl,acldefault('f',proowner)))
       WHERE grantee=0 AND privilege_type='EXECUTE') FROM pg_proc WHERE oid=p)
@@ -38,9 +40,9 @@ BEGIN
 END $check$;
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
 REVOKE ALL ON club.academy_coaching_drills,club.academy_coaching_drill_versions,club.academy_training_plan_submissions,club.academy_coach_drill_proposals,club.academy_training_delivery_revisions FROM PUBLIC, :"admin_auth_role", :"app_role";
-REVOKE ALL ON FUNCTION club.require_central_academy_drills(text,boolean),club.central_academy_drill_view(club.academy_coaching_drills),club.require_training_drill_group(uuid,text),club.guard_training_drill_plan(),club.snapshot_training_drill_event(),club.require_training_drill_review_rollout(),club.training_drill_plan_view(club.academy_training_plan_drafts),club.require_training_assigned_group(uuid,text),club.require_training_draft_actor(text,text,text),club.require_drill_proposal_coach(text),club.training_delivery_view(club.academy_training_plan_drafts),club.guard_training_delivery_duration() FROM PUBLIC, :"admin_auth_role", :"app_role";
-REVOKE ALL ON FUNCTION club.read_central_academy_drills(text,text,text,text,text,integer),club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text),club.read_admin_training_drills(text,text,uuid,integer),club.write_admin_training_drills(text,text,uuid,integer,jsonb),club.approve_admin_training_drill_plan(text,text,uuid,integer,text,boolean),club.read_admin_coach_training_groups(text),club.submit_admin_training_plan(text,text,uuid,integer,boolean),club.read_coach_drill_proposals(text,integer),club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text),club.read_admin_training_delivery(text,text,uuid,integer),club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb) FROM PUBLIC, :"app_role";
-GRANT EXECUTE ON FUNCTION club.read_central_academy_drills(text,text,text,text,text,integer),club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text),club.read_admin_training_drills(text,text,uuid,integer),club.write_admin_training_drills(text,text,uuid,integer,jsonb),club.approve_admin_training_drill_plan(text,text,uuid,integer,text,boolean),club.read_admin_coach_training_groups(text),club.submit_admin_training_plan(text,text,uuid,integer,boolean),club.read_coach_drill_proposals(text,integer),club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text),club.read_admin_training_delivery(text,text,uuid,integer),club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION club.require_central_academy_drills(text,boolean),club.central_academy_drill_view(club.academy_coaching_drills),club.require_training_drill_group(uuid,text),club.guard_training_drill_plan(),club.snapshot_training_drill_event(),club.require_training_drill_review_rollout(),club.training_drill_plan_view(club.academy_training_plan_drafts),club.require_training_assigned_group(uuid,text),club.require_training_draft_actor(text,text,text),club.require_drill_proposal_coach(text),club.training_delivery_view(club.academy_training_plan_drafts),club.guard_training_delivery_duration(),club.coach_drill_proposal_view(club.academy_coaching_drills,club.academy_coach_drill_proposals),club.coach_training_week_allows(date),club.training_delivery_game_minutes(jsonb),club.training_delivery_complete(jsonb,integer),club.require_complete_training_delivery(jsonb,integer) FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.read_central_academy_drills(text,text,text,text,text,integer),club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text),club.read_admin_training_drills(text,text,uuid,integer),club.write_admin_training_drills(text,text,uuid,integer,jsonb),club.approve_admin_training_drill_plan(text,text,uuid,integer,text,boolean),club.read_admin_coach_training_groups(text),club.submit_admin_training_plan(text,text,uuid,integer,boolean),club.read_coach_drill_proposals(text,integer),club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text),club.read_admin_training_delivery(text,text,uuid,integer),club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb),club.submit_linked_coach_drill_proposal(text,uuid,uuid,integer,text,text,text,text,text,integer,text,text),club.apply_coach_drill_revision(text,uuid,integer,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_central_academy_drills(text,text,text,text,text,integer),club.write_central_academy_drill(text,uuid,integer,text,text,text,text,integer,text,text),club.read_admin_training_drills(text,text,uuid,integer),club.write_admin_training_drills(text,text,uuid,integer,jsonb),club.approve_admin_training_drill_plan(text,text,uuid,integer,text,boolean),club.read_admin_coach_training_groups(text),club.submit_admin_training_plan(text,text,uuid,integer,boolean),club.read_coach_drill_proposals(text,integer),club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text),club.read_admin_training_delivery(text,text,uuid,integer),club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb),club.submit_linked_coach_drill_proposal(text,uuid,uuid,integer,text,text,text,text,text,integer,text,text),club.apply_coach_drill_revision(text,uuid,integer,integer) TO :"admin_auth_role";
 DO $verify$
 DECLARE a text:=current_setting('lefteria.drill_admin_role');m text:=current_setting('lefteria.drill_mobile_role');p oid;t oid;
 BEGIN
@@ -60,7 +62,9 @@ BEGIN
     'club.read_coach_drill_proposals(text,integer)'::regprocedure::oid,
     'club.submit_coach_drill_proposal(text,uuid,text,text,text,integer,text,text)'::regprocedure::oid,
     'club.read_admin_training_delivery(text,text,uuid,integer)'::regprocedure::oid,
-    'club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb)'::regprocedure::oid
+    'club.write_admin_training_delivery(text,text,uuid,integer,integer,jsonb)'::regprocedure::oid,
+    'club.submit_linked_coach_drill_proposal(text,uuid,uuid,integer,text,text,text,text,text,integer,text,text)'::regprocedure::oid,
+    'club.apply_coach_drill_revision(text,uuid,integer,integer)'::regprocedure::oid
   ] LOOP
     IF NOT has_function_privilege(a,p,'EXECUTE') OR has_function_privilege(m,p,'EXECUTE') THEN RAISE EXCEPTION 'drill_execute_boundary'; END IF;
   END LOOP;
@@ -75,7 +79,12 @@ BEGIN
     'club.require_training_draft_actor(text,text,text)'::regprocedure::oid,
     'club.require_drill_proposal_coach(text)'::regprocedure::oid,
     'club.training_delivery_view(club.academy_training_plan_drafts)'::regprocedure::oid,
-    'club.guard_training_delivery_duration()'::regprocedure::oid] LOOP
+    'club.guard_training_delivery_duration()'::regprocedure::oid,
+    'club.coach_drill_proposal_view(club.academy_coaching_drills,club.academy_coach_drill_proposals)'::regprocedure::oid,
+    'club.coach_training_week_allows(date)'::regprocedure::oid,
+    'club.training_delivery_game_minutes(jsonb)'::regprocedure::oid,
+    'club.training_delivery_complete(jsonb,integer)'::regprocedure::oid,
+    'club.require_complete_training_delivery(jsonb,integer)'::regprocedure::oid] LOOP
     IF has_function_privilege(a,p,'EXECUTE') OR has_function_privilege(m,p,'EXECUTE') THEN RAISE EXCEPTION 'drill_private_helper_exposed'; END IF;
   END LOOP;
 END $verify$;

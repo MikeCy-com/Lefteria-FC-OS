@@ -56,7 +56,10 @@ test('UI and API wire private sequence and new proposal queue separately',()=>{
   assert.match(workspace,/deliveryMode=\{!drillReviewMode\}/);
   assert.match(workspace,/typeof plan.delivery_drill_count==='number'/);
   assert.match(library,/canPropose/);
-  assert.match(library,/base\+'proposals'/);
+  assert.match(library,/base\+\(baseDrill\?'proposals\/linked':'proposals'\)/);
+  assert.match(library,/if\(!browser\|\|!canPropose\|\|saving\|\|loading\|\|!scope\|\|!validDrillForm\(form\)\)return/);
+  assert.match(library,/value\.status!=='draft'/);
+  assert.match(library,/proposals\?offset=/);
 });
 test('database lifecycle fixtures explicitly cover published autonomy and central review isolation',()=>{
   const delivery=read('../../ops/postgres/academy-training-drill-builder-checks.sql');
