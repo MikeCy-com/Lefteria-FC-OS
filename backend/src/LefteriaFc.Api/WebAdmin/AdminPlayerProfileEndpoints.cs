@@ -28,6 +28,29 @@ public static class AdminPlayerProfileEndpoints
 {
     public static IEndpointRouteBuilder MapAdminPlayerProfiles(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/api/admin/football/players/archived",async (string? organization_id,
+            string? search,int? offset,int? limit,HttpContext context,WebAdminService admin,
+            IWebAdminSecrets secrets,WebAdminConnections connections,CancellationToken ct)=>
+        {
+            var digest=await SessionDigest("archive-directory",organization_id,context,admin,secrets,ct);
+            var term=search??"";var skip=offset??0;var take=limit??25;
+            if(term.Length>100||term!=term.Trim()||term.Any(char.IsControl)||skip is <0 or >20000||take is <1 or >50)
+                throw new WebAdminException(422,"archived_player_search_invalid","Enter a valid archived player search.");
+            await using var db=await connections.OpenAsync(ct);
+            await using var command=new NpgsqlCommand(
+                "SELECT club.search_admin_archived_academy_players(@digest,@search,@offset,@limit)::text",db);
+            command.Parameters.AddWithValue("digest",digest);
+            command.Parameters.AddWithValue("search",term);
+            command.Parameters.AddWithValue("offset",skip);
+            command.Parameters.AddWithValue("limit",take);
+            try
+            {
+                var json=await command.ExecuteScalarAsync(ct) as string;
+                return json is null?Results.Problem(statusCode:503):Results.Content(json,"application/json",Encoding.UTF8,200);
+            }
+            catch(PostgresException error){throw MapSql(error);}
+        }).RequireAuthorization(WebAdminServices.Policy).WithName("SearchAdminArchivedAcademyPlayers").ExcludeFromDescription();
+
         var routes=endpoints.MapGroup("/api/admin/football/players/{playerId}/private-profile")
             .WithTags("Private Academy player profiles")
             .RequireAuthorization(WebAdminServices.Policy);

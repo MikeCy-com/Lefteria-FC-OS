@@ -10,6 +10,7 @@ DECLARE
   v_manager_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_data jsonb;
   v_image bytea:=decode('ffd8ffd9','hex');
+  v_archived text:='ci-archived-'||md5(gen_random_uuid()::text);
 BEGIN
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,
     password_hash,invite_pending,otp2fa_enabled) VALUES
@@ -29,6 +30,20 @@ BEGIN
     is_active,is_archived,is_transferred,has_explicit_picker_fields)
     VALUES(v_player,'lefteria_fc_academy','CI Child Official Name',
       9,'Forward','Academy',true,false,false,true);
+  INSERT INTO club.players(id,organization_id,name,number,position,team_type,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+    VALUES(v_archived,'lefteria_fc_academy','CI Archived Child',NULL,'Forward','Academy',false,true,false,true);
+  v_data:=club.search_admin_archived_academy_players(v_super_token,v_archived,0,25);
+  IF (v_data->>'total')::integer<>1 OR v_data#>>'{players,0,id}' IS DISTINCT FROM v_archived
+    OR v_data#>>'{players,0,state}' IS DISTINCT FROM 'archived'
+    OR v_data#>'{players,0}' ? 'guardian_phone'
+    THEN RAISE EXCEPTION 'archive_directory_invalid'; END IF;
+  v_data:=club.search_admin_archived_academy_players(v_super_token,v_player,0,25);
+  IF (v_data->>'total')::integer<>0 THEN RAISE EXCEPTION 'active_player_leaked_to_archive'; END IF;
+  BEGIN
+    PERFORM club.search_admin_archived_academy_players(v_manager_token,v_archived,0,25);
+    RAISE EXCEPTION 'manager_read_archive_directory';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
   v_data:=club.read_admin_academy_player_profile(v_super_token,v_player);
   IF v_data->>'official_name'<>'CI Child Official Name'
     OR (v_data->>'revision')::int<>0 OR (v_data->>'has_portrait')::boolean

@@ -11,6 +11,7 @@
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
   import AdminRosterPlayersPanel from '../../../lib/admin/AdminRosterPlayersPanel.svelte';
+  import AdminArchivedPlayersPanel from '../../../lib/admin/AdminArchivedPlayersPanel.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Audience = { id: string; name: string; kind: 'team' | 'academy_group'; active_players: number };
@@ -703,6 +704,11 @@
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
               onExpired={()=>auth.invalidateSession()}
               onRevoked={()=>void auth.bootstrap()} onChanged={()=>retry++}/>
+            {#if organization==='lefteria_fc_academy'&&$auth.session.user.role==='super_admin'&&hasAdminPermission($auth.session.user.permissions,'finance:read')&&!requestedPlayerId}
+              {#key $auth.session.user.id}
+                <AdminArchivedPlayersPanel actorId={$auth.session.user.id}/>
+              {/key}
+            {/if}
           {/if}
           {#if directoryView==='groups'}
           {#if lastCreatedGroupId && lastCreatedOrganization===organization}

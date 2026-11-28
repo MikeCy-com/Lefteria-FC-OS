@@ -99,4 +99,11 @@ BEGIN
       'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)','EXECUTE')
   THEN RAISE EXCEPTION 'academy_private_profile_boundary_broken'; END IF;
 END $verify$;
+REVOKE ALL ON FUNCTION club.search_admin_archived_academy_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.search_admin_archived_academy_players(text,text,integer,integer) TO :"admin_auth_role";
+DO $archive_boundary$ BEGIN
+  IF NOT has_function_privilege(current_setting('lefteria.player_profiles_admin_role'),'club.search_admin_archived_academy_players(text,text,integer,integer)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.player_profiles_app_role'),'club.search_admin_archived_academy_players(text,text,integer,integer)','EXECUTE')
+  THEN RAISE EXCEPTION 'archive_directory_boundary_broken'; END IF;
+END $archive_boundary$;
 COMMIT;
