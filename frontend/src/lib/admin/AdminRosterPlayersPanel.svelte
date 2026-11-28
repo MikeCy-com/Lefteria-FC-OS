@@ -293,7 +293,10 @@
           <li class:admin-player-focused={focusedPlayer360!==null}>
             {#if !focusedPlayer360}<div class="admin-player-identity">
               <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
-              <div><strong>{player.name}</strong></div>
+              <div>{#if allowPrivate || allowGoalRead || allowFinance || !allowAssignments}
+                <button type="button" class="admin-player-name-link" disabled={saving||loading||editing!==null}
+                  onclick={()=>{closePlayer360();selectedPlayer360=player.id;}}>{player.name}</button>
+              {:else}<strong>{player.name}</strong>{/if}</div>
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
@@ -466,6 +469,8 @@
   .admin-player360-summary>div{display:grid;gap:6px;padding:12px;border:1px solid var(--admin-line);border-radius:8px;min-width:0;overflow-wrap:anywhere}
   .admin-player360-summary span,.admin-player360-save-note{font-size:12px}
   .admin-player360-open{min-height:44px}
+  .admin-player-name-link{background:none;border:0;padding:4px 0;color:inherit;text-align:left;font:inherit;font-weight:700;cursor:pointer;overflow-wrap:anywhere;min-height:44px}
+  .admin-player-name-link:hover,.admin-player-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
   .admin-player-list>li.admin-player-focused{display:block;padding:0;border:0;background:transparent}
   .admin-player-focused>.admin-player360{width:100%;box-sizing:border-box}
   .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
