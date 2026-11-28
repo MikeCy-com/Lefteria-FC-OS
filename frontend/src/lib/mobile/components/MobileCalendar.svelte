@@ -159,7 +159,7 @@
               <p class="reply-state">{ownResponse ? `Αποθηκευμένη απάντηση: ${responseLabel(ownResponse.status)}` : 'Δεν έχει δοθεί απάντηση.'}</p>
             {:else if staff}
               <button type="button" class="replies-toggle" aria-expanded={responsesKey === key} disabled={busy}
-                onclick={() => { if (responsesKey === key) onCloseResponses(); else void onLoadResponses(item); }}>{item.kind==='match'?'Προετοιμασία αγώνα':'Απαντήσεις συμμετοχής'} {responsesKey === key ? '−' : '+'}</button>
+                onclick={() => { if (responsesKey === key) onCloseResponses(); else void onLoadResponses(item); }}>{item.kind==='match'?'Προετοιμασία αγώνα · Απαντήσεις συμμετοχής':'Απαντήσεις συμμετοχής'} {responsesKey === key ? '−' : '+'}</button>
               {#if responsesKey === key}
                 <div class="replies" data-testid="calendar-replies"><p class="reply-context">Δηλώσεις συμμετοχής παικτών</p>
                   {#if responsesStatus === 'loading'}<p role="status">Φόρτωση απαντήσεων…</p>
