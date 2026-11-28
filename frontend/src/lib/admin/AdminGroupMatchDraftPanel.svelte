@@ -150,6 +150,7 @@
             ...(owner==='lefteria_fc_academy'?{location_id:locationId,group_id:id}:{}),...row}})});
         if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
         if(response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε.');}
+        if(response.status===409){attempted='';throw Error('Η ώρα ή το γήπεδο συγκρούεται με υπάρχουσα καταχώριση. Επιλέξτε άλλη ώρα ή γήπεδο.');}
         if(!response.ok)throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
         const saved:unknown=await response.json();
         if(!saved||typeof saved!=='object'||Array.isArray(saved)||!('kind' in saved)||saved.kind!=='match_draft'||
@@ -299,7 +300,7 @@
       {#if queueConflicts.length}<p role="alert">Υπάρχουν ήδη πρόχειροι αγώνες την ίδια ώρα. Αφαιρέστε τις συγκρούσεις.</p>{/if}
       <label><input type="checkbox" bind:checked={confirmed} disabled={saving||bulkBusy||!!queueConflicts.length}/> Επιβεβαιώνω τη δημιουργία ιδιωτικών προχείρων.</label>
       <button class="admin-primary" type="button" disabled={!confirmed||saving||bulkBusy||!!queueConflicts.length} onclick={()=>void saveQueue()}>Δημιουργία {queue.length} αγώνων</button>
-      <p class="admin-muted">Οι αγώνες αποθηκεύονται ένας-ένας. Ο έλεγχος αφορά πρόχειρους αγώνες του ίδιου τμήματος και ίδια ώρα, όχι όλα τα γήπεδα ή δημοσιευμένους αγώνες.</p>
+      <p class="admin-muted">Οι αγώνες αποθηκεύονται ένας-ένας. Ο διακομιστής αποτρέπει πρόχειρους αγώνες του ίδιου τμήματος ή του ίδιου γηπέδου στην ίδια ώρα έναρξης. Δεν ελέγχονται ακόμη διάρκεια, προπονήσεις ή δημοσιευμένοι αγώνες.</p>
     </section>
   {/if}
   {#if bulkProgress}<p role="status">Επιβεβαιωμένες αποθηκεύσεις: {bulkProgress}</p>{/if}
