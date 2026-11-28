@@ -94,7 +94,7 @@ public sealed class AcademyRestrictedPlayerLifecycle : Migration
           IF v_existing.organization_id<>v_owner OR v_existing.player_id<>_player OR v_existing.actor_id<>v_actor
             OR v_existing.action<>_action OR v_existing.reason<>_reason OR v_existing.revision<>_expected+1
             OR v_revision<>v_existing.revision
-            OR v_state<>CASE WHEN _action='archive' THEN 'archived' ELSE 'active' END
+            OR v_state<>(CASE WHEN _action='archive' THEN 'archived' ELSE 'active' END)
           THEN RAISE EXCEPTION 'lifecycle_conflict' USING ERRCODE='23505'; END IF;
           RETURN jsonb_build_object('organization_id',v_owner,'player_id',_player,
             'state',v_state,'revision',v_revision,'replay',true);
