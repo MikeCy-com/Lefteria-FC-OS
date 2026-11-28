@@ -31,7 +31,11 @@ public sealed class PlayerRegistrationSource : Migration
           'has_portrait',a.portrait_jpeg IS NOT NULL,
           'revision',coalesce(a.revision,0),
           'updated_at',a.updated_at,
-          'registration',r.details)
+          'registration',r.details,
+          'academy_group_ids',coalesce((SELECT jsonb_agg(m.group_id ORDER BY m.group_id)
+            FROM (SELECT p.primary_academy_group_id AS group_id WHERE p.primary_academy_group_id IS NOT NULL
+                  UNION SELECT g.academy_group_id FROM club.player_academy_groups g
+                    WHERE g.organization_id=p.organization_id AND g.player_id=p.id) m),'[]'::jsonb))
         INTO v_details
         FROM club.players p
         LEFT JOIN club.academy_player_private_profiles a ON a.player_id=p.id
