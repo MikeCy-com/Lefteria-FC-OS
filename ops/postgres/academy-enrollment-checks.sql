@@ -460,6 +460,33 @@ BEGIN
   result:=club.rename_admin_academy_player(admin_digest,fixture_player_id,
     'Synthetic Corrected','Synthetic Enrollee');
 
+  -- Search before paging: even a one-row page must find an exact player
+  -- without exposing a different city or the rest of a child's memberships.
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '1'
+    OR result#>>'{players,0,id}' IS DISTINCT FROM fixture_player_id
+  THEN RAISE EXCEPTION 'Full authorized roster search failed'; END IF;
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,second_player,NULL);
+  IF result->>'total' IS DISTINCT FROM '0' THEN
+    RAISE EXCEPTION 'Roster search disclosed a sibling city'; END IF;
+  result:=club.search_admin_roster_players(admin_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,second_group);
+  IF result->>'total' IS DISTINCT FROM '0' THEN
+    RAISE EXCEPTION 'Roster search ignored group filter'; END IF;
+  result:=club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+    fixture_group_id,0,1,fixture_player_id);
+  IF result->>'total' IS DISTINCT FROM '1'
+    OR result#>>'{players,0,id}' IS DISTINCT FROM fixture_player_id
+    OR result#>'{players,0,academy_group_ids}' IS DISTINCT FROM jsonb_build_array(fixture_group_id)
+  THEN RAISE EXCEPTION 'Exact group search returned incorrect membership'; END IF;
+  BEGIN
+    PERFORM club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+      second_group,0,1,second_player);
+    RAISE EXCEPTION 'Roster search accessed another city group';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
