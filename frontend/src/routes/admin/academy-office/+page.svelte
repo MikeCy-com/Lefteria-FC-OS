@@ -163,11 +163,24 @@
     return () => controller.abort();
   });
 
+  function chooseCity(next:string){
+    cityId=next;locationId='';groupId='';enrollmentRequestId='';
+    const choices=territory?.locations.filter(loc=>loc.city_id===next&&loc.can_manage&&loc.is_active)??[];
+    if(choices.length===1)chooseLocation(choices[0].id);
+  }
+  function chooseLocation(next:string){
+    locationId=next;groupId='';enrollmentRequestId='';
+    const choices=territory?.groups.filter(g=>g.city_id===cityId&&g.location_id===next)??[];
+    if(choices.length===1)groupId=choices[0].id;
+  }
   function selectForEnrollment(id: string) {
     if (!canEnroll || !territory) return;
     enrollingId = enrollingId === id ? '' : id;
     cityId = ''; locationId = ''; groupId = ''; position = '';
     shirtNumber = 0; enrollmentRequestId = '';
+    // A single authorized choice can be selected automatically. Never
+    // infer a child's position, shirt number or a choice among several sites.
+    if(enrollingId&&permittedCities.length===1)chooseCity(permittedCities[0].id);
   }
 
   async function enroll(event: SubmitEvent, row: Entry) {
@@ -243,7 +256,7 @@
   }
 
   async function save(path: string, body: object) {
-    if (busy || !access) return false;
+    if (busy || !access || !canEnroll) return false;
     const actor = $auth.session?.user.id;
     busy = true;
     error = '';
@@ -310,7 +323,7 @@
       {#if justEnrolled && canEnroll}<a class="admin-primary" data-testid="newly-enrolled-player-360" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:justEnrolled}).toString()}>Άνοιγμα νέου Player 360 ›</a>{/if}
       {#key $auth.session.user.id}
         {#if tab === 'registrations'}
-          <details class="admin-panel manual-registration">
+          {#if canEnroll}<details class="admin-panel manual-registration">
             <summary>Χειροκίνητη καταχώριση αίτησης</summary>
             <p class="admin-muted">Για αιτήσεις που παραλήφθηκαν εκτός της δημόσιας φόρμας. Δεν προστίθεται παίκτης στο ρόστερ.</p>
             <form onsubmit={create}>
@@ -326,7 +339,7 @@
               </fieldset>
               <button class="admin-primary" disabled={busy}>Καταχώριση αίτησης</button>
             </form>
-          </details>
+          </details>{/if}
           <div class="academy-registration-inbox-head">
             <div>
               <p class="admin-eyebrow">ΑΙΤΗΣΕΙΣ · ΕΛΕΓΧΟΣ · ΕΝΤΑΞΗ</p>
@@ -447,7 +460,7 @@
                       <p class="admin-muted">Για ασφάλεια, η τελική ένταξη επιτρέπεται μόνο μετά την επαλήθευση της ηλεκτρονικής αίτησης και των συγκαταθέσεων. Η ενέργεια είναι ατομική.</p>
                       <label>Πόλη
                         <select required bind:value={cityId}
-                          onchange={() => { locationId=''; groupId=''; enrollmentRequestId=''; }}>
+                          onchange={event=>chooseCity(event.currentTarget.value)}>
                           <option value="">Επιλέξτε πόλη</option>
                           {#each permittedCities as city (city.id)}
                             <option value={city.id}>{city.name}</option>
@@ -456,7 +469,7 @@
                       </label>
                       <label>Τοποθεσία
                         <select required bind:value={locationId}
-                          onchange={() => { groupId=''; enrollmentRequestId=''; }}>
+                          onchange={event=>chooseLocation(event.currentTarget.value)}>
                           <option value="">Επιλέξτε τοποθεσία</option>
                           {#each permittedLocations as loc (loc.id)}
                             <option value={loc.id}>{loc.name}</option>
@@ -494,11 +507,11 @@
               {:else if row.status === 'under_review' && row.submission_source === 'staff'}
                 <p class="admin-muted">Η χειροκίνητη αίτηση δεν περιέχει ακόμη επαληθευμένο αποδεικτικό συγκατάθεσης κηδεμόνα. Η έγκρισή της δεν δημιουργεί αθλητή.</p>
               {/if}
-              {#each transitions[row.status] ?? [] as status (status)}
+              {#each (canEnroll?transitions[row.status] ?? []:[]) as status (status)}
                 {#if status !== 'approved' || row.submission_source !== 'website'}
                   <button class="admin-secondary" disabled={busy}
                     onclick={() => void save('registrations/review', {id: row.id, status, version: row.status_version})}>
-                    {status === 'approved' ? 'Έγκριση αίτησης μόνο (χωρίς ένταξη)' : labels[status]}
+                    {status === 'approved' ? 'Έγκριση αίτησης μόνο (χωρίς ένταξη)' : status==='under_review'?'Έναρξη ελέγχου':labels[status]}
                   </button>
                 {/if}
               {/each}
