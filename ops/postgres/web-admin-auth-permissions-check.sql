@@ -99,8 +99,8 @@ BEGIN
   END IF;
   -- The owner-only slug foundation must not grant even the admin-auth
   -- connection direct table access or the invoker claim capability.
-  IF has_function_privilege(current_user,'public_content.claim_news_slug(text,text,text,text)','EXECUTE')
-    OR has_function_privilege(mobile_name,'public_content.claim_news_slug(text,text,text,text)','EXECUTE')
+  IF has_function_privilege(current_user,'public_content.claim_news_slug(text,text,text,bigint)','EXECUTE')
+    OR has_function_privilege(mobile_name,'public_content.claim_news_slug(text,text,text,bigint)','EXECUTE')
     OR EXISTS (SELECT 1 FROM unnest(ARRAY['public_content.news_slug_aliases','public_content.news_slug_current']) AS t(name)
       WHERE has_any_column_privilege(current_user,t.name,'SELECT,INSERT,UPDATE,REFERENCES')
         OR has_any_column_privilege(mobile_name,t.name,'SELECT,INSERT,UPDATE,REFERENCES')

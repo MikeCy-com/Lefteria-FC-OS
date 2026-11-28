@@ -29,6 +29,7 @@ public sealed class PublicNewsSlugRegistry : Migration
         organization_id varchar(32) NOT NULL,
         article_id varchar(128) COLLATE "C" NOT NULL,
         slug varchar(80) COLLATE "C" NOT NULL,
+        revision bigint NOT NULL CHECK(revision>0),
         PRIMARY KEY(kind,organization_id,article_id),
         FOREIGN KEY(slug,kind,organization_id,article_id)
           REFERENCES public_content.news_slug_aliases(slug,kind,organization_id,article_id)
@@ -41,13 +42,14 @@ public sealed class PublicNewsSlugRegistry : Migration
       -- news record; no anonymous or application role receives this capability.
       -- Serialize the small administrative claim operation; this is never a
       -- request-time allocator. Preserve old aliases and reject stale edits.
-      CREATE FUNCTION public_content.claim_news_slug(_org text,_id text,_slug text,_expected text)
+      CREATE FUNCTION public_content.claim_news_slug(_org text,_id text,_slug text,_expected_revision bigint)
       RETURNS text LANGUAGE plpgsql VOLATILE SECURITY INVOKER
       SET search_path=pg_catalog,pg_temp AS $news_slug$
-      DECLARE v_current text; v_owner text; v_id text;
+      DECLARE v_current text; v_revision bigint; v_owner text; v_id text;
       BEGIN
         IF _org IS NULL OR _org NOT IN ('lefteria_fc','lefteria_fc_academy')
           OR _id IS NULL OR length(_id) NOT BETWEEN 1 AND 128
+          OR _expected_revision IS NULL OR _expected_revision<0
           OR _slug IS NULL OR length(_slug) NOT BETWEEN 1 AND 80
           OR _slug COLLATE "C" !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
           OR _slug IN ('new','edit','search','feed','archive','latest','rss','sitemap')
@@ -64,22 +66,26 @@ public sealed class PublicNewsSlugRegistry : Migration
         -- globally, even for the same article, rather than shadowing a link.
         IF EXISTS(SELECT 1 FROM public_content.documents d WHERE d.kind='news' AND d.id=_slug)
         THEN RAISE EXCEPTION 'news_slug_legacy_collision' USING ERRCODE='23505'; END IF;
-        SELECT c.slug INTO v_current FROM public_content.news_slug_current c
+        SELECT c.slug,c.revision INTO v_current,v_revision FROM public_content.news_slug_current c
           WHERE c.kind='news' AND c.organization_id=_org AND c.article_id=_id;
-        IF v_current IS DISTINCT FROM _expected
+        v_revision:=coalesce(v_revision,0);
+        IF v_revision<>_expected_revision
         THEN RAISE EXCEPTION 'news_slug_stale' USING ERRCODE='40001'; END IF;
+        IF v_current=_slug THEN RETURN _slug; END IF;
+        IF v_revision=9223372036854775807
+        THEN RAISE EXCEPTION 'news_slug_revision_exhausted' USING ERRCODE='55000'; END IF;
         SELECT a.organization_id,a.article_id INTO v_owner,v_id
           FROM public_content.news_slug_aliases a WHERE a.slug=_slug;
         IF FOUND AND (v_owner<>_org OR v_id<>_id)
         THEN RAISE EXCEPTION 'news_slug_reserved' USING ERRCODE='23505'; END IF;
         INSERT INTO public_content.news_slug_aliases(slug,organization_id,article_id)
           VALUES(_slug,_org,_id) ON CONFLICT(slug) DO NOTHING;
-        INSERT INTO public_content.news_slug_current(organization_id,article_id,slug)
-          VALUES(_org,_id,_slug)
-          ON CONFLICT(kind,organization_id,article_id) DO UPDATE SET slug=excluded.slug;
+        INSERT INTO public_content.news_slug_current(organization_id,article_id,slug,revision)
+          VALUES(_org,_id,_slug,v_revision+1)
+          ON CONFLICT(kind,organization_id,article_id) DO UPDATE SET slug=excluded.slug,revision=excluded.revision;
         RETURN _slug;
       END $news_slug$;
-      REVOKE ALL ON FUNCTION public_content.claim_news_slug(text,text,text,text) FROM PUBLIC;
+      REVOKE ALL ON FUNCTION public_content.claim_news_slug(text,text,text,bigint) FROM PUBLIC;
       """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -89,7 +95,7 @@ public sealed class PublicNewsSlugRegistry : Migration
           OR EXISTS(SELECT 1 FROM public_content.news_slug_current)
         THEN RAISE EXCEPTION 'news_slug_history_requires_forward_recovery'; END IF;
       END $slug_recovery$;
-      DROP FUNCTION public_content.claim_news_slug(text,text,text,text);
+      DROP FUNCTION public_content.claim_news_slug(text,text,text,bigint);
       DROP TABLE public_content.news_slug_current,public_content.news_slug_aliases;
       """);
 }

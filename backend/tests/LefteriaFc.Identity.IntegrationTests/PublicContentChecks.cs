@@ -262,44 +262,62 @@ internal sealed partial class TestDatabase
         await context.Database.ExecuteSqlRawAsync("""
             DO $slug_test$
             BEGIN
-              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',NULL)
+              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',0)
                 IS DISTINCT FROM 'fixture-news'
               THEN RAISE EXCEPTION 'initial reservation failed'; END IF;
-              IF public_content.claim_news_slug('lefteria_fc','shared','renamed-news','fixture-news')
+              IF public_content.claim_news_slug('lefteria_fc','shared','renamed-news',1)
                 IS DISTINCT FROM 'renamed-news'
               THEN RAISE EXCEPTION 'rename failed'; END IF;
               IF (SELECT count(*) FROM public_content.news_slug_aliases
                 WHERE organization_id='lefteria_fc' AND article_id='shared')<>2
                 OR NOT EXISTS(SELECT 1 FROM public_content.news_slug_current
-                  WHERE organization_id='lefteria_fc' AND article_id='shared' AND slug='renamed-news')
+                  WHERE organization_id='lefteria_fc' AND article_id='shared' AND slug='renamed-news' AND revision=2)
               THEN RAISE EXCEPTION 'alias history lost'; END IF;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc_academy','shared','fixture-news',NULL);
+                PERFORM public_content.claim_news_slug('lefteria_fc_academy','shared','fixture-news',0);
                 RAISE EXCEPTION 'cross-owner alias reuse accepted';
               EXCEPTION WHEN unique_violation THEN NULL; END;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc','first','shared',NULL);
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','shared',0);
                 RAISE EXCEPTION 'legacy ID collision accepted';
               EXCEPTION WHEN unique_violation THEN NULL; END;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc','shared','stale-news','fixture-news');
+                PERFORM public_content.claim_news_slug('lefteria_fc','shared','stale-news',1);
                 RAISE EXCEPTION 'stale rename accepted';
               EXCEPTION WHEN serialization_failure THEN NULL; END;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc','academy-only','foreign-news',NULL);
+                PERFORM public_content.claim_news_slug('lefteria_fc','academy-only','foreign-news',0);
                 RAISE EXCEPTION 'foreign article accepted';
               EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc','first','../bad',NULL);
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','../bad',0);
                 RAISE EXCEPTION 'invalid slug accepted';
               EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
               BEGIN
-                PERFORM public_content.claim_news_slug('lefteria_fc','first','search',NULL);
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','search',0);
                 RAISE EXCEPTION 'reserved route accepted';
               EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
-              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news','renamed-news')
+              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',2)
                 IS DISTINCT FROM 'fixture-news'
               THEN RAISE EXCEPTION 'own historical alias could not be restored'; END IF;
+              -- A -> B -> A cannot resurrect a request from revision 1.
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','shared','aba-stale',1);
+                RAISE EXCEPTION 'stale ABA rename accepted';
+              EXCEPTION WHEN serialization_failure THEN NULL; END;
+              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',3)
+                IS DISTINCT FROM 'fixture-news'
+                OR NOT EXISTS(SELECT 1 FROM public_content.news_slug_current
+                  WHERE organization_id='lefteria_fc' AND article_id='shared' AND slug='fixture-news' AND revision=3)
+              THEN RAISE EXCEPTION 'same-slug no-op changed revision'; END IF;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','shared','fixture-news',NULL);
+                RAISE EXCEPTION 'missing revision accepted';
+              EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','shared','fixture-news',-1);
+                RAISE EXCEPTION 'negative revision accepted';
+              EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
               IF (SELECT count(*) FROM public_content.news_slug_aliases)<>2
               THEN RAISE EXCEPTION 'failed claims changed persistent reservations'; END IF;
             END $slug_test$;
@@ -351,7 +369,7 @@ internal sealed partial class TestDatabase
             "DELETE FROM public_content.import_state WHERE false",
             "SELECT slug FROM public_content.news_slug_aliases LIMIT 1",
             "SELECT slug FROM public_content.news_slug_current LIMIT 1",
-            "SELECT public_content.claim_news_slug('lefteria_fc','first','fixture-news',NULL)" })
+            "SELECT public_content.claim_news_slug('lefteria_fc','first','fixture-news',0)" })
         {
             try { await using var command=new NpgsqlCommand(sql,connection); await command.ExecuteNonQueryAsync(); }
             catch(PostgresException exception) when(exception.SqlState==PostgresErrorCodes.InsufficientPrivilege){continue;}

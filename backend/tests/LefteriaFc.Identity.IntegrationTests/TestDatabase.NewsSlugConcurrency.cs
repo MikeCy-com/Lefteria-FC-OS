@@ -30,7 +30,7 @@ internal sealed partial class TestDatabase
             await connection.OpenAsync();
             await start.Task;
             await using var command = new NpgsqlCommand("""
-                SELECT public_content.claim_news_slug(@owner,'shared',@slug,NULL)
+                SELECT public_content.claim_news_slug(@owner,'shared',@slug,0)
                 """, connection) { CommandTimeout = 20 };
             command.Parameters.AddWithValue("owner", owner);
             command.Parameters.AddWithValue("slug", slug);
