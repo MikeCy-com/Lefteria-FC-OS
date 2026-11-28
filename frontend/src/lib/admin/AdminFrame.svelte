@@ -75,6 +75,12 @@
               <a class="admin-nav-section" href="/admin/groups"
                 aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)?'page':undefined}
                 data-testid="admin-groups-link">Ομάδες & τμήματα</a>
+              {#if user.organizations.some(org=>org.id==='lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')}
+                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc" data-sveltekit-reload data-testid="admin-first-team-direct">Πρώτη ομάδα</a>
+              {/if}
+              {#if user.organizations.some(org=>org.id==='lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')}
+                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc_academy" data-sveltekit-reload data-testid="admin-academy-direct">Ακαδημία</a>
+              {/if}
               {#if canManagePlayerCrm}
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
                   data-testid="admin-player-crm-link">Παίκτες & προφίλ</a>
