@@ -1,7 +1,7 @@
 import {validTrainingPlanForm,type TrainingPlanForm,type TrainingPlanDraft} from './academy-training-plans.ts';
 
 export type WeeklySlot={weekday:number;start_time:string;duration_minutes:number};
-export type SeriesInput={start:string;end:string;title:string;location:string;notes:string;slots:WeeklySlot[]};
+export type SeriesInput={start:string;end:string;title:string;location:string;notes:string;slots:WeeklySlot[];excludedDays?:string[]};
 const dayPattern=/^\d{4}-\d{2}-\d{2}$/;
 const dayMs=86400000;
 function timestamp(day:string):number{
@@ -15,10 +15,15 @@ export function trainingSeries(input:SeriesInput):TrainingPlanForm[]|null{
     input.slots.length<1||input.slots.length>7||
     new Set(input.slots.map(slot=>slot.weekday)).size!==input.slots.length||
     input.slots.some(slot=>!Number.isInteger(slot.weekday)||slot.weekday<0||slot.weekday>6))return null;
+  const excluded=input.excludedDays??[];
+  if(excluded.length>366||new Set(excluded).size!==excluded.length||
+    excluded.some(day=>!Number.isFinite(timestamp(day))||timestamp(day)<start||timestamp(day)>end||
+      !input.slots.some(slot=>slot.weekday===new Date(timestamp(day)).getUTCDay())))return null;
+  const skip=new Set(excluded);
   const rows:TrainingPlanForm[]=[];
   for(let n=start;n<=end;n+=dayMs){
     const date=new Date(n),slot=input.slots.find(s=>s.weekday===date.getUTCDay());
-    if(!slot)continue;
+    if(!slot||skip.has(date.toISOString().slice(0,10)))continue;
     const plan={day:date.toISOString().slice(0,10),start_time:slot.start_time,
       duration_minutes:slot.duration_minutes,title:input.title,location:input.location,notes:input.notes};
     if(!validTrainingPlanForm(plan)||minute(plan.start_time)+plan.duration_minutes>1440)return null;

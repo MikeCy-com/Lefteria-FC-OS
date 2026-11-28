@@ -15,11 +15,19 @@
   let today=$state(new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
   let start=$state(''),end=$state(''),title=$state('Προπόνηση'),location=$state(''),notes=$state('');
   let slots=$state(days.map(day=>({weekday:day.id,enabled:false,start_time:'17:00',duration_minutes:60})));
+  let excludedDays=$state<string[]>([]),exceptionDay=$state('');
   let busy=$state(false),message=$state(''),error=$state(''),confirmed=$state(false);
   let preview=$state<{plan:TrainingPlanForm;status:'new'|'existing'|'conflict'}[]|null>(null);
   let previewKey=$state(''),created=$state(0),attempted=$state('');
   let controller:AbortController|null=null;
-  const input=$derived({start,end,title,location,notes,slots:slots.filter(s=>s.enabled).map(({weekday,start_time,duration_minutes}):WeeklySlot=>({weekday,start_time,duration_minutes}))});
+  const input=$derived({start,end,title,location,notes,slots:slots.filter(s=>s.enabled).map(({weekday,start_time,duration_minutes}):WeeklySlot=>({weekday,start_time,duration_minutes})),excludedDays});
+  const allCandidates=$derived(start>=today?trainingSeries({...input,excludedDays:[]}):null);
+  const canExclude=$derived(!!allCandidates?.some(plan=>plan.day===exceptionDay)&&!excludedDays.includes(exceptionDay));
+  function addException(){
+    if(busy||!permitted||!canExclude)return;
+    excludedDays=[...excludedDays,exceptionDay].sort();exceptionDay='';
+  }
+  function removeException(day:string){if(!busy&&permitted)excludedDays=excludedDays.filter(value=>value!==day);}
   const candidates=$derived(start>=today?trainingSeries(input):null);
   const key=$derived(JSON.stringify(input));
   const pending=$derived(preview?.filter(row=>row.status==='new')??[]);
@@ -33,6 +41,8 @@
     if(!end)end=to<start?start:to;
   });
   $effect(()=>{
+    // Any exception no longer matching the selected period or weekday is
+    // removed by the operator, not silently ignored.
     if(previewKey&&key!==previewKey){preview=null;confirmed=false;previewKey='';}
   });
   onDestroy(()=>controller?.abort());
@@ -120,6 +130,21 @@
         </div>
       {/each}
     </div>
+    <div class="series-exceptions" data-testid="training-series-exceptions">
+      <h4>Ημερομηνίες χωρίς προπόνηση</h4>
+      <p class="admin-muted">Εξαιρέστε αργίες, τουρνουά ή ημέρες ανάπαυσης πριν από τη δημιουργία. Δεν ακυρώνονται υπάρχουσες προπονήσεις.</p>
+      <div class="series-exception-picker">
+        <label>Ημερομηνία εξαίρεσης <input type="date" min={start} max={end} bind:value={exceptionDay}/></label>
+        <button type="button" class="admin-secondary" disabled={!canExclude||busy} onclick={addException}>Προσθήκη εξαίρεσης</button>
+      </div>
+      {#if excludedDays.length}
+        <ul class="series-exception-list">{#each excludedDays as day (day)}
+          <li><span>{day}</span><button type="button" class="admin-secondary" onclick={()=>removeException(day)} aria-label={'Αφαίρεση εξαίρεσης '+day}>Αφαίρεση</button></li>
+        {/each}</ul>
+        <p role="status">{excludedDays.length} εξαιρέσεις · {candidates?.length??0} προγραμματισμένες προπονήσεις</p>
+        {#if !candidates}<p role="alert">Ελέγξτε τις εξαιρέσεις μετά την αλλαγή ημερομηνιών ή ημερών. Απαιτείται τουλάχιστον μία προπόνηση.</p>{/if}
+      {/if}
+    </div>
     <button type="button" class="admin-secondary" disabled={!candidates||busy} onclick={()=>void check()}>Έλεγχος & προεπισκόπηση {candidates?.length??0} προπονήσεων</button>
     {#if !candidates}<p class="admin-muted">Επιλέξτε έγκυρες ημερομηνίες και ημέρες (έως 180 προπονήσεις σε 366 ημέρες).</p>{/if}
   </fieldset>
@@ -153,4 +178,10 @@
 .series-slots>div{display:flex;flex-wrap:wrap;align-items:end;gap:12px;padding:8px;border:1px solid var(--admin-line);border-radius:8px}
 .series-slots>div>label:first-child{display:flex;align-items:center;min-width:120px}
 .series-preview{max-height:300px;overflow:auto}
+.series-exceptions{display:grid;gap:8px;padding:12px;border:1px solid var(--admin-line);border-radius:8px}
+.series-exceptions h4,.series-exceptions p{margin:0}
+.series-exception-picker,.series-exception-list li{display:flex;align-items:end;gap:10px;flex-wrap:wrap}
+.series-exception-picker label{display:grid;gap:5px}
+.series-exception-list{display:grid;gap:6px;list-style:none;padding:0;margin:0;max-height:200px;overflow:auto}
+.series-exception-list li{justify-content:space-between;align-items:center}
 </style>
