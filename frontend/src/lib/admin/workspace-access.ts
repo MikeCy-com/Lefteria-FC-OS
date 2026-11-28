@@ -16,7 +16,9 @@ export function groupWorkspaceAccess(user:User,owner:Owner,canManageGroup:boolea
   const attendance=manager&&academy&&attendanceScope&&has('attendance:read');
   const matches=manager&&has('fixtures:read');
   return {
-    players:canEdit,
+    // Exact group roster reads require the existing write capability, but do
+    // not imply permission to create a team or edit its settings.
+    players:manager&&has(academy?'academy:write':'teams:write'),
     profileWrite:canEdit,
     training,trainingWrite:training&&has('training:write'),
     attendance,attendanceWrite:attendance&&has('attendance:write'),
