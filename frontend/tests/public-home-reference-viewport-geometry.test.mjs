@@ -31,7 +31,9 @@ test('desktop geometry restores source brand interval before news and mobile rem
   assert.match(base,/--public-rail:154px/);
   assert.match(base,/--public-header:64px/);
   assert.match(base,/\.public-rail nav :is\(a,button\)/);
-  assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
+  assert.match(css,/min-height:var\(--lf-home-hero-min-height,560px\);height:auto/);
+  assert.match(css,/--lf-home-news-lead-height,380px/);
+  assert.match(home,/data-testid="home-matches-section"/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
   assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
   assert.match(refresh,/min-height:var\(--ui-motto-height\)/);
