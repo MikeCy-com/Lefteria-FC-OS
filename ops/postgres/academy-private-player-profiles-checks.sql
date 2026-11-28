@@ -9,6 +9,7 @@ DECLARE
   v_super_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_manager_token text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_data jsonb;
+  v_lifecycle_request uuid:=gen_random_uuid();
   v_image bytea:=decode('ffd8ffd9','hex');
   v_archived text:='ci-archived-'||md5(gen_random_uuid()::text);
 BEGIN
@@ -99,6 +100,30 @@ BEGIN
          'admin.academy.player.portrait.update',
          'admin.academy.player.portrait.remove'))<>3
   THEN RAISE EXCEPTION 'profile_audit_not_complete'; END IF;
+  BEGIN
+    PERFORM club.admin_academy_player_lifecycle(v_manager_token,v_player,'archive',0,gen_random_uuid(),'CI denied lifecycle');
+    RAISE EXCEPTION 'manager_archived_child';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_data:=club.admin_academy_player_lifecycle(v_super_token,v_player,'archive',0,v_lifecycle_request,'CI reviewed departure');
+  IF v_data->>'state'<>'archived' OR (v_data->>'revision')::int<>1
+    OR EXISTS(SELECT 1 FROM club.players WHERE id=v_player AND (is_active OR NOT is_archived))
+    THEN RAISE EXCEPTION 'archive_failed'; END IF;
+  v_data:=club.admin_academy_player_lifecycle(v_super_token,v_player,'archive',0,v_lifecycle_request,'CI reviewed departure');
+  IF v_data->>'replay'<>'true' THEN RAISE EXCEPTION 'archive_replay_failed'; END IF;
+  BEGIN
+    PERFORM club.read_admin_academy_player_profile(v_super_token,v_player);
+    RAISE EXCEPTION 'archived_child_active_profile_read';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.admin_academy_player_lifecycle(v_super_token,v_player,'reactivate',0,gen_random_uuid(),'CI stale reactivation');
+    RAISE EXCEPTION 'stale_lifecycle_revision_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  v_data:=club.admin_academy_player_lifecycle(v_super_token,v_player,'reactivate',1,gen_random_uuid(),'CI reviewed return');
+  IF v_data->>'state'<>'active' OR (v_data->>'revision')::int<>2
+    OR NOT EXISTS(SELECT 1 FROM club.players WHERE id=v_player AND is_active AND NOT is_archived)
+    THEN RAISE EXCEPTION 'reactivation_failed'; END IF;
+  v_data:=club.read_admin_academy_player_profile(v_super_token,v_player);
+  IF v_data->>'biography'<>'Passing and receiving' THEN RAISE EXCEPTION 'lifecycle_lost_player_history'; END IF;
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
     WHERE token_digest=v_super_token;
   BEGIN
