@@ -11,7 +11,7 @@ const privatePanel=read('lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
 test('Svelte compiles group player manager-only goals read UI without editor controls',()=>{
   for(const [name,source] of Object.entries({goal,roster,group,privatePanel}))
     assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>500,name);
-  assert.match(group,/allowGoalRead=\{user\.role==='manager'\}/);
+  assert.match(group,/allowGoalRead=\{user\.role==='manager' && organization==='lefteria_fc_academy'\}/);
   assert.match(group,/allowGoalManagement=\{user\.role==='super_admin'\}/);
   assert.match(roster,/allowGoalRead && currentGroup && currentGroups\(player\)\.includes\(currentGroup\)/);
   assert.match(roster,/inspectedGoals===player\.id && allowGoalRead && currentGroup/);
