@@ -427,8 +427,8 @@
                     Άνοιγμα Player 360 · {row.applicant_first_name} ›
                   </a>
                   <a class="admin-secondary" data-testid="approved-player-documents"
-                    href={'/admin/documents?'+new URLSearchParams({
-                      organization_id:'lefteria_fc_academy',
+                    data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({
+                      organization_id:'lefteria_fc_academy',view:'players',section:'documents',
                       player_id:row.onboarded_player_id
                     }).toString()}>
                     <span aria-hidden="true">▣</span> Προστατευμένα έγγραφα {row.applicant_first_name}
@@ -443,7 +443,7 @@
                   </button>
                   {#if guardianReviewId === row.id}
                     <AcademyGuardianProofReview registrationId={row.id}
-                      guardianPhone={row.guardian_phone} />
+                      guardianPhone={row.guardian_phone} expectedPlayerId={row.onboarded_player_id} />
                   {/if}
                 {/if}
               {/if}
