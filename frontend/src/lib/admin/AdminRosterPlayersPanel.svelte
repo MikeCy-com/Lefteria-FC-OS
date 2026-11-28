@@ -42,6 +42,7 @@
   let inspectedGoals = $state<string|null>(null);
   let inspectedProfile = $state<string|null>(null);
   let selectedPlayer360=$state<string|null>(null);
+  const focusedPlayer360=$derived(page?.players.find(player=>player.id===selectedPlayer360)??null);
   type Player360Tab='overview'|'profile'|'documents'|'development'|'goals'|'attendance';
   let player360Tab=$state<Player360Tab>('overview');
   function closePlayer360(){
@@ -222,6 +223,7 @@
 
 <section class="admin-panel admin-player-directory" data-testid="admin-private-player-directory"
   aria-labelledby="admin-private-player-heading">
+  {#if !focusedPlayer360}
   <div class="admin-player-heading">
     <div>
       <p class="admin-eyebrow">ΕΞΟΥΣΙΟΔΟΤΗΜΕΝΟ ΡΟΣΤΕΡ · ΜΟΝΟ ΔΙΑΧΕΙΡΙΣΤΕΣ</p>
@@ -265,6 +267,7 @@
     <p class="admin-muted">Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας.
       Για πλήρη έλεγχο του ρόστερ χρησιμοποιήστε την πλοήγηση σελίδων.</p>
   </div>
+  {/if}
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
   {:else if failed || !page}
@@ -273,22 +276,22 @@
       <button type="button" class="admin-secondary" onclick={()=>refresh++}>Επανάληψη</button>
     </div>
   {:else}
-    <div class="admin-player-total" role="status">
+    {#if !focusedPlayer360}<div class="admin-player-total" role="status">
       <strong>{page.total}</strong><span>{currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
       <span class="admin-player-filter-count">Εμφανίζονται {visiblePlayers.length} / {page.players.length} στη σελίδα</span>
-    </div>
+    </div>{/if}
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
     {#if page.players.length===0}
       <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
-      <div class="admin-player-columns" aria-hidden="true">
+      {#if !focusedPlayer360}<div class="admin-player-columns" aria-hidden="true">
         <span>ΠΑΙΚΤΗΣ</span><span>ΟΜΑΔΑ / ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</span>
-      </div>
+      </div>{/if}
       <ul class="admin-player-list" data-testid="admin-players-list">
-        {#each visiblePlayers as player (player.id)}
-          <li>
-            <div class="admin-player-identity">
+        {#each (focusedPlayer360?[focusedPlayer360]:visiblePlayers) as player (player.id)}
+          <li class:admin-player-focused={focusedPlayer360!==null}>
+            {#if !focusedPlayer360}<div class="admin-player-identity">
               <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
               <div><strong>{player.name}</strong></div>
             </div>
@@ -340,6 +343,7 @@
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
+            {/if}
             {#if selectedPlayer360===player.id && (allowPrivate||allowGoalRead||allowFinance)}
               {#key owner+':'+actorId+':'+player.id}
               <section class="admin-player360 admin-player-individual-workspace" aria-label={'Player 360 · '+player.name}
@@ -415,17 +419,17 @@
           </li>
         {/each}
       </ul>
-      {#if visiblePlayers.length===0}
+      {#if !focusedPlayer360 && visiblePlayers.length===0}
         <p class="admin-muted" role="status" data-testid="admin-player-search-empty">Δεν υπάρχουν αποτελέσματα σε αυτή τη σελίδα.</p>
       {/if}
     {/if}
-    <nav class="admin-player-paging" aria-label="Σελίδες ρόστερ">
+    {#if !focusedPlayer360}<nav class="admin-player-paging" aria-label="Σελίδες ρόστερ">
       <span>{page.total===0 ? 0 : offset+1}–{Math.min(offset+pageSize,page.total)} / {page.total}</span>
       <button type="button" class="admin-secondary" disabled={offset===0 || loading}
         onclick={()=>offset=Math.max(0,offset-pageSize)}>Προηγούμενη</button>
       <button type="button" class="admin-secondary" disabled={loading || offset+pageSize>=page.total}
         onclick={()=>offset+=pageSize}>Επόμενη</button>
-    </nav>
+    </nav>{/if}
   {/if}
 </section>
 
@@ -462,6 +466,8 @@
   .admin-player360-summary>div{display:grid;gap:6px;padding:12px;border:1px solid var(--admin-line);border-radius:8px;min-width:0;overflow-wrap:anywhere}
   .admin-player360-summary span,.admin-player360-save-note{font-size:12px}
   .admin-player360-open{min-height:44px}
+  .admin-player-list>li.admin-player-focused{display:block;padding:0;border:0;background:transparent}
+  .admin-player-focused>.admin-player360{width:100%;box-sizing:border-box}
   .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
   .admin-player-attendance-details>summary{cursor:pointer;font-weight:800;color:#f8c95d;min-height:44px;display:flex;align-items:center}
   .admin-player-attendance-details>summary:focus-visible{outline:3px solid #f8c95d;outline-offset:3px}
