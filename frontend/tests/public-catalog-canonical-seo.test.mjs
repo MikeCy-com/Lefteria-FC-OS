@@ -47,7 +47,7 @@ test('Each catalog detail redirects after its owner-scoped loader resolves a rea
     assert.match(route,/await loadPublicCatalogDetail\(url,/);
     assert.match(route,/catalogCanonicalDetailLink\(/);
     assert.match(route,/catalogCanonicalRedirect\(url,canonical\)/);
-    assert.match(route,/if\(redirectTo\) redirect\(308,redirectTo\)/);
+    assert.match(route,/if\(redirectTo\) redirect\(301,redirectTo\)/);
     assert.match(route,/if \(!row\) error\(404,/);
     assert.doesNotMatch(route,/fetch\(|credentials|authorization/);
   }

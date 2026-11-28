@@ -7,7 +7,7 @@ export const load = async ({ url, params }: { url: URL; params: { id: string } }
   const canonical = personPublicLink('staff', data.staff);
   if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) {
     const team = data.returnTeamId ? '?team_id=' + encodeURIComponent(data.returnTeamId) : '';
-    redirect(308, canonical + team);
+    redirect(301, canonical + team);
   }
   return data;
 };

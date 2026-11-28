@@ -14,7 +14,7 @@ export async function load({ url, params }: { url: URL; params: { slug: string }
   const group = exact ?? (separator > 0 ? groups.find(group => group.id === slug.slice(separator + 2)) : undefined);
   if (!group) error(404, 'Το τμήμα δεν βρέθηκε.');
   const canonical = academyGroupLink(group);
-  if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) redirect(308,canonical);
+  if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) redirect(301,canonical);
   // Never serialize unrelated public sections to a group page. The API
   // projection already abbreviates youth identities; filter membership again
   // by this published Academy group before rendering them.

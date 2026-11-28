@@ -34,6 +34,10 @@ The sitemap uses strict published-page reads for both organizations. Upstream er
 
 Known completeness limits remain: the current published CMS SQL projection caps results at 100 per organization, the news sitemap caps results at 500, and the public site fixture projection is bounded. These limits require separate pagination/index work before claiming an exhaustive sitemap. Strict availability checks do not prove snapshot consistency across independent endpoints.
 
+## Legacy public detail redirects
+
+Existing news, Academy group, player, staff, match, event, partner, sponsor and season detail handlers now use HTTP 301 for verified legacy ID/title aliases. The published-record and owner checks, canonical destinations, permitted return filters and missing-record handling are unchanged. Static convenience aliases retain their existing behavior. This is a status-code alignment only: the existing title-plus-ID canonical URLs are still supported; the future ID-free registry, collision/rename history and full legacy inventory remain separate acceptance work. Earlier hosted 308 evidence is historical and does not verify this change. Require exact-head CI and a new isolated route crawl before release.
+
 ## Verification and release gates
 
 The frontend test suite covers strict domain gating, crawler policy, source parity, XML, disallowed player records and ID collision handling. SvelteKit typechecking/build and existing disposable Docker CI must pass before merging.

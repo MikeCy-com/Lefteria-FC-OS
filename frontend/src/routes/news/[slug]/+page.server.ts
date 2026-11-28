@@ -15,7 +15,7 @@ export const load = async ({ url, params }: { url: URL; params: { slug: string }
     const canonical = articleLink(data.article, data.newsScope);
     const canonicalUrl = new URL(canonical, url.origin);
     if (url.pathname !== canonicalUrl.pathname) {
-      redirect(308, canonicalUrl.pathname + canonicalUrl.search);
+      redirect(301, canonicalUrl.pathname + canonicalUrl.search);
     }
   }
   return data;
