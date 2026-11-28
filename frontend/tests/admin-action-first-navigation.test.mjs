@@ -39,7 +39,7 @@ test('five group-only tools disappear from both global navigation and dashboard'
     assert.doesNotMatch(home,new RegExp('href="/admin/'+slug+'"'));
   for(const slug of ['matches','evaluations','documents'])
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+slug+'"'));
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/schedule"/);
   assert.match(assigned,/href="\/admin\/attendance"/);
   assert.equal((frame.match(/href="\/admin\/(?:schedule|attendance)"/g)||[]).length,2);
