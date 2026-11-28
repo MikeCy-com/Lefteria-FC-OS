@@ -24,7 +24,7 @@ test('admin navigation uses larger work-area labels than links, not inverted typ
 
 test('native one-level category disclosures expose keyboard focus and selected-page contrast',()=>{
   assert.ok(compile(frame,{filename:'AdminFrame.svelte',generate:'server'}).js.code.length>100);
-  assert.equal((frame.match(/class="admin-nav-disclosure"/g)||[]).length,5);
+  assert.equal((frame.match(/class="admin-nav-disclosure"/g)||[]).length,6);
   assert.match(frame,/<details class="admin-nav-disclosure"/);
   assert.match(frame,/<summary class="admin-nav-category"/);
   assert.match(compact,/\.admin-nav-disclosure:not\(\[open\]\) > \.admin-nav-links/);
@@ -60,7 +60,7 @@ test('visibility remains driven only by live modules, verified roles and organiz
     'admin-groups-link','admin-territories-link','admin-hub-subscriptions-link',
     'admin-settings-link'])assert.ok(frame.includes(id),id);
   assert.doesNotMatch(frame,/href="\/admin\/(?:evaluations|documents|matches)"/);
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/schedule"/);
   assert.match(assigned,/href="\/admin\/attendance"/);
 });
