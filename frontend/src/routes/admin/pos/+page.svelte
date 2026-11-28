@@ -614,7 +614,7 @@
 {/if}
 
 <style>
-  .admin-pos{max-width:1200px}
+  .admin-pos{width:100%;max-width:none;min-width:0}
   .admin-pos>h1{margin:0 0 10px}
   .admin-pos>.admin-muted{max-width:75ch;margin:0 0 20px}
   .admin-pos-owner{margin:0 0 15px}
