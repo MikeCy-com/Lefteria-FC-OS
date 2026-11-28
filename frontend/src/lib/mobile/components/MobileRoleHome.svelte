@@ -1,7 +1,7 @@
 <script lang="ts">
   import {untrack} from 'svelte';
   import type {MobileRole,MobileTab} from '../navigation.ts';
-  import {TAB_NAMES,ROLE_NAMES} from '../navigation.ts';
+  import {TAB_NAMES,ROLE_NAMES,fanPublicDestination} from '../navigation.ts';
   import type {MobileCalendar,MobileCalendarItem,AvailabilityStatus} from '../calendar.ts';
   import {clubToday,CALENDAR_KIND_LABELS,formatCalendarDate,isCalendarKind} from '../calendar.ts';
   import {ROLE_HOME_SHORTCUTS,trustedRoleHomeEvents,trustedNextRoleMatch,
@@ -64,8 +64,9 @@
     <h2 id={id+'-tools'}>{role==='fan'?'Ο σύλλογός μου':'Γρήγορη πρόσβαση'}</h2>
     <div class="shortcuts">
       {#each shortcuts as tab (tab)}
-        {#if role==='fan' && ['matches','news','team','shop'].includes(tab)}
-          <a class="shortcut" href={tab==='matches'?'/team?tab=results':tab==='news'?'/news':tab==='team'?'/team':'/shop'}
+        {@const publicHref = fanPublicDestination(tab, role)}
+        {#if publicHref}
+          <a class="shortcut" href={publicHref}
             data-testid={'fan-home-'+tab}><strong>{TAB_NAMES[tab]}</strong><span aria-hidden="true">↗</span></a>
         {:else}
           <button type="button" class="shortcut" disabled={busy||(needsOrganization&&role==='management')}

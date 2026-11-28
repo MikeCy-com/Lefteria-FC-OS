@@ -113,6 +113,7 @@ try {
           state:'visible',timeout:25000
         });
         await page.evaluate(()=>document.fonts.ready);
+        if(role==='fan')assert.equal(await page.getByTestId('fan-home-potm').getAttribute('href'),'/vote');
         const snapshot=await page.evaluate(()=>({
           pathname:location.pathname,
           tab:new URLSearchParams(location.search).get('tab'),

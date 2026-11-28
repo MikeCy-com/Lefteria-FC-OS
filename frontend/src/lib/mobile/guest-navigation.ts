@@ -9,6 +9,7 @@ export const GUEST_PUBLIC_LINKS = [
   { tab: 'standings', href: '/team?tab=overview#standings', label: 'Βαθμολογία' },
   { tab: 'team', href: '/team', label: 'Ομάδα & ρόστερ' },
   { tab: 'shop', href: '/shop', label: 'Επίσημο κατάστημα' },
+  { tab: 'potm', href: '/vote', label: 'Παίκτης του μήνα · αποτελέσματα' },
 ] as const satisfies readonly { tab: MobileTab; href: string; label: string }[];
 
 const aliases: Readonly<Record<string, MobileTab>> = {
