@@ -421,6 +421,15 @@
             <button type="button" class="admin-secondary" onclick={() => retry++}>Δοκιμή ξανά</button>
           </section>
         {:else}
+          <nav class="admin-pos-task-nav" aria-label="Γρήγορες ενέργειες POS">
+            <a href="#pos-basket">Καλάθι</a>
+            <a href="#pos-categories-heading">Κατηγορίες</a>
+            <a href="#pos-products-heading">Προϊόντα & τιμές</a>
+            {#if owner && ['manager','super_admin'].includes($auth.session.user.role) && hasAdminPermission($auth.session.user.permissions,'finance:read')}<a href="#pos-sites">Σημεία πώλησης</a>{/if}
+            {#if canEdit && owner && ['manager','super_admin'].includes($auth.session.user.role)}<a href="#pos-shifts">Βάρδιες</a>{/if}
+            {#if canEdit && owner && $auth.session.user.role==='super_admin' && hasAdminPermission($auth.session.user.permissions,'finance:read')}<a href="#pos-finance">Οικονομικές κινήσεις</a>{/if}
+            {#if owner && $auth.session.user.role==='super_admin'}<a href="#pos-stock">Απόθεμα ανά τοποθεσία</a>{/if}
+          </nav>
           <div class="admin-pos-stats" aria-label="Στοιχεία πραγματικού καταλόγου">
             <div><span>Κατηγορίες</span><strong>{catalog.categories.length}</strong></div>
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
@@ -428,20 +437,20 @@
           </div>
           {#if owner && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
             hasAdminPermission($auth.session.user.permissions,'finance:read')}
-            <AdminPosSitesPanel owner={owner as Organization}
+            <div id="pos-sites"><AdminPosSitesPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
               canProvision={$auth.session.user.role==='super_admin'}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
-            <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+            <div id="pos-shifts"><AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit && $auth.session && $auth.session.user.role==='super_admin' &&
             hasAdminPermission($auth.session.user.permissions,'finance:read') && owner}
-            <AdminPosFinanceHandoffPanel owner={owner as Organization}
+            <div id="pos-finance"><AdminPosFinanceHandoffPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit}
             <section class="admin-panel admin-pos-editor" aria-labelledby="pos-editor-heading" data-testid="admin-pos-category-editor">
@@ -552,7 +561,7 @@
               {/if}
             </section>
           {/if}
-          {#key catalog.organization_id}<AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>{/key}
+          <div id="pos-basket">{#key catalog.organization_id}<AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>{/key}</div>
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -605,12 +614,12 @@
             </section>
           </div>
           {#if owner && $auth.session && $auth.session.user.role==='super_admin'}
-            <AdminPosLocationsPanel owner={owner as Organization}
+            <div id="pos-stock"><AdminPosLocationsPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
               products={catalog.products}
               canWrite={!!canEdit&&['manager','super_admin'].includes($auth.session.user.role)}
               onExpired={()=>auth.invalidateSession()}
-              onRevoked={()=>void auth.bootstrap()}/>
+              onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
         {/if}
       </div>
@@ -625,6 +634,10 @@
 
 <style>
   .admin-pos{width:100%;max-width:none;min-width:0}
+  .admin-pos-task-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}
+  .admin-pos-task-nav a{padding:10px 12px;border:1px solid var(--admin-line);border-radius:8px;color:inherit;text-decoration:none}
+  .admin-pos-task-nav a:is(:hover,:focus-visible){border-color:var(--admin-gold);color:var(--admin-gold)}
+  .admin-pos :is([id^="pos-"]){scroll-margin-top:100px}
   .admin-pos-owner-actions{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
   .admin-pos-owner-actions button[aria-pressed=true]{border-color:var(--admin-gold);color:var(--admin-gold)}
   .admin-pos>h1{margin:0 0 10px}
