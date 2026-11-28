@@ -1,0 +1,52 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('unified CRM connects approved registration to exact canonical Player 360',()=>{
+  for(const path of ['lib/admin/AdminFrame.svelte','lib/admin/AdminCrmWorkspaceNav.svelte','lib/admin/AdminRosterPlayersPanel.svelte','lib/admin/AdminPlayerPrivateProfilePanel.svelte','routes/admin/academy-office/+page.svelte','routes/admin/groups/+page.svelte','routes/admin/leads/+page.svelte']){
+    const source=read('frontend/src/'+path);
+    assert.ok(compile(source,{filename:path,generate:'server'}).js.code.length>100);
+  }
+  const frame=read('frontend/src/lib/admin/AdminFrame.svelte');
+  const crm=frame.slice(frame.indexOf('data-testid="admin-crm-navigation"'));
+  for(const id of ['admin-player-crm-link','admin-first-team-players-link','admin-crm-leads-link'])assert.ok(crm.includes(id));
+  assert.ok(crm.includes('/admin/academy-office'));
+  const office=read('frontend/src/routes/admin/academy-office/+page.svelte');
+  assert.match(office,/openedRegistration===row\.id/);
+  assert.match(office,/player_id:row\.onboarded_player_id/);
+  const roster=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
+  assert.match(roster,/record\.player_id!==requested/);
+  assert.match(roster,/verified\(single,currentOwner,0,null\)/);
+  assert.match(roster,/selectedPlayer360=requested/);
+  const profile=read('frontend/src/lib/admin/AdminPlayerPrivateProfilePanel.svelte');
+  assert.match(profile,/profile\.registration\.guardian_phone/);
+  assert.match(profile,/profile\.registration\.applicant_birth_date/);
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128191000_PlayerRegistrationSource.cs');
+  assert.match(sql,/club\.authorize_academy_private_profile\(_digest,_player,false\)/);
+  assert.match(sql,/i\.onboarded_player_id=placement\.player_id/);
+  assert.match(sql,/placement\.player_id=p\.id/);
+  assert.doesNotMatch(sql,/registration_sealed_evidence|evidence_ciphertext|GRANT SELECT/);
+});
+test('registration PDFs are generated on the server and stored in the same submission transaction',()=>{
+  const api=read('backend/src/LefteriaFc.Api/Marketing/AcademyRegistrationEndpoints.cs');
+  const renderer=read('backend/src/LefteriaFc.Api/Marketing/AcademyRegistrationPdf.cs');
+  assert.match(api,/AcademyRegistrationPdf\.Render\(child,id,policy/);
+  assert.match(api,/StoreGeneratedPdfAsync\(connection,transaction,id,uploadDigest/);
+  assert.ok(api.indexOf('StoreGeneratedPdfAsync(connection,transaction,id,uploadDigest')<api.indexOf('transaction.CommitAsync'));
+  assert.match(api,/'registration_form',NULL::date/);
+  assert.match(api,/aes\.Encrypt\(nonce,pdf,ciphertext,tag,aad\)/);
+  assert.match(renderer,/SKDocument\.CreatePdf/);
+  assert.match(renderer,/DecodeSignature\(child\.SignatureData\)/);
+  assert.match(renderer,/codec\.Info\.Width>4096/);
+  assert.match(renderer,/RenderSlots\.Wait\(0\)/);
+  assert.match(renderer,/child\.ConsentMedia=="yes"/);
+  assert.match(renderer,/child\.ParentName/);
+  const upload=read('backend/src/LefteriaFc.Api/Marketing/AcademyPublicRegistrationDocumentEndpoints.cs');
+  assert.match(upload,/slot is not \("id_front" or "id_back" or "birth_certificate" or "passport_photo"\)/);
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128192000_RegistrationFormPdfEscrow.cs');
+  assert.match(sql,/WHEN _slot='registration_form' THEN 'registration_form'/);
+  assert.match(sql,/WHERE e\.registration_id=NEW\.registration_id/);
+  assert.match(sql,/v_doc\.id,NEW\.organization_id,NEW\.player_id/);
+  assert.match(sql,/'quarantined'/);
+});
