@@ -389,6 +389,25 @@ BEGIN
       FROM academy_intake.registration_document_promotions)<>5 THEN
     RAISE EXCEPTION '1-5 child family documents not isolated'; END IF;
 
+  -- Player 360 uses the original approved application, not name or phone
+  -- matching. Confirm the local manager's allowed view and cross-city denial.
+  result:=club.read_admin_academy_player_profile(admin_digest,fixture_player_id);
+  IF result->>'player_id' IS DISTINCT FROM fixture_player_id
+    OR result#>>'{registration,id}' IS DISTINCT FROM application::text
+    OR result#>>'{registration,applicant_birth_date}' IS DISTINCT FROM '2016-01-01'
+    OR result#>>'{registration,guardian_name}' IS DISTINCT FROM 'Fixture Parent'
+    OR result#>>'{registration,guardian_phone}' IS DISTINCT FROM '+35799123456'
+    OR NOT coalesce((result->'academy_group_ids') ? fixture_group_id,false)
+    OR (result->'registration') ? 'evidence_ciphertext'
+  THEN RAISE EXCEPTION 'Player 360 original registration source mismatch'; END IF;
+  result:=club.read_admin_academy_player_profile(manager_digest,fixture_player_id);
+  IF result#>>'{registration,id}' IS DISTINCT FROM application::text THEN
+    RAISE EXCEPTION 'Assigned manager cannot access exact player registration'; END IF;
+  BEGIN
+    PERFORM club.read_admin_academy_player_profile(manager_digest,second_player);
+    RAISE EXCEPTION 'Original location manager read another city child registration';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
