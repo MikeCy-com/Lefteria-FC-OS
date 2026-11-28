@@ -617,7 +617,8 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed player weekly quiz boundary'; END IF;
-  IF NOT has_function_privilege(current_user,
+  IF NOT has_function_privilege(current_user,'public_sections.read_native_potm(text)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
        'club.read_mobile_potm_ballot(uuid,text,text,timestamptz)','EXECUTE')
     OR NOT has_function_privilege(current_user,
        'club.write_mobile_potm_ballot(uuid,text,text,timestamptz,text,integer,text)','EXECUTE')
@@ -640,6 +641,10 @@ BEGIN
       'parent',clock_timestamp()+interval '1 hour',to_char(clock_timestamp() AT TIME ZONE 'Asia/Nicosia','YYYY-MM'),0,'fake');
   EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
   IF NOT denied THEN RAISE EXCEPTION 'POTM formal role bypass accepted'; END IF;
+  IF public_sections.read_native_potm('1900-01') IS DISTINCT FROM '{"state":"unavailable","counts":[]}'::jsonb
+    OR public_sections.read_native_potm(to_char(statement_timestamp() AT TIME ZONE 'Asia/Nicosia','YYYY-MM'))
+      IS DISTINCT FROM '{"state":"absent","counts":[]}'::jsonb
+  THEN RAISE EXCEPTION 'Unexpected native public tally in empty runtime fixture'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
