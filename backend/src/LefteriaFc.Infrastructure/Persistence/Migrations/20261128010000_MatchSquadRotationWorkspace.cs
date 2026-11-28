@@ -165,6 +165,8 @@ public sealed class MatchSquadRotationWorkspace : Migration
         IF (_action IN ('save_squad','select_squad','submit_statistics') AND _role<>'coach')
           OR (_action IN ('approve','reject') AND _role<>'management')
           THEN RAISE EXCEPTION 'match_action_denied' USING ERRCODE='42501'; END IF;
+        -- Authorize before acquiring a write lock, then recheck the live host.
+        PERFORM * FROM club.require_mobile_match_host(_actor,_phone,_role,_expires,_match);
         -- Serialize writers for the same match including the first insert.
         PERFORM 1 FROM club.calendar_items WHERE kind='match' AND id=_match FOR UPDATE;
         SELECT owner,host,day,completed INTO STRICT v_owner,v_host,v_day,v_completed
@@ -214,12 +216,12 @@ public sealed class MatchSquadRotationWorkspace : Migration
                 AND c.staff_day<v_day AND NOT c.is_cancelled AND NOT c.is_archived
               ORDER BY c.staff_day DESC,c.id DESC LIMIT 1
             )
-            SELECT 1 FROM previous p CROSS JOIN LATERAL jsonb_array_elements(p.squad) old
-            JOIN LATERAL jsonb_array_elements(_squad) current ON current->>'player_id'=old->>'player_id'
-            WHERE old->>'assignment'='reserve' AND current->>'assignment'='reserve'
-              AND EXISTS(SELECT 1 FROM jsonb_array_elements(p.squad) last
-                JOIN LATERAL jsonb_array_elements(_squad) now ON now->>'player_id'=last->>'player_id'
-                WHERE last->>'assignment'='starter' AND now->>'assignment'='starter'))
+            SELECT 1 FROM previous p CROSS JOIN LATERAL jsonb_array_elements(p.squad) old_row(value)
+            JOIN LATERAL jsonb_array_elements(_squad) current_row(value) ON current_row.value->>'player_id'=old_row.value->>'player_id'
+            WHERE old_row.value->>'assignment'='reserve' AND current_row.value->>'assignment'='reserve'
+              AND EXISTS(SELECT 1 FROM jsonb_array_elements(p.squad) last_row(value)
+                JOIN LATERAL jsonb_array_elements(_squad) next_row(value) ON next_row.value->>'player_id'=last_row.value->>'player_id'
+                WHERE last_row.value->>'assignment'='starter' AND next_row.value->>'assignment'='starter'))
             THEN RAISE EXCEPTION 'match_rotation_note_required' USING ERRCODE='22023'; END IF;
           v_squad:=_squad;v_rotation:=CASE WHEN v_owner='lefteria_fc_academy' THEN btrim(coalesce(_rotation_note,'')) ELSE '' END;
           v_state:=CASE WHEN _action='select_squad' THEN 'selected' ELSE 'draft' END;
@@ -249,6 +251,9 @@ public sealed class MatchSquadRotationWorkspace : Migration
         ELSE
           IF NOT v_existing OR v_state<>'submitted' OR NOT v_completed
             THEN RAISE EXCEPTION 'match_review_conflict' USING ERRCODE='40001'; END IF;
+          IF EXISTS(SELECT 1 FROM identity.mobile_identities submitter
+            WHERE submitter.id=v_plan.updated_by AND submitter.normalized_phone=_phone)
+            THEN RAISE EXCEPTION 'match_independent_review_required' USING ERRCODE='42501'; END IF;
           IF _squad IS NOT NULL OR _statistics IS NOT NULL OR _rotation_note IS NOT NULL
             OR (_action='reject' AND btrim(coalesce(_review_reason,''))='')
             THEN RAISE EXCEPTION 'match_review_invalid' USING ERRCODE='22023'; END IF;
