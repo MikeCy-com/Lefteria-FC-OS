@@ -170,6 +170,7 @@ BEGIN
                     'finance.review_admin_supplier_approval_reversal(text,text,uuid,boolean,text)'::regprocedure,
                   'club.read_admin_academy_player_profile(text,text)'::regprocedure,
                   'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)'::regprocedure,
+                  'club.write_admin_academy_player_contact(text,text,integer,text,text,text,text)'::regprocedure,
                   'club.read_admin_academy_player_portrait(text,text)'::regprocedure,
                   'club.write_admin_academy_player_portrait(text,text,bytea)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
