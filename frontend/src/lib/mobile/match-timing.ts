@@ -45,9 +45,13 @@ export function planGrassrootsRotation(durationMinutes:number,format:MatchFormat
   const blocks=n===k?1:cycle*Math.max(1,Math.ceil(seconds/(cycle*600)));
   const planned=new Map(attendance.map(id=>[id,0]));
   const periods:RotationPeriod[]=[];
-  let previous:string[]=[];
+  let previous:string[]=[],elapsed=0;
+  const base=Math.floor(seconds/blocks),extra=seconds%blocks;
+  // Allocate remainder seconds over complete balanced cycles first. Only the
+  // final partial extra cycle can introduce a rounding difference (<= K seconds).
   for(let b=0;b<blocks;b++){
-    const start=Math.floor(b*seconds/blocks),end=Math.floor((b+1)*seconds/blocks);
+    const start=elapsed,end=start+base+(b<extra?1:0);
+    elapsed=end;
     const onField=Array.from({length:k},(_,i)=>attendance[(b*k+i)%n]);
     for(const id of onField)planned.set(id,(planned.get(id)??0)+end-start);
     periods.push({start_seconds:start,end_seconds:end,on_field:onField,
