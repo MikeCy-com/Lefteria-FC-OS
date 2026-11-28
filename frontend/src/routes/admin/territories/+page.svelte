@@ -462,7 +462,10 @@
                   revision={revision}/>
                 <AcademySupplierSiteTotals actorId={$auth.session.user.id}
                   {cityId} {locationId}/>
-                <h3>Τμήματα τοποθεσίας</h3>
+                <h3>3. Τμήματα τοποθεσίας</h3>
+                {#if mayManageLocation && canWrite}
+                  <a class="admin-secondary" href={`/admin/groups?organization_id=lefteria_fc_academy&new=1&location_id=${encodeURIComponent(locationId)}`} data-testid="territory-create-group-direct">+ Νέο τμήμα σε αυτή την τοποθεσία</a>
+                {/if}
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
                 {#if mayManageLocation && directory.unassigned_groups.length>0}
