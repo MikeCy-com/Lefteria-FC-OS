@@ -28,7 +28,7 @@ export function robotsFor(url: URL): string {
   return 'User-agent: *\n'
     + 'Disallow: /admin\nDisallow: /app\nDisallow: /api\n'
     + 'Disallow: /login\nDisallow: /profile\nDisallow: /checkout\n'
-    + 'Disallow: /cart\nDisallow: /register\n'
+    + 'Disallow: /cart\nDisallow: /register\nDisallow: /payments\n'
     + 'Allow: /\n\nSitemap: ' + CANONICAL_PUBLIC_ORIGIN + '/sitemap.xml\n';
 }
 

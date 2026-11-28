@@ -10,6 +10,14 @@
 - This policy depends on the **trusted SvelteKit event URL**, which production Docker derives from its configured `ORIGIN`. Never use arbitrary user-supplied Host or forwarded-host values as sitemap authority. Verify Caddy/Hostinger routing and the real production domain before deploying.
 - Robots directives are **not authentication or authorization**. Keep previews access-gated and private records protected independently; merely excluding a URL from indexing does not prevent an attacker from visiting it.
 
+## Sensitive route HTTP policy
+
+The production Caddy source configuration applies deferred `X-Robots-Tag: noindex, nofollow, noarchive` and `Cache-Control: private, no-store` on complete path segments for admin, app, login, profile, registration, checkout, cart, payment returns, and the admin/mobile API namespaces. Matching is case-insensitive; response headers are set after upstream handling, so redirects and errors receive the same policy. Public website and static asset paths are not covered by this matcher. The isolated preview keeps its existing global noindex/no-store policy and access restrictions.
+
+The robots file also excludes payment callbacks. This is a crawler hint only: a disallowed URL may still appear in a search index without content, and crawlers blocked by robots may never see a noindex header. Never treat either measure as an access control or as proof of deindexing. Keep authorization and private API cache policy independent of the edge; previously indexed URLs require separate review in Search Console.
+
+The disposable Compose workflow checks real GET and HEAD responses for sensitive paths (including missing routes), verifies a single private cache header, and guards against applying the private route policy to public pages or the app service worker. Hosted header, role and authorization verification remains outstanding; no production deployment is authorized by this source change.
+
 ## Contents and privacy
 
 - Include only currently implemented public OS paths (not pending shop, registration, checkout or polling workflows).
