@@ -408,6 +408,34 @@ BEGIN
     RAISE EXCEPTION 'Original location manager read another city child registration';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- Operational contact corrections must not rewrite signed registration data
+  -- or grant the contact app access. Only the exact authorized player can be edited.
+  result:=club.write_admin_academy_player_contact(manager_digest,fixture_player_id,0,
+    'Updated Contact','Parent','+35799000099','updated-contact@example.invalid');
+  IF result->>'revision' IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Contact initial save was not versioned'; END IF;
+  result:=club.read_admin_academy_player_profile(admin_digest,fixture_player_id);
+  IF result#>>'{current_contact,phone}' IS DISTINCT FROM '+35799000099'
+    OR result#>>'{registration,guardian_phone}' IS DISTINCT FROM '+35799123456'
+    OR result#>>'{registration,guardian_name}' IS DISTINCT FROM 'Fixture Parent'
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registrations
+      WHERE id=application AND guardian_phone='+35799123456')
+  THEN RAISE EXCEPTION 'Operational contact correction changed original application'; END IF;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,fixture_player_id,0,
+      'Stale Contact','Parent','+35799000100','stale@example.invalid');
+    RAISE EXCEPTION 'Stale contact update accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,second_player,0,
+      'Denied Contact','Parent','+35799000100','denied@example.invalid');
+    RAISE EXCEPTION 'Cross-city contact write accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=club.write_admin_academy_player_contact(admin_digest,fixture_player_id,1,
+    'Updated Contact','Parent','+35799000098','updated-contact@example.invalid');
+  IF result->>'revision' IS DISTINCT FROM '2' THEN
+    RAISE EXCEPTION 'Contact revision did not increment'; END IF;
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
