@@ -26,6 +26,7 @@ BEGIN
      OR to_regclass('club.academy_player_private_profiles') IS NULL
   THEN RAISE EXCEPTION 'academy_profile_runtime_role_invalid'; END IF;
   FOREACH fn IN ARRAY ARRAY[
+    'club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text)'::regprocedure::oid,
     'club.authorize_academy_private_profile(text,text,boolean)'::regprocedure::oid,
     'club.read_admin_academy_player_profile(text,text)'::regprocedure::oid,
     'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)'::regprocedure::oid,
@@ -53,6 +54,9 @@ REVOKE ALL ON FUNCTION
   club.read_admin_academy_player_portrait(text,text),
   club.write_admin_academy_player_portrait(text,text,bytea)
   FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON club.academy_player_lifecycle_events FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text) TO :"admin_auth_role";
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_academy_player_profile(text,text),
   club.write_admin_academy_player_profile(text,text,integer,text,text,integer),
@@ -67,7 +71,11 @@ DO $verify$
 DECLARE a text:=current_setting('lefteria.player_profiles_admin_role');
   m text:=current_setting('lefteria.player_profiles_app_role');
 BEGIN
-  IF has_any_column_privilege(a,'club.academy_player_private_profiles',
+  IF has_table_privilege(a,'club.academy_player_lifecycle_events','SELECT,INSERT,UPDATE,DELETE')
+    OR has_table_privilege(m,'club.academy_player_lifecycle_events','SELECT,INSERT,UPDATE,DELETE')
+    OR has_function_privilege(m,'club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text)','EXECUTE')
+    OR NOT has_function_privilege(a,'club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text)','EXECUTE')
+    OR has_any_column_privilege(a,'club.academy_player_private_profiles',
       'SELECT,INSERT,UPDATE,REFERENCES')
     OR has_table_privilege(a,'club.academy_player_private_profiles','DELETE')
     OR has_any_column_privilege(m,'club.academy_player_private_profiles',
@@ -99,4 +107,11 @@ BEGIN
       'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)','EXECUTE')
   THEN RAISE EXCEPTION 'academy_private_profile_boundary_broken'; END IF;
 END $verify$;
+REVOKE ALL ON FUNCTION club.search_admin_archived_academy_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.search_admin_archived_academy_players(text,text,integer,integer) TO :"admin_auth_role";
+DO $archive_boundary$ BEGIN
+  IF NOT has_function_privilege(current_setting('lefteria.player_profiles_admin_role'),'club.search_admin_archived_academy_players(text,text,integer,integer)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.player_profiles_app_role'),'club.search_admin_archived_academy_players(text,text,integer,integer)','EXECUTE')
+  THEN RAISE EXCEPTION 'archive_directory_boundary_broken'; END IF;
+END $archive_boundary$;
 COMMIT;

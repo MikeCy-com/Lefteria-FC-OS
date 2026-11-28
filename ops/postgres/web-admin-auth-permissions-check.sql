@@ -168,6 +168,8 @@ BEGIN
                     'finance.read_admin_supplier_payable_position(text,text,date)'::regprocedure,
                     'finance.create_admin_supplier_approval_reversal(text,text,uuid,text,uuid,text)'::regprocedure,
                     'finance.review_admin_supplier_approval_reversal(text,text,uuid,boolean,text)'::regprocedure,
+                  'club.admin_academy_player_lifecycle(text,text,text,integer,uuid,text)'::regprocedure,
+                  'club.search_admin_archived_academy_players(text,text,integer,integer)'::regprocedure,
                   'club.read_admin_academy_player_profile(text,text)'::regprocedure,
                   'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)'::regprocedure,
                   'club.write_admin_academy_player_contact(text,text,integer,text,text,text,text)'::regprocedure,
