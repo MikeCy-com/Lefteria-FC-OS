@@ -53,6 +53,7 @@
   let siteFilter=$state('');
   let directoryView=$state<'groups'|'players'>('groups');
   const requestedPlayerId=$derived(organization==='lefteria_fc_academy'?page.url.searchParams.get('player_id'):null);
+  const requestedSection=$derived(requestedPlayerId?page.url.searchParams.get('section'):null);
   let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
   const placementCities=$derived([...new Map(Object.values(groupPlacements)
     .map(p=>[p.cityId,p.cityName])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'el')));
@@ -684,7 +685,7 @@
           {/if}
           {#if canCreate && directoryView==='players' && $auth.session}
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
-              groups={directory.groups} {requestedPlayerId} allowAssignments={requestedPlayerId===null} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              groups={directory.groups} {requestedPlayerId} {requestedSection} allowAssignments={requestedPlayerId===null} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
               allowGuardianReview={organization==='lefteria_fc_academy'&&$auth.session.user.role==='super_admin'&&Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
                 $auth.session.user.role==='super_admin' &&
