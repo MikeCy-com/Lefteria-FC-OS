@@ -35,6 +35,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['GET','/api/admin/pos/cashier/registers/ci-restricted/sellable-stock'],
     ['POST','/api/admin/football/groups'],
     ['POST','/api/admin/football/groups/with-profile'],
+    ['PUT','/api/admin/football/groups/ci-group/name'],
     ['GET','/api/admin/website/sponsorships'],
     ['POST','/api/admin/website/sponsorships/draft'],
     ['POST','/api/admin/website/sponsorships/native'],
@@ -90,7 +91,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,25);
+  assert.equal(reviewedHiddenAdminEntries.length,26);
 });
 test('new shift-stock GET is reviewed by exact path, verb and current WebAdmin session',()=>{
   const path='/api/admin/pos/cashier/registers/{registerId}/sellable-stock';
@@ -162,4 +163,13 @@ test('training drill builder permits only reviewed read and write verbs and requ
     tampered.paths[route][method].security=[];
     assert.throws(()=>entryRouteGroups(tampered),/Reviewed application entry security changed/);
   }
+});
+
+test('canonical group rename permits only reviewed PUT and enforces WebAdmin source authorization',async()=>{
+  const path='/api/admin/football/groups/ci-group/name';
+  assert.equal(permitted('PUT',path),true);
+  for(const method of ['GET','POST','PATCH','DELETE','OPTIONS'])assert.equal(permitted(method,path),false);
+  const source=await repoFile('backend/src/LefteriaFc.Api/Audiences/AdminGroupRenameEndpoints.cs');
+  assert.match(source,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(source,/ExcludeFromDescription\(\)/);
 });
