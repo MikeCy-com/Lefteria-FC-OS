@@ -21,6 +21,7 @@ import {validCoachFeedbackTargets,validCoachDraft,validCoachApproval,validCoachS
   validCoachText,type CoachFeedbackTargets,type CoachFeedbackTarget,
   type CoachFeedbackDraft,type CoachFeedbackApproved,type CoachFeedbackSent
 } from './coach-feedback-composer.ts';
+import {validMatchWorkspace,type MatchWorkspace,type MatchCommand} from './match-workspace.ts';
 import {validActivityFilter,validActivityPage,type ActivityFilter,type NotificationActivityPage} from './notification-activity.ts';
 import {validAppNotificationInbox,validNotificationUnreadSummary,type NotificationUnreadSummary,type AppNotificationInbox} from './notification-inbox.ts';
 import {validDevicePushConfig,type DevicePushConfig} from './web-push.ts';
@@ -1854,6 +1855,22 @@ export function createMobileAuthController(options: {
           state.organization?.requires_organization_selection)))
         throw new Error('Unverified private invitation response.');
       return pendingPrivateInvitations(result.conversations,identity.role,owner);
+    },
+    async getMatchWorkspace(item:MobileCalendarItem,command?:MatchCommand):Promise<MatchWorkspace> {
+      const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;
+      const current=state.calendarStatus==='ready'&&state.calendar?.items.find(candidate=>
+        candidate.kind==='match'&&candidate.id===item.id&&candidate.organization_id===item.organization_id);
+      if(!identity||(identity.role!=='coach'&&identity.role!=='management')||!current||current.is_cancelled||
+        (identity.role==='management'&&owner!==current.organization_id))
+        throw new Error('Δεν υπάρχει ενεργή πρόσβαση στον αγώνα.');
+      const result=await chatRequest('/api/mobile/calendar/match/'+encodeURIComponent(current.id)+'/workspace',
+        command?'POST':'GET',command);
+      if(!calendarScopeCurrent(identity,bearer,owner)||
+        (identity.role==='management'&&state.organization?.requires_organization_selection)||
+        !validMatchWorkspace(result,current.id,current.organization_id)||
+        (command&&result.version!==command.expected_version+1))
+        throw new Error('Η απάντηση του αγώνα δεν επαληθεύτηκε.');
+      return result;
     },
     async getNotificationActivity(filter:ActivityFilter='all',offset=0):Promise<NotificationActivityPage> {
       const identity=calendarIdentity(),bearer=token,owner=state.organization?.organization_id;

@@ -36,6 +36,13 @@ internal sealed class CalendarDatabaseFixture
         };
         if(replacement is null)
         {
+            foreach(var (suffix,day,group,guest) in new[]{
+                ("rotation-one","2027-01-03",accounts.GroupId,accounts.Prefix+"-child-two"),
+                ("rotation-two","2027-01-10",accounts.GroupId,accounts.Prefix+"-child-two"),
+                ("rotation-outside","2027-01-17",accounts.Prefix+"-group-two",accounts.ChildId)})
+                input["fixtures"]!.AsArray().Add(new JsonObject{["id"]=Id(suffix),["home_team"]="Synthetic home",
+                    ["away_team"]="Synthetic away",["match_date"]=day,["status"]="scheduled",
+                    ["academy_group_id"]=group,["guest_player_ids"]=new JsonArray(guest)});
             var events=input["events"]!.AsArray();
             events.Add(new JsonObject{["id"]=Id("shared"),["title"]="Fictional shared event ID",["type"]="meeting",["date"]="2026-10-12",["team_id"]=accounts.TeamId});
             var host=Event("host",accounts.GroupId);host["guest_player_ids"]=new JsonArray(accounts.Prefix+"-child-two");events.Add(host);
