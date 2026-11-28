@@ -11,13 +11,11 @@ export function matchAvailability(status: Player['status']): MatchAvailability {
 
 export function matchRosterSummary(players: readonly Player[]) {
   const counts: Record<MatchAvailability, number> = { going: 0, maybe: 0, not_going: 0, unanswered: 0 };
-  const ids = new Set<string>();
-  for (const player of players) {
-    if (ids.has(player.id)) continue;
-    ids.add(player.id);
+  const unique = new Map(players.map(player => [player.id, player]));
+  for (const player of unique.values()) {
     counts[matchAvailability(player.status)]++;
   }
-  return { counts, total: ids.size };
+  return { counts, total: unique.size };
 }
 
 export function filterMatchRoster(players: readonly Player[], filter: MatchRosterFilter, search: string): Player[] {
