@@ -1,5 +1,6 @@
 <script lang="ts">
   import {browser} from '$app/env';
+  import {cashierBasketState,filterCashierStock} from './pos-quick-basket.ts';
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Item={product_id:string;variant_id:string;product_name:string;
     variant_name:string;price_cents:number;available:number};
@@ -16,6 +17,7 @@
   }=$props();
   let stock=$state<Stock|null>(null);
   let selected=$state<Record<string,number>>({});
+  let productSearch=$state(''),onlyAvailable=$state(true);
   let preparing=$state(false);
   let loading=$state(false);
   let error=$state('');
@@ -44,12 +46,13 @@
     const result=Number(integer)*100+Number(decimal.padEnd(2,'0'));
     return Number.isSafeInteger(result)&&result<=100000000?result:null;
   };
-  const picked=$derived((stock?.items??[]).map(item=>({
-    item,quantity:selected[key(item)]??0
-  })).filter(x=>Number.isInteger(x.quantity)&&x.quantity>=1&&
-    x.quantity<=Math.min(99,x.item.available)));
-  const estimate=$derived(picked.reduce((total,x)=>total+x.quantity*x.item.price_cents,0));
-  const validBasket=$derived(picked.length>=1&&picked.length<=30&&estimate<=100000000);
+  const basketState=$derived(cashierBasketState(stock?.items??[],selected));
+  const picked=$derived(basketState.picked);
+  const estimate=$derived(basketState.estimate);
+  const validBasket=$derived(basketState.valid);
+  const visibleItems=$derived(filterCashierStock(stock?.items??[],productSearch,onlyAvailable));
+  const changePreview=$derived(prepared&&cents(cashAmount)!==null&&
+    (cents(cashAmount)??0)>=prepared.total_cents?(cents(cashAmount)??0)-prepared.total_cents:null);
   const canPrepare=$derived(!!stock?.fiscal_policies_approved&&validBasket&&
     !prepared&&!complete&&!preparing);
   const stockResponse=(raw:unknown):raw is Stock=>{
@@ -75,7 +78,7 @@
   $effect(()=>{
     const current=scope;
     if(current!==lastScope){
-      stock=null;selected={};prepared=null;complete=null;
+      stock=null;selected={};prepared=null;complete=null;productSearch='';onlyAvailable=true;
       cashAmount='';cashConfirmed=false;tenderFrozen=false;
       prepId='';prepFingerprint='';tenderId='';cancelId='';
       error='';notice='';lastScope=current;
@@ -111,11 +114,21 @@
   });
 
   function setQuantity(item:Item,value:number){
-    if(prepared||complete||preparing)return;
-    const quantity=Number.isInteger(value)&&value>=0&&
-      value<=Math.min(99,item.available)?value:0;
-    selected={...selected,[key(item)]:quantity};
+    if(prepared||complete||preparing||!stock?.fiscal_policies_approved)return;
+    const currentItem=stock.items.find(x=>key(x)===key(item));
+    if(!currentItem||!Number.isInteger(value)||value<0||value>Math.min(99,currentItem.available))return;
+    if(value>0&&!selected[key(item)]&&Object.values(selected).filter(n=>n>0).length>=30)return;
+    selected={...selected,[key(item)]:value};
     prepId='';prepFingerprint='';
+  }
+  function removeInvalidSelections(){
+    if(prepared||complete||preparing||loading||!stock)return;
+    selected=Object.fromEntries(Object.entries(selected).filter(([id])=>!basketState.invalidKeys.includes(id)));
+    prepId='';prepFingerprint='';
+  }
+  function clearBasket(){
+    if(prepared||complete||preparing)return;
+    selected={};prepId='';prepFingerprint='';
   }
   async function prepare(){
     if(!canPrepare||!stock||!browser)return;
@@ -255,9 +268,10 @@
       <p class="admin-muted">Δεν έχει εκδοθεί απόδειξη. Μην παραδώσετε προϊόντα πριν από την
         επαληθευμένη ολοκλήρωση.</p>
       <label>Φυσικά μετρημένα χρήματα (€)
-        <input type="text" inputmode="decimal" bind:value={cashAmount}
+        <input type="text" inputmode="decimal" bind:value={cashAmount} oninput={()=>cashConfirmed=false}
           maxlength="10" required disabled={preparing||tenderFrozen}/>
       </label>
+      {#if changePreview!==null}<p data-testid="pos-change-preview">Αναμενόμενα ρέστα: <strong>{euro(changePreview)}</strong></p>{/if}
       <label class="cashier-confirm">
         <input type="checkbox" bind:checked={cashConfirmed} disabled={preparing||tenderFrozen}/>
         Επιβεβαιώνω ότι έλαβα και καταμέτρησα το ακριβές ποσό σε μετρητά.
@@ -289,20 +303,47 @@
     {#if stock.items.length===0}
       <p>Δεν υπάρχει διαθέσιμος κατάλογος για το συγκεκριμένο ταμείο.</p>
     {:else}
+      <div class="cashier-search" data-testid="pos-quick-product-search">
+        <label>Αναζήτηση προϊόντος / μεγέθους <input type="search" bind:value={productSearch} maxlength="100" placeholder="Όνομα, μέγεθος…" autocomplete="off"/></label>
+        <label class="cashier-confirm"><input type="checkbox" bind:checked={onlyAvailable}/> Μόνο διαθέσιμα</label>
+        <small>{visibleItems.length} από {stock.items.length} είδη του ταμείου</small>
+      </div>
       <div class="cashier-items">
-        {#each stock.items as item (key(item))}
-          <label class="cashier-item">
+        {#each visibleItems as item (key(item))}
+          <div class="cashier-item">
             <span>{item.product_name} · {item.variant_name}</span>
             <span>{euro(item.price_cents)} · διαθέσιμα {item.available}</span>
-            <input type="number" min="0" max={Math.min(99,item.available)} step="1"
-              aria-label={'Ποσότητα για '+item.product_name+' '+item.variant_name}
-              value={selected[key(item)]??0} disabled={preparing||!stock.fiscal_policies_approved||
-                item.available===0} oninput={event=>setQuantity(item,Number(event.currentTarget.value))}/>
-          </label>
+            <div class="cashier-quantity">
+              <button type="button" class="admin-secondary" aria-label={'Μείωση '+item.product_name+' '+item.variant_name}
+                disabled={preparing||!stock.fiscal_policies_approved||!(selected[key(item)]>0)}
+                onclick={()=>setQuantity(item,Math.min(item.available,Math.max(0,(selected[key(item)]??0)-1)))}>−</button>
+              <input type="number" min="0" max={Math.min(99,item.available)} step="1"
+                aria-label={'Ποσότητα για '+item.product_name+' '+item.variant_name}
+                value={selected[key(item)]??0} disabled={preparing||!stock.fiscal_policies_approved||
+                  item.available===0} oninput={event=>setQuantity(item,Number(event.currentTarget.value))}/>
+              <button type="button" class="admin-secondary" aria-label={'Προσθήκη '+item.product_name+' '+item.variant_name}
+                disabled={preparing||!stock.fiscal_policies_approved||(selected[key(item)]??0)>=Math.min(99,item.available)||(!selected[key(item)]&&picked.length>=30)}
+                onclick={()=>setQuantity(item,(selected[key(item)]??0)+1)}>+</button>
+            </div>
+          </div>
+        {:else}<p role="status">Δεν βρέθηκαν προϊόντα για την αναζήτηση.</p>
         {/each}
       </div>
-      <p>Ενδεικτικό σύνολο: <strong>{euro(estimate)}</strong> ·
-        {picked.length} προϊόντα. Ο εξυπηρετητής ορίζει το τελικό ποσό.</p>
+      <section class="cashier-basket" data-testid="pos-quick-basket">
+        <h4>Καλάθι</h4>
+        {#if picked.length}
+          <ul>{#each picked as row (key(row.item))}
+            <li><span>{row.item.product_name} · {row.item.variant_name} × {row.quantity}</span><strong>{euro(row.quantity*row.item.price_cents)}</strong>
+              <button type="button" class="admin-secondary" disabled={preparing||!stock.fiscal_policies_approved} onclick={()=>setQuantity(row.item,0)}>Αφαίρεση</button></li>
+          {/each}</ul>
+          <button type="button" class="admin-secondary" disabled={preparing} onclick={clearBasket}>Καθαρισμός καλαθιού</button>
+        {:else}<p>Το καλάθι είναι κενό.</p>{/if}
+        {#if basketState.invalidKeys.length}
+          <p role="alert">Το απόθεμα άλλαξε για {basketState.invalidKeys.length} επιλογές. Η πώληση δεν επιτρέπεται μέχρι να διορθωθούν.</p>
+          <button type="button" class="admin-secondary" disabled={preparing||loading} onclick={removeInvalidSelections}>Αφαίρεση μη διαθέσιμων επιλογών</button>
+        {/if}
+        <p>Ενδεικτικό σύνολο: <strong>{euro(estimate)}</strong> · {basketState.units} τεμάχια / {picked.length} είδη. Ο εξυπηρετητής ορίζει το τελικό ποσό.</p>
+      </section>
       <div class="cashier-actions">
         <button type="button" class="admin-secondary" disabled={!canPrepare}
           onclick={()=>void prepare()}>{preparing?'Δέσμευση…':'Δέσμευση παραγγελίας'}</button>
@@ -324,4 +365,13 @@
   .cashier-prepared>label{display:grid;gap:7px;max-width:360px}
   .cashier-confirm{display:flex!important;flex-direction:row;gap:8px}
   .cashier-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .cashier-search,.cashier-basket{display:grid;gap:10px;padding:12px;border:1px solid var(--admin-line);border-radius:8px}
+  .cashier-search label{display:grid;gap:5px}
+  .cashier-quantity{display:flex;gap:6px;align-items:center}
+  .cashier-quantity input{width:64px;min-width:0}
+  .cashier-quantity button{min-width:44px;min-height:44px}
+  .cashier-basket h4,.cashier-basket p{margin:0}
+  .cashier-basket ul{display:grid;gap:8px;list-style:none;padding:0;margin:0}
+  .cashier-basket li{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .cashier-basket>button{justify-self:start}
 </style>
