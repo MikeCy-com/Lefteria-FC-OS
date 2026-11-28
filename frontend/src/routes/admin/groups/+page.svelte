@@ -685,6 +685,7 @@
           {#if canCreate && directoryView==='players' && $auth.session}
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
               groups={directory.groups} {requestedPlayerId} allowAssignments={requestedPlayerId===null} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              allowGuardianReview={organization==='lefteria_fc_academy'&&$auth.session.user.role==='super_admin'&&Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
                 $auth.session.user.role==='super_admin' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
