@@ -52,3 +52,11 @@ Preview limits: edge 0.10 CPU/64m, web 0.15/192m, API 0.35/512m, PostgreSQL 0.20
 | Broken public URLs | Zero | Not verified |
 
 Record per-role and endpoint p95/error/rate, response sizes, max CPU/RAM, DB pool/locks/queries, disk and network, queue backlog, achieved VUs and dropped iterations, integrity assertions and post-spike recovery. Report maximum verified concurrency only for the tested workload and capacity; no extrapolated guarantee. Establish tolerable degradation versus baseline before testing. Do not equate 500 registered accounts or 500 idle connections with 500 active users.
+
+## PERF-01 candidate: exact-ID article reads (release hold)
+
+Draft implementation only. The article endpoint passes its existing ID to the public repository, which filters both the imported safe projection and editorial overlays in PostgreSQL before materialization. The readiness/count guard remains in the same repeatable-read transaction. Scoped lookup and global .NET ordinal owner precedence are unchanged, as are HTTP routes, response schemas and no-store policy. The public feed and admin list still use the original unbounded list implementation. Existing index use must be confirmed by EXPLAIN; no new index or performance improvement is claimed.
+
+Existing #491 PostgreSQL integration tests protect scope and shared edited article precedence; new checks cover case-sensitive lookup, unknown/overlength IDs, literal metacharacters, 404 payload and no-store. Detail isolation intentionally no longer deserializes unrelated articles, so unrelated malformed JSON DTOs need not make a valid detail unavailable; the import count readiness check still applies. No schema/grants change.
+
+Keep this candidate draft and out of main until actual authorized pre-change baseline evidence is recorded. Then require exact-head CI, representative synthetic-volume query plans, before/after comparison (including missing/scoped/shared detail), and approved isolated staging verification. Full SQL list pagination, index tuning and cross-endpoint consistency remain separate work. Hosted measurements are blocked by G0 / issue #446.
