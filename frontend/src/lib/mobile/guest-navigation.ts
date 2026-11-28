@@ -23,7 +23,7 @@ export function readMobileTab(value: unknown): MobileTab | null {
 
 export function guestRequestedTab(location: { pathname: string; search: string }): MobileTab {
   const raw = new URLSearchParams(location.search).get('tab') || location.pathname.split('/')[2];
-  return readMobileTab(raw) ?? (raw && Object.hasOwn(aliases, raw) ? aliases[raw] : 'home');
+  return readMobileTab(raw) ?? (raw && Object.hasOwn(aliases, raw) ? aliases[raw] ?? 'home' : 'home');
 }
 
 export function guestPublicLink(tab: MobileTab) {
