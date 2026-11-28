@@ -108,8 +108,8 @@
           <p role="status">Η διαχείριση ατομικών φακέλων απαιτεί επαληθευμένα δικαιώματα.</p>
         {/if}
       {:else if tab==='calendar' && access.calendar}
-        <AdminGroupCalendar {organization} groupId={group.id} actorId={user.id} training={access.training} matches={access.matches} matchDrafts={access.matchWrite} {month}
-          onTraining={()=>tab='training'} onMatches={()=>tab='matches'} {onExpired} {onRevoked}/>
+        <AdminGroupCalendar {organization} groupId={group.id} actorId={user.id} training={access.training} attendance={access.attendance} matches={access.matches} matchDrafts={access.matchWrite} {month}
+          onMonthChanged={value=>month=value} onTraining={()=>tab=access.training?'training':'attendance'} onMatches={()=>tab='matches'} {onExpired} {onRevoked}/>
       {:else if tab==='training' && access.training && range}
         {#if organization==='lefteria_fc_academy'&&(hasAdminPermission(user.permissions,'training:read')||hasAdminPermission(user.permissions,'training:read_assigned'))}
           <a href="/admin/drills">Βιβλιοθήκη ασκήσεων · Κεντρική Ακαδημίας</a>
