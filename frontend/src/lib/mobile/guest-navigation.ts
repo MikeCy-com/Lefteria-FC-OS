@@ -47,3 +47,10 @@ export function mobileAfterLogin(returnTab: unknown, role: unknown, currentRoleA
     return '/app';
   return '/app?' + new URLSearchParams({ tab }).toString();
 }
+
+// A navigation hint only. The caller must pass the roles from the verified
+// OTP response; this function never adds roles or requests a role switch.
+export function roleCanResumeTab(returnTab: unknown, role: unknown): boolean {
+  const tab = readMobileTab(returnTab);
+  return tab !== null && isMobileRole(role) && allowedTabs(role).includes(tab);
+}
