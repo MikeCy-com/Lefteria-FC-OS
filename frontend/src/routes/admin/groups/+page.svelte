@@ -51,6 +51,7 @@
   let cityFilter=$state('');
   let siteFilter=$state('');
   let directoryView=$state<'groups'|'players'>('groups');
+  const requestedPlayerId=$derived(organization==='lefteria_fc_academy'?page.url.searchParams.get('player_id'):null);
   let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
   const placementCities=$derived([...new Map(Object.values(groupPlacements)
     .map(p=>[p.cityId,p.cityName])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'el')));
@@ -673,7 +674,7 @@
             <div class="admin-directory-switch" role="group" aria-label="Ενότητες διαχείρισης">
               <button type="button" aria-pressed={directoryView==='groups'}
                 data-testid="admin-directory-teams"
-                onclick={()=>directoryView='groups'}>Ομάδες & τμήματα</button>
+                onclick={()=>{if(requestedPlayerId)void goto('/admin/groups?organization_id=lefteria_fc_academy');else directoryView='groups';}}>Ομάδες & τμήματα</button>
               <button type="button" aria-pressed={directoryView==='players'}
                 data-testid="admin-directory-players"
                 onclick={()=>directoryView='players'}>Παίκτες & προφίλ</button>
@@ -681,7 +682,7 @@
           {/if}
           {#if canCreate && directoryView==='players' && $auth.session}
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
-              groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              groups={directory.groups} {requestedPlayerId} allowAssignments={requestedPlayerId===null} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
                 $auth.session.user.role==='super_admin' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
