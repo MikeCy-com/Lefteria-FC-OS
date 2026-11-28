@@ -66,3 +66,47 @@ test('monthly view follows Cyprus local calendar, not UTC or browser timezone',(
   assert.ok(potmMonthLabel('2026-11').includes('2026'));
   assert.equal(potmMonthLabel('2026-99'),'');
 });
+
+test('native closed tally is authoritative even when the legacy module is empty and no votes remain',()=>{
+  const sections=data();
+  sections.modules[0].status='empty';
+  sections.modules[0].published_count=0;
+  sections.potm.id='native-closed:2026-11';
+  sections.potm.results=[];
+  sections.potm.total_votes=0;
+  const empty=projectPotm(sections);
+  assert.equal(empty.status,'published');
+  assert.equal(empty.source,'native-closed');
+  assert.equal(empty.totalVotes,0);
+  assert.ok(empty.candidates.every(p=>p.votes===0));
+  sections.potm.results=[{player_id:'a',votes:2},{player_id:'b',votes:1}];
+  sections.potm.total_votes=3;
+  const closed=projectPotm(sections);
+  assert.equal(closed.source,'native-closed');
+  assert.deepEqual(closed.candidates.map(p=>[p.id,p.votes]),[['a',2],['b',1],['c',0]]);
+  assert.equal(closed.totalVotes,3);
+});
+
+test('native pending exposes no totals and conflicts never fall back to legacy or fabricated zero',()=>{
+  const sections=data();
+  sections.potm.id='native-pending:2026-11';
+  sections.potm.results=[];sections.potm.total_votes=0;
+  assert.equal(projectPotm(sections).status,'not-published');
+  assert.equal(projectPotm(sections).totalVotes,null);
+  for(const [id,votes] of [['native-unavailable:2026-11',0],['native-pending:2026-11',1],
+      ['native-closed:2026-10',0],['native-unknown:2026-11',0]]) {
+    sections.potm.id=id;sections.potm.total_votes=votes;
+    sections.potm.results=votes?[{player_id:'a',votes}]:[];
+    const view=projectPotm(sections);
+    assert.equal(view.status,'unavailable',id);
+    assert.equal(view.totalVotes,null);
+    assert.ok(view.candidates.every(p=>p.votes===null));
+  }
+  sections.potm.id='native-closed:2026-11';
+  sections.potm.total_votes=1;sections.potm.results=[{player_id:'youth',votes:1}];
+  assert.equal(projectPotm(sections).status,'unavailable');
+  sections.potm.results=[{player_id:'a',votes:1}];sections.modules[0].status='partial';
+  assert.equal(projectPotm(sections).status,'unavailable');
+  sections.modules[0].status='ready';sections.snapshot_at='2026-10-25T10:00:00Z';
+  assert.equal(projectPotm(sections).status,'unavailable');
+});
