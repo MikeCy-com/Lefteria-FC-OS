@@ -714,4 +714,9 @@ REVOKE ALL ON FUNCTION club.read_mobile_match_workspace(uuid,text,text,timestamp
 GRANT EXECUTE ON FUNCTION club.read_mobile_match_workspace(uuid,text,text,timestamptz,text),
   club.write_mobile_match_workspace(uuid,text,text,timestamptz,text,text,integer,jsonb,jsonb,text,text)
   TO :"app_role";
+REVOKE ALL ON TABLE club.group_match_timing FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_match_timing(uuid,text,text,timestamptz,text),
+  club.confirm_mobile_match_attendance(uuid,text,text,timestamptz,text,integer,jsonb) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_match_timing(uuid,text,text,timestamptz,text),
+  club.confirm_mobile_match_attendance(uuid,text,text,timestamptz,text,integer,jsonb) TO :"app_role";
 COMMIT;

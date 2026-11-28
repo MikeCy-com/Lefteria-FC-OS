@@ -135,6 +135,8 @@ BEGIN
                   'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
                   'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure,
                    'club.read_admin_football_directory(text,text)'::regprocedure,
+                   'club.read_admin_group_match_timing(text,text,text)'::regprocedure,
+                   'club.write_admin_group_match_timing(text,text,text,integer,integer,integer)'::regprocedure,
                    'club.create_admin_football_resource(text,text,text,jsonb)'::regprocedure,
                    'club.read_admin_football_access(text,text)'::regprocedure,
                    'club.write_admin_football_access(text,text,uuid,text,uuid,text,boolean)'::regprocedure,

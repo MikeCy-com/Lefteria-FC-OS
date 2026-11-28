@@ -68,4 +68,13 @@ REVOKE ALL ON FUNCTION club.authorize_admin_football(text,text),
 REVOKE ALL ON FUNCTION club.read_admin_football_directory(text,text),
   club.create_admin_football_resource(text,text,text,jsonb)
   FROM :"app_role";
+-- Exact per-team settings, never direct access to private configuration rows.
+REVOKE ALL ON TABLE club.group_match_timing FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.require_admin_match_timing_host(text,text,text),club.freeze_match_timing()
+  FROM PUBLIC, :"admin_auth_role", :"app_role";
+REVOKE ALL ON FUNCTION club.read_admin_group_match_timing(text,text,text),
+  club.write_admin_group_match_timing(text,text,text,integer,integer,integer)
+  FROM PUBLIC, :"app_role", :"admin_auth_role";
+GRANT EXECUTE ON FUNCTION club.read_admin_group_match_timing(text,text,text),
+  club.write_admin_group_match_timing(text,text,text,integer,integer,integer) TO :"admin_auth_role";
 COMMIT;

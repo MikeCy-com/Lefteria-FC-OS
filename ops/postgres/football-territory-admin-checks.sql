@@ -165,6 +165,36 @@ BEGIN
     RAISE EXCEPTION 'unauthorized_sibling_match_saved';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- Match format belongs to each exact group/team, not the shared city.
+  v_result:=club.read_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a1);
+  IF (v_result->>'version')::integer<>0 OR v_result->'duration_minutes'<>'null'::jsonb
+    THEN RAISE EXCEPTION 'missing_settings_fabricated'; END IF;
+  v_result:=club.write_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a1,0,45,7);
+  IF (v_result->>'duration_minutes')::integer<>45 OR (v_result->>'players_on_field')::integer<>7
+    THEN RAISE EXCEPTION 'match_settings_not_saved'; END IF;
+  BEGIN
+    PERFORM club.write_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a1,0,40,5);
+    RAISE EXCEPTION 'stale_match_settings_write_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a2);
+    RAISE EXCEPTION 'sibling_group_settings_exposed';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a2,0,60,9);
+    RAISE EXCEPTION 'sibling_group_settings_modified';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  v_result:=club.write_admin_group_match_timing(v_token_city,'lefteria_fc_academy',v_group_a2,0,60,9);
+  IF (v_result->>'players_on_field')::integer<>9 THEN RAISE EXCEPTION 'city_manager_group_settings_not_saved'; END IF;
+  v_result:=club.read_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a1);
+  IF (v_result->>'players_on_field')::integer<>7 THEN RAISE EXCEPTION 'group_settings_crossed_location'; END IF;
+  BEGIN
+    PERFORM club.write_admin_group_match_timing(v_token_team,'lefteria_fc',v_team,0,90,7);
+    RAISE EXCEPTION 'invalid_first_team_format_accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  v_result:=club.write_admin_group_match_timing(v_token_team,'lefteria_fc',v_team,0,90,11);
+  IF (v_result->>'players_on_field')::integer<>11 THEN RAISE EXCEPTION 'first_team_settings_not_saved'; END IF;
+
   UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
   WHERE token_digest=v_token_loc;
   BEGIN
