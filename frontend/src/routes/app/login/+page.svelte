@@ -32,15 +32,17 @@
 
 {#if $controller.status === 'anonymous'}
   <aside class="os-install-entry" data-testid="mobile-login-os-install">
-    <div><strong>Lefteria FC OS</strong><span>Η επίσημη εφαρμογή για το κινητό σου</span></div>
+    <div>
+      <strong>Lefteria FC OS</strong>
+      {#if returnTab && returnTab !== 'home'}
+        <span data-testid="login-intended-tab">Συνδέσου με τον διαθέσιμο ρόλο για πρόσβαση: <strong>{TAB_NAMES[returnTab]}</strong></span>
+      {:else}
+        <span>Η επίσημη εφαρμογή για το κινητό σου</span>
+      {/if}
+    </div>
+    <a class="guest-login-link" href="/app" data-testid="continue-as-guest">← Συνέχεια ως επισκέπτης</a>
     <AppInstallButton />
   </aside>
-  <div class="guest-login-navigation">
-    <a href="/app" data-testid="continue-as-guest">← Συνέχεια ως επισκέπτης</a>
-    {#if returnTab && returnTab !== 'home'}
-      <p data-testid="login-intended-tab">Συνδέσου με τον διαθέσιμο ρόλο για πρόσβαση: <strong>{TAB_NAMES[returnTab]}</strong></p>
-    {/if}
-  </div>
   <MobileLogin step={$controller.step} bind:phone bind:rememberDays identities={$controller.identities}
     detectedRole={$controller.detectedRole} busy={$controller.busy} error={$controller.error} {resendSeconds}
     onRequestOtp={async (value) => { await controller.requestOtp(value); }}
@@ -66,10 +68,10 @@
   .os-install-entry strong{font-size:15px}
   .os-install-entry span{font-size:12px;color:#b7bec2}
   .os-install-entry :global(.public-app-open){min-height:44px;padding:10px 14px}
-  .guest-login-navigation{background:#111313;color:#fff;padding:12px clamp(14px,3vw,24px);font:13px/1.5 'Fira Sans',sans-serif;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-  .guest-login-navigation a{display:inline-flex;align-items:center;min-height:44px;color:#f6bb38;font-weight:700;text-decoration:none}
-  .guest-login-navigation a:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
-  .guest-login-navigation p{margin:0}
+  .guest-login-link{display:inline-flex;align-items:center;min-height:44px;color:#f6bb38;font:700 13px/1.5 'Fira Sans',sans-serif;text-decoration:none}
+  .guest-login-link:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  .os-install-entry span strong{font-size:inherit}
+  @media(max-width:600px){.os-install-entry{gap:4px 12px}.os-install-entry>div{flex:1 0 100%}}
   .login-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
   .login-status p { max-width:32rem; text-align:center; }
   button { min-height:44px; padding:10px 18px; border:1px solid #f6bb38; border-radius:6px; background:#161616; color:#ffca46; cursor:pointer; }
