@@ -68,7 +68,7 @@
           open={['drills','groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
           data-testid="admin-football-navigation">
           <summary class="admin-nav-category" data-testid="admin-football-category">
-            Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
+            Ποδόσφαιρο · Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
             {#if hasGroupHub}
@@ -77,7 +77,7 @@
                 data-testid="admin-groups-link">Ομάδες & τμήματα</a>
               {#if canManagePlayerCrm}
                 <a class="admin-nav-tool" href="/admin/groups?view=players"
-                  data-testid="admin-player-crm-link">Παίκτες CRM</a>
+                  data-testid="admin-player-crm-link">Παίκτες & προφίλ</a>
               {/if}
             {/if}
             {#if liveIds.has('assigned_groups')}
@@ -163,7 +163,7 @@
         <details class="admin-nav-disclosure" open={['academy-office','leads'].includes(active)}
           data-testid="admin-crm-navigation">
           <summary class="admin-nav-category" data-testid="admin-crm-category">
-            CRM & εγγραφές <span aria-hidden="true">⌄</span>
+            Εγγραφές & ενδιαφερόμενοι <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
             {#if liveIds.has('registrations')}
@@ -191,7 +191,7 @@
             {/if}
             {#if liveIds.has('products') || liveIds.has('registers')}
               <a class="admin-nav-tool" href="/admin/pos" aria-current={active==='pos'?'page':undefined}
-                data-testid="admin-pos-link">{user.role === 'cashier' ? 'Το ταμείο μου' : 'Ταμεία, βάρδιες & προϊόντα'}</a>
+                data-testid="admin-pos-link">{user.role === 'cashier' ? 'Το ταμείο μου' : 'POS · Ταμεία, βάρδιες & προϊόντα'}</a>
             {/if}
           </div>
         </details>
