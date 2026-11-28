@@ -128,16 +128,27 @@
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
     if(requested!==lastRequestedGroup){
       lastRequestedGroup=requested;
-      if(available.some(group=>group.id===requested))focusedGroupId=requested;
+      focusedGroupId=available.some(group=>group.id===requested)?requested:'';
     }
   });
   let appliedInitialOrganization=false;
   let openedRequestedCreate=false;
-  let appliedRequestedView=false;
+  let lastRequestedView:string|undefined;
   $effect(()=>{
-    if(!browser||appliedRequestedView||!canCreate)return;
-    appliedRequestedView=true;
-    if(page.url.searchParams.get('view')==='players')directoryView='players';
+    const owner=organization,actor=$auth.session?.user.id;
+    const requestedView=page.url.searchParams.get('view');
+    const requestedPlayer=page.url.searchParams.get('player_id');
+    const requestedGroup=page.url.searchParams.get('group_id');
+    if(!browser||!owner||!actor||!canCreate){
+      lastRequestedView=undefined;directoryView='groups';return;
+    }
+    // Same-route navigation and browser history must apply the new selection,
+    // not retain an earlier Player 360 or group workspace.
+    const key=JSON.stringify([owner,actor,requestedView,requestedPlayer,requestedGroup]);
+    if(key===lastRequestedView)return;
+    lastRequestedView=key;
+    directoryView=requestedView==='players'||(owner==='lefteria_fc_academy'&&requestedPlayer!==null)
+      ?'players':'groups';
   });
   $effect(()=>{
     const choices=assignments;

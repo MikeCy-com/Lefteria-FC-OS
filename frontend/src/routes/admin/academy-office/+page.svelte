@@ -46,7 +46,7 @@
   let shirtNumber = $state(0);
   let enrollmentRequestId = $state('');
   let guardianReviewId = $state('');
-  let justEnrolled=$state<string|null>(null);
+  let justEnrolled=$state<{playerId:string;groupId:string;actorId:string}|null>(null);
   const permittedCities = $derived(
     territory?.cities.filter(city => city.is_active &&
       territory?.locations.some(loc => loc.city_id === city.id && loc.can_manage && loc.is_active)) ?? []);
@@ -221,13 +221,17 @@
         ? 'Η σύνδεση με το κανονικό ρόστερ δεν είναι διαθέσιμη.'
         : 'Η εγγραφή δεν εγκρίθηκε και δεν προστέθηκε στο ρόστερ. Ελέγξτε συγκαταθέσεις και στοιχεία.');
       const value: unknown = await response.json();
+      // The session or permissions may change while the body is being read.
+      if ($auth.session?.user.id !== actor || !actor || !canEnroll || tab!=='registrations') return;
       if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Μη επαληθευμένη απάντηση.');
       const result = value as Record<string,unknown>;
       if (result.id !== id || result.group_id !== selectedGroup ||
           result.city_id !== selectedCity || result.location_id !== selectedLocation ||
-          result.status !== 'approved' || typeof result.player_id !== 'string')
+          result.status !== 'approved' || typeof result.player_id !== 'string' ||
+          result.player_id.length<1 || result.player_id.length>128 || /[\x00-\x1f\x7f]/.test(result.player_id))
         throw new Error('Δεν επαληθεύτηκε η αποθήκευση. Ελέγξτε τη λίστα.');
-      enrollingId = ''; enrollmentRequestId = '';justEnrolled=result.player_id;
+      enrollingId = ''; enrollmentRequestId = '';
+      justEnrolled={playerId:result.player_id,groupId:selectedGroup,actorId:actor};
       message = 'Η έγκριση και η προσθήκη στο ρόστερ ολοκληρώθηκαν.';
       revision++;
     } catch (cause) {
@@ -320,7 +324,12 @@
       </nav>
       {#if error}<p role="alert" class="admin-error">{error}</p>{/if}
       {#if message}<p role="status">{message}</p>{/if}
-      {#if justEnrolled && canEnroll}<a class="admin-primary" data-testid="newly-enrolled-player-360" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:justEnrolled}).toString()}>Άνοιγμα νέου Player 360 ›</a>{/if}
+      {#if justEnrolled && canEnroll && justEnrolled.actorId===$auth.session.user.id}
+         <div class="admin-enrollment-links" data-testid="newly-enrolled-next-actions">
+           <a class="admin-primary" data-testid="newly-enrolled-player-360" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:justEnrolled.playerId}).toString()}>Άνοιγμα νέου Player 360 ›</a>
+           <a class="admin-secondary" data-testid="newly-enrolled-group-roster" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',group_id:justEnrolled.groupId,tab:'players'}).toString()}>Άνοιγμα ρόστερ τμήματος ›</a>
+         </div>
+       {/if}
       {#key $auth.session.user.id}
         {#if tab === 'registrations'}
           {#if canEnroll}<details class="admin-panel manual-registration">
