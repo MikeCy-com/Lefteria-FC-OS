@@ -119,12 +119,75 @@ internal sealed partial class IdentityHttpChecks
                 (await client.GetAsync("/api/public/news?organization_id=all")).StatusCode != HttpStatusCode.BadRequest ||
                 (await client.GetAsync("/api/public/news?limit=101")).StatusCode != HttpStatusCode.BadRequest)
                 throw new InvalidOperationException("Public selectors must be bounded and exact.");
+            // Protect the query contract before moving pagination into SQL.
+            // Use the existing disposable fixture, never a hosted database.
+            await AssertNewsQueryParityAsync(client);
             await database.AssertPublicContentRuntimeBoundaryAsync();
             await database.AssertPublicProjectionConstraintAsync();
             await database.AssertWebPlatformForwardRecoveryAsync();
             await database.AssertPublicContentReplayDetectsChangeAsync(plan);
         }
         finally { await database.CleanupPublicContentAsync(plan); }
+    }
+
+    private async Task AssertNewsQueryParityAsync(HttpClient client)
+    {
+        async Task AssertPage(string query, int total, int offset, int limit, params string[] expectedIds)
+        {
+            using var response = await client.GetAsync("/api/public/news" + query);
+            using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            var root = json.RootElement;
+            var ids = root.GetProperty("items").EnumerateArray().Select(row => row.GetProperty("id").GetString()).ToArray();
+            if (response.StatusCode != HttpStatusCode.OK ||
+                root.GetProperty("total").GetInt32() != total ||
+                root.GetProperty("offset").GetInt32() != offset ||
+                root.GetProperty("limit").GetInt32() != limit ||
+                !ids.SequenceEqual(expectedIds))
+                throw new InvalidOperationException("Public news query contract changed: " + query);
+        }
+
+        // Stable totals even beyond the end of the filtered result.
+        await AssertPage("?offset=3&limit=1", 3, 3, 1);
+        await AssertPage("?offset=20000&limit=100", 3, 20000, 100);
+        await AssertPage("?category=missing-category&offset=0&limit=1", 0, 0, 1);
+        await AssertPage("?organization_id=lefteria_fc&offset=1&limit=1", 2, 1, 1, "shared");
+
+        await database.AddPublicNewsParityOverlaysAsync();
+        try
+        {
+            // The globally selected shared record must come from the same
+            // organization as the unfiltered feed, even when only the other
+            // organization's edit matches the requested category.
+            await AssertPage("?offset=0&limit=1", 3, 0, 1, "academy-only");
+            await AssertPage("?category=Parity-FC&limit=1", 1, 0, 1, "shared");
+            await AssertPage("?category=Parity-FC&offset=1&limit=1", 1, 1, 1);
+            await AssertPage("?category=Parity-Academy&limit=1", 0, 0, 1);
+            await AssertPage("?category=parity-fc&limit=1", 0, 0, 1);
+            await AssertPage("?organization_id=lefteria_fc_academy&category=Parity-Academy&limit=1",
+                1, 0, 1, "shared");
+            await AssertPage("?organization_id=lefteria_fc&category=Parity-Academy&limit=1", 0, 0, 1);
+
+            foreach (var (query, expectedOwner, expectedTitle, expectedCategory) in new[]
+            {
+                ("", "lefteria_fc", "Parity FC edition", "Parity-FC"),
+                ("?organization_id=lefteria_fc", "lefteria_fc", "Parity FC edition", "Parity-FC"),
+                ("?organization_id=lefteria_fc_academy", "lefteria_fc_academy", "Parity Academy edition", "Parity-Academy")
+            })
+            {
+                using var response = await client.GetAsync("/api/public/news/shared" + query);
+                var text = await response.Content.ReadAsStringAsync();
+                using var json = JsonDocument.Parse(text);
+                var article = json.RootElement;
+                if (response.StatusCode != HttpStatusCode.OK ||
+                    article.GetProperty("organization_id").GetString() != expectedOwner ||
+                    article.GetProperty("title").GetString() != expectedTitle ||
+                    article.GetProperty("category").GetString() != expectedCategory ||
+                    article.TryGetProperty("version", out _) ||
+                    text.Contains("sentinel-", StringComparison.Ordinal))
+                    throw new InvalidOperationException("Public article overlay visibility or precedence changed.");
+            }
+        }
+        finally { await database.RemovePublicNewsParityOverlaysAsync(); }
     }
 
     private static byte[] PublicContentFixture() => JsonSerializer.SerializeToUtf8Bytes(new
@@ -146,6 +209,48 @@ internal sealed partial class IdentityHttpChecks
 
 internal sealed partial class TestDatabase
 {
+    // Fixture-only owner writes seed safe public overlays. HTTP reads below
+    // are still performed through the real application and restricted DB role.
+    public async Task AddPublicNewsParityOverlaysAsync()
+    {
+        await using var context = CreateContext();
+        var rows = await context.Set<PublicContentDocumentRecord>().AsNoTracking()
+            .Where(row => row.Kind == "news" && row.Id == "shared").ToArrayAsync();
+        if (rows.Length != 2 || rows.Select(row => row.OrganizationId).Distinct().Count() != 2 ||
+            rows.Any(row => row.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy")) ||
+            await context.Set<AdminClubEditRecord>().AnyAsync(row => row.Kind == "news" && row.Id == "shared"))
+            throw new InvalidOperationException("Unexpected news parity fixture; refusing overlay seed.");
+
+        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower };
+        foreach (var row in rows)
+        {
+            var original = JsonSerializer.Deserialize<PublicArticle>(row.DataJson, options)
+                ?? throw new InvalidOperationException("Invalid fixture article.");
+            var isAcademy = row.OrganizationId == "lefteria_fc_academy";
+            var edited = original with
+            {
+                Title = isAcademy ? "Parity Academy edition" : "Parity FC edition",
+                Category = isAcademy ? "Parity-Academy" : "Parity-FC"
+            };
+            context.Set<AdminClubEditRecord>().Add(new AdminClubEditRecord
+            {
+                Kind = row.Kind, OrganizationId = row.OrganizationId, Id = row.Id,
+                DataJson = JsonSerializer.Serialize(edited, options), Version = 1
+            });
+        }
+        await context.SaveChangesAsync();
+    }
+
+    public async Task RemovePublicNewsParityOverlaysAsync()
+    {
+        await using var context = CreateContext();
+        var removed = await context.Set<AdminClubEditRecord>()
+            .Where(row => row.Kind == "news" && row.Id == "shared" && row.Version == 1 &&
+                (row.OrganizationId == "lefteria_fc" || row.OrganizationId == "lefteria_fc_academy"))
+            .ExecuteDeleteAsync();
+        if (removed != 2) throw new InvalidOperationException("Unexpected parity overlay cleanup count.");
+    }
+
     public async Task AssertWebPlatformForwardRecoveryAsync()
     {
         await using var context = CreateContext();
