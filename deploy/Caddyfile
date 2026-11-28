@@ -9,6 +9,17 @@
     X-Frame-Options SAMEORIGIN
   }
 
+  # Private application shells, transaction routes and authenticated API
+  # responses must never be indexed or stored by browser/shared caches.
+  # Segment boundaries avoid matching public paths such as /academy.
+  # Apply after upstream headers, including error and redirect responses.
+  @private_routes path_regexp private_routes (?i)^/(admin|app|login|profile|register|checkout|cart|payments|api/(admin|mobile))(/|$)
+  header @private_routes {
+    X-Robots-Tag "noindex, nofollow, noarchive"
+    Cache-Control "private, no-store"
+    defer
+  }
+
   @api path /api/*
   reverse_proxy @api api:8080
 
