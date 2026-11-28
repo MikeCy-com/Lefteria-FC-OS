@@ -57,14 +57,14 @@
       {#if role==='player'}Το ποδόσφαιρό μου · πρόγραμμα και ενημερώσεις της ομάδας μου.
       {:else if role==='coach'}Οι προπονήσεις, οι αθλητές μου και η επικοινωνία με την ομάδα.
       {:else if role==='management'}Οι δραστηριότητες του επιλεγμένου οργανισμού και τα εργαλεία διοίκησης.
-      {:else}Νέα, αγώνες και δραστηριότητες του συλλόγου, μόνο από δημόσιες πηγές.{/if}
+      {:else}Νέα, αγώνες και δραστηριότητες του συλλόγου. Η προσωπική σου ψήφος απαιτεί επαληθευμένη σύνδεση.{/if}
     </p>
   </header>
   <section class="panel" aria-labelledby={id+'-tools'}>
     <h2 id={id+'-tools'}>{role==='fan'?'Ο σύλλογός μου':'Γρήγορη πρόσβαση'}</h2>
     <div class="shortcuts">
       {#each shortcuts as tab (tab)}
-        {@const publicHref = fanPublicDestination(tab, role)}
+        {@const publicHref = role==='fan'&&tab==='potm'?'/app?tab=potm':fanPublicDestination(tab, role)}
         {#if publicHref}
           <a class="shortcut" href={publicHref}
             data-testid={'fan-home-'+tab}><strong>{TAB_NAMES[tab]}</strong><span aria-hidden="true">↗</span></a>

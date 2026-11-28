@@ -121,8 +121,7 @@ export function fanPublicDestination(tab: string, role: MobileRole | null): stri
     case 'team': return '/team';
     // Published catalogue only; this does not enable checkout or payments.
     case 'shop': return '/shop';
-    // Published monthly aggregate only; voting mutations remain disabled.
-    case 'potm': return '/vote';
+    // POTM is an authenticated in-app workflow; guests retain /vote separately.
     default: return null;
   }
 }
