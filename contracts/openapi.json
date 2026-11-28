@@ -5190,7 +5190,6 @@
             ]
           },
           "attendance_ids": {
-            "default": null,
             "items": {
               "type": "string"
             },

@@ -4559,8 +4559,7 @@ export interface components {
         };
         MobileMatchWorkspaceBody: {
             action: null | string;
-            /** @default null */
-            attendance_ids: null | string[];
+            attendance_ids?: null | string[];
             /** Format: int32 */
             expected_version: number | string;
             review_reason: null | string;
