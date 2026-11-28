@@ -76,7 +76,7 @@ public sealed class PostgresAdminRosterPlayerDirectory(
         {throw new WebAdminException(503,"roster_players_unavailable","Roster is unavailable.");}
     }
     public async Task<AdminGroupRosterPageDto> ReadGroupAsync(
-        string cookie,string organizationId,string groupId,int offset,int limit,CancellationToken token)
+        string cookie,string organizationId,string groupId,int offset,int limit,CancellationToken token,string? search=null)
     {
         if(!secrets.IsToken(cookie))
             throw new WebAdminException(401,"not_authenticated","Sign in again.");
@@ -99,6 +99,7 @@ public sealed class PostgresAdminRosterPlayerDirectory(
             command.Parameters.AddWithValue("group_id",groupId);
             command.Parameters.AddWithValue("offset",offset);
             command.Parameters.AddWithValue("limit",limit);
+            if(search is not null)command.Parameters.AddWithValue("search",search);
             var raw=await command.ExecuteScalarAsync(token) as string;
             var result=raw is null ? null : JsonSerializer.Deserialize<AdminGroupRosterPageDto>(raw,Json);
             if(result is null || result.OrganizationId!=organizationId ||
