@@ -11,6 +11,7 @@ test('production origin only: preview, localhost, HTTP, alternate host and port 
     assert.match(robotsFor(new URL(address)), /Sitemap: https:\/\/lefteriafc\.cy\/sitemap\.xml/);
     assert.match(robotsFor(new URL(address)), /Disallow: \/admin/);
     assert.match(robotsFor(new URL(address)), /Disallow: \/app/);
+    assert.match(robotsFor(new URL(address)), /^Disallow: \/payments$/m);
   }
   for (const address of ['https://preview.lefteriafc.cy/', 'https://lefteriafc.cy:8443/',
     'http://lefteriafc.cy/', 'http://localhost:3000/', 'https://lefteriafc.cy.evil.invalid/',
