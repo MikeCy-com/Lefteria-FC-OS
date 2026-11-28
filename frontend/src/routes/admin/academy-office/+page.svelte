@@ -6,6 +6,7 @@
   import {filterRegistrations,registrationNextStep,registrationPageSummary,
     type RegistrationQueue} from '../../../lib/admin/academy-registration-triage.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminCrmWorkspaceNav from '../../../lib/admin/AdminCrmWorkspaceNav.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AcademyGuardianProofReview from '../../../lib/admin/AcademyGuardianProofReview.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
@@ -291,7 +292,8 @@
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="academy-office" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if access}
-      <h1>Εγγραφές Ακαδημίας</h1>
+      <h1>CRM · Εγγραφές Ακαδημίας</h1>
+      <AdminCrmWorkspaceNav user={$auth.session.user} active="registrations"/>
       <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Η έγκριση & ένταξη ηλεκτρονικής αίτησης δημιουργεί τον αθλητή στο επιλεγμένο τμήμα. Ο λογαριασμός γονέα και η ενεργοποίηση χρεώσεων απαιτούν ξεχωριστή επαλήθευση.</p>
       {#if $auth.session.user.role !== 'super_admin'}
         <p class="admin-muted">Οι διαχειριστές βλέπουν μόνο τις αιτήσεις που καταχώρισαν οι ίδιοι. Οι νέες δημόσιες αιτήσεις διατίθενται μόνο στον Super Admin μέχρι να ενεργοποιηθεί η ασφαλής ανάθεση ανά πόλη και τοποθεσία.</p>
