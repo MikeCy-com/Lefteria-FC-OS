@@ -325,7 +325,7 @@
 
   $effect(() => {
     const selected = scopedAdminOrganization($auth.session?.user ?? null, assignments.map(org => org.id));
-    if (owner !== selected) owner = selected;
+    if (!assignments.some(org => org.id === owner)) owner = selected;
   });
 
   $effect(() => {
@@ -399,9 +399,19 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>POS & κατάστημα</h1>
-        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Οι διαθέσιμες λειτουργίες σημείων πώλησης και βαρδιών εμφανίζονται παρακάτω με έλεγχο δικαιωμάτων. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
+        <p class="admin-muted">Διαχειριστείτε ταμεία, βάρδιες, προϊόντα και τιμές. Οι διαθέσιμες ενέργειες εξαρτώνται από τα δικαιώματά σας. Οι πραγματικές ηλεκτρονικές πληρωμές παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
+          {#if assignments.length>1}
+            <div class="admin-pos-owner-actions" role="group" aria-label="Κατάλογοι POS">
+              {#each assignments as org (org.id)}
+                <button class="admin-secondary" type="button" aria-pressed={owner===org.id}
+                  disabled={busy||writing||productWriting||showCategoryForm||showProductForm}
+                  onclick={()=>{if(assignments.some(item=>item.id===org.id))owner=org.id;}}>{org.name}</button>
+              {/each}
+            </div>
+            <p class="admin-muted">Επιλέξτε τον κατάλογο για τη συγκεκριμένη εργασία. Οι πωλήσεις και τα ταμεία παραμένουν ξεχωριστά ανά οργανισμό.</p>
+          {/if}
         </section>
         {#if busy}
           <section class="admin-panel" role="status" data-testid="admin-pos-loading">Φόρτωση επαληθευμένου καταλόγου…</section>
@@ -542,7 +552,7 @@
               {/if}
             </section>
           {/if}
-          <AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>
+          {#key catalog.organization_id}<AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>{/key}
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -615,6 +625,8 @@
 
 <style>
   .admin-pos{width:100%;max-width:none;min-width:0}
+  .admin-pos-owner-actions{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
+  .admin-pos-owner-actions button[aria-pressed=true]{border-color:var(--admin-gold);color:var(--admin-gold)}
   .admin-pos>h1{margin:0 0 10px}
   .admin-pos>.admin-muted{max-width:75ch;margin:0 0 20px}
   .admin-pos-owner{margin:0 0 15px}
