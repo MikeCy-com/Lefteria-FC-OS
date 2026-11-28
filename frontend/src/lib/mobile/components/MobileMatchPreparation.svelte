@@ -3,7 +3,7 @@
   import {matchAvailability,matchRosterSummary,filterMatchRoster,type MatchRosterFilter} from '../match-preparation.ts';
   let {responses,loadingMore=false,busy=false,onRefresh,onLoadMore}:{
     responses:MobileCalendarResponses;loadingMore?:boolean;busy?:boolean;
-    onRefresh:()=>void|Promise<unknown>;onLoadMore:()=>void|Promise<unknown>;
+    onRefresh:()=>boolean|void|Promise<unknown>;onLoadMore:()=>boolean|void|Promise<unknown>;
   }=$props();
   let filter=$state<MatchRosterFilter>('all'),search=$state('');
   const categories=[
@@ -45,7 +45,7 @@
   {#if visible.length}
     <ul>{#each visible as player (player.id)}
       <li><div class="player-details"><strong>{player.name}</strong>
-        <small>{player.number>0?'#'+player.number:''}{player.number>0&&player.position?' · ':''}{player.position}</small></div>
+        <small>{Number(player.number)>0?'#'+player.number:''}{Number(player.number)>0&&player.position?' · ':''}{player.position}</small></div>
         <span class="availability-label" data-status={matchAvailability(player.status)}>{label(matchAvailability(player.status))}</span>
       </li>
     {/each}</ul>
