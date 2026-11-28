@@ -97,3 +97,28 @@ test('approved registration opens exact Player 360 documents, with searchable pr
   assert.match(records,/attentionStatuses\.includes\(doc\.status\)/);
   assert.doesNotMatch(records,/downloadUrl|publicMediaUrl/);
 });
+
+test('official Academy sporting corrections keep registration replay immutable and use exact player authorization',()=>{
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128200000_AcademyPlayerSportingCorrection.cs');
+  assert.match(sql,/registration_sporting_baseline_immutable/);
+  assert.match(sql,/authorize_academy_private_profile\(_digest,_player,true\)/);
+  assert.match(sql,/v_position IS DISTINCT FROM _expected_position OR v_number IS DISTINCT FROM _expected_number/);
+  assert.match(sql,/ON CONFLICT\(registration_id\) DO NOTHING/);
+  assert.match(sql,/CASE WHEN b.registration_id IS NULL THEN p.position ELSE b.position END/);
+  assert.match(sql,/CASE WHEN b.registration_id IS NULL THEN p.number ELSE b.number END/);
+  assert.match(sql,/UPDATE club\.players SET position=_position,number=_number/);
+  assert.match(sql,/canonical_sporting_only/);
+  assert.doesNotMatch(sql,/UPDATE academy_intake\.registration_placements|DELETE FROM club\.players/);
+  const api=read('backend/src/LefteriaFc.Api/WebAdmin/AdminPlayerProfileEndpoints.cs');
+  assert.match(api,/CorrectSporting\(digest,playerId,body\.SportingCorrection/);
+  const panel=read('frontend/src/lib/admin/AdminPlayerPrivateProfilePanel.svelte');
+  assert.ok(compile(panel,{filename:'AdminPlayerPrivateProfilePanel.svelte',generate:'server'}).js.code.length>100);
+  assert.match(panel,/data-testid="admin-player-official-sporting-form"/);
+  assert.match(panel,/sportingCorrection:\{expectedPosition,expectedNumber,position,number\}/);
+  assert.match(panel,/result\.official_position!==position\|\|result\.official_number!==number/);
+  assert.match(panel,/officialEditBusy/);
+  const fixture=read('ops/postgres/academy-enrollment-checks.sql');
+  assert.match(fixture,/Sporting correction broke original enrollment replay/);
+  assert.match(fixture,/Stale sporting correction accepted/);
+  assert.match(fixture,/Cross-city sporting correction accepted/);
+});
