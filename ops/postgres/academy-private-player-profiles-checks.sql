@@ -32,7 +32,7 @@ BEGIN
       9,'Forward','Academy',true,false,false,true);
   INSERT INTO club.players(id,organization_id,name,number,position,team_type,
     is_active,is_archived,is_transferred,has_explicit_picker_fields)
-    VALUES(v_archived,'lefteria_fc_academy','CI Archived Child',NULL,'Forward','Academy',false,true,false,true);
+    VALUES(v_archived,'lefteria_fc_academy','CI Archived Child',8,'Forward','Academy',false,true,false,true);
   v_data:=club.search_admin_archived_academy_players(v_super_token,v_archived,0,25);
   IF (v_data->>'total')::integer<>1 OR v_data#>>'{players,0,id}' IS DISTINCT FROM v_archived
     OR v_data#>>'{players,0,state}' IS DISTINCT FROM 'archived'
