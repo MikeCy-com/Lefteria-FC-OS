@@ -42,7 +42,7 @@
   let inspectedGoals = $state<string|null>(null);
   let inspectedProfile = $state<string|null>(null);
   let selectedPlayer360=$state<string|null>(null);
-  type Player360Tab='overview'|'profile'|'records'|'goals'|'attendance';
+  type Player360Tab='overview'|'profile'|'documents'|'development'|'goals'|'attendance';
   let player360Tab=$state<Player360Tab>('overview');
   function closePlayer360(){
     selectedPlayer360=null;player360Tab='overview';
@@ -51,12 +51,12 @@
   function selectPlayer360Tab(player:Player,tab:Player360Tab){
     if(selectedPlayer360!==player.id)return;
     if(tab==='profile'&&!(allowPrivate&&owner==='lefteria_fc_academy'))return;
-    if(tab==='records'&&!(allowPrivate&&currentGroups(player).length>0))return;
+    if((tab==='documents'||tab==='development')&&!(allowPrivate&&currentGroups(player).length>0))return;
     if(tab==='goals'&&!(allowGoalRead&&currentGroup&&currentGroups(player).includes(currentGroup)))return;
     if(tab==='attendance'&&!(allowPrivate&&currentGroup&&owner==='lefteria_fc_academy'&&canReadAttendance&&currentGroups(player).includes(currentGroup)))return;
     player360Tab=tab;
     inspectedProfile=tab==='profile'?player.id:null;
-    inspectedPlayer=tab==='records'?player.id:null;
+    inspectedPlayer=tab==='documents'||tab==='development'?player.id:null;
     inspectedGoals=tab==='goals'?player.id:null;
   }
   let saving = $state(false);
@@ -290,7 +290,7 @@
           <li>
             <div class="admin-player-identity">
               <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
-              <div><strong>{player.name}</strong><small>{player.id}</small></div>
+              <div><strong>{player.name}</strong></div>
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
@@ -358,7 +358,8 @@
                     <button type="button" data-testid="admin-open-player-private-profile" aria-pressed={player360Tab==='profile'} onclick={()=>selectPlayer360Tab(player,'profile')}>Στοιχεία & φωτογραφία</button>
                   {/if}
                   {#if allowPrivate && currentGroups(player).length>0}
-                    <button type="button" aria-pressed={player360Tab==='records'} onclick={()=>selectPlayer360Tab(player,'records')}>Έγγραφα & ανάπτυξη</button>
+                    <button type="button" aria-pressed={player360Tab==='documents'} onclick={()=>selectPlayer360Tab(player,'documents')}>Έγγραφα</button>
+                    <button type="button" aria-pressed={player360Tab==='development'} onclick={()=>selectPlayer360Tab(player,'development')}>Ανάπτυξη & αξιολογήσεις</button>
                   {/if}
                   {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
                     <button type="button" data-testid="admin-manager-goal-reader-toggle" aria-pressed={player360Tab==='goals'} onclick={()=>selectPlayer360Tab(player,'goals')}>Ατομικοί στόχοι</button>
@@ -368,7 +369,7 @@
                   {/if}
                   {#if allowFinance && owner === 'lefteria_fc_academy'}
                     <a href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
-                      data-testid="admin-player-billing-link">Οικονομικά ›</a>
+                      class="admin-player-finance-link" data-testid="admin-player-billing-link">Οικονομικά ›</a>
                   {/if}
                 </div>
                 {#if player360Tab==='overview'}
@@ -377,6 +378,7 @@
                     <div><span>Ομάδα / τμήμα</span><strong>{groupLabels(player)}</strong></div>
                     <div><span>Εγγραφή ρόστερ</span><strong>Ενεργός παίκτης</strong></div>
                   </div>
+                  <details><summary>Κωδικός αναφοράς αθλητή</summary><small>{player.id}</small></details>
                   <p class="admin-muted">Επιλέξτε ενότητα για να δείτε τα πραγματικά στοιχεία του αθλητή. Εμφανίζονται μόνο οι ενότητες για τις οποίες έχετε δικαίωμα πρόσβασης.</p>
                 {:else}
                   <p class="admin-muted admin-player360-save-note">Αποθηκεύστε τις αλλαγές πριν μεταβείτε σε άλλη ενότητα.</p>
@@ -397,7 +399,7 @@
                 {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
                   <div data-testid="admin-player-individual-workspace">
                     <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                      playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
+                      playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} section={player360Tab==='documents'?'documents':'development'} {onExpired} {onRevoked}/>
                   </div>
                 {/if}
                 {#if player360Tab==='attendance' && allowPrivate && currentGroup && owner==='lefteria_fc_academy' && canReadAttendance && currentGroups(player).includes(currentGroup)}
