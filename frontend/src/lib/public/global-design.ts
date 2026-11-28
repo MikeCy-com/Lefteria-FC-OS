@@ -46,20 +46,14 @@ export function colorContrast(a:string,b:string):number {
   return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);
 }
 
-export function parseGlobalDesign(text:string):GlobalDesign|null {
+/** Draft editor accepts structurally safe palettes even while contrast is being corrected. */
+export function parseGlobalDesignDraft(text:string):GlobalDesign|null {
   if(typeof text!=='string'||text.length>5000)return null;
   let value:unknown;try{value=JSON.parse(text)}catch{return null}
   if(!exact(value,['text','colors'])&&!exact(value,['text','colors','layout']))return null;
   const theme=value as GlobalDesign;
   if(!exact(theme.text,TEXT_ROLES)||!exact(theme.colors,['background','foreground','accent','surface','muted','border','link'])||
     !hex(theme.colors.background)||!hex(theme.colors.foreground)||!hex(theme.colors.accent)||!hex(theme.colors.surface)||!hex(theme.colors.muted)||!hex(theme.colors.border)||!hex(theme.colors.link))return null;
-  if(colorContrast(theme.colors.surface,theme.colors.foreground)<4.5 ||
-     colorContrast(theme.colors.surface,theme.colors.muted)<4.5 ||
-     colorContrast(theme.colors.surface,theme.colors.link)<4.5 ||
-     colorContrast(theme.colors.background,theme.colors.foreground)<4.5 ||
-     colorContrast(theme.colors.background,theme.colors.muted)<4.5 ||
-     colorContrast(theme.colors.background,theme.colors.link)<4.5 ||
-     colorContrast(theme.colors.background,theme.colors.accent)<3)return null;
   if(theme.layout!==undefined){
     if(!exact(theme.layout,Object.keys(layoutValues))&&!exact(theme.layout,Object.keys(layoutValues).slice(0,6)))return null;
     for(const key of Object.keys(theme.layout) as (keyof GlobalDesignLayout)[])
@@ -73,6 +67,22 @@ export function parseGlobalDesign(text:string):GlobalDesign|null {
       ![1,1.15,1.2,1.35,1.5,1.6,1.8].includes(t.line_height))return null;
   }
   return theme;
+}
+export function globalDesignContrastChecks(theme:GlobalDesign){
+  const c=theme.colors;
+  return ([
+    ['surface','foreground',4.5],['surface','muted',4.5],['surface','link',4.5],
+    ['background','foreground',4.5],['background','muted',4.5],['background','link',4.5],
+    ['background','accent',3]
+  ] as const).map(([background,foreground,minimum])=>{
+    const ratio=colorContrast(c[background],c[foreground]);
+    return {background,foreground,minimum,ratio,passes:ratio>=minimum};
+  });
+}
+/** Published theme and save validation remain strict. */
+export function parseGlobalDesign(text:string):GlobalDesign|null{
+  const theme=parseGlobalDesignDraft(text);
+  return theme&&globalDesignContrastChecks(theme).every(check=>check.passes)?theme:null;
 }
 export function publishedGlobalDesign(pages:readonly PublishedWebsitePage[],owner:PublicOrganization):GlobalDesign|null {
   const row=pages.find(page=>page.slug===GLOBAL_DESIGN_SLUG&&isPublishedWebsitePage(page,owner));

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {compile} from 'svelte/compiler';
 import {DEFAULT_GLOBAL_DESIGN,GLOBAL_DESIGN_SLUG,TEXT_ROLES,parseGlobalDesign,
-  publishedGlobalDesign,globalDesignCssVars} from '../src/lib/public/global-design.ts';
+  publishedGlobalDesign,globalDesignCssVars,parseGlobalDesignDraft,globalDesignContrastChecks} from '../src/lib/public/global-design.ts';
 import {isHomepageEditorialSlug,withWebsitePages} from '../src/lib/public/website-pages.ts';
 
 const read=path=>readFileSync(new URL('../../'+path,import.meta.url),'utf8');
@@ -180,4 +180,25 @@ test('global editor now controls default page width, padding and top/bottom marg
   const oldSix={...theme.layout};
   for(const key of ['page_max_width','page_gap','page_side_padding','page_margin_top','page_margin_bottom'])delete oldSix[key];
   assert.ok(parseGlobalDesign(JSON.stringify({...theme,layout:oldSix})),'6-option published layouts remain valid');
+});
+
+test('safe intermediate palette drafts preserve all edits but cannot be published',()=>{
+ const draft=structuredClone(DEFAULT_GLOBAL_DESIGN);
+ draft.text.h1.desktop=61;draft.layout.page_gap=48;
+ draft.colors.background='#ffffff';
+ assert.deepEqual(parseGlobalDesignDraft(JSON.stringify(draft)),draft);
+ assert.equal(parseGlobalDesign(JSON.stringify(draft)),null);
+ assert.ok(globalDesignContrastChecks(draft).some(check=>!check.passes));
+ draft.colors.background=DEFAULT_GLOBAL_DESIGN.colors.background;
+ assert.deepEqual(parseGlobalDesign(JSON.stringify(draft)),draft);
+ draft.colors.background='red;display:none';
+ assert.equal(parseGlobalDesignDraft(JSON.stringify(draft)),null);
+});
+test('editor preserves draft palette and expands legacy layout keys before editing',()=>{
+ assert.match(editor,/parseGlobalDesignDraft\(value\)/);
+ assert.ok(editor.includes('...DEFAULT_GLOBAL_LAYOUT,...next.layout'));
+ assert.ok(editor.includes('global-design-contrast-review'));
+ assert.ok(editor.includes('global-design-responsive-preview'));
+ assert.ok(editor.includes('theme.text[role][previewMode]'));
+ assert.ok(admin.includes('!parseGlobalDesign(draft.blocks[0].text)'));
 });
