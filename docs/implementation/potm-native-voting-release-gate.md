@@ -28,13 +28,25 @@ Tracking: #485. Public results and roster browsing are separate from the native 
 - Selection does not mutate data until explicit confirmation. Changes and withdrawals send the prior revision. If the response is rejected or lost, remove the stale ballot controls and require a fresh GET; do not automatically retry. Display success only on exact confirmed response.
 - Added parser/controller tests and an actual browser route exercise using synthetic API responses. This is not a real open-period server or concurrency test. Staging and owner cutover remain closed.
 
+## Verified CI acceptance
+
+PR #503: real open-period HTTP voting with two PostgreSQL sessions observed waiting on the same Fan identity lock, one 200 and one 409, independent voter accounts, persisted changes/withdrawal, exact revision history and closed-period denial. All 57 integration checks passed in run 46121744258; merged main 4ffbdd3777e78c795febfac7df15387cd2927444. PR #495 browser uses synthetic HTTP responses; real isolated staging remains outstanding.
+
+## Native public results slice
+
+- Current Cyprus month only. A native period is authoritative for that month; imported votes are never added to it or used as fallback if native evidence conflicts. No period means the legacy path is unchanged.
+- A restricted security-definer function reads only the aggregate after an explicit period closure. Before closure no live count is exposed. It verifies the pinned public snapshot, retained source counts, first-team publication, and latest ballot/event consistency. Withdrawal tombstones and older revisions do not contribute. A zero is authoritative only for a verified closed native period.
+- No raw voter IDs, phones, event rows, admin details or private candidate metadata leave the database projection. Public names/photos come from the already published roster in the same repeatable-read transaction. Club scope only.
+- Existing import serialization and API schema stay stable: the importer generates canonical YYYY-MM IDs; the native projection reserves native-closed:YYYY-MM, native-pending:YYYY-MM and native-unavailable:YYYY-MM IDs. Consumers must interpret these states before using total_votes; pending/unavailable carry the existing empty DTO shape, not an authoritative zero. The public website parser enforces this distinction and labels native closed counts separately. No winner declaration.
+- Native publication is withheld when the reviewed snapshot changes, current-month legacy evidence appears, publication becomes incomplete, or a counted choice cannot be matched to the reviewed first-team roster. Closed counts are derived from preserved current ballots; a later revoked admin or player does not by itself rewrite historical choices.
+- Added real anonymous HTTP tests for pending, closed, empty closed, Academy isolation, and conflicting legacy evidence; parser tests cover the same states. Must pass CI before merge.
+- This slice does not introduce a historical results archive, automatic closure at month end, native/legacy reconciliation, or period management controls.
+
 ## Outstanding release gates
 
-1. Mandatory disposable PostgreSQL lifecycle and restricted-role checks, including explicit concurrent sessions to prove same-revision conflict.
-2. Authenticated API with strict Fan JWT claims, bounded payload, validation/error mapping, no-store, generated contracts; tests for expired/revoked/forged role, same phone and independent accounts. No raw identity or phone parameters exposed to client.
-3. Mobile Fan ballot screen with own current selection, vote/change/withdraw confirmation, accessible error/retry and conflict refresh, correct month handling. Guest may read results only.
-4. Owner review of legacy vote history, completeness and stop time; no automatic enablement and no deletion or combining of legacy aggregates with native ballots. For months already containing legacy votes, the current gate deliberately refuses writes until a separate reviewed reconciliation policy is implemented. An import that changes the pinned snapshot must be reviewed before reopening.
-5. Native public tally projection with explicit source-of-truth per month; no voter rows, no double count, no winner declaration before the defined close. Until then the public page remains imported-results-only.
-6. Verify real staging migration, least-privilege grants, API/mobile flows and data persistence using synthetic accounts in an isolated environment. Production activation requires explicit owner authorization.
+1. Owner review of legacy vote history, completeness and stop time; no automatic enablement and no deletion or combining of legacy aggregates with native ballots. Months containing legacy votes remain closed to native writes until a separate reviewed reconciliation policy is implemented.
+2. Authorized Super Admin period management: explicit preview/approval reference, verified snapshot and stop time, safe opening and closure, audit history, permission and concurrency tests. No direct runtime table access or silent re-opening. Reviewed historical archive / snapshot-change recovery policy required for durable previous-month public results.
+3. Verify native results slice in fresh CI. Then test all workflows in isolated staging with synthetic accounts, real migrations, least-privilege grants and persisted changes.
+4. Production activation requires explicit owner authorization.
 
 No production migration, period opening, deployment or provider operation is authorized by this document.
