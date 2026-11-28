@@ -701,6 +701,9 @@ GRANT EXECUTE ON FUNCTION club.read_mobile_potm_ballot(uuid,text,text,timestampt
   TO :"app_role";
 GRANT EXECUTE ON FUNCTION club.write_mobile_potm_ballot(uuid,text,text,timestamptz,text,integer,text)
   TO :"app_role";
+-- Public native POTM aggregates contain no voter rows and are closed-period only.
+REVOKE ALL ON FUNCTION public_sections.read_native_potm(text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION public_sections.read_native_potm(text) TO :"app_role";
 -- Match workspaces expose only guarded operations, never raw history tables.
 REVOKE ALL ON TABLE club.match_workspaces,club.match_workspace_revisions FROM PUBLIC, :"app_role";
 REVOKE ALL ON FUNCTION club.require_mobile_match_host(uuid,text,text,timestamptz,text),

@@ -95,7 +95,19 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
             } : item).Concat(nativePartners)
             .OrderBy(item => item.DisplayOrder).ThenBy(item => item.Name, StringComparer.Ordinal).ToArray();
 
-        var response = new PublicSectionsResult(organizationId, Read<PublicSectionPlayer>("player"), Read<PublicSectionStaff>("staff"), Read<PublicSectionGroup>("academy_group"),
+        var players = Read<PublicSectionPlayer>("player");
+        var potm = Read<PublicSectionPotm>("potm").SingleOrDefault(row => row.MonthKey == month)
+            ?? new PublicSectionPotm(month, organizationId, month, 0, []);
+        if (organizationId == "lefteria_fc")
+        {
+            // The aggregate is read inside the same repeatable-read snapshot
+            // as the public roster. Native and imported counts never combine.
+            var nativeJson = await database.Database.SqlQueryRaw<string>(
+                "SELECT public_sections.read_native_potm({0})::text AS \"Value\"", month).SingleAsync(token);
+            potm = SelectNativePotm(nativeJson, month, players, potm);
+        }
+
+        var response = new PublicSectionsResult(organizationId, players, Read<PublicSectionStaff>("staff"), Read<PublicSectionGroup>("academy_group"),
             Read<PublicSectionStanding>("standing").OrderByDescending(row => row.Points).ThenByDescending(row => row.GoalDifference).ThenBy(row => row.TeamName, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionVenue>("venue"), Read<PublicSectionSeason>("season").OrderByDescending(row => row.StartDate, StringComparer.Ordinal).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionGallery>("gallery").OrderByDescending(row => row.CreatedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(), sponsors,
@@ -103,10 +115,51 @@ public sealed class PostgresPublicSectionsRepository(LefteriaDbContext database,
             Read<PublicSectionProduct>("product").OrderBy(row => row.Name, StringComparer.Ordinal).ToArray(), Read<PublicSectionTrials>("trials").SingleOrDefault(), fixtures,
             Read<PublicSectionTicket>("ticket"), Read<PublicSectionArchive>("archive").OrderByDescending(row => row.ArchivedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
             Read<PublicSectionReview>("review").OrderByDescending(row => row.PublishedAt).ThenBy(row => row.Id, StringComparer.Ordinal).ToArray(),
-            Read<PublicSectionAcademyStats>("academy_stats").SingleOrDefault(), Read<PublicSectionPotm>("potm").SingleOrDefault(row => row.MonthKey == month) ?? new PublicSectionPotm(month, organizationId, month, 0, []),
+            Read<PublicSectionAcademyStats>("academy_stats").SingleOrDefault(), potm,
             branding, Read<PublicSectionModule>("module"), snapshot.ExportedAt, now, PublicFixtureClock.TimeZone);
         await transaction.CommitAsync(token);
         return response;
+    }
+
+    private sealed record NativePotmCount(string PlayerId, int Votes);
+    private sealed record NativePotmTally(string State, NativePotmCount[] Counts);
+
+    private static PublicSectionPotm SelectNativePotm(string raw, string month,
+        PublicSectionPlayer[] players, PublicSectionPotm imported)
+    {
+        const string club = "lefteria_fc";
+        // Import IDs are canonical YYYY-MM. Reserved native IDs convey source
+        // without changing the historical serialized import contract/digest.
+        PublicSectionPotm Empty(string state) => new($"native-{state}:{month}", club, month, 0, []);
+        var unavailable = Empty("unavailable");
+        try
+        {
+            var native = JsonSerializer.Deserialize<NativePotmTally>(raw, Json);
+            if (native?.Counts is null) return unavailable;
+            if (native.State == "absent") return native.Counts.Length == 0 ? imported : unavailable;
+            if (native.State == "pending") return native.Counts.Length == 0 ? Empty("pending") : unavailable;
+            if (native.State != "closed") return unavailable;
+
+            var roster = players.Where(p => p.OrganizationId == club && p.TeamType == "First Team")
+                .ToDictionary(p => p.Id, StringComparer.Ordinal);
+            var results = new List<PublicSectionPotmCandidate>();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            var total = 0;
+            foreach (var count in native.Counts)
+            {
+                if (count is null || string.IsNullOrWhiteSpace(count.PlayerId) || count.Votes <= 0 ||
+                    !seen.Add(count.PlayerId) || !roster.TryGetValue(count.PlayerId, out var player))
+                    return unavailable;
+                total = checked(total + count.Votes);
+                results.Add(new(player.Id, player.Name, player.Number, player.Position, player.ImageUrl, count.Votes));
+            }
+            return new($"native-closed:{month}", club, month, total,
+                results.OrderByDescending(row => row.Votes).ThenBy(row => row.PlayerId, StringComparer.Ordinal).ToArray());
+        }
+        catch (Exception error) when (error is JsonException or OverflowException or ArgumentException)
+        {
+            return unavailable;
+        }
     }
 }
 
