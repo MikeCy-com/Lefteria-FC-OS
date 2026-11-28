@@ -25,7 +25,7 @@ export function validMatchWorkspace(raw:unknown,match:string,owner:string):raw i
     !integer(raw.version,0,1000000)||!['draft','selected','submitted','approved','rejected'].includes(String(raw.state))||
     typeof raw.completed!=='boolean'||typeof raw.roster_stale!=='boolean'||
     !text(raw.rotation_note,500)||!text(raw.review_reason,500)||
-    !Array.isArray(raw.roster)||raw.roster.length>200||!Array.isArray(raw.squad)||raw.squad.length>60||
+    !Array.isArray(raw.roster)||raw.roster.length>500||!Array.isArray(raw.squad)||raw.squad.length>60||
     !Array.isArray(raw.statistics)||raw.statistics.length>60)return false;
   const roster=new Set<string>();
   if(!raw.roster.every(r=>{
