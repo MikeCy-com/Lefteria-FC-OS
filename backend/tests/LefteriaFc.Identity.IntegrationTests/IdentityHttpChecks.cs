@@ -24,6 +24,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Scoped calendar import, role visibility and atomic own-player RSVP use current canonical authority", CalendarEndToEndAsync),
         ("Owner account import, canonical role revocation and legacy fan OTP preserve source authority", AccountImportEndToEndAsync),
         ("POTM own ballot HTTP boundary refuses unapproved writes, foreign roles, invalid bodies and revoked Fan", PotmHttpBoundaryAsync),
+        ("POTM open-period HTTP concurrency preserves one ballot, exact history and independent accounts", PotmOpenPeriodAsync),
         ("Bounded legacy token validation preserves source claim families and rejects unapproved JWTs", LegacyMobileTokenValidationAsync),
         ("Legacy bridge startup enforces independent keys and disabled defaults", LegacyBridgeConfigurationAsync),
         ("Calendar import preserves private sources, scope references, publication and date semantics", CalendarImportPlannerAsync),

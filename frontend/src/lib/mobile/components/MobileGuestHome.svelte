@@ -8,7 +8,7 @@
 
   let { activeTab, brand }: { activeTab: MobileTab; brand: ClubBrand | null } = $props();
   const destination = $derived(guestPublicLink(activeTab));
-  const restrictedTabs = ['profile', 'notifications', 'hub', 'gamehub'] as const;
+  const restrictedTabs = ['profile', 'notifications', 'hub', 'gamehub', 'potm'] as const;
 
   async function openTab(tab: MobileTab) {
     const link = guestPublicLink(tab);
@@ -72,6 +72,7 @@
         <h1>{destination.label}</h1>
         <p>Δες το δημοσιευμένο περιεχόμενο του συλλόγου χωρίς σύνδεση.</p>
         <a class="sign-in" href={destination.href}>Άνοιγμα: {destination.label}</a>
+        {#if activeTab==='potm'}<a class="back" href={guestLoginHref('potm')} data-testid="guest-potm-sign-in">Σύνδεση για ψηφοφορία</a>{/if}
         <a class="back" href="/app">Επιστροφή στην εφαρμογή</a>
       </section>
     {/if}

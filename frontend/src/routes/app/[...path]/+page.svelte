@@ -29,6 +29,7 @@
   import MobileTrainingFees from '../../../lib/mobile/components/MobileTrainingFees.svelte';
   import MobileAcademyEducation from '../../../lib/mobile/components/MobileAcademyEducation.svelte';
   import MobileFanPayablHub from '../../../lib/mobile/components/MobileFanPayablHub.svelte';
+  import MobilePotmBallot from '../../../lib/mobile/components/MobilePotmBallot.svelte';
   import MobilePersonalLearningJourney from '../../../lib/mobile/components/MobilePersonalLearningJourney.svelte';
   import MobilePlayerWeeklyQuiz from '../../../lib/mobile/components/MobilePlayerWeeklyQuiz.svelte';
   import MobilePlayerClassrooms from '../../../lib/mobile/components/MobilePlayerClassrooms.svelte';
@@ -427,6 +428,10 @@
               onCloseResponses={() => controller.clearCalendarResponses()} />
           {/key}
         {/if}
+      {:else if activeTab === 'potm' && role === 'fan' && !composing}
+        {#key user.id+':'+role}
+          <MobilePotmBallot {controller}/>
+        {/key}
       {:else if publicDestination && !composing}
         <section class="content-card fan-public-destination" aria-labelledby="fan-public-title" data-testid="fan-public-destination">
           <p class="context">ΛΕΥΤΕΡΙΑ FC · {ROLE_NAMES.fan}</p>

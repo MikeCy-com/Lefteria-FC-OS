@@ -63,6 +63,8 @@ try {
   assert.equal(await guestPage.getByTestId('guest-public-news').getAttribute('href'),'/news');
   assert.equal(await guestPage.getByTestId('guest-public-matches').getAttribute('href'),'/team?tab=results');
   assert.equal(await guestPage.getByTestId('guest-public-potm').getAttribute('href'),'/vote');
+  assert.equal(await guestPage.getByTestId('guest-restricted-potm').getAttribute('href'),'/app/login?return_tab=potm');
+  assert.equal(await guestPage.getByTestId('mobile-potm-ballot').count(),0);
   await guestPage.getByTestId('guest-restricted-profile').click();
   await guestPage.waitForURL(url=>url.pathname==='/app/login'&&url.searchParams.get('return_tab')==='profile');
   await guestPage.getByTestId('login-intended-tab').waitFor();

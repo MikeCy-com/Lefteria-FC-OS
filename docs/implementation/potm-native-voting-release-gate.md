@@ -21,6 +21,13 @@ Tracking: #485. Public results and roster browsing are separate from the native 
 - HTTP integration tests exercise closed-by-default gate, OTP login, same-phone role switch, expired/mismatched/revoked identities, malformed and oversized inputs and denied-write persistence. These complement the earlier verified database lifecycle tests; open-period HTTP and actual concurrent request testing remain separate release gates.
 - OpenAPI and client type declarations are supplied and must match the CI-generated artifacts before merge.
 
+## Mobile ballot interface
+
+- Verified Fan accounts navigate to the personal ballot inside the app; guests retain public results and can explicitly sign in to resume the ballot tab. Other roles cannot mount it.
+- Read current own ballot first. Only if the server says voting is open, fetch the canonical active first-team picker and the public club projection. The public request carries no credentials; display only public candidate names/images for IDs present in both verified responses and in the current Cyprus month. The SQL write remains authoritative if roster or publication changes.
+- Selection does not mutate data until explicit confirmation. Changes and withdrawals send the prior revision. If the response is rejected or lost, remove the stale ballot controls and require a fresh GET; do not automatically retry. Display success only on exact confirmed response.
+- Added parser/controller tests and an actual browser route exercise using synthetic API responses. This is not a real open-period server or concurrency test. Staging and owner cutover remain closed.
+
 ## Outstanding release gates
 
 1. Mandatory disposable PostgreSQL lifecycle and restricted-role checks, including explicit concurrent sessions to prove same-revision conflict.
