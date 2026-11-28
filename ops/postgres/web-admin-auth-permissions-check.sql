@@ -97,6 +97,16 @@ BEGIN
       OR has_table_privilege(mobile_name,'identity.admin_auth_rate_buckets','DELETE,TRUNCATE,TRIGGER') THEN
     RAISE EXCEPTION 'Mobile runtime can access web-admin credentials or authentication state';
   END IF;
+  -- The owner-only slug foundation must not grant even the admin-auth
+  -- connection direct table access or the invoker claim capability.
+  IF has_function_privilege(current_user,'public_content.claim_news_slug(text,text,text,bigint)','EXECUTE')
+    OR has_function_privilege(mobile_name,'public_content.claim_news_slug(text,text,text,bigint)','EXECUTE')
+    OR EXISTS (SELECT 1 FROM unnest(ARRAY['public_content.news_slug_aliases','public_content.news_slug_current']) AS t(name)
+      WHERE has_any_column_privilege(current_user,t.name,'SELECT,INSERT,UPDATE,REFERENCES')
+        OR has_any_column_privilege(mobile_name,t.name,'SELECT,INSERT,UPDATE,REFERENCES')
+        OR has_table_privilege(current_user,t.name,'DELETE,TRUNCATE,TRIGGER')
+        OR has_table_privilege(mobile_name,t.name,'DELETE,TRUNCATE,TRIGGER'))
+  THEN RAISE EXCEPTION 'Owner-only news slug registry privilege leak'; END IF;
   denied := false;
   BEGIN EXECUTE format('SET LOCAL ROLE %I',mobile_name);
   EXCEPTION WHEN insufficient_privilege THEN denied := true; END;
