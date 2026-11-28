@@ -117,11 +117,16 @@
   let creationLocationsLoading=$state(false);
   let creationLocationsError=$state('');
 
+  let lastRequestedGroup:string|undefined;
   $effect(()=>{
     const requested=page.url.searchParams.get('group_id')??'';
-    const available=directory?.groups ?? [];
+    if(!directory||directory.organization_id!==organization)return;
+    const available=directory.groups;
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
-    if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
+    if(requested!==lastRequestedGroup){
+      lastRequestedGroup=requested;
+      if(available.some(group=>group.id===requested))focusedGroupId=requested;
+    }
   });
   let appliedInitialOrganization=false;
   let openedRequestedCreate=false;
@@ -867,6 +872,7 @@
               {/if}
             </section>
           {/if}
+          {#if !focusedGroup}
           <section class="admin-panel" aria-labelledby="admin-audiences-title">
             <div class="admin-audiences-heading">
               <h2 id="admin-audiences-title">{organization === 'lefteria_fc' ? 'Ομάδες πρώτης ομάδας' : 'Τμήματα Ακαδημίας'}</h2>
@@ -953,7 +959,7 @@
                   <li class:admin-audience-selected={focusedGroupId===group.id}>
                     <div class="admin-audience-card-title">
                       <span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
-                      <strong>{group.name}</strong>
+                      <button type="button" class="admin-group-name-link" onclick={()=>focusedGroupId=group.id}>{group.name}</button>
                       {#if organization==='lefteria_fc_academy'}
                         <span class="admin-group-placement" data-testid="academy-group-exact-placement">
                           {groupPlacements[group.id]
@@ -989,14 +995,17 @@
               {#if visibleGroups.length===0}
                 <p class="admin-muted" role="status" data-testid="admin-group-search-empty">Δεν βρέθηκε τμήμα με αυτή την ονομασία. Δοκιμάστε διαφορετική αναζήτηση.</p>
               {/if}
-              {#if focusedGroup}
+
+            {/if}
+          </section>
+          {:else if focusedGroup}
                 <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
                   data-testid="admin-group-workspace">
                   <header class="admin-focused-group-header">
                     <div>
                       <p class="admin-eyebrow">ΤΜΗΜΑ · ΠΡΟΠΟΝΗΣΕΙΣ · ΑΘΛΗΤΕΣ</p>
                       <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
-                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες{groupPlacements[focusedGroup.id]?' · '+groupPlacements[focusedGroup.id].cityName+' / '+groupPlacements[focusedGroup.id].locationName:''}</p>
                     </div>
                     <button type="button" class="admin-secondary"
                       onclick={()=>focusedGroupId=''}>Πίσω στις ομάδες</button>
@@ -1012,9 +1021,7 @@
                     {/key}
                   {/if}
                 </section>
-              {/if}
-            {/if}
-          </section>
+          {/if}
           {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
@@ -1033,6 +1040,8 @@
 
 <style>
   .admin-audiences{width:100%;max-width:none;min-width:0}
+  .admin-group-name-link{background:none;border:0;color:inherit;font:inherit;font-weight:800;text-align:left;padding:4px 0;cursor:pointer;min-height:44px;overflow-wrap:anywhere}
+  .admin-group-name-link:hover,.admin-group-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
   .admin-combined-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
   .admin-combined-owner{display:grid;align-content:start;gap:8px;min-width:0;padding:16px;border:1px solid var(--admin-line);border-radius:8px}
   .admin-combined-owner h3,.admin-combined-owner p,.admin-combined-owner ul{margin:0}
