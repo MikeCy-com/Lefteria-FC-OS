@@ -28,7 +28,7 @@ test('authorized admin links and creation controls remain in their actual module
   for(const href of ['/admin/groups','/admin/territories','/admin/news',
     '/admin/website-pages','/admin/academy-office','/admin/finance','/admin/pos',
     '/admin/leads','/admin/hub','/admin/communications','/admin/settings'])
-    assert.ok(frame.includes('href="'+href+'"'),href);
+    assert.ok(frame.includes('href="'+href+'"')||(['/admin/groups','/admin/territories'].includes(href)&&['lefteria_fc','lefteria_fc_academy'].every(owner=>frame.includes('href="'+href+'?organization_id='+owner+'"'))),href);
   assert.match(groups,/data-testid="admin-group-create-form"/);
   assert.match(territories,/id="create-city"/);
   assert.match(territories,/id="create-location"/);
