@@ -7,6 +7,11 @@
   }=$props();
   const owner='lefteria_fc';
   let teamId=$state('');
+  $effect(()=>{
+    const eligible=groups.filter(g=>g.kind==='team');
+    if(eligible.length===1&&teamId!==eligible[0].id)teamId=eligible[0].id;
+    else if(!eligible.some(g=>g.id===teamId))teamId='';
+  });
   let record=$state<Profile|null>(null);
   let level=$state("Α' Ομάδα");
   let description=$state('');
@@ -99,6 +104,7 @@
   <p class="admin-muted">Τα πεδία επιπέδου, περιγραφής και banner ακολουθούν
     το αρχικό Lefteria FC. Οι παίκτες και οι προπονητές διαχειρίζονται
     από τους ξεχωριστούς επαληθευμένους καταλόγους.</p>
+  {#if groups.filter(g=>g.kind==='team').length>1}
   <label for="first-team-profile-selection">Επιλέξτε ομάδα</label>
   <select id="first-team-profile-selection" bind:value={teamId} disabled={saving}>
     <option value="">Επιλέξτε ομάδα</option>
@@ -106,6 +112,7 @@
       <option value={group.id}>{group.name}</option>
     {/each}
   </select>
+  {:else if groups.length===1}<p class="admin-muted" data-testid="group-profile-current-name"><strong>{groups[0].name}</strong></p>{/if}
   {#if loading}<p role="status">Φόρτωση…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if notice}<p role="status">{notice}</p>{/if}
@@ -121,6 +128,9 @@
         <input type="url" maxlength="2048" bind:value={bannerUrl} disabled={saving}
           placeholder="https://..."/>
       </label>
+      {#if record.banner_url&&/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(record.banner_url)}
+        <div class="group-banner-preview"><span>Τρέχον banner</span><img src={record.banner_url} alt="Banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}
       <div class="first-team-buttons">
         <button class="admin-secondary" type="submit" disabled={saving}>
           {saving?'Αποθήκευση…':'Αποθήκευση στοιχείων'}
@@ -134,8 +144,10 @@
 <style>
 .first-team-profile{display:grid;gap:12px;margin:18px 0}
 .first-team-profile>select{max-width:500px}
-.first-team-fields{display:grid;gap:14px;max-width:760px}
+.first-team-fields{display:grid;gap:14px;width:100%;max-width:none;min-width:0}
 .first-team-fields label{display:grid;gap:6px}
 .first-team-fields input,.first-team-fields textarea{width:100%}
 .first-team-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.group-banner-preview{grid-column:1/-1;display:grid;gap:8px;max-width:100%;min-width:0}
+.group-banner-preview img{width:100%;max-height:260px;object-fit:contain;background:var(--admin-surface);border-radius:8px}
 </style>
