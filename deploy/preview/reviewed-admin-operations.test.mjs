@@ -42,6 +42,7 @@ test('club administration operations are reached but never wrong verbs, trailing
     ['POST','/api/admin/website/sponsorships/publication'],
     ['GET','/api/admin/football/players'],
     ['GET','/api/admin/football/group-players'],
+    ['POST','/api/admin/football/players/search'],
     ['PUT','/api/admin/football/assignments'],
     ['GET','/api/admin/football/territories'],
     ['POST','/api/admin/football/territories'],
@@ -91,7 +92,7 @@ test('club administration operations are reached but never wrong verbs, trailing
       '/api/health/live','/api/openapi/v1.json'])
       assert.equal(permitted(method,path),false,method+' '+path);
   }
-  assert.equal(reviewedHiddenAdminEntries.length,26);
+  assert.equal(reviewedHiddenAdminEntries.length,27);
 });
 test('new shift-stock GET is reviewed by exact path, verb and current WebAdmin session',()=>{
   const path='/api/admin/pos/cashier/registers/{registerId}/sellable-stock';
