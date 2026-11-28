@@ -345,7 +345,7 @@
       </div>
     {/if}
     {#if focus&&status==='ready'&&verifiedPlayer?.id===focus}
-      <section class="departure-review" data-testid="admin-player-departure-review">
+      <section id="academy-departure-review" class="departure-review" data-testid="admin-player-departure-review">
         <h3>Οικονομικός έλεγχος αθλητή · πριν από αποχώρηση</h3>
         <p>Πλήρες ιστορικό μηνιαίων χρεώσεων · {verifiedPlayer.active?'Ενεργός αθλητής':'Μη ενεργός αθλητής'}. Δεν μεταβάλλεται η κατάσταση του ρόστερ.</p>
         <div class="departure-totals">
