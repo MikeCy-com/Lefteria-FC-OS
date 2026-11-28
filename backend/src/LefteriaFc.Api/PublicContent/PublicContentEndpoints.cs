@@ -23,12 +23,12 @@ public static class PublicContentEndpoints
             });
         }).WithName("GetPublicNews").Produces<PublicNewsResult>().Produces<PublicContentError>(400).Produces<PublicContentError>(503);
         group.MapGet("/news/{id}", async (string id, string? organization_id, PublicContentService service, HttpContext context, CancellationToken token) =>
-            await ExecuteNews(organization_id, service, context, token, news => news.SingleOrDefault(row => row.Id == id), notFoundWhenNull: true))
+            await ExecuteNews(organization_id, service, context, token, news => news.SingleOrDefault(row => row.Id == id), notFoundWhenNull: true, articleId: id))
             .WithName("GetPublicNewsArticle").Produces<PublicArticle>().Produces<PublicContentError>(400).Produces<PublicContentError>(404).Produces<PublicContentError>(503);
         return endpoints;
     }
     private static async Task<IResult> ExecuteNews<T>(string? organization, PublicContentService service, HttpContext context, CancellationToken token,
-        Func<IReadOnlyList<PublicArticle>, T> project, bool notFoundWhenNull = false)
+        Func<IReadOnlyList<PublicArticle>, T> project, bool notFoundWhenNull = false, string? articleId = null)
     {
         context.Response.Headers.CacheControl = "no-store";
         // Absence is a global public feed, not a third organization and not a
@@ -37,7 +37,7 @@ public static class PublicContentEndpoints
             return Results.Json(new PublicContentError("Μη έγκυρος οργανισμός.", "invalid_organization"), statusCode: 400);
         try
         {
-            var news = await service.GetNewsAsync(organization, token);
+            var news = await service.GetNewsAsync(organization, token, articleId);
             if (news is null) return Unavailable();
             var result = project(news);
             return notFoundWhenNull && result is null
