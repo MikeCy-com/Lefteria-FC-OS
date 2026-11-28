@@ -90,7 +90,7 @@ public sealed class MatchSquadRotationWorkspace : Migration
       REVOKE ALL ON FUNCTION club.require_mobile_match_host(uuid,text,text,timestamptz,text) FROM PUBLIC;
 
       CREATE FUNCTION club.match_workspace_roster(_owner text,_host text,_match text)
-      RETURNS TABLE(player_id text,player_name text,shirt_number integer,position text)
+      RETURNS TABLE(player_id text,player_name text,shirt_number integer,playing_position text)
       LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $roster$
         SELECT p.id::text,p.name::text,p.number,p.position::text FROM club.players p
         WHERE p.organization_id=_owner AND p.is_active AND NOT p.is_archived AND NOT p.is_transferred
@@ -127,7 +127,7 @@ public sealed class MatchSquadRotationWorkspace : Migration
             AND c.staff_day<v_day AND c.staff_day>=v_day-365 AND NOT c.is_cancelled AND NOT c.is_archived
         )
         SELECT coalesce(jsonb_agg(jsonb_build_object('player_id',r.player_id,'name',r.player_name,
-          'number',r.shirt_number,'position',CASE WHEN v_owner='lefteria_fc' THEN r.position ELSE NULL END,
+          'number',r.shirt_number,'position',CASE WHEN v_owner='lefteria_fc' THEN r.playing_position ELSE NULL END,
           'last_assignment',(SELECT h.assignment FROM history h WHERE h.player_id=r.player_id
             ORDER BY h.staff_day DESC,h.match_id DESC LIMIT 1),
           'starts',(SELECT count(*) FROM history h WHERE h.player_id=r.player_id AND h.assignment='starter'),
