@@ -1,16 +1,17 @@
+import {validMatchTiming,type MatchTiming} from './match-timing.ts';
 export type Assignment='starter'|'reserve';
 export type MatchMode='first_team'|'grassroots';
 export type MatchState='draft'|'selected'|'submitted'|'approved'|'rejected';
-export type MatchAction='save_squad'|'select_squad'|'submit_statistics'|'approve'|'reject';
+export type MatchAction='save_squad'|'select_squad'|'submit_statistics'|'approve'|'reject'|'confirm_attendance';
 export type EligiblePlayer={player_id:string;name:string;number:number;position:string|null;
   last_assignment:Assignment|null;starts:number;reserves:number};
 export type SquadPlayer={player_id:string;assignment:Assignment;position:string|null};
 export type MatchStatistic={player_id:string;minutes_played:number;goals:number;assists:number};
 export type MatchWorkspace={match_id:string;organization_id:string;host_id:string;mode:MatchMode;
   version:number;state:MatchState;completed:boolean;roster_stale:boolean;roster:EligiblePlayer[];
-  squad:SquadPlayer[];statistics:MatchStatistic[];rotation_note:string;review_reason:string};
+  squad:SquadPlayer[];statistics:MatchStatistic[];rotation_note:string;review_reason:string;timing:MatchTiming};
 export type MatchCommand={action:MatchAction;expected_version:number;squad:SquadPlayer[]|null;
-  statistics:MatchStatistic[]|null;rotation_note:string|null;review_reason:string|null};
+  statistics:MatchStatistic[]|null;rotation_note:string|null;review_reason:string|null;attendance_ids?:string[]|null};
 const plain=(x:unknown):x is Record<string,unknown>=>!!x&&typeof x==='object'&&!Array.isArray(x);
 const integer=(x:unknown,min:number,max:number):x is number=>typeof x==='number'&&Number.isSafeInteger(x)&&x>=min&&x<=max;
 const identifier=(x:unknown):x is string=>typeof x==='string'&&x.length>0&&x.length<=128&&x===x.trim()&&!/[\x00-\x1f\x7f]/.test(x);
@@ -18,7 +19,7 @@ const text=(x:unknown,max:number):x is string=>typeof x==='string'&&x.length<=ma
 const assignment=(x:unknown):x is Assignment=>x==='starter'||x==='reserve';
 function exact(x:Record<string,unknown>,keys:string){return Object.keys(x).sort().join(',')===keys;}
 export function validMatchWorkspace(raw:unknown,match:string,owner:string):raw is MatchWorkspace{
-  if(!plain(raw)||!exact(raw,'completed,host_id,match_id,mode,organization_id,review_reason,roster,roster_stale,rotation_note,squad,state,statistics,version')||
+  if(!plain(raw)||!exact(raw,'completed,host_id,match_id,mode,organization_id,review_reason,roster,roster_stale,rotation_note,squad,state,statistics,timing,version')||
     raw.match_id!==match||raw.organization_id!==owner||!identifier(raw.host_id)||
     (owner!=='lefteria_fc'&&owner!=='lefteria_fc_academy')||
     raw.mode!==(owner==='lefteria_fc'?'first_team':'grassroots')||
@@ -53,6 +54,7 @@ export function validMatchWorkspace(raw:unknown,match:string,owner:string):raw i
       (r.minutes_played===0&&(r.goals>0||r.assists>0)))return false;
     statistics.add(r.player_id);return true;
   }))return false;
+  if(!validMatchTiming(raw.timing,owner,selected,raw.roster_stale))return false;
   if(raw.roster_stale)return selected.size===0&&statistics.size===0;
   if(raw.version===0)return raw.state==='draft'&&selected.size===0&&statistics.size===0;
   if(raw.state==='draft')return statistics.size===0;

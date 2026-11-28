@@ -115,16 +115,42 @@ internal sealed partial class IdentityHttpChecks
             var changed=await CalendarRequestAsync(coach,HttpMethod.Post,next,Squad(0,rotated),200);
             Check.Equal("starter",changed.GetProperty("squad").EnumerateArray().Single(p=>p.GetProperty("player_id").GetString()==guest).GetProperty("assignment").GetString(),
                 "Next match did not persist rotated starter.");
+            object Attendance(int version,params string[] ids)=>new{action="confirm_attendance",expected_version=version,
+                squad=(object?)null,statistics=(object?)null,rotation_note=(string?)null,review_reason=(string?)null,attendance_ids=ids};
+            await CalendarRequestAsync(parent,HttpMethod.Post,first,Attendance(1,child),403);
+            var today=DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTimeOffset.UtcNow,"Asia/Nicosia").DateTime);
+            // Set a synthetic fixture to today's date only inside this isolated test.
+            await db.CalendarItems.Where(row=>row.Kind=="match"&&row.Id==input.Id("rotation-one"))
+                .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.StaffDay,today).SetProperty(row=>row.StaffEndDay,today));
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO club.group_match_timing(organization_id,host_id,duration_minutes,players_on_field,version,updated_by) SELECT 'lefteria_fc_academy',{input.Accounts.GroupId},45,7,1,id FROM identity.admin_accounts WHERE username={input.Accounts.Prefix+"-user"}");
+            var inherited=await CalendarRequestAsync(coach,HttpMethod.Get,first,null,200);
+            Check.Equal(45,inherited.GetProperty("timing").GetProperty("duration_minutes").GetInt32(),"Group duration not inherited.");
+            Check.Equal(7,inherited.GetProperty("timing").GetProperty("players_on_field").GetInt32(),"Group format not inherited.");
+            Check.True(inherited.GetProperty("timing").GetProperty("attendance_ids").ValueKind==JsonValueKind.Null,
+                "Attendance was fabricated from the selection.");
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Attendance(1,child,child),422);
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Attendance(1,input.FcChild),422);
+            var attendance=await CalendarRequestAsync(coach,HttpMethod.Post,first,Attendance(1,child),200);
+            Check.Equal(2,attendance.GetProperty("version").GetInt32(),"Attendance not versioned.");
+            Check.True(attendance.GetProperty("timing").GetProperty("frozen").GetBoolean(),"Timing was not frozen on match day.");
+            Check.Equal(1,attendance.GetProperty("timing").GetProperty("attendance_ids").GetArrayLength(),"Actual attendance not persisted.");
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Attendance(1,child),409);
+            await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE club.group_match_timing SET duration_minutes=60,players_on_field=9,version=2 WHERE organization_id='lefteria_fc_academy' AND host_id={input.Accounts.GroupId}");
+            var frozen=await CalendarRequestAsync(coach,HttpMethod.Get,first,null,200);
+            Check.Equal(45,frozen.GetProperty("timing").GetProperty("duration_minutes").GetInt32(),"Later group settings changed the match snapshot.");
+            var corrected=await CalendarRequestAsync(coach,HttpMethod.Post,first,Attendance(2,child,guest),200);
+            Check.Equal(3,corrected.GetProperty("version").GetInt32(),"Attendance correction not persisted.");
+            Check.Equal(7,corrected.GetProperty("timing").GetProperty("players_on_field").GetInt32(),"Attendance correction changed frozen format.");
             object Stats(int version)=>new{action="submit_statistics",expected_version=version,squad=(object?)null,
                 statistics=new[]{new{player_id=child,minutes_played=20,goals=0,assists=0},
                     new{player_id=guest,minutes_played=20,goals=1,assists=0}},rotation_note=(string?)null,review_reason=(string?)null};
-            await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(1),409);
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(3),409);
             await db.CalendarItems.Where(row=>row.Kind=="match"&&row.Id==input.Id("rotation-one"))
                 .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.Status,"completed"));
-            var submitted=await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(1),200);
+            var submitted=await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(3),200);
             Check.Equal("submitted",submitted.GetProperty("state").GetString(),"Coach statistics were not submitted for review.");
             Check.Equal(2,submitted.GetProperty("statistics").GetArrayLength(),"Statistics were not persisted.");
-            var approve=new{action="approve",expected_version=2,squad=(object?)null,statistics=(object?)null,
+            var approve=new{action="approve",expected_version=4,squad=(object?)null,statistics=(object?)null,
                 rotation_note=(string?)null,review_reason=(string?)null};
             await CalendarRequestAsync(coach,HttpMethod.Post,first,approve,403);
             await CalendarRequestAsync(management,HttpMethod.Post,first,approve,403); // same verified phone; no self-review
@@ -134,8 +160,10 @@ internal sealed partial class IdentityHttpChecks
         {
             await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM club.match_workspace_revisions WHERE match_id IN ({input.Id("rotation-one")},{input.Id("rotation-two")})");
             await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM club.match_workspaces WHERE match_id IN ({input.Id("rotation-one")},{input.Id("rotation-two")})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM club.group_match_timing WHERE organization_id='lefteria_fc_academy' AND host_id={input.Accounts.GroupId}");
             await db.CalendarItems.Where(row=>row.Kind=="match"&&row.Id==input.Id("rotation-one"))
-                .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.Status,"scheduled"));
+                .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.Status,"scheduled")
+                    .SetProperty(row=>row.StaffDay,new DateOnly(2027,1,3)).SetProperty(row=>row.StaffEndDay,new DateOnly(2027,1,3)));
         }
     }
 
