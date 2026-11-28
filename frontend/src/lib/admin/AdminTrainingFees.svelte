@@ -20,7 +20,16 @@
   // client-side subset of the latest organization-wide invoices.
   const focus = $derived(/^[^\x00-\x1f\x7f]{1,128}$/.test(focusPlayerId)&&focusPlayerId===focusPlayerId.trim() ? focusPlayerId : '');
   const invalidFocus=$derived(focusPlayerId!==''&&!focus);
-  let verifiedPlayer=$state<{id:string;name:string;active:boolean;month:string}|null>(null);
+  type LifecycleReview={is_active:boolean;is_archived:boolean;is_transferred:boolean;group_memberships:number;recorded_guardian_bindings:number;unrevoked_guardian_permissions:number};
+  function validLifecycle(value:unknown,active:boolean):value is LifecycleReview{
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    const r=value as Record<string,unknown>;
+    return ['is_active','is_archived','is_transferred'].every(k=>typeof r[k]==='boolean')&&
+      (r.is_active===true&&r.is_archived===false&&r.is_transferred===false)===active&&
+      ['group_memberships','recorded_guardian_bindings','unrevoked_guardian_permissions'].every(k=>
+        typeof r[k]==='number'&&Number.isSafeInteger(r[k])&&(r[k] as number)>=0);
+  }
+  let verifiedPlayer=$state<{id:string;name:string;active:boolean;month:string;lifecycle:LifecycleReview|null}|null>(null);
   const visibleFees = $derived(focus ? fees.filter(f=>f.player_id===focus) : fees);
   const focusName=$derived(verifiedPlayer?.id===focus?verifiedPlayer.name:'Επιλεγμένος παίκτης');
   const departureReview=$derived.by(()=>{
@@ -150,7 +159,11 @@
             typeof scoped.current_month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])-01$/.test(scoped.current_month)||
             !raw.fees.every(f=>f.player_id===target&&typeof f.cancel_eligible==='boolean'))
             throw new Error('Μη επαληθευμένος πλήρης φάκελος αθλητή.');
-          verifiedPlayer={id:target,name:scoped.player_name,active:scoped.player_active,month:scoped.current_month};
+          const lifecycle=scoped.lifecycle_review;
+          if(lifecycle!==undefined&&!validLifecycle(lifecycle,scoped.player_active))
+            throw Error('Μη επαληθευμένη κατάσταση αθλητή.');
+          verifiedPlayer={id:target,name:scoped.player_name,active:scoped.player_active,month:scoped.current_month,
+            lifecycle:validLifecycle(lifecycle,scoped.player_active)?lifecycle:null};
         }
         fees=raw.fees;status='ready';
       }catch(error){if(active){status='error';message=error instanceof Error?error.message:'Σφάλμα';}}
@@ -348,6 +361,23 @@
       <section id="academy-departure-review" class="departure-review" data-testid="admin-player-departure-review">
         <h3>Οικονομικός έλεγχος αθλητή · πριν από αποχώρηση</h3>
         <p>Πλήρες ιστορικό μηνιαίων χρεώσεων · {verifiedPlayer.active?'Ενεργός αθλητής':'Μη ενεργός αθλητής'}. Δεν μεταβάλλεται η κατάσταση του ρόστερ.</p>
+        {#if verifiedPlayer.lifecycle}
+          <div class="departure-lifecycle" data-testid="admin-player-lifecycle-preflight">
+            <h4>Κατάσταση ρόστερ & συνδέσεων</h4>
+            <div class="departure-totals">
+              <div><small>Κατάσταση</small><strong>{verifiedPlayer.lifecycle.is_transferred?'Μεταγραφή':verifiedPlayer.lifecycle.is_archived?'Αρχειοθετημένος':verifiedPlayer.lifecycle.is_active?'Ενεργός':'Ανενεργός'}</strong></div>
+              <div><small>Διατηρημένες αναθέσεις τμημάτων</small><strong>{verifiedPlayer.lifecycle.group_memberships}</strong></div>
+              <div><small>Καταγεγραμμένες συνδέσεις κηδεμόνα</small><strong>{verifiedPlayer.lifecycle.recorded_guardian_bindings}</strong></div>
+              <div><small>Μη ανακληθείσες παραχωρήσεις κηδεμόνα</small><strong>{verifiedPlayer.lifecycle.unrevoked_guardian_permissions}</strong></div>
+            </div>
+            <p class="admin-muted">Οι αριθμοί δείχνουν αποθηκευμένες συνδέσεις, όχι επιβεβαιωμένη ενεργή πρόσβαση. Η αλλαγή κατάστασης και η επανενεργοποίηση απαιτούν ξεχωριστό έλεγχο.</p>
+            {#if verifiedPlayer.active}
+              <a class="admin-secondary" href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:focus,section:'profile'}).toString()}>Επιστροφή στον φάκελο αθλητή / κηδεμόνα ›</a>
+            {/if}
+          </div>
+        {:else}
+          <p role="status">Ο έλεγχος κατάστασης και συνδέσεων δεν είναι διαθέσιμος σε αυτήν την έκδοση.</p>
+        {/if}
         <div class="departure-totals">
           <div><small>Ανεξόφλητες χρεώσεις / σε έλεγχο</small><strong>{money(departureReview.open)}</strong></div>
           <div><small>Μελλοντικές προς ακύρωση ({departureReview.eligibleCount})</small><strong>{money(departureReview.eligible)}</strong></div>
@@ -527,6 +557,9 @@
   .fee-pdf{background:transparent;color:inherit}
   .departure-review{display:grid;gap:12px;padding:14px;border:1px solid var(--admin-line,#555);border-radius:8px;margin:12px 0}
   .departure-review h3,.departure-review p{margin:0}
+  .departure-lifecycle{display:grid;gap:10px;padding:12px;border:1px solid var(--admin-line);border-radius:8px}
+  .departure-lifecycle h4{margin:0}
+  .departure-lifecycle a{justify-self:start}
   .departure-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
   .departure-totals>div{display:grid;gap:6px;border:1px solid var(--admin-line,#555);padding:10px;border-radius:6px}
 </style>

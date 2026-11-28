@@ -162,6 +162,12 @@ BEGIN
   IF v_json->>'player_id' IS DISTINCT FROM v_player
     OR v_json->>'player_name' IS DISTINCT FROM 'CI Future Fee Child'
     OR v_json->>'player_active' IS DISTINCT FROM 'true'
+    OR v_json#>>'{lifecycle_review,is_active}' IS DISTINCT FROM 'true'
+    OR v_json#>>'{lifecycle_review,is_archived}' IS DISTINCT FROM 'false'
+    OR v_json#>>'{lifecycle_review,is_transferred}' IS DISTINCT FROM 'false'
+    OR v_json#>>'{lifecycle_review,group_memberships}' IS DISTINCT FROM '0'
+    OR v_json#>>'{lifecycle_review,recorded_guardian_bindings}' IS DISTINCT FROM '0'
+    OR v_json#>>'{lifecycle_review,unrevoked_guardian_permissions}' IS DISTINCT FROM '0'
     OR jsonb_array_length(v_json->'fees')<>4
     OR EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
       WHERE f->>'player_id' IS DISTINCT FROM v_player)
@@ -185,6 +191,8 @@ BEGIN
   UPDATE club.players SET is_active=false,is_archived=true WHERE id=v_player;
   v_json:=finance.read_admin_player_training_fees(v_super_digest,'lefteria_fc_academy',v_player);
   IF v_json->>'player_active' IS DISTINCT FROM 'false' OR jsonb_array_length(v_json->'fees')<>4
+    OR v_json#>>'{lifecycle_review,is_active}' IS DISTINCT FROM 'false'
+    OR v_json#>>'{lifecycle_review,is_archived}' IS DISTINCT FROM 'true'
   THEN RAISE EXCEPTION 'inactive player lost finance history'; END IF;
 END $future_fee_checks$;
 ROLLBACK;
