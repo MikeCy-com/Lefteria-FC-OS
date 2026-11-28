@@ -1,8 +1,14 @@
 <script lang="ts">
-  import {DEFAULT_GLOBAL_DESIGN,DEFAULT_GLOBAL_LAYOUT,GLOBAL_LAYOUT_CHOICES,parseGlobalDesign,TEXT_ROLES,
+  import {DEFAULT_GLOBAL_DESIGN,DEFAULT_GLOBAL_LAYOUT,GLOBAL_LAYOUT_CHOICES,parseGlobalDesignDraft,globalDesignContrastChecks,TEXT_ROLES,
     type GlobalDesign,type GlobalDesignLayout,type TextRole,type TextStyle} from '../public/global-design.ts';
   let {value,onChange,disabled=false}:{value:string;onChange:(text:string)=>void;disabled?:boolean}=$props();
-  const theme=$derived(parseGlobalDesign(value)??DEFAULT_GLOBAL_DESIGN);
+  const parsedDraft=$derived(parseGlobalDesignDraft(value));
+  const theme=$derived(parsedDraft??DEFAULT_GLOBAL_DESIGN);
+  const contrastChecks=$derived(globalDesignContrastChecks(theme));
+  const contrastFailures=$derived(contrastChecks.filter(check=>!check.passes));
+  let previewMode=$state<'desktop'|'mobile'>('desktop');
+  const paletteLabels={background:'Φόντο',foreground:'Κείμενο',accent:'Έμφαση',surface:'Κάρτες',muted:'Δευτερεύον κείμενο',border:'Περιγράμματα',link:'Σύνδεσμοι'};
+  const previewStyle=(role:TextRole)=>'font-family:'+previewFonts[theme.text[role].family]+';font-size:'+theme.text[role][previewMode]+'px;font-weight:'+theme.text[role].weight+';line-height:'+theme.text[role].line_height;
   const resolvedLayout=$derived({...DEFAULT_GLOBAL_LAYOUT,...theme.layout});
   const previewFonts={condensed:"'Fira Sans Extra Condensed',sans-serif",sans:"'Fira Sans',Arial,sans-serif",serif:'Georgia,serif'} as const;
   const titles:Record<TextRole,string>={h1:'H1 · Τίτλος σελίδας',h2:'H2 · Ενότητα',h3:'H3 · Υποενότητα',
@@ -10,7 +16,8 @@
   function updateRole(role:TextRole,key:keyof TextStyle,value:string|number){
     const next:GlobalDesign=structuredClone(theme);
     (next.text[role] as unknown as Record<string,string|number>)[key]=value;
-    onChange(JSON.stringify(next));
+    const encoded=JSON.stringify(next);
+    if(parseGlobalDesignDraft(encoded))onChange(encoded);
   }
   const layoutLabels:Record<keyof GlobalDesignLayout,string>={
     gutter:'Οριζόντιο περιθώριο ενοτήτων',
@@ -27,7 +34,7 @@
   };
   function updateLayout(key:keyof GlobalDesignLayout,value:number){
     const next:GlobalDesign=structuredClone(theme);
-    next.layout={...(next.layout??DEFAULT_GLOBAL_LAYOUT),[key]:value};
+    next.layout={...DEFAULT_GLOBAL_LAYOUT,...next.layout,[key]:value};
     onChange(JSON.stringify(next));
   }
   function updateColor(key:keyof GlobalDesign['colors'],value:string){
@@ -81,6 +88,18 @@
       </label>
     {/each}
   </div>
+  {#if !parsedDraft}<p role="alert">Το πρόχειρο δεν έχει έγκυρη δομή. Ελέγξτε τις τιμές πριν αποθηκεύσετε.</p>{/if}
+  {#if contrastFailures.length}
+    <section class="contrast-review" role="status" data-testid="global-design-contrast-review">
+      <strong>Η παλέτα δεν είναι ακόμη κατάλληλη για δημοσίευση.</strong>
+      <p>Διορθώστε τους παρακάτω συνδυασμούς. Οι υπόλοιπες επιλογές του πρόχειρου διατηρούνται.</p>
+      <ul>{#each contrastFailures as check (check.background+':'+check.foreground)}
+        <li>{paletteLabels[check.background]} / {paletteLabels[check.foreground]}: {check.ratio.toFixed(2)}:1 · απαιτείται {check.minimum}:1</li>
+      {/each}</ul>
+    </section>
+  {:else}
+    <p role="status" data-testid="global-design-contrast-valid">Οι απαιτούμενοι συνδυασμοί χρωμάτων έχουν επαρκή αντίθεση.</p>
+  {/if}
   <h3>Γενική διάταξη · αποστάσεις &amp; γωνίες</h3>
   <p>Οι τιμές είναι κοινές προεπιλογές για τις δημόσιες σελίδες του οργανισμού. Μπορείτε να αλλάξετε ένα πεδίο σε συγκεκριμένη σελίδα, χωρίς να αλλάξουν οι υπόλοιπες. Η διάταξη των blocks παραμένει ανεξάρτητη.</p>
   <div class="design-inputs" data-testid="global-design-layout-controls">
@@ -95,10 +114,22 @@
       </label>
     {/each}
   </div>
-  <div class="design-preview" style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+resolvedLayout.card_radius+'px;--preview-h1-desktop:'+theme.text.h1.desktop+'px;--preview-h1-mobile:'+theme.text.h1.mobile+'px;--preview-p-desktop:'+theme.text.p.desktop+'px;--preview-p-mobile:'+theme.text.p.mobile+'px'}>
-    <span style={'color:'+theme.colors.accent}>LEFTERIA FC · LIVE DRAFT PREVIEW</span>
-    <strong style={'font-family:'+previewFonts[theme.text.h1.family]+';font-weight:'+theme.text.h1.weight+';line-height:'+theme.text.h1.line_height}>Η ΟΜΑΔΑ ΜΑΣ</strong>
-    <p style={'font-family:'+previewFonts[theme.text.p.family]+';font-weight:'+theme.text.p.weight+';line-height:'+theme.text.p.line_height}>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
+  <h3>Προεπισκόπηση πρόχειρου</h3>
+  <div class="preview-switch" role="group" aria-label="Μέγεθος προεπισκόπησης">
+    <button type="button" class="admin-secondary" aria-pressed={previewMode==='desktop'} onclick={()=>previewMode='desktop'}>Desktop</button>
+    <button type="button" class="admin-secondary" aria-pressed={previewMode==='mobile'} onclick={()=>previewMode='mobile'}>Mobile</button>
+  </div>
+  <div class="design-preview" data-testid="global-design-responsive-preview" class:mobile={previewMode==='mobile'} style={'background:'+theme.colors.background+';color:'+theme.colors.foreground+';border-radius:'+resolvedLayout.card_radius+'px;gap:'+resolvedLayout.section_gap+'px;padding:'+resolvedLayout.page_side_padding+'px;--preview-h1-desktop:'+theme.text.h1.desktop+'px;--preview-h1-mobile:'+theme.text.h1.mobile+'px;--preview-p-desktop:'+theme.text.p.desktop+'px;--preview-p-mobile:'+theme.text.p.mobile+'px'}>
+    <span style={'color:'+theme.colors.accent+';'+previewStyle('caption')}>LEFTERIA FC · LIVE DRAFT PREVIEW</span>
+    <div style={previewStyle('h1')}>Η ΟΜΑΔΑ ΜΑΣ</div>
+    <p style={previewStyle('p')}>Αθλητές, προπονήσεις, αγώνες και ανάπτυξη.</p>
+    <div class="preview-card" style={'background:'+theme.colors.surface+';border-color:'+theme.colors.border+';border-radius:'+resolvedLayout.card_radius+'px;gap:'+resolvedLayout.card_gap+'px;padding:'+resolvedLayout.card_gap+'px'}>
+      <div style={previewStyle('h2')}>Ακαδημία</div>
+      <div style={previewStyle('card')}>ONE TEAM ● ONE DREAM</div>
+      <span style={'color:'+theme.colors.muted+';'+previewStyle('caption')}>Προπονήσεις &amp; αγώνες</span>
+      <span style={'color:'+theme.colors.link+';'+previewStyle('nav')}>Περισσότερα ›</span>
+      <span class="preview-button" style={'background:'+theme.colors.accent+';color:'+theme.colors.background+';border-radius:'+resolvedLayout.button_radius+'px;'+previewStyle('button')}>Εγγραφή</span>
+    </div>
   </div>
 </section>
 <style>
@@ -108,8 +139,13 @@
 .design-inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
 .design-inputs label{display:grid;gap:5px;font-size:12px}
 .design-inputs select,.design-inputs input{width:100%;max-width:100%;min-width:0;min-height:40px;background:#191919;color:#fff;border:1px solid #777;border-radius:5px;padding:5px}
-.design-preview{padding:20px;border-radius:8px;display:grid;gap:12px;overflow:hidden}
-.design-preview strong{overflow-wrap:anywhere;font-size:var(--preview-h1-desktop)}
-.design-preview p{font-size:var(--preview-p-desktop)}
-@media(max-width:767px){.design-preview strong{font-size:var(--preview-h1-mobile)}.design-preview p{font-size:var(--preview-p-mobile)}}
+.design-preview{display:grid;overflow:hidden;overflow-wrap:anywhere;box-sizing:border-box;min-width:0}
+.design-preview.mobile{width:min(100%,390px);justify-self:center}
+.design-preview p{margin:0}
+.preview-card{display:grid;border:1px solid;min-width:0}
+.preview-button{display:inline-block;padding:8px 12px;justify-self:start}
+.preview-switch{display:flex;gap:8px;flex-wrap:wrap}
+.preview-switch button[aria-pressed=true]{border-color:var(--admin-line);text-decoration:underline}
+.contrast-review{display:grid;gap:6px;border:1px solid var(--admin-line);padding:12px;border-radius:8px}
+.contrast-review p,.contrast-review ul{margin:0}
 </style>
