@@ -8,7 +8,7 @@ test('guest starts in public fan home and can browse only allowlisted public des
   assert.equal(guestRequestedTab({ pathname: '/app', search: '' }), 'home');
   assert.equal(guestRequestedTab({ pathname: '/app/news', search: '' }), 'news');
   assert.equal(guestRequestedTab({ pathname: '/app', search: '?tab=fixtures' }), 'fixtures');
-  const publicTabs = ['home', 'more', 'news', 'matches', 'fixtures', 'standings', 'team', 'shop'];
+  const publicTabs = ['home', 'more', 'news', 'matches', 'fixtures', 'standings', 'team', 'shop', 'potm'];
   for (const tab of Object.keys(TAB_NAMES)) assert.equal(isGuestPublicTab(tab), publicTabs.includes(tab), tab);
   for (const link of GUEST_PUBLIC_LINKS) {
     assert.ok(link.href.startsWith('/') && !link.href.startsWith('//'));
