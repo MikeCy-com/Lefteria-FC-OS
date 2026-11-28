@@ -554,7 +554,7 @@ export function createMobileAuthController(options: {
     const offset = append ? previous?.next_offset : 0;
     if (append && (state.calendarResponsesLoadingMore || state.calendarResponsesStatus !== 'ready' ||
         state.calendarResponsesKey !== key || offset == null)) return false;
-    if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0) return false;
+    if (typeof offset !== 'number' || !Number.isInteger(offset) || offset < 0 || offset > 100000) return false;
     const operationRevision = ++calendarResponsesRevision;
     const monthRevision = calendarRevision;
     const sessionToken = token;
@@ -569,7 +569,9 @@ export function createMobileAuthController(options: {
       if (!isCurrent()) return false;
       if (!data || data.event_id !== currentItem.id || data.event_type !== currentItem.kind ||
           data.organization_id !== currentItem.organization_id || !validOffset(data.next_offset, offset) ||
-          !Array.isArray(data.players) || !data.players.every((player) => player && typeof player.id === 'string' && !!player.id.trim() &&
+          (data.next_offset !== null && (typeof data.next_offset !== 'number' || data.next_offset > 100000 || data.next_offset !== offset + 200)) ||
+          !Array.isArray(data.players) || data.players.length > 200 ||
+          new Set(data.players.map(player => player?.id)).size !== data.players.length || !data.players.every((player) => player && typeof player.id === 'string' && !!player.id.trim() &&
             typeof player.name === 'string' && typeof player.number === 'number' && Number.isInteger(player.number) &&
             typeof player.position === 'string' && (player.image_url == null || typeof player.image_url === 'string') &&
             (player.status === null || player.status === 'no_response' || isAvailabilityStatus(player.status)) &&
@@ -585,7 +587,9 @@ export function createMobileAuthController(options: {
       if (error instanceof ApiFailure && error.status === 401) endSession(error.message);
       else if (error instanceof ApiFailure && error.status === 403 && error.code === 'account_unavailable') revokeCurrentRole(error.message);
       else if (error instanceof ApiFailure && error.status === 403) denyCalendarAccess(error);
-      else update({ calendarResponsesStatus: append ? 'ready' : 'error', calendarResponsesError: message(error), calendarResponsesLoadingMore: false });
+      else if (append && error instanceof ApiFailure && error.status === 503)
+        update({ calendarResponsesStatus: 'ready', calendarResponsesError: message(error), calendarResponsesLoadingMore: false });
+      else update({ calendarResponses: null, calendarResponsesStatus: 'error', calendarResponsesError: message(error), calendarResponsesLoadingMore: false });
       return false;
     }
   }

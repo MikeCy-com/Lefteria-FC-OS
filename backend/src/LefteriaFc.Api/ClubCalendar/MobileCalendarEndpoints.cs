@@ -97,8 +97,12 @@ public static class MobileCalendarEndpoints
 
         endpoints.MapGet("/api/mobile/calendar/{event_type}/{event_id}/responses",([FromRoute(Name="event_id")]string eventId,
                 [FromRoute(Name="event_type")]string kind,string? offset,HttpContext context,MobileCalendarService service,CancellationToken token)=>
-            MobileIdentityEndpoints.Execute(()=>service.GetResponsesAsync(MobilePrincipal.Read(context.User),eventId,
-                kind,ParseOffset(SingleQuery(context,"offset",offset)),token),context))
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                return MobileIdentityEndpoints.Execute(()=>service.GetResponsesAsync(MobilePrincipal.Read(context.User),eventId,
+                    kind,ParseOffset(SingleQuery(context,"offset",offset)),token),context);
+            })
             .RequireAuthorization(IdentityServices.Policy).WithTags("Mobile calendar").WithName("GetMobileEventResponses")
             .WithDescription("Returns scoped player RSVPs for a currently authorized coach/management identity. These are availability responses, not physical attendance or read receipts. The required event_type is match, fixture, event or training. offset is an integer from 0 to 100000; each page contains at most 200 players.")
             .Produces<MobileCalendarResponseResult>().WithMobileErrors();
