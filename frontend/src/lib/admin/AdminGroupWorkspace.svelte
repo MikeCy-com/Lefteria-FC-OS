@@ -5,6 +5,7 @@
   import AdminAcademyTrainingPlans from './AdminAcademyTrainingPlans.svelte';
   import AdminGroupAttendancePanel from './AdminGroupAttendancePanel.svelte';
   import AdminGroupPublishedFixtures from './AdminGroupPublishedFixtures.svelte';
+  import AdminGroupMatchSettings from './AdminGroupMatchSettings.svelte';
   import AdminGroupMatchDraftPanel from './AdminGroupMatchDraftPanel.svelte';
   import AdminRosterPlayersPanel from './AdminRosterPlayersPanel.svelte';
   import AdminAcademyGroupProfilePanel from './AdminAcademyGroupProfilePanel.svelte';
@@ -112,6 +113,7 @@
         <AdminCoachDirectoryPanel owner={organization} actorId={user.id}
           groups={[group]} {onExpired} {onRevoked}/>
       {:else if tab==='settings' && canCreate}
+        <AdminGroupMatchSettings {organization} groupId={group.id}/>
         {#if organization==='lefteria_fc'}
           <AdminFirstTeamProfilePanel actorId={user.id} groups={[group]}
             {onExpired} {onRevoked}/>

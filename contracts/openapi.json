@@ -3480,6 +3480,57 @@
         ],
         "type": "object"
       },
+      "MatchTimingDto": {
+        "properties": {
+          "attendance_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "duration_minutes": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "frozen": {
+            "type": "boolean"
+          },
+          "players_on_field": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          },
+          "settings_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "frozen",
+          "settings_version",
+          "duration_minutes",
+          "players_on_field",
+          "attendance_ids"
+        ],
+        "type": "object"
+      },
       "MobileAppAnnouncementDto": {
         "properties": {
           "body": {
@@ -5138,6 +5189,15 @@
               "string"
             ]
           },
+          "attendance_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
           "expected_version": {
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5234,6 +5294,9 @@
             },
             "type": "array"
           },
+          "timing": {
+            "$ref": "#/components/schemas/MatchTimingDto"
+          },
           "version": {
             "format": "int32",
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -5256,7 +5319,8 @@
           "squad",
           "statistics",
           "rotation_note",
-          "review_reason"
+          "review_reason",
+          "timing"
         ],
         "type": "object"
       },
