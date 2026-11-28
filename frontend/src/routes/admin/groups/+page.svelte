@@ -21,7 +21,7 @@
     coach_name:string;training_schedule:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
-  const assignments = $derived(
+  const grantedAssignments = $derived(
     $auth.status === 'authenticated' && $auth.session
       ? $auth.session.user.organizations.filter((org): org is typeof org & {id: Organization} =>
           (org.id === 'lefteria_fc' && hasAdminPermission($auth.session!.user.permissions, 'teams:read')) ||
@@ -29,12 +29,16 @@
       : []
   );
 
+  // A scoped menu route is a local workspace, not a global organization switch.
+  const routeOwner=$derived(page.url.searchParams.get('organization_id'));
+  const assignments=$derived(routeOwner===null?grantedAssignments:
+    grantedAssignments.filter(org=>org.id===routeOwner));
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
   let otherDirectory=$state<Directory|null>(null);
   let otherLoading=$state(false);
   let otherUnavailable=$state(false);
-  const otherOwner=$derived(assignments.find(org=>org.id!==organization)?.id??null);
+  const otherOwner=$derived(routeOwner===null?assignments.find(org=>org.id!==organization)?.id??null:null);
   // Read-only cross-organization overview; all writes remain in the exact owner workspace.
   const combinedDirectories=$derived(assignments.map(org=>({
     owner:org.id,name:org.name,directory:org.id===organization?directory:otherDirectory?.organization_id===org.id?otherDirectory:null,
