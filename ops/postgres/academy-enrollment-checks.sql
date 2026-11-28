@@ -487,6 +487,28 @@ BEGIN
     RAISE EXCEPTION 'Roster search accessed another city group';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- A previously authorized session must fail closed immediately after
+  -- revocation, including search counts and exact-group reads.
+  UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
+    WHERE token_digest=manager_digest;
+  BEGIN
+    PERFORM club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+      0,1,fixture_player_id,NULL);
+    RAISE EXCEPTION 'Revoked session retained roster search access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+      fixture_group_id,0,1,fixture_player_id);
+    RAISE EXCEPTION 'Revoked session retained exact group search access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  -- Restore the synthetic session for subsequent independent fixture checks.
+  UPDATE identity.admin_sessions SET revoked_at=NULL
+    WHERE token_digest=manager_digest;
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Restored fixture session cannot search authorized roster'; END IF;
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
