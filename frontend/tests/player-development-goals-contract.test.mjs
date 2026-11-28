@@ -79,7 +79,7 @@ test('operator grants only allow protected functions to the admin auth role',()=
 });
 test('Super Admin goal editing remains private, managers get separately isolated read-only group view',()=>{
   assert.match(group,/allowGoalManagement=\{user\.role==='super_admin'\}/);
-  assert.match(group,/allowGoalRead=\{user\.role==='manager'\}/);
+  assert.match(group,/allowGoalRead=\{user\.role==='manager' && organization==='lefteria_fc_academy'\}/);
   assert.match(roster,/allowGoalManagement=false/);
   assert.match(roster,/allowGoalRead=false/);
   assert.match(roster,/data-testid="admin-manager-goal-reader-toggle"/);
