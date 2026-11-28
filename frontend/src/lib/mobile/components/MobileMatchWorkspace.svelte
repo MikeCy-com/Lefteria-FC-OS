@@ -2,19 +2,35 @@
   import {onMount} from 'svelte';
   import type {MobileAuthController} from '../controller.ts';
   import type {MobileCalendarItem} from '../calendar.ts';
+  import {planGrassrootsRotation,rotationClock} from '../match-timing.ts';
   import {recommendGrassrootsStarters,repeatedGrassrootsReserve,statisticFromInputs,
     type Assignment,type MatchAction,type MatchCommand,type MatchWorkspace,type SquadPlayer,type MatchStatistic} from '../match-workspace.ts';
   let {controller,item,role}:{controller:MobileAuthController;item:MobileCalendarItem;role:'coach'|'management'}=$props();
   type StatInput={minutes:string;goals:string;assists:string};
   let workspace=$state<MatchWorkspace|null>(null),squad=$state<SquadPlayer[]>([]);
   let statDraft=$state<Record<string,StatInput>>({});
+  let attendanceDraft=$state<string[]>([]);
   let rotationNote=$state(''),reviewReason=$state(''),search=$state(''),startingCount=$state(0);
   let busy=$state(true),error=$state(''),notice=$state(''),reviewConfirmed=$state(false);
   let alive=false,request=0;
   const grassroots=$derived(workspace?.mode==='grassroots');
-  const canEdit=$derived(role==='coach'&&workspace&&!workspace.completed&&['draft','selected'].includes(workspace.state));
+  const canEdit=$derived(role==='coach'&&workspace&&!workspace.completed&&['draft','selected'].includes(workspace.state)&&workspace.timing.attendance_ids===null);
   const canStats=$derived(role==='coach'&&workspace?.completed&&!workspace.roster_stale&&['selected','rejected'].includes(workspace.state));
   const canReview=$derived(role==='management'&&workspace?.completed&&!workspace.roster_stale&&workspace.state==='submitted');
+  const configuredFormat=$derived(workspace?.timing.players_on_field??null);
+  const targetStarters=$derived(configuredFormat===null?startingCount:Math.min(configuredFormat,squad.length));
+  const gameDay=$derived(item.date===new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Nicosia',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+  const canAttendance=$derived(role==='coach'&&grassroots&&gameDay&&workspace?.state==='selected'&&!workspace.completed&&
+    !workspace.roster_stale&&workspace.timing.duration_minutes!==null&&configuredFormat!==null&&
+    JSON.stringify(squad)===JSON.stringify(workspace.squad));
+  const plan=$derived.by(()=>{
+    if(!workspace||!grassroots||workspace.roster_stale)return null;
+    const {attendance_ids,duration_minutes,players_on_field}=workspace.timing;
+    if(!attendance_ids||duration_minutes===null||players_on_field===null)return null;
+    const ordered=workspace.squad.filter(p=>attendance_ids.includes(p.player_id))
+      .sort((a,b)=>Number(b.assignment==='starter')-Number(a.assignment==='starter')).map(p=>p.player_id);
+    return planGrassrootsRotation(duration_minutes,players_on_field,ordered);
+  });
   const starters=$derived(squad.filter(p=>p.assignment==='starter').length);
   const reserves=$derived(squad.length-starters);
   const repeatReserve=$derived(grassroots&&workspace&&repeatedGrassrootsReserve(workspace.roster,squad));
@@ -24,11 +40,12 @@
   const states:Record<string,string>={draft:'Πρόχειρο',selected:'Επιβεβαιωμένη αποστολή',submitted:'Προς έλεγχο',approved:'Εγκρίθηκε',rejected:'Επιστροφή για διόρθωση'};
 
   function clear(){
-    workspace=null;squad=[];statDraft={};rotationNote='';reviewReason='';reviewConfirmed=false;startingCount=0;search='';
+    workspace=null;squad=[];statDraft={};rotationNote='';reviewReason='';reviewConfirmed=false;startingCount=0;search='';attendanceDraft=[];
   }
   function apply(value:MatchWorkspace){
     workspace=value;squad=value.squad.map(row=>({...row}));rotationNote=value.rotation_note;
     startingCount=value.squad.filter(row=>row.assignment==='starter').length;
+    attendanceDraft=[...(value.timing.attendance_ids??[])];
     reviewReason='';reviewConfirmed=false;
     statDraft=Object.fromEntries(value.squad.map(row=>{
       const s=value.statistics.find(stat=>stat.player_id===row.player_id);
@@ -57,7 +74,7 @@
     if(value!=='starter'&&value!=='reserve')return;
     const prior=squad.find(p=>p.player_id===playerId);
     if(!prior&&squad.length>=60){error='Η αποστολή επιτρέπει έως 60 παίκτες.';return;}
-    if(value==='starter'&&prior?.assignment!=='starter'&&starters>=11){error='Η αρχική ομάδα δεν μπορεί να ξεπερνά τους 11 παίκτες.';return;}
+    if(value==='starter'&&prior?.assignment!=='starter'&&starters>=(configuredFormat??11)){error='Η αρχική ομάδα δεν μπορεί να ξεπερνά τη μορφή αγώνα.';return;}
     const position=grassroots?null:prior?.position??(player.position?.trim().slice(0,40)||null);
     const row:SquadPlayer={player_id:playerId,assignment:value,position};
     squad=prior?squad.map(p=>p.player_id===playerId?row:p):[...squad,row];error='';notice='';
@@ -69,9 +86,13 @@
   function suggest(){
     if(!canEdit||busy||!workspace||!grassroots)return;
     try{
-      squad=recommendGrassrootsStarters(workspace.roster,squad,startingCount);
+      squad=recommendGrassrootsStarters(workspace.roster,squad,targetStarters);
       error='';notice='Η πρόταση εναλλαγής είναι έτοιμη. Ελέγξτε και επιβεβαιώστε την αρχική ομάδα.';
     }catch{error='Επίλεξε πρώτα την αποστολή και τον αριθμό παικτών που ξεκινούν (1–11).';}
+  }
+  function toggleAttendance(id:string,checked:boolean){
+    if(!canAttendance||busy||!workspace?.squad.some(p=>p.player_id===id))return;
+    attendanceDraft=checked?[...new Set([...attendanceDraft,id])]:attendanceDraft.filter(value=>value!==id);
   }
   function stat(playerId:string,field:keyof StatInput,value:string){
     if(!canStats||busy||!statDraft[playerId])return;
@@ -80,11 +101,17 @@
   function build(action:MatchAction):MatchCommand|null{
     if(!workspace)return null;
     const command:MatchCommand={action,expected_version:workspace.version,squad:null,statistics:null,rotation_note:null,review_reason:null};
-    if(action==='save_squad'||action==='select_squad'){
+    if(action==='confirm_attendance'){
+      if(!canAttendance||!attendanceDraft.length){error='Επιβεβαίωσε τους παρόντες παίκτες την ημέρα του αγώνα.';return null;}
+      command.attendance_ids=attendanceDraft;
+    }else if(action==='save_squad'||action==='select_squad'){
       if(!canEdit)return null;
       if(action==='select_squad'&&(!starters||starters>11||(!grassroots&&(starters!==11||
         squad.some(p=>p.assignment==='starter'&&!p.position))))){
         error=grassroots?'Επίλεξε τουλάχιστον έναν παίκτη στην αρχική ομάδα.':'Η Πρώτη Ομάδα απαιτεί 11 αρχικούς παίκτες και θέση για καθέναν.';return null;
+      }
+      if(action==='select_squad'&&grassroots&&configuredFormat!==null&&starters!==targetStarters){
+        error='Η αρχική ομάδα πρέπει να αντιστοιχεί στη μορφή του τμήματος και το μέγεθος αποστολής.';return null;
       }
       if(action==='select_squad'&&repeatReserve&&!rotationNote.trim()){
         error='Καταχώρισε αιτιολογία για την επανάληψη της εναλλαγής ή άλλαξε την αρχική ομάδα.';return null;
@@ -97,6 +124,10 @@
       for(const player of workspace.squad){
         const draft=statDraft[player.player_id];
         const row=draft&&statisticFromInputs(player.player_id,draft.minutes,draft.goals,draft.assists);
+        if(row&&workspace.timing.attendance_ids&&(row.minutes_played>(workspace.timing.duration_minutes??180)||
+          (row.minutes_played>0&&!workspace.timing.attendance_ids.includes(player.player_id)))){
+          error='Τα λεπτά πρέπει να συμφωνούν με την επιβεβαιωμένη παρουσία και διάρκεια αγώνα.';return null;
+        }
         if(!row){error='Συμπλήρωσε ρητά λεπτά, γκολ και ασίστ για κάθε παίκτη της αποστολής.';return null;}
         rows.push(row);
       }
@@ -134,6 +165,12 @@
   {#if error}<p class="error" role="alert">{error}</p>{/if}
   {#if notice}<p role="status">{notice}</p>{/if}
   {#if workspace}
+    {#if workspace.timing.duration_minutes!==null&&configuredFormat!==null}
+      <p class="hint">Ρυθμίσεις τμήματος: <strong>{configuredFormat} vs {configuredFormat}</strong> · {workspace.timing.duration_minutes} λεπτά
+        · {workspace.timing.frozen?'Οριστικοποιημένες για τον αγώνα':'Αυτόματα από το τμήμα'}</p>
+    {:else}
+      <p role="status" class="hint">{workspace.timing.frozen?'Δεν υπάρχει ιστορική ρύθμιση διάρκειας για αυτόν τον αγώνα.':'Δεν έχουν οριστεί διάρκεια και μορφή στις ρυθμίσεις τμήματος.'}</p>
+    {/if}
     {#if grassroots}<p class="hint">Grassroots · Χωρίς μόνιμες θέσεις. Τα παιδιά που ξεκίνησαν στην εναλλαγή προηγούμενων αγώνων έχουν προτεραιότητα στην επόμενη αρχική ομάδα. Το ιστορικό αφορά επιβεβαιωμένες αποστολές, όχι καταγεγραμμένη φυσική παρουσία.</p>
     {:else}<p class="hint">Πρώτη Ομάδα · 11 βασικοί, αγωνιστικές θέσεις και αναπληρωματικοί.</p>{/if}
     {#if workspace.roster_stale}<p class="error" role="alert">Η προηγούμενη αποστολή περιέχει παίκτες εκτός του τρέχοντος καταλόγου. {canEdit?'Δημιούργησε νέα αποστολή από τους διαθέσιμους παίκτες.':'Απαιτείται ελεγχόμενη διόρθωση από τον σύλλογο.'}</p>{/if}
@@ -141,9 +178,13 @@
       <div class="totals"><span>Αποστολή <strong>{squad.length}</strong></span><span>{grassroots?'Αρχική ομάδα':'Βασικοί'} <strong>{starters}</strong></span><span>{grassroots?'Εναλλαγή':'Αναπληρωματικοί'} <strong>{reserves}</strong></span></div>
       {#if grassroots}
         <div class="rotation">
-          <label>Παιδιά στην αρχική ομάδα
-            <input type="number" min="1" max="11" step="1" value={startingCount||''} disabled={busy}
-              oninput={e=>startingCount=Number(e.currentTarget.value)}/></label>
+          {#if configuredFormat!==null}
+            <p>Μορφή τμήματος: {configuredFormat} vs {configuredFormat} · {targetStarters} στην αρχική ομάδα της αποστολής</p>
+          {:else}
+            <label>Παιδιά στην αρχική ομάδα (χωρίς ρυθμίσεις τμήματος)
+              <input type="number" min="1" max="11" step="1" value={startingCount||''} disabled={busy}
+                oninput={e=>startingCount=Number(e.currentTarget.value)}/></label>
+          {/if}
           <button type="button" disabled={busy||!squad.length} onclick={suggest}>Πρότεινε δίκαιη εναλλαγή</button>
           <p class="hint">Επίλεξε πρώτα τα παιδιά της αποστολής. Η πρόταση δεν προσθέτει παιδιά αυτόματα ούτε αποφασίζει τη συμμετοχή τους.</p>
         </div>
@@ -185,6 +226,37 @@
         <li><div class="player"><strong>{name(row.player_id)}</strong><small>{assignmentLabel(row.assignment)}{!grassroots&&row.position?' · '+row.position:''}</small></div></li>
       {/each}</ul>
       {#if workspace.rotation_note}<p class="hint">Σημείωση εναλλαγής: {workspace.rotation_note}</p>{/if}
+    {/if}
+    {#if grassroots&&workspace.state==='selected'&&!workspace.completed&&!workspace.roster_stale}
+      <section class="rotation" aria-label="Παρουσίες αγώνα">
+        <h5>Παρουσίες ημέρας αγώνα</h5>
+        {#if canAttendance}
+          <p class="hint">Σημείωσε μόνο τα παιδιά που είναι πραγματικά παρόντα. Οι δηλώσεις συμμετοχής δεν αποτελούν παρουσία.</p>
+          {#each workspace.squad as row (row.player_id)}
+            <label class="confirm"><input type="checkbox" checked={attendanceDraft.includes(row.player_id)} disabled={busy}
+              onchange={e=>toggleAttendance(row.player_id,e.currentTarget.checked)}/> {name(row.player_id)}</label>
+          {/each}
+          <p>Παρόντες: {attendanceDraft.length} / {workspace.squad.length}</p>
+          <button type="button" class="primary" disabled={busy||!attendanceDraft.length} onclick={()=>void save('confirm_attendance')}>Επιβεβαίωση παρουσιών & υπολογισμός εναλλαγών</button>
+        {:else if !workspace.timing.attendance_ids}
+          <p class="hint">Ο υπολογισμός ενεργοποιείται για τον ανατεθειμένο προπονητή την ημέρα του αγώνα, αφού επιβεβαιωθούν η αποστολή και οι ρυθμίσεις τμήματος.</p>
+        {/if}
+      </section>
+    {/if}
+    {#if plan}
+      <section class="rotation" aria-label="Πλάνο εναλλαγών" data-testid="grassroots-attendance-rotation-plan">
+        <h5>Αυτόματο πλάνο εναλλαγών</h5>
+        {#if plan.short_handed}<p role="alert" class="error">Οι παρόντες είναι λιγότεροι από τη μορφή αγώνα. Απαιτείται απόφαση προπονητή πριν την έναρξη.</p>{/if}
+        <p>Παρόντες: {workspace.timing.attendance_ids?.length} · Στόχος ανά παιδί: {rotationClock(plan.target_seconds)}</p>
+        <p class="hint">{plan.periods.length===1?'Δεν χρειάζεται προγραμματισμένη εναλλαγή.':'Διάστημα: '+rotationClock(plan.min_interval_seconds)+(plan.min_interval_seconds===plan.max_interval_seconds?'':'–'+rotationClock(plan.max_interval_seconds))}</p>
+        <ol class="roster">{#each plan.periods as period (period.start_seconds)}
+          <li><strong>{rotationClock(period.start_seconds)} – {rotationClock(period.end_seconds)}</strong>
+            <span>Στο γήπεδο: {period.on_field.map(name).join(', ')}</span>
+            {#if period.start_seconds>0}<small>Μπαίνουν: {period.enter.map(name).join(', ')||'—'} · Βγαίνουν: {period.leave.map(name).join(', ')||'—'}</small>{/if}
+          </li>
+        {/each}</ol>
+        <p class="hint">Προτεινόμενος χρόνος, όχι πραγματικά λεπτά συμμετοχής. Ο προπονητής επιβεβαιώνει τις πραγματικές αλλαγές και τα στατιστικά χωριστά.</p>
+      </section>
     {/if}
     {#if workspace.review_reason}<p>Αιτιολογία ελέγχου: {workspace.review_reason}</p>{/if}
     {#if canStats}
