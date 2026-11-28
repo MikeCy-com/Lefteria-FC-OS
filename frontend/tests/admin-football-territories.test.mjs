@@ -67,6 +67,7 @@ test('admin UI uses selected organization, city, location and team scope with re
   assert.match(page,/group_id:selectedGroup/);
   assert.match(page,/Αποθήκευση προχείρου/);
   assert.match(page,/role="alert"/);
-  assert.match(frame,/href="\/admin\/territories"/);
+  assert.match(frame,/href="\/admin\/territories\?organization_id=lefteria_fc_academy"/);
+  assert.match(frame,/href="\/admin\/territories\?organization_id=lefteria_fc"/);
   assert.match(modules,/id: 'territories'/);
 });
