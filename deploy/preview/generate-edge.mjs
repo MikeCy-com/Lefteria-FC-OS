@@ -194,6 +194,7 @@ export const reviewedHiddenAdminEntries = [
   ['put','/api/admin/football/territories/access'],
   ['get','/api/admin/football/territories/metrics'],
   ['get','/api/admin/football/group-players'],
+  ['post','/api/admin/football/players/search'],
   ['put','/api/admin/football/groups/{groupId}/name'],
   // Read-only named Academy site inventory evidence; no stock mutation route.
   ['get','/api/admin/pos/sites/{locationId}/stock-reconciliation'],
