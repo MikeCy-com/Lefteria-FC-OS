@@ -2,11 +2,26 @@
   import {browser} from '$app/env';
   import {untrack} from 'svelte';
 
+  type RegistrationSource={
+    id:string;applicant_first_name:string;applicant_last_name:string;applicant_birth_date:string;
+    guardian_name:string;guardian_relationship:string;guardian_phone:string;guardian_email:string;
+    submitted_at:string;approved_at:string;
+  };
+  function validRegistration(value:unknown):value is RegistrationSource{
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    const r=value as Record<string,unknown>;
+    return typeof r.id==='string'&&/^[0-9a-f-]{36}$/i.test(r.id)&&
+      typeof r.applicant_birth_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.applicant_birth_date)&&
+      Object.entries({applicant_first_name:100,applicant_last_name:100,guardian_name:200,
+        guardian_relationship:80,guardian_phone:32,guardian_email:254,submitted_at:64,approved_at:64})
+        .every(([key,max])=>typeof r[key]==='string'&&(r[key] as string).length<=max);
+  }
   type Profile={
     organization_id:'lefteria_fc_academy';player_id:string;official_name:string;
     official_number:number|null;official_position:string|null;
     biography:string;preferred_position:string;preferred_number:number|null;
     has_portrait:boolean;revision:number;updated_at:string|null;
+    registration?:RegistrationSource|null;
   };
 
   let {playerId,playerName,actorId,allowWrite=false,onExpired,onRevoked}:{
@@ -42,7 +57,8 @@
         (p.preferred_number as number)>=1&&(p.preferred_number as number)<=99))&&
       typeof p.has_portrait==='boolean'&&Number.isInteger(p.revision)&&
       (p.revision as number)>=0&&
-      (p.updated_at===null||typeof p.updated_at==='string');
+      (p.updated_at===null||typeof p.updated_at==='string')&&
+      (p.registration===undefined||p.registration===null||validRegistration(p.registration));
   }
 
   async function request(target:string,options?:RequestInit):Promise<Response> {
@@ -206,6 +222,24 @@
         {/if}
       </div>
     </div>
+    <section class="registration-source-card" data-testid="admin-player-registration-source">
+      <h3>Εγγραφή & στοιχεία κηδεμόνα</h3>
+      {#if profile.registration}
+        <p class="admin-muted">Αρχικά στοιχεία από την εγκεκριμένη αίτηση. Τα στοιχεία επικοινωνίας δεν αποτελούν από μόνα τους επαλήθευση πρόσβασης γονέα στην εφαρμογή.</p>
+        <dl>
+          <div><dt>Όνομα εγγραφής</dt><dd>{profile.registration.applicant_first_name} {profile.registration.applicant_last_name}</dd></div>
+          <div><dt>Ημερομηνία γέννησης</dt><dd>{profile.registration.applicant_birth_date}</dd></div>
+          <div><dt>Κηδεμόνας</dt><dd>{profile.registration.guardian_name}</dd></div>
+          <div><dt>Σχέση</dt><dd>{profile.registration.guardian_relationship}</dd></div>
+          <div><dt>Τηλέφωνο εγγραφής</dt><dd>{profile.registration.guardian_phone}</dd></div>
+          <div><dt>Email εγγραφής</dt><dd>{profile.registration.guardian_email}</dd></div>
+          <div><dt>Αριθμός αίτησης</dt><dd>{profile.registration.id}</dd></div>
+          <div><dt>Ημερομηνία έγκρισης</dt><dd>{new Date(profile.registration.approved_at).toLocaleDateString('el-CY')}</dd></div>
+        </dl>
+      {:else}
+        <p class="admin-muted">Δεν υπάρχει επαληθευμένη σύνδεση με εγκεκριμένη ηλεκτρονική αίτηση. Δεν δημιουργούνται υποθετικά στοιχεία γονέων.</p>
+      {/if}
+    </section>
     {#if error}<p role="alert">{error}</p>{/if}
     {#if notice}<p role="status">{notice}</p>{/if}
   {/if}
@@ -240,4 +274,10 @@
   .admin-player-private-fields button{justify-self:start;min-height:43px}
   @media(max-width:650px){.admin-private-profile-grid{grid-template-columns:1fr}
     .admin-player-preferences{grid-template-columns:1fr}}
+  .registration-source-card{display:grid;gap:12px;border-top:1px solid var(--admin-line);padding-top:16px;min-width:0}
+  .registration-source-card h3,.registration-source-card dl,.registration-source-card dd{margin:0}
+  .registration-source-card dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+  .registration-source-card dl>div{padding:10px;border:1px solid var(--admin-line);border-radius:8px;overflow-wrap:anywhere;min-width:0}
+  .registration-source-card dt{font-size:12px;color:#b8b8b8}
+  .registration-source-card dd{font-weight:600}
 </style>
