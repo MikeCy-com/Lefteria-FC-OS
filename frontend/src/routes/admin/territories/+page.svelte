@@ -50,6 +50,9 @@
   let appliedRouteScope=false;
   let appliedRouteGroup=false;
   let placedGroupId=$state('');
+  let pendingCityId=$state('');
+  let pendingLocationId=$state('');
+  let appliedDirectoryLink=false;
   const requestedGroup=$derived(page.url.searchParams.get('assign_group')??'');
   const requestedTeam=$derived(page.url.searchParams.get('team_id')??'');
 
@@ -78,6 +81,12 @@
   let academyFieldAddress=$state('');
   let academyFieldMapsUrl=$state('');
   let name = $state('');
+  let cityName=$state('');
+  let citySlug=$state('');
+  let locationName=$state('');
+  let locationSlug=$state('');
+  let locationAddress=$state('');
+  let locationMapsUrl=$state('');
   let slug = $state('');
   let address = $state('');
   let googleMapsUrl = $state('');
@@ -204,10 +213,17 @@
     }
   });
   $effect(()=>{
+    if(!directory || directory.organization_id!==organization)return;
     if(organization==='lefteria_fc_academy'){
-      if(!cities.some(city=>city.id===cityId)) cityId=cities[0]?.id??'';
-      if(!locations.some(location=>location.id===locationId))
-        locationId=locations[0]?.id??'';
+      const requestedCity=pendingCityId||(!appliedDirectoryLink?page.url.searchParams.get('city_id')??'':'');
+      const requestedLocation=pendingLocationId||(!appliedDirectoryLink?page.url.searchParams.get('location_id')??'':'');
+      const verifiedLocation=directory.locations.find(item=>item.id===requestedLocation);
+      if(verifiedLocation && cities.some(city=>city.id===verifiedLocation.city_id))cityId=verifiedLocation.city_id;
+      else if(cities.some(city=>city.id===requestedCity))cityId=requestedCity;
+      else if(!cities.some(city=>city.id===cityId))cityId=cities[0]?.id??'';
+      if(verifiedLocation && verifiedLocation.city_id===cityId)locationId=verifiedLocation.id;
+      else if(!locations.some(location=>location.id===locationId))locationId=locations[0]?.id??'';
+      pendingCityId='';pendingLocationId='';appliedDirectoryLink=true;
     }else if(!(directory?.scopes ?? []).some(scope=>scope.id===scopeId))
       scopeId=directory?.scopes[0]?.id??'';
   });
@@ -236,7 +252,11 @@
         (result as Record<string,unknown>).organization_id!==owner ||
         typeof (result as Record<string,unknown>).id!=='string')
         throw new Error('Μη επαληθευμένη αποθήκευση.');
-      name='';slug='';address='';googleMapsUrl='';competition='';
+      const createdId=(result as Record<string,unknown>).id as string;
+      directory=null;
+      if(action==='city'){pendingCityId=createdId;cityName='';citySlug='';}
+      else if(action==='location'){pendingLocationId=createdId;locationName='';locationSlug='';locationAddress='';locationMapsUrl='';}
+      else {name='';slug='';address='';googleMapsUrl='';competition='';}
       if(action==='group_assignment' && typeof data.group_id==='string')placedGroupId=data.group_id;
       message=action==='group_assignment'
         ? 'Το τμήμα συνδέθηκε επιτυχώς με την πόλη και τοποθεσία.'
@@ -247,8 +267,8 @@
   }
   function submitLocation(){
     if(!cityId) return;
-    void createResource('location',{city_id:cityId,name,slug,address,
-      google_maps_url:googleMapsUrl});
+    void createResource('location',{city_id:cityId,name:locationName,slug:locationSlug,address:locationAddress,
+      google_maps_url:locationMapsUrl});
   }
   async function submitAcademyCatalog(resource:'opponent'|'playing_field'){
     if(organization!=='lefteria_fc_academy'||!selectedScope||
@@ -360,11 +380,11 @@
             </div>
             {#if canWrite && $auth.session.user.role==='super_admin'}
               <form class="territory-form" id="create-city" data-testid="admin-create-city" onsubmit={e=>{
-                e.preventDefault(); void createResource('city',{name,slug});
+                e.preventDefault(); void createResource('city',{name:cityName,slug:citySlug});
               }}>
                 <h3>Νέα πόλη</h3>
-                <label>Όνομα πόλης <input bind:value={name} required maxlength="120" /></label>
-                <label>Μοναδικό URL slug <input bind:value={slug} required maxlength="120"
+                <label>Όνομα πόλης <input bind:value={cityName} required maxlength="120" /></label>
+                <label>Σύντομο όνομα URL (λατινικά) <input bind:value={citySlug} required maxlength="120"
                   pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="nicosia" /></label>
                 <button type="submit" disabled={saving}>Προσθήκη πόλης</button>
               </form>
@@ -442,11 +462,11 @@
               {#if mayManageCatalog}
                 <form class="territory-form" id="create-location" data-testid="admin-create-location" onsubmit={e=>{e.preventDefault();submitLocation();}}>
                   <h3>Νέα τοποθεσία</h3>
-                  <label>Όνομα <input bind:value={name} required maxlength="120" /></label>
-                  <label>URL slug <input bind:value={slug} required maxlength="120"
+                  <label>Όνομα <input bind:value={locationName} required maxlength="120" /></label>
+                  <label>Σύντομο όνομα URL (λατινικά) <input bind:value={locationSlug} required maxlength="120"
                     pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label>
-                  <label>Διεύθυνση <input bind:value={address} maxlength="300" /></label>
-                  <label>Google Maps <input type="url" bind:value={googleMapsUrl} maxlength="2048" /></label>
+                  <label>Διεύθυνση <input bind:value={locationAddress} maxlength="300" /></label>
+                  <label>Google Maps <input type="url" bind:value={locationMapsUrl} maxlength="2048" /></label>
                   <button type="submit" disabled={saving}>Προσθήκη τοποθεσίας</button>
                 </form>
               {/if}
