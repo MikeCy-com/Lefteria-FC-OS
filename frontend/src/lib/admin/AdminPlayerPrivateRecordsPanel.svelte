@@ -55,6 +55,20 @@
     {id:'image_rights',label:'Δικαιώματα εικόνας'},
     {id:'other',label:'Άλλο έγγραφο'}
   ] as const;
+  let documentQuery=$state('');
+  let documentFilter=$state<'all'|'registration'|'attention'>('all');
+  const attentionStatuses=['expired','critical','warning'];
+  const documentStatusLabels:Record<string,string>={no_expiry:'Χωρίς ημερομηνία λήξης',expired:'Έληξε',critical:'Άμεση ανανέωση',warning:'Λήγει σύντομα',notice:'Ειδοποίηση λήξης',watch:'Παρακολούθηση',valid:'Σε ισχύ'};
+  const visibleDocuments=$derived(documents.filter(doc=>{
+    const term=documentQuery.trim().toLocaleLowerCase('el-CY');
+    const label=protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type;
+    return (documentFilter==='all'||(documentFilter==='registration'&&doc.document_type==='registration_form')||
+      (documentFilter==='attention'&&attentionStatuses.includes(doc.status)))&&
+      (!term||[doc.title,label].some(value=>value.toLocaleLowerCase('el-CY').includes(term)));
+  }).slice().sort((a,b)=>{
+    const rank=(doc:Document)=>doc.document_type==='registration_form'?0:attentionStatuses.includes(doc.status)?1:2;
+    return rank(a)-rank(b)||(a.expiry_date??'9999-12-31').localeCompare(b.expiry_date??'9999-12-31')||a.title.localeCompare(b.title,'el-CY');
+  }));
   const requiresExpiry=(type:string)=>
     ['id_passport','kop_registration','medical_cert','insurance',
       'school_confirmation'].includes(type);
@@ -341,13 +355,27 @@
       </div>{/if}
       {#if section!=='development'}<div>
         <h4>Έγγραφα ({documents.length})</h4>
-        {#each documents as doc (doc.id)}
-          <p><strong>{doc.title}</strong> · {protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type}
-            · {doc.expiry_date?'Λήξη: '+doc.expiry_date:'Χωρίς λήξη'} · {doc.status}
-          </p>
+        <div class="player-document-filters" data-testid="admin-player-document-filters">
+          <label>Αναζήτηση εγγράφων <input type="search" bind:value={documentQuery} placeholder="Τίτλος ή τύπος"/></label>
+          <div class="document-filter-buttons" role="group" aria-label="Φίλτρο εγγράφων">
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='all'} onclick={()=>documentFilter='all'}>Όλα ({documents.length})</button>
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='registration'} onclick={()=>documentFilter='registration'}>Εγγραφές ({documents.filter(doc=>doc.document_type==='registration_form').length})</button>
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='attention'} onclick={()=>documentFilter='attention'}>Χρειάζονται ανανέωση ({documents.filter(doc=>attentionStatuses.includes(doc.status)).length})</button>
+          </div>
+        </div>
+        {#each visibleDocuments as doc (doc.id)}
+          <article class="player-document-row">
+            <div>
+              <strong>{doc.title}</strong>
+              <p>{protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type}</p>
+              {#if doc.expiry_date}<small>Λήξη: {doc.expiry_date}</small>{/if}
+            </div>
+            <span class:document-attention={attentionStatuses.includes(doc.status)}>{documentStatusLabels[doc.status]??doc.status}</span>
+          </article>
         {/each}
-        {#if documents.length===0}<p>Δεν έχουν καταχωριστεί έγγραφα.</p>{/if}
-        <p class="admin-muted">Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
+        {#if documents.length===0}<p>Δεν έχουν καταχωριστεί έγγραφα.</p>
+        {:else if !visibleDocuments.length}<p>Δεν βρέθηκαν έγγραφα για αυτό το φίλτρο.</p>{/if}
+        <p class="admin-muted">Προβάλλονται μόνο τα στοιχεία των εγγράφων. Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
       </div>{/if}
     </div>
   {/if}
@@ -363,4 +391,13 @@
   .private-evaluation-form label{display:grid;gap:5px;font-size:13px}
   .private-evaluation-form fieldset{display:flex;gap:12px;flex-wrap:wrap;border:0;padding:0}
   .private-evaluation-form input,.private-evaluation-form textarea,.private-evaluation-form select{padding:8px;color:white;background:#171717;border:1px solid #555;border-radius:7px}
+  .player-document-filters{display:grid;gap:8px;margin:12px 0}
+  .player-document-filters label{display:grid;gap:5px}
+  .player-document-filters input{min-width:0;width:100%;padding:8px;color:inherit;background:var(--admin-surface,#151719);border:1px solid var(--admin-border,#555);border-radius:8px}
+  .document-filter-buttons{display:flex;flex-wrap:wrap;gap:6px}
+  .document-filter-buttons button[aria-pressed=true]{border-color:var(--admin-accent,#f6bb38);color:var(--admin-accent,#f6bb38)}
+  .player-document-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--admin-border,#555);overflow-wrap:anywhere}
+  .player-document-row p{margin:4px 0}
+  .player-document-row>span{font-size:12px;color:var(--admin-muted,#aeb4b9)}
+  .player-document-row>span.document-attention{color:var(--admin-error,#fa9999)}
 </style>
