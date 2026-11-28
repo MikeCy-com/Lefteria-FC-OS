@@ -3364,6 +3364,122 @@
         ],
         "type": "object"
       },
+      "MatchEligiblePlayerDto": {
+        "properties": {
+          "last_assignment": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "number": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reserves": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "starts": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "player_id",
+          "name",
+          "number",
+          "position",
+          "last_assignment",
+          "starts",
+          "reserves"
+        ],
+        "type": "object"
+      },
+      "MatchSquadPlayerDto": {
+        "properties": {
+          "assignment": {
+            "type": "string"
+          },
+          "player_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "player_id",
+          "assignment",
+          "position"
+        ],
+        "type": "object"
+      },
+      "MatchStatisticDto": {
+        "properties": {
+          "assists": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "goals": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "minutes_played": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "player_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "player_id",
+          "minutes_played",
+          "goals",
+          "assists"
+        ],
+        "type": "object"
+      },
       "MobileAppAnnouncementDto": {
         "properties": {
           "body": {
@@ -5011,6 +5127,136 @@
           "user",
           "role",
           "available_roles"
+        ],
+        "type": "object"
+      },
+      "MobileMatchWorkspaceBody": {
+        "properties": {
+          "action": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expected_version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "review_reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "rotation_note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "squad": {
+            "items": {
+              "$ref": "#/components/schemas/MatchSquadPlayerDto"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "statistics": {
+            "items": {
+              "$ref": "#/components/schemas/MatchStatisticDto"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          }
+        },
+        "required": [
+          "action",
+          "expected_version",
+          "squad",
+          "statistics",
+          "rotation_note",
+          "review_reason"
+        ],
+        "type": "object"
+      },
+      "MobileMatchWorkspaceDto": {
+        "properties": {
+          "completed": {
+            "type": "boolean"
+          },
+          "host_id": {
+            "type": "string"
+          },
+          "match_id": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "string"
+          },
+          "organization_id": {
+            "type": "string"
+          },
+          "review_reason": {
+            "type": "string"
+          },
+          "roster": {
+            "items": {
+              "$ref": "#/components/schemas/MatchEligiblePlayerDto"
+            },
+            "type": "array"
+          },
+          "roster_stale": {
+            "type": "boolean"
+          },
+          "rotation_note": {
+            "type": "string"
+          },
+          "squad": {
+            "items": {
+              "$ref": "#/components/schemas/MatchSquadPlayerDto"
+            },
+            "type": "array"
+          },
+          "state": {
+            "type": "string"
+          },
+          "statistics": {
+            "items": {
+              "$ref": "#/components/schemas/MatchStatisticDto"
+            },
+            "type": "array"
+          },
+          "version": {
+            "format": "int32",
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ]
+          }
+        },
+        "required": [
+          "match_id",
+          "organization_id",
+          "host_id",
+          "mode",
+          "version",
+          "state",
+          "completed",
+          "roster_stale",
+          "roster",
+          "squad",
+          "statistics",
+          "rotation_note",
+          "review_reason"
         ],
         "type": "object"
       },
@@ -22184,6 +22430,234 @@
         ]
       }
     },
+    "/api/mobile/calendar/match/{event_id}/workspace": {
+      "get": {
+        "operationId": "GetMobileMatchWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchWorkspaceDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile match workspace"
+        ]
+      },
+      "post": {
+        "operationId": "WriteMobileMatchWorkspace",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MobileMatchWorkspaceBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileMatchWorkspaceDto"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MobileAuthError"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        },
+        "security": [
+          {
+            "Mobile": []
+          }
+        ],
+        "tags": [
+          "Mobile match workspace"
+        ]
+      }
+    },
     "/api/mobile/calendar/{event_type}/{event_id}/responses": {
       "get": {
         "description": "Returns scoped player RSVPs for a currently authorized coach/management identity. These are availability responses, not physical attendance or read receipts. The required event_type is match, fixture, event or training. offset is an integer from 0 to 100000; each page contains at most 200 players.",
@@ -30161,6 +30635,9 @@
     },
     {
       "name": "Mobile organization"
+    },
+    {
+      "name": "Mobile match workspace"
     },
     {
       "name": "Mobile app messaging"

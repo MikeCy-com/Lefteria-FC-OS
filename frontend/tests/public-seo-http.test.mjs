@@ -20,21 +20,35 @@ const publicApiStub = [
   '}'
 ].join('\n');
 
-const publicWebsiteStub = [
-  'export async function readWebsitePages(owner) {',
-  '  globalThis.__seoPageCalls = (globalThis.__seoPageCalls ?? 0) + 1;',
-  '  return [{ organization_id: owner, slug: owner === "lefteria_fc" ? "club-history" : "academy-values",',
-  '    published_at: "2026-11-15T08:00:00Z",',
-  '    page: {title:"Approved",summary:"",seo_title:"",seo_description:"",menu_parent:owner === "lefteria_fc" ? "club" : "academy",',
-  '      menu_order:0,blocks:[{type:"paragraph",text:"Safe public content",url:null}]} }];',
-  '}'
-].join('\n');
+const cmsOrigin = 'http://cms.fixture.invalid:8080';
+const publishedPage = (owner) => ({
+  organization_id: owner, slug: owner === 'lefteria_fc' ? 'club-history' : 'academy-values',
+  published_at: '2026-11-15T08:00:00Z',
+  page: {title:'Approved',summary:'',seo_title:'',seo_description:'',menu_parent:owner === 'lefteria_fc' ? 'club' : 'academy',
+    menu_order:0,blocks:[{type:'paragraph',text:'Safe public content',url:null}]}
+});
+
+function mockCms(t, reply = owner => Response.json([publishedPage(owner)])) {
+  return t.mock.method(globalThis, 'fetch', async (input, init) => {
+    globalThis.__seoPageCalls = (globalThis.__seoPageCalls ?? 0) + 1;
+    const url = new URL(input);
+    assert.equal(url.origin, cmsOrigin);
+    assert.equal(url.pathname, '/api/public/website/pages');
+    const owner = url.searchParams.get('organization_id');
+    assert.ok(['lefteria_fc','lefteria_fc_academy'].includes(owner));
+    assert.deepEqual(init.headers, {Accept:'application/json'});
+    assert.equal(init.cache, 'no-store');
+    assert.equal(init.redirect, 'error');
+    assert.ok(init.signal instanceof AbortSignal);
+    return reply(owner);
+  });
+}
 
 registerHooks({
   resolve(specifier, context, nextResolve) {
-    if (specifier === '../../lib/server/website-pages' &&
-        context.parentURL?.includes('/routes/sitemap.xml/')) {
-      return { url: 'data:text/javascript,' + encodeURIComponent(publicWebsiteStub), shortCircuit: true };
+    if (specifier === '$app/env/private' &&
+        context.parentURL?.endsWith('/lib/server/website-pages.ts')) {
+      return { url: 'data:text/javascript,' + encodeURIComponent('export const INTERNAL_API_ORIGIN = ' + JSON.stringify(cmsOrigin)), shortCircuit: true };
     }
     if (specifier === '../../lib/server/public-content' &&
         context.parentURL?.includes('/routes/sitemap.xml/')) {
@@ -61,7 +75,8 @@ test('public robots endpoint prevents preview indexing without redirecting crawl
   assert.match(await publicResponse.text(), /Sitemap: https:\/\/lefteriafc\.cy\/sitemap\.xml/);
 });
 
-test('published sitemap endpoint renders actual anonymous projections; preview never touches API', async () => {
+test('published sitemap endpoint renders actual anonymous projections; preview never touches API', async (t) => {
+  mockCms(t);
   const { GET } = await import('../src/routes/sitemap.xml/+server.ts');
   globalThis.__seoApiCalls = 0;
   globalThis.__seoPageCalls = 0;
@@ -83,4 +98,44 @@ test('published sitemap endpoint renders actual anonymous projections; preview n
   assert.match(xml, /\/pages\/club-history<\/loc>/);
   assert.match(xml, /\/pages\/academy-values\?organization_id=lefteria_fc_academy<\/loc>/);
   assert.doesNotMatch(xml, /\/admin\/|\/app\/|private-user|medical_notes/);
+});
+
+test('sitemap returns non-cacheable 503 for invalid CMS data or unavailable owner, while valid empty data succeeds', async (t) => {
+  const { GET } = await import('../src/routes/sitemap.xml/+server.ts');
+  const url = new URL('https://lefteriafc.cy/sitemap.xml');
+  const cases = [
+    () => new Response('upstream unavailable', {status:503}),
+    () => { throw new Error('private upstream detail'); },
+    () => new Response('invalid json'),
+    () => Response.json({pages:[]}),
+    owner => Response.json([publishedPage(owner), {organization_id:'wrong-owner'}]),
+    owner => Response.json([publishedPage(owner), publishedPage(owner)]),
+    owner => Response.json(Array.from({length:101}, (_, i) => ({...publishedPage(owner),slug:'page-'+i})))
+  ];
+  for (const fail of cases) {
+    const mock = mockCms(t, owner => owner === 'lefteria_fc_academy' ? fail(owner) : Response.json([publishedPage(owner)]));
+    try {
+      const result = await GET({url});
+      assert.equal(result.status, 503);
+      assert.equal(result.headers.get('cache-control'), 'no-store');
+      assert.equal(result.headers.get('x-robots-tag'), 'noindex');
+      assert.equal(await result.text(), 'Public sitemap temporarily unavailable');
+    } finally { mock.mock.restore(); }
+  }
+  mockCms(t, () => Response.json([]));
+  const result = await GET({url});
+  assert.equal(result.status, 200);
+  assert.match(await result.text(), /<loc>https:\/\/lefteriafc\.cy\/<\/loc>/);
+});
+
+test('public navigation keeps graceful fallback while strict reader rejects partial CMS snapshots', async (t) => {
+  const { readWebsitePages } = await import('../src/lib/server/website-pages.ts');
+  const org = 'lefteria_fc';
+  const mock = mockCms(t, owner => Response.json([publishedPage(owner), {slug:'bad-page'}]));
+  assert.equal((await readWebsitePages(org)).length, 1);
+  await assert.rejects(readWebsitePages(org, {strict:true}), /Public CMS projection unavailable/);
+  mock.mock.restore();
+  mockCms(t, () => new Response('', {status:503}));
+  assert.deepEqual(await readWebsitePages(org), []);
+  await assert.rejects(readWebsitePages(org, {strict:true}), /Public CMS projection unavailable/);
 });

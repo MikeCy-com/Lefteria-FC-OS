@@ -60,6 +60,7 @@ internal sealed partial class IdentityHttpChecks
             await CalendarFinalBindingChecksAsync(input,player,parent,coach,management);
             await FamilyDelegatedCalendarChecksAsync(input,parent,player,fan);
             await database.AssertCalendarRuntimePermissionsAsync(input);
+            await MatchWorkspaceHttpChecksAsync(input,player,parent,coach,management,fan);
         }
         finally
         {
@@ -70,6 +71,72 @@ internal sealed partial class IdentityHttpChecks
         Check.True(!await cleaned.CalendarImportStates.AnyAsync()&&!await cleaned.CalendarItems.AnyAsync()&&!await cleaned.CalendarSourceDocuments.AnyAsync()&&
             !await cleaned.CalendarResponses.AnyAsync()&&!await cleaned.MobileIdentities.AnyAsync()&&!await cleaned.AdminAccounts.AnyAsync(),
             "Exact calendar cleanup left imported data before subsequent native-auth scenarios.");
+    }
+
+    private async Task MatchWorkspaceHttpChecksAsync(CalendarDatabaseFixture input,HttpClient player,
+        HttpClient parent,HttpClient coach,HttpClient management,HttpClient fan)
+    {
+        string Path(string suffix)=>"/api/mobile/calendar/match/"+input.Id(suffix)+"/workspace";
+        var first=Path("rotation-one");var next=Path("rotation-two");
+        var child=input.Accounts.ChildId;var guest=input.SecondChild;
+        var chosen=new[]{new{player_id=child,assignment="starter",position=(string?)null},
+            new{player_id=guest,assignment="reserve",position=(string?)null}};
+        var rotated=new[]{new{player_id=child,assignment="reserve",position=(string?)null},
+            new{player_id=guest,assignment="starter",position=(string?)null}};
+        object Squad(int version,object rows,string note="")=>new
+        {action="select_squad",expected_version=version,squad=rows,statistics=(object?)null,
+            rotation_note=note,review_reason=(string?)null};
+        await using var db=database.CreateContext();
+        try
+        {
+            await CalendarRequestAsync(parent,HttpMethod.Get,first,null,403);
+            await CalendarRequestAsync(player,HttpMethod.Get,first,null,403);
+            await CalendarRequestAsync(fan,HttpMethod.Get,first,null,403);
+            await CalendarRequestAsync(coach,HttpMethod.Get,Path("rotation-outside"),null,403);
+            var view=await CalendarRequestAsync(coach,HttpMethod.Get,first,null,200);
+            Check.Equal("grassroots",view.GetProperty("mode").GetString(),"Academy fixture used First Team mode.");
+            Check.True(view.GetProperty("roster").EnumerateArray().Any(p=>p.GetProperty("player_id").GetString()==guest),
+                "Explicit current same-organization guest missing from host match roster.");
+            Check.True(view.GetProperty("roster").EnumerateArray().All(p=>p.GetProperty("position").ValueKind==JsonValueKind.Null),
+                "Academy roster exposed permanent playing positions.");
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Squad(0,new[]{new{player_id=child,assignment="starter",position="GK"}}),422);
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Squad(0,new[]{chosen[0],chosen[0]}),422);
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Squad(0,new[]{new{player_id=input.FcChild,assignment="starter",position=(string?)null}}),422);
+            var saved=await CalendarRequestAsync(coach,HttpMethod.Post,first,Squad(0,chosen),200);
+            Check.Equal(1,saved.GetProperty("version").GetInt32(),"First selection was not persisted.");
+            Check.Equal("selected",saved.GetProperty("state").GetString(),"Selection was not confirmed.");
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Squad(0,chosen),409);
+            var persisted=await CalendarRequestAsync(coach,HttpMethod.Get,first,null,200);
+            Check.Equal(2,persisted.GetProperty("squad").GetArrayLength(),"Reload lost saved squad.");
+            var nextView=await CalendarRequestAsync(coach,HttpMethod.Get,next,null,200);
+            var priorReserve=nextView.GetProperty("roster").EnumerateArray().Single(p=>p.GetProperty("player_id").GetString()==guest);
+            Check.Equal("reserve",priorReserve.GetProperty("last_assignment").GetString(),"Previous confirmed reserve not projected.");
+            await CalendarRequestAsync(coach,HttpMethod.Post,next,Squad(0,chosen),422);
+            var changed=await CalendarRequestAsync(coach,HttpMethod.Post,next,Squad(0,rotated),200);
+            Check.Equal("starter",changed.GetProperty("squad").EnumerateArray().Single(p=>p.GetProperty("player_id").GetString()==guest).GetProperty("assignment").GetString(),
+                "Next match did not persist rotated starter.");
+            object Stats(int version)=>new{action="submit_statistics",expected_version=version,squad=(object?)null,
+                statistics=new[]{new{player_id=child,minutes_played=20,goals=0,assists=0},
+                    new{player_id=guest,minutes_played=20,goals=1,assists=0}},rotation_note=(string?)null,review_reason=(string?)null};
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(1),409);
+            await db.CalendarItems.Where(row=>row.Kind=="match"&&row.Id==input.Id("rotation-one"))
+                .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.Status,"completed"));
+            var submitted=await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(1),200);
+            Check.Equal("submitted",submitted.GetProperty("state").GetString(),"Coach statistics were not submitted for review.");
+            Check.Equal(2,submitted.GetProperty("statistics").GetArrayLength(),"Statistics were not persisted.");
+            var approve=new{action="approve",expected_version=2,squad=(object?)null,statistics=(object?)null,
+                rotation_note=(string?)null,review_reason=(string?)null};
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,approve,403);
+            await CalendarRequestAsync(management,HttpMethod.Post,first,approve,403); // same verified phone; no self-review
+            await CalendarRequestAsync(coach,HttpMethod.Post,first,Stats(1),409);
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM club.match_workspace_revisions WHERE match_id IN ({input.Id("rotation-one")},{input.Id("rotation-two")})");
+            await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM club.match_workspaces WHERE match_id IN ({input.Id("rotation-one")},{input.Id("rotation-two")})");
+            await db.CalendarItems.Where(row=>row.Kind=="match"&&row.Id==input.Id("rotation-one"))
+                .ExecuteUpdateAsync(setters=>setters.SetProperty(row=>row.Status,"scheduled"));
+        }
     }
 
     private async Task CalendarReadinessChecksAsync(CalendarDatabaseFixture input,HttpClient player)

@@ -124,7 +124,7 @@ test('Academy directory and detail use real scoped DTOs, preserve opaque IDs and
     assert.deepEqual(detail.groupCoaches.map(item=>item.id),['academy-coach']);
     await assert.rejects(
       detailLoad({url:new URL('https://fixture.test/academy/'+group.id),params:{slug:group.id}}),
-      error => error.status === 308 && error.location === path,
+      error => error.status === 301 && error.location === path,
       'Original opaque-ID links must redirect permanently to the verified readable group URL.');
     const {default:DetailPage}=await import('../src/routes/academy/[slug]/+page.svelte');
     const detailHtml=render(DetailPage,{props:{data:detail}}).body;

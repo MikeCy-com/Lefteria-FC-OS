@@ -10,6 +10,6 @@ export const load = async ({ url, params }: { url: URL; params: { id: string } }
   if (!row) error(404,'Η σελίδα δεν βρέθηκε.');
   const canonical = catalogCanonicalDetailLink('partners',row,row.name, row.slug);
   const redirectTo = catalogCanonicalRedirect(url,canonical);
-  if(redirectTo) redirect(308,redirectTo);
+  if(redirectTo) redirect(301,redirectTo);
   return data;
 };
