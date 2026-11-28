@@ -47,7 +47,7 @@
   let notice=$state(''),error=$state(''),revision=$state(0);
   let photoLoaded=$state(false);
   let showGuardianReview=$state(false);
-  let editingContact=$state(false),savingContact=$state(false);
+  let editingContact=$state(false),savingContact=$state(false),contactConfirmation=$state('');
   let editingName=$state(false),savingName=$state(false),newName=$state('');
   let editingOfficialSporting=$state(false),savingOfficialSporting=$state(false);
   let officialPosition=$state(''),officialNumber=$state('');
@@ -65,6 +65,13 @@
     contactRelationship.trim().length>0&&contactRelationship.trim().length<=80&&
     /^\+?[0-9 ()-]{7,32}$/.test(contactPhone.trim())&&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())&&contactEmail.trim().length<=254);
+  const contactDraft=$derived({name:contactName.trim(),relationship:contactRelationship.trim(),phone:contactPhone.trim(),email:contactEmail.trim()});
+  const contactFields=['name','relationship','phone','email'] as const;
+  const contactLabels={name:'Ονοματεπώνυμο',relationship:'Σχέση',phone:'Τηλέφωνο',email:'Email'};
+  const contactChanges=$derived(contactFields.filter(field=>contactDraft[field]!==(currentContact?.[field]??'')));
+  const contactReviewKey=$derived(JSON.stringify([playerId,actorId,profile?.current_contact?.revision??0,contactDraft]));
+  const contactConfirmed=$derived(contactConfirmation!==''&&contactConfirmation===contactReviewKey);
+  function cancelContact(){if(!savingContact){editingContact=false;contactConfirmation='';}}
   const base=$derived('/api/admin/football/players/'+encodeURIComponent(playerId)+
     '/private-profile');
   const url=$derived(base+'?organization_id=lefteria_fc_academy');
@@ -106,7 +113,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;editingName=false;editingOfficialSporting=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;contactConfirmation='';editingName=false;editingOfficialSporting=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -178,19 +185,18 @@
     if(officialEditBusy||!profile||!allowWrite||saving||uploading||savingContact||savingName||editingName||sportingDirty||loading)return;
     contactName=currentContact?.name??'';contactRelationship=currentContact?.relationship??'';
     contactPhone=currentContact?.phone??'';contactEmail=currentContact?.email??'';
-    editingContact=true;error='';notice='';
+    editingContact=true;contactConfirmation='';showGuardianReview=false;error='';notice='';
   }
   async function saveContact(){
-    if(officialEditBusy||!profile||!allowWrite||!editingContact||!contactValid||savingContact||saving||uploading||loading)return;
+    if(officialEditBusy||!profile||!allowWrite||!editingContact||!contactValid||!contactChanges.length||
+      !contactConfirmed||savingContact||saving||uploading||loading||savingName||editingName||sportingDirty)return;
     const id=playerId,actor=actorId,expected=profile.current_contact?.revision??0;
+    const submitted={...contactDraft};
     savingContact=true;error='';notice='';
     try{
       const response=await request(url,{
         method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
-        body:JSON.stringify({expectedRevision:expected,contact:{
-          name:contactName.trim(),relationship:contactRelationship.trim(),
-          phone:contactPhone.trim(),email:contactEmail.trim()
-        }})
+        body:JSON.stringify({expectedRevision:expected,contact:submitted})
       });
       const value:unknown=await response.json();
       if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
@@ -198,8 +204,8 @@
       if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||
         result.revision!==expected+1||result.updated!==true)throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
       if(playerId!==id||actorId!==actor||!allowWrite)return;
-      editingContact=false;notice='Τα στοιχεία επικοινωνίας αποθηκεύτηκαν.';revision++;
-    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αποθήκευση απέτυχε.';}
+      editingContact=false;contactConfirmation='';notice='Τα στοιχεία επικοινωνίας αποθηκεύτηκαν. Η πρόσβαση κηδεμόνα δεν άλλαξε.';revision++;
+    }catch(e){if(playerId===id&&actorId===actor){contactConfirmation='';error=e instanceof Error?e.message:'Η αποθήκευση απέτυχε.';}}
     finally{savingContact=false;}
   }
 
@@ -380,9 +386,20 @@
           <label>Σχέση <input bind:value={contactRelationship} required maxlength="80" disabled={savingContact}/></label>
           <label>Τηλέφωνο <input type="tel" bind:value={contactPhone} required maxlength="32" disabled={savingContact}/></label>
           <label>Email <input type="email" bind:value={contactEmail} required maxlength="254" disabled={savingContact}/></label>
+          {#if contactChanges.length}
+            <section class="contact-review" data-testid="admin-guardian-contact-review">
+              <h4>Έλεγχος αλλαγών επικοινωνίας</h4>
+              <dl>{#each contactChanges as field (field)}
+                <div><dt>{contactLabels[field]}</dt><dd><span>Πριν: {currentContact?.[field]||'—'}</span><span>Μετά: {contactDraft[field]||'—'}</span></dd></div>
+              {/each}</dl>
+              <p class="admin-muted">Επιβεβαιώστε ότι τα νέα στοιχεία ανήκουν στον σωστό γονέα ή κηδεμόνα. Η διόρθωση δεν αλλάζει το συνδεδεμένο τηλέφωνο εισόδου ή τα δικαιώματα.</p>
+              <label class="contact-confirm"><input type="checkbox" checked={contactConfirmed} disabled={!contactValid||savingContact}
+                onchange={event=>contactConfirmation=event.currentTarget.checked?contactReviewKey:''}/> Επιβεβαιώνω τις παραπάνω αλλαγές.</label>
+            </section>
+          {/if}
           <div class="contact-actions">
-            <button type="submit" class="admin-primary" disabled={!contactValid||savingContact}>{savingContact?'Αποθήκευση…':'Αποθήκευση επικοινωνίας'}</button>
-            <button type="button" class="admin-secondary" disabled={savingContact} onclick={()=>editingContact=false}>Ακύρωση</button>
+            <button type="submit" class="admin-primary" disabled={!contactValid||!contactChanges.length||!contactConfirmed||savingContact}>{savingContact?'Αποθήκευση…':'Αποθήκευση επικοινωνίας'}</button>
+            <button type="button" class="admin-secondary" disabled={savingContact} onclick={cancelContact}>Ακύρωση</button>
           </div>
         </form>
       {:else if currentContact}
@@ -412,7 +429,7 @@
           <div><dt>Ημερομηνία έγκρισης</dt><dd>{new Date(profile.registration.approved_at).toLocaleDateString('el-CY')}</dd></div>
         </dl>
         {#if allowGuardianReview}
-          <button type="button" class="admin-secondary" aria-expanded={showGuardianReview} onclick={()=>showGuardianReview=!showGuardianReview}>{showGuardianReview?'Κλείσιμο ελέγχου':'Έλεγχος ταυτότητας κηδεμόνα'}</button>
+          <button type="button" class="admin-secondary" disabled={editingContact||savingContact} aria-expanded={showGuardianReview} onclick={()=>showGuardianReview=!showGuardianReview}>{showGuardianReview?'Κλείσιμο ελέγχου':'Έλεγχος ταυτότητας κηδεμόνα'}</button>
           {#if showGuardianReview}
             {#key actorId+':'+playerId+':'+profile.registration.id}
               <AcademyGuardianProofReview registrationId={profile.registration.id} guardianPhone={profile.registration.guardian_phone} expectedPlayerId={playerId}/>
@@ -469,5 +486,10 @@
   .contact-edit label{display:grid;gap:6px;min-width:0}
   .contact-edit input{width:100%;min-width:0}
   .contact-actions{grid-column:1/-1}
+  .contact-review{grid-column:1/-1;display:grid;gap:8px;padding:12px;border:1px solid var(--admin-line);border-radius:8px;min-width:0}
+  .contact-review h4{margin:0}
+  .contact-review dd{display:grid;gap:4px;overflow-wrap:anywhere}
+  .contact-edit .contact-confirm{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .contact-edit .contact-confirm input{width:auto;min-width:16px}
   .name-correction{display:grid;gap:8px;min-width:0}
 </style>
