@@ -20,6 +20,7 @@ export function groupWorkspaceAccess(user:User,owner:Owner,canManageGroup:boolea
     // not imply permission to create a team or edit its settings.
     players:manager&&has(academy?'academy:write':'teams:write'),
     profileWrite:canEdit,
+    calendar:training||matches,
     training,trainingWrite:training&&has('training:write'),
     attendance,attendanceWrite:attendance&&has('attendance:write'),
     matches,matchWrite:matches&&canEdit&&has('fixtures:write'),
