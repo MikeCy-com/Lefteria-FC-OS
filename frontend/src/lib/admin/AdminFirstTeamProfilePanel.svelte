@@ -18,7 +18,8 @@
   let description=$state('');
   let bannerUrl=$state('');
   let showBannerPicker=$state(false);
-  const validBanner=$derived(/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(bannerUrl));
+  let pickedBanner=$state('');
+  const previewBanner=$derived(bannerUrl&&(bannerUrl===record?.banner_url||bannerUrl===pickedBanner)?bannerUrl:'');
   let loading=$state(false);
   let saving=$state(false);
   let error=$state('');
@@ -40,7 +41,7 @@
   $effect(()=>{
     const selected=teamId,actor=actorId,generation=refresh;
     void generation;
-    record=null;showBannerPicker=false;loading=false;error='';notice='';
+    record=null;showBannerPicker=false;pickedBanner='';loading=false;error='';notice='';
     if(typeof window === 'undefined'||!actor||!groups.some(t=>t.id===selected&&t.kind==='team'))
       return;
     const controller=new AbortController();loading=true;
@@ -143,13 +144,14 @@
             if(!/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(asset.url)){
               error='Η εικόνα χρειάζεται συμβατή διεύθυνση HTTPS.';return;
             }
-            bannerUrl=asset.url;showBannerPicker=false;error='';
+            bannerUrl=asset.url;pickedBanner=asset.url;showBannerPicker=false;error='';
           }}/>
         </div>
       {/if}
-      {#if validBanner}
-        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={bannerUrl} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
-      {/if}     <div class="first-team-buttons">
+      {#if previewBanner}
+        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={previewBanner} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}
+      <div class="first-team-buttons">
         <button class="admin-secondary" type="submit" disabled={saving}>
           {saving?'Αποθήκευση…':'Αποθήκευση στοιχείων'}
         </button>
