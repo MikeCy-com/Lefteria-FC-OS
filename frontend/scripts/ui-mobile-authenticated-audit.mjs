@@ -173,6 +173,56 @@ try {
       }finally{await context.close();}
     }
   }
+  // Actual profile navigation and controller switch flow, synthetic server
+  // responses only. Verify distinct profile IDs and no extra OTP on switching.
+  const profileContext=await browser.newContext({viewport:{width:390,height:844},locale:'el-GR'});
+  try {
+    const phone='+35799123456', grants=['parent','fan'];
+    const profiles={
+      parent:{id:'11111111-1111-4111-8111-111111111111',role:'parent',name:'Synthetic Parent Profile',email:'parent@example.test',favorite_team:null},
+      fan:{id:'22222222-2222-4222-8222-222222222222',role:'fan',name:'Synthetic Fan Profile',email:'fan@example.test',favorite_team:'academy'}
+    };
+    for(const profile of Object.values(profiles)) Object.assign(profile,{phone,available_roles:grants,current_role_available:true,
+      platform:'Web/PWA',created_at:'2026-01-01T00:00:00Z',last_login:'2026-11-28T00:00:00Z',avatar_url:null,linked_player_ids:[],academy_group_ids:[]});
+    let active='parent', otpRequests=0, switches=0;
+    await profileContext.addInitScript(()=>{localStorage.setItem('mobile_token','synthetic-parent-token');
+      localStorage.setItem('mobile_available_roles','["parent","fan","management"]');});
+    await profileContext.route('**/api/mobile/**',async route=>{
+      const req=route.request(), endpoint=new URL(req.url()).pathname;
+      const send=(status,body)=>route.fulfill({status,contentType:'application/json',headers:{'Cache-Control':'no-store'},body:JSON.stringify(body)});
+      if(endpoint.includes('/auth/request-otp')||endpoint.includes('/auth/verify-otp')){otpRequests++;return send(403,{detail:'Unexpected OTP'});}
+      if(req.headers().authorization!=='Bearer synthetic-'+active+'-token')return send(401,{code:'invalid_bearer'});
+      if(endpoint==='/api/mobile/auth/me'&&req.method()==='GET')return send(200,profiles[active]);
+      if(endpoint==='/api/mobile/auth/switch-role'&&req.method()==='POST'){
+        const {role}=req.postDataJSON();
+        if(!grants.includes(role))return send(403,{detail:'Role unavailable'});
+        active=role;switches++;
+        return send(200,{token:'synthetic-'+active+'-token',user:profiles[active],role:active,available_roles:grants});
+      }
+      return send(503,{detail:'No private fixture supplied'});
+    });
+    const page=await profileContext.newPage();
+    await page.goto(origin+'/app?tab=profile',{waitUntil:'domcontentloaded'});
+    const profile=page.getByTestId('mobile-own-profile');
+    await profile.getByRole('heading',{name:'Synthetic Parent Profile'}).waitFor();
+    assert.equal(await page.getByTestId('profile-switch-role-management').count(),0);
+    await page.getByTestId('profile-switch-role-fan').click();
+    await profile.getByRole('heading',{name:'Synthetic Fan Profile'}).waitFor();
+    assert.equal(await profile.getByText('parent@example.test',{exact:true}).count(),0);
+    assert.equal(await page.getByTestId('favorite-team-select').inputValue(),'academy');
+    assert.equal(new URL(page.url()).searchParams.get('tab'),'profile');
+    await page.getByTestId('profile-switch-role-parent').click();
+    await profile.getByRole('heading',{name:'Synthetic Parent Profile'}).waitFor();
+    assert.equal(await profile.getByText('fan@example.test',{exact:true}).count(),0);
+    assert.equal(await page.getByTestId('favorite-team-select').count(),0);
+    assert.equal(await page.getByTestId('mobile-app').getAttribute('data-mobile-role'),'parent');
+    assert.equal(switches,2);assert.equal(otpRequests,0);
+    await page.getByTestId('profile-logout').click();
+    await page.getByTestId('mobile-guest-app').waitFor();
+    assert.equal(await page.getByTestId('mobile-own-profile').count(),0);
+    results.push({kind:'synthetic-profile-role-roundtrip',switches,otpRequests,logout:'guest'});
+  } catch(error){failures.push('profile role roundtrip: '+(error.stack||error.message));}
+  finally{await profileContext.close();}
   await writeFile(path.join(artifacts,'authenticated-role-results.json'),
     JSON.stringify({kind:'real-app-controller-with-synthetic-identity-not-real-backend-auth',
       results,failures},null,2)+'\n');
