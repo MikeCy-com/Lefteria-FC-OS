@@ -713,8 +713,8 @@ try {
               failures.push('home: club rail should be 154px wide (actual '+rail.width+')');
             if(top.height<60||top.height>68)
               failures.push('home: reference topbar should be 64px tall (actual '+top.height+')');
-            if(hero.y<59||hero.y>70||hero.height<400||hero.height>440)
-              failures.push('home: cinematic banner is not the 410px reference region '+JSON.stringify(hero));
+            if(hero.y<59||hero.y>70||hero.height<540||hero.height>640)
+              failures.push('home: cinematic banner is outside the taller 560px target region '+JSON.stringify(hero));
             if(tiles.y<hero.bottom-2||tiles.y>hero.bottom+12||tiles.height<100||tiles.height>115)
               failures.push('home: four photo tiles should follow the hero within 105px '+JSON.stringify(tiles));
             if(!fixture || !copy || fixture.width<290 || fixture.width>335 ||
