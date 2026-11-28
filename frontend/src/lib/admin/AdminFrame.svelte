@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { page } from '$app/state';
   import { footballNavigationFor } from './football-navigation.ts';
   import type { WebAdminSession } from './controller.ts';
   import AdminProfilePhoto from './AdminProfilePhoto.svelte';
@@ -8,12 +7,12 @@
   import { adminSectionsFor } from './module-catalog.ts';
   import { ADMIN_ROLE_NAMES,isAdminRole,hasAdminPermission } from './permissions.ts';
 
-  let {user,active='account',busy=false,onLogout,children}:{
+  let {user,active='account',busy=false,workspaceOwner=null,playerView=false,onLogout,children}:{
     user:WebAdminSession['user'];
     active?:'drills'|'account'|'profile'|'settings'|'club'|'news'|'pos'|'trials'|'groups'|'announcements'|'communications'|
       'onboarding'|'leads'|'finance'|'attendance'|'evaluations'|'documents'|'academy-office'|
       'schedule'|'hub'|'hub-subscriptions'|'matches'|'staff'|'users'|'territories'|'pages'|'media'|'sponsors';
-    busy?:boolean;onLogout:()=>void;children:Snippet;
+    busy?:boolean;workspaceOwner?:'lefteria_fc'|'lefteria_fc_academy'|null;playerView?:boolean;onLogout:()=>void;children:Snippet;
   }=$props();
   const roleName=$derived(isAdminRole(user.role)?ADMIN_ROLE_NAMES[user.role]:'—');
   const sections=$derived(adminSectionsFor(user));
@@ -29,8 +28,7 @@
   const academyCoachTools=$derived(footballNav.academyCoachTools&&liveIds.has('assigned_groups'));
   const academyDrills=$derived(footballNav.academyDrills&&liveIds.has('drills'));
   const canManagePlayerCrm=$derived(academyGroups&&hasAdminPermission(user.permissions,'academy:write'));
-  const selectedOwner=$derived(page.url.searchParams.get('organization_id')??user.organizations.find(org=>(org.id==='lefteria_fc'&&firstTeamGroups)||(org.id==='lefteria_fc_academy'&&academyGroups))?.id??null);
-  const playerView=$derived(page.url.searchParams.get('view')==='players');
+  const selectedOwner=$derived(workspaceOwner??user.organizations.find(org=>(org.id==='lefteria_fc'&&firstTeamGroups)||(org.id==='lefteria_fc_academy'&&academyGroups))?.id??null);
   const footballActive=$derived(['groups','territories','matches','evaluations','documents'].includes(active));
   // The club profile is reachable from Settings. An editorial menu is shown
   // only when it contains at least one real, authorized editorial destination.
