@@ -175,6 +175,8 @@ BEGIN
                   'club.read_admin_academy_player_portrait(text,text)'::regprocedure,
                   'club.write_admin_academy_player_portrait(text,text,bytea)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.search_admin_roster_players(text,text,integer,integer,text,text)'::regprocedure,
+                  'club.search_admin_group_roster(text,text,text,integer,integer,text)'::regprocedure,
                   'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.read_admin_player_birthday_preferences(text,text,text)'::regprocedure,
                   'club.write_admin_player_birthday_preferences(text,text,text,integer,boolean,text,text,text)'::regprocedure,
