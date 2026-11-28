@@ -68,26 +68,19 @@ public static class AdminFootballTerritoryEndpoints
                     !expected.TryGetInt32(out var version)||version is <0 or >999999||
                     !data.TryGetProperty("duration_minutes",out var duration)||duration.ValueKind!=JsonValueKind.Number||
                     !duration.TryGetInt32(out var minutes)||minutes is <1 or >180||
-                    !data.TryGetProperty("rotation_interval_minutes",out var rotation))
-                    throw new WebAdminException(422,"match_timing_invalid","Check group, duration, rotation interval and settings version.");
-                int? interval=null;
-                if(rotation.ValueKind!=JsonValueKind.Null)
-                {
-                    if(rotation.ValueKind!=JsonValueKind.Number||!rotation.TryGetInt32(out var value)||value<1||value>minutes)
-                        throw new WebAdminException(422,"match_timing_invalid","Rotation interval must be within match duration.");
-                    interval=value;
-                }
-                if((organization_id=="lefteria_fc")!=(interval is null))
-                    throw new WebAdminException(422,"match_timing_invalid","Only Academy groups use the rotation interval.");
+                    !data.TryGetProperty("players_on_field",out var format)||format.ValueKind!=JsonValueKind.Number||
+                    !format.TryGetInt32(out var players)||players is not (5 or 7 or 9 or 11)||
+                    (organization_id=="lefteria_fc"&&players!=11))
+                    throw new WebAdminException(422,"match_timing_invalid","Check group, duration, game format and settings version.");
                 await using var timingConnection=await connections.OpenAsync(ct);
                 await using var timing=new NpgsqlCommand(
-                    "SELECT club.write_admin_group_match_timing(@digest,@owner,@host,@expected,@duration,@interval)::text",timingConnection);
+                    "SELECT club.write_admin_group_match_timing(@digest,@owner,@host,@expected,@duration,@format)::text",timingConnection);
                 timing.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
                 timing.Parameters.AddWithValue("owner",organization_id!);
                 timing.Parameters.AddWithValue("host",host.GetString()!);
                 timing.Parameters.AddWithValue("expected",version);
                 timing.Parameters.AddWithValue("duration",minutes);
-                timing.Parameters.Add("interval",NpgsqlDbType.Integer).Value=(object?)interval??DBNull.Value;
+                timing.Parameters.AddWithValue("format",players);
                 return await Execute(timing,ct);
             }
             if (body.Kind is not ("city" or "location" or "team_scope" or
