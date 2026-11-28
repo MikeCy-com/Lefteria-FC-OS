@@ -300,6 +300,26 @@ internal sealed partial class TestDatabase
               IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',2)
                 IS DISTINCT FROM 'fixture-news'
               THEN RAISE EXCEPTION 'own historical alias could not be restored'; END IF;
+              -- Even the now-historical "renamed-news" reservation must
+              -- reject a future published article with that raw identifier.
+              BEGIN
+                INSERT INTO public_content.documents(kind,organization_id,id,data_json,display_order)
+                  SELECT kind,organization_id,'renamed-news',
+                    jsonb_set(data_json,ARRAY['id'],to_jsonb('renamed-news'::text)),display_order
+                  FROM public_content.documents
+                  WHERE kind='news' AND organization_id='lefteria_fc_academy' AND id='academy-only';
+                RAISE EXCEPTION 'future legacy ID collision accepted';
+              EXCEPTION WHEN unique_violation THEN
+                IF SQLERRM<>'news_slug_legacy_collision' THEN RAISE; END IF;
+              END;
+              BEGIN
+                UPDATE public_content.documents
+                  SET id='fixture-news',data_json=jsonb_set(data_json,ARRAY['id'],to_jsonb('fixture-news'::text))
+                  WHERE kind='news' AND organization_id='lefteria_fc_academy' AND id='academy-only';
+                RAISE EXCEPTION 'existing raw ID change shadowed an alias';
+              EXCEPTION WHEN unique_violation THEN
+                IF SQLERRM<>'news_slug_legacy_collision' THEN RAISE; END IF;
+              END;
               -- A -> B -> A cannot resurrect a request from revision 1.
               BEGIN
                 PERFORM public_content.claim_news_slug('lefteria_fc','shared','aba-stale',1);

@@ -54,6 +54,10 @@ public sealed class PublicNewsSlugRegistry : Migration
           OR _slug COLLATE "C" !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
           OR _slug IN ('new','edit','search','feed','archive','latest','rss','sitemap')
         THEN RAISE EXCEPTION 'news_slug_invalid' USING ERRCODE='22023'; END IF;
+        -- READ COMMITTED is required so a claim sees preceding committed
+        -- document writes after acquiring the lock. Never use a stale snapshot.
+        IF current_setting('transaction_isolation') <> 'read committed'
+        THEN RAISE EXCEPTION 'news_slug_read_committed_required' USING ERRCODE='25001'; END IF;
         LOCK TABLE public_content.documents IN SHARE MODE;
         LOCK TABLE public_content.news_slug_aliases IN SHARE ROW EXCLUSIVE MODE;
         IF NOT EXISTS(SELECT 1 FROM public_content.import_state s
@@ -86,6 +90,32 @@ public sealed class PublicNewsSlugRegistry : Migration
         RETURN _slug;
       END $news_slug$;
       REVOKE ALL ON FUNCTION public_content.claim_news_slug(text,text,text,bigint) FROM PUBLIC;
+
+      -- A future imported or native published record must not take over a
+      -- previously reserved URL, including historical aliases. INSERT/UPDATE
+      -- already hold a ROW EXCLUSIVE documents lock, conflicting with the
+      -- claim function's SHARE lock. The volatile trigger reads committed
+      -- reservations after that lock has been acquired.
+      CREATE FUNCTION public_content.guard_news_legacy_id()
+      RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY INVOKER
+      SET search_path=pg_catalog,pg_temp AS $legacy_guard$
+      BEGIN
+        IF NEW.kind<>'news' OR length(NEW.id)>80
+          OR NEW.id COLLATE "C" !~ '^[a-z0-9]+(-[a-z0-9]+)*$'
+        THEN RETURN NEW; END IF;
+        IF TG_OP='UPDATE' THEN
+          IF NEW.kind=OLD.kind AND NEW.id=OLD.id THEN RETURN NEW; END IF;
+        END IF;
+        IF current_setting('transaction_isolation') <> 'read committed'
+        THEN RAISE EXCEPTION 'news_slug_read_committed_required' USING ERRCODE='25001'; END IF;
+        IF EXISTS(SELECT 1 FROM public_content.news_slug_aliases a WHERE a.slug=NEW.id)
+        THEN RAISE EXCEPTION 'news_slug_legacy_collision' USING ERRCODE='23505'; END IF;
+        RETURN NEW;
+      END $legacy_guard$;
+      REVOKE ALL ON FUNCTION public_content.guard_news_legacy_id() FROM PUBLIC;
+      CREATE TRIGGER guard_news_legacy_id
+        BEFORE INSERT OR UPDATE OF kind,id ON public_content.documents
+        FOR EACH ROW EXECUTE FUNCTION public_content.guard_news_legacy_id();
       """);
 
     protected override void Down(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
@@ -95,6 +125,8 @@ public sealed class PublicNewsSlugRegistry : Migration
           OR EXISTS(SELECT 1 FROM public_content.news_slug_current)
         THEN RAISE EXCEPTION 'news_slug_history_requires_forward_recovery'; END IF;
       END $slug_recovery$;
+      DROP TRIGGER guard_news_legacy_id ON public_content.documents;
+      DROP FUNCTION public_content.guard_news_legacy_id();
       DROP FUNCTION public_content.claim_news_slug(text,text,text,bigint);
       DROP TABLE public_content.news_slug_current,public_content.news_slug_aliases;
       """);
