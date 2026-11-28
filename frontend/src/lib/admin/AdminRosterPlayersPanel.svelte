@@ -10,8 +10,8 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGuardianReview=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;requestedPlayerId?:string|null;
+  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,requestedSection=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGuardianReview=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;requestedPlayerId?:string|null;requestedSection?:string|null;
     allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGuardianReview?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
     allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
@@ -188,7 +188,7 @@
     const actor=actorId;
     const currentOffset=offset;
     const group=currentGroup;
-    const generation=refresh,requested=requestedPlayerId;
+    const generation=refresh,requested=requestedPlayerId,section=requestedSection;
     void actor;void generation;
 
     page=null;loading=false;failed=false;editing=null;closePlayer360();
@@ -211,7 +211,12 @@
           if(record.organization_id!==currentOwner||record.player_id!==requested||!Array.isArray(record.academy_group_ids))throw Error('Unverified player identity');
           const single={organization_id:currentOwner,ready:true,offset:0,limit:pageSize,total:1,players:[{id:requested,name:record.official_name,team_id:null,academy_group_ids:record.academy_group_ids}]};
           if(!verified(single,currentOwner,0,null))throw Error('Invalid player roster response');
-          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){page=single;selectedPlayer360=requested;player360Tab='profile';inspectedProfile=requested;}
+          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){
+            page=single;selectedPlayer360=requested;
+            const player=single.players[0] as Player;
+            selectPlayer360Tab(player,'profile');
+            if(section==='documents'||section==='development'||section==='overview')selectPlayer360Tab(player,section);
+          }
           return;
         }
         const params=new URLSearchParams({
@@ -399,7 +404,11 @@
                 {#if player360Tab==='overview'}
                   <div class="admin-player360-summary" data-testid="admin-player-360-overview">
                     <div><span>Οργανισμός</span><strong>{owner==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</strong></div>
-                    <div><span>Ομάδα / τμήμα</span><strong>{groupLabels(player)}</strong></div>
+                    <div><span>Ομάδα / τμήμα</span><strong>{groupLabels(player)}</strong>
+                      {#each groups.filter(group=>currentGroups(player).includes(group.id)) as membership (membership.id)}
+                        <a data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:owner,group_id:membership.id}).toString()}>{membership.name} ›</a>
+                      {/each}
+                    </div>
                     <div><span>Εγγραφή ρόστερ</span><strong>Ενεργός παίκτης</strong></div>
                   </div>
                   <details><summary>Κωδικός αναφοράς αθλητή</summary><small>{player.id}</small></details>
@@ -410,7 +419,9 @@
                 {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
                   <div data-testid="admin-player-private-profile-workspace">
                     <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
-                      {actorId} allowWrite={allowEvaluationWrite} {allowGuardianReview} {onExpired} {onRevoked}/>
+                      {actorId} allowWrite={allowEvaluationWrite} {allowGuardianReview}
+                      onNameChanged={name=>{if(page&&selectedPlayer360===player.id)page={...page,players:page.players.map(p=>p.id===player.id?{...p,name}:p)};}}
+                      {onExpired} {onRevoked}/>
                   </div>
                 {/if}
                 {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
