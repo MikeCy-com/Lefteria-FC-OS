@@ -29,11 +29,22 @@ public static class AdminFootballTerritoryEndpoints
             .WithTags("Football territories");
 
         routes.MapGet("", async (
-            string? organization_id, WebAdminService auth, WebAdminConnections connections,
+            string? organization_id, string? match_settings_group_id, WebAdminService auth, WebAdminConnections connections,
             IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
         {
             var cookie = await Verify(auth, organization_id, context, false, ct);
             await using var connection = await connections.OpenAsync(ct);
+            if(context.Request.Query.ContainsKey("match_settings_group_id"))
+            {
+                if(context.Request.Query["match_settings_group_id"].Count!=1 || !ValidHost(match_settings_group_id))
+                    throw new WebAdminException(422,"match_timing_invalid","Select exactly one group or team.");
+                await using var timing=new NpgsqlCommand(
+                    "SELECT club.read_admin_group_match_timing(@digest,@owner,@host)::text",connection);
+                timing.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+                timing.Parameters.AddWithValue("owner",organization_id!);
+                timing.Parameters.AddWithValue("host",match_settings_group_id!);
+                return await Execute(timing,ct);
+            }
             await using var command = new NpgsqlCommand(
                 "SELECT club.read_admin_football_directory(@digest,@owner)::text", connection);
             command.Parameters.AddWithValue("digest", secrets.TokenDigest(cookie));
@@ -48,6 +59,30 @@ public static class AdminFootballTerritoryEndpoints
             IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
         {
             var cookie = await Verify(auth, organization_id, context, true, ct);
+            if(body.Kind=="match_settings")
+            {
+                var data=body.Data;
+                if(data.ValueKind!=JsonValueKind.Object||data.EnumerateObject().Count()!=4||
+                    !data.TryGetProperty("host_id",out var host)||host.ValueKind!=JsonValueKind.String||!ValidHost(host.GetString())||
+                    !data.TryGetProperty("expected_version",out var expected)||expected.ValueKind!=JsonValueKind.Number||
+                    !expected.TryGetInt32(out var version)||version is <0 or >999999||
+                    !data.TryGetProperty("duration_minutes",out var duration)||duration.ValueKind!=JsonValueKind.Number||
+                    !duration.TryGetInt32(out var minutes)||minutes is <1 or >180||
+                    !data.TryGetProperty("players_on_field",out var format)||format.ValueKind!=JsonValueKind.Number||
+                    !format.TryGetInt32(out var players)||players is not (5 or 7 or 9 or 11)||
+                    (organization_id=="lefteria_fc"&&players!=11))
+                    throw new WebAdminException(422,"match_timing_invalid","Check group, duration, game format and settings version.");
+                await using var timingConnection=await connections.OpenAsync(ct);
+                await using var timing=new NpgsqlCommand(
+                    "SELECT club.write_admin_group_match_timing(@digest,@owner,@host,@expected,@duration,@format)::text",timingConnection);
+                timing.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+                timing.Parameters.AddWithValue("owner",organization_id!);
+                timing.Parameters.AddWithValue("host",host.GetString()!);
+                timing.Parameters.AddWithValue("expected",version);
+                timing.Parameters.AddWithValue("duration",minutes);
+                timing.Parameters.AddWithValue("format",players);
+                return await Execute(timing,ct);
+            }
             if (body.Kind is not ("city" or "location" or "team_scope" or
                 "group_assignment" or "opponent" or "playing_field" or
                 "training_base" or "match_draft") ||
@@ -71,6 +106,8 @@ public static class AdminFootballTerritoryEndpoints
           .ExcludeFromDescription();
         return endpoints;
     }
+
+    private static bool ValidHost(string? value)=>value is {Length:>0 and <=128}&&value==value.Trim()&&!value.Any(char.IsControl);
 
     internal static async Task<string> Verify(
         WebAdminService auth, string? owner, HttpContext context,

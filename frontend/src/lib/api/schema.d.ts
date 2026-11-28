@@ -4137,6 +4137,16 @@ export interface components {
             minutes_played: number | string;
             player_id: string;
         };
+        MatchTimingDto: {
+            attendance_ids: null | string[];
+            /** Format: int32 */
+            duration_minutes: null | number | string;
+            frozen: boolean;
+            /** Format: int32 */
+            players_on_field: null | number | string;
+            /** Format: int32 */
+            settings_version: null | number | string;
+        };
         MobileAppAnnouncementDto: {
             body: string;
             group_id: string;
@@ -4549,6 +4559,7 @@ export interface components {
         };
         MobileMatchWorkspaceBody: {
             action: null | string;
+            attendance_ids?: null | string[];
             /** Format: int32 */
             expected_version: number | string;
             review_reason: null | string;
@@ -4569,6 +4580,7 @@ export interface components {
             squad: components["schemas"]["MatchSquadPlayerDto"][];
             state: string;
             statistics: components["schemas"]["MatchStatisticDto"][];
+            timing: components["schemas"]["MatchTimingDto"];
             /** Format: int32 */
             version: number | string;
         };
