@@ -12,6 +12,15 @@ Tracking: #485. Public results and roster browsing are separate from the native 
 - The runtime can execute only the scoped read/write routines, not the private tables, helper functions, or opening gate. Signed mobile session claims must come from the API authentication middleware; SQL function parameters are not an authentication mechanism for arbitrary direct clients.
 - History is preserved by refusing destructive down migration if any period/ballot/event exists.
 
+## Authenticated API slice
+
+- GET /api/mobile/potm/ballot reads only the current signed Fan's own selection, current Cyprus month, revision and voting_open flag.
+- PUT /api/mobile/potm/ballot accepts exactly month_key, expected_revision and player_id (explicit null withdraws). Unknown, duplicate, missing or wrong-type fields are rejected, and bodies are bounded to 4096 bytes including chunked input.
+- Both endpoints require the existing mobile authentication policy; the store supplies signed identity/phone/session expiry to the scoped SQL procedure. No organization, voter identity, phone, role or arbitrary month selector is accepted from the client. Responses are private/no-store.
+- Closed periods or stale revisions return 409; invalid candidate/month at the persistence layer returns 422; unavailable storage returns 503. No automatic retry of mutations or fake success.
+- HTTP integration tests exercise closed-by-default gate, OTP login, same-phone role switch, expired/mismatched/revoked identities, malformed and oversized inputs and denied-write persistence. These complement the earlier verified database lifecycle tests; open-period HTTP and actual concurrent request testing remain separate release gates.
+- OpenAPI and client type declarations are supplied and must match the CI-generated artifacts before merge.
+
 ## Outstanding release gates
 
 1. Mandatory disposable PostgreSQL lifecycle and restricted-role checks, including explicit concurrent sessions to prove same-revision conflict.
