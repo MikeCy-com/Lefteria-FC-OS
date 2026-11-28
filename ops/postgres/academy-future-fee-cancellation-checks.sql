@@ -139,7 +139,7 @@ BEGIN
   INSERT INTO club.players(id,organization_id,name,number,position,team_type,
     is_active,is_archived,is_transferred,has_explicit_picker_fields)
     VALUES(v_player||'-other','lefteria_fc_academy','CI Other Child',2,'Forward',
-      true,false,false,true);
+      'Academy',true,false,false,true);
   INSERT INTO finance.training_fee_issues(id,organization_id,player_id,
     payer_identity_id,fee_month,amount_cents,payer_phone,payer_email,
     payer_first_name,payer_last_name,issued_by)
