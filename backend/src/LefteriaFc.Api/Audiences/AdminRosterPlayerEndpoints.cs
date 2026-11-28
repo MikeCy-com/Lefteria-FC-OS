@@ -10,6 +10,9 @@ namespace LefteriaFc.Api.Audiences;
 /// Manager-only, paginated active roster picker. Display names are private;
 /// it is not a public API or a coach's unrestricted player directory.
 /// </summary>
+public sealed record RosterSearchRequest(string OrganizationId,int Offset,int Limit,string Search,
+    string? ExactGroupId=null,string? FilterGroupId=null);
+
 public static class AdminRosterPlayerEndpoints
 {
     public static IEndpointRouteBuilder MapAdminRosterPlayers(this IEndpointRouteBuilder endpoints)
@@ -89,6 +92,40 @@ public static class AdminRosterPlayerEndpoints
             .WithTags("Football administration")
             .WithName("GetExactAdminGroupPlayers")
             .ExcludeFromDescription();
+        // Use a private JSON body rather than placing a child's name in the
+        // URL or HTTP access log. Existing GET contracts remain unchanged.
+        endpoints.MapPost("/api/admin/football/players/search",
+            async (RosterSearchRequest body,WebAdminService admin,IAdminRosterPlayerDirectory directory,
+                HttpContext context,CancellationToken token) =>
+            {
+                context.Response.Headers.CacheControl="private, no-store";
+                context.Response.Headers.Pragma="no-cache";
+                if(body.OrganizationId is not ("lefteria_fc" or "lefteria_fc_academy") ||
+                   body.Search is null || body.Search.Length>100 ||
+                   body.Search!=body.Search.Trim() || body.Search.Any(char.IsControl) ||
+                   body.Offset is <0 or >20000 || body.Limit is <1 or >50 ||
+                   (body.ExactGroupId is not null &&
+                     (body.ExactGroupId.Length is <1 or >128 || body.ExactGroupId.Any(char.IsControl))) ||
+                   (body.FilterGroupId is not null &&
+                     (body.FilterGroupId.Length is <1 or >128 || body.FilterGroupId.Any(char.IsControl))) ||
+                   (body.ExactGroupId is not null && body.FilterGroupId is not null))
+                    return Results.Json(new WebAdminError("Invalid roster search.","invalid_filters"),statusCode:400);
+                var cookie=context.Request.Cookies[WebAdminServices.CookieName];
+                var session=await admin.CurrentAsync(cookie,token);
+                if(session is null)
+                    return Results.Json(new WebAdminError("Sign in again.","not_authenticated"),statusCode:401);
+                var capability=body.OrganizationId=="lefteria_fc"?"teams:write":"academy:write";
+                if(session.User.Role is not ("manager" or "super_admin") ||
+                   !AdminPermissions.Has(session.User.Role,capability) ||
+                   !session.User.Organizations.Any(org=>org.Id==body.OrganizationId))
+                    return Results.Json(new WebAdminError("Roster access denied.","not_authorized"),statusCode:403);
+                if(body.ExactGroupId is not null)
+                    return Results.Ok(await directory.ReadGroupAsync(cookie!,body.OrganizationId,
+                        body.ExactGroupId,body.Offset,body.Limit,token,body.Search));
+                return Results.Ok(await directory.ReadAsync(cookie!,body.OrganizationId,body.Offset,
+                    body.Limit,token,body.Search,body.FilterGroupId));
+            }).RequireAuthorization(WebAdminServices.Policy).WithTags("Football administration")
+            .WithName("SearchAdminRosterPlayers").ExcludeFromDescription();
         return endpoints;
     }
 }
