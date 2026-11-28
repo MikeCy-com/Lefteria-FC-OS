@@ -95,7 +95,7 @@ export const ROLE_HOME_SHORTCUTS={
   player:['calendar','hub','chat','announcements','profile'],
   coach:['calendar','squad','chat','announcements','profile'],
   management:['calendar','teams','financials','chat','announcements'],
-  fan:['matches','news','team','shop','hub']
+  fan:['matches','news','team','shop','potm','hub']
 } as const;
 
 
