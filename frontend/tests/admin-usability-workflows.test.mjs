@@ -32,3 +32,13 @@ test('private document and evaluation actions stay isolated and upload retains q
   assert.match(records,/admin-document-quarantine-form/);
   assert.match(records,/protectedTypes\.find\(type=>type\.id===doc\.document_type\)/);
 });
+
+test('combined football overview validates each owner independently and links to exact group workspace',()=>{
+  const groups=read('src/routes/admin/groups/+page.svelte');
+  assert.ok(compile(groups,{filename:'groups.svelte',generate:'server'}).js.code.length>100);
+  assert.match(groups,/data-testid="admin-combined-football"/);
+  assert.match(groups,/verifiedDirectory\(raw,selected\)/);
+  assert.match(groups,/otherOwner===selected/);
+  assert.match(groups,/item\.directory\?\.organization_id===item\.owner/);
+  assert.match(groups,/organization_id=\$\{encodeURIComponent\(item\.owner\)\}&group_id=\$\{encodeURIComponent\(group\.id\)\}/);
+});
