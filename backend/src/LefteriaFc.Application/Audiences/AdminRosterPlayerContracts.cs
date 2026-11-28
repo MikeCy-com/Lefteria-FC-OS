@@ -13,5 +13,5 @@ public interface IAdminRosterPlayerDirectory
     Task<AdminRosterPlayersPageDto> ReadAsync(
         string cookie,string organizationId,int offset,int limit,CancellationToken token,string? search=null,string? filterGroup=null);
     Task<AdminGroupRosterPageDto> ReadGroupAsync(
-        string cookie,string organizationId,string groupId,int offset,int limit,CancellationToken token);
+        string cookie,string organizationId,string groupId,int offset,int limit,CancellationToken token,string? search=null);
 }
