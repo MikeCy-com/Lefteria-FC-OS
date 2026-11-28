@@ -2115,6 +2115,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mobile/calendar/match/{event_id}/workspace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMobileMatchWorkspace"];
+        put?: never;
+        post: operations["WriteMobileMatchWorkspace"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mobile/chat/groups": {
         parameters: {
             query?: never;
@@ -4095,6 +4111,32 @@ export interface components {
             proposal_kind: string;
             title: string;
         };
+        MatchEligiblePlayerDto: {
+            last_assignment: null | string;
+            name: string;
+            /** Format: int32 */
+            number: number | string;
+            player_id: string;
+            position: null | string;
+            /** Format: int32 */
+            reserves: number | string;
+            /** Format: int32 */
+            starts: number | string;
+        };
+        MatchSquadPlayerDto: {
+            assignment: string;
+            player_id: string;
+            position: null | string;
+        };
+        MatchStatisticDto: {
+            /** Format: int32 */
+            assists: number | string;
+            /** Format: int32 */
+            goals: number | string;
+            /** Format: int32 */
+            minutes_played: number | string;
+            player_id: string;
+        };
         MobileAppAnnouncementDto: {
             body: string;
             group_id: string;
@@ -4504,6 +4546,31 @@ export interface components {
             role: string;
             token: string;
             user: components["schemas"]["MobileUserDto"];
+        };
+        MobileMatchWorkspaceBody: {
+            action: null | string;
+            /** Format: int32 */
+            expected_version: number | string;
+            review_reason: null | string;
+            rotation_note: null | string;
+            squad: null | components["schemas"]["MatchSquadPlayerDto"][];
+            statistics: null | components["schemas"]["MatchStatisticDto"][];
+        };
+        MobileMatchWorkspaceDto: {
+            completed: boolean;
+            host_id: string;
+            match_id: string;
+            mode: string;
+            organization_id: string;
+            review_reason: string;
+            roster: components["schemas"]["MatchEligiblePlayerDto"][];
+            roster_stale: boolean;
+            rotation_note: string;
+            squad: components["schemas"]["MatchSquadPlayerDto"][];
+            state: string;
+            statistics: components["schemas"]["MatchStatisticDto"][];
+            /** Format: int32 */
+            version: number | string;
         };
         MobileNotificationActivityDto: {
             /** Format: uuid */
@@ -14187,6 +14254,189 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    GetMobileMatchWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileMatchWorkspaceDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+        };
+    };
+    WriteMobileMatchWorkspace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MobileMatchWorkspaceBody"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileMatchWorkspaceDto"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MobileAuthError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
