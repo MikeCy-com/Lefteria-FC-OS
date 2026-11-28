@@ -25,14 +25,26 @@
   let refresh = $state(0);
   let playerSearch=$state('');
   let playerGroupFilter=$state('');
+  let appliedSearch=$state(''),appliedGroupFilter=$state('');
+  const searchActive=$derived(!!appliedSearch||(!currentGroup&&!!appliedGroupFilter));
+  function applySearch(){
+    if(saving||editing!==null)return;
+    appliedSearch=playerSearch.trim().slice(0,100);
+    appliedGroupFilter=currentGroup?'':playerGroupFilter;
+    offset=0;
+  }
+  function clearSearch(){
+    if(saving||editing!==null)return;
+    playerSearch='';playerGroupFilter='';appliedSearch='';appliedGroupFilter='';offset=0;
+  }
+  function changeRosterMode(next:'group'|'assign'){
+    if(saving||editing!==null)return;
+    clearSearch();rosterMode=next;
+  }
   let page = $state<Page|null>(null);
-  const visiblePlayers=$derived((page?.players??[]).filter(player=>{
-    const term=playerSearch.trim().toLocaleLowerCase('el-GR');
-    const matchesGroup=!playerGroupFilter || currentGroups(player).includes(playerGroupFilter);
-    return matchesGroup && (!term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
-      player.id.toLocaleLowerCase('el-GR').includes(term) ||
-      groupLabels(player).toLocaleLowerCase('el-GR').includes(term));
-  }));
+  // Server applies both filters before paging. Do not filter an authorized
+  // page a second time using browser locale rules.
+  const visiblePlayers=$derived((page?.players??[]));
 
   let loading = $state(false);
   let failed = $state(false);
@@ -189,6 +201,7 @@
     const currentOffset=offset;
     const group=currentGroup;
     const generation=refresh,requested=requestedPlayerId,section=requestedSection;
+    const search=appliedSearch,filterGroup=group?null:appliedGroupFilter||null;
     void actor;void generation;
 
     page=null;loading=false;failed=false;editing=null;closePlayer360();
@@ -224,9 +237,16 @@
         });
         if(group)params.set('group_id',group);
         const source=group?'/api/admin/football/group-players?':'/api/admin/football/players?';
-        const response=await fetch(source+params.toString(),{
-          method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
-        });
+        const response=search||filterGroup
+          ?await fetch('/api/admin/football/players/search',{
+              method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,
+              headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+              body:JSON.stringify({organizationId:currentOwner,offset:currentOffset,limit:pageSize,
+                search,exactGroupId:group,filterGroupId:filterGroup})
+            })
+          :await fetch(source+params.toString(),{
+              method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
+            });
         if(controller.signal.aborted)return;
         if(response.status===401){onExpired();return;}
         if(response.status===403){onRevoked();return;}
@@ -258,10 +278,10 @@
   {#if focusGroupId && allowAssignments}
     <div class="admin-player-group-scope" role="group" aria-label="Επιλογή ρόστερ" data-testid="group-player-scope">
       <button type="button" aria-pressed={rosterMode==='group'} disabled={saving}
-        onclick={()=>{rosterMode='group';offset=0;}} data-testid="group-current-player-filter">
+        onclick={()=>changeRosterMode('group')} data-testid="group-current-player-filter">
         Αθλητές τμήματος</button>
       <button type="button" aria-pressed={rosterMode==='assign'} disabled={saving}
-        onclick={()=>{rosterMode='assign';offset=0;}} data-testid="group-assign-player-filter">
+        onclick={()=>changeRosterMode('assign')} data-testid="group-assign-player-filter">
         Εύρεση αθλητή για ανάθεση</button>
     </div>
     {#if rosterMode==='assign'}
@@ -269,15 +289,15 @@
         για να προσθέσετε αθλητή στο τμήμα. Η ανάθεση ελέγχεται από το API.</p>
     {/if}
   {/if}
-  <div class="admin-player-filters" role="search" aria-label="Αναζήτηση αθλητών">
-    <label for="admin-player-search">Αναζήτηση στην τρέχουσα σελίδα
+  <form class="admin-player-filters" role="search" aria-label="Αναζήτηση αθλητών" onsubmit={event=>{event.preventDefault();applySearch();}}>
+    <label for="admin-player-search">Αναζήτηση σε όλο το εξουσιοδοτημένο ρόστερ
       <input id="admin-player-search" type="search" bind:value={playerSearch}
-        data-testid="admin-player-search" placeholder="Όνομα, αναγνωριστικό ή τμήμα…" autocomplete="off"/>
+        data-testid="admin-player-search" placeholder="Όνομα ή αναγνωριστικό…" maxlength="100" disabled={saving||editing!==null} autocomplete="off"/>
     </label>
     {#if !currentGroup}
       <label for="admin-player-group-filter">Ομάδα / τμήμα
         <select id="admin-player-group-filter" bind:value={playerGroupFilter}
-          data-testid="admin-player-group-filter">
+          data-testid="admin-player-group-filter" disabled={saving||editing!==null}>
           <option value="">Όλα τα εξουσιοδοτημένα τμήματα</option>
           {#each groups as group (group.id)}
             <option value={group.id}>{group.name}</option>
@@ -285,9 +305,12 @@
         </select>
       </label>
     {/if}
-    <p class="admin-muted">Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας.
-      Για πλήρη έλεγχο του ρόστερ χρησιμοποιήστε την πλοήγηση σελίδων.</p>
-  </div>
+    <div class="roster-search-actions">
+      <button type="submit" class="admin-primary" disabled={saving||editing!==null}>Αναζήτηση</button>
+      {#if searchActive}<button type="button" class="admin-secondary" disabled={saving||editing!==null} onclick={clearSearch}>Καθαρισμός</button>{/if}
+    </div>
+    <p class="admin-muted">Η αναζήτηση και το φίλτρο εφαρμόζονται σε όλες τις εξουσιοδοτημένες εγγραφές πριν από τη σελιδοποίηση.</p>
+  </form>
   {/if}
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
@@ -299,13 +322,13 @@
     </div>
   {:else}
     {#if !focusedPlayer360}<div class="admin-player-total" role="status">
-      <strong>{page.total}</strong><span>{currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
+      <strong>{page.total}</strong><span>{searchActive?'αποτελέσματα αναζήτησης':currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
       <span class="admin-player-filter-count">Εμφανίζονται {visiblePlayers.length} / {page.players.length} στη σελίδα</span>
     </div>{/if}
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
     {#if page.players.length===0}
-      <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
+      <p class="admin-muted" data-testid="admin-players-empty">{searchActive?'Δεν βρέθηκαν αθλητές για τα επιλεγμένα φίλτρα.':currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
       {#if !focusedPlayer360}<div class="admin-player-columns" aria-hidden="true">
         <span>ΠΑΙΚΤΗΣ</span><span>ΟΜΑΔΑ / ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</span>
@@ -539,4 +562,5 @@
   .admin-player-group-scope button:focus-visible{outline:3px solid #ffd164;outline-offset:2px}
   .admin-player-group-scope button:disabled{opacity:.6;cursor:not-allowed}
   .admin-group-minimal-roster-note{font-size:11px;color:#bfb5a0;line-height:1.4;max-width:30ch}
+  .roster-search-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
 </style>
