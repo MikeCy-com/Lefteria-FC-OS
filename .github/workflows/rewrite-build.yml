@@ -195,6 +195,9 @@ jobs:
       - name: Verify sandbox HUB fan subscriber totals and Payabl entitlement isolation (disposable PostgreSQL)
         run: |
           docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/hub-fan-overview-checks.sql
+      - name: Verify native POTM ballot lifecycle and legacy cutover (disposable PostgreSQL)
+        run: |
+          docker exec identity-postgres psql -X -v ON_ERROR_STOP=1 -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -f /opt/lefteria-postgres/private-potm-ballot-checks.sql
       - name: Provision and check restricted runtime role
         run: |
           docker exec identity-postgres psql -X -p 54329 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -v app_role="$DATABASE_APP_USER" -f /opt/lefteria-postgres/create-app-role.sql

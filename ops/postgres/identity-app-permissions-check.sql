@@ -617,6 +617,29 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied := true;
   END;
   IF NOT denied THEN RAISE EXCEPTION 'Fan bypassed player weekly quiz boundary'; END IF;
+  IF NOT has_function_privilege(current_user,
+       'club.read_mobile_potm_ballot(uuid,text,text,timestamptz)','EXECUTE')
+    OR NOT has_function_privilege(current_user,
+       'club.write_mobile_potm_ballot(uuid,text,text,timestamptz,text,integer,text)','EXECUTE')
+    OR has_function_privilege(current_user,
+       'club.lock_potm_fan(uuid,text,text,timestamptz)','EXECUTE')
+    OR has_function_privilege(current_user,'club.potm_open_snapshot(date)','EXECUTE')
+    OR EXISTS (SELECT 1 FROM unnest(ARRAY['club.potm_periods','club.potm_ballots','club.potm_ballot_events']) t(name)
+      WHERE has_any_column_privilege(current_user,t.name,'SELECT,INSERT,UPDATE,REFERENCES')
+        OR has_table_privilege(current_user,t.name,'DELETE,TRUNCATE,TRIGGER'))
+  THEN RAISE EXCEPTION 'POTM runtime privileges unsafe'; END IF;
+  denied:=false;
+  BEGIN
+    PERFORM club.read_mobile_potm_ballot(gen_random_uuid(),'35799000000',
+      'fan',clock_timestamp()+interval '1 hour');
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'POTM forged identity accepted'; END IF;
+  denied:=false;
+  BEGIN
+    PERFORM club.write_mobile_potm_ballot(gen_random_uuid(),'35799000000',
+      'parent',clock_timestamp()+interval '1 hour',to_char(clock_timestamp() AT TIME ZONE 'Asia/Nicosia','YYYY-MM'),0,'fake');
+  EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
+  IF NOT denied THEN RAISE EXCEPTION 'POTM formal role bypass accepted'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
