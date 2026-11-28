@@ -11,6 +11,7 @@ export type PotmView = {
   status: 'published' | 'not-published' | 'unavailable';
   monthKey: string | null; snapshotAt: string | null;
   totalVotes: number | null; candidates: PotmCandidate[];
+  source?: 'native-closed';
 };
 
 function unavailable(candidates: PotmCandidate[] = [], monthKey: string | null = null,
@@ -73,9 +74,19 @@ export function projectPotm(sections: PublicSections | null): PotmView {
       result.month_key !== monthKey || !Array.isArray(result.results) ||
       typeof result.total_votes !== 'number' || !Number.isSafeInteger(result.total_votes) || result.total_votes < 0)
     return unavailable(candidates, monthKey, sections.snapshot_at);
-  if (!result.results.length && result.total_votes === 0)
+  const nativeClosed = result.id === 'native-closed:' + monthKey;
+  // Only the backend's reserved native identifier denotes a closed, verified
+  // ledger tally. An absent imported aggregate is still not a confirmed zero.
+  if (typeof result.id === 'string' && result.id.startsWith('native-')) {
+    if (snapshotMonth !== monthKey ||
+        (!nativeClosed && result.id !== 'native-pending:' + monthKey))
+      return unavailable(candidates, monthKey, sections.snapshot_at);
+    if (!nativeClosed && (result.results.length !== 0 || result.total_votes !== 0))
+      return unavailable(candidates, monthKey, sections.snapshot_at);
+  }
+  if (!nativeClosed && !result.results.length && result.total_votes === 0)
     return { status: 'not-published', monthKey, snapshotAt: sections.snapshot_at, totalVotes: null, candidates };
-  if (modules[0].status !== 'ready' || snapshotMonth !== monthKey)
+  if ((!nativeClosed && modules[0].status !== 'ready') || snapshotMonth !== monthKey)
     return unavailable(candidates, monthKey, sections.snapshot_at);
 
   const votes = new Map<string, number>();
@@ -93,7 +104,8 @@ export function projectPotm(sections: PublicSections | null): PotmView {
 
   const ranked = candidates.map(row => ({ ...row, votes: votes.get(row.id) ?? 0 }))
     .sort((a,b) => b.votes-a.votes || a.number-b.number || a.id.localeCompare(b.id));
-  return { status: 'published', monthKey, snapshotAt: sections.snapshot_at, totalVotes: total, candidates: ranked };
+  return { status: 'published', monthKey, snapshotAt: sections.snapshot_at, totalVotes: total, candidates: ranked,
+    ...(nativeClosed ? { source: 'native-closed' as const } : {}) };
 }
 
 export function potmMonthLabel(monthKey: string | null): string {
