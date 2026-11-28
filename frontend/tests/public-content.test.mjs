@@ -151,7 +151,7 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
     const { load: newsDetail } = await import('../src/routes/news/[slug]/+page.server.ts');
     await assert.rejects(
       newsDetail({url:new URL('https://preview.test/news/record--legacy?token=secret'),params:{slug:'record--legacy'}}),
-      issue => issue.status === 308 && issue.location === '/news/recorded-article--record--legacy'
+      issue => issue.status === 301 && issue.location === '/news/recorded-article--record--legacy'
     );
     const verified = await newsDetail({
       url:new URL('https://preview.test'+generatedPath),
@@ -161,7 +161,7 @@ test('public SSR keeps global news and Academy navigation separate from FC site 
     const academyCanonical=articleLink(academyArticle,'lefteria_fc_academy');
     await assert.rejects(
       newsDetail({url:new URL('https://preview.test/news/academy-only?organization_id=lefteria_fc_academy&token=private'),params:{slug:'academy-only'}}),
-      issue => issue.status === 308 && issue.location === academyCanonical
+      issue => issue.status === 301 && issue.location === academyCanonical
     );
     // Defense in depth: even if a broken upstream responds 200 for the
     // wrong organization, the SSR route cannot render its foreign article.
