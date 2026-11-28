@@ -103,9 +103,14 @@ internal sealed partial class TestDatabase
         await using var context = CreateContext();
         Check.True(!await context.Set<PublicSectionsSnapshotRecord>().AnyAsync(), "Empty rollback test requires no section snapshots.");
         await using var transaction = await context.Database.BeginTransactionAsync();
+        // Native ballots reference publication snapshots. Rehearse the empty
+        // down/up operations in dependency order, inside the existing rollback
+        // transaction. Never drop populated ballot history or use CASCADE.
+        await ExecuteMigrationOperationsAsync(context, "PrivatePotmBallotLedger", true);
         await ExecuteMigrationOperationsAsync(context, "PublicSections", true);
         await AssertBaseForeignKeyAsync(context);
         await ExecuteMigrationOperationsAsync(context, "PublicSections", false);
+        await ExecuteMigrationOperationsAsync(context, "PrivatePotmBallotLedger", false);
         await AssertBaseForeignKeyAsync(context);
         await transaction.RollbackAsync(); // Preserve grants and unrelated migration history.
     }
