@@ -399,7 +399,7 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>POS & κατάστημα</h1>
-        <p class="admin-muted">Διαχειριστείτε ταμεία, βάρδιες, προϊόντα και τιμές. Οι διαθέσιμες ενέργειες εξαρτώνται από τα δικαιώματά σας. Οι πραγματικές ηλεκτρονικές πληρωμές παραμένουν ανενεργές.</p>
+        <p class="admin-muted">Διαχειριστείτε ταμεία, βάρδιες, προϊόντα και τιμές. Οι διαθέσιμες ενέργειες εξαρτώνται από τα δικαιώματά σας. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
           {#if assignments.length>1}
