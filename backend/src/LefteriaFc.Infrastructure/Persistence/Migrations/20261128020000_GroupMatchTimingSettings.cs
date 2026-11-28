@@ -100,8 +100,20 @@ public sealed class GroupMatchTimingSettings : Migration
         WHERE c.kind=w.kind AND c.id=w.match_id AND (c.status='completed' OR w.state IN ('submitted','approved','rejected'));
       CREATE FUNCTION club.freeze_match_timing()
       RETURNS trigger LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $freeze$
-      DECLARE v_config club.group_match_timing%ROWTYPE;
+      DECLARE v_config club.group_match_timing%ROWTYPE;v_limit integer;
       BEGIN
+        IF NEW.state='selected' AND NEW.attendance_ids IS NULL AND NEW.organization_id='lefteria_fc_academy' THEN
+          SELECT players_on_field INTO v_limit FROM club.group_match_timing
+            WHERE organization_id=NEW.organization_id AND host_id=NEW.host_id FOR SHARE;
+          IF v_limit IS NOT NULL AND (SELECT count(*) FROM jsonb_array_elements(NEW.squad) s(value)
+            WHERE s.value->>'assignment'='starter')<>least(v_limit,jsonb_array_length(NEW.squad))
+            THEN RAISE EXCEPTION 'match_format_starting_count_invalid' USING ERRCODE='22023'; END IF;
+        END IF;
+        IF NEW.organization_id='lefteria_fc_academy' AND NEW.attendance_ids IS NOT NULL
+          AND NEW.state='submitted' AND EXISTS(SELECT 1 FROM jsonb_array_elements(NEW.statistics) s(value)
+            WHERE (s.value->>'minutes_played')::integer>coalesce(NEW.duration_minutes,180)
+              OR ((s.value->>'minutes_played')::integer>0 AND NOT (NEW.attendance_ids ? (s.value->>'player_id'))))
+          THEN RAISE EXCEPTION 'match_attendance_statistics_invalid' USING ERRCODE='22023'; END IF;
         IF TG_OP='UPDATE' THEN
           IF OLD.attendance_ids IS NOT NULL AND (NEW.squad IS DISTINCT FROM OLD.squad OR NEW.state='draft') THEN
             RAISE EXCEPTION 'match_attendance_locked' USING ERRCODE='40001';
@@ -130,16 +142,19 @@ public sealed class GroupMatchTimingSettings : Migration
       CREATE FUNCTION club.read_mobile_match_timing(_actor uuid,_phone text,_role text,
         _expires timestamptz,_match text)
       RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path=pg_catalog,pg_temp AS $timing$
-      DECLARE v_owner text;v_host text;v_completed boolean;v_plan club.match_workspaces%ROWTYPE;v_config club.group_match_timing%ROWTYPE;
+      DECLARE v_owner text;v_host text;v_completed boolean;v_plan club.match_workspaces%ROWTYPE;v_config club.group_match_timing%ROWTYPE;v_stale boolean;
       BEGIN
         SELECT owner,host,completed INTO STRICT v_owner,v_host,v_completed
           FROM club.require_mobile_match_host(_actor,_phone,_role,_expires,_match);
         SELECT * INTO v_plan FROM club.match_workspaces WHERE kind='match' AND match_id=_match;
         IF FOUND AND (v_plan.organization_id<>v_owner OR v_plan.host_id<>v_host)
           THEN RAISE EXCEPTION 'match_host_changed' USING ERRCODE='42501'; END IF;
+        SELECT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(v_plan.squad,'[]'::jsonb)) s(value)
+          WHERE NOT EXISTS(SELECT 1 FROM club.match_workspace_roster(v_owner,v_host,_match) r
+            WHERE r.player_id=s.value->>'player_id')) INTO v_stale;
         IF coalesce(v_plan.timing_frozen,false) OR v_completed THEN
           RETURN jsonb_build_object('frozen',true,'settings_version',v_plan.timing_version,
-            'duration_minutes',v_plan.duration_minutes,'players_on_field',v_plan.players_on_field,'attendance_ids',v_plan.attendance_ids);
+            'duration_minutes',v_plan.duration_minutes,'players_on_field',v_plan.players_on_field,'attendance_ids',CASE WHEN v_stale THEN NULL ELSE v_plan.attendance_ids END);
         END IF;
         SELECT * INTO v_config FROM club.group_match_timing WHERE organization_id=v_owner AND host_id=v_host;
         RETURN jsonb_build_object('frozen',false,'settings_version',v_config.version,
