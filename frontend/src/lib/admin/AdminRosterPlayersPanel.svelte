@@ -41,6 +41,24 @@
   let inspectedPlayer = $state<string|null>(null);
   let inspectedGoals = $state<string|null>(null);
   let inspectedProfile = $state<string|null>(null);
+  let selectedPlayer360=$state<string|null>(null);
+  type Player360Tab='overview'|'profile'|'records'|'goals'|'attendance';
+  let player360Tab=$state<Player360Tab>('overview');
+  function closePlayer360(){
+    selectedPlayer360=null;player360Tab='overview';
+    inspectedProfile=null;inspectedPlayer=null;inspectedGoals=null;
+  }
+  function selectPlayer360Tab(player:Player,tab:Player360Tab){
+    if(selectedPlayer360!==player.id)return;
+    if(tab==='profile'&&!(allowPrivate&&owner==='lefteria_fc_academy'))return;
+    if(tab==='records'&&!(allowPrivate&&currentGroups(player).length>0))return;
+    if(tab==='goals'&&!(allowGoalRead&&currentGroup&&currentGroups(player).includes(currentGroup)))return;
+    if(tab==='attendance'&&!(allowPrivate&&currentGroup&&owner==='lefteria_fc_academy'&&canReadAttendance&&currentGroups(player).includes(currentGroup)))return;
+    player360Tab=tab;
+    inspectedProfile=tab==='profile'?player.id:null;
+    inspectedPlayer=tab==='records'?player.id:null;
+    inspectedGoals=tab==='goals'?player.id:null;
+  }
   let saving = $state(false);
   let saveError = $state<string|null>(null);
   let saveSuccess = $state<string|null>(null);
@@ -54,6 +72,7 @@
     // that minimized view could silently remove a child's other groups.
     // Open explicit organization-wide assignment mode before any PUT.
     if (saving || loading || !groups.length || currentGroup) return;
+    closePlayer360();
     editing=player.id;
     selectedGroups=currentGroups(player);
     saveError=null;
@@ -171,7 +190,7 @@
     const generation=refresh;
     void actor;void generation;
 
-    page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;inspectedGoals=null;
+    page=null;loading=false;failed=false;editing=null;closePlayer360();
     selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
@@ -275,34 +294,12 @@
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
-              {#if allowFinance && owner === 'lefteria_fc_academy'}
-                <a class="admin-player-finance-link"
-                  href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
-                  data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
-              {/if}
-              {#if allowPrivate && owner==='lefteria_fc_academy'}
-                <button type="button" class="admin-secondary" disabled={saving||loading}
-                  data-testid="admin-open-player-private-profile"
-                  aria-expanded={inspectedProfile===player.id}
-                  onclick={()=>{inspectedProfile=inspectedProfile===player.id?null:player.id;inspectedPlayer=null;inspectedGoals=null;}}>
-                  {inspectedProfile===player.id?'Κλείσιμο προφίλ':'Προβολή / επεξεργασία προφίλ'}
-                </button>
-              {/if}
-              {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
-                <button type="button" class="admin-secondary"
-                  data-testid="admin-manager-goal-reader-toggle"
-                  aria-expanded={inspectedGoals===player.id}
-                  disabled={saving||loading}
-                  onclick={()=>{inspectedGoals=inspectedGoals===player.id?null:player.id;inspectedProfile=null;inspectedPlayer=null;}}>
-                  {inspectedGoals===player.id?'Κλείσιμο στόχων':'Ατομικοί στόχοι · Προβολή'}
-                </button>
-              {/if}
-              {#if allowPrivate && currentGroups(player).length>0}
-                <button type="button" class="admin-secondary"
-                  aria-expanded={inspectedPlayer===player.id}
-                  disabled={saving||loading}
-                  onclick={()=>{inspectedPlayer=inspectedPlayer===player.id?null:player.id;inspectedProfile=null;inspectedGoals=null;}}>
-                  {inspectedPlayer===player.id?'Κλείσιμο φακέλου':'Αξιολογήσεις & έγγραφα'}
+              {#if allowPrivate || allowGoalRead || allowFinance}
+                <button type="button" class="admin-primary admin-player360-open" disabled={saving||loading||editing!==null}
+                  data-testid="admin-open-player-360"
+                  aria-expanded={selectedPlayer360===player.id}
+                  onclick={()=>{if(selectedPlayer360===player.id)closePlayer360();else{closePlayer360();selectedPlayer360=player.id;}}}>
+                  {selectedPlayer360===player.id?'Κλείσιμο φακέλου':'Player 360 · Προφίλ'} <span aria-hidden="true">›</span>
                 </button>
               {/if}
               {#if editing===player.id}
@@ -343,37 +340,75 @@
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
-            {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
-              <div class="admin-player-individual-workspace" data-testid="admin-player-private-profile-workspace">
-                <h3>{player.name} · Στοιχεία & προφίλ</h3>
-                {#key actorId+':'+player.id}
-                  <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
-                    {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
-                {/key}
-              </div>
-            {/if}
-            {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
-              currentGroups(player).includes(currentGroup)}
-              <div class="admin-player-individual-workspace"
-                data-testid="admin-manager-player-goals-workspace">
-                <AdminPlayerDevelopmentGoals {owner} playerId={player.id}
-                  playerName={player.name} {actorId} readOnly {onExpired} {onRevoked}/>
-              </div>
-            {/if}
-            {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
-              <div class="admin-player-individual-workspace" data-testid="admin-player-individual-workspace">
-                <h3>{player.name} · Έγγραφα & αξιολογήσεις</h3>
-                <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                  playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
-                {#if currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
-                  <details class="admin-player-attendance-details" data-testid="admin-player-attendance-history">
-                    <summary>Ατομικές παρουσίες προπονήσεων · {player.name}</summary>
+            {#if selectedPlayer360===player.id && (allowPrivate||allowGoalRead||allowFinance)}
+              {#key owner+':'+actorId+':'+player.id}
+              <section class="admin-player360 admin-player-individual-workspace" aria-label={'Player 360 · '+player.name}
+                data-testid="admin-player-360-workspace">
+                <header class="admin-player360-head">
+                  <div class="admin-player360-identity">
+                    <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
+                    <div><p class="admin-eyebrow">PLAYER 360 · {owner==='lefteria_fc_academy'?'ΑΚΑΔΗΜΙΑ':'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
+                      <h3>{player.name}</h3><p class="admin-muted">{groupLabels(player)}</p></div>
+                  </div>
+                  <button type="button" class="admin-secondary" onclick={closePlayer360}>Πίσω στους παίκτες</button>
+                </header>
+                <div class="admin-player360-tabs" role="group" aria-label="Ενότητες αθλητή">
+                  <button type="button" aria-pressed={player360Tab==='overview'} onclick={()=>selectPlayer360Tab(player,'overview')}>Επισκόπηση</button>
+                  {#if allowPrivate && owner==='lefteria_fc_academy'}
+                    <button type="button" data-testid="admin-open-player-private-profile" aria-pressed={player360Tab==='profile'} onclick={()=>selectPlayer360Tab(player,'profile')}>Στοιχεία & φωτογραφία</button>
+                  {/if}
+                  {#if allowPrivate && currentGroups(player).length>0}
+                    <button type="button" aria-pressed={player360Tab==='records'} onclick={()=>selectPlayer360Tab(player,'records')}>Έγγραφα & ανάπτυξη</button>
+                  {/if}
+                  {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
+                    <button type="button" data-testid="admin-manager-goal-reader-toggle" aria-pressed={player360Tab==='goals'} onclick={()=>selectPlayer360Tab(player,'goals')}>Ατομικοί στόχοι</button>
+                  {/if}
+                  {#if allowPrivate && currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
+                    <button type="button" aria-pressed={player360Tab==='attendance'} onclick={()=>selectPlayer360Tab(player,'attendance')}>Παρουσίες</button>
+                  {/if}
+                  {#if allowFinance && owner === 'lefteria_fc_academy'}
+                    <a href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
+                      data-testid="admin-player-billing-link">Οικονομικά ›</a>
+                  {/if}
+                </div>
+                {#if player360Tab==='overview'}
+                  <div class="admin-player360-summary" data-testid="admin-player-360-overview">
+                    <div><span>Οργανισμός</span><strong>{owner==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</strong></div>
+                    <div><span>Ομάδα / τμήμα</span><strong>{groupLabels(player)}</strong></div>
+                    <div><span>Εγγραφή ρόστερ</span><strong>Ενεργός παίκτης</strong></div>
+                  </div>
+                  <p class="admin-muted">Επιλέξτε ενότητα για να δείτε τα πραγματικά στοιχεία του αθλητή. Εμφανίζονται μόνο οι ενότητες για τις οποίες έχετε δικαίωμα πρόσβασης.</p>
+                {:else}
+                  <p class="admin-muted admin-player360-save-note">Αποθηκεύστε τις αλλαγές πριν μεταβείτε σε άλλη ενότητα.</p>
+                {/if}
+                {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
+                  <div data-testid="admin-player-private-profile-workspace">
+                    <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
+                      {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
+                  currentGroups(player).includes(currentGroup)}
+                  <div data-testid="admin-manager-player-goals-workspace">
+                    <AdminPlayerDevelopmentGoals {owner} playerId={player.id}
+                      playerName={player.name} {actorId} readOnly {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
+                  <div data-testid="admin-player-individual-workspace">
+                    <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
+                      playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if player360Tab==='attendance' && allowPrivate && currentGroup && owner==='lefteria_fc_academy' && canReadAttendance && currentGroups(player).includes(currentGroup)}
+                  <div class="admin-player-attendance-details" data-testid="admin-player-attendance-history">
                     <AdminGroupAttendancePanel groupId={currentGroup} {actorId}
                       canRead={canReadAttendance} canWrite={canWriteAttendance}
                       playerId={player.id} playerName={player.name}/>
-                  </details>
+                  </div>
                 {/if}
-              </div>
+              </section>
+              {/key}
             {/if}
           </li>
         {/each}
@@ -413,6 +448,18 @@
   .admin-player-team-label{color:#b3d3df!important}
 
   .admin-player-individual-workspace{grid-column:1/-1;min-width:0;display:grid;gap:12px}
+  .admin-player360{padding:clamp(12px,2vw,24px);border:1px solid var(--admin-line);border-radius:12px;background:var(--admin-surface,#141617)}
+  .admin-player360-head,.admin-player360-identity{display:flex;align-items:center;gap:14px;min-width:0;flex-wrap:wrap}
+  .admin-player360-head{justify-content:space-between}
+  .admin-player360-head h3,.admin-player360-head p{margin:0;overflow-wrap:anywhere}
+  .admin-player360-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--admin-line);padding-block:8px}
+  .admin-player360-tabs :is(button,a){font:inherit;color:inherit;background:transparent;border:1px solid var(--admin-line);border-radius:6px;min-height:44px;padding:8px 12px;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
+  .admin-player360-tabs [aria-pressed=true]{color:var(--admin-gold);border-color:var(--admin-gold)}
+  .admin-player360-tabs :is(button,a):focus-visible{outline:2px solid var(--admin-gold);outline-offset:2px}
+  .admin-player360-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+  .admin-player360-summary>div{display:grid;gap:6px;padding:12px;border:1px solid var(--admin-line);border-radius:8px;min-width:0;overflow-wrap:anywhere}
+  .admin-player360-summary span,.admin-player360-save-note{font-size:12px}
+  .admin-player360-open{min-height:44px}
   .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
   .admin-player-attendance-details>summary{cursor:pointer;font-weight:800;color:#f8c95d;min-height:44px;display:flex;align-items:center}
   .admin-player-attendance-details>summary:focus-visible{outline:3px solid #f8c95d;outline-offset:3px}
