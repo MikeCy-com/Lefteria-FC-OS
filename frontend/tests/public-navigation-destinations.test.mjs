@@ -30,6 +30,12 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.match(page,/href="\/team"/);
       assert.match(page,/href="\/contact"/);
       assert.match(page,/δεν ζητάμε προσωπικά στοιχεία/);
+    }else if(route==='vote'){
+      assert.match(page,/data-testid="potm-page"/);
+      assert.match(page,/data-testid="potm-voting-disabled"/);
+      assert.match(page,/PublicShell/);
+      assert.ok(page.includes('organization="lefteria_fc"'));
+      assert.match(server,/loadSectionPage\(url, 'lefteria_fc'\)/);
     }else if(route==='academy/registration'){
       assert.match(page, /data-testid="step-5"/);
       assert.match(page, /data-testid="registration-submit-error"/);
@@ -39,7 +45,7 @@ test('all original top-level menu journeys have a real, safely branded destinati
       assert.ok(page.includes('organization="'+organization+'"'),route);
       assert.match(page,/status="[^"]+"/);
     }
-    assert.match(server,/loadPublicSite\(url/);
+    if(route!=='vote')assert.match(server,/loadPublicSite\(url/);
     if(route!=='academy/registration')
       assert.doesNotMatch(page,/<form|type="submit"|medical|payment|stripe|axios/i,
         'Do not fake collecting personal, child-medical or financial data');
