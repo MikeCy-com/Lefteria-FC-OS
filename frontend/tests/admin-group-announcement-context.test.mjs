@@ -12,7 +12,8 @@ test('group workspace opens app announcements for its real selected group',()=>{
   assert.match(group,/data-testid="admin-group-app-announcements-link"/);
   assert.match(group,/href=\{'\/admin\/announcements\?organization_id='\+encodeURIComponent\(organization\)/);
   assert.match(group,/encodeURIComponent\(group\.id\)/);
-  assert.match(group,/const canAnnounce=\$derived\(canCreate&&canEvaluate\)/);
+  assert.match(group,/const canAnnounce=\$derived\(access\.announcements\)/);
+  assert.match(read('lib/admin/workspace-access.ts'),/announcements:canEdit&&has\('messages:write'\)/);
   assert.match(group,/\{#if canAnnounce\}[\s\S]*?data-testid="admin-group-app-announcements-link"/);
   assert.doesNotMatch(group,/\/api\/mobile\/private|\/api\/admin\/messages/);
 });
