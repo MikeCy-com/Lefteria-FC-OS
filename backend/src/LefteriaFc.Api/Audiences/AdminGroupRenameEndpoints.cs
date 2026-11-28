@@ -63,7 +63,7 @@ public static class AdminGroupRenameEndpoints
             catch(PostgresException ex) when(ex.SqlState is "42883" or "3F000")
             {throw new WebAdminException(503,"group_rename_not_enabled","Group rename is not yet enabled.");}
         }).RequireAuthorization(WebAdminServices.Policy).WithTags("Football administration")
-          .WithName("RenameAdminFootballGroup").Accepts<RenameCommand>("application/json");
+          .WithName("RenameAdminFootballGroup").Accepts<RenameCommand>("application/json").ExcludeFromDescription();
         return app;
     }
 }
