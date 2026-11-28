@@ -209,9 +209,21 @@ internal sealed partial class IdentityHttpChecks
         Check.True(seeded.GetProperty("first_name").GetString()=="Evidence"&&seeded.GetProperty("birthday").GetString()=="1990-01-02"&&
             seeded.GetProperty("avatar_url").GetString()=="/api/uploads/avatars/legacy-fixture.jpg"&&seeded.GetProperty("favourite_player_id").GetString()==input.PlayerId&&
             !seeded.GetProperty("notification_prefs").GetProperty("club_news").GetBoolean(),"Verified evidence profile was not safely seeded.");
-        using var inactive=Client();await RegisterAsync(inactive,input.InactivePhone,"Replacement","Attempt","1990-01-01",403);
-        await RequestAsync(inactive,input.InactivePhone);await VerifyAsync(inactive,input.InactivePhone,factory.Sms.Latest(input.InactivePhone),404,"fan");
-        Check.True(await database.IdentityAsync(input.InactivePhone,MobileRole.Fan) is null,"Inactive evidence reactivated through registration or OTP.");
+        // Registration acknowledgement must not reveal that the legacy phone
+        // is inactive. Verify the registration challenge itself cannot stage
+        // replacement details or create a session or identity after proof.
+        using var inactive=Client();
+        var inactiveSignup=await RegisterAsync(inactive,input.InactivePhone,"Replacement","Attempt","1990-01-01",200);
+        Check.Equal("fan",inactiveSignup.GetProperty("role_detected").GetString(),"Signup acknowledgement disclosed legacy account status.");
+        var inactiveChallenge=await database.ChallengeAsync(input.InactivePhone);
+        Check.True(inactiveChallenge is not null&&inactiveChallenge.PendingFirstName is null,"Inactive legacy evidence staged replacement details.");
+        var inactiveVerify=await VerifyAsync(inactive,input.InactivePhone,factory.Sms.Latest(input.InactivePhone),404,"fan");
+        Check.True(!inactiveVerify.TryGetProperty("token",out _),"Inactive legacy evidence acquired a session through signup.");
+        Check.True(await database.IdentityAsync(input.InactivePhone,MobileRole.Fan) is null,"Inactive evidence reactivated through registration.");
+        var inactiveRequest=await RequestAsync(inactive,input.InactivePhone);
+        Check.True(inactiveRequest.GetProperty("role_detected").ValueKind==JsonValueKind.Null,"OTP request disclosed inactive legacy role.");
+        await VerifyAsync(inactive,input.InactivePhone,factory.Sms.Latest(input.InactivePhone),404,"fan");
+        Check.True(await database.IdentityAsync(input.InactivePhone,MobileRole.Fan) is null,"Inactive evidence reactivated through ordinary OTP.");
         using var stale=Client();await RequestAsync(stale,input.StalePhone);
         var freshId=await database.SeedIdentityAsync(input.StalePhone,MobileRole.Fan,"Already verified new profile");
         await using(var context=database.CreateContext())await context.MobileIdentities.Where(row=>row.Id==freshId).ExecuteUpdateAsync(setters=>setters
