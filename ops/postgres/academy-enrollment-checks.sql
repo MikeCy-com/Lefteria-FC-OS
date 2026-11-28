@@ -501,6 +501,45 @@ BEGIN
     RAISE EXCEPTION 'Conflicting enrollment request was accepted';
   EXCEPTION WHEN unique_violation THEN NULL; END;
 
+  -- A current sporting correction must not invalidate an enrollment retry.
+  result:=club.write_admin_academy_player_sporting(manager_digest,fixture_player_id,
+    'Defender',14,'Forward',19);
+  IF result->>'official_position' IS DISTINCT FROM 'Forward'
+    OR result->>'official_number' IS DISTINCT FROM '19'
+    OR NOT EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id
+      AND position='Forward' AND number=19 AND primary_academy_group_id=fixture_group_id)
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registration_sporting_baselines
+      WHERE registration_id=application AND position='Defender' AND number=14)
+  THEN RAISE EXCEPTION 'Sporting correction changed placement or failed to preserve replay values'; END IF;
+  result:=identity.enroll_admin_academy_registration(admin_digest,payload);
+  IF result->>'player_id' IS DISTINCT FROM fixture_player_id THEN
+    RAISE EXCEPTION 'Sporting correction broke original enrollment replay'; END IF;
+  BEGIN
+    PERFORM identity.enroll_admin_academy_registration(admin_digest,
+      jsonb_set(jsonb_set(payload,'{position}','"Forward"'::jsonb),'{number}','19'::jsonb));
+    RAISE EXCEPTION 'Changed sporting fields were accepted as original enrollment replay';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(manager_digest,fixture_player_id,
+      'Defender',14,'Midfielder',9);
+    RAISE EXCEPTION 'Stale sporting correction accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(manager_digest,second_player,
+      'Defender',14,'Forward',19);
+    RAISE EXCEPTION 'Cross-city sporting correction accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(admin_digest,fixture_player_id,
+      'Forward',19,'Forward',100);
+    RAISE EXCEPTION 'Invalid shirt number accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  result:=club.write_admin_academy_player_sporting(admin_digest,fixture_player_id,
+    'Forward',19,'Defender',14);
+  IF NOT EXISTS(SELECT 1 FROM academy_intake.registration_sporting_baselines
+    WHERE registration_id=application AND position='Defender' AND number=14)
+  THEN RAISE EXCEPTION 'Second correction rewrote enrollment baseline'; END IF;
+
   -- Independent guardian proof review is a human attestation ledger,
   -- NOT an OTP login or an app entitlement. The source phone is compared
   -- with the already approved public Academy application.
