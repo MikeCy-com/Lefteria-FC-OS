@@ -65,7 +65,7 @@ test('creation shortcuts live in their module forms and not on the dashboard',()
 });
 
 test('athlete attendance is accessible only within Academy group player file',()=>{
-  assert.match(workspace,/canReadAttendance=\{canReadAttendance\}/);
+  assert.match(workspace,/canReadAttendance=\{access\.attendance\}/);
   assert.match(workspace,/canWriteAttendance=\{canAttendanceWrite\}/);
   assert.match(roster,/owner==='lefteria_fc_academy' && canReadAttendance/);
   assert.match(roster,/currentGroup && owner==='lefteria_fc_academy'/);
