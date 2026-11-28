@@ -1,5 +1,7 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
+  import { page } from '$app/state';
+  import { footballNavigationFor } from './football-navigation.ts';
   import type { WebAdminSession } from './controller.ts';
   import AdminProfilePhoto from './AdminProfilePhoto.svelte';
   import { canViewFirstTeamTrials } from './trials-access.ts';
@@ -20,10 +22,16 @@
   const initials=$derived((user.name || user.username).trim().split(/\s+/u)
     .slice(0,2).map(part=>part.slice(0,1).toLocaleUpperCase('el-GR')).join('') || 'FC');
   const hasGroupHub=$derived(liveIds.has('groups'));
-  const canManagePlayerCrm=$derived(hasGroupHub &&
-    ['manager','super_admin'].includes(user.role) &&
-    (hasAdminPermission(user.permissions,'academy:write') ||
-      hasAdminPermission(user.permissions,'teams:write')));
+  const footballNav=$derived(footballNavigationFor(user));
+  const firstTeamGroups=$derived(hasGroupHub&&footballNav.firstTeamGroups);
+  const academyGroups=$derived(hasGroupHub&&footballNav.academyGroups);
+  const firstTeamTrials=$derived(canViewFirstTeamTrials(user));
+  const academyCoachTools=$derived(footballNav.academyCoachTools&&liveIds.has('assigned_groups'));
+  const academyDrills=$derived(footballNav.academyDrills&&liveIds.has('drills'));
+  const canManagePlayerCrm=$derived(academyGroups&&hasAdminPermission(user.permissions,'academy:write'));
+  const selectedOwner=$derived(page.url.searchParams.get('organization_id')??(academyGroups?'lefteria_fc_academy':'lefteria_fc'));
+  const playerView=$derived(page.url.searchParams.get('view')==='players');
+  const footballActive=$derived(['groups','territories','matches','evaluations','documents'].includes(active));
   // The club profile is reachable from Settings. An editorial menu is shown
   // only when it contains at least one real, authorized editorial destination.
   const hasWebsite=$derived(liveIds.has('pages')||liveIds.has('news')||liveIds.has('media')||liveIds.has('sponsors'));
@@ -63,43 +71,66 @@
            Group operations remain embedded inside the selected group. -->
       <a class="admin-nav-home" href="/admin" aria-current={active==='account'?'page':undefined}>Επισκόπηση</a>
 
-      {#if liveIds.has('assigned_groups') || liveIds.has('drills') || hasGroupHub || liveIds.has('territories') || canViewFirstTeamTrials(user)}
+      {#if firstTeamGroups || firstTeamTrials}
         <details class="admin-nav-disclosure"
-          open={['drills','groups','schedule','attendance','evaluations','documents','matches','territories','trials'].includes(active)}
-          data-testid="admin-football-navigation">
-          <summary class="admin-nav-category" data-testid="admin-football-category">
-            Ποδόσφαιρο · Ομάδες & Ακαδημία <span aria-hidden="true">⌄</span>
+          open={active==='trials'||(footballActive && selectedOwner==='lefteria_fc')}
+          data-testid="admin-first-team-navigation">
+          <summary class="admin-nav-category" data-testid="admin-first-team-category">
+            Πρώτη ομάδα <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
-            {#if hasGroupHub}
-              <a class="admin-nav-section" href="/admin/groups"
-                aria-current={['groups','schedule','attendance','evaluations','documents','matches'].includes(active)?'page':undefined}
-                data-testid="admin-groups-link">Ομάδες & τμήματα</a>
-              {#if user.organizations.some(org=>org.id==='lefteria_fc') && hasAdminPermission(user.permissions,'teams:read')}
-                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc" data-sveltekit-reload data-testid="admin-first-team-direct">Πρώτη ομάδα</a>
+            {#if firstTeamGroups}
+              <a class="admin-nav-section" href="/admin/groups?organization_id=lefteria_fc" data-sveltekit-reload
+                aria-current={active==='groups'&&selectedOwner==='lefteria_fc'&&!playerView?'page':undefined}
+                data-testid="admin-first-team-direct">Ομάδες & τμήματα</a>
+              {#if user.role==='super_admin' && hasAdminPermission(user.permissions,'teams:write')}
+                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc&view=players" data-sveltekit-reload
+                  aria-current={active==='groups'&&selectedOwner==='lefteria_fc'&&playerView?'page':undefined}
+                  data-testid="admin-first-team-players-link">Παίκτες & προφίλ</a>
               {/if}
-              {#if user.organizations.some(org=>org.id==='lefteria_fc_academy') && hasAdminPermission(user.permissions,'academy:read')}
-                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc_academy" data-sveltekit-reload data-testid="admin-academy-direct">Ακαδημία</a>
-              {/if}
-              {#if canManagePlayerCrm}
-                <a class="admin-nav-tool" href="/admin/groups?view=players"
-                  data-testid="admin-player-crm-link">Παίκτες & προφίλ</a>
+              {#if liveIds.has('territories')}
+                <a class="admin-nav-tool" href="/admin/territories?organization_id=lefteria_fc" data-sveltekit-reload
+                  aria-current={active==='territories'&&selectedOwner==='lefteria_fc'?'page':undefined}
+                  data-testid="admin-first-team-territories-link">Αντίπαλοι & γήπεδα</a>
               {/if}
             {/if}
-            {#if liveIds.has('assigned_groups')}
+            {#if firstTeamTrials}
+              <a class="admin-nav-tool" href="/admin/trials" aria-current={active==='trials'?'page':undefined}
+                data-testid="admin-trials-link">Δοκιμαστικά</a>
+            {/if}
+          </div>
+        </details>
+      {/if}
+
+      {#if academyGroups || academyCoachTools || academyDrills}
+        <details class="admin-nav-disclosure"
+          open={['drills','schedule','attendance'].includes(active)||(footballActive&&selectedOwner==='lefteria_fc_academy')}
+          data-testid="admin-academy-navigation">
+          <summary class="admin-nav-category" data-testid="admin-academy-category">
+            Ακαδημία <span aria-hidden="true">⌄</span>
+          </summary>
+          <div class="admin-nav-links">
+            {#if academyGroups}
+              <a class="admin-nav-section" href="/admin/groups?organization_id=lefteria_fc_academy" data-sveltekit-reload
+                aria-current={active==='groups'&&selectedOwner==='lefteria_fc_academy'&&!playerView?'page':undefined}
+                data-testid="admin-groups-link">Τμήματα Ακαδημίας</a>
+              {#if canManagePlayerCrm}
+                <a class="admin-nav-tool" href="/admin/groups?organization_id=lefteria_fc_academy&view=players" data-sveltekit-reload
+                  aria-current={active==='groups'&&selectedOwner==='lefteria_fc_academy'&&playerView?'page':undefined}
+                  data-testid="admin-player-crm-link">Παίκτες & προφίλ</a>
+              {/if}
+              {#if liveIds.has('territories')}
+                <a class="admin-nav-tool" href="/admin/territories?organization_id=lefteria_fc_academy" data-sveltekit-reload
+                  aria-current={active==='territories'&&selectedOwner==='lefteria_fc_academy'?'page':undefined}
+                  data-testid="admin-territories-link">Πόλεις, τοποθεσίες & γήπεδα</a>
+              {/if}
+            {/if}
+            {#if academyCoachTools}
               <a class="admin-nav-tool" href="/admin/schedule" aria-current={active==='schedule'?'page':undefined} data-testid="admin-coach-workspace-link">Τα τμήματά μου</a>
               <a class="admin-nav-tool" href="/admin/attendance" aria-current={active==='attendance'?'page':undefined}>Παρουσίες τμημάτων</a>
             {/if}
-            {#if liveIds.has('drills')}
+            {#if academyDrills}
               <a class="admin-nav-tool" href="/admin/drills" aria-current={active==='drills'?'page':undefined} data-testid="admin-drills-link">Βιβλιοθήκη ασκήσεων</a>
-            {/if}
-            {#if liveIds.has('territories')}
-              <a class="admin-nav-tool" href="/admin/territories" aria-current={active==='territories'?'page':undefined}
-                data-testid="admin-territories-link">Πόλεις, τοποθεσίες & γήπεδα</a>
-            {/if}
-            {#if canViewFirstTeamTrials(user)}
-              <a class="admin-nav-tool" href="/admin/trials" aria-current={active==='trials'?'page':undefined}
-                data-testid="admin-trials-link">Δοκιμαστικά πρώτης ομάδας</a>
             {/if}
           </div>
         </details>
@@ -169,7 +200,7 @@
         <details class="admin-nav-disclosure" open={['academy-office','leads'].includes(active)}
           data-testid="admin-crm-navigation">
           <summary class="admin-nav-category" data-testid="admin-crm-category">
-            Εγγραφές & ενδιαφερόμενοι <span aria-hidden="true">⌄</span>
+            CRM & εγγραφές <span aria-hidden="true">⌄</span>
           </summary>
           <div class="admin-nav-links">
             {#if liveIds.has('registrations')}
