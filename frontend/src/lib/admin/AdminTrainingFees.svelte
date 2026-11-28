@@ -60,6 +60,9 @@
   let cashBusy=$state<string|null>(null);
   let cancellationDraft=$state<string|null>(null);
   let cancellationReason=$state('');
+  let batchReason=$state(''),batchConfirm=$state(''),batchBusy=$state(false);
+  const batchFees=$derived(visibleFees.filter(row=>row.cancel_eligible===true&&row.status==='issued'&&row.player_id===focus));
+  const batchKey=$derived(JSON.stringify([owner,sessionId,focus,batchFees.map(f=>f.id).sort(),batchReason.trim()]));
   let cancelling=$state<string|null>(null);
   let cancellationRequestIds=$state<Record<string,string>>({});
   // Eligibility is also checked transactionally in PostgreSQL. This
@@ -130,7 +133,7 @@
     // success message or invoice selection; a normal list refresh does not.
     void owner;void sessionId;void focus;
     message='';selectedInvoiceIds=[];playerId=focus;issuingId=null;
-    cancellationDraft=null;cancellationReason='';
+    cancellationDraft=null;cancellationReason='';batchReason='';batchConfirm='';
   });
 
   $effect(()=>{
@@ -273,9 +276,33 @@
       fee.sms_status===null && (focus?verifiedPlayer?.id===focus&&fee.player_id===focus&&fee.cancel_eligible===true:fee.fee_month>currentFeeMonth);
   }
 
+  async function cancelPlayerFutureFees(){
+    const reason=batchReason.trim(),target=focus,actor=sessionId,currentOwner=owner;
+    const ids=batchFees.map(f=>f.id).sort();
+    if(!canWrite||!target||verifiedPlayer?.id!==target||status!=='ready'||batchBusy||cancelling||pending||
+      cashBusy||sendingId||!ids.length||ids.length>120||batchConfirm!==batchKey||
+      reason.length<8||reason.length>240||/[\x00-\x1f\x7f]/.test(reason))return;
+    if(!window.confirm('Ακύρωση '+ids.length+' επιλέξιμων μελλοντικών χρεώσεων για '+focusName+'; Δεν διαγράφονται πληρωμές.'))return;
+    batchBusy=true;batchConfirm='';message='';
+    try{
+      const result=await post('/api/admin/finance/payabl/training-fees/cancel-player-future?organization_id=lefteria_fc_academy',
+        {playerId:target,feeIds:ids,requestIds:ids.map(()=>crypto.randomUUID()),reason});
+      if(owner!==currentOwner||sessionId!==actor||focus!==target)return;
+      if(result.organization_id!==currentOwner||result.player_id!==target||!Array.isArray(result.fees)||
+        result.fees.length!==ids.length||!result.fees.every((f:unknown)=>!!f&&typeof f==='object'&&
+          'id' in f&&typeof f.id==='string'&&ids.includes(f.id)&&'player_id' in f&&f.player_id===target&&
+          'status' in f&&f.status==='cancelled')||
+        new Set(result.fees.map((f:{id:string})=>f.id)).size!==ids.length)
+        throw Error('Η μαζική ακύρωση δεν επιβεβαιώθηκε.');
+      batchReason='';message='Ακυρώθηκαν '+ids.length+' μελλοντικές χρεώσεις. Το ιστορικό παραμένει.';
+    }catch(e){if(owner===currentOwner&&sessionId===actor&&focus===target)
+      message='Ελέγξτε το ενημερωμένο ιστορικό πριν από νέα προσπάθεια. '+(e instanceof Error?e.message:'');}
+    finally{batchBusy=false;if(owner===currentOwner&&sessionId===actor&&focus===target)refresh++;}
+  }
+
   async function cancelFuture(fee:Fee) {
     const reason=cancellationReason.trim();
-    if(!canCancelFuture(fee)||cancelling||pending||reason.length<8||
+    if(!canCancelFuture(fee)||cancelling||batchBusy||pending||reason.length<8||
        reason.length>240||/[\x00-\x1f\x7f]/.test(reason)) {
       message='Συμπληρώστε συγκεκριμένη αιτιολογία 8–240 χαρακτήρων.';
       return;
@@ -385,6 +412,18 @@
           <div><small>Πληρωμένες</small><strong>{money(departureReview.paid)}</strong></div>
           <div><small>Ήδη ακυρωμένες</small><strong>{money(departureReview.cancelled)}</strong></div>
         </div>
+        {#if canWrite&&batchFees.length}
+          <div class="departure-lifecycle" data-testid="admin-player-batch-future-fees">
+            <h4>Μαζική ακύρωση επιλέξιμων μηνών</h4>
+            <p>{batchFees.length} χρεώσεις · {money(departureReview.eligible)}. {batchFees.map(f=>f.fee_month.slice(0,7)).join(', ')}</p>
+            <label>Αιτιολογία <textarea bind:value={batchReason} rows="2" maxlength="240" disabled={batchBusy}/></label>
+            <label><input type="checkbox" checked={batchConfirm===batchKey} disabled={batchBusy||batchReason.trim().length<8}
+              onchange={e=>batchConfirm=e.currentTarget.checked?batchKey:''}/> Επιβεβαιώνω την ακύρωση μόνο των παραπάνω μηνών.</label>
+            <button type="button" class="admin-secondary" disabled={batchBusy||!!cancelling||pending||!!cashBusy||!!sendingId||batchConfirm!==batchKey||batchFees.length>120}
+              onclick={()=>void cancelPlayerFutureFees()}>{batchBusy?'Έλεγχος…':'Ακύρωση επιλέξιμων χρεώσεων'}</button>
+            <p class="admin-muted">Αν μία χρέωση δεν είναι πλέον επιλέξιμη, η συναλλαγή απορρίπτεται συνολικά.</p>
+          </div>
+        {/if}
         <p>Ακυρώστε μόνο επιλέξιμους μελλοντικούς μήνες με τις υπάρχουσες ενέργειες. Οι πληρωμένες, τρέχουσες ή συνδεδεμένες με πληρωμή χρεώσεις δεν διαγράφονται. Ελέγξτε επίσης την πρόσβαση κηδεμόνων πριν από αποχώρηση ή επανενεργοποίηση.</p>
       </section>
     {/if}

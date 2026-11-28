@@ -38,6 +38,7 @@ BEGIN
     OR to_regprocedure('finance.read_admin_invoice_pdf(text,text,uuid[])') IS NULL
     OR to_regprocedure('finance.record_admin_training_fee_cash(text,text,uuid,uuid,text)') IS NULL
     OR to_regprocedure('finance.cancel_admin_future_training_fee(text,text,uuid,uuid,text)') IS NULL
+    OR to_regprocedure('finance.cancel_admin_player_future_fees(text,text,text,uuid[],uuid[],text)') IS NULL
   THEN
     RAISE EXCEPTION 'The finance role boundary is not safe or not migrated';
   END IF;
@@ -68,6 +69,8 @@ REVOKE ALL ON FUNCTION finance.read_admin_player_training_fees(text,text,text) F
 GRANT EXECUTE ON FUNCTION finance.read_admin_player_training_fees(text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.cancel_admin_future_training_fee(
   text,text,uuid,uuid,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION finance.cancel_admin_player_future_fees(text,text,text,uuid[],uuid[],text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION finance.cancel_admin_player_future_fees(text,text,text,uuid[],uuid[],text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.reserve_admin_training_fee_sms(
   text,text,uuid,uuid) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.finish_admin_training_fee_sms(
@@ -102,6 +105,10 @@ BEGIN
     END IF;
   END LOOP;
   IF NOT has_function_privilege(current_setting('lefteria.finance_admin_role'),
+       'finance.cancel_admin_player_future_fees(text,text,text,uuid[],uuid[],text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
+       'finance.cancel_admin_player_future_fees(text,text,text,uuid[],uuid[],text)','EXECUTE')
+    OR NOT has_function_privilege(current_setting('lefteria.finance_admin_role'),
        'finance.read_admin_player_training_fees(text,text,text)','EXECUTE')
     OR has_function_privilege(current_setting('lefteria.finance_app_role'),
        'finance.read_admin_player_training_fees(text,text,text)','EXECUTE')
