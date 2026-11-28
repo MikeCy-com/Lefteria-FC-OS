@@ -70,3 +70,30 @@ test('current contact corrections preserve original applications and existing gu
   assert.match(integration,/Cross-city contact write accepted/);
   assert.match(integration,/Stale contact update accepted/);
 });
+
+test('current roster name correction retains original registration and exact identity',()=>{
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128194000_AcademyPlayerNameCorrection.cs');
+  assert.match(sql,/authorize_academy_private_profile\(_digest,_player,true\)/);
+  assert.match(sql,/v_locked_name IS DISTINCT FROM _expected/);
+  assert.match(sql,/academy:enrol:/);
+  assert.match(sql,/UPDATE club\.players SET name=_name/);
+  assert.doesNotMatch(sql,/UPDATE academy_intake\.registrations|UPDATE identity\.|SET id=/);
+  const panel=read('frontend/src/lib/admin/AdminPlayerPrivateProfilePanel.svelte');
+  assert.match(panel,/nameCorrection:\{expectedName:expected,name\}/);
+  assert.match(panel,/result\.official_name!==name/);
+  assert.match(panel,/onNameChanged\(name\)/);
+  assert.match(panel,/sportingDirty/);
+});
+test('approved registration opens exact Player 360 documents, with searchable private metadata',()=>{
+  const office=read('frontend/src/routes/admin/academy-office/+page.svelte');
+  assert.match(office,/view:'players',section:'documents'/);
+  const roster=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
+  assert.match(roster,/selectPlayer360Tab\(player,section\)/);
+  assert.match(roster,/group_id:membership\.id/);
+  const records=read('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
+  assert.ok(compile(records,{filename:'AdminPlayerPrivateRecordsPanel.svelte',generate:'server'}).js.code.length>100);
+  assert.match(records,/data-testid="admin-player-document-filters"/);
+  assert.match(records,/documentFilter==='registration'&&doc\.document_type==='registration_form'/);
+  assert.match(records,/attentionStatuses\.includes\(doc\.status\)/);
+  assert.doesNotMatch(records,/downloadUrl|publicMediaUrl/);
+});
