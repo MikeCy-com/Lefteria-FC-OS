@@ -78,17 +78,28 @@ public sealed class PostgresPublicContentRepository(LefteriaDbContext database) 
         return result;
     }
 
-    public async Task<IReadOnlyList<PublicArticle>?> ReadNewsAsync(string? organizationId, CancellationToken token)
+    public async Task<IReadOnlyList<PublicArticle>?> ReadNewsAsync(string? organizationId, CancellationToken token, string? articleId = null)
     {
         await using var transaction = await database.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, token);
         var state = await database.Set<PublicContentImportStateRecord>().AsNoTracking().SingleOrDefaultAsync(token);
         if (state is null || state.DocumentsCount != await database.Set<PublicContentDocumentRecord>().CountAsync(token)) return null;
+        // Keep readiness checks ahead of not-found responses. Invalid imported
+        // identifiers cannot match any row, and PostgreSQL text rejects NUL.
+        if (articleId is not null && (articleId.Length > 128 || articleId.Any(char.IsControl)))
+        {
+            await transaction.CommitAsync(token);
+            return Array.Empty<PublicArticle>();
+        }
         var query = database.Set<PublicContentDocumentRecord>().AsNoTracking().Where(row => row.Kind == PublicContentKinds.News);
         if (organizationId is not null) query = query.Where(row => row.OrganizationId == organizationId);
+        // Detail reads materialize only the requested ID across permitted
+        // organizations. Preserve the existing .NET ordinal owner precedence.
+        if (articleId is not null) query = query.Where(row => row.Id == articleId);
         var rows = await query.ToArrayAsync(token);
         var editQuery = database.Set<AdminClubEditRecord>().AsNoTracking()
             .Where(row => row.Kind == PublicContentKinds.News);
         if (organizationId is not null) editQuery = editQuery.Where(row => row.OrganizationId == organizationId);
+        if (articleId is not null) editQuery = editQuery.Where(row => row.Id == articleId);
         var newsEdits = (await editQuery
             .Select(row => new { row.OrganizationId, row.Id, row.DataJson })
             .ToArrayAsync(token))

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { page } from '$app/state';
+  import { isIndexablePublicOrigin } from '../../../lib/public/seo';
+  import PublicNewsStructuredData from '../../../lib/public/PublicNewsStructuredData.svelte';
   import PublicShell from '../../../lib/public/PublicShell.svelte';
   import PublicImage from '../../../lib/public/PublicImage.svelte';
   import MarkdownContent from '../../../lib/public/MarkdownContent.svelte';
@@ -32,4 +35,6 @@
     <meta name="robots" content="noindex,follow" />
   {/if}
 </svelte:head>
+<PublicNewsStructuredData article={data.articleAvailable ? data.article : null} scope={data.newsScope}
+  indexable={isIndexablePublicOrigin(page.url)} />
 <PublicShell site={data.site} branding={data.branding} organization={data.organization} navigationGroups={data.navigationGroups} {canonicalPath}>{#if data.articleAvailable && data.article}<article class="public-article">{#if data.article.image_url}<PublicImage class="article-cover" src={data.article.image_url} alt="" eager />{/if}<div class="article-body"><a class="public-back" href={newsLink(data.newsScope)}>← ΠΙΣΩ ΣΤΑ ΝΕΑ</a><p class="public-eyebrow">{data.article.category}</p><h1>{data.article.title}</h1>{#if data.article.created_at}<time datetime={data.article.created_at}>{greekDate(data.article.created_at)}</time>{/if}{#if data.article.excerpt}<p class="article-excerpt">{data.article.excerpt}</p>{/if}<MarkdownContent content={data.article.content} /></div></article>{:else}<Unavailable />{/if}</PublicShell>
