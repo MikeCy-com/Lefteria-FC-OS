@@ -73,7 +73,7 @@ test('persistent writes enforce scope, version and review state, and UI stays st
   assert.match(grants,/REVOKE ALL ON TABLE club\.match_workspaces,club\.match_workspace_revisions/);
   assert.match(controller,/result\.version!==command\.expected_version\+1/);
   assert.match(calendar,/item\.kind==='match' && !item\.is_cancelled && \(role==='coach'\|\|role==='management'\)/);
-  assert.match(panel,/recommendGrassrootsStarters\(workspace.roster,squad,startingCount\)/);
+  assert.match(panel,/recommendGrassrootsStarters\(workspace.roster,squad,targetStarters\)/);
   assert.match(panel,/Δεν έχουν δημοσιευθεί αυτόματα/);
   assert.doesNotMatch(panel,/localStorage|sessionStorage/);
   assert.deepEqual(contract.paths['/api/mobile/calendar/match/{event_id}/workspace'].post.security,[{Mobile:[]}]);
