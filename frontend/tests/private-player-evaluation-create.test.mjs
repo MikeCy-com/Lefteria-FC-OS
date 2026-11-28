@@ -55,6 +55,6 @@ test('player-panel creation follows roster and exact manager write permissions',
   assert.match(roster,/currentGroups\(player\)\.length>0/);
   assert.match(groups,/AdminGroupWorkspace/);
   assert.match(workspace,/allowEvaluationWrite=/);
-  assert.match(workspace,/teams:write/);
-  assert.match(workspace,/academy:write/);
+  assert.match(read('frontend/src/lib/admin/workspace-access.ts'),/has\(academy\?'academy:write':'teams:write'\)/);
+  assert.match(workspace,/const canEvaluate=\$derived\(access\.profileWrite\)/);
 });
