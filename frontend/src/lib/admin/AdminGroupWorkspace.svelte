@@ -4,6 +4,7 @@
   import {groupWorkspaceAccess} from './workspace-access.ts';
   import type {WebAdminSession} from './controller.ts';
   import AdminAcademyTrainingPlans from './AdminAcademyTrainingPlans.svelte';
+  import AdminGroupCalendar from './AdminGroupCalendar.svelte';
   import AdminGroupAttendancePanel from './AdminGroupAttendancePanel.svelte';
   import AdminGroupPublishedFixtures from './AdminGroupPublishedFixtures.svelte';
   import AdminGroupMatchSettings from './AdminGroupMatchSettings.svelte';
@@ -17,7 +18,7 @@
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
   type Group={id:string;name:string;kind:'team'|'academy_group';active_players:number};
-  type Tab='players'|'training'|'attendance'|'matches'|'coaches'|'settings';
+  type Tab='players'|'calendar'|'training'|'attendance'|'matches'|'coaches'|'settings';
   let {group,groups,organization,user,canCreate,canReadAttendance,onExpired,onRevoked,onChanged}:{
     group:Group;groups:Group[];organization:Owner;user:WebAdminSession['user'];
     canCreate:boolean;canReadAttendance:boolean;
@@ -35,7 +36,7 @@
   const canPrivate=$derived(access.profileWrite);
   const canAnnounce=$derived(access.announcements);
   const canFinance=$derived(access.finance);
-  const visibleTabs=$derived((['players','training','attendance','matches','coaches','settings'] as Tab[]).filter(item=>access[item]));
+  const visibleTabs=$derived((['players','calendar','training','attendance','matches','coaches','settings'] as Tab[]).filter(item=>access[item]));
   let lastRequestedTab:string|null|undefined;
   $effect(()=>{
     const requested=page.url.searchParams.get('tab');
@@ -59,6 +60,7 @@
     data-testid="admin-group-tabs">
     {#if access.players}<button type="button" aria-pressed={tab==='players'} onclick={()=>tab='players'}
       data-testid="admin-group-players-link">Αθλητές & ατομικοί φάκελοι</button>{/if}
+    {#if access.calendar}<button type="button" aria-pressed={tab==='calendar'} onclick={()=>tab='calendar'} data-testid="admin-group-calendar-link">Ημερολόγιο</button>{/if}
     {#if access.training}
       <button type="button" aria-pressed={tab==='training'} onclick={()=>tab='training'}
         data-testid="admin-group-training-link">Προπονήσεις & πρόγραμμα</button>
@@ -105,6 +107,9 @@
         {:else}
           <p role="status">Η διαχείριση ατομικών φακέλων απαιτεί επαληθευμένα δικαιώματα.</p>
         {/if}
+      {:else if tab==='calendar' && access.calendar}
+        <AdminGroupCalendar {organization} groupId={group.id} actorId={user.id} training={access.training} matches={access.matches} matchDrafts={access.matchWrite} {month}
+          onTraining={()=>tab='training'} onMatches={()=>tab='matches'} {onExpired} {onRevoked}/>
       {:else if tab==='training' && access.training && range}
         {#if organization==='lefteria_fc_academy'&&(hasAdminPermission(user.permissions,'training:read')||hasAdminPermission(user.permissions,'training:read_assigned'))}
           <a href="/admin/drills">Βιβλιοθήκη ασκήσεων · Κεντρική Ακαδημίας</a>
