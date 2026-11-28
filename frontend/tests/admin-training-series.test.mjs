@@ -49,3 +49,19 @@ test('group profile, player and coach workflow surfaces compile',()=>{
   assert.ok(coaches.includes('previous.filter(id=>id!==focusGroupId)'));
   assert.ok(coaches.includes('desired.filter(id=>id!==focusGroupId)'));
 });
+
+test('season exceptions skip only selected scheduled dates, preserving other weekdays and times',()=>{
+  const rows=trainingSeries({...input,excludedDays:['2027-01-04']});
+  assert.deepEqual(rows?.map(r=>[r.day,r.start_time]),[['2027-01-06','18:20']]);
+  for(const excludedDays of [['2027-01-04','2027-01-04'],['2027-01-03'],['2027-01-05'],['2027-02-30'],['2027-01-04','2027-01-06']])
+    assert.equal(trainingSeries({...input,excludedDays}),null);
+  assert.deepEqual(trainingSeries({...input,excludedDays:[]}),trainingSeries(input));
+});
+test('exception changes invalidate confirmed preview and cannot cancel existing sessions',()=>{
+  const source=readFileSync(new URL('../src/lib/admin/AdminTrainingSeriesPanel.svelte',import.meta.url),'utf8');
+  assert.match(source,/data-testid="training-series-exceptions"/);
+  assert.ok(source.includes('excludedDays}'));
+  assert.ok(source.includes('if(previewKey&&key!==previewKey)'));
+  assert.ok(source.includes('if(busy||!permitted||!canExclude)return;'));
+  assert.ok(!source.includes("method:'DELETE'"));
+});
