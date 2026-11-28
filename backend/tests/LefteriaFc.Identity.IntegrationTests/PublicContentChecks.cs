@@ -122,6 +122,7 @@ internal sealed partial class IdentityHttpChecks
             // Protect the query contract before moving pagination into SQL.
             // Use the existing disposable fixture, never a hosted database.
             await AssertNewsQueryParityAsync(client);
+            await database.AssertNewsSlugRegistryAsync();
             await database.AssertPublicContentRuntimeBoundaryAsync();
             await database.AssertPublicProjectionConstraintAsync();
             await database.AssertWebPlatformForwardRecoveryAsync();
@@ -251,6 +252,64 @@ internal sealed partial class TestDatabase
         if (removed != 2) throw new InvalidOperationException("Unexpected parity overlay cleanup count.");
     }
 
+    // Owner-only disposable database probes. The transaction is rolled back
+    // before normal import fixture cleanup; no public routing is activated.
+    public async Task AssertNewsSlugRegistryAsync()
+    {
+        await using var context = CreateContext();
+        await using var transaction = await context.Database.BeginTransactionAsync();
+        await context.Database.ExecuteSqlRawAsync("""
+            DO $slug_test$
+            BEGIN
+              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news',NULL)
+                IS DISTINCT FROM 'fixture-news'
+              THEN RAISE EXCEPTION 'initial reservation failed'; END IF;
+              IF public_content.claim_news_slug('lefteria_fc','shared','renamed-news','fixture-news')
+                IS DISTINCT FROM 'renamed-news'
+              THEN RAISE EXCEPTION 'rename failed'; END IF;
+              IF (SELECT count(*) FROM public_content.news_slug_aliases
+                WHERE organization_id='lefteria_fc' AND article_id='shared')<>2
+                OR NOT EXISTS(SELECT 1 FROM public_content.news_slug_current
+                  WHERE organization_id='lefteria_fc' AND article_id='shared' AND slug='renamed-news')
+              THEN RAISE EXCEPTION 'alias history lost'; END IF;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc_academy','shared','fixture-news',NULL);
+                RAISE EXCEPTION 'cross-owner alias reuse accepted';
+              EXCEPTION WHEN unique_violation THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','shared',NULL);
+                RAISE EXCEPTION 'legacy ID collision accepted';
+              EXCEPTION WHEN unique_violation THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','shared','stale-news','fixture-news');
+                RAISE EXCEPTION 'stale rename accepted';
+              EXCEPTION WHEN serialization_failure THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','academy-only','foreign-news',NULL);
+                RAISE EXCEPTION 'foreign article accepted';
+              EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','../bad',NULL);
+                RAISE EXCEPTION 'invalid slug accepted';
+              EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+              BEGIN
+                PERFORM public_content.claim_news_slug('lefteria_fc','first','search',NULL);
+                RAISE EXCEPTION 'reserved route accepted';
+              EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+              IF public_content.claim_news_slug('lefteria_fc','shared','fixture-news','renamed-news')
+                IS DISTINCT FROM 'fixture-news'
+              THEN RAISE EXCEPTION 'own historical alias could not be restored'; END IF;
+              IF (SELECT count(*) FROM public_content.news_slug_aliases)<>2
+              THEN RAISE EXCEPTION 'failed claims changed persistent reservations'; END IF;
+            END $slug_test$;
+            """);
+        try { await ExecuteMigrationOperationsAsync(context, "PublicNewsSlugRegistry", true); }
+        catch (PostgresException error) when (error.SqlState == "P0001" &&
+            error.MessageText == "news_slug_history_requires_forward_recovery")
+        { await transaction.RollbackAsync(); return; }
+        throw new InvalidOperationException("Reserved URL history did not block destructive rollback.");
+    }
+
     public async Task AssertWebPlatformForwardRecoveryAsync()
     {
         await using var context = CreateContext();
@@ -288,7 +347,10 @@ internal sealed partial class TestDatabase
             "SELECT manifest_bytes FROM migration.public_content_import_evidence LIMIT 1",
             "SELECT source_json FROM migration.public_content_source_documents LIMIT 1",
             "UPDATE public_content.documents SET data_json='{}' WHERE false",
-            "DELETE FROM public_content.import_state WHERE false" })
+            "DELETE FROM public_content.import_state WHERE false",
+            "SELECT slug FROM public_content.news_slug_aliases LIMIT 1",
+            "SELECT slug FROM public_content.news_slug_current LIMIT 1",
+            "SELECT public_content.claim_news_slug('lefteria_fc','first','fixture-news',NULL)" })
         {
             try { await using var command=new NpgsqlCommand(sql,connection); await command.ExecuteNonQueryAsync(); }
             catch(PostgresException exception) when(exception.SqlState==PostgresErrorCodes.InsufficientPrivilege){continue;}
