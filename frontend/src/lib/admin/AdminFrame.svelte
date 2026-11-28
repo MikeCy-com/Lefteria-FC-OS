@@ -29,7 +29,7 @@
   const academyCoachTools=$derived(footballNav.academyCoachTools&&liveIds.has('assigned_groups'));
   const academyDrills=$derived(footballNav.academyDrills&&liveIds.has('drills'));
   const canManagePlayerCrm=$derived(academyGroups&&hasAdminPermission(user.permissions,'academy:write'));
-  const selectedOwner=$derived(page.url.searchParams.get('organization_id')??(academyGroups?'lefteria_fc_academy':'lefteria_fc'));
+  const selectedOwner=$derived(page.url.searchParams.get('organization_id')??user.organizations.find(org=>(org.id==='lefteria_fc'&&firstTeamGroups)||(org.id==='lefteria_fc_academy'&&academyGroups))?.id??null);
   const playerView=$derived(page.url.searchParams.get('view')==='players');
   const footballActive=$derived(['groups','territories','matches','evaluations','documents'].includes(active));
   // The club profile is reachable from Settings. An editorial menu is shown
