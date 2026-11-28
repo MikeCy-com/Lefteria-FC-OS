@@ -506,22 +506,8 @@ jobs:
             if [[ "$method" == HEAD ]]; then args=(--head); fi
             for path in /admin /admin/login /app /app/login /login /profile /register /checkout /cart /payments/return /api/admin/auth/me /api/mobile/auth/me /ADMIN/not-a-route; do
               headers="$(curl --noproxy '*' --silent --show-error --max-time 15 "${args[@]}" --dump-header - --output /dev/null "http://localhost$path" | tr -d '\r')"
-              if ! grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive
-        run: |
-          docker compose --env-file .env.example ps --all
-          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
-          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
-      - if: always()
-        run: docker compose --env-file .env.example down --volumes --remove-orphans
- <<< "$headers" ||
-                 ! grep -Eqi '^cache-control: private, no-store
-        run: |
-          docker compose --env-file .env.example ps --all
-          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
-          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
-      - if: always()
-        run: docker compose --env-file .env.example down --volumes --remove-orphans
- <<< "$headers"; then
+              if ! grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive$' <<< "$headers" ||
+                 ! grep -Eqi '^cache-control: private, no-store$' <<< "$headers"; then
                 echo "Missing private response policy for $method $path" >&2
                 exit 1
               fi
@@ -530,14 +516,7 @@ jobs:
           done
           for path in / /news /academy /app-service-worker.js; do
             headers="$(curl --noproxy '*' --silent --show-error --max-time 15 --dump-header - --output /dev/null "http://localhost$path" | tr -d '\r')"
-            if grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive
-        run: |
-          docker compose --env-file .env.example ps --all
-          docker compose --env-file .env.example logs --tail=80 api web proxy postgres
-          docker network inspect "${COMPOSE_PROJECT_NAME}_app" --format '{{range .Containers}}{{.Name}} {{.IPv4Address}}{{println}}{{end}}'
-      - if: always()
-        run: docker compose --env-file .env.example down --volumes --remove-orphans
- <<< "$headers"; then
+            if grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive$' <<< "$headers"; then
               echo "Private route policy unexpectedly applied to public path $path" >&2
               exit 1
             fi
