@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/env';
-  import {getContext,untrack} from 'svelte';
+  import {getContext,untrack,onDestroy} from 'svelte';
+  import {validMatchQueueRow,matchQueueConflict,type MatchQueueRow} from './group-match-queue.ts';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
 
   type Owner='lefteria_fc'|'lefteria_fc_academy';
@@ -23,6 +24,10 @@
   let loading=$state(false),saving=$state(false),revision=$state(0);
   let error=$state(''),message=$state('');
   let formOpen=$state(false);
+  let queue=$state<MatchQueueRow[]>([]),confirmed=$state(false),bulkBusy=$state(false);
+  let bulkProgress=$state('');
+  let bulkController:AbortController|null=null;
+  onDestroy(()=>bulkController?.abort());
   let opponentId=$state(''),fieldId=$state(''),matchDate=$state(''),
     matchTime=$state('17:00'),competition=$state(''),homeGame=$state(true);
   const assignment=$derived(organization==='lefteria_fc_academy'
@@ -87,11 +92,89 @@
   });
 
   // Do not carry a confirmation into another group's protected workspace.
-  $effect(()=>{void groupId;void actorId;void organization;message='';});
+  $effect(()=>{void groupId;void actorId;void organization;message='';queue=[];confirmed=false;bulkProgress='';});
+  const queueConflicts=$derived(queue.filter(row=>matchQueueConflict(row,drafts)));
+  const currentRow=$derived({opponent_id:opponentId,playing_field_id:fieldId,match_date:matchDate,
+    kickoff_local:matchTime,competition:competition.trim(),home_game:homeGame});
+  function addToQueue(){
+    if(!mayWrite||saving||bulkBusy||queue.length>=30||!validMatchQueueRow(currentRow)||
+      !opponents.some(x=>x.id===opponentId)||!fields.some(x=>x.id===fieldId)||
+      matchQueueConflict(currentRow,queue)||matchQueueConflict(currentRow,drafts)){
+      error='Ελέγξτε την ημερομηνία, ώρα, αντίπαλο και γήπεδο. Δεν επιτρέπονται δύο αγώνες του τμήματος την ίδια ώρα.';return;
+    }
+    queue=[...queue,{...currentRow}];confirmed=false;error='';message='';bulkProgress='';
+    matchDate='';
+  }
+  function removeQueued(index:number){
+    if(bulkBusy||saving)return;
+    queue=queue.filter((_,i)=>i!==index);confirmed=false;
+  }
+  async function saveQueue(){
+    if(!browser||!mayWrite||!scope||saving||bulkBusy||!confirmed||!queue.length||queueConflicts.length)return;
+    const owner=organization,actor=actorId,id=groupId,scopeId=scope.id,locationId=assignment?.location_id;
+    const planned=queue.map(row=>({...row}));
+    const controller=new AbortController();bulkController=controller;
+    const signal=controller.signal;
+    const stillAllowed=()=>!signal.aborted&&mayWrite&&owner===organization&&actor===actorId&&
+      id===groupId&&scopeId===scope?.id&&$auth.status==='authenticated'&&$auth.session?.user.id===actor;
+    let count=0;let attempted='';
+    bulkBusy=true;confirmed=false;error='';message='';bulkProgress='0 / '+planned.length;
+    try{
+      for(const row of planned){
+        if(!stillAllowed())return;
+        // Re-read the current authorized catalog before every independent write.
+        // Never retry an ambiguous POST automatically.
+        const url='/api/admin/football/territories?organization_id='+encodeURIComponent(owner);
+        const check=await fetch(url,{credentials:'same-origin',cache:'no-store',signal});
+        if(check.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
+        if(check.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε.');}
+        if(!check.ok)throw Error('Δεν επαληθεύτηκε ο τρέχων κατάλογος.');
+        const raw:unknown=await check.json();
+        if(!validDirectory(raw,owner))throw Error('Μη επαληθευμένος κατάλογος.');
+        if(!stillAllowed())return;
+        const freshScope=raw.scopes.find(s=>s.id===scopeId);
+        const freshAssignment=raw.groups.find(g=>g.id===id&&g.scope_id===scopeId&&g.location_id===locationId);
+        if(!freshScope||(owner==='lefteria_fc'?freshScope.team_id!==id||!freshScope.can_write_catalog:
+          !freshAssignment||!raw.locations.some(l=>l.id===locationId&&l.can_manage)))
+          throw Error('Η άδεια ή η ανάθεση του τμήματος άλλαξε.');
+        const eligible=(items:Catalog[],key:string)=>items.some(x=>x.id===key&&x.scope_id===scopeId&&x.is_active);
+        if(!eligible(raw.opponents,row.opponent_id)||!eligible(raw.playing_fields,row.playing_field_id))
+          throw Error('Ο αντίπαλος ή το γήπεδο δεν είναι πλέον διαθέσιμο.');
+        const existing=raw.match_drafts.filter(d=>d.scope_id===scopeId&&
+          (owner==='lefteria_fc_academy'?d.academy_group_id===id:d.club_team_id===id));
+        if(matchQueueConflict(row,existing))throw Error('Υπάρχει ήδη πρόχειρος αγώνας την ίδια ώρα.');
+        attempted=row.match_date+' '+row.kickoff_local;
+        const response=await fetch(url,{method:'POST',credentials:'same-origin',cache:'no-store',signal,
+          headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+          body:JSON.stringify({kind:'match_draft',data:{scope_id:scopeId,
+            ...(owner==='lefteria_fc_academy'?{location_id:locationId,group_id:id}:{}),...row}})});
+        if(response.status===401){auth.invalidateSession();throw Error('Η σύνδεση έληξε.');}
+        if(response.status===403){void auth.bootstrap();throw Error('Η πρόσβαση άλλαξε.');}
+        if(!response.ok)throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
+        const saved:unknown=await response.json();
+        if(!saved||typeof saved!=='object'||Array.isArray(saved)||!('kind' in saved)||saved.kind!=='match_draft'||
+          !('organization_id' in saved)||saved.organization_id!==owner||!('id' in saved)||typeof saved.id!=='string'||!saved.id)
+          throw Error('Μη επαληθευμένη αποθήκευση.');
+        if(!stillAllowed())return;
+        count++;attempted='';queue=queue.slice(1);bulkProgress=count+' / '+planned.length;
+      }
+      message='Αποθηκεύτηκαν '+count+' ιδιωτικά πρόχειρα αγώνων.';
+    }catch(e){
+      if(!signal.aborted&&owner===organization&&actor===actorId&&id===groupId)
+        error=count+' επιβεβαιωμένες αποθηκεύσεις. '+(attempted?'Ελέγξτε τον αγώνα '+attempted+' πριν από νέα προσπάθεια. ':'')+
+          (e instanceof Error?e.message:'Αποτυχία.');
+    }finally{
+      if(!signal.aborted&&owner===organization&&actor===actorId&&id===groupId){
+        bulkBusy=false;confirmed=false;revision++;
+      }
+      if(bulkController===controller)bulkController=null;
+    }
+  }
 
   async function submitDraft(){
-    if(!browser||saving||!mayWrite||!scope||!directory)return;
+    if(!browser||saving||bulkBusy||!mayWrite||!scope||!directory)return;
     if(!opponents.some(x=>x.id===opponentId)||!fields.some(x=>x.id===fieldId)||
+      !validMatchQueueRow(currentRow)||matchQueueConflict(currentRow,drafts)||matchQueueConflict(currentRow,queue)||
       !/^\d{4}-\d\d-\d\d$/.test(matchDate)||!/^\d\d:\d\d$/.test(matchTime)||
       competition.length>160){
       error='Επιλέξτε αντίπαλο και γήπεδο της ίδιας πόλης και έγκυρη ημερομηνία/ώρα.';
@@ -139,7 +222,7 @@
     <div><p class="admin-eyebrow">ΑΓΩΝΙΣΤΙΚΟ · ΕΠΙΛΕΓΜΕΝΟ ΤΜΗΜΑ</p>
       <h4 id="admin-group-match-heading">Αγώνες τμήματος</h4></div>
     {#if mayWrite}
-      <button class="admin-secondary" type="button" disabled={saving}
+      <button class="admin-secondary" type="button" disabled={saving||bulkBusy}
         onclick={()=>formOpen=!formOpen} aria-expanded={formOpen}
         data-testid="admin-group-new-match">Νέος αγώνας</button>
     {/if}
@@ -178,30 +261,48 @@
         <form class="admin-group-match-form" onsubmit={e=>{e.preventDefault();void submitDraft();}}
           data-testid="admin-group-match-form">
           <label>{organization==='lefteria_fc_academy'?'Αντίπαλος πόλης':'Αντίπαλος Πρώτης Ομάδας'}
-            <select bind:value={opponentId} required disabled={saving}
+            <select bind:value={opponentId} required disabled={saving||bulkBusy}
               data-testid="admin-match-opponent-picker">
               <option value="">Επιλέξτε αντίπαλο</option>
               {#each opponents as row (row.id)}<option value={row.id}>{row.name}</option>{/each}
             </select>
           </label>
           <label>{organization==='lefteria_fc_academy'?'Γήπεδο αγώνα πόλης':'Γήπεδο Πρώτης Ομάδας'}
-            <select bind:value={fieldId} required disabled={saving}
+            <select bind:value={fieldId} required disabled={saving||bulkBusy}
               data-testid="admin-match-field-picker">
               <option value="">Επιλέξτε γήπεδο</option>
               {#each fields as row (row.id)}<option value={row.id}>{row.name}</option>{/each}
             </select>
           </label>
-          <label>Ημερομηνία<input type="date" bind:value={matchDate} required disabled={saving}/></label>
-          <label>Ώρα έναρξης<input type="time" bind:value={matchTime} required disabled={saving}/></label>
-          <label>Διοργάνωση<input type="text" bind:value={competition} maxlength="160" disabled={saving}/></label>
-          <label class="admin-group-home-toggle"><input type="checkbox" bind:checked={homeGame} disabled={saving}/> Εντός έδρας</label>
-          <button class="admin-secondary" type="submit" disabled={saving||!opponentId||!fieldId||!matchDate}>
+          <label>Ημερομηνία<input type="date" bind:value={matchDate} required disabled={saving||bulkBusy}/></label>
+          <label>Ώρα έναρξης<input type="time" bind:value={matchTime} required disabled={saving||bulkBusy}/></label>
+          <label>Διοργάνωση<input type="text" bind:value={competition} maxlength="160" disabled={saving||bulkBusy}/></label>
+          <label class="admin-group-home-toggle"><input type="checkbox" bind:checked={homeGame} disabled={saving||bulkBusy}/> Εντός έδρας</label>
+          <button class="admin-secondary" type="submit" disabled={saving||bulkBusy||!opponentId||!fieldId||!matchDate}>
             {saving?'Αποθήκευση…':'Αποθήκευση ιδιωτικού προχείρου'}
           </button>
+          <button type="button" class="admin-secondary" disabled={saving||bulkBusy||queue.length>=30||!opponentId||!fieldId||!matchDate} onclick={addToQueue}>Προσθήκη στη λίστα αγώνων</button>
         </form>
       {/if}
     {/if}
   {/if}
+  {#if mayWrite&&queue.length}
+    <section class="bulk-match-queue" data-testid="admin-bulk-match-queue">
+      <h4>Μαζική δημιουργία αγώνων ({queue.length}/30)</h4>
+      <ul class="admin-group-drafts">{#each queue as row,index (row.match_date+' '+row.kickoff_local)}
+        <li><strong>{row.match_date} · {row.kickoff_local}</strong>
+          <span>{opponents.find(x=>x.id===row.opponent_id)?.name||'Μη διαθέσιμος αντίπαλος'}</span>
+          <small>{fields.find(x=>x.id===row.playing_field_id)?.name||'Μη διαθέσιμο γήπεδο'} · {row.home_game?'Εντός':'Εκτός'} · {row.competition}</small>
+          <button class="admin-secondary" type="button" disabled={saving||bulkBusy} onclick={()=>removeQueued(index)}>Αφαίρεση</button>
+        </li>
+      {/each}</ul>
+      {#if queueConflicts.length}<p role="alert">Υπάρχουν ήδη πρόχειροι αγώνες την ίδια ώρα. Αφαιρέστε τις συγκρούσεις.</p>{/if}
+      <label><input type="checkbox" bind:checked={confirmed} disabled={saving||bulkBusy||!!queueConflicts.length}/> Επιβεβαιώνω τη δημιουργία ιδιωτικών προχείρων.</label>
+      <button class="admin-primary" type="button" disabled={!confirmed||saving||bulkBusy||!!queueConflicts.length} onclick={()=>void saveQueue()}>Δημιουργία {queue.length} αγώνων</button>
+      <p class="admin-muted">Οι αγώνες αποθηκεύονται ένας-ένας. Ο έλεγχος αφορά πρόχειρους αγώνες του ίδιου τμήματος και ίδια ώρα, όχι όλα τα γήπεδα ή δημοσιευμένους αγώνες.</p>
+    </section>
+  {/if}
+  {#if bulkProgress}<p role="status">Επιβεβαιωμένες αποθηκεύσεις: {bulkProgress}</p>{/if}
   {#if error}<p class="admin-group-match-error" role="alert">{error}</p>{/if}
   {#if message}<p class="admin-group-match-success" role="status">{message}</p>{/if}
   <p class="admin-muted admin-group-match-disclaimer">Τα ιδιωτικά πρόχειρα δεν είναι δημοσιευμένοι αγώνες.
@@ -227,5 +328,8 @@
   .admin-group-match-error{color:#ffb5a9;border-left:3px solid #ee8271;padding:10px}
   .admin-group-match-success{color:#d4ffc6;border-left:3px solid #93c277;padding:10px}
   .admin-group-match-disclaimer{font-size:12px}
+  .bulk-match-queue{display:grid;gap:12px;border:1px solid var(--admin-line);padding:12px;border-radius:8px}
+  .bulk-match-queue h4{margin:0}
+  .bulk-match-queue>button{justify-self:start}
   @media(max-width:650px){.admin-group-match-form{grid-template-columns:1fr}}
 </style>
