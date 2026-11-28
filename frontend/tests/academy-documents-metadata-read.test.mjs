@@ -52,7 +52,8 @@ test('UI only shows validated expiry metadata and clears it on account change',(
   const group=load('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
   const player=load('frontend/src/lib/admin/AdminPlayerPrivateRecordsPanel.svelte');
   assert.match(group,/AdminRosterPlayersPanel/);
-  assert.match(group,/\['manager','super_admin'\]\.includes\(user\.role\)/);
+  assert.match(group,/groupWorkspaceAccess\(user,organization,canCreate,canReadAttendance\)/);
+  assert.match(load('frontend/src/lib/admin/workspace-access.ts'),/\['manager','super_admin'\]\.includes\(user\.role\)/);
   assert.match(player,/playerId/);
   assert.match(player,/document\.title|doc\.title/);
 });
