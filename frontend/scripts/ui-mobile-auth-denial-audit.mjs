@@ -45,6 +45,31 @@ try {
   }
   assert.ok(ready,'Isolated Vite server never started: '+logs);
   browser=await chromium.launch({headless:true});
+  // A fresh device must be able to browse without an OTP or stored token.
+  const guestContext=await browser.newContext({viewport:{width:390,height:844},locale:'el-GR'});
+  let guestPrivateRequests=0;
+  await guestContext.route('**/api/mobile/**',async request=>{
+    guestPrivateRequests++;
+    await request.fulfill({status:403,contentType:'application/json',body:JSON.stringify({detail:'Not authorized'})});
+  });
+  const guestPage=await guestContext.newPage();
+  const guestResponse=await guestPage.goto(origin+'/app',{waitUntil:'domcontentloaded'});
+  assert.equal(guestResponse?.status(),200);
+  await guestPage.getByTestId('mobile-guest-app').waitFor();
+  assert.equal(new URL(guestPage.url()).pathname,'/app');
+  assert.equal(await guestPage.getByTestId('mobile-app').count(),0);
+  assert.equal(await guestPage.getByTestId('mobile-create-post').count(),0);
+  assert.equal(await guestPage.locator('[data-mobile-role]').count(),0);
+  assert.equal(await guestPage.getByTestId('guest-public-news').getAttribute('href'),'/news');
+  assert.equal(await guestPage.getByTestId('guest-public-matches').getAttribute('href'),'/team?tab=results');
+  await guestPage.getByTestId('guest-restricted-profile').click();
+  await guestPage.waitForURL(url=>url.pathname==='/app/login'&&url.searchParams.get('return_tab')==='profile');
+  await guestPage.getByTestId('login-intended-tab').waitFor();
+  assert.equal(await guestPage.getByTestId('mobile-app').count(),0);
+  await guestPage.getByTestId('continue-as-guest').click();
+  await guestPage.getByTestId('mobile-guest-app').waitFor();
+  assert.equal(guestPrivateRequests,0,'Guest browsing must never call private mobile APIs');
+  await guestContext.close();
   for(const role of roles){
     const context=await browser.newContext({viewport:{width:390,height:844},locale:'el-GR'});
     // A deliberately invalid token and forged cached role hint are the sole input.
@@ -90,6 +115,7 @@ try {
         protectedShells:details.mobileShellCount,authChecks});
       if(status!==200)failures.push(name+': public route did not SSR successfully ('+status+')');
       if(details.pathname!=='/app/login')failures.push(name+': access remained at '+details.pathname);
+      if(new URL(page.url()).searchParams.get('return_tab')!==tab)failures.push(name+': intended protected tab was lost');
       if(details.mobileShellCount||details.parentDashboardCount||details.protectedCalendarCount)
         failures.push(name+': a protected UI rendered without verified auth');
       await page.close();
