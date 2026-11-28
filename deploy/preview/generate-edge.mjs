@@ -110,6 +110,7 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/football/first-team-profiles/{teamId}'],
   ['put','/api/admin/football/first-team-profiles/{teamId}'],
   ['post','/api/admin/football/groups'],
+  ['put','/api/admin/football/groups/{groupId}/name'],
   ['post','/api/admin/football/groups/with-profile'],
   ['get','/api/admin/football/players'],
   ['get','/api/admin/football/players/{playerId}/birthday-preferences'],
