@@ -87,7 +87,7 @@
   .portrait{width:74px;aspect-ratio:1;overflow:hidden;border-radius:6px}
   .portrait :global(img){width:100%;height:100%;object-fit:cover}
   .candidate-details h3{margin:5px 0;font-size:19px;line-height:1.15;overflow-wrap:anywhere}
-  .candidate-details a{color:var(--lf-color-text,#fff);text-decoration:none}
+  .candidate-details a{color:var(--lf-color-text,#ffffff);text-decoration:none}
   .candidate-details a:focus-visible,.candidate-details a:hover{color:var(--lf-color-accent,#f6bb38)}
   .number,.candidate-votes{margin:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
 </style>
