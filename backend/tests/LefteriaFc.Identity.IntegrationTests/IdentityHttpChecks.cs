@@ -21,6 +21,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Public website reads use separate initialized projections and explicit organization scope", PublicContentEndToEndAsync),
         ("First-team trials GET serves closed source defaults without enabling applicant POST", FirstTeamTrialSettingsClosedAsync),
         ("Versioned public sections preserve youth privacy, immutable evidence and scoped reads", PublicSectionsEndToEndAsync),
+        ("POTM own ballot HTTP boundary refuses unapproved writes, foreign roles, invalid bodies and revoked Fan", PotmHttpBoundaryAsync),
         ("Scoped calendar import, role visibility and atomic own-player RSVP use current canonical authority", CalendarEndToEndAsync),
         ("Owner account import, canonical role revocation and legacy fan OTP preserve source authority", AccountImportEndToEndAsync),
         ("Bounded legacy token validation preserves source claim families and rejects unapproved JWTs", LegacyMobileTokenValidationAsync),
