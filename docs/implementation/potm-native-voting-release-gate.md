@@ -1,0 +1,24 @@
+# Native Player of the Month release gate
+
+Tracking: #485. Public results and roster browsing are separate from the native ballot ledger.
+
+## This database slice
+
+- One current private ballot per Fan identity and Cyprus calendar month. Fan identity is the existing unique normalized-phone/role UUID; formal-role sessions cannot vote. No phone or public voter identifier is stored in this ledger.
+- The owner-only period record identifies an explicitly reviewed import snapshot, active club Super Admin approval reference, and attested legacy voting stop time no later than the start of the period. There are no enabled periods seeded by migration.
+- Database functions lock the exact active Fan identity, recheck expiry, use the authoritative Cyprus month, pin the approved current public snapshot and check its document/source counts. A changed snapshot or retained current-month legacy vote closes the gate. Malformed retained vote months also close it; this conservative rule requires owner reconciliation rather than silently dropping history.
+- Candidate must be a currently published first-team player and active, not archived/transferred, in the canonical club roster. A stale public card cannot override canonical inactivity.
+- Writes use expected revision, atomically update one ballot and append a separate immutable-by-runtime event. Withdrawal leaves a tombstone; repeating the same choice at the current revision is a no-op. A stale revision must be refreshed, not blindly replayed.
+- The runtime can execute only the scoped read/write routines, not the private tables, helper functions, or opening gate. Signed mobile session claims must come from the API authentication middleware; SQL function parameters are not an authentication mechanism for arbitrary direct clients.
+- History is preserved by refusing destructive down migration if any period/ballot/event exists.
+
+## Outstanding release gates
+
+1. Mandatory disposable PostgreSQL lifecycle and restricted-role checks, including explicit concurrent sessions to prove same-revision conflict.
+2. Authenticated API with strict Fan JWT claims, bounded payload, validation/error mapping, no-store, generated contracts; tests for expired/revoked/forged role, same phone and independent accounts. No raw identity or phone parameters exposed to client.
+3. Mobile Fan ballot screen with own current selection, vote/change/withdraw confirmation, accessible error/retry and conflict refresh, correct month handling. Guest may read results only.
+4. Owner review of legacy vote history, completeness and stop time; no automatic enablement and no deletion or combining of legacy aggregates with native ballots. For months already containing legacy votes, the current gate deliberately refuses writes until a separate reviewed reconciliation policy is implemented. An import that changes the pinned snapshot must be reviewed before reopening.
+5. Native public tally projection with explicit source-of-truth per month; no voter rows, no double count, no winner declaration before the defined close. Until then the public page remains imported-results-only.
+6. Verify real staging migration, least-privilege grants, API/mobile flows and data persistence using synthetic accounts in an isolated environment. Production activation requires explicit owner authorization.
+
+No production migration, period opening, deployment or provider operation is authorized by this document.
