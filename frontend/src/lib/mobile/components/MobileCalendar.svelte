@@ -4,6 +4,7 @@
   import { AVAILABILITY_LABELS, CALENDAR_KIND_LABELS, WEEKDAY_LABELS, calendarItemKey, calendarItemOnDate,
     calendarMonthDays, calendarOrganizationLabel, calendarWeekDays, clubToday, formatCalendarDate, safeCalendarLink, shiftCalendarMonth } from '../calendar.ts';
   import type { AvailabilityStatus, CalendarKind, CalendarLoadStatus, MobileCalendar, MobileCalendarItem, MobileCalendarResponses } from '../calendar.ts';
+  import MobileMatchPreparation from './MobileMatchPreparation.svelte';
   import './mobile-theme.css';
 
   interface Props {
@@ -158,17 +159,29 @@
               <p class="reply-state">{ownResponse ? `Αποθηκευμένη απάντηση: ${responseLabel(ownResponse.status)}` : 'Δεν έχει δοθεί απάντηση.'}</p>
             {:else if staff}
               <button type="button" class="replies-toggle" aria-expanded={responsesKey === key} disabled={busy}
-                onclick={() => { if (responsesKey === key) onCloseResponses(); else void onLoadResponses(item); }}>Απαντήσεις συμμετοχής {responsesKey === key ? '−' : '+'}</button>
+                onclick={() => { if (responsesKey === key) onCloseResponses(); else void onLoadResponses(item); }}>{item.kind==='match'?'Προετοιμασία αγώνα':'Απαντήσεις συμμετοχής'} {responsesKey === key ? '−' : '+'}</button>
               {#if responsesKey === key}
                 <div class="replies" data-testid="calendar-replies"><p class="reply-context">Δηλώσεις συμμετοχής παικτών</p>
                   {#if responsesStatus === 'loading'}<p role="status">Φόρτωση απαντήσεων…</p>
                   {:else if responsesStatus === 'error'}<p class="failure" role="alert">{responsesError}</p><button type="button" disabled={busy} onclick={() => void onLoadResponses(item)}>Δοκιμή ξανά</button>
-                  {:else if responsesStatus === 'ready' && responses}
+                  {:else if responsesStatus === 'ready' && responses && responses.event_id===item.id && responses.event_type===item.kind && responses.organization_id===item.organization_id}
+                    {#if item.kind==='match'}
+                      {#if responsesError}
+                        <p class="failure" role="alert">Η τελευταία επαλήθευση απέτυχε. Ανανέωσε τον κατάλογο πριν συνεχίσεις.</p>
+                        <button type="button" disabled={busy} onclick={()=>void onLoadResponses(item)}>Δοκιμή ξανά</button>
+                      {:else}
+                        {#key key}
+                          <MobileMatchPreparation {responses} {busy} loadingMore={responsesLoadingMore}
+                            onRefresh={()=>onLoadResponses(item)} onLoadMore={()=>onLoadResponses(item,true)}/>
+                        {/key}
+                      {/if}
+                    {:else}
                     {#if responses.players.length === 0}<p>Δεν υπάρχουν διαθέσιμες απαντήσεις.</p>{:else}
                       <ul>{#each responses.players as player (player.id)}<li><span>{player.name}</span><strong>{responseLabel(player.status)}</strong></li>{/each}</ul>
                     {/if}
                     {#if responsesError}<p class="failure" role="alert">{responsesError}</p>{/if}
                     {#if responses.next_offset !== null}<button type="button" disabled={busy || responsesLoadingMore} onclick={() => void onLoadResponses(item, true)}>{responsesLoadingMore ? 'Φόρτωση…' : 'Περισσότερες απαντήσεις'}</button>{/if}
+                    {/if}
                   {/if}
                 </div>
               {/if}
