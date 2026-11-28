@@ -4,12 +4,11 @@
   import {academyMonthWindow,isAcademyTrainingList} from './academy-schedule.ts';
   import {validTrainingPlanPage,validTrainingPublicationsPage} from './academy-training-plans.ts';
   import {calendarTraining,calendarFixtures,calendarMatchDrafts,sortCalendar,type CalendarOwner,type CalendarRow} from './group-calendar.ts';
-  let {organization,groupId,actorId,training,matches,matchDrafts,month,onTraining,onMatches,onExpired,onRevoked}:{
-    organization:CalendarOwner;groupId:string;actorId:string;training:boolean;matches:boolean;matchDrafts:boolean;
-    month:string;onTraining:()=>void;onMatches:()=>void;onExpired:()=>void;onRevoked:()=>void;
+  let {organization,groupId,actorId,training,attendance,matches,matchDrafts,month,onMonthChanged,onTraining,onMatches,onExpired,onRevoked}:{
+    organization:CalendarOwner;groupId:string;actorId:string;training:boolean;attendance:boolean;matches:boolean;matchDrafts:boolean;
+    month:string;onMonthChanged:(value:string)=>void;onTraining:()=>void;onMatches:()=>void;onExpired:()=>void;onRevoked:()=>void;
   }=$props();
-  let selectedMonth=$state('');
-  $effect(()=>{selectedMonth=month;});
+  const selectedMonth=$derived(month);
   let rows=$state<CalendarRow[]>([]),loading=$state(false),errors=$state<string[]>([]),refresh=$state(0);
   let filter=$state<'all'|'training'|'match'>('all');
   const range=$derived(academyMonthWindow(selectedMonth));
@@ -19,13 +18,13 @@
   function stepMonth(amount:number){
     if(!range)return;
     const d=new Date(range.start+'T12:00:00Z');d.setUTCMonth(d.getUTCMonth()+amount);
-    const next=d.toISOString().slice(0,7);if(next>='2024-01'&&next<='2032-12')selectedMonth=next;
+    const next=d.toISOString().slice(0,7);if(next>='2024-01'&&next<='2032-12')onMonthChanged(next);
   }
   $effect(()=>{
-    const owner=organization,group=groupId,actor=actorId,w=range,canTraining=training&&organization==='lefteria_fc_academy',canMatches=matches,canDrafts=matches&&matchDrafts;
+    const owner=organization,group=groupId,actor=actorId,w=range,canTraining=training&&organization==='lefteria_fc_academy',canAttendance=attendance&&organization==='lefteria_fc_academy',canMatches=matches,canDrafts=matches&&matchDrafts;
     void refresh;
     rows=[];errors=[];loading=false;
-    if(!browser||!actor||!group||!w||(!canTraining&&!canMatches))return;
+    if(!browser||!actor||!group||!w||(!canTraining&&!canAttendance&&!canMatches))return;
     const controller=new AbortController();
     const signal=controller.signal;
     let revoked=false;
@@ -42,15 +41,21 @@
     untrack(()=>void(async()=>{
       const work:Promise<CalendarRow[]>[]=[];
       const names:string[]=[];
-      if(canTraining){
+      if(canTraining||canAttendance){
         names.push('Προπονήσεις');
         work.push((async()=>{
           const base='/api/admin/academy/training/';
-          const [sessions,plans]=await Promise.all([read(base+'?'+query),read(base+'plans/?'+query)]);
-          if(!isAcademyTrainingList(sessions,group,w.start,w.end)||!validTrainingPlanPage(plans,group,w.start,w.end))throw Error('invalid training scope');
+          const [sessions,plans]=await Promise.all([
+            canAttendance?read(base+'?'+query):Promise.resolve(null),
+            canTraining?read(base+'plans/?'+query):Promise.resolve(null)
+          ]);
+          if(canAttendance&&!isAcademyTrainingList(sessions,group,w.start,w.end))throw Error('invalid session scope');
+          const recorded=isAcademyTrainingList(sessions,group,w.start,w.end)?sessions.sessions:[];
+          if(!canTraining)return calendarTraining(recorded,[],[]);
+          if(!validTrainingPlanPage(plans,group,w.start,w.end))throw Error('invalid training scope');
           const publications=await read(base+'plans/publications?'+query);
           if(!validTrainingPublicationsPage(publications,group,w.start,w.end,plans.plans))throw Error('invalid publications');
-          return calendarTraining(sessions.sessions,plans.plans,publications.publications);
+          return calendarTraining(recorded,plans.plans,publications.publications);
         })());
       }
       if(canMatches){
@@ -75,11 +80,11 @@
     <button class="admin-secondary" type="button" disabled={loading} onclick={()=>refresh++}>Ανανέωση</button></header>
   <div class="calendar-controls">
     <button type="button" class="admin-secondary" aria-label="Προηγούμενος μήνας" onclick={()=>stepMonth(-1)}>‹</button>
-    <label>Μήνας <input type="month" bind:value={selectedMonth} min="2024-01" max="2032-12"/></label>
+    <label>Μήνας <input type="month" value={selectedMonth} onchange={event=>onMonthChanged(event.currentTarget.value)} min="2024-01" max="2032-12"/></label>
     <button type="button" class="admin-secondary" aria-label="Επόμενος μήνας" onclick={()=>stepMonth(1)}>›</button>
     <div role="group" aria-label="Είδος δραστηριότητας">
       <button type="button" aria-pressed={filter==='all'} onclick={()=>filter='all'}>Όλα</button>
-      {#if training}<button type="button" aria-pressed={filter==='training'} onclick={()=>filter='training'}>Προπονήσεις</button>{/if}
+      {#if training||attendance}<button type="button" aria-pressed={filter==='training'} onclick={()=>filter='training'}>Προπονήσεις</button>{/if}
       {#if matches}<button type="button" aria-pressed={filter==='match'} onclick={()=>filter='match'}>Αγώνες</button>{/if}
     </div>
   </div>
