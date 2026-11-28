@@ -117,7 +117,7 @@ public sealed class MatchSquadRotationWorkspace : Migration
         IF NOT FOUND AND EXISTS(SELECT 1 FROM club.match_workspaces WHERE kind='match' AND match_id=_match)
           THEN RAISE EXCEPTION 'match_host_changed' USING ERRCODE='42501'; END IF;
         WITH eligible AS MATERIALIZED (
-          SELECT * FROM club.match_workspace_roster(v_owner,v_host,_match) LIMIT 201
+          SELECT * FROM club.match_workspace_roster(v_owner,v_host,_match) LIMIT 501
         ), history AS (
           SELECT c.staff_day,w.match_id,s.value->>'player_id' AS player_id,s.value->>'assignment' AS assignment
           FROM club.match_workspaces w JOIN club.calendar_items c ON c.kind=w.kind AND c.id=w.match_id
@@ -134,7 +134,7 @@ public sealed class MatchSquadRotationWorkspace : Migration
           'reserves',(SELECT count(*) FROM history h WHERE h.player_id=r.player_id AND h.assignment='reserve'))
           ORDER BY r.player_name COLLATE "C",r.player_id COLLATE "C"),'[]'::jsonb)
         INTO v_roster FROM eligible r;
-        IF jsonb_array_length(v_roster)>200 THEN RAISE EXCEPTION 'match_roster_limit' USING ERRCODE='54000'; END IF;
+        IF jsonb_array_length(v_roster)>500 THEN RAISE EXCEPTION 'match_roster_limit' USING ERRCODE='54000'; END IF;
         SELECT EXISTS(SELECT 1 FROM jsonb_array_elements(coalesce(v_plan.squad,'[]'::jsonb)) s(value)
           WHERE NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_roster) r(value)
             WHERE r.value->>'player_id'=s.value->>'player_id')) INTO v_stale;
