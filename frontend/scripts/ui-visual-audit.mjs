@@ -24,6 +24,7 @@ const routes = [
   { name:'sponsors-unavailable', path:'/sponsors', expectedStatus:503 },
   { name:'partners-unavailable', path:'/partners', expectedStatus:503 },
   { name:'events-unavailable', path:'/events', expectedStatus:503 },
+  { name:'potm-unavailable', path:'/vote', expectedStatus:200 },
   { name:'seasons-unavailable', path:'/seasons', expectedStatus:503 },
   { name:'academy', path:'/academy', expectedStatus:200 },
   { name:'academy-groups-unavailable', path:'/academy/groups', expectedStatus:503 },
