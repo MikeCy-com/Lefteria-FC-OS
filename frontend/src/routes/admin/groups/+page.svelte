@@ -6,6 +6,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminCrmWorkspaceNav from '../../../lib/admin/AdminCrmWorkspaceNav.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
@@ -604,7 +605,8 @@
     {#if assignments.length}
       <div class="admin-audiences" data-testid="admin-live-audiences">
         <p class="admin-eyebrow">ΑΓΩΝΙΣΤΙΚΟ · ΑΚΑΔΗΜΙΑ · ΠΡΑΓΜΑΤΙΚΑ ΜΕΛΗ</p>
-        <h1>Ομάδες & τμήματα</h1>
+        <h1>{directoryView==='players'?'CRM · Παίκτες & προφίλ':'Ομάδες & τμήματα'}</h1>
+        {#if directoryView==='players' && organization}<AdminCrmWorkspaceNav user={$auth.session.user} active={organization==='lefteria_fc'?'first_team_players':'academy_players'}/>{/if}
         <p class="admin-muted">Ζωντανή εικόνα των ομάδων και των τμημάτων από το επαληθευμένο ρόστερ, όχι διπλές στατικές καταχωρίσεις. Οι αριθμοί περιλαμβάνουν μόνο ενεργούς παίκτες χωρίς αρχειοθέτηση ή μεταγραφή.</p>
         {#if assignments.length>1}
           <section class="admin-panel" aria-labelledby="combined-football-heading" data-testid="admin-combined-football">
