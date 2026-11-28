@@ -208,6 +208,28 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
             "Unverified signup fields must not overwrite a formal account's separate fan profile.");
         Check.Equal("Existing private coach", (await database.IdentityAsync(formal, MobileRole.Coach))!.DisplayName,
             "Signup changed the existing coach identity.");
+
+        // Reopening the registration form for a phone with both profiles is
+        // a login, not a way to overwrite either existing role's data.
+        using var repeatClient = Client();
+        await RegisterAsync(repeatClient, formal, "Replacement", "Name", "1991-01-01", 200);
+        await VerifyAsync(repeatClient, formal, factory.Sms.Latest(formal), 200, "fan");
+        var sameFan = (await database.IdentityAsync(formal, MobileRole.Fan))!;
+        Check.Equal(MobileAuthService.NeutralFanDisplayName, sameFan.DisplayName,
+            "Registration overwrote a separate existing fan profile.");
+        Check.Equal(verifiedFan.Id, sameFan.Id, "Same phone created a duplicate fan identity.");
+
+        using var blockedClient = Client();
+        var blocked = database.NewPhone();
+        var blockedId = await database.SeedIdentityAsync(blocked, MobileRole.Fan, "Disabled fan");
+        await database.SetIdentityActiveAsync(blockedId, false);
+        await RegisterAsync(blockedClient, blocked, "Do not", "Reactivate", "1990-01-01", 200);
+        Check.True((await database.ChallengeAsync(blocked))?.PendingFirstName is null,
+            "Disabled fan signup staged profile data.");
+        await VerifyAsync(blockedClient, blocked, factory.Sms.Latest(blocked), 403, "fan");
+        Check.Equal("Disabled fan", (await database.IdentityAsync(blocked, MobileRole.Fan))!.DisplayName,
+            "Registration altered a disabled fan identity.");
+
         var phone = database.NewPhone();
         await RegisterAsync(client, phone, "", "Supporter", "1990-01-01", 400);
         await RegisterAsync(client, phone, "Fixture", "Supporter", "02/04/1995", 400);
