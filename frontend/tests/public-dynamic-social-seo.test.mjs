@@ -50,3 +50,18 @@ test('Young academy players cannot acquire crawlable social cards from their pub
   assert.ok(!a.includes('private'));
   assert.doesNotMatch(page,/\+ '?team_id='|data\.returnTeamId\)\)/);
 });
+
+test('News social metadata uses only the available public article and safe HTTPS images',()=>{
+  const path='routes/news/[slug]/+page.svelte';
+  const page=read(path);
+  assert.doesNotThrow(()=>compile(page,{filename:path,generate:'server'}));
+  assert.doesNotThrow(()=>compile(page,{filename:path,generate:'client'}));
+  assert.match(page,/const canonicalPath = \$derived\(data\.articleAvailable && data\.article/);
+  assert.match(page,/canonicalPath && data\.article \? publicSocialImage\(data\.article\.image_url\) : null/);
+  assert.match(page,/\{#if canonicalPath\}[\s\S]*property="og:title"[\s\S]*property="og:description"[\s\S]*property="og:url"/);
+  assert.match(page,/\{#if socialImage\}\s*<meta property="og:image" content=\{socialImage\}/);
+  assert.match(page,/name="twitter:image" content=\{socialImage\}/);
+  assert.match(page,/name="twitter:card" content=\{socialImage \? 'summary_large_image' : 'summary'\}/);
+  assert.match(page,/\{:else\}\s*<meta name="robots" content="noindex,follow"/);
+  assert.doesNotMatch(page,/property="og:image" content=\{data\.article/);
+});
