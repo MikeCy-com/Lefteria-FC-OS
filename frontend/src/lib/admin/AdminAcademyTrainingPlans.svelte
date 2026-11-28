@@ -1,6 +1,7 @@
 <script lang="ts">
   import {getContext,untrack} from 'svelte';
   import AdminTrainingDrillBuilder from './AdminTrainingDrillBuilder.svelte';
+  import AdminTrainingSeriesPanel from './AdminTrainingSeriesPanel.svelte';
   import {browser} from '$app/env';
   import {ADMIN_AUTH_CONTEXT,type AdminAuthController} from './controller.ts';
   import {validTrainingPlanPage,validTrainingPlanForm,matchingTrainingPlanWrite,
@@ -452,6 +453,10 @@
       {/if}
       <button type="button" onclick={()=>{preview=null;publishConfirmed=false;}}>Κλείσιμο προεπισκόπησης</button>
     </section>
+  {/if}
+  {#if canManage && allowed}
+    <AdminTrainingSeriesPanel {groupId} {actor} {from} {to} allowed={canManage&&allowed}
+      onSaved={()=>refreshNonce++}/>
   {/if}
   {#if canWrite}
     <p class="plan-note">Η έγκριση αφορά μόνο την επιλεγμένη έκδοση και ΔΕΝ δημοσιεύει προπόνηση.</p>
