@@ -685,4 +685,20 @@ REVOKE ALL ON FUNCTION club.read_mobile_notification_activity(
   uuid,text,text,timestamptz,text,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_mobile_notification_activity(
   uuid,text,text,timestamptz,text,integer) TO :"app_role";
+-- Native Player of the Month ballot functions only. The runtime cannot
+-- open/close periods, read raw voter history or edit the legacy cutover gate.
+REVOKE ALL ON TABLE club.potm_periods,club.potm_ballots,club.potm_ballot_events
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.lock_potm_fan(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.potm_open_snapshot(date)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.read_mobile_potm_ballot(uuid,text,text,timestamptz)
+  FROM PUBLIC, :"app_role";
+REVOKE ALL ON FUNCTION club.write_mobile_potm_ballot(uuid,text,text,timestamptz,text,integer,text)
+  FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.read_mobile_potm_ballot(uuid,text,text,timestamptz)
+  TO :"app_role";
+GRANT EXECUTE ON FUNCTION club.write_mobile_potm_ballot(uuid,text,text,timestamptz,text,integer,text)
+  TO :"app_role";
 COMMIT;
