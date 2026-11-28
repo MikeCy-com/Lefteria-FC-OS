@@ -42,10 +42,12 @@
   };
   type Resource = 'opponent'|'playing_field'|'training_base';
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
-  const owners = $derived(
+  const grantedOwners = $derived(
     ($auth.session?.user.organizations ?? []).map(org => org.id)
       .filter((id):id is Owner=>id==='lefteria_fc' || id==='lefteria_fc_academy')
   );
+  const routeOwner=$derived(page.url.searchParams.get('organization_id'));
+  const owners=$derived(routeOwner===null?grantedOwners:grantedOwners.filter(id=>id===routeOwner));
   let organization = $state<Owner>('lefteria_fc_academy');
   let appliedRouteScope=false;
   let appliedRouteGroup=false;
@@ -346,13 +348,13 @@
       {/if}
       <section class="admin-panel" aria-label="Οργανισμός και ανανέωση">
         <div class="territory-row">
-          <label>Οργανισμός
+          {#if owners.length>1}<label>Οργανισμός
             <select bind:value={organization} data-testid="territory-organization">
               {#each owners as owner (owner)}
                 <option value={owner}>{owner==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</option>
               {/each}
             </select>
-          </label>
+          </label>{:else}<span class="admin-muted">{owners.length===0?'Δεν υπάρχει εξουσιοδοτημένος οργανισμός':organization==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</span>{/if}
           <button type="button" class="admin-secondary" disabled={loading||saving}
             onclick={()=>revision++}>Ανανέωση καταλόγου</button>
         </div>
