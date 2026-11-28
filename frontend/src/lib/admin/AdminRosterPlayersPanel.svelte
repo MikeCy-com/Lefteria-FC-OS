@@ -10,8 +10,8 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
+  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;requestedPlayerId?:string|null;
     allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
     allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
@@ -72,7 +72,7 @@
     // Exact-group rows redact all other group memberships. Editing from
     // that minimized view could silently remove a child's other groups.
     // Open explicit organization-wide assignment mode before any PUT.
-    if (!allowAssignments || saving || loading || !groups.length || currentGroup) return;
+    if (requestedPlayerId!==null || !allowAssignments || saving || loading || !groups.length || currentGroup) return;
     closePlayer360();
     editing=player.id;
     selectedGroups=currentGroups(player);
@@ -92,7 +92,7 @@
       : selectedGroups.filter(group=>group!==id);
   }
   async function saveAssignment(player:Player) {
-    if (!browser || !allowAssignments || saving || loading || editing!==player.id || !page || currentGroup) return;
+    if (!browser || !allowAssignments || saving || loading || editing!==player.id || !page || currentGroup || requestedPlayerId!==null) return;
     const selectedOwner=owner;
     const selectedActor=actorId;
     const previous=currentGroups(player);
@@ -188,7 +188,7 @@
     const actor=actorId;
     const currentOffset=offset;
     const group=currentGroup;
-    const generation=refresh;
+    const generation=refresh,requested=requestedPlayerId;
     void actor;void generation;
 
     page=null;loading=false;failed=false;editing=null;closePlayer360();
@@ -198,6 +198,22 @@
     loading=true;
     void (async()=>{
       try{
+        if(requested!==null){
+          if(currentOwner!=='lefteria_fc_academy'||!allowPrivate||requested.length<1||requested.length>128||/[\x00-\x1f\x7f]/.test(requested))throw Error('Invalid player reference');
+          const response=await fetch('/api/admin/football/players/'+encodeURIComponent(requested)+'/private-profile?organization_id=lefteria_fc_academy',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+          if(controller.signal.aborted)return;
+          if(response.status===401){onExpired();return;}
+          if(response.status===403){onRevoked();return;}
+          if(!response.ok)throw Error('Player profile unavailable');
+          const raw:unknown=await response.json();
+          if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Invalid player response');
+          const record=raw as Record<string,unknown>;
+          if(record.organization_id!==currentOwner||record.player_id!==requested||!Array.isArray(record.academy_group_ids))throw Error('Unverified player identity');
+          const single={organization_id:currentOwner,ready:true,offset:0,limit:pageSize,total:1,players:[{id:requested,name:record.official_name,team_id:null,academy_group_ids:record.academy_group_ids}]};
+          if(!verified(single,currentOwner,0,null))throw Error('Invalid player roster response');
+          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){page=single;selectedPlayer360=requested;}
+          return;
+        }
         const params=new URLSearchParams({
           organization_id:currentOwner,offset:String(currentOffset),limit:String(pageSize)
         });
@@ -223,7 +239,7 @@
 
 <section class="admin-panel admin-player-directory" data-testid="admin-private-player-directory"
   aria-labelledby="admin-private-player-heading">
-  {#if !focusedPlayer360}
+  {#if !focusedPlayer360 && requestedPlayerId===null}
   <div class="admin-player-heading">
     <div>
       <p class="admin-eyebrow">ΕΞΟΥΣΙΟΔΟΤΗΜΕΝΟ ΡΟΣΤΕΡ · ΜΟΝΟ ΔΙΑΧΕΙΡΙΣΤΕΣ</p>
@@ -274,6 +290,7 @@
     <div role="alert" data-testid="admin-players-error">
       <p>Τα στοιχεία του ρόστερ δεν είναι διαθέσιμα.</p>
       <button type="button" class="admin-secondary" onclick={()=>refresh++}>Επανάληψη</button>
+      {#if requestedPlayerId}<a data-sveltekit-reload href="/admin/groups?organization_id=lefteria_fc_academy&view=players">Επιστροφή στον κατάλογο</a>{/if}
     </div>
   {:else}
     {#if !focusedPlayer360}<div class="admin-player-total" role="status">
@@ -357,7 +374,7 @@
                     <div><p class="admin-eyebrow">PLAYER 360 · {owner==='lefteria_fc_academy'?'ΑΚΑΔΗΜΙΑ':'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
                       <h3>{player.name}</h3><p class="admin-muted">{groupLabels(player)}</p></div>
                   </div>
-                  <button type="button" class="admin-secondary" onclick={closePlayer360}>Πίσω στους παίκτες</button>
+                  {#if requestedPlayerId}<a class="admin-secondary" data-sveltekit-reload href="/admin/groups?organization_id=lefteria_fc_academy&view=players">Πίσω στους παίκτες</a>{:else}<button type="button" class="admin-secondary" onclick={closePlayer360}>Πίσω στους παίκτες</button>{/if}
                 </header>
                 <div class="admin-player360-tabs" role="group" aria-label="Ενότητες αθλητή">
                   <button type="button" aria-pressed={player360Tab==='overview'} onclick={()=>selectPlayer360Tab(player,'overview')}>Επισκόπηση</button>
