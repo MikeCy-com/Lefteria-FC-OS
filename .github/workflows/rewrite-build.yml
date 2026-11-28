@@ -497,6 +497,30 @@ jobs:
           grep -Eqi '^x-content-type-options: nosniff' <<< "$headers"
           grep -Eqi '^referrer-policy: strict-origin-when-cross-origin' <<< "$headers"
           grep -Eqi '^x-frame-options: sameorigin' <<< "$headers"
+      - name: Verify private route indexing and cache protection
+        shell: bash
+        run: |
+          set -euo pipefail
+          for method in GET HEAD; do
+            args=()
+            if [[ "$method" == HEAD ]]; then args=(--head); fi
+            for path in /admin /admin/login /app /app/login /login /profile /register /checkout /cart /payments/return /api/admin/auth/me /api/mobile/auth/me /ADMIN/not-a-route; do
+              headers="$(curl --noproxy '*' --silent --show-error --max-time 15 "${args[@]}" --dump-header - --output /dev/null "http://localhost$path" | tr -d '\r')"
+              if ! grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive$' <<< "$headers" ||
+                 ! grep -Eqi '^cache-control: private, no-store$' <<< "$headers"; then
+                echo "Missing private response policy for $method $path" >&2
+                exit 1
+              fi
+              [[ "$(grep -Eic '^cache-control:' <<< "$headers")" == 1 ]]
+            done
+          done
+          for path in / /news /academy /app-service-worker.js; do
+            headers="$(curl --noproxy '*' --silent --show-error --max-time 15 --dump-header - --output /dev/null "http://localhost$path" | tr -d '\r')"
+            if grep -Eqi '^x-robots-tag: noindex, nofollow, noarchive$' <<< "$headers"; then
+              echo "Private route policy unexpectedly applied to public path $path" >&2
+              exit 1
+            fi
+          done
       - if: failure()
         name: Diagnose disposable Compose failure
         run: |
