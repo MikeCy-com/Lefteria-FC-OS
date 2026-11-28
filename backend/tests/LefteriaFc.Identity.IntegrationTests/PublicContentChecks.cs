@@ -123,6 +123,7 @@ internal sealed partial class IdentityHttpChecks
             // Use the existing disposable fixture, never a hosted database.
             await AssertNewsQueryParityAsync(client);
             await database.AssertNewsSlugRegistryAsync();
+            await database.AssertConcurrentNewsSlugClaimAsync();
             await database.AssertPublicContentRuntimeBoundaryAsync();
             await database.AssertPublicProjectionConstraintAsync();
             await database.AssertWebPlatformForwardRecoveryAsync();
