@@ -62,7 +62,7 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         ("Roster composite organization FKs and runtime archive/write denials hold", RosterIntegrityAsync),
         ("Staff snapshot binds roster provenance, rolls back failures and replays concurrently", StaffImportAsync),
         ("Staff relationships preserve cross-org assignments and private contacts without identity grants", StaffIntegrityAsync),
-        ("Formal role signup and malformed registration are rejected", RegistrationValidationAsync),
+        ("Formal-phone signup privately resumes login; malformed registration is rejected", RegistrationValidationAsync),
         ("Remember-days HTTP presence and strict JSON types", RememberDaysAsync),
         ("Expired OTP and sixth verification cannot create a session", ExpiryAndAttemptsAsync),
         ("Concurrent OTP consumption creates exactly one login", ConcurrentConsumptionAsync),
@@ -117,7 +117,9 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
         using var client = Client();
         var phone = database.NewPhone();
         await database.SeedIdentityAsync(phone, MobileRole.Parent, "Formal guardian private display");
-        await RequestAsync(client, phone);
+        var requested = await RequestAsync(client, phone);
+        Check.True(requested.GetProperty("role_detected").ValueKind == JsonValueKind.Null,
+            "A caller without OTP proof must not discover the registered role.");
         var code = factory.Sms.Latest(phone);
         var picker = await VerifyAsync(client, phone, code, 200);
         Check.True(picker.GetProperty("multi_role").GetBoolean(), "A formal identity plus fan must require a role choice.");
@@ -190,9 +192,44 @@ internal sealed partial class IdentityHttpChecks(IdentityApplicationFactory fact
     {
         using var client = Client();
         var formal = database.NewPhone();
-        await database.SeedIdentityAsync(formal, MobileRole.Coach);
-        await RegisterAsync(client, formal, "Fixture", "Coach", "1990-01-01", 400);
-        Check.Equal(0, factory.Sms.Count(formal), "Formal-role signup sent an unnecessary SMS.");
+        await database.SeedIdentityAsync(formal, MobileRole.Coach, "Existing private coach");
+        var registration = await RegisterAsync(client, formal, "Fixture", "Coach", "1990-01-01", 200);
+        Check.Equal("fan", registration.GetProperty("role_detected").GetString(),
+            "Registration response must be independent of existing formal roles.");
+        Check.Equal(1, factory.Sms.Count(formal), "Existing phone did not receive normal OTP challenge.");
+        Check.True(await database.IdentityAsync(formal, MobileRole.Fan) is null,
+            "Registration must not create a fan before proof.");
+        Check.True((await database.ChallengeAsync(formal))?.PendingFirstName is null,
+            "Registration must not stage replacement profile data for a formal account.");
+        await VerifyAsync(client, formal, factory.Sms.Latest(formal), 200, "fan");
+        var verifiedFan = await database.IdentityAsync(formal, MobileRole.Fan)
+            ?? throw new InvalidOperationException("Verified formal phone did not receive its separate fan profile.");
+        Check.Equal(MobileAuthService.NeutralFanDisplayName, verifiedFan.DisplayName,
+            "Unverified signup fields must not overwrite a formal account's separate fan profile.");
+        Check.Equal("Existing private coach", (await database.IdentityAsync(formal, MobileRole.Coach))!.DisplayName,
+            "Signup changed the existing coach identity.");
+
+        // Reopening the registration form for a phone with both profiles is
+        // a login, not a way to overwrite either existing role's data.
+        using var repeatClient = Client();
+        await RegisterAsync(repeatClient, formal, "Replacement", "Name", "1991-01-01", 200);
+        await VerifyAsync(repeatClient, formal, factory.Sms.Latest(formal), 200, "fan");
+        var sameFan = (await database.IdentityAsync(formal, MobileRole.Fan))!;
+        Check.Equal(MobileAuthService.NeutralFanDisplayName, sameFan.DisplayName,
+            "Registration overwrote a separate existing fan profile.");
+        Check.Equal(verifiedFan.Id, sameFan.Id, "Same phone created a duplicate fan identity.");
+
+        using var blockedClient = Client();
+        var blocked = database.NewPhone();
+        var blockedId = await database.SeedIdentityAsync(blocked, MobileRole.Fan, "Disabled fan");
+        await database.SetIdentityActiveAsync(blockedId, false);
+        await RegisterAsync(blockedClient, blocked, "Do not", "Reactivate", "1990-01-01", 200);
+        Check.True((await database.ChallengeAsync(blocked))?.PendingFirstName is null,
+            "Disabled fan signup staged profile data.");
+        await VerifyAsync(blockedClient, blocked, factory.Sms.Latest(blocked), 403, "fan");
+        Check.Equal("Disabled fan", (await database.IdentityAsync(blocked, MobileRole.Fan))!.DisplayName,
+            "Registration altered a disabled fan identity.");
+
         var phone = database.NewPhone();
         await RegisterAsync(client, phone, "", "Supporter", "1990-01-01", 400);
         await RegisterAsync(client, phone, "Fixture", "Supporter", "02/04/1995", 400);

@@ -1,6 +1,9 @@
 <script lang="ts">
   import { getContext, onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/state';
+  import { mobileAfterLogin, readMobileTab } from '../../../lib/mobile/guest-navigation.ts';
+  import { TAB_NAMES } from '../../../lib/mobile/navigation.ts';
   import { browser } from '$app/env';
   import MobileLogin from '../../../lib/mobile/components/MobileLogin.svelte';
   import AppInstallButton from '../../../lib/public/AppInstallButton.svelte';
@@ -13,7 +16,11 @@
   let clock = $state(Date.now());
   const confirmedPhone = $derived($controller.phone);
   const resendSeconds = $derived(Math.max(0, Math.ceil(($controller.resendAvailableAt - clock) / 1000)));
-  $effect(() => { if (browser && $controller.status === 'authenticated') void goto('/app', { replace: true }); });
+  const returnTab = $derived(readMobileTab(page.url.searchParams.get('return_tab')));
+  $effect(() => {
+    if (browser && $controller.status === 'authenticated' && $controller.user)
+      void goto(mobileAfterLogin(returnTab, $controller.user.role, $controller.user.current_role_available), { replace: true });
+  });
   $effect(() => { if (confirmedPhone) phone = confirmedPhone; });
   onMount(() => {
     const interval = setInterval(() => { clock = Date.now(); }, 1000);
@@ -25,7 +32,15 @@
 
 {#if $controller.status === 'anonymous'}
   <aside class="os-install-entry" data-testid="mobile-login-os-install">
-    <div><strong>Lefteria FC OS</strong><span>Η επίσημη εφαρμογή για το κινητό σου</span></div>
+    <div>
+      <strong>Lefteria FC OS</strong>
+      {#if returnTab && returnTab !== 'home'}
+        <span data-testid="login-intended-tab">Συνδέσου με τον διαθέσιμο ρόλο για πρόσβαση: <strong>{TAB_NAMES[returnTab]}</strong></span>
+      {:else}
+        <span>Η επίσημη εφαρμογή για το κινητό σου</span>
+      {/if}
+    </div>
+    <a class="guest-login-link" href="/app" data-testid="continue-as-guest">← Συνέχεια ως επισκέπτης</a>
     <AppInstallButton />
   </aside>
   <MobileLogin step={$controller.step} bind:phone bind:rememberDays identities={$controller.identities}
@@ -53,6 +68,10 @@
   .os-install-entry strong{font-size:15px}
   .os-install-entry span{font-size:12px;color:#b7bec2}
   .os-install-entry :global(.public-app-open){min-height:44px;padding:10px 14px}
+  .guest-login-link{display:inline-flex;align-items:center;min-height:44px;color:#f6bb38;font:700 13px/1.5 'Fira Sans',sans-serif;text-decoration:none}
+  .guest-login-link:focus-visible{outline:2px solid #f6bb38;outline-offset:3px}
+  .os-install-entry span strong{font-size:inherit}
+  @media(max-width:600px){.os-install-entry{gap:4px 12px}.os-install-entry>div{flex:1 0 100%}}
   .login-status { display:grid; align-content:center; justify-items:center; gap:12px; min-height:100dvh; padding:24px; background:#080808; color:#fff; font-family:'Fira Sans',sans-serif; }
   .login-status p { max-width:32rem; text-align:center; }
   button { min-height:44px; padding:10px 18px; border:1px solid #f6bb38; border-radius:6px; background:#161616; color:#ffca46; cursor:pointer; }

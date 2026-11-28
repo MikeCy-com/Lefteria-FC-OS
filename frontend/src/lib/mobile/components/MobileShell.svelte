@@ -9,6 +9,7 @@
 
   interface Props {
     role: MobileRole;
+    guest?: boolean;
     activeTab: MobileTab;
     availableRoles: readonly MobileRole[];
     userName: string;
@@ -25,7 +26,7 @@
     onCreatePost: () => UiAction;
   }
 
-  let { role, activeTab, availableRoles, userName, avatarUrl = null, clubName = 'ΛΕΥΤΕΡΙΑ FC', clubLogoUrl = null, notificationCount = 0,
+  let { role, guest = false, activeTab, availableRoles, userName, avatarUrl = null, clubName = 'ΛΕΥΤΕΡΙΑ FC', clubLogoUrl = null, notificationCount = 0,
     busy = false, children, onTabChange, onRoleChange, onNotifications, onProfile, onCreatePost }: Props = $props();
   const id = $props.id();
   let roleMenuOpen = $state(false);
@@ -39,10 +40,11 @@
     if (roleMenu?.contains(target) || roleTrigger?.contains(target)) return;
     roleMenuOpen = false;
   }
-  const roles = $derived([...new Set(availableRoles)]);
-  const tabs = $derived(primaryTabs(role));
-  const selectedPrimaryTab = $derived(contextualBottomTabFor(activeTab, role));
-  const hasComposer = $derived(canComposePost(role));
+  const guestTabs: readonly MobileTab[] = ['home', 'matches', 'news', 'shop', 'more'];
+  const roles = $derived(guest ? [] : [...new Set(availableRoles)]);
+  const tabs = $derived(guest ? guestTabs : primaryTabs(role));
+  const selectedPrimaryTab = $derived(guest ? (guestTabs.includes(activeTab) ? activeTab : null) : contextualBottomTabFor(activeTab, role));
+  const hasComposer = $derived(!guest && canComposePost(role));
   const initial = $derived(userName.trim().slice(0, 1).toLocaleUpperCase('el-GR') || '?');
 
   $effect(() => { if (avatarUrl) avatarFailed = false; });
@@ -72,12 +74,12 @@
 </script>
 
 <svelte:window onpointerdown={dismissRoles} />
-<div class="lf-mobile-theme mobile-shell" data-mobile-role={role} data-testid="mobile-app" aria-busy={busy}>
+<div class="lf-mobile-theme mobile-shell" data-mobile-role={guest ? undefined : role} data-testid={guest ? "mobile-guest-app" : "mobile-app"} aria-busy={busy}>
   <a class="skip-link" href={`#${id}-content`}>Μετάβαση στο περιεχόμενο</a>
   <header class="mobile-header">
-    <button bind:this={roleTrigger} type="button" class="header-action role-trigger" aria-label="Αλλαγή ρόλου"
-      aria-expanded={roleMenuOpen} aria-controls={`${id}-roles`} disabled={busy}
-      onclick={() => { roleMenuOpen = !roleMenuOpen; }} onkeydown={closeRoles} data-testid="role-switcher">
+    <button bind:this={roleTrigger} type="button" class="header-action role-trigger" aria-label={guest ? "Σύνδεση" : "Αλλαγή ρόλου"}
+      aria-expanded={guest ? undefined : roleMenuOpen} aria-controls={guest ? undefined : `${id}-roles`} disabled={busy}
+      onclick={() => { if (guest) void onProfile(); else roleMenuOpen = !roleMenuOpen; }} onkeydown={closeRoles} data-testid="role-switcher">
       <MobileIcon name="menu" size={24} />
     </button>
     {#if clubLogoUrl}
@@ -86,7 +88,7 @@
     {:else}
       <span class="club-crest club-crest-placeholder" aria-hidden="true">Λ</span>
     {/if}
-    <div class="brand-lockup"><p data-testid="mobile-club-brand-name">{clubName}</p><span>{ROLE_NAMES[role]}</span></div>
+    <div class="brand-lockup"><p data-testid="mobile-club-brand-name">{clubName}</p><span>{guest ? "Επισκέπτης · Φίλαθλος" : ROLE_NAMES[role]}</span></div>
     <div class="header-actions">
       <button type="button" class="header-action bell" disabled={busy}
         aria-label={notificationCount > 0 ? `Ειδοποιήσεις: ${notificationCount} μη αναγνωσμένες` : 'Ειδοποιήσεις'}
@@ -94,12 +96,12 @@
         <MobileIcon name="bell" size={23} />
         {#if notificationCount > 0}<span class="notification-count" aria-hidden="true">{notificationCount > 99 ? '99+' : notificationCount}</span>{/if}
       </button>
-      <button type="button" class="profile-action" disabled={busy} aria-label="Το προφίλ μου"
+      <button type="button" class="profile-action" disabled={busy} aria-label={guest ? "Σύνδεση / Εγγραφή" : "Το προφίλ μου"}
         onclick={() => { roleMenuOpen = false; void onProfile(); }} data-testid="mobile-profile">
         {#if avatarUrl && !avatarFailed}<img src={avatarUrl} alt="" onerror={() => { avatarFailed = true; }} />{:else}<span aria-hidden="true">{initial}</span>{/if}
       </button>
     </div>
-    {#if roleMenuOpen}
+    {#if roleMenuOpen && !guest}
       <div bind:this={roleMenu} class="role-menu" id={`${id}-roles`}>
         <p>Σύνδεση ως</p>
         {#each roles as option (option)}
