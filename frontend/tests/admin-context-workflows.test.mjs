@@ -27,7 +27,7 @@ test('global navigation has no standalone player or match tools; profile and set
     assert.doesNotMatch(dashboard,new RegExp('href="/admin/'+path+'"'));
   for(const path of ['matches','evaluations','documents'])
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+path+'"'));
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/schedule"/);
   assert.match(assigned,/href="\/admin\/attendance"/);
   assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
