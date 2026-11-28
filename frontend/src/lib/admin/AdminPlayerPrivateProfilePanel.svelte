@@ -34,9 +34,9 @@
     current_contact?:CurrentContact|null;
   };
 
-  let {playerId,playerName,actorId,allowWrite=false,allowGuardianReview=false,onExpired,onRevoked}:{
+  let {playerId,playerName,actorId,allowWrite=false,allowGuardianReview=false,onNameChanged=()=>{},onExpired,onRevoked}:{
     playerId:string;playerName:string;actorId:string;allowWrite?:boolean;allowGuardianReview?:boolean;
-    onExpired:()=>void;onRevoked:()=>void;
+    onNameChanged?:(name:string)=>void;onExpired:()=>void;onRevoked:()=>void;
   }=$props();
   let profile=$state<Profile|null>(null);
   let biography=$state('');
@@ -48,6 +48,8 @@
   let photoLoaded=$state(false);
   let showGuardianReview=$state(false);
   let editingContact=$state(false),savingContact=$state(false);
+  let editingName=$state(false),savingName=$state(false),newName=$state('');
+  const sportingDirty=$derived(!!profile&&(biography!==profile.biography||preferredPosition!==profile.preferred_position||preferredNumber!==(profile.preferred_number?.toString()??'')));
   let contactName=$state(''),contactRelationship=$state(''),contactPhone=$state(''),contactEmail=$state('');
   const currentContact=$derived(profile?.current_contact??(profile?.registration?{
     name:profile.registration.guardian_name,relationship:profile.registration.guardian_relationship,
@@ -98,7 +100,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;editingName=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -116,8 +118,27 @@
     return()=>abort.abort();
   });
 
+  async function correctName(){
+    if(!profile||!allowWrite||!editingName||savingName||savingContact||saving||uploading||loading||sportingDirty)return;
+    const expected=profile.official_name,name=newName.trim(),id=playerId,actor=actorId;
+    if(!name||name.length>200||/[\x00-\x1f\x7f]/.test(name)||name===expected)return;
+    savingName=true;error='';notice='';
+    try{
+      const response=await request(url,{method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({nameCorrection:{expectedName:expected,name}})});
+      const value:unknown=await response.json();
+      if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      const result=value as Record<string,unknown>;
+      if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||result.official_name!==name||result.updated!==true)
+        throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      if(playerId!==id||actorId!==actor||!allowWrite)return;
+      editingName=false;notice='Το όνομα ενημερώθηκε.';onNameChanged(name);revision++;
+    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αλλαγή απέτυχε.';}
+    finally{savingName=false;}
+  }
+
   function editContact(){
-    if(!profile||!allowWrite||saving||uploading||savingContact||loading)return;
+    if(!profile||!allowWrite||saving||uploading||savingContact||savingName||editingName||sportingDirty||loading)return;
     contactName=currentContact?.name??'';contactRelationship=currentContact?.relationship??'';
     contactPhone=currentContact?.phone??'';contactEmail=currentContact?.email??'';
     editingContact=true;error='';notice='';
@@ -146,7 +167,7 @@
   }
 
   async function save(){
-    if(!profile||!allowWrite||saving||uploading||savingContact||editingContact||loading)return;
+    if(!profile||!allowWrite||saving||uploading||savingContact||editingContact||savingName||editingName||loading)return;
     const bio=biography.trim(),position=preferredPosition.trim();
     const number=preferredNumber.trim()?Number(preferredNumber):null;
     if(bio.length>1000||position.length>80||bio.includes('\r')||
@@ -172,7 +193,7 @@
   }
 
   async function changePortrait(remove=false){
-    if(!allowWrite||uploading||saving||savingContact||editingContact||loading||(!remove&&!canUpload))return;
+    if(!allowWrite||uploading||saving||savingContact||editingContact||savingName||editingName||sportingDirty||loading||(!remove&&!canUpload))return;
     if(remove&&!window.confirm('Να αφαιρεθεί η ιδιωτική φωτογραφία αυτού του παιδιού;'))return;
     uploading=true;error='';notice='';
     try{
@@ -242,23 +263,36 @@
         <div class="admin-player-official">
           <strong>Επίσημα στοιχεία εγγραφής</strong>
           <span>{profile.official_name}</span>
+          {#if allowWrite&&!editingName}
+            <button type="button" class="admin-secondary" disabled={saving||uploading||savingContact||editingContact||sportingDirty} onclick={()=>{newName=profile?.official_name??'';editingName=true;error='';notice='';}}>Διόρθωση ονόματος</button>
+          {/if}
+          {#if allowWrite&&editingName}
+            <form class="name-correction" onsubmit={event=>{event.preventDefault();void correctName();}}>
+              <label>Τρέχον επίσημο όνομα <input bind:value={newName} maxlength="200" required disabled={savingName}/></label>
+              <p class="admin-muted">Η αλλαγή αφορά το τρέχον ρόστερ. Η αρχική υπογεγραμμένη αίτηση διατηρείται.</p>
+              <div class="contact-actions">
+                <button type="submit" class="admin-primary" disabled={savingName||!newName.trim()||newName.trim()===profile.official_name}>Αποθήκευση ονόματος</button>
+                <button type="button" class="admin-secondary" disabled={savingName} onclick={()=>editingName=false}>Ακύρωση</button>
+              </div>
+            </form>
+          {/if}
           <span>Αριθμός: {profile.official_number??'—'} · Θέση: {profile.official_position??'—'}</span>
           <small>Τα στοιχεία εγγραφής διατηρούνται χωριστά για προστασία των αγώνων, γονέων και παραστατικών.</small>
         </div>
         <label>Αθλητικό βιογραφικό
           <textarea bind:value={biography} maxlength="1000" rows="5"
-            disabled={!allowWrite||saving||uploading}
+            disabled={!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact}
             placeholder="Σύντομη παρουσίαση, δυνατά σημεία και στόχοι ανάπτυξης"></textarea>
         </label>
         <div class="admin-player-preferences">
           <label>Προτιμώμενη θέση
             <input bind:value={preferredPosition} maxlength="80"
-              disabled={!allowWrite||saving||uploading} placeholder="Π.χ. Επιθετικός"/>
+              disabled={!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact} placeholder="Π.χ. Επιθετικός"/>
           </label>
           <label>Προτιμώμενος αριθμός
             <input bind:value={preferredNumber} inputmode="numeric"
               pattern="[0-9][0-9]?" maxlength="2"
-              disabled={!allowWrite||saving||uploading} placeholder="1–99"/>
+              disabled={!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact} placeholder="1–99"/>
           </label>
         </div>
         {#if profile.updated_at}
@@ -267,7 +301,7 @@
         {#if allowWrite}
           <button type="button" class="admin-primary"
             data-testid="admin-player-save-private-profile"
-            disabled={saving||uploading||loading} onclick={()=>void save()}>
+            disabled={saving||uploading||loading||editingName||editingContact||savingName||savingContact} onclick={()=>void save()}>
             {saving?'Αποθήκευση…':'Αποθήκευση προφίλ'}
           </button>
         {/if}
@@ -277,7 +311,7 @@
       <div class="contact-header">
         <h3>Τρέχοντα στοιχεία επικοινωνίας γονέα / κηδεμόνα</h3>
         {#if allowWrite&&!editingContact}
-          <button type="button" class="admin-secondary" disabled={saving||uploading||savingContact} onclick={editContact}>Επεξεργασία επικοινωνίας</button>
+          <button type="button" class="admin-secondary" disabled={saving||uploading||savingContact||editingName||savingName||sportingDirty} onclick={editContact}>Επεξεργασία επικοινωνίας</button>
         {/if}
       </div>
       <p class="admin-muted">Οι διορθώσεις αφορούν μόνο την επικοινωνία της Ακαδημίας. Δεν αλλάζουν την αρχική αίτηση, την ταυτοποίηση, την πρόσβαση στην εφαρμογή ή τα οικονομικά στοιχεία.</p>
@@ -376,4 +410,5 @@
   .contact-edit label{display:grid;gap:6px;min-width:0}
   .contact-edit input{width:100%;min-width:0}
   .contact-actions{grid-column:1/-1}
+  .name-correction{display:grid;gap:8px;min-width:0}
 </style>
