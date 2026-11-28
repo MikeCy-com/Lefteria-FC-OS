@@ -42,3 +42,16 @@ test('combined football overview validates each owner independently and links to
   assert.match(groups,/item\.directory\?\.organization_id===item\.owner/);
   assert.match(groups,/organization_id=\$\{encodeURIComponent\(item\.owner\)\}&group_id=\$\{encodeURIComponent\(group\.id\)\}/);
 });
+
+test('scoped navigation opens exact organization workspace with no sibling selector',()=>{
+  const groups=read('src/routes/admin/groups/+page.svelte');
+  const frame=read('src/lib/admin/AdminFrame.svelte');
+  assert.ok(compile(frame,{filename:'AdminFrame.svelte',generate:'server'}).js.code.length>100);
+  assert.match(frame,/data-testid="admin-first-team-navigation"/);
+  assert.match(frame,/data-testid="admin-academy-navigation"/);
+  assert.match(frame,/\{#if firstTeamGroups \|\| firstTeamTrials\}/);
+  assert.match(frame,/\{#if academyGroups \|\| academyCoachTools \|\| academyDrills\}/);
+  assert.match(groups,/grantedAssignments\.filter\(org=>org\.id===routeOwner\)/);
+  assert.match(territories,/grantedOwners\.filter\(id=>id===routeOwner\)/);
+  assert.match(groups,/routeOwner===null\?assignments\.find/);
+});
