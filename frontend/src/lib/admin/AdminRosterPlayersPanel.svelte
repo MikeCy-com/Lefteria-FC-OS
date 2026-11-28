@@ -211,7 +211,7 @@
           if(record.organization_id!==currentOwner||record.player_id!==requested||!Array.isArray(record.academy_group_ids))throw Error('Unverified player identity');
           const single={organization_id:currentOwner,ready:true,offset:0,limit:pageSize,total:1,players:[{id:requested,name:record.official_name,team_id:null,academy_group_ids:record.academy_group_ids}]};
           if(!verified(single,currentOwner,0,null))throw Error('Invalid player roster response');
-          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){page=single;selectedPlayer360=requested;}
+          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){page=single;selectedPlayer360=requested;player360Tab='profile';inspectedProfile=requested;}
           return;
         }
         const params=new URLSearchParams({
