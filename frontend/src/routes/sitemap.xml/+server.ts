@@ -46,8 +46,8 @@ export const GET: RequestHandler = async ({ url }) => {
       api.GET('/api/public/sections', { params: { query: { organization_id: 'lefteria_fc' } } }),
       api.GET('/api/public/sections', { params: { query: { organization_id: 'lefteria_fc_academy' } } }),
       readPublicNews(api),
-      readWebsitePages('lefteria_fc'),
-      readWebsitePages('lefteria_fc_academy')
+      readWebsitePages('lefteria_fc', { strict: true }),
+      readWebsitePages('lefteria_fc_academy', { strict: true })
     ]);
     if (fcSite.response.status !== 200 || fcSite.data?.organization_id !== 'lefteria_fc'
       || academySite.response.status !== 200 || academySite.data?.organization_id !== 'lefteria_fc_academy'
