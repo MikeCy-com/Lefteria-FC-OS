@@ -341,6 +341,10 @@ REVOKE ALL ON FUNCTION club.read_admin_coaches(text,text,integer,integer) FROM P
 GRANT EXECUTE ON FUNCTION club.read_admin_coaches(text,text,integer,integer) TO :"admin_auth_role";
 -- Manager-only, paginated and minimized active player/group projection.
 -- The web-admin role still cannot SELECT club.players directly.
+REVOKE ALL ON FUNCTION club.search_admin_roster_players(text,text,integer,integer,text,text),
+  club.search_admin_group_roster(text,text,text,integer,integer,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION club.search_admin_roster_players(text,text,integer,integer,text,text),
+  club.search_admin_group_roster(text,text,text,integer,integer,text) TO :"admin_auth_role";
 REVOKE ALL ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) FROM PUBLIC, :"app_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_roster_players(text,text,integer,integer) TO :"admin_auth_role";
 -- A separate manager-only projection reads ONLY the verified chosen group.
@@ -514,6 +518,8 @@ BEGIN
                   'club.read_admin_academy_group_publicity(text,text)'::regprocedure,
                   'club.set_admin_academy_group_publicity(text,text,bigint,boolean)'::regprocedure,
                   'club.read_admin_roster_players(text,text,integer,integer)'::regprocedure,
+                  'club.search_admin_roster_players(text,text,integer,integer,text,text)'::regprocedure,
+                  'club.search_admin_group_roster(text,text,text,integer,integer,text)'::regprocedure,
                    'club.read_admin_group_roster(text,text,text,integer,integer)'::regprocedure,
                   'club.write_admin_roster_assignment(text,text,text,jsonb,jsonb)'::regprocedure,
                   'club.read_admin_coaches(text,text,integer,integer)'::regprocedure,
