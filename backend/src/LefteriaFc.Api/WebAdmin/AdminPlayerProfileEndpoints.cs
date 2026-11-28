@@ -10,8 +10,11 @@ using NpgsqlTypes;
 
 namespace LefteriaFc.Api.WebAdmin;
 
+public sealed record UpdateAcademyPlayerContact(
+    string? Name,string? Relationship,string? Phone,string? Email);
 public sealed record UpdateAcademyPlayerPrivateProfile(
-    int ExpectedRevision,string? Biography,string? PreferredPosition,int? PreferredNumber);
+    int ExpectedRevision,string? Biography,string? PreferredPosition,int? PreferredNumber,
+    UpdateAcademyPlayerContact? Contact=null);
 
 /// <summary>
 /// Restricted staff-only Academy child profile. All reads, edits and photo
@@ -52,6 +55,13 @@ public static class AdminPlayerProfileEndpoints
             WebAdminConnections connections,CancellationToken ct)=>
         {
             var digest=await SessionDigest(playerId,organization_id,context,admin,secrets,ct);
+            if(body.Contact is not null)
+            {
+                if(body.Biography is not null||body.PreferredPosition is not null||body.PreferredNumber is not null)
+                    throw new WebAdminException(422,"player_profile_invalid",
+                        "Save contact details separately from sporting preferences.");
+                return await SaveContact(digest,playerId,body.ExpectedRevision,body.Contact,connections,ct);
+            }
             if(body.ExpectedRevision is < 0 or > 1999999999 ||
                body.Biography is null || body.Biography.Length>1000 ||
                body.Biography!=body.Biography.Trim() ||
@@ -146,6 +156,36 @@ public static class AdminPlayerProfileEndpoints
             return Results.NoContent();
         }).WithName("RemoveAdminAcademyPrivatePlayerPhoto").ExcludeFromDescription();
         return endpoints;
+    }
+
+    private static async Task<IResult> SaveContact(string digest,string playerId,int expected,
+        UpdateAcademyPlayerContact contact,WebAdminConnections connections,CancellationToken ct)
+    {
+        static bool Valid(string? value,int min,int max)=>value is not null &&
+            value.Length>=min && value.Length<=max && value==value.Trim() && !value.Any(char.IsControl);
+        if(expected is <0 or >1999999999 || !Valid(contact.Name,1,200) ||
+            !Valid(contact.Relationship,1,80) || !Valid(contact.Phone,7,32) ||
+            !Valid(contact.Email,3,254) ||
+            !System.Text.RegularExpressions.Regex.IsMatch(contact.Phone!,@"^\+?[0-9 ()-]{7,32}$") ||
+            !System.Text.RegularExpressions.Regex.IsMatch(contact.Email!,@"^[^\s@]+@[^\s@]+\.[^\s@]+$"))
+            throw new WebAdminException(422,"player_profile_invalid","Enter valid contact details.");
+        await using var db=await connections.OpenAsync(ct);
+        await using var command=new NpgsqlCommand(
+            "SELECT club.write_admin_academy_player_contact(@digest,@player,@version,@name,@relationship,@phone,@email)::text",db);
+        command.Parameters.AddWithValue("digest",digest);
+        command.Parameters.AddWithValue("player",playerId);
+        command.Parameters.AddWithValue("version",expected);
+        command.Parameters.AddWithValue("name",contact.Name!);
+        command.Parameters.AddWithValue("relationship",contact.Relationship!);
+        command.Parameters.AddWithValue("phone",contact.Phone!);
+        command.Parameters.AddWithValue("email",contact.Email!);
+        try
+        {
+            var json=await command.ExecuteScalarAsync(ct) as string;
+            return json is null?Results.Problem(statusCode:503)
+                :Results.Content(json,"application/json",Encoding.UTF8,200);
+        }
+        catch(PostgresException error){throw MapSql(error);}
     }
 
     private static async Task SavePhoto(string digest,string playerId,byte[]? jpeg,
