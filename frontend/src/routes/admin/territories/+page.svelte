@@ -87,7 +87,6 @@
   let locationSlug=$state('');
   let locationAddress=$state('');
   let locationMapsUrl=$state('');
-  let slug = $state('');
   let address = $state('');
   let googleMapsUrl = $state('');
   let selectedGroup = $state('');
@@ -256,7 +255,7 @@
       directory=null;
       if(action==='city'){pendingCityId=createdId;cityName='';citySlug='';}
       else if(action==='location'){pendingLocationId=createdId;locationName='';locationSlug='';locationAddress='';locationMapsUrl='';}
-      else {name='';slug='';address='';googleMapsUrl='';competition='';}
+      else {name='';address='';googleMapsUrl='';competition='';}
       if(action==='group_assignment' && typeof data.group_id==='string')placedGroupId=data.group_id;
       message=action==='group_assignment'
         ? 'Το τμήμα συνδέθηκε επιτυχώς με την πόλη και τοποθεσία.'
