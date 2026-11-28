@@ -421,6 +421,7 @@ jobs:
         run: |
           node --test deploy/preview/*.test.mjs
           python3 -B -m unittest discover -s deploy/preview -p 'test_*.py'
+          python3 -B -m unittest discover -s scripts/performance -p 'test_*.py'
       - name: Generate disposable authentication keys
         run: |
           for setting in POSTGRES_PASSWORD DATABASE_APP_PASSWORD MOBILE_SIGNING_KEY MOBILE_OTP_KEY; do
