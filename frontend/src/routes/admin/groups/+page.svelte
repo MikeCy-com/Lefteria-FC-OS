@@ -605,7 +605,7 @@
                 onclick={()=>directoryView='groups'}>Ομάδες & τμήματα</button>
               <button type="button" aria-pressed={directoryView==='players'}
                 data-testid="admin-directory-players"
-                onclick={()=>directoryView='players'}>Παίκτες CRM</button>
+                onclick={()=>directoryView='players'}>Παίκτες & προφίλ</button>
             </div>
           {/if}
           {#if canCreate && directoryView==='players' && $auth.session}
@@ -680,7 +680,7 @@
                     </label>
                   {:else}
                     <div class="admin-academy-placement">
-                      <label>Πόλη Ακαδημίας *
+                      <label>1. Πόλη Ακαδημίας *
                         <select bind:value={creationCityId}
                           disabled={saving || locationSaving || creationLocationsLoading}
                           required data-testid="admin-group-city"
@@ -694,9 +694,9 @@
                       {#if $auth.session?.user.role==='super_admin'}
                         <a class="admin-add-city-link"
                           href="/admin/territories?organization_id=lefteria_fc_academy#create-city"
-                          data-testid="admin-new-city-route">+ Νέα πόλη · κεντρικός κατάλογος</a>
+                          data-testid="admin-new-city-route">+ Δημιουργία πόλης</a>
                       {/if}
-                      <label>Τοποθεσία Ακαδημίας *
+                      <label>2. Τοποθεσία Ακαδημίας *
                         <select bind:value={creationLocationId}
                           disabled={saving || locationSaving || creationLocationsLoading || !creationCityId}
                           required data-testid="admin-group-verified-location"
@@ -966,7 +966,7 @@
 {/if}
 
 <style>
-  .admin-audiences{max-width:1440px}
+  .admin-audiences{width:100%;max-width:none;min-width:0}
   .admin-directory-switch{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
   .admin-directory-switch button{min-height:40px;padding:9px 15px;border:1px solid #3c4140;
     background:#161818;color:#d5dad8;border-radius:7px;font:700 13px/1.3 'Fira Sans',sans-serif}
