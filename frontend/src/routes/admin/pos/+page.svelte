@@ -12,6 +12,7 @@
   import AdminPosCashierShiftsPanel from '../../../lib/admin/AdminPosCashierShiftsPanel.svelte';
   import AdminPosSitesPanel from '../../../lib/admin/AdminPosSitesPanel.svelte';
   import AdminPosFinanceHandoffPanel from '../../../lib/admin/AdminPosFinanceHandoffPanel.svelte';
+  import AdminPosTerminalLink from '../../../lib/admin/AdminPosTerminalLink.svelte';
 
   type Organization = 'lefteria_fc' | 'lefteria_fc_academy';
   type Category = { id: string; name: string; active: boolean; version: number };
@@ -389,6 +390,7 @@
           αλλαγής τοποθεσίας ή έγκρισης επιστροφών.</p>
       </section>
       {#if cashierOwner}
+        <AdminPosTerminalLink/>
         <AdminPosCashierShiftsPanel owner={cashierOwner}
           actorId={$auth.session.user.id}
           onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
@@ -399,6 +401,7 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>POS & κατάστημα</h1>
+        {#if $auth.session.user.role==='super_admin'}<AdminPosTerminalLink/>{/if}
         <p class="admin-muted">Διαχειριστείτε ταμεία, βάρδιες, προϊόντα και τιμές. Οι διαθέσιμες ενέργειες εξαρτώνται από τα δικαιώματά σας. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
