@@ -230,8 +230,12 @@
     </button>
   </div>
   <p class="admin-muted">Ιδιωτικές αξιολογήσεις και προστατευμένα έγγραφα του επιλεγμένου αθλητή.</p>
+  <div class="private-player-card-sections" aria-label="Σύνοψη φακέλου">
+    <div><h4>Έγγραφα</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμα':documents.length+' καταχωρίσεις'}</p></div>
+    <div><h4>Αξιολογήσεις</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμες':evaluations.length+' καταχωρίσεις'}</p></div>
+  </div>
   {#if allowCreate}
-    <button type="button" class="admin-secondary" onclick={()=>showCreate=!showCreate} disabled={creating}>
+    <button type="button" class="admin-secondary" onclick={()=>{showCreate=!showCreate;if(showCreate)showUpload=false;}} disabled={creating||uploading}>
       {showCreate?'Κλείσιμο φόρμας':'Νέα αξιολόγηση'}
     </button>
     {#if showCreate}
@@ -262,8 +266,8 @@
   {/if}
   {#if createNotice}<p role="status">{createNotice}</p>{/if}
   {#if allowCreate}
-    <button type="button" class="admin-secondary" disabled={uploading}
-      onclick={()=>showUpload=!showUpload}>
+    <button type="button" class="admin-secondary" disabled={uploading||creating}
+      onclick={()=>{showUpload=!showUpload;if(showUpload)showCreate=false;}}>
       {showUpload?'Κλείσιμο μεταφόρτωσης':'Μεταφόρτωση προστατευμένου εγγράφου'}
     </button>
     {#if showUpload}
@@ -324,11 +328,11 @@
       <div>
         <h4>Έγγραφα ({documents.length})</h4>
         {#each documents as doc (doc.id)}
-          <p><strong>{doc.title}</strong> · {doc.document_type}
-            · {doc.expiry_date??'Χωρίς λήξη'} ({doc.status})
+          <p><strong>{doc.title}</strong> · {protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type}
+            · {doc.expiry_date?'Λήξη: '+doc.expiry_date:'Χωρίς λήξη'} · {doc.status}
           </p>
         {/each}
-        {#if documents.length===0}<p>Δεν υπάρχουν μεταδεδομένα εγγράφων.</p>{/if}
+        {#if documents.length===0}<p>Δεν έχουν καταχωριστεί έγγραφα.</p>{/if}
         <p class="admin-muted">Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
       </div>
     </div>
