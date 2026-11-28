@@ -74,7 +74,7 @@ test('reviewed DB and preview boundaries enumerate only the exact restricted fun
     "['post','/api/admin/academy/office/guardians/verify']",
     "['post','/api/admin/academy/office/guardians/revoke']"
   ]) assert.ok(edge.includes(route),route);
-  assert.match(edgeTest,/reviewedHiddenAdminEntries\.length,26/);
+  assert.match(edgeTest,/reviewedHiddenAdminEntries\.length,27/);
   assert.match(fixture,/Location manager could attest guardian identity/);
   assert.match(fixture,/Proof review exposed guardian data or app rights/);
   assert.match(fixture,/Guardian proof revoke failed/);
