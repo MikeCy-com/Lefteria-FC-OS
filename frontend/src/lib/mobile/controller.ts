@@ -1,6 +1,8 @@
 import {validPersonalLessonSchedule,validPersonalLessonInbox,
   type PersonalLessonSchedule,type PersonalLessonInbox} from './learning-delivery.ts';
 import { writable } from 'svelte/store';
+import {validPotmBallot,validPotmMonth,validPotmPlayerId,validPotmMutationResult,potmCandidateOptions,
+  type PotmBallot,type PotmBallotCandidate} from './potm-ballot.ts';
 import {validReaders} from './chat-actions.ts';
 import {validPlayerCoachFeedbackPage,type PlayerCoachFeedbackPage} from './coach-feedback.ts';
 import {validPublishedHubPage,validPublishedHubNext,validPublishedHubCompletion,
@@ -1537,6 +1539,38 @@ export function createMobileAuthController(options: {
         encodeURIComponent(approved.id)+'/send','POST',{version:2});
       if(!validCoachSend(result,approved))
         throw new Error('Unverified coach feedback delivery.');
+      return result;
+    },
+    async getPotmBallot():Promise<PotmBallot> {
+      if(state.user?.role!=='fan'||!state.user.current_role_available)
+        throw new ApiFailure(403,'Απαιτείται ενεργός λογαριασμός φιλάθλου.');
+      const result=await chatRequest('/api/mobile/potm/ballot');
+      if(!validPotmBallot(result))throw new Error('Unverified ballot.');
+      return result;
+    },
+    async getPotmCandidates(month:string):Promise<PotmBallotCandidate[]> {
+      if(state.user?.role!=='fan'||!state.user.current_role_available||!validPotmMonth(month)||!token)
+        throw new ApiFailure(403,'Απαιτείται ενεργός λογαριασμός φιλάθλου.');
+      const actor=state.user.id,savedToken=token,version=revision;
+      const canonical=await chatRequest('/api/mobile/players-list');
+      // Public projection only, no bearer, cookie or private identity in the request.
+      const reply=await (options.fetch??globalThis.fetch)(options.baseUrl+'/api/public/sections?organization_id=lefteria_fc',{
+        credentials:'omit',cache:'no-store',headers:{Accept:'application/json'}
+      });
+      if(!reply.ok)throw new ApiFailure(503,'Το δημοσιευμένο ρόστερ δεν είναι διαθέσιμο.');
+      const raw:unknown=await reply.json();
+      if(state.user?.id!==actor||state.user.role!=='fan'||!state.user.current_role_available||
+         savedToken!==token||version!==revision)throw new ApiFailure(401,'Η συνεδρία άλλαξε.');
+      return potmCandidateOptions(raw,canonical,month);
+    },
+    async savePotmBallot(previous:PotmBallot,playerId:string|null):Promise<PotmBallot> {
+      if(state.user?.role!=='fan'||!state.user.current_role_available||!validPotmBallot(previous)||
+         !previous.voting_open||(playerId!==null&&!validPotmPlayerId(playerId)))
+        throw new ApiFailure(403,'Δεν επιτρέπεται η υποβολή ψήφου.');
+      const result=await chatRequest('/api/mobile/potm/ballot','PUT',{
+        month_key:previous.month_key,expected_revision:previous.revision,player_id:playerId
+      });
+      if(!validPotmMutationResult(previous,playerId,result))throw new Error('Unverified ballot update.');
       return result;
     },
     async getFanHubPlans(organization:FanHubOrganization):Promise<FanHubPlans>{
