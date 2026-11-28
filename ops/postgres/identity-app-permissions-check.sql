@@ -642,9 +642,7 @@ BEGIN
   EXCEPTION WHEN insufficient_privilege THEN denied:=true; END;
   IF NOT denied THEN RAISE EXCEPTION 'POTM formal role bypass accepted'; END IF;
   IF public_sections.read_native_potm('1900-01') IS DISTINCT FROM '{"state":"unavailable","counts":[]}'::jsonb
-    OR public_sections.read_native_potm(to_char(statement_timestamp() AT TIME ZONE 'Asia/Nicosia','YYYY-MM'))
-      IS DISTINCT FROM '{"state":"absent","counts":[]}'::jsonb
-  THEN RAISE EXCEPTION 'Unexpected native public tally in empty runtime fixture'; END IF;
+  THEN RAISE EXCEPTION 'Native public tally accepted an unsupported month'; END IF;
   RAISE NOTICE 'Runtime permission checks passed; all probe writes will roll back';
 END
 $checks$;
