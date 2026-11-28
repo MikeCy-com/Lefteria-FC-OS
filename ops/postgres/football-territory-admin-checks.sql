@@ -165,6 +165,23 @@ BEGIN
     RAISE EXCEPTION 'unauthorized_sibling_match_saved';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- An authorized request cannot double-book a shared city field.
+  BEGIN
+    PERFORM club.create_admin_football_resource(v_token_city,'lefteria_fc_academy','match_draft',
+      jsonb_build_object('scope_id',v_scope_a,'location_id',v_loc_a2,
+        'group_id',v_group_a2,'opponent_id',v_opp,'playing_field_id',v_field,
+        'match_date','2027-04-10','kickoff_local','17:00'));
+    RAISE EXCEPTION 'authorized_city_manager_double_booked_field';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  -- Location restrictions must not be bypassed by a collision.
+  BEGIN
+    PERFORM club.create_admin_football_resource(v_token_loc,'lefteria_fc_academy','match_draft',
+      jsonb_build_object('scope_id',v_scope_a,'location_id',v_loc_a2,
+        'group_id',v_group_a2,'opponent_id',v_opp,'playing_field_id',v_field,
+        'match_date','2027-04-10','kickoff_local','17:00'));
+    RAISE EXCEPTION 'location_manager_collision_bypassed_authority';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
   -- Match format belongs to each exact group/team, not the shared city.
   v_result:=club.read_admin_group_match_timing(v_token_loc,'lefteria_fc_academy',v_group_a1);
   IF (v_result->>'version')::integer<>0 OR v_result->'duration_minutes'<>'null'::jsonb

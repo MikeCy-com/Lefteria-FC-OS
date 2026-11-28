@@ -20,6 +20,8 @@ DECLARE
   v_group_b1 text:='ci-group-b1-'||substr(md5(gen_random_uuid()::text),1,20);
   v_opp_a uuid:=gen_random_uuid();
   v_field_a uuid:=gen_random_uuid();
+  v_field_a2 uuid:=gen_random_uuid();
+  v_constraint text;
   v_opp_b uuid:=gen_random_uuid();
   v_field_b uuid:=gen_random_uuid();
   v_opp_team uuid:=gen_random_uuid();
@@ -55,6 +57,7 @@ BEGIN
           (v_opp_team,'lefteria_fc',v_team_scope,'First Team Opponent');
   INSERT INTO club.football_playing_fields(id,organization_id,scope_id,name,google_maps_url)
     VALUES(v_field_a,'lefteria_fc_academy',v_scope_a,'Alpha City Ground','https://www.google.com/maps/place/alpha'),
+          (v_field_a2,'lefteria_fc_academy',v_scope_a,'Alpha Second Ground',NULL),
           (v_field_b,'lefteria_fc_academy',v_scope_b,'Beta City Ground','https://maps.app.goo.gl/beta'),
           (v_field_team,'lefteria_fc',v_team_scope,'Club Team Ground',NULL);
 
@@ -72,12 +75,51 @@ BEGIN
     RAISE EXCEPTION 'City-shared Academy opponent lookup failed';
   END IF;
 
+  -- Same group, different pitch: the group itself cannot play twice.
+  BEGIN
+    INSERT INTO club.football_match_drafts(
+      organization_id,scope_id,academy_group_id,academy_location_id,
+      opponent_id,playing_field_id,match_date,kickoff_local
+    ) VALUES ('lefteria_fc_academy',v_scope_a,v_group_a1,v_loc_a1,
+              v_opp_a,v_field_a2,DATE '2027-02-05',TIME '17:00');
+    RAISE EXCEPTION 'duplicate_group_kickoff_accepted';
+  EXCEPTION WHEN unique_violation THEN
+    GET STACKED DIAGNOSTICS v_constraint=CONSTRAINT_NAME;
+    IF v_constraint<>'uq_football_draft_academy_group_kickoff' THEN RAISE; END IF;
+  END;
+  -- Same shared pitch, other group/location: no second booking at that kickoff.
+  BEGIN
+    INSERT INTO club.football_match_drafts(
+      organization_id,scope_id,academy_group_id,academy_location_id,
+      opponent_id,playing_field_id,match_date,kickoff_local
+    ) VALUES ('lefteria_fc_academy',v_scope_a,v_group_a2,v_loc_a2,
+              v_opp_a,v_field_a,DATE '2027-02-05',TIME '17:00');
+    RAISE EXCEPTION 'duplicate_shared_field_kickoff_accepted';
+  EXCEPTION WHEN unique_violation THEN
+    GET STACKED DIAGNOSTICS v_constraint=CONSTRAINT_NAME;
+    IF v_constraint<>'uq_football_draft_field_kickoff' THEN RAISE; END IF;
+  END;
+  -- Separate pitch and separate group are allowed at the same time.
+  INSERT INTO club.football_match_drafts(
+    organization_id,scope_id,academy_group_id,academy_location_id,
+    opponent_id,playing_field_id,match_date,kickoff_local
+  ) VALUES ('lefteria_fc_academy',v_scope_a,v_group_a2,v_loc_a2,
+            v_opp_a,v_field_a2,DATE '2027-02-05',TIME '17:00');
+
   -- The First Team has its own catalog and no access to the Academy catalogs.
   INSERT INTO club.football_match_drafts(
     organization_id,scope_id,club_team_id,opponent_id,
     playing_field_id,match_date,kickoff_local
   ) VALUES ('lefteria_fc',v_team_scope,v_team,v_opp_team,
             v_field_team,DATE '2027-02-05',TIME '19:00');
+
+  BEGIN
+    INSERT INTO club.football_match_drafts(
+      organization_id,scope_id,club_team_id,opponent_id,playing_field_id,match_date,kickoff_local
+    ) VALUES ('lefteria_fc',v_team_scope,v_team,v_opp_team,v_field_team,
+              DATE '2027-02-05',TIME '19:00');
+    RAISE EXCEPTION 'duplicate_club_kickoff_accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
 
   -- City B cannot use City A opponents or playing fields.
   BEGIN
@@ -104,7 +146,7 @@ BEGIN
       organization_id,scope_id,academy_group_id,academy_location_id,
       opponent_id,playing_field_id,match_date,kickoff_local
     ) VALUES ('lefteria_fc_academy',v_scope_a,v_group_a1,v_loc_a2,
-              v_opp_a,v_field_a,DATE '2027-02-05',TIME '17:00');
+              v_opp_a,v_field_a,DATE '2027-02-05',TIME '20:00');
     RAISE EXCEPTION 'Cross-location group bypass succeeded';
   EXCEPTION WHEN foreign_key_violation THEN NULL; END;
 
