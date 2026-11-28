@@ -34,7 +34,7 @@ public sealed record PublicContentError(string Detail, string Code);
 public interface IPublicContentRepository
 {
     Task<PublicSiteResult?> ReadAsync(string organizationId, CancellationToken token);
-    Task<IReadOnlyList<PublicArticle>?> ReadNewsAsync(string? organizationId, CancellationToken token);
+    Task<IReadOnlyList<PublicArticle>?> ReadNewsAsync(string? organizationId, CancellationToken token, string? articleId = null);
 }
 
 public sealed class PublicContentService(IPublicContentRepository repository)
@@ -47,9 +47,9 @@ public sealed class PublicContentService(IPublicContentRepository repository)
         return await repository.ReadAsync(organizationId, token);
     }
 
-    public Task<IReadOnlyList<PublicArticle>?> GetNewsAsync(string? organizationId, CancellationToken token)
+    public Task<IReadOnlyList<PublicArticle>?> GetNewsAsync(string? organizationId, CancellationToken token, string? articleId = null)
     {
         if (organizationId is not null && !IsOrganization(organizationId)) throw new ArgumentException("Unknown public organization.");
-        return repository.ReadNewsAsync(organizationId, token);
+        return repository.ReadNewsAsync(organizationId, token, articleId);
     }
 }
