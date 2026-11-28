@@ -436,6 +436,30 @@ BEGIN
   IF result->>'revision' IS DISTINCT FROM '2' THEN
     RAISE EXCEPTION 'Contact revision did not increment'; END IF;
 
+  -- Canonical name corrections preserve the immutable application, player ID
+  -- and membership. Test conflict, territorial denial and restore the fixture.
+  result:=club.rename_admin_academy_player(manager_digest,fixture_player_id,
+    'Synthetic Enrollee','Synthetic Corrected');
+  IF result->>'official_name' IS DISTINCT FROM 'Synthetic Corrected'
+    OR result->>'player_id' IS DISTINCT FROM fixture_player_id
+    OR NOT EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id
+      AND primary_academy_group_id=fixture_group_id AND position='Defender' AND number=14)
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registrations WHERE id=application
+      AND applicant_first_name='Synthetic' AND applicant_last_name='Enrollee')
+  THEN RAISE EXCEPTION 'Canonical name correction rewrote enrollment identity'; END IF;
+  BEGIN
+    PERFORM club.rename_admin_academy_player(manager_digest,fixture_player_id,
+      'Synthetic Enrollee','Stale Name');
+    RAISE EXCEPTION 'Stale canonical name correction accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.rename_admin_academy_player(manager_digest,second_player,
+      'Unknown','Denied Name');
+    RAISE EXCEPTION 'Cross-city canonical name correction accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=club.rename_admin_academy_player(admin_digest,fixture_player_id,
+    'Synthetic Corrected','Synthetic Enrollee');
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
