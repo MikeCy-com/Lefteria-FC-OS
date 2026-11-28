@@ -14,6 +14,7 @@ DECLARE
   v_digest text:=repeat('d',64);
   v_group text:='ci_plan_'||left(replace(gen_random_uuid()::text,'-',''),16);
   v_result jsonb;
+  v_opp uuid:=gen_random_uuid();v_field uuid:=gen_random_uuid();
   v_city uuid:=gen_random_uuid();v_other_city uuid:=gen_random_uuid();
   v_site uuid:=gen_random_uuid();v_sibling_site uuid:=gen_random_uuid();v_other_site uuid:=gen_random_uuid();
   v_scope uuid:=gen_random_uuid();v_other_scope uuid:=gen_random_uuid();
@@ -89,6 +90,39 @@ BEGIN
   IF v_result->>'status'<>'draft' OR (v_result->>'version')::integer<>1 THEN
     RAISE EXCEPTION 'Training plan draft create failed';
   END IF;
+  INSERT INTO club.football_opponents(id,organization_id,scope_id,name)
+    VALUES(v_opp,v_owner,v_scope,'CI Training Match Opponent');
+  INSERT INTO club.football_playing_fields(id,organization_id,scope_id,name)
+    VALUES(v_field,v_owner,v_scope,'CI Training Match Field');
+  -- Match creation during a training session is rejected even through the
+  -- protected territory function, regardless of selected pitch.
+  BEGIN
+    PERFORM club.create_admin_football_resource(v_digest,v_owner,'match_draft',
+      jsonb_build_object('scope_id',v_scope,'location_id',v_site,
+        'group_id',v_group,'opponent_id',v_opp,'playing_field_id',v_field,
+        'match_date',v_day1,'kickoff_local','17:30'));
+    RAISE EXCEPTION 'match_kickoff_inside_training_accepted';
+  EXCEPTION WHEN unique_violation THEN
+    IF SQLERRM<>'academy_training_match_kickoff_overlap' THEN RAISE; END IF;
+  END;
+  -- The exact end of a training interval is not inside that interval.
+  PERFORM club.create_admin_football_resource(v_digest,v_owner,'match_draft',
+    jsonb_build_object('scope_id',v_scope,'location_id',v_site,
+      'group_id',v_group,'opponent_id',v_opp,'playing_field_id',v_field,
+      'match_date',v_day1,'kickoff_local','18:15'));
+  -- A match already exists on another day; creating training across its
+  -- kickoff is also rejected.
+  PERFORM club.create_admin_football_resource(v_digest,v_owner,'match_draft',
+    jsonb_build_object('scope_id',v_scope,'location_id',v_site,
+      'group_id',v_group,'opponent_id',v_opp,'playing_field_id',v_field,
+      'match_date',v_day2,'kickoff_local','18:00'));
+  BEGIN
+    PERFORM club.write_admin_academy_training_plan(v_digest,v_owner,gen_random_uuid(),v_group,
+      v_day2,TIME '17:45',60,'Training conflicts with match','Pitch','',0,false);
+    RAISE EXCEPTION 'training_covering_existing_match_accepted';
+  EXCEPTION WHEN unique_violation THEN
+    IF SQLERRM<>'academy_training_match_kickoff_overlap' THEN RAISE; END IF;
+  END;
   -- Same-city wrong location and other-city manager must both be denied.
   BEGIN
     PERFORM club.read_admin_academy_training_plans(v_sibling_digest,v_owner,v_group,v_day1,v_day3);
