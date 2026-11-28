@@ -13,9 +13,18 @@ namespace LefteriaFc.Infrastructure.Persistence.Migrations;
 public sealed class RegistrationFormPdfEscrow : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder) => migrationBuilder.Sql("""
-      ALTER TABLE academy_intake.registration_document_escrow
-        DROP CONSTRAINT registration_document_escrow_document_slot_check,
-        DROP CONSTRAINT registration_document_escrow_document_type_check;
+      DO $old_constraints$
+      DECLARE item record; removed integer:=0;
+      BEGIN
+        FOR item IN SELECT conname FROM pg_constraint
+          WHERE conrelid='academy_intake.registration_document_escrow'::regclass
+            AND contype='c' AND pg_get_constraintdef(oid) LIKE '%passport_photo%'
+        LOOP
+          EXECUTE format('ALTER TABLE academy_intake.registration_document_escrow DROP CONSTRAINT %I',item.conname);
+          removed:=removed+1;
+        END LOOP;
+        IF removed<>2 THEN RAISE EXCEPTION 'registration_escrow_constraint_drift'; END IF;
+      END $old_constraints$;
       ALTER TABLE academy_intake.registration_document_escrow
         ADD CONSTRAINT registration_document_escrow_document_slot_check CHECK(document_slot IN ('id_front','id_back','birth_certificate','passport_photo','registration_form')),
         ADD CONSTRAINT registration_document_escrow_document_type_check CHECK((document_slot IN ('id_front','id_back') AND document_type='id_passport')
