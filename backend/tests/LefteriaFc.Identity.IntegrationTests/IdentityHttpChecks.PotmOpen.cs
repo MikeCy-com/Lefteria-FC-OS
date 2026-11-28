@@ -21,6 +21,30 @@ internal sealed partial class IdentityHttpChecks
         var login=await LoginAsync(first,phone,"fan");
         second.DefaultRequestHeaders.Authorization=new("Bearer",login.GetProperty("token").GetString());
         await LoginAsync(independent,otherPhone,"fan");
+        using var visitor=Client();
+
+        async Task<JsonElement> PublicTally(string month,string state,int total,string org="lefteria_fc")
+        {
+            var publicResponse=await GetAsync(visitor,"/api/public/sections?organization_id="+org,200);
+            var result=publicResponse.GetProperty("potm");
+            Check.Equal(state+month,result.GetProperty("id").GetString(),"Unexpected public tally source.");
+            Check.Equal(month,result.GetProperty("month_key").GetString(),"Wrong public tally month.");
+            Check.Equal(total,result.GetProperty("total_votes").GetInt32(),"Wrong public vote count.");
+            Check.True(result.EnumerateObject().Select(x=>x.Name).OrderBy(x=>x,StringComparer.Ordinal)
+                .SequenceEqual(new[]{"id","month_key","organization_id","results","total_votes"}),
+                "Public tally contains unexpected fields.");
+            foreach(var row in result.GetProperty("results").EnumerateArray())
+                Check.True(row.EnumerateObject().Select(x=>x.Name).OrderBy(x=>x,StringComparer.Ordinal)
+                    .SequenceEqual(new[]{"image_url","name","number","player_id","position","votes"}),
+                    "Public result includes private or unreviewed fields.");
+            var raw=result.GetRawText();
+            Check.True(!raw.Contains(fan.ToString(),StringComparison.Ordinal) &&
+                !raw.Contains(other.ToString(),StringComparison.Ordinal) &&
+                !raw.Contains(phone.Digits,StringComparison.Ordinal) &&
+                !raw.Contains(otherPhone.Digits,StringComparison.Ordinal),
+                "Public result leaked voter identity.");
+            return result;
+        }
 
         await database.WithPotmOpenFixtureAsync(fan,other,async month=>
         {
@@ -28,6 +52,10 @@ internal sealed partial class IdentityHttpChecks
             Check.True(empty.GetProperty("voting_open").GetBoolean(),"Synthetic owner-reviewed period did not open.");
             Check.Equal(month,empty.GetProperty("month_key").GetString(),"Unexpected Cyprus month.");
             Check.Equal(0,empty.GetProperty("revision").GetInt32(),"New ballot had a revision.");
+            var pending=await PublicTally(month,"native-pending:",0);
+            Check.Equal(0,pending.GetProperty("results").GetArrayLength(),"Open period returned live counts.");
+            var academy=await PublicTally(month,"",0,"lefteria_fc_academy");
+            Check.Equal(0,academy.GetProperty("results").GetArrayLength(),"Native Club results leaked into Academy scope.");
 
             foreach(var bad in new[]{"ci-potm-http-inactive","ci-potm-http-youth","ci-potm-http-missing"})
             {
@@ -75,7 +103,15 @@ internal sealed partial class IdentityHttpChecks
             await Confirm(first,winner,3,4);
             await Confirm(independent,alternate,0,1);
             await database.AssertPotmOpenHistoryAsync(fan,other,winner,alternate);
+            var beforeClose=await PublicTally(month,"native-pending:",0);
+            Check.Equal(0,beforeClose.GetProperty("results").GetArrayLength(),"Open ballots appeared in public tally.");
             await database.ClosePotmOpenFixtureAsync();
+            var tally=await PublicTally(month,"native-closed:",2);
+            var rows=tally.GetProperty("results").EnumerateArray().ToArray();
+            Check.Equal(2,rows.Length,"Closed native tally lost a candidate.");
+            Check.True(rows.Select(row=>row.GetProperty("player_id").GetString()).ToHashSet()
+                .SetEquals(new[]{winner,alternate}) && rows.All(row=>row.GetProperty("votes").GetInt32()==1),
+                "History or withdrawals inflated the final candidate counts.");
 
             var closed=await GetAsync(first,path,200);
             Check.True(!closed.GetProperty("voting_open").GetBoolean(),"Closed period still offered votes.");
@@ -83,6 +119,18 @@ internal sealed partial class IdentityHttpChecks
             using var refused=await second.PutAsJsonAsync(path,new{month_key=month,expected_revision=4,player_id=alternate});
             await ExpectAsync(refused,409);
             await database.AssertPotmOpenHistoryAsync(fan,other,winner,alternate);
+            await database.AddPotmConflictingLegacyFixtureAsync(month,winner);
+            var conflictTally=await PublicTally(month,"native-unavailable:",0);
+            Check.Equal(0,conflictTally.GetProperty("results").GetArrayLength(),
+                "Conflicting legacy results were published or combined with native ballots.");
+        });
+
+        await database.WithPotmOpenFixtureAsync(fan,other,async month=>
+        {
+            await database.ClosePotmOpenFixtureAsync();
+            var zero=await PublicTally(month,"native-closed:",0);
+            Check.Equal(0,zero.GetProperty("results").GetArrayLength(),
+                "Empty closed period was not a confirmed native zero.");
         });
     }
 }
@@ -139,7 +187,9 @@ internal sealed partial class TestDatabase
                 INSERT INTO public_sections.current(id,snapshot_version) VALUES('current',@version);
                 INSERT INTO public_sections.documents(snapshot_version,kind,organization_id,id,data_json,display_order)
                   SELECT @version,'player',p.organization_id,p.id,
-                    jsonb_build_object('id',p.id,'organization_id',p.organization_id,'team_type',p.team_type,'name',p.name),p.number
+                    jsonb_build_object('id',p.id,'organization_id',p.organization_id,'team_type',p.team_type,
+                      'name',p.name,'number',p.number,'position',p.position,'image_url',NULL,
+                      'academy_group_ids','[]'::jsonb,'previous_clubs','[]'::jsonb),p.number
                   FROM club.players p WHERE p.id IN
                     ('ci-potm-http-one','ci-potm-http-two','ci-potm-http-inactive','ci-potm-http-youth');
                 INSERT INTO public_sections.documents(snapshot_version,kind,organization_id,id,data_json,display_order)
@@ -264,6 +314,27 @@ internal sealed partial class TestDatabase
         cmd.Parameters.AddWithValue("fan",fan);cmd.Parameters.AddWithValue("other",other);
         cmd.Parameters.AddWithValue("winner",winner);cmd.Parameters.AddWithValue("alternate",alternate);
         Check.True((bool)(await cmd.ExecuteScalarAsync())!,"Persisted one-ballot and exact revision history invariants failed.");
+    }
+
+    public async Task AddPotmConflictingLegacyFixtureAsync(string month,string player)
+    {
+        await using var connection=new NpgsqlConnection(fixture.AdminConnectionString);
+        await connection.OpenAsync();
+        await using var tx=await connection.BeginTransactionAsync();
+        await using var cmd=new NpgsqlCommand("""
+            INSERT INTO public_sections.documents(snapshot_version,kind,organization_id,id,data_json,display_order)
+              SELECT @version,'potm','lefteria_fc',@month,
+                jsonb_build_object('id',@month,'organization_id','lefteria_fc','month_key',@month,
+                  'total_votes',99,'results',jsonb_build_array(jsonb_build_object('player_id',@player,
+                    'name','CI legacy conflict','number',7,'position','Forward','image_url',NULL,'votes',99))),0
+              FROM club.potm_periods WHERE snapshot_version=@version AND approval_reference=@approval
+                AND closed_at IS NOT NULL AND to_char(month_start,'YYYY-MM')=@month;
+            UPDATE public_sections.snapshots SET documents_count=documents_count+1 WHERE version=@version;
+            """,connection,tx);
+        cmd.Parameters.AddWithValue("version",PotmHttpVersion);cmd.Parameters.AddWithValue("approval",PotmHttpApproval);
+        cmd.Parameters.AddWithValue("month",month);cmd.Parameters.AddWithValue("player",player);
+        Check.Equal(2,await cmd.ExecuteNonQueryAsync(),"Legacy conflict fixture did not insert exactly one projection.");
+        await tx.CommitAsync();
     }
 
     public async Task ClosePotmOpenFixtureAsync()
