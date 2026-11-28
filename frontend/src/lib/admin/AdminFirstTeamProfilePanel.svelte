@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PublishedMediaBrowser from './PublishedMediaBrowser.svelte';
   type Team={id:string;name:string;kind:'team'|'academy_group';active_players:number};
   type Profile={organization_id:'lefteria_fc';team_id:string;
     level:string;description:string;banner_url:string;revision:number};
@@ -16,6 +17,8 @@
   let level=$state("Α' Ομάδα");
   let description=$state('');
   let bannerUrl=$state('');
+  let showBannerPicker=$state(false);
+  const validBanner=$derived(/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(bannerUrl));
   let loading=$state(false);
   let saving=$state(false);
   let error=$state('');
@@ -37,7 +40,7 @@
   $effect(()=>{
     const selected=teamId,actor=actorId,generation=refresh;
     void generation;
-    record=null;loading=false;error='';notice='';
+    record=null;showBannerPicker=false;loading=false;error='';notice='';
     if(typeof window === 'undefined'||!actor||!groups.some(t=>t.id===selected&&t.kind==='team'))
       return;
     const controller=new AbortController();loading=true;
@@ -128,10 +131,25 @@
         <input type="url" maxlength="2048" bind:value={bannerUrl} disabled={saving}
           placeholder="https://..."/>
       </label>
-      {#if record.banner_url&&/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(record.banner_url)}
-        <div class="group-banner-preview"><span>Τρέχον banner</span><img src={record.banner_url} alt="Banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      <div class="group-banner-tools">
+        <button type="button" class="admin-secondary" disabled={saving} onclick={()=>showBannerPicker=!showBannerPicker}
+          aria-expanded={showBannerPicker}>{showBannerPicker?'Κλείσιμο βιβλιοθήκης':'Επιλογή από δημοσιευμένες εικόνες'}</button>
+        {#if bannerUrl}<button type="button" class="admin-secondary" disabled={saving} onclick={()=>bannerUrl=''}>Αφαίρεση banner</button>{/if}
+      </div>
+      {#if showBannerPicker}
+        <div class="group-banner-library" data-testid="group-banner-library">
+          <PublishedMediaBrowser organization={owner} embedded onPick={asset=>{
+            if(saving||asset.organization_id!==owner)return;
+            if(!/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(asset.url)){
+              error='Η εικόνα χρειάζεται συμβατή διεύθυνση HTTPS.';return;
+            }
+            bannerUrl=asset.url;showBannerPicker=false;error='';
+          }}/>
+        </div>
       {/if}
-      <div class="first-team-buttons">
+      {#if validBanner}
+        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={bannerUrl} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}     <div class="first-team-buttons">
         <button class="admin-secondary" type="submit" disabled={saving}>
           {saving?'Αποθήκευση…':'Αποθήκευση στοιχείων'}
         </button>
@@ -150,4 +168,6 @@
 .first-team-buttons{display:flex;gap:10px;flex-wrap:wrap}
 .group-banner-preview{grid-column:1/-1;display:grid;gap:8px;max-width:100%;min-width:0}
 .group-banner-preview img{width:100%;max-height:260px;object-fit:contain;background:var(--admin-surface);border-radius:8px}
+.group-banner-tools{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1}
+.group-banner-library{grid-column:1/-1;min-width:0}
 </style>
