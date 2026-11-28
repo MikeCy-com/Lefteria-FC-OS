@@ -75,7 +75,7 @@ public sealed class PrivatePotmBallotLedger : Migration
       CREATE FUNCTION club.potm_open_snapshot(_month date)
       RETURNS integer LANGUAGE plpgsql VOLATILE SECURITY DEFINER
       SET search_path=pg_catalog,pg_temp AS $potm_gate$
-      DECLARE v_version integer; v_count integer; v_approved uuid;
+      DECLARE v_version integer; v_count integer; v_sources integer; v_approved uuid;
       BEGIN
         IF _month IS DISTINCT FROM date_trunc('month',clock_timestamp() AT TIME ZONE 'Asia/Nicosia')::date
         THEN RETURN NULL; END IF;
@@ -92,12 +92,13 @@ public sealed class PrivatePotmBallotLedger : Migration
             AND a.role='super_admin' AND g.organization_id='lefteria_fc'
           FOR SHARE OF a,g;
         IF NOT FOUND THEN RETURN NULL; END IF;
-        SELECT s.documents_count INTO v_count FROM public_sections.snapshots s
+        SELECT s.documents_count,s.sources_count INTO v_count,v_sources FROM public_sections.snapshots s
           JOIN public_content.import_state b ON b.digest=s.base_public_digest
           WHERE s.version=v_version AND s.exported_at<=clock_timestamp()
             AND date_trunc('month',s.exported_at AT TIME ZONE 'Asia/Nicosia')::date=_month
           FOR SHARE OF s,b;
         IF NOT FOUND OR v_count<>(SELECT count(*) FROM public_sections.documents WHERE snapshot_version=v_version)
+          OR v_sources<>(SELECT count(*) FROM migration.public_sections_source WHERE snapshot_version=v_version)
         THEN RETURN NULL; END IF;
         IF NOT EXISTS(SELECT 1 FROM public_sections.documents d
           WHERE d.snapshot_version=v_version AND d.kind='module' AND d.organization_id='lefteria_fc'
