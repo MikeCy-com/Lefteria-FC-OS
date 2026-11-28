@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readFileSync } from 'node:fs';
-import { GUEST_PUBLIC_LINKS, guestRequestedTab, guestPublicLink, guestLoginHref, isGuestPublicTab, mobileAfterLogin } from '../src/lib/mobile/guest-navigation.ts';
+import { GUEST_PUBLIC_LINKS, guestRequestedTab, guestPublicLink, guestLoginHref, isGuestPublicTab, mobileAfterLogin, roleCanResumeTab } from '../src/lib/mobile/guest-navigation.ts';
 import { allowedTabs, TAB_NAMES } from '../src/lib/mobile/navigation.ts';
 
 test('guest starts in public fan home and can browse only allowlisted public destinations', () => {
@@ -65,4 +65,16 @@ test('guest shell is distinct from verified member UI and cannot request mobile 
   assert.ok(app.includes('guestLoginHref(guestTab)'));
   assert.ok(shell.includes('!guest && canComposePost(role)'));
   assert.ok(shell.includes('guest ? "mobile-guest-app" : "mobile-app"'));
+});
+
+test('role picker compatibility uses only valid requested tabs and existing mobile roles', () => {
+  for (const role of ['fan','parent','player','coach','management']) {
+    for (const tab of Object.keys(TAB_NAMES)) assert.equal(roleCanResumeTab(tab, role), allowedTabs(role).includes(tab));
+  }
+  assert.equal(roleCanResumeTab('financials','fan'), false);
+  assert.equal(roleCanResumeTab('financials','parent'), true);
+  assert.equal(roleCanResumeTab('squad','coach'), true);
+  assert.equal(roleCanResumeTab('profile','super_admin'), false);
+  assert.equal(roleCanResumeTab('https://evil.test','fan'), false);
+  assert.equal(roleCanResumeTab(null,'fan'), false);
 });
