@@ -28,7 +28,7 @@ test('News route verifies published article before redirect and blocks cross-org
   assert.match(route,/data\.article\.organization_id !== data\.newsScope/);
   assert.match(route,/error\(404/);
   assert.match(route,/articleLink\(data\.article, data\.newsScope\)/);
-  assert.match(route,/redirect\(308, canonicalUrl\.pathname \+ canonicalUrl\.search\)/);
+  assert.match(route,/redirect\(301, canonicalUrl\.pathname \+ canonicalUrl\.search\)/);
   assert.doesNotMatch(route,/fetch\(|password|private|Bearer/);
   assert.match(page,/const canonicalPath = \$derived\(data\.articleAvailable && data\.article/);
   assert.match(page,/og:url/);
