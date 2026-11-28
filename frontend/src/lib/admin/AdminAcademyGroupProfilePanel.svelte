@@ -33,7 +33,8 @@
   let season=$state('');
   let bannerUrl=$state('');
   let showBannerPicker=$state(false);
-  const validBanner=$derived(/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(bannerUrl));
+  let pickedBanner=$state('');
+  const previewBanner=$derived(bannerUrl&&(bannerUrl===record?.banner_url||bannerUrl===pickedBanner)?bannerUrl:'');
   let displayOrder=$state(0);
   let publiclyVisible=$state(false);
   const group=$derived(groups.find(g=>g.id===selected));
@@ -67,7 +68,7 @@
   $effect(()=>{
     const id=selected,actor=actorId,generation=refresh;
     void generation;
-    record=null;showBannerPicker=false;error='';saved='';loading=false;
+    record=null;showBannerPicker=false;pickedBanner='';error='';saved='';loading=false;
     if(typeof window === 'undefined'||!actor||!groups.some(g=>g.id===id&&g.kind==='academy_group'))
       return;
     const controller=new AbortController();loading=true;
@@ -227,13 +228,14 @@
             if(!/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(asset.url)){
               error='Η εικόνα χρειάζεται συμβατή διεύθυνση HTTPS.';return;
             }
-            bannerUrl=asset.url;showBannerPicker=false;error='';
+            bannerUrl=asset.url;pickedBanner=asset.url;showBannerPicker=false;error='';
           }}/>
         </div>
       {/if}
-      {#if validBanner}
-        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={bannerUrl} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
-      {/if}     <label>Σειρά εμφάνισης
+      {#if previewBanner}
+        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={previewBanner} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}
+      <label>Σειρά εμφάνισης
         <input type="number" min="0" max="10000" step="1"
           bind:value={displayOrder} disabled={saving} required/>
       </label>
