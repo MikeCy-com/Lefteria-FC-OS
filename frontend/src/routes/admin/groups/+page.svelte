@@ -594,7 +594,7 @@
 <svelte:head><title>Ομάδες & τμήματα | Διαχείριση Λευτεριά FC</title></svelte:head>
 
 {#if $auth.status === 'authenticated' && $auth.session}
-  <AdminFrame user={$auth.session.user} active="groups" busy={$auth.busy} onLogout={() => void auth.logout()}>
+  <AdminFrame user={$auth.session.user} active="groups" workspaceOwner={organization} playerView={directoryView==='players'} busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if assignments.length}
       <div class="admin-audiences" data-testid="admin-live-audiences">
         <p class="admin-eyebrow">ΑΓΩΝΙΣΤΙΚΟ · ΑΚΑΔΗΜΙΑ · ΠΡΑΓΜΑΤΙΚΑ ΜΕΛΗ</p>
