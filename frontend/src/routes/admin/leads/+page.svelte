@@ -241,7 +241,7 @@
 {/if}
 
 <style>
-  .academy-crm{max-width:1120px}.academy-crm h1{margin:0 0 10px}
+  .academy-crm{width:100%;max-width:none;min-width:0}.academy-crm h1{margin:0 0 10px}
   .academy-crm>.admin-muted{max-width:83ch;margin:0 0 20px}
   .crm-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
   .crm-controls label{font-size:13px}.crm-controls select{min-width:min(310px,100%);max-width:100%}
