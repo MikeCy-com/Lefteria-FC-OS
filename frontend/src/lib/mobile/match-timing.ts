@@ -38,7 +38,11 @@ export function planGrassrootsRotation(durationMinutes:number,format:MatchFormat
   if(!int(durationMinutes,1,180)||!validFormat(format)||attendance.length<1||attendance.length>60||
     new Set(attendance).size!==attendance.length||attendance.some(id=>typeof id!=='string'||!id||id.length>128))
     throw Error('Invalid match rotation inputs');
-  const n=attendance.length,k=Math.min(n,format),seconds=durationMinutes*60,blocks=n/gcd(n,k);
+  const n=attendance.length,k=Math.min(n,format),seconds=durationMinutes*60,cycle=n/gcd(n,k);
+  // Repeat whole balanced cycles rather than leaving a child on the bench for
+  // a half when the squad has a simple ratio. Ten minutes is a planner target,
+  // not a group setting or a mandatory substitution rule.
+  const blocks=n===k?1:cycle*Math.max(1,Math.ceil(seconds/(cycle*600)));
   const planned=new Map(attendance.map(id=>[id,0]));
   const periods:RotationPeriod[]=[];
   let previous:string[]=[];
