@@ -487,6 +487,80 @@ BEGIN
     RAISE EXCEPTION 'Roster search accessed another city group';
   EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
+  -- A previously authorized session must fail closed immediately after
+  -- revocation, including search counts and exact-group reads.
+  UPDATE identity.admin_sessions SET revoked_at=clock_timestamp()
+    WHERE token_digest=manager_digest;
+  BEGIN
+    PERFORM club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+      0,1,fixture_player_id,NULL);
+    RAISE EXCEPTION 'Revoked session retained roster search access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+      fixture_group_id,0,1,fixture_player_id);
+    RAISE EXCEPTION 'Revoked session retained exact group search access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_player_profile(manager_digest,fixture_player_id);
+    RAISE EXCEPTION 'Revoked session retained Player 360 access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM academy_private.read_admin_player_document_metadata(
+      manager_digest,'lefteria_fc_academy',fixture_player_id);
+    RAISE EXCEPTION 'Revoked session retained document metadata access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,fixture_player_id,2,
+      'Denied Contact','Parent','+35799000100','denied@example.invalid');
+    RAISE EXCEPTION 'Revoked session retained contact write access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  -- Restore the synthetic session for subsequent independent fixture checks.
+  UPDATE identity.admin_sessions SET revoked_at=NULL
+    WHERE token_digest=manager_digest;
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Restored fixture session cannot search authorized roster'; END IF;
+
+  -- A valid session and organization grant alone do not retain access
+  -- when the exact physical location grant is removed.
+  DELETE FROM club.football_location_admin_grants
+    WHERE admin_account_id=manager_id AND location_id=location;
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '0'
+    OR result->'players' IS DISTINCT FROM '[]'::jsonb THEN
+    RAISE EXCEPTION 'Removed location grant disclosed directory records or counts'; END IF;
+  BEGIN
+    PERFORM club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+      fixture_group_id,0,1,fixture_player_id);
+    RAISE EXCEPTION 'Removed location grant retained group roster access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.read_admin_academy_player_profile(manager_digest,fixture_player_id);
+    RAISE EXCEPTION 'Removed location grant retained Player 360 access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM academy_private.read_admin_player_document_metadata(
+      manager_digest,'lefteria_fc_academy',fixture_player_id);
+    RAISE EXCEPTION 'Removed location grant retained document access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,fixture_player_id,2,
+      'Denied Contact','Parent','+35799000100','denied@example.invalid');
+    RAISE EXCEPTION 'Removed location grant retained contact write access';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  INSERT INTO club.football_location_admin_grants(admin_account_id,location_id,role)
+    VALUES(manager_id,location,'location_manager');
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Restored location grant did not restore authorized search'; END IF;
+  result:=club.read_admin_academy_player_profile(admin_digest,fixture_player_id);
+  IF result#>>'{current_contact,phone}' IS DISTINCT FROM '+35799000098' THEN
+    RAISE EXCEPTION 'Revoked authority changed player contact'; END IF;
+
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
   IF result->>'player_id'<>fixture_player_id OR (SELECT count(*) FROM club.players
