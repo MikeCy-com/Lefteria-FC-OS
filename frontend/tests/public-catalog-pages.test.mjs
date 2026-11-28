@@ -156,6 +156,31 @@ test('public catalogs preserve real filters, legacy selectors, shared records, s
     assert.match(sponsorHtml,/Recorded block/);assert.match(sponsorHtml,/&lt;img/);assert.doesNotMatch(sponsorHtml,/<img src=x|href="javascript:/);
     const archiveHtml=render(Detail,{props:{data:season}}).body;assert.match(archiveHtml,/0 : 0/);assert.match(archiveHtml,/Ανδρέας Πα\./);assert.match(archiveHtml,/>—<\/td>/);assert.doesNotMatch(archiveHtml,/null|Παπαδόπουλος|medical|parent_phone/);
     assert.ok(requests.every(row=>['/api/public/site','/api/public/sections'].includes(row.path)&&[club,academy].includes(row.organization)&&row.cookie===undefined&&row.authorization===undefined));
+    // Real /vote server loader + SSR, not a component-only synthetic count.
+    sections[club].players=[
+      {id:'public-first',organization_id:club,team_type:'First Team',name:'Published First Team Player',number:8,position:'Midfielder',image_url:null},
+      {id:'public-youth',organization_id:academy,team_type:'Academy',name:'Excluded Youth Sentinel',number:9,position:null,image_url:null}];
+    sections[club].snapshot_at='2026-11-01T10:00:00Z';
+    sections[club].modules=[{id:'potm',organization_id:club,status:'ready',published_count:1,quarantined_count:0}];
+    sections[club].potm={id:'2026-11',organization_id:club,month_key:'2026-11',total_votes:3,
+      results:[{player_id:'public-first',votes:3,voter_phone:'Excluded Voter Sentinel'}]};
+    const {load:loadVote}=await import('../src/routes/vote/+page.server.ts');
+    const {default:VotePage}=await import('../src/routes/vote/+page.svelte');
+    const voteData=await loadVote({url:url('/vote?organization_id=lefteria_fc_academy')});
+    assert.equal(voteData.organization,club);
+    assert.equal(voteData.potm.totalVotes,3);
+    const voteHtml=render(VotePage,{props:{data:voteData}}).body;
+    assert.match(voteHtml,/Published First Team Player/);
+    assert.match(voteHtml,/data-testid="potm-total-votes"/);
+    assert.match(voteHtml,/data-testid="potm-voting-disabled"/);
+    assert.doesNotMatch(voteHtml,/Excluded Youth Sentinel|Excluded Voter Sentinel|type="submit"/);
+    assert.doesNotMatch(JSON.stringify(voteData),/Excluded Voter Sentinel|Excluded Youth Sentinel/);
+    sections[club].potm.total_votes=999;
+    const invalidVote=await loadVote({url:url('/vote')});
+    const invalidHtml=render(VotePage,{props:{data:invalidVote}}).body;
+    assert.match(invalidHtml,/data-testid="potm-results-unavailable"/);
+    assert.doesNotMatch(invalidHtml,/data-testid="potm-total-votes"|data-testid="potm-candidate-votes"/);
+
     sections[club].events=[];sections[academy].events=[];
     const noEvents=await list(url('/events'),'events');assert.equal(noEvents.cards.length,0);assert.match(render(List,{props:{data:noEvents}}).body,/ΔΕΝ ΥΠΑΡΧΟΥΝ ΚΑΤΑΧΩΡΙΣΕΙΣ/);
     unavailable=true;
