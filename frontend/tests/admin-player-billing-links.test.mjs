@@ -16,7 +16,7 @@ test('per-player Academy billing links are restricted to finance readers and exa
   assert.match(groups,/AdminGroupWorkspace/);
   assert.match(workspace,/allowFinance=\{canFinance\}/);
   assert.match(workspace,/organization==='lefteria_fc_academy'&&/);
-  assert.match(workspace,/hasAdminPermission\(user\.permissions,'finance:read'\)/);
+  assert.match(read('frontend/src/lib/admin/workspace-access.ts'),/finance:canEdit&&academy&&user\.role==='super_admin'&&has\('finance:read'\)/);
   assert.match(roster,/allowFinance && owner === 'lefteria_fc_academy'/);
   assert.match(roster,/data-testid="admin-player-billing-link"/);
   assert.match(roster,/encodeURIComponent\(player\.id\)/);
