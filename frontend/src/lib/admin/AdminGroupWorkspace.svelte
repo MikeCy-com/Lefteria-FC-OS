@@ -98,6 +98,7 @@
           <AdminRosterPlayersPanel owner={organization} actorId={user.id} {groups} focusGroupId={group.id}
             allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance} allowAssignments={access.profileWrite}
             canReadAttendance={access.attendance} canWriteAttendance={canAttendanceWrite}
+            allowGuardianReview={organization==='lefteria_fc_academy'&&user.role==='super_admin'&&canEvaluate}
             allowGoalManagement={user.role==='super_admin'}
             allowGoalRead={user.role==='manager' && organization==='lefteria_fc_academy'}
             {onExpired} {onRevoked} {onChanged}/>
