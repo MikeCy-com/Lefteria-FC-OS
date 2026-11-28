@@ -150,7 +150,7 @@
     error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
-  .academy-schedule{max-width:1100px;margin:0 auto;padding:22px 0 60px}
+  .academy-schedule{width:100%;max-width:none;min-width:0;margin:0 auto;padding:22px 0 60px}
   .eyebrow{font-size:11px;color:#f6bb38;letter-spacing:.1em}
   h1{font-family:'Fira Sans Extra Condensed',sans-serif}
   .intro,.notice{color:#b3b8bb;font-size:13px;line-height:1.7}
