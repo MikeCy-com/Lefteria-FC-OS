@@ -19,18 +19,20 @@ public sealed class PostgresAdminRosterPlayerDirectory(
     };
 
     public async Task<AdminRosterPlayersPageDto> ReadAsync(
-        string cookie,string organizationId,int offset,int limit,CancellationToken token)
+        string cookie,string organizationId,int offset,int limit,CancellationToken token,string? search=null,string? filterGroup=null)
     {
         if(!secrets.IsToken(cookie))
             throw new WebAdminException(401,"not_authenticated","Sign in again.");
         if(organizationId is not ("lefteria_fc" or "lefteria_fc_academy"))
             throw new WebAdminException(400,"invalid_organization","Select exactly one organization.");
-        if(offset<0 || offset>20000 || limit<1 || limit>50)
+        if(offset<0 || offset>20000 || limit<1 || limit>50 || !ValidSearch(search) ||
+            (filterGroup is not null && (filterGroup.Length is <1 or >128 || filterGroup.Any(char.IsControl))))
             throw new WebAdminException(400,"invalid_filters","The roster page is invalid.");
         try
         {
             await using var connection=await connections.OpenAsync(token);
-            await using var command=new NpgsqlCommand("""
+            await using var command=new NpgsqlCommand(search is not null || filterGroup is not null ?
+                "SELECT club.search_admin_roster_players(@digest,@owner,@offset,@limit,@search,@filter_group)::text" : """
                 SELECT club.read_admin_roster_players(
                   @digest,@owner,@offset,@limit)::text
                 """,connection);
@@ -38,6 +40,11 @@ public sealed class PostgresAdminRosterPlayerDirectory(
             command.Parameters.AddWithValue("owner",organizationId);
             command.Parameters.AddWithValue("offset",offset);
             command.Parameters.AddWithValue("limit",limit);
+            if(search is not null || filterGroup is not null)
+            {
+                command.Parameters.AddWithValue("search",search??string.Empty);
+                command.Parameters.Add("filter_group",NpgsqlTypes.NpgsqlDbType.Text).Value=(object?)filterGroup??DBNull.Value;
+            }
             var raw=await command.ExecuteScalarAsync(token) as string;
             var result=raw is null ? null : JsonSerializer.Deserialize<AdminRosterPlayersPageDto>(raw,Json);
             if(result is null || result.OrganizationId!=organizationId ||
@@ -76,13 +83,14 @@ public sealed class PostgresAdminRosterPlayerDirectory(
         if(organizationId is not ("lefteria_fc" or "lefteria_fc_academy") ||
             string.IsNullOrWhiteSpace(groupId) || groupId.Length>128 ||
             groupId.Any(char.IsControl) || offset<0 || offset>20000 ||
-            limit<1 || limit>50)
+            limit<1 || limit>50 || !ValidSearch(search))
             throw new WebAdminException(400,"invalid_group_scope",
                 "Select one verified group and valid page.");
         try
         {
             await using var connection=await connections.OpenAsync(token);
-            await using var command=new NpgsqlCommand("""
+            await using var command=new NpgsqlCommand(search is not null ?
+                "SELECT club.search_admin_group_roster(@digest,@owner,@group_id,@offset,@limit,@search)::text" : """
                 SELECT club.read_admin_group_roster(
                   @digest,@owner,@group_id,@offset,@limit)::text
                 """,connection);
@@ -124,5 +132,6 @@ public sealed class PostgresAdminRosterPlayerDirectory(
         catch(PostgresException e) when(e.SqlState is "55000" or "54000" or "57014" or "55P03" or "P0001")
         {throw new WebAdminException(503,"group_roster_unavailable","Roster is unavailable.");}
     }
-
+    private static bool ValidSearch(string? search)=>search is null||
+        (search.Length<=100&&search==search.Trim()&&!search.Any(char.IsControl));
 }
