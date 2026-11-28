@@ -209,6 +209,16 @@ try {
   assert.deepEqual(legacyExchange.security, [{ LegacyMobile: [] }]);
   assert.equal(legacyExchange.requestBody, undefined);
   assert.ok(legacyExchange.responses['200'] && legacyExchange.responses['401'] && legacyExchange.responses['503']);
+  const potm = document.paths['/api/mobile/potm/ballot'];
+  assert.deepEqual(Object.keys(potm).sort(), ['get','put']);
+  for (const operation of [potm.get,potm.put]) {
+    assert.deepEqual(operation.security, [{ Mobile: [] }]);
+    assert.equal(operation.parameters, undefined);
+    assert.equal(operation.responses['200'].content['application/json'].schema.$ref, '#/components/schemas/MobilePotmBallot');
+  }
+  assert.deepEqual(document.components.schemas.MobilePotmBallotCommand.required, ['month_key','expected_revision','player_id']);
+  assert.deepEqual(Object.keys(document.components.schemas.MobilePotmBallot.properties).sort(), ['month_key','my_vote_player_id','revision','voting_open']);
+  assert.ok(potm.put.responses['409'] && potm.put.responses['413']);
   const avatarUpload = document.paths['/api/mobile/profile/avatar'].post;
   assert.deepEqual(avatarUpload.security, [{ Mobile: [] }]);
   const multipart = avatarUpload.requestBody.content['multipart/form-data'].schema;
