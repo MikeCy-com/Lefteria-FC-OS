@@ -13,6 +13,11 @@
   }=$props();
   const owner='lefteria_fc_academy';
   let selected=$state('');
+  $effect(()=>{
+    const eligible=groups.filter(g=>g.kind==='academy_group');
+    if(eligible.length===1&&selected!==eligible[0].id)selected=eligible[0].id;
+    else if(!eligible.some(g=>g.id===selected))selected='';
+  });
   let record=$state<Profile|null>(null);
   let loading=$state(false);
   let saving=$state(false);
@@ -170,6 +175,7 @@
   <h2>Προφίλ τμήματος Ακαδημίας</h2>
   <p class="admin-muted">Τα πεδία ακολουθούν τον αρχικό πίνακα Lefteria FC. Οι αναθέσεις
     παικτών και προπονητών παραμένουν ανεξάρτητες και προστατευμένες.</p>
+  {#if groups.filter(g=>g.kind==='academy_group').length>1}
   <label for="academy-profile-group">Τμήμα</label>
   <select id="academy-profile-group" bind:value={selected} disabled={saving}>
     <option value="">Επιλέξτε τμήμα</option>
@@ -177,6 +183,7 @@
       <option value={item.id}>{item.name}</option>
     {/each}
   </select>
+  {:else if groups.length===1}<p class="admin-muted" data-testid="group-profile-current-name"><strong>{groups[0].name}</strong></p>{/if}
   {#if loading}<p role="status">Φόρτωση προφίλ…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if saved}<p role="status">{saved}</p>{/if}
@@ -205,6 +212,9 @@
         <input type="url" maxlength="2048" bind:value={bannerUrl} disabled={saving}
           placeholder="https://..." />
       </label>
+      {#if record.banner_url&&/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(record.banner_url)}
+        <div class="group-banner-preview"><span>Τρέχον banner</span><img src={record.banner_url} alt="Banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}
       <label>Σειρά εμφάνισης
         <input type="number" min="0" max="10000" step="1"
           bind:value={displayOrder} disabled={saving} required/>
@@ -239,7 +249,7 @@
 <style>
   .academy-profile{display:grid;gap:12px;margin:18px 0}
   .academy-profile>select{max-width:500px}
-  .academy-profile-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;max-width:900px}
+  .academy-profile-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px;width:100%;max-width:none;min-width:0}
   .academy-profile-form label{display:grid;gap:6px;font-size:13px}
   .academy-profile-form input,.academy-profile-form textarea{width:100%}
   .academy-profile-actions{display:flex;gap:10px;align-items:center;grid-column:1/-1}
@@ -250,4 +260,6 @@
   .academy-publication .academy-visibility-status{font-weight:800;color:#eac15f}
   .academy-publication button{justify-self:start;min-height:44px}
   @media(max-width:700px){.academy-profile-form{grid-template-columns:1fr}.academy-publication button{width:100%}}
+.group-banner-preview{grid-column:1/-1;display:grid;gap:8px;max-width:100%;min-width:0}
+.group-banner-preview img{width:100%;max-height:260px;object-fit:contain;background:var(--admin-surface);border-radius:8px}
 </style>
