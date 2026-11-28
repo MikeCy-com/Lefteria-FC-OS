@@ -52,7 +52,11 @@ public enum MobileAuthErrorCode
     InvalidCalendarInput,
     CalendarEventAmbiguous,
     LegacyBridgeUnavailable,
-    LegacyTokenInvalid
+    LegacyTokenInvalid,
+    InvalidPotmInput,
+    PotmRevisionConflict,
+    PotmVotingClosed,
+    PotmUnavailable
 }
 
 public sealed class MobileAuthException(
