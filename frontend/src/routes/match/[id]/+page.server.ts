@@ -5,6 +5,6 @@ import { loadPublicMatch } from '../../../lib/server/public-match';
 export const load = async ({ url, params }: { url: URL; params: { id: string } }) => {
   const data = await loadPublicMatch(url, params.id);
   const canonical = fixturePublicLink(data.fixture);
-  if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) redirect(308, canonical);
+  if (decodeURIComponent(url.pathname) !== decodeURIComponent(canonical)) redirect(301, canonical);
   return data;
 };
