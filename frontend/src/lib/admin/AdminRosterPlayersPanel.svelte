@@ -434,6 +434,13 @@
                     </div>
                     <div><span>Εγγραφή ρόστερ</span><strong>Ενεργός παίκτης</strong></div>
                   </div>
+                  {#if allowFinance&&owner==='lefteria_fc_academy'}
+                    <div class="admin-player-departure-link">
+                      <strong>Αποχώρηση / αλλαγή κατάστασης</strong>
+                      <p class="admin-muted">Ελέγξτε πρώτα το πλήρες οικονομικό ιστορικό και τις μελλοντικές χρεώσεις. Η αποχώρηση δεν εκτελείται από αυτή την οθόνη.</p>
+                      <a class="admin-secondary" data-testid="admin-player-departure-review-link" href={'/admin/finance?'+new URLSearchParams({organization_id:owner,player_id:player.id}).toString()+'#academy-departure-review'}>Οικονομικός έλεγχος αποχώρησης ›</a>
+                    </div>
+                  {/if}
                   <details><summary>Κωδικός αναφοράς αθλητή</summary><small>{player.id}</small></details>
                   <p class="admin-muted">Επιλέξτε ενότητα για να δείτε τα πραγματικά στοιχεία του αθλητή. Εμφανίζονται μόνο οι ενότητες για τις οποίες έχετε δικαίωμα πρόσβασης.</p>
                 {:else}
@@ -563,4 +570,6 @@
   .admin-player-group-scope button:disabled{opacity:.6;cursor:not-allowed}
   .admin-group-minimal-roster-note{font-size:11px;color:#bfb5a0;line-height:1.4;max-width:30ch}
   .roster-search-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+  .admin-player-departure-link{display:grid;gap:8px;padding:12px;border:1px solid var(--admin-line);border-radius:8px}
+  .admin-player-departure-link a{justify-self:start}
 </style>

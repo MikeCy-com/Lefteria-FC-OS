@@ -134,5 +134,57 @@ BEGIN
       'lefteria_fc_academy',v_linked_fee,gen_random_uuid(),'Player has left the academy');
     RAISE EXCEPTION 'provider_linked_fee_cancelled_without_reconciliation';
   EXCEPTION WHEN unique_violation THEN NULL; END;
+  -- The complete per-player review must not be restricted to the global
+  -- recent-100 list. Add later synthetic fees for another player.
+  INSERT INTO club.players(id,organization_id,name,number,position,team_type,
+    is_active,is_archived,is_transferred,has_explicit_picker_fields)
+    VALUES(v_player||'-other','lefteria_fc_academy','CI Other Child',2,'Forward',
+      'Academy',true,false,false,true);
+  INSERT INTO finance.training_fee_issues(id,organization_id,player_id,
+    payer_identity_id,fee_month,amount_cents,payer_phone,payer_email,
+    payer_first_name,payer_last_name,issued_by)
+  SELECT gen_random_uuid(),'lefteria_fc_academy',v_player||'-other',v_parent,
+    (v_next_month+(n||' months')::interval)::date,6000,'+35799123456',
+    'ci@example.invalid','CI','Guardian',v_super
+  FROM generate_series(3,103) n;
+  INSERT INTO finance.training_fee_issues(id,organization_id,player_id,
+    payer_identity_id,fee_month,amount_cents,payer_phone,payer_email,
+    payer_first_name,payer_last_name,issued_by)
+  VALUES(gen_random_uuid(),'lefteria_fc_academy',v_player,v_parent,
+    (v_month+interval '3 months')::date,4000,'+35799123456',
+    'ci@example.invalid','CI','Guardian',v_super);
+
+  v_json:=finance.read_admin_training_fees(v_super_digest,'lefteria_fc_academy');
+  IF EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
+    WHERE f->>'id'=v_fee::text)
+  THEN RAISE EXCEPTION 'global list test did not exceed the old cap'; END IF;
+  v_json:=finance.read_admin_player_training_fees(v_super_digest,'lefteria_fc_academy',v_player);
+  IF v_json->>'player_id' IS DISTINCT FROM v_player
+    OR v_json->>'player_name' IS DISTINCT FROM 'CI Future Fee Child'
+    OR v_json->>'player_active' IS DISTINCT FROM 'true'
+    OR jsonb_array_length(v_json->'fees')<>4
+    OR EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
+      WHERE f->>'player_id' IS DISTINCT FROM v_player)
+    OR (SELECT count(*) FROM jsonb_array_elements(v_json->'fees') f
+      WHERE f->>'cancel_eligible'='true')<>1
+    OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
+      WHERE f->>'id'=v_fee::text AND f->>'status'='cancelled' AND f->>'cancel_eligible'='false')
+    OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
+      WHERE f->>'id'=v_paid_fee::text AND f->>'status'='paid' AND f->>'cancel_eligible'='false')
+    OR NOT EXISTS(SELECT 1 FROM jsonb_array_elements(v_json->'fees') f
+      WHERE f->>'id'=v_linked_fee::text AND f->>'cancel_eligible'='false')
+  THEN RAISE EXCEPTION 'exact player review omitted history or classified cancellation incorrectly'; END IF;
+  BEGIN
+    PERFORM finance.read_admin_player_training_fees(v_manager_digest,'lefteria_fc_academy',v_player);
+    RAISE EXCEPTION 'manager read restricted player finance history';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM finance.read_admin_player_training_fees(v_super_digest,'lefteria_fc_academy','missing-player');
+    RAISE EXCEPTION 'missing player finance review accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  UPDATE club.players SET is_active=false,is_archived=true WHERE id=v_player;
+  v_json:=finance.read_admin_player_training_fees(v_super_digest,'lefteria_fc_academy',v_player);
+  IF v_json->>'player_active' IS DISTINCT FROM 'false' OR jsonb_array_length(v_json->'fees')<>4
+  THEN RAISE EXCEPTION 'inactive player lost finance history'; END IF;
 END $future_fee_checks$;
 ROLLBACK;

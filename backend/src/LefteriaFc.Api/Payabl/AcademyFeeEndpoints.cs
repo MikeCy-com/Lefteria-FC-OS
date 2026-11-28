@@ -45,14 +45,30 @@ public static class AcademyFeeEndpoints
             HttpContext context, CancellationToken ct) =>
         {
             var cookie = await AdminCookie(organization_id,service,context,false,ct);
+            context.Response.Headers.CacheControl="private, no-store";
+            var filter=context.Request.Query["player_id"];
+            string? player=filter.Count==0?null:filter[0];
+            if(filter.Count>1 || (filter.Count==1 && (string.IsNullOrWhiteSpace(player) ||
+                player.Length>128 || player.Any(char.IsControl) || player!=player.Trim())))
+                throw new WebAdminException(422,"invalid_training_fee_player","Select one valid Academy player.");
             await using var db = await connections.OpenAsync(ct);
-            await using var cmd = new NpgsqlCommand(
-                "SELECT finance.read_admin_training_fees(@digest,@owner)::text",db);
+            await using var cmd = new NpgsqlCommand(player is null
+                ? "SELECT finance.read_admin_training_fees(@digest,@owner)::text"
+                : "SELECT finance.read_admin_player_training_fees(@digest,@owner,@player)::text",db);
+            if(player is not null)cmd.Parameters.AddWithValue("player",player);
             cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
             cmd.Parameters.AddWithValue("owner",organization_id!);
-            var json = await cmd.ExecuteScalarAsync(ct) as string;
-            return json is null ? Results.Problem(statusCode:503)
-                : Results.Content(json,"application/json",Encoding.UTF8,200);
+            try
+            {
+                var json = await cmd.ExecuteScalarAsync(ct) as string;
+                return json is null ? Results.Problem(statusCode:503)
+                    : Results.Content(json,"application/json",Encoding.UTF8,200);
+            }
+            catch(PostgresException e) when(e.SqlState is "42501" or "22023" or "54000" or "42883")
+            {
+                throw new WebAdminException(e.SqlState=="42501"?403:e.SqlState=="22023"?422:503,
+                    "training_fee_review_unavailable","The complete player fee history is unavailable.");
+            }
         }).WithName("ReadAdminAcademyTrainingFees");
 
         admin.MapPost("/", async (string? organization_id,

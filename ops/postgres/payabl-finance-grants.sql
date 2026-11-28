@@ -32,6 +32,7 @@ BEGIN
     OR to_regclass('finance.payment_requests') IS NULL
     OR to_regprocedure('finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)') IS NULL
     OR to_regprocedure('finance.issue_admin_training_fee(text,text,uuid,text,date,bigint,text,text,text)') IS NULL
+    OR to_regprocedure('finance.read_admin_player_training_fees(text,text,text)') IS NULL
     OR to_regprocedure('finance.read_parent_training_fees(uuid,text,text,timestamptz)') IS NULL
     OR to_regprocedure('finance.read_parent_invoice_pdf(uuid,text,text,timestamptz,uuid[])') IS NULL
     OR to_regprocedure('finance.read_admin_invoice_pdf(text,text,uuid[])') IS NULL
@@ -63,6 +64,8 @@ GRANT EXECUTE ON FUNCTION finance.attach_admin_training_fee_payment(
   text,text,uuid,uuid) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.read_admin_training_fees(
   text,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION finance.read_admin_player_training_fees(text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_player_training_fees(text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.cancel_admin_future_training_fee(
   text,text,uuid,uuid,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.reserve_admin_training_fee_sms(
@@ -98,7 +101,11 @@ BEGIN
       RAISE EXCEPTION 'Finance privilege boundary exceeded for %',r;
     END IF;
   END LOOP;
-  IF has_function_privilege(current_setting('lefteria.finance_app_role'),
+  IF NOT has_function_privilege(current_setting('lefteria.finance_admin_role'),
+       'finance.read_admin_player_training_fees(text,text,text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
+       'finance.read_admin_player_training_fees(text,text,text)','EXECUTE')
+    OR has_function_privilege(current_setting('lefteria.finance_app_role'),
        'finance.create_admin_payment_request(text,text,uuid,uuid,text,text,bigint,text,text,text)','EXECUTE')
     OR has_function_privilege(current_setting('lefteria.finance_admin_role'),
        'finance.apply_payabl_notification(uuid,text,text,text,integer,bigint,text,text,bigint,text)','EXECUTE')
