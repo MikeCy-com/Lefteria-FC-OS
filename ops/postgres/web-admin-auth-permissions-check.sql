@@ -138,6 +138,7 @@ BEGIN
                   'club.create_admin_group(text,text,text,text)'::regprocedure,
                   'club.create_admin_group_with_profile(text,text,text,text,uuid,jsonb)'::regprocedure,
                   'club.create_admin_academy_location_group_with_profile(text,text,text,uuid,jsonb,uuid)'::regprocedure,
+                  'club.rename_admin_group(text,text,text,text,text)'::regprocedure,
                   'club.read_admin_first_team_profile(text,text)'::regprocedure,
                   'club.write_admin_first_team_profile(text,text,bigint,jsonb)'::regprocedure,
                   'club.read_admin_academy_group_profile(text,text)'::regprocedure,
