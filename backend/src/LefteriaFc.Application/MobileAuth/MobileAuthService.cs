@@ -25,7 +25,9 @@ public sealed partial class MobileAuthService(
         var pending = evidence is { IsActive: true } ? evidence.Registration : null;
         var detectedRole = Available(profiles).FirstOrDefault()?.Role ?? (pending is not null ? MobileRole.Fan : (MobileRole?)null);
         await IssueChallengeAsync(phone, pending, detectedRole, cancellationToken);
-        return new OtpRequestResult("OTP sent", phone.WireValue, detectedRole?.ToWireValue(), 300);
+        // SMS routing may use the internal role, but an unauthenticated caller
+        // must not learn whether the supplied phone belongs to a club member.
+        return new OtpRequestResult("OTP sent", phone.WireValue, null, 300);
     }
 
     public async Task<FanRegistrationResult> RegisterFanAsync(FanRegistrationCommand command,
@@ -36,21 +38,23 @@ public sealed partial class MobileAuthService(
         var registration = ValidateRegistration(command);
         await EnforceOtpRequestThrottleAsync(phone, context, cancellationToken);
         var profiles = ValidateProfiles(await repository.GetIdentityProfilesAsync(phone, cancellationToken), phone);
-        if (profiles.Any(profile => profile.Role != MobileRole.Fan))
-        {
-            throw Fault(MobileAuthFaultKind.BadRequest, MobileAuthErrorCode.FormalAccountAlreadyExists,
-                "Αυτός ο αριθμός είναι ήδη καταχωρημένος στη Λευτεριά FC. Παρακαλώ συνδεθείτε κανονικά.");
-        }
-        if (profiles.Any(profile => profile.Role == MobileRole.Fan && !IsAvailable(profile)))
-        {
-            throw AccountUnavailable();
-        }
-        if (!profiles.Any(profile => profile.Role == MobileRole.Fan) &&
-            await repository.GetLegacyFanRegistrationAsync(phone, cancellationToken) is { IsActive: false })
-            throw AccountUnavailable();
+        var hasFormal = profiles.Any(profile => profile.Role != MobileRole.Fan);
+        var hasFan = profiles.Any(profile => profile.Role == MobileRole.Fan);
+        var evidence = hasFan ? null : await repository.GetLegacyFanRegistrationAsync(phone, cancellationToken);
+        var blockedFan = profiles.Any(profile => profile.Role == MobileRole.Fan && !IsAvailable(profile))
+            || evidence is { IsActive: false };
 
-        // Personal fields remain on the challenge until this phone proves possession.
-        await IssueChallengeAsync(phone, registration, MobileRole.Fan, cancellationToken);
+        // A registration form is not an account lookup. All valid inputs use
+        // the same OTP response. Existing formal accounts follow the normal
+        // login/role-picker path; never stage the submitted personal fields
+        // against a formal identity or its separate existing fan profile.
+        // Disabled fan identities must not be reactivated by registration.
+        PendingFanRegistration? pending = hasFormal || blockedFan
+            ? (evidence is { IsActive: true } ? evidence.Registration : null)
+            : registration;
+        var deliveryRole = Available(profiles).FirstOrDefault()?.Role
+            ?? (pending is not null ? MobileRole.Fan : (MobileRole?)null);
+        await IssueChallengeAsync(phone, pending, deliveryRole, cancellationToken);
         return new FanRegistrationResult(phone.WireValue, MobileRole.Fan.ToWireValue());
     }
 
