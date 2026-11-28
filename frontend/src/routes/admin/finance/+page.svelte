@@ -8,6 +8,7 @@
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminTrainingFees from '../../../lib/admin/AdminTrainingFees.svelte';
+  import AdminPlayerLifecyclePanel from '../../../lib/admin/AdminPlayerLifecyclePanel.svelte';
   import AdminSupplierBills from '../../../lib/admin/AdminSupplierBills.svelte';
   import AdminSupplierPaymentReview from '../../../lib/admin/AdminSupplierPaymentReview.svelte';
   import AdminFinanceOverview from '../../../lib/admin/AdminFinanceOverview.svelte';
@@ -295,6 +296,11 @@
           </section>
         {/if}
         {#if owner === 'lefteria_fc_academy'}
+          {#if canWrite&&page.url.searchParams.get('player_id')}
+            {#key page.url.searchParams.get('player_id')+'|'+$auth.session.user.id}
+              <AdminPlayerLifecyclePanel playerId={page.url.searchParams.get('player_id')??''} actorId={$auth.session.user.id}/>
+            {/key}
+          {/if}
           <AdminTrainingFees {owner} configured={status.configured}
             canWrite={!!canWrite} sessionId={$auth.session.user.id}
             focusPlayerId={page.url.searchParams.get('player_id') ?? ''} />
