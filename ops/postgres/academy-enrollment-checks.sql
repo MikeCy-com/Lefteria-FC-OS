@@ -143,6 +143,23 @@ BEGIN
     decode(repeat('bb',16),'hex'));
   IF document_status<>'stored' THEN
     RAISE EXCEPTION 'Valid private document capability did not store'; END IF;
+  -- Server-generated registration form uses the same exact-child vault but
+  -- is not one of the browser upload slots. Synthetic encrypted fixture only.
+  document_status:=academy_intake.store_public_registration_document(
+    application,repeat('7',64),gen_random_uuid(),'registration_form',
+    NULL,'application/pdf',32,'fixture-vault',repeat('c',64),
+    decode(repeat('ce',32),'hex'),decode(repeat('aa',12),'hex'),
+    decode(repeat('bb',16),'hex'));
+  IF document_status<>'stored' THEN
+    RAISE EXCEPTION 'Generated registration PDF did not store'; END IF;
+  BEGIN
+    PERFORM academy_intake.store_public_registration_document(
+      application,repeat('7',64),gen_random_uuid(),'registration_form',
+      NULL,'image/png',32,'fixture-vault',repeat('c',64),
+      decode(repeat('ce',32),'hex'),decode(repeat('aa',12),'hex'),
+      decode(repeat('bb',16),'hex'));
+    RAISE EXCEPTION 'Non-PDF accepted into registration form slot';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   document_status:=academy_intake.store_public_registration_document(
     application,repeat('7',64),gen_random_uuid(),'passport_photo',
     NULL,'image/png',32,'fixture-vault',repeat('f',64),
@@ -292,7 +309,7 @@ BEGIN
   -- player's encrypted Documents in the enrollment transaction.
   IF (SELECT count(*) FROM academy_private.player_documents
       WHERE organization_id='lefteria_fc_academy'
-        AND player_id=fixture_player_id)<>3
+        AND player_id=fixture_player_id)<>4
     OR EXISTS(
       SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=application AND
@@ -300,10 +317,17 @@ BEGIN
          promoted_document_id IS NULL OR ciphertext IS NOT NULL OR
          nonce IS NOT NULL OR auth_tag IS NOT NULL))
     OR (SELECT count(*) FROM academy_intake.registration_document_promotions
-      WHERE registration_id=application AND player_id=fixture_player_id)<>3
+      WHERE registration_id=application AND player_id=fixture_player_id)<>4
     OR EXISTS(SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=ANY(sibling_ids) AND promoted_at IS NOT NULL)
   THEN RAISE EXCEPTION 'Child 1 document promotion leaked sibling evidence'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM academy_private.player_documents d
+    JOIN academy_private.encrypted_document_objects o ON o.id=d.storage_object_id
+    JOIN academy_intake.registration_document_promotions t ON t.player_document_id=d.id
+    WHERE d.player_id=fixture_player_id AND d.document_type='registration_form'
+      AND d.mime_type='application/pdf' AND o.scan_status='quarantined'
+      AND t.registration_id=application)
+  THEN RAISE EXCEPTION 'Generated form did not reach the exact child vault'; END IF;
   -- The pending sibling documents are NOT in child 1's folder.
   IF EXISTS(SELECT 1 FROM academy_private.player_documents d
     JOIN academy_intake.registration_document_escrow e
@@ -352,7 +376,7 @@ BEGIN
        sibling_index; END IF;
     IF processed IN (2,4,5)
       AND (SELECT count(*) FROM academy_intake.registration_document_promotions
-        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+2
+        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+3
     THEN RAISE EXCEPTION 'Family % child documents count wrong',processed; END IF;
   END LOOP;
   SET CONSTRAINTS ALL IMMEDIATE;
