@@ -23,7 +23,7 @@ test('reference admin pages compile and preserve the real group and roster surfa
   assert.match(groups,/data-testid="admin-group-workspace"/);
   assert.match(roster,/data-testid="admin-player-search"/);
   assert.match(roster,/data-testid="admin-player-group-filter"/);
-  assert.match(roster,/currentGroups\(player\)\.includes\(playerGroupFilter\)/);
+  assert.match(roster,/filterGroupId:filterGroup/);
   assert.match(roster,/data-testid="admin-player-individual-workspace"/);
   assert.match(roster,/group-players\?/);
 });
@@ -32,7 +32,7 @@ test('search uses only authorization-filtered real data and does not pretend to 
   assert.match(groups,/directory\?\.groups/);
   assert.match(groups,/visibleGroups/);
   assert.match(roster,/\(page\?\.players\?\?\[\]\)/);
-  assert.match(roster,/Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας/);
+  assert.match(roster,/πριν από τη σελιδοποίηση/);
   assert.match(roster,/const source=group\?/);
   assert.doesNotMatch(roster,/localStorage|sessionStorage/);
 });
