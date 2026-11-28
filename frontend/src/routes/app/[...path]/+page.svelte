@@ -4,6 +4,8 @@
   import { page } from '$app/state';
   import { browser } from '$app/env';
   import MobileShell from '../../../lib/mobile/components/MobileShell.svelte';
+  import MobileGuestHome from '../../../lib/mobile/components/MobileGuestHome.svelte';
+  import { guestRequestedTab, isGuestPublicTab, guestLoginHref } from '../../../lib/mobile/guest-navigation.ts';
   import {brandOwnerForRole,readPublicBrand,type ClubBrand} from '../../../lib/mobile/club-branding.ts';
   import AppInstallButton from '../../../lib/public/AppInstallButton.svelte';
   import MobileProfile from '../../../lib/mobile/components/MobileProfile.svelte';
@@ -43,14 +45,16 @@
   let composing = $state(false);
   const user = $derived($controller.user);
   const role = $derived(user && isMobileRole(user.role) ? user.role : null);
-  const activeTab = $derived(role ? tabFromLocation(page.url, role) : 'home');
+  const guestTab = $derived(guestRequestedTab(page.url));
+  const activeTab = $derived(role ? tabFromLocation(page.url, role) : guestTab);
   const chatMode=$derived(privateChatMode(role,page.url.searchParams.get('chat_mode')));
   const publicDestination = $derived(fanPublicDestination(activeTab, role));
-  const brandOwner=$derived(brandOwnerForRole(role,
+  const brandOwner=$derived($controller.status==='anonymous' ? 'lefteria_fc' : brandOwnerForRole(role,
     $controller.organization?.organization_id??null));
+  const brandActor=$derived($controller.status==='anonymous' ? 'guest' : user?.id);
   let publicClubBrand=$state<ClubBrand|null>(null);
   $effect(()=>{
-    const owner=brandOwner,actor=user?.id;
+    const owner=brandOwner,actor=brandActor;
     publicClubBrand=null;
     if(!browser||!owner||!actor)return;
     const request=new AbortController();
@@ -65,7 +69,7 @@
         if(!response.ok)return;
         const raw:unknown=await response.json();
         const verified=readPublicBrand(raw,owner);
-        if(!request.signal.aborted&&brandOwner===owner&&user?.id===actor)
+        if(!request.signal.aborted&&brandOwner===owner&&brandActor===actor)
           publicClubBrand=verified;
       }catch{/* An unavailable public profile must not block authenticated app use. */}
     })();
@@ -126,7 +130,11 @@
       group:notice.group_id,notice:notice.announcement_id});
     await goto('/app?'+query.toString(),{reset:true});
   }
-  $effect(() => { if (browser && $controller.status === 'anonymous') void goto('/app/login', { replace: true }); });
+  let signingOut = $state(false);
+  $effect(() => {
+    if (browser && !signingOut && $controller.status === 'anonymous' && !isGuestPublicTab(guestTab))
+      void goto(guestLoginHref(guestTab), { replace: true });
+  });
   $effect(() => { void role; composing = false; });
   async function openChatMode(mode:'groups'|'private'){
     if(!role||role==='fan'||(mode==='private'&&!canOpenPrivateChat(role)))return;
@@ -152,7 +160,11 @@
     // Never switch a parent, player or coach into the fan identity to edit it.
     await openTab('profile');
   }
-  function logout() { controller.logout(); }
+  async function logout() {
+    signingOut = true;
+    controller.logout();
+    try { await goto('/app', { replace: true }); } finally { signingOut = false; }
+  }
 </script>
 
 <svelte:head><title>{TAB_NAMES[activeTab]} | Λευτεριά FC</title><meta name="robots" content="noindex" /></svelte:head>
@@ -471,12 +483,14 @@
       {/if}
     {/if}
   </MobileShell>
+{:else if $controller.status === 'anonymous' && isGuestPublicTab(guestTab)}
+  <MobileGuestHome activeTab={guestTab} brand={publicClubBrand}/>
 {:else}
   <div class="app-status">
     {#if $controller.status === 'unavailable'}
       <p role="alert">{$controller.error}</p>
       <button class="secondary" type="button" disabled={$controller.busy} onclick={() => void controller.bootstrap()}>Δοκιμή ξανά</button>
-      <button class="secondary" type="button" disabled={$controller.busy} onclick={logout}>Αποσύνδεση</button>
+      <button class="secondary" type="button" disabled={$controller.busy} onclick={logout}>Συνέχεια ως επισκέπτης</button>
     {:else}<p role="status">Έλεγχος σύνδεσης…</p>{/if}
   </div>
 {/if}
