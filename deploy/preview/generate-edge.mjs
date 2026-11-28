@@ -110,7 +110,6 @@ export const reviewedAdminEntries = [
   ['get','/api/admin/football/first-team-profiles/{teamId}'],
   ['put','/api/admin/football/first-team-profiles/{teamId}'],
   ['post','/api/admin/football/groups'],
-  ['put','/api/admin/football/groups/{groupId}/name'],
   ['post','/api/admin/football/groups/with-profile'],
   ['get','/api/admin/football/players'],
   ['get','/api/admin/football/players/{playerId}/birthday-preferences'],
@@ -195,6 +194,7 @@ export const reviewedHiddenAdminEntries = [
   ['put','/api/admin/football/territories/access'],
   ['get','/api/admin/football/territories/metrics'],
   ['get','/api/admin/football/group-players'],
+  ['put','/api/admin/football/groups/{groupId}/name'],
   // Read-only named Academy site inventory evidence; no stock mutation route.
   ['get','/api/admin/pos/sites/{locationId}/stock-reconciliation'],
   ['get','/api/admin/access/users'],
