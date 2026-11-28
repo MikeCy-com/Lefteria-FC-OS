@@ -32,3 +32,16 @@ test('name editor retains verified identity and refreshes the exact group direct
   assert.match(workspace,/<AdminGroupNameEditor owner=\{organization\} groupId=\{group\.id\} groupName=\{group\.name\}/);
   assert.match(workspace,/actorId=\{user\.id\} allowed=\{access\.settings\}/);
 });
+
+test('group banner picker uses only the existing organization media library and explicit saves',()=>{
+  for(const name of ['AdminAcademyGroupProfilePanel','AdminFirstTeamProfilePanel']){
+    const source=read('frontend/src/lib/admin/'+name+'.svelte');
+    assert.ok(compile(source,{filename:name+'.svelte',generate:'server'}).js.code.length>100);
+    assert.ok(source.includes('<PublishedMediaBrowser organization={owner} embedded onPick='));
+    assert.ok(source.includes('asset.organization_id!==owner'));
+    assert.ok(source.includes('bannerUrl=asset.url;pickedBanner=asset.url'));
+    assert.ok(source.includes('bannerUrl===record?.banner_url||bannerUrl===pickedBanner'));
+    assert.ok(source.includes('referrerpolicy="no-referrer"'));
+    assert.ok(source.includes('banner_url:bannerUrl'));
+  }
+});
