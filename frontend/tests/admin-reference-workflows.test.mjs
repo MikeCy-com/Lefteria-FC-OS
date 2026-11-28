@@ -40,7 +40,8 @@ test('search uses only authorization-filtered real data and does not pretend to 
 test('team workspace embeds the original actions, including coaches, behind existing grants',()=>{
   for(const id of ['players','training','attendance','matches','coaches','settings'])
     assert.match(workspace,new RegExp("tab==='"+id+"'"));
-  assert.match(workspace,/requested==='coaches'&&canCreate/);
+  assert.match(workspace,/allowed\.includes\(requested as Tab\)/);
+  assert.match(workspace,/tab==='coaches' && access\.coaches/);
   assert.match(workspace,/AdminCoachDirectoryPanel/);
   assert.match(workspace,/AdminGroupAttendancePanel/);
   assert.match(workspace,/AdminGroupPublishedFixtures/);
