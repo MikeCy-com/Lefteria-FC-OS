@@ -1,6 +1,7 @@
 <script lang="ts">
   import {browser} from '$app/env';
   import {untrack} from 'svelte';
+  import AcademyGuardianProofReview from './AcademyGuardianProofReview.svelte';
 
   type RegistrationSource={
     id:string;applicant_first_name:string;applicant_last_name:string;applicant_birth_date:string;
@@ -24,8 +25,8 @@
     registration?:RegistrationSource|null;
   };
 
-  let {playerId,playerName,actorId,allowWrite=false,onExpired,onRevoked}:{
-    playerId:string;playerName:string;actorId:string;allowWrite?:boolean;
+  let {playerId,playerName,actorId,allowWrite=false,allowGuardianReview=false,onExpired,onRevoked}:{
+    playerId:string;playerName:string;actorId:string;allowWrite?:boolean;allowGuardianReview?:boolean;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
   let profile=$state<Profile|null>(null);
@@ -36,6 +37,7 @@
   let loading=$state(false),saving=$state(false),uploading=$state(false);
   let notice=$state(''),error=$state(''),revision=$state(0);
   let photoLoaded=$state(false);
+  let showGuardianReview=$state(false);
   const base=$derived('/api/admin/football/players/'+encodeURIComponent(playerId)+
     '/private-profile');
   const url=$derived(base+'?organization_id=lefteria_fc_academy');
@@ -76,7 +78,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -236,6 +238,14 @@
           <div><dt>Αριθμός αίτησης</dt><dd>{profile.registration.id}</dd></div>
           <div><dt>Ημερομηνία έγκρισης</dt><dd>{new Date(profile.registration.approved_at).toLocaleDateString('el-CY')}</dd></div>
         </dl>
+        {#if allowGuardianReview}
+          <button type="button" class="admin-secondary" aria-expanded={showGuardianReview} onclick={()=>showGuardianReview=!showGuardianReview}>{showGuardianReview?'Κλείσιμο ελέγχου':'Έλεγχος ταυτότητας κηδεμόνα'}</button>
+          {#if showGuardianReview}
+            {#key actorId+':'+playerId+':'+profile.registration.id}
+              <AcademyGuardianProofReview registrationId={profile.registration.id} guardianPhone={profile.registration.guardian_phone} expectedPlayerId={playerId}/>
+            {/key}
+          {/if}
+        {/if}
       {:else}
         <p class="admin-muted">Δεν υπάρχει επαληθευμένη σύνδεση με εγκεκριμένη ηλεκτρονική αίτηση. Δεν δημιουργούνται υποθετικά στοιχεία γονέων.</p>
       {/if}
