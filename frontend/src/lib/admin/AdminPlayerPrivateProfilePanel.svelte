@@ -17,12 +17,21 @@
         guardian_relationship:80,guardian_phone:32,guardian_email:254,submitted_at:64,approved_at:64})
         .every(([key,max])=>typeof r[key]==='string'&&(r[key] as string).length<=max);
   }
+  type CurrentContact={name:string;relationship:string;phone:string;email:string;revision:number;updated_at:string};
+  function validContact(value:unknown):value is CurrentContact{
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    const c=value as Record<string,unknown>;
+    return Number.isInteger(c.revision)&&(c.revision as number)>=1&&
+      Object.entries({name:200,relationship:80,phone:32,email:254,updated_at:64})
+        .every(([key,max])=>typeof c[key]==='string'&&(c[key] as string).length>0&&(c[key] as string).length<=max);
+  }
   type Profile={
     organization_id:'lefteria_fc_academy';player_id:string;official_name:string;
     official_number:number|null;official_position:string|null;
     biography:string;preferred_position:string;preferred_number:number|null;
     has_portrait:boolean;revision:number;updated_at:string|null;
     registration?:RegistrationSource|null;
+    current_contact?:CurrentContact|null;
   };
 
   let {playerId,playerName,actorId,allowWrite=false,allowGuardianReview=false,onExpired,onRevoked}:{
@@ -38,6 +47,16 @@
   let notice=$state(''),error=$state(''),revision=$state(0);
   let photoLoaded=$state(false);
   let showGuardianReview=$state(false);
+  let editingContact=$state(false),savingContact=$state(false);
+  let contactName=$state(''),contactRelationship=$state(''),contactPhone=$state(''),contactEmail=$state('');
+  const currentContact=$derived(profile?.current_contact??(profile?.registration?{
+    name:profile.registration.guardian_name,relationship:profile.registration.guardian_relationship,
+    phone:profile.registration.guardian_phone,email:profile.registration.guardian_email,revision:0,updated_at:''
+  }:null));
+  const contactValid=$derived(contactName.trim().length>0&&contactName.trim().length<=200&&
+    contactRelationship.trim().length>0&&contactRelationship.trim().length<=80&&
+    /^\+?[0-9 ()-]{7,32}$/.test(contactPhone.trim())&&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())&&contactEmail.trim().length<=254);
   const base=$derived('/api/admin/football/players/'+encodeURIComponent(playerId)+
     '/private-profile');
   const url=$derived(base+'?organization_id=lefteria_fc_academy');
@@ -60,7 +79,8 @@
       typeof p.has_portrait==='boolean'&&Number.isInteger(p.revision)&&
       (p.revision as number)>=0&&
       (p.updated_at===null||typeof p.updated_at==='string')&&
-      (p.registration===undefined||p.registration===null||validRegistration(p.registration));
+      (p.registration===undefined||p.registration===null||validRegistration(p.registration))&&
+      (p.current_contact===undefined||p.current_contact===null||validContact(p.current_contact));
   }
 
   async function request(target:string,options?:RequestInit):Promise<Response> {
@@ -78,7 +98,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -96,8 +116,37 @@
     return()=>abort.abort();
   });
 
+  function editContact(){
+    if(!profile||!allowWrite||saving||uploading||savingContact||loading)return;
+    contactName=currentContact?.name??'';contactRelationship=currentContact?.relationship??'';
+    contactPhone=currentContact?.phone??'';contactEmail=currentContact?.email??'';
+    editingContact=true;error='';notice='';
+  }
+  async function saveContact(){
+    if(!profile||!allowWrite||!editingContact||!contactValid||savingContact||saving||uploading||loading)return;
+    const id=playerId,actor=actorId,expected=profile.current_contact?.revision??0;
+    savingContact=true;error='';notice='';
+    try{
+      const response=await request(url,{
+        method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({expectedRevision:expected,contact:{
+          name:contactName.trim(),relationship:contactRelationship.trim(),
+          phone:contactPhone.trim(),email:contactEmail.trim()
+        }})
+      });
+      const value:unknown=await response.json();
+      if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
+      const result=value as Record<string,unknown>;
+      if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||
+        result.revision!==expected+1||result.updated!==true)throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
+      if(playerId!==id||actorId!==actor||!allowWrite)return;
+      editingContact=false;notice='Τα στοιχεία επικοινωνίας αποθηκεύτηκαν.';revision++;
+    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αποθήκευση απέτυχε.';}
+    finally{savingContact=false;}
+  }
+
   async function save(){
-    if(!profile||!allowWrite||saving||uploading||loading)return;
+    if(!profile||!allowWrite||saving||uploading||savingContact||editingContact||loading)return;
     const bio=biography.trim(),position=preferredPosition.trim();
     const number=preferredNumber.trim()?Number(preferredNumber):null;
     if(bio.length>1000||position.length>80||bio.includes('\r')||
@@ -123,7 +172,7 @@
   }
 
   async function changePortrait(remove=false){
-    if(!allowWrite||uploading||saving||loading||(!remove&&!canUpload))return;
+    if(!allowWrite||uploading||saving||savingContact||editingContact||loading||(!remove&&!canUpload))return;
     if(remove&&!window.confirm('Να αφαιρεθεί η ιδιωτική φωτογραφία αυτού του παιδιού;'))return;
     uploading=true;error='';notice='';
     try{
@@ -224,8 +273,39 @@
         {/if}
       </div>
     </div>
+    <section class="registration-source-card" data-testid="admin-player-current-contact">
+      <div class="contact-header">
+        <h3>Τρέχοντα στοιχεία επικοινωνίας γονέα / κηδεμόνα</h3>
+        {#if allowWrite&&!editingContact}
+          <button type="button" class="admin-secondary" disabled={saving||uploading||savingContact} onclick={editContact}>Επεξεργασία επικοινωνίας</button>
+        {/if}
+      </div>
+      <p class="admin-muted">Οι διορθώσεις αφορούν μόνο την επικοινωνία της Ακαδημίας. Δεν αλλάζουν την αρχική αίτηση, την ταυτοποίηση, την πρόσβαση στην εφαρμογή ή τα οικονομικά στοιχεία.</p>
+      {#if editingContact&&allowWrite}
+        <form class="contact-edit" onsubmit={event=>{event.preventDefault();void saveContact();}}>
+          <label>Ονοματεπώνυμο <input bind:value={contactName} required maxlength="200" disabled={savingContact}/></label>
+          <label>Σχέση <input bind:value={contactRelationship} required maxlength="80" disabled={savingContact}/></label>
+          <label>Τηλέφωνο <input type="tel" bind:value={contactPhone} required maxlength="32" disabled={savingContact}/></label>
+          <label>Email <input type="email" bind:value={contactEmail} required maxlength="254" disabled={savingContact}/></label>
+          <div class="contact-actions">
+            <button type="submit" class="admin-primary" disabled={!contactValid||savingContact}>{savingContact?'Αποθήκευση…':'Αποθήκευση επικοινωνίας'}</button>
+            <button type="button" class="admin-secondary" disabled={savingContact} onclick={()=>editingContact=false}>Ακύρωση</button>
+          </div>
+        </form>
+      {:else if currentContact}
+        <dl>
+          <div><dt>Ονοματεπώνυμο</dt><dd>{currentContact.name}</dd></div>
+          <div><dt>Σχέση</dt><dd>{currentContact.relationship}</dd></div>
+          <div><dt>Τηλέφωνο</dt><dd>{currentContact.phone}</dd></div>
+          <div><dt>Email</dt><dd>{currentContact.email}</dd></div>
+        </dl>
+        <p class="admin-muted">{currentContact.revision>0?'Τελευταία ενημέρωση: '+new Date(currentContact.updated_at).toLocaleString('el-CY'):'Πηγή: αρχική εγκεκριμένη αίτηση'}</p>
+      {:else}
+        <p class="admin-muted">Δεν έχουν καταχωριστεί τρέχοντα στοιχεία επικοινωνίας.</p>
+      {/if}
+    </section>
     <section class="registration-source-card" data-testid="admin-player-registration-source">
-      <h3>Εγγραφή & στοιχεία κηδεμόνα</h3>
+      <h3>Αρχική εγγραφή · αμετάβλητο ιστορικό</h3>
       {#if profile.registration}
         <p class="admin-muted">Αρχικά στοιχεία από την εγκεκριμένη αίτηση. Τα στοιχεία επικοινωνίας δεν αποτελούν από μόνα τους επαλήθευση πρόσβασης γονέα στην εφαρμογή.</p>
         <dl>
@@ -290,4 +370,10 @@
   .registration-source-card dl>div{padding:10px;border:1px solid var(--admin-line);border-radius:8px;overflow-wrap:anywhere;min-width:0}
   .registration-source-card dt{font-size:12px;color:#b8b8b8}
   .registration-source-card dd{font-weight:600}
+  .contact-header,.contact-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .contact-header{justify-content:space-between}
+  .contact-edit{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;min-width:0}
+  .contact-edit label{display:grid;gap:6px;min-width:0}
+  .contact-edit input{width:100%;min-width:0}
+  .contact-actions{grid-column:1/-1}
 </style>
