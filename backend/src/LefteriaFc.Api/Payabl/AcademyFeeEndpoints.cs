@@ -26,6 +26,7 @@ public sealed record ParentTrainingFeePreferenceCommand(
 public sealed record TrainingFeeSmsCommand(Guid ClientRequestId);
 
 public sealed record CancelAcademyFutureFeeCommand(Guid ClientRequestId, string? Reason);
+public sealed record CancelAcademyPlayerFutureFeesCommand(string? PlayerId, Guid[]? FeeIds, Guid[]? RequestIds, string? Reason);
 
 /// <summary>
 /// Training-fee issuance is a deliberate manager action for ONE child and ONE
@@ -159,6 +160,43 @@ public static class AcademyFeeEndpoints
         // Private admin operation used directly by the authenticated finance UI.
         .ExcludeFromDescription()
         .Accepts<CancelAcademyFutureFeeCommand>("application/json");
+
+        admin.MapPost("/cancel-player-future", async (string? organization_id,
+            CancelAcademyPlayerFutureFeesCommand body, WebAdminService service,
+            WebAdminConnections connections, IWebAdminSecrets secrets, HttpContext context, CancellationToken ct) =>
+        {
+            var cookie=await AdminCookie(organization_id,service,context,true,ct);
+            if(body.PlayerId is null || body.PlayerId.Length is <1 or >128 || body.PlayerId!=body.PlayerId.Trim() ||
+                body.PlayerId.Any(char.IsControl) || body.FeeIds is null || body.RequestIds is null ||
+                body.FeeIds.Length is <1 or >120 || body.RequestIds.Length!=body.FeeIds.Length ||
+                body.FeeIds.Contains(Guid.Empty) || body.RequestIds.Contains(Guid.Empty) ||
+                body.FeeIds.Distinct().Count()!=body.FeeIds.Length || body.RequestIds.Distinct().Count()!=body.RequestIds.Length ||
+                body.Reason is null || body.Reason.Length is <8 or >240 || body.Reason!=body.Reason.Trim() ||
+                body.Reason.Any(char.IsControl))
+                throw new WebAdminException(422,"invalid_future_fee_batch","Select reviewed future fees for one child and a reason.");
+            context.Response.Headers.CacheControl="private, no-store";
+            await using var db=await connections.OpenAsync(ct);
+            await using var cmd=new NpgsqlCommand(
+                "SELECT finance.cancel_admin_player_future_fees(@digest,@owner,@player,@fees,@requests,@reason)::text",db);
+            cmd.Parameters.AddWithValue("digest",secrets.TokenDigest(cookie));
+            cmd.Parameters.AddWithValue("owner",organization_id!);
+            cmd.Parameters.AddWithValue("player",body.PlayerId);
+            cmd.Parameters.AddWithValue("fees",body.FeeIds);
+            cmd.Parameters.AddWithValue("requests",body.RequestIds);
+            cmd.Parameters.AddWithValue("reason",body.Reason);
+            try
+            {
+                var json=await cmd.ExecuteScalarAsync(ct) as string;
+                return json is null ? Results.Problem(statusCode:503)
+                    : Results.Content(json,"application/json",Encoding.UTF8,200);
+            }
+            catch(PostgresException e) when(e.SqlState is "23505" or "42501" or "22023" or "42883")
+            {
+                throw new WebAdminException(e.SqlState=="23505"?409:e.SqlState=="42501"?403:e.SqlState=="22023"?422:503,
+                    "future_fee_batch_rejected","No partial cancellation is permitted. Refresh the reviewed fee history.");
+            }
+        }).WithName("CancelAdminAcademyPlayerFutureFees").ExcludeFromDescription()
+        .Accepts<CancelAcademyPlayerFutureFeesCommand>("application/json");
 
         admin.MapPost("/{feeId:guid}/sms", async (
             Guid feeId, string? organization_id, TrainingFeeSmsCommand body,

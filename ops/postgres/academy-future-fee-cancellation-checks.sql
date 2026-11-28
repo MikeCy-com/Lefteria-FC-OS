@@ -19,6 +19,7 @@ DECLARE
   v_super_digest text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_manager_digest text:=md5(gen_random_uuid()::text)||md5(gen_random_uuid()::text);
   v_json jsonb;
+  v_batch_fee uuid; v_batch_request uuid:=gen_random_uuid();
 BEGIN
   INSERT INTO identity.admin_accounts(id,username,display_name,role,is_active,
     password_hash,invite_pending,otp2fa_enabled) VALUES
@@ -194,5 +195,26 @@ BEGIN
     OR v_json#>>'{lifecycle_review,is_active}' IS DISTINCT FROM 'false'
     OR v_json#>>'{lifecycle_review,is_archived}' IS DISTINCT FROM 'true'
   THEN RAISE EXCEPTION 'inactive player lost finance history'; END IF;
+  SELECT id INTO STRICT v_batch_fee FROM finance.training_fee_issues
+    WHERE player_id=v_player AND status='issued' AND payment_request_id IS NULL;
+  BEGIN
+    PERFORM finance.cancel_admin_player_future_fees(v_manager_digest,'lefteria_fc_academy',v_player,
+      ARRAY[v_batch_fee],ARRAY[v_batch_request],'Reviewed departure batch');
+    RAISE EXCEPTION 'manager_batch_cancelled';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM finance.cancel_admin_player_future_fees(v_super_digest,'lefteria_fc_academy',v_player,
+      ARRAY[v_batch_fee,v_paid_fee],ARRAY[v_batch_request,gen_random_uuid()],'Reviewed departure batch');
+    RAISE EXCEPTION 'ineligible_batch_cancelled';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  IF (SELECT status FROM finance.training_fee_issues WHERE id=v_batch_fee)<>'issued'
+    THEN RAISE EXCEPTION 'batch_partially_committed'; END IF;
+  v_json:=finance.cancel_admin_player_future_fees(v_super_digest,'lefteria_fc_academy',v_player,
+    ARRAY[v_batch_fee],ARRAY[v_batch_request],'Reviewed departure batch');
+  IF v_json#>>'{fees,0,status}' IS DISTINCT FROM 'cancelled' OR v_json#>>'{fees,0,replay}' IS DISTINCT FROM 'false'
+    THEN RAISE EXCEPTION 'batch_cancellation_not_confirmed'; END IF;
+  v_json:=finance.cancel_admin_player_future_fees(v_super_digest,'lefteria_fc_academy',v_player,
+    ARRAY[v_batch_fee],ARRAY[v_batch_request],'Reviewed departure batch');
+  IF v_json#>>'{fees,0,replay}' IS DISTINCT FROM 'true' THEN RAISE EXCEPTION 'batch_retry_not_idempotent'; END IF;
 END $future_fee_checks$;
 ROLLBACK;
