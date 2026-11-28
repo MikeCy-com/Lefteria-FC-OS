@@ -38,8 +38,14 @@
       </div>
       <h2 id="potm-results-title">{result.status === 'published' ? 'ΔΗΜΟΣΙΕΥΜΕΝΑ ΑΠΟΤΕΛΕΣΜΑΤΑ' : 'ΠΟΔΟΣΦΑΙΡΙΣΤΕΣ ΠΡΩΤΗΣ ΟΜΑΔΑΣ'}</h2>
       {#if result.status === 'published'}
-        <p class="tally" data-testid="potm-total-votes"><strong>{result.totalVotes}</strong> καταγεγραμμένες ψήφοι στο δημοσιευμένο στιγμιότυπο</p>
-        <p class="snapshot">Στιγμιότυπο: {snapshot} · Ώρα Κύπρου. Δεν πρόκειται για ζωντανή καταμέτρηση ή τελικό νικητή.</p>
+        {#if result.source === 'native-closed'}
+          <p class="tally" data-testid="potm-total-votes"><strong>{result.totalVotes}</strong> έγκυρες καταχωρημένες ψήφοι στο κλείσιμο της περιόδου</p>
+          <p class="snapshot" data-testid="potm-native-closed">Η περίοδος έχει κλείσει. Η καταμέτρηση αφορά μόνο τις τελικές επιλογές στο Lefteria FC OS. Δεν ανακηρύσσεται νικητής από αυτή τη σελίδα.</p>
+          <p class="snapshot">Εγκεκριμένο στιγμιότυπο ρόστερ: {snapshot} · Ώρα Κύπρου.</p>
+        {:else}
+          <p class="tally" data-testid="potm-total-votes"><strong>{result.totalVotes}</strong> καταγεγραμμένες ψήφοι στο δημοσιευμένο στιγμιότυπο</p>
+          <p class="snapshot">Στιγμιότυπο: {snapshot} · Ώρα Κύπρου. Δεν πρόκειται για ζωντανή καταμέτρηση ή τελικό νικητή.</p>
+        {/if}
       {:else if result.status === 'not-published'}
         <p class="state" role="status" data-testid="potm-no-published-results">Δεν υπάρχουν δημοσιευμένα αποτελέσματα για τον μήνα αυτό.</p>
       {:else}
