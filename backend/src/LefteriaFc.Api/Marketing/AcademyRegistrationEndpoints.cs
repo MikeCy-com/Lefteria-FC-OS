@@ -201,6 +201,17 @@ public static class AcademyRegistrationEndpoints
                 var status=await command.ExecuteScalarAsync(cancellationToken) as string;
                 if(status=="rate_limited") return Failure(429,"rate_limited");
                 if(status!="stored") return Unavailable();
+                // Generate from the validated original child and guardian form.
+                // Keep PDF and registration in the same commit, never send the
+                // private PDF to the anonymous browser or a shared media URL.
+                var pdf=AcademyRegistrationPdf.Render(child,id,policy,children.Count,monthly,DateTimeOffset.UtcNow);
+                try
+                {
+                    if(!await StoreGeneratedPdfAsync(connection,transaction,id,uploadDigest,
+                        pdf,config["DocumentVault:KeyBase64"]!,documentKeyId,cancellationToken))
+                        return Unavailable();
+                }
+                finally{CryptographicOperations.ZeroMemory(pdf);}
                 receipts.Add(id.ToString("N"));
                 uploadTokens.Add(uploadToken);
             }
@@ -209,9 +220,50 @@ public static class AcademyRegistrationEndpoints
         }
         catch(PostgresException error) when(error.SqlState is "22023" or "23514" or "22007")
         { return Failure(422,"invalid_registration"); }
+        catch(InvalidDataException) { return Failure(422,"invalid_registration_signature"); }
+        catch(InvalidOperationException) { return Unavailable(); }
         catch(NpgsqlException) { return Unavailable(); }
         catch(TimeoutException) { return Unavailable(); }
         finally { CryptographicOperations.ZeroMemory(key); }
+    }
+
+    private static async Task<bool> StoreGeneratedPdfAsync(NpgsqlConnection connection,
+        NpgsqlTransaction transaction,Guid registration,string uploadDigest,byte[] pdf,
+        string encodedKey,string keyId,CancellationToken ct)
+    {
+        var key=Convert.FromBase64String(encodedKey);
+        var ciphertext=new byte[pdf.Length];
+        try
+        {
+            if(key.Length!=32)return false;
+            var id=Guid.NewGuid();
+            var nonce=RandomNumberGenerator.GetBytes(12);
+            var tag=new byte[16];
+            var aad=Encoding.UTF8.GetBytes($"lefteria_fc_academy:registration:{registration:N}:{id:D}");
+            using(var aes=new AesGcm(key,16))
+                aes.Encrypt(nonce,pdf,ciphertext,tag,aad);
+            await using var command=new NpgsqlCommand("""
+                SELECT academy_intake.store_public_registration_document(
+                  @registration,@digest,@object,'registration_form',NULL::date,
+                  'application/pdf',@size,@key,@sha,@cipher,@nonce,@tag)
+                """,connection,transaction);
+            command.CommandTimeout=15;
+            command.Parameters.AddWithValue("registration",NpgsqlDbType.Uuid,registration);
+            command.Parameters.AddWithValue("digest",NpgsqlDbType.Text,uploadDigest);
+            command.Parameters.AddWithValue("object",NpgsqlDbType.Uuid,id);
+            command.Parameters.AddWithValue("size",NpgsqlDbType.Bigint,(long)pdf.Length);
+            command.Parameters.AddWithValue("key",NpgsqlDbType.Text,keyId);
+            command.Parameters.AddWithValue("sha",NpgsqlDbType.Text,Convert.ToHexStringLower(SHA256.HashData(pdf)));
+            command.Parameters.AddWithValue("cipher",NpgsqlDbType.Bytea,ciphertext);
+            command.Parameters.AddWithValue("nonce",NpgsqlDbType.Bytea,nonce);
+            command.Parameters.AddWithValue("tag",NpgsqlDbType.Bytea,tag);
+            return await command.ExecuteScalarAsync(ct) as string=="stored";
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+            CryptographicOperations.ZeroMemory(ciphertext);
+        }
     }
 
     private static AcademyRegistrationRequest ExpandChild(

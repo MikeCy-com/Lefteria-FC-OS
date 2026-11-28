@@ -12,8 +12,8 @@
     revoked_at?: string;
     app_access_enabled: false;
   };
-  let { registrationId, guardianPhone }:
-    { registrationId: string; guardianPhone: string } = $props();
+  let { registrationId, guardianPhone, expectedPlayerId=null }:
+    { registrationId: string; guardianPhone: string; expectedPlayerId?:string|null } = $props();
   const endpoint = '/api/admin/academy/office/guardians';
   let review = $state<Review | null>(null);
   let busy = $state(false);
@@ -38,6 +38,7 @@
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error();
       const result = data as Review;
       if (result.registration_id !== registrationId ||
+        (expectedPlayerId!==null&&result.player_id!==expectedPlayerId) ||
         !['not_verified','verified_proof','revoked'].includes(result.status) ||
         result.app_access_enabled !== false) throw new Error();
       if (current === generation) review = result;
@@ -73,6 +74,7 @@
       if (!data || typeof data !== 'object' || Array.isArray(data) ||
         (data as Record<string,unknown>).status !== 'verified_proof' ||
         (data as Record<string,unknown>).registration_id !== registrationId ||
+        (expectedPlayerId!==null&&(data as Record<string,unknown>).player_id!==expectedPlayerId) ||
         (data as Record<string,unknown>).app_access_enabled !== false)
         throw new Error('Η καταχώριση δεν επιβεβαιώθηκε.');
       notice = 'Ο ανθρώπινος έλεγχος τεκμηριώθηκε. Δεν έχει ενεργοποιηθεί πρόσβαση στην εφαρμογή.';
@@ -96,6 +98,8 @@
       const data: unknown = await response.json();
       if (!data || typeof data !== 'object' || Array.isArray(data) ||
           (data as Record<string,unknown>).status !== 'revoked' ||
+          (data as Record<string,unknown>).registration_id !== registrationId ||
+          (expectedPlayerId!==null&&(data as Record<string,unknown>).player_id!==expectedPlayerId) ||
           (data as Record<string,unknown>).app_access_enabled !== false)
           throw new Error('Η ανάκληση δεν επιβεβαιώθηκε.');
       notice = 'Η επαλήθευση ανακλήθηκε. Το ιστορικό παραμένει.';

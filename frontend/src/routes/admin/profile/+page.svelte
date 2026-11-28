@@ -349,7 +349,7 @@
     error={$auth.error} onRetry={()=>void auth.bootstrap()} onLogout={()=>void auth.logout()}/>
 {/if}
 <style>
-  .admin-my-profile{display:grid;gap:16px;max-width:1100px}
+  .admin-my-profile{display:grid;gap:16px;width:100%;max-width:none;min-width:0}
   .admin-profile-page-header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:20px}
   .admin-profile-page-header h1{margin:6px 0 10px}
   .admin-profile-identity{display:flex;align-items:center;gap:20px}

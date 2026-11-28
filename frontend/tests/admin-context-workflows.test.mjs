@@ -27,7 +27,7 @@ test('global navigation has no standalone player or match tools; profile and set
     assert.doesNotMatch(dashboard,new RegExp('href="/admin/'+path+'"'));
   for(const path of ['matches','evaluations','documents'])
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+path+'"'));
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/schedule"/);
   assert.match(assigned,/href="\/admin\/attendance"/);
   assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
@@ -65,7 +65,7 @@ test('creation shortcuts live in their module forms and not on the dashboard',()
 });
 
 test('athlete attendance is accessible only within Academy group player file',()=>{
-  assert.match(workspace,/canReadAttendance=\{canReadAttendance\}/);
+  assert.match(workspace,/canReadAttendance=\{access\.attendance\}/);
   assert.match(workspace,/canWriteAttendance=\{canAttendanceWrite\}/);
   assert.match(roster,/owner==='lefteria_fc_academy' && canReadAttendance/);
   assert.match(roster,/currentGroup && owner==='lefteria_fc_academy'/);

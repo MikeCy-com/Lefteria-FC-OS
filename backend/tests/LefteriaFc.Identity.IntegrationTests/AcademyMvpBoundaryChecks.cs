@@ -1,3 +1,6 @@
+using LefteriaFc.Api.Marketing;
+using SkiaSharp;
+using System.Text;
 using LefteriaFc.Api.Release;
 using Microsoft.AspNetCore.Http;
 
@@ -7,6 +10,7 @@ internal static class AcademyMvpBoundaryChecks
 {
     public static void Run()
     {
+        VerifyRegistrationPdf();
         Check.Equal(true,AcademyMvpBoundary.ValidMode(null),
             "Unset optional Academy MVP flag should preserve normal development.");
         Check.Equal(true,AcademyMvpBoundary.ValidMode("true"),
@@ -55,4 +59,46 @@ internal static class AcademyMvpBoundaryChecks
             Check.Equal(false,AcademyMvpBoundary.IsOptionalEndpoint(new PathString(path)),
                 "Core Academy workflow or nonmatching endpoint was blocked: "+path);
     }
+
+    // Render synthetic Greek text and a synthetic signature, never real child data.
+    private static void VerifyRegistrationPdf()
+    {
+        using var bitmap=new SKBitmap(320,80);
+        using(var canvas=new SKCanvas(bitmap))
+        using(var paint=new SKPaint{Color=SKColors.Black,StrokeWidth=3,IsAntialias=true})
+        {
+            canvas.Clear(SKColors.White);
+            for(var i=0;i<20;i++)
+                canvas.DrawLine(12+i*10,20+i%3*12,22+i*10,45-i%4*5,paint);
+        }
+        using var image=SKImage.FromBitmap(bitmap);
+        using var encoded=image.Encode(SKEncodedImageFormat.Png,100);
+        var form=new AcademyRegistrationRequest {
+            PlayerFirstName="Δοκιμή",PlayerLastName="Αθλητής",PlayerDob="2015-03-04",
+            PlayerGender="male",PlayerAddress="Δοκιμαστική οδός",PlayerCity="Λεμεσός",
+            ParentName="Δοκιμή Κηδεμόνα",ParentRelationship="Κηδεμόνας",
+            ParentPhone="35799000000",ParentEmail="fixture@example.invalid",
+            EmergencyName="Δοκιμή Επαφής",EmergencyPhone="35799000001",
+            KoaHealthCardStatus="yes",PreferredNumber="19",PreferredPrintName="FIXTURE",
+            HasAllergies=true,AllergiesDetails=new string('α',1500),
+            ConsentParticipation=true,ConsentMedicalAuth=true,ConsentGdpr=true,
+            ConsentMedia="no",ConsentLiability=true,ConsentFinancial=true,
+            PaymentMethod="cash",SignatureDate="2026-11-28",
+            SignatureData="data:image/png;base64,"+Convert.ToBase64String(encoded.ToArray())
+        };
+        var id=Guid.NewGuid();
+        var pdf=AcademyRegistrationPdf.Render(form,id,"fixture-policy",2,100,
+            new DateTimeOffset(2026,11,28,12,0,0,TimeSpan.Zero));
+        Check.Equal(true,pdf.Length is >500 and <2_000_000 &&
+            Encoding.ASCII.GetString(pdf,0,5)=="%PDF-",
+            "Registration renderer did not create a bounded PDF.");
+        form.SignatureData="data:image/png;base64,invalid";
+        try
+        {
+            AcademyRegistrationPdf.Render(form,id,"fixture-policy",2,100,DateTimeOffset.UtcNow);
+            throw new InvalidOperationException("Malformed signature was accepted.");
+        }
+        catch(InvalidDataException) { }
+    }
+
 }

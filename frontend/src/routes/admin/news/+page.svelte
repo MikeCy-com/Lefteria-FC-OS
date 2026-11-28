@@ -229,7 +229,7 @@
 {/if}
 
 <style>
-  .admin-news{max-width:1100px}
+  .admin-news{width:100%;max-width:none;min-width:0}
   .admin-news-heading{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:16px;margin-bottom:20px}
   .admin-news-heading h1{margin:0 0 12px}
   .admin-news-heading .admin-muted{max-width:67ch;margin:0}

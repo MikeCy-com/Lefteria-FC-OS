@@ -274,6 +274,38 @@ internal sealed partial class WebAdminHttpChecks
                 otherVisibility,new{expected_revision=1,is_public=false}))
                 await ExpectJsonAsync(denied,403,"academy_profile_denied");
 
+            Console.WriteLine("CHECK group rename: exact scoped authorization and optimistic conflict");
+            var renameOwn="/api/admin/football/groups/"+audience.Group2+"/name?organization_id=lefteria_fc_academy";
+            var renameOther="/api/admin/football/groups/"+audience.Group1+"/name?organization_id=lefteria_fc_academy";
+            using(var denied=await Put(client,session.Cookie,renameOther,
+                new{expected_name="Unknown",name="Unauthorized rename"}))
+                await ExpectJsonAsync(denied,403,"group_rename_denied");
+            using(var roster=await GetAsync(client,"/api/admin/football/audiences?organization_id=lefteria_fc_academy",session.Cookie))
+            {
+                var data=await ExpectJsonAsync(roster,200);
+                var own=data.GetProperty("groups").EnumerateArray().Single(g=>g.GetProperty("id").GetString()==audience.Group2);
+                var original=own.GetProperty("name").GetString()!;
+                var renamed="Renamed "+Guid.NewGuid().ToString("N");
+                using(var saved=await Put(client,session.Cookie,renameOwn,new{expected_name=original,name=renamed}))
+                {
+                    var value=await ExpectJsonAsync(saved,200);
+                    Require(value.GetProperty("id").GetString()==audience.Group2 &&
+                        value.GetProperty("name").GetString()==renamed,"Rename did not retain canonical group identity.");
+                }
+                using(var stale=await Put(client,session.Cookie,renameOwn,new{expected_name=original,name="Stale rename"}))
+                    await ExpectJsonAsync(stale,409,"group_rename_conflict");
+                using(var updated=await GetAsync(client,"/api/admin/football/audiences?organization_id=lefteria_fc_academy",session.Cookie))
+                {
+                    var value=await ExpectJsonAsync(updated,200);
+                    var group=value.GetProperty("groups").EnumerateArray().Single(g=>g.GetProperty("id").GetString()==audience.Group2);
+                    Require(group.GetProperty("name").GetString()==renamed &&
+                        group.GetProperty("active_players").GetInt32()==own.GetProperty("active_players").GetInt32(),
+                        "Group rename did not preserve the roster count.");
+                }
+                using(var restored=await Put(client,session.Cookie,renameOwn,new{expected_name=renamed,name=original}))
+                    await ExpectJsonAsync(restored,200);
+            }
+
             Console.WriteLine("CHECK profile scope: authorized reads and writes");
             Console.WriteLine("CHECK profile scope: GET authorized FC");
             using(var own=await GetAsync(client,fcOwn,session.Cookie))

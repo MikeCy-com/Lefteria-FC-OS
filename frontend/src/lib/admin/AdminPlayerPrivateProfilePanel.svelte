@@ -1,17 +1,42 @@
 <script lang="ts">
   import {browser} from '$app/env';
   import {untrack} from 'svelte';
+  import AcademyGuardianProofReview from './AcademyGuardianProofReview.svelte';
 
+  type RegistrationSource={
+    id:string;applicant_first_name:string;applicant_last_name:string;applicant_birth_date:string;
+    guardian_name:string;guardian_relationship:string;guardian_phone:string;guardian_email:string;
+    submitted_at:string;approved_at:string;
+  };
+  function validRegistration(value:unknown):value is RegistrationSource{
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    const r=value as Record<string,unknown>;
+    return typeof r.id==='string'&&/^[0-9a-f-]{36}$/i.test(r.id)&&
+      typeof r.applicant_birth_date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.applicant_birth_date)&&
+      Object.entries({applicant_first_name:100,applicant_last_name:100,guardian_name:200,
+        guardian_relationship:80,guardian_phone:32,guardian_email:254,submitted_at:64,approved_at:64})
+        .every(([key,max])=>typeof r[key]==='string'&&(r[key] as string).length<=max);
+  }
+  type CurrentContact={name:string;relationship:string;phone:string;email:string;revision:number;updated_at:string};
+  function validContact(value:unknown):value is CurrentContact{
+    if(!value||typeof value!=='object'||Array.isArray(value))return false;
+    const c=value as Record<string,unknown>;
+    return Number.isInteger(c.revision)&&(c.revision as number)>=1&&
+      Object.entries({name:200,relationship:80,phone:32,email:254,updated_at:64})
+        .every(([key,max])=>typeof c[key]==='string'&&(c[key] as string).length>0&&(c[key] as string).length<=max);
+  }
   type Profile={
     organization_id:'lefteria_fc_academy';player_id:string;official_name:string;
     official_number:number|null;official_position:string|null;
     biography:string;preferred_position:string;preferred_number:number|null;
     has_portrait:boolean;revision:number;updated_at:string|null;
+    registration?:RegistrationSource|null;
+    current_contact?:CurrentContact|null;
   };
 
-  let {playerId,playerName,actorId,allowWrite=false,onExpired,onRevoked}:{
-    playerId:string;playerName:string;actorId:string;allowWrite?:boolean;
-    onExpired:()=>void;onRevoked:()=>void;
+  let {playerId,playerName,actorId,allowWrite=false,allowGuardianReview=false,onNameChanged=()=>{},onExpired,onRevoked}:{
+    playerId:string;playerName:string;actorId:string;allowWrite?:boolean;allowGuardianReview?:boolean;
+    onNameChanged?:(name:string)=>void;onExpired:()=>void;onRevoked:()=>void;
   }=$props();
   let profile=$state<Profile|null>(null);
   let biography=$state('');
@@ -21,6 +46,25 @@
   let loading=$state(false),saving=$state(false),uploading=$state(false);
   let notice=$state(''),error=$state(''),revision=$state(0);
   let photoLoaded=$state(false);
+  let showGuardianReview=$state(false);
+  let editingContact=$state(false),savingContact=$state(false);
+  let editingName=$state(false),savingName=$state(false),newName=$state('');
+  let editingOfficialSporting=$state(false),savingOfficialSporting=$state(false);
+  let officialPosition=$state(''),officialNumber=$state('');
+  const positionLabels:Record<string,string>={Goalkeeper:'Τερματοφύλακας',Defender:'Αμυντικός',Midfielder:'Μέσος',Forward:'Επιθετικός'};
+  const officialEditBusy=$derived(editingOfficialSporting||savingOfficialSporting);
+  const officialSportingValid=$derived(Object.hasOwn(positionLabels,officialPosition)&&
+    /^[1-9][0-9]?$/.test(officialNumber));
+  const sportingDirty=$derived(!!profile&&(biography!==profile.biography||preferredPosition!==profile.preferred_position||preferredNumber!==(profile.preferred_number?.toString()??'')));
+  let contactName=$state(''),contactRelationship=$state(''),contactPhone=$state(''),contactEmail=$state('');
+  const currentContact=$derived(profile?.current_contact??(profile?.registration?{
+    name:profile.registration.guardian_name,relationship:profile.registration.guardian_relationship,
+    phone:profile.registration.guardian_phone,email:profile.registration.guardian_email,revision:0,updated_at:''
+  }:null));
+  const contactValid=$derived(contactName.trim().length>0&&contactName.trim().length<=200&&
+    contactRelationship.trim().length>0&&contactRelationship.trim().length<=80&&
+    /^\+?[0-9 ()-]{7,32}$/.test(contactPhone.trim())&&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail.trim())&&contactEmail.trim().length<=254);
   const base=$derived('/api/admin/football/players/'+encodeURIComponent(playerId)+
     '/private-profile');
   const url=$derived(base+'?organization_id=lefteria_fc_academy');
@@ -42,7 +86,9 @@
         (p.preferred_number as number)>=1&&(p.preferred_number as number)<=99))&&
       typeof p.has_portrait==='boolean'&&Number.isInteger(p.revision)&&
       (p.revision as number)>=0&&
-      (p.updated_at===null||typeof p.updated_at==='string');
+      (p.updated_at===null||typeof p.updated_at==='string')&&
+      (p.registration===undefined||p.registration===null||validRegistration(p.registration))&&
+      (p.current_contact===undefined||p.current_contact===null||validContact(p.current_contact));
   }
 
   async function request(target:string,options?:RequestInit):Promise<Response> {
@@ -60,7 +106,7 @@
   $effect(()=>{
     const id=playerId,actor=actorId,refresh=revision;
     void refresh;
-    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;
+    profile=null;selectedFile=null;loading=false;error='';photoLoaded=false;showGuardianReview=false;editingContact=false;editingName=false;editingOfficialSporting=false;
     if(!browser||!id||!actor)return;
     const abort=new AbortController();
     loading=true;
@@ -78,8 +124,87 @@
     return()=>abort.abort();
   });
 
+  function editOfficialSporting(){
+    if(!profile||!allowWrite||loading||saving||uploading||editingName||savingName||
+      editingContact||savingContact||sportingDirty||officialEditBusy)return;
+    officialPosition=profile.official_position??'';
+    officialNumber=profile.official_number?.toString()??'';
+    editingOfficialSporting=true;error='';notice='';
+  }
+
+  async function saveOfficialSporting(){
+    if(!profile||!allowWrite||!editingOfficialSporting||savingOfficialSporting||
+      loading||saving||uploading||editingName||savingName||editingContact||savingContact||
+      sportingDirty||!officialSportingValid)return;
+    const id=playerId,actor=actorId,position=officialPosition,number=Number(officialNumber);
+    if(position===profile.official_position&&number===profile.official_number)return;
+    const expectedPosition=profile.official_position,expectedNumber=profile.official_number;
+    savingOfficialSporting=true;error='';notice='';
+    try{
+      const response=await request(url,{method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({sportingCorrection:{expectedPosition,expectedNumber,position,number}})});
+      const value:unknown=await response.json();
+      if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      const result=value as Record<string,unknown>;
+      if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||
+        result.official_position!==position||result.official_number!==number||result.updated!==true)
+        throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      if(playerId!==id||actorId!==actor||!allowWrite)return;
+      editingOfficialSporting=false;notice='Τα επίσημα αθλητικά στοιχεία ενημερώθηκαν.';revision++;
+    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αλλαγή απέτυχε.';}
+    finally{savingOfficialSporting=false;}
+  }
+
+  async function correctName(){
+    if(officialEditBusy||!profile||!allowWrite||!editingName||savingName||savingContact||saving||uploading||loading||sportingDirty)return;
+    const expected=profile.official_name,name=newName.trim(),id=playerId,actor=actorId;
+    if(!name||name.length>200||/[\x00-\x1f\x7f]/.test(name)||name===expected)return;
+    savingName=true;error='';notice='';
+    try{
+      const response=await request(url,{method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({nameCorrection:{expectedName:expected,name}})});
+      const value:unknown=await response.json();
+      if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      const result=value as Record<string,unknown>;
+      if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||result.official_name!==name||result.updated!==true)
+        throw Error('Η αλλαγή δεν επιβεβαιώθηκε.');
+      if(playerId!==id||actorId!==actor||!allowWrite)return;
+      editingName=false;notice='Το όνομα ενημερώθηκε.';onNameChanged(name);revision++;
+    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αλλαγή απέτυχε.';}
+    finally{savingName=false;}
+  }
+
+  function editContact(){
+    if(officialEditBusy||!profile||!allowWrite||saving||uploading||savingContact||savingName||editingName||sportingDirty||loading)return;
+    contactName=currentContact?.name??'';contactRelationship=currentContact?.relationship??'';
+    contactPhone=currentContact?.phone??'';contactEmail=currentContact?.email??'';
+    editingContact=true;error='';notice='';
+  }
+  async function saveContact(){
+    if(officialEditBusy||!profile||!allowWrite||!editingContact||!contactValid||savingContact||saving||uploading||loading)return;
+    const id=playerId,actor=actorId,expected=profile.current_contact?.revision??0;
+    savingContact=true;error='';notice='';
+    try{
+      const response=await request(url,{
+        method:'PUT',headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+        body:JSON.stringify({expectedRevision:expected,contact:{
+          name:contactName.trim(),relationship:contactRelationship.trim(),
+          phone:contactPhone.trim(),email:contactEmail.trim()
+        }})
+      });
+      const value:unknown=await response.json();
+      if(!value||typeof value!=='object'||Array.isArray(value))throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
+      const result=value as Record<string,unknown>;
+      if(result.organization_id!=='lefteria_fc_academy'||result.player_id!==id||
+        result.revision!==expected+1||result.updated!==true)throw Error('Η αποθήκευση δεν επιβεβαιώθηκε.');
+      if(playerId!==id||actorId!==actor||!allowWrite)return;
+      editingContact=false;notice='Τα στοιχεία επικοινωνίας αποθηκεύτηκαν.';revision++;
+    }catch(e){if(playerId===id&&actorId===actor)error=e instanceof Error?e.message:'Η αποθήκευση απέτυχε.';}
+    finally{savingContact=false;}
+  }
+
   async function save(){
-    if(!profile||!allowWrite||saving||uploading||loading)return;
+    if(!profile||!allowWrite||saving||uploading||savingContact||editingContact||savingName||editingName||loading)return;
     const bio=biography.trim(),position=preferredPosition.trim();
     const number=preferredNumber.trim()?Number(preferredNumber):null;
     if(bio.length>1000||position.length>80||bio.includes('\r')||
@@ -105,7 +230,7 @@
   }
 
   async function changePortrait(remove=false){
-    if(!allowWrite||uploading||saving||loading||(!remove&&!canUpload))return;
+    if(officialEditBusy||!allowWrite||uploading||saving||savingContact||editingContact||savingName||editingName||sportingDirty||loading||(!remove&&!canUpload))return;
     if(remove&&!window.confirm('Να αφαιρεθεί η ιδιωτική φωτογραφία αυτού του παιδιού;'))return;
     uploading=true;error='';notice='';
     try{
@@ -134,8 +259,8 @@
       <p class="admin-muted">Αυτός ο φάκελος είναι ορατός μόνο σε εξουσιοδοτημένο προσωπικό.
         Δεν δημοσιεύει φωτογραφία, βιογραφικό ή προσωπικά στοιχεία στο κοινό.</p>
     </div>
-    <button type="button" class="admin-secondary" disabled={loading||saving||uploading}
-      onclick={()=>revision++}>Ανανέωση προφίλ</button>
+    <button type="button" class="admin-secondary" disabled={loading||saving||uploading||savingName||savingContact||savingOfficialSporting}
+      onclick={()=>{if((sportingDirty||editingName||editingContact||editingOfficialSporting)&&!window.confirm("Να απορριφθούν οι μη αποθηκευμένες αλλαγές;"))return;revision++;}}>Ανανέωση προφίλ</button>
   </header>
   {#if loading}
     <p role="status">Επαλήθευση δικαιωμάτων και φόρτωση στοιχείων…</p>
@@ -157,41 +282,75 @@
         {#if allowWrite}
           <label>Ανέβασμα φωτογραφίας
             <input type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-              disabled={saving||uploading}
+              disabled={officialEditBusy||saving||uploading||editingName||editingContact||sportingDirty||savingName||savingContact}
               onchange={event=>selectedFile=event.currentTarget.files?.[0]??null}/>
           </label>
           <p class="admin-muted">Μέχρι 5 MB. Η εικόνα μετατρέπεται σε ιδιωτική JPEG χωρίς μεταδεδομένα EXIF.</p>
-          <button type="button" class="admin-secondary" disabled={!canUpload||uploading||saving}
+          <button type="button" class="admin-secondary" disabled={officialEditBusy||!canUpload||uploading||saving||sportingDirty||editingName||editingContact||savingName||savingContact}
             data-testid="admin-player-upload-private-photo" onclick={()=>void changePortrait()}>
             {uploading?'Μεταφόρτωση…':'Αποθήκευση φωτογραφίας'}
           </button>
           {#if profile.has_portrait}
-            <button type="button" class="admin-secondary" disabled={uploading||saving}
+            <button type="button" class="admin-secondary" disabled={officialEditBusy||uploading||saving||sportingDirty||editingName||editingContact||savingName||savingContact}
               onclick={()=>void changePortrait(true)}>Αφαίρεση φωτογραφίας</button>
           {/if}
         {/if}
       </div>
       <div class="admin-player-private-fields">
         <div class="admin-player-official">
-          <strong>Επίσημα στοιχεία εγγραφής</strong>
+          <strong>Τρέχοντα επίσημα στοιχεία ρόστερ</strong>
           <span>{profile.official_name}</span>
-          <span>Αριθμός: {profile.official_number??'—'} · Θέση: {profile.official_position??'—'}</span>
-          <small>Τα στοιχεία εγγραφής διατηρούνται χωριστά για προστασία των αγώνων, γονέων και παραστατικών.</small>
+          {#if allowWrite&&!editingName}
+            <button type="button" class="admin-secondary" disabled={officialEditBusy||saving||uploading||savingContact||editingContact||sportingDirty} onclick={()=>{newName=profile?.official_name??'';editingName=true;error='';notice='';}}>Διόρθωση ονόματος</button>
+          {/if}
+          {#if allowWrite&&editingName}
+            <form class="name-correction" onsubmit={event=>{event.preventDefault();void correctName();}}>
+              <label>Τρέχον επίσημο όνομα <input bind:value={newName} maxlength="200" required disabled={savingName}/></label>
+              <p class="admin-muted">Η αλλαγή αφορά το τρέχον ρόστερ. Η αρχική υπογεγραμμένη αίτηση διατηρείται.</p>
+              <div class="contact-actions">
+                <button type="submit" class="admin-primary" disabled={savingName||!newName.trim()||newName.trim()===profile.official_name}>Αποθήκευση ονόματος</button>
+                <button type="button" class="admin-secondary" disabled={savingName} onclick={()=>editingName=false}>Ακύρωση</button>
+              </div>
+            </form>
+          {/if}
+          <span>Αριθμός: {profile.official_number??'—'} · Θέση: {positionLabels[profile.official_position??'']??profile.official_position??'—'}</span>
+          {#if allowWrite&&!editingOfficialSporting}
+            <button type="button" class="admin-secondary" disabled={saving||uploading||editingName||savingName||editingContact||savingContact||sportingDirty||savingOfficialSporting} onclick={editOfficialSporting}>Επεξεργασία θέσης & αριθμού</button>
+          {/if}
+          {#if allowWrite&&editingOfficialSporting}
+            <form class="name-correction" data-testid="admin-player-official-sporting-form" onsubmit={event=>{event.preventDefault();void saveOfficialSporting();}}>
+              <label>Επίσημη θέση
+                <select bind:value={officialPosition} required disabled={savingOfficialSporting}>
+                  <option value="">Επιλέξτε θέση</option>
+                  {#each Object.entries(positionLabels) as [value,label]}<option {value}>{label}</option>{/each}
+                </select>
+              </label>
+              <label>Αριθμός φανέλας
+                <input bind:value={officialNumber} inputmode="numeric" pattern="[1-9][0-9]?" maxlength="2" required disabled={savingOfficialSporting}/>
+              </label>
+              <p class="admin-muted">Αφορά την τρέχουσα αγωνιστική θέση και τον αριθμό 1–99, όχι την προτίμηση ή την αρχική αίτηση.</p>
+              <div class="contact-actions">
+                <button type="submit" class="admin-primary" disabled={savingOfficialSporting||!officialSportingValid||(officialPosition===profile.official_position&&Number(officialNumber)===profile.official_number)}>Αποθήκευση αγωνιστικών στοιχείων</button>
+                <button type="button" class="admin-secondary" disabled={savingOfficialSporting} onclick={()=>editingOfficialSporting=false}>Ακύρωση</button>
+              </div>
+            </form>
+          {/if}
+          <small>Η αρχική εγγραφή διατηρείται χωριστά. Οι αλλαγές στο ρόστερ δεν μεταβάλλουν το υπογεγραμμένο έντυπο.</small>
         </div>
         <label>Αθλητικό βιογραφικό
           <textarea bind:value={biography} maxlength="1000" rows="5"
-            disabled={!allowWrite||saving||uploading}
+            disabled={officialEditBusy||!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact}
             placeholder="Σύντομη παρουσίαση, δυνατά σημεία και στόχοι ανάπτυξης"></textarea>
         </label>
         <div class="admin-player-preferences">
           <label>Προτιμώμενη θέση
             <input bind:value={preferredPosition} maxlength="80"
-              disabled={!allowWrite||saving||uploading} placeholder="Π.χ. Επιθετικός"/>
+              disabled={officialEditBusy||!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact} placeholder="Π.χ. Επιθετικός"/>
           </label>
           <label>Προτιμώμενος αριθμός
             <input bind:value={preferredNumber} inputmode="numeric"
               pattern="[0-9][0-9]?" maxlength="2"
-              disabled={!allowWrite||saving||uploading} placeholder="1–99"/>
+              disabled={officialEditBusy||!allowWrite||saving||uploading||editingName||editingContact||savingName||savingContact} placeholder="1–99"/>
           </label>
         </div>
         {#if profile.updated_at}
@@ -200,12 +359,70 @@
         {#if allowWrite}
           <button type="button" class="admin-primary"
             data-testid="admin-player-save-private-profile"
-            disabled={saving||uploading||loading} onclick={()=>void save()}>
+            disabled={officialEditBusy||saving||uploading||loading||editingName||editingContact||savingName||savingContact} onclick={()=>void save()}>
             {saving?'Αποθήκευση…':'Αποθήκευση προφίλ'}
           </button>
         {/if}
       </div>
     </div>
+    {#if sportingDirty}<p class="admin-muted" role="status">Αποθηκεύστε τις αθλητικές προτιμήσεις πριν αλλάξετε όνομα, φωτογραφία ή στοιχεία επικοινωνίας.</p>{/if}
+    <section class="registration-source-card" data-testid="admin-player-current-contact">
+      <div class="contact-header">
+        <h3>Τρέχοντα στοιχεία επικοινωνίας γονέα / κηδεμόνα</h3>
+        {#if allowWrite&&!editingContact}
+          <button type="button" class="admin-secondary" disabled={officialEditBusy||saving||uploading||savingContact||editingName||savingName||sportingDirty} onclick={editContact}>Επεξεργασία επικοινωνίας</button>
+        {/if}
+      </div>
+      <p class="admin-muted">Οι διορθώσεις αφορούν μόνο την επικοινωνία της Ακαδημίας. Δεν αλλάζουν την αρχική αίτηση, την ταυτοποίηση, την πρόσβαση στην εφαρμογή ή τα οικονομικά στοιχεία.</p>
+      {#if editingContact&&allowWrite}
+        <form class="contact-edit" onsubmit={event=>{event.preventDefault();void saveContact();}}>
+          <label>Ονοματεπώνυμο <input bind:value={contactName} required maxlength="200" disabled={savingContact}/></label>
+          <label>Σχέση <input bind:value={contactRelationship} required maxlength="80" disabled={savingContact}/></label>
+          <label>Τηλέφωνο <input type="tel" bind:value={contactPhone} required maxlength="32" disabled={savingContact}/></label>
+          <label>Email <input type="email" bind:value={contactEmail} required maxlength="254" disabled={savingContact}/></label>
+          <div class="contact-actions">
+            <button type="submit" class="admin-primary" disabled={!contactValid||savingContact}>{savingContact?'Αποθήκευση…':'Αποθήκευση επικοινωνίας'}</button>
+            <button type="button" class="admin-secondary" disabled={savingContact} onclick={()=>editingContact=false}>Ακύρωση</button>
+          </div>
+        </form>
+      {:else if currentContact}
+        <dl>
+          <div><dt>Ονοματεπώνυμο</dt><dd>{currentContact.name}</dd></div>
+          <div><dt>Σχέση</dt><dd>{currentContact.relationship}</dd></div>
+          <div><dt>Τηλέφωνο</dt><dd>{currentContact.phone}</dd></div>
+          <div><dt>Email</dt><dd>{currentContact.email}</dd></div>
+        </dl>
+        <p class="admin-muted">{currentContact.revision>0?'Τελευταία ενημέρωση: '+new Date(currentContact.updated_at).toLocaleString('el-CY'):'Πηγή: αρχική εγκεκριμένη αίτηση'}</p>
+      {:else}
+        <p class="admin-muted">Δεν έχουν καταχωριστεί τρέχοντα στοιχεία επικοινωνίας.</p>
+      {/if}
+    </section>
+    <section class="registration-source-card" data-testid="admin-player-registration-source">
+      <h3>Αρχική εγγραφή · αμετάβλητο ιστορικό</h3>
+      {#if profile.registration}
+        <p class="admin-muted">Αρχικά στοιχεία από την εγκεκριμένη αίτηση. Τα στοιχεία επικοινωνίας δεν αποτελούν από μόνα τους επαλήθευση πρόσβασης γονέα στην εφαρμογή.</p>
+        <dl>
+          <div><dt>Όνομα εγγραφής</dt><dd>{profile.registration.applicant_first_name} {profile.registration.applicant_last_name}</dd></div>
+          <div><dt>Ημερομηνία γέννησης</dt><dd>{profile.registration.applicant_birth_date}</dd></div>
+          <div><dt>Κηδεμόνας</dt><dd>{profile.registration.guardian_name}</dd></div>
+          <div><dt>Σχέση</dt><dd>{profile.registration.guardian_relationship}</dd></div>
+          <div><dt>Τηλέφωνο εγγραφής</dt><dd>{profile.registration.guardian_phone}</dd></div>
+          <div><dt>Email εγγραφής</dt><dd>{profile.registration.guardian_email}</dd></div>
+          <div><dt>Αριθμός αίτησης</dt><dd>{profile.registration.id}</dd></div>
+          <div><dt>Ημερομηνία έγκρισης</dt><dd>{new Date(profile.registration.approved_at).toLocaleDateString('el-CY')}</dd></div>
+        </dl>
+        {#if allowGuardianReview}
+          <button type="button" class="admin-secondary" aria-expanded={showGuardianReview} onclick={()=>showGuardianReview=!showGuardianReview}>{showGuardianReview?'Κλείσιμο ελέγχου':'Έλεγχος ταυτότητας κηδεμόνα'}</button>
+          {#if showGuardianReview}
+            {#key actorId+':'+playerId+':'+profile.registration.id}
+              <AcademyGuardianProofReview registrationId={profile.registration.id} guardianPhone={profile.registration.guardian_phone} expectedPlayerId={playerId}/>
+            {/key}
+          {/if}
+        {/if}
+      {:else}
+        <p class="admin-muted">Δεν υπάρχει επαληθευμένη σύνδεση με εγκεκριμένη ηλεκτρονική αίτηση. Δεν δημιουργούνται υποθετικά στοιχεία γονέων.</p>
+      {/if}
+    </section>
     {#if error}<p role="alert">{error}</p>{/if}
     {#if notice}<p role="status">{notice}</p>{/if}
   {/if}
@@ -230,7 +447,7 @@
     font-size:13px}
   .admin-player-portrait-editor input[type="file"]{width:100%;max-width:100%}
   .admin-player-private-fields{display:grid;gap:15px}
-  .admin-player-private-fields textarea,.admin-player-private-fields input{width:100%;
+  .admin-player-private-fields textarea,.admin-player-private-fields input,.admin-player-private-fields select{width:100%;
     min-height:42px;background:var(--admin-surface,#151719);color:inherit;
     border:1px solid var(--admin-border,#5a5f61);border-radius:8px;padding:10px}
   .admin-player-official{display:grid;gap:6px;padding:12px;
@@ -240,4 +457,17 @@
   .admin-player-private-fields button{justify-self:start;min-height:43px}
   @media(max-width:650px){.admin-private-profile-grid{grid-template-columns:1fr}
     .admin-player-preferences{grid-template-columns:1fr}}
+  .registration-source-card{display:grid;gap:12px;border-top:1px solid var(--admin-line);padding-top:16px;min-width:0}
+  .registration-source-card h3,.registration-source-card dl,.registration-source-card dd{margin:0}
+  .registration-source-card dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+  .registration-source-card dl>div{padding:10px;border:1px solid var(--admin-line);border-radius:8px;overflow-wrap:anywhere;min-width:0}
+  .registration-source-card dt{font-size:12px;color:#b8b8b8}
+  .registration-source-card dd{font-weight:600}
+  .contact-header,.contact-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .contact-header{justify-content:space-between}
+  .contact-edit{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:12px;min-width:0}
+  .contact-edit label{display:grid;gap:6px;min-width:0}
+  .contact-edit input{width:100%;min-width:0}
+  .contact-actions{grid-column:1/-1}
+  .name-correction{display:grid;gap:8px;min-width:0}
 </style>

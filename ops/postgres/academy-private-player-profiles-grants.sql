@@ -29,6 +29,9 @@ BEGIN
     'club.authorize_academy_private_profile(text,text,boolean)'::regprocedure::oid,
     'club.read_admin_academy_player_profile(text,text)'::regprocedure::oid,
     'club.write_admin_academy_player_profile(text,text,integer,text,text,integer)'::regprocedure::oid,
+    'club.write_admin_academy_player_contact(text,text,integer,text,text,text,text)'::regprocedure::oid,
+    'club.rename_admin_academy_player(text,text,text,text)'::regprocedure::oid,
+    'club.write_admin_academy_player_sporting(text,text,text,integer,text,integer)'::regprocedure::oid,
     'club.read_admin_academy_player_portrait(text,text)'::regprocedure::oid,
     'club.write_admin_academy_player_portrait(text,text,bytea)'::regprocedure::oid
   ] LOOP
@@ -38,18 +41,24 @@ BEGIN
     THEN RAISE EXCEPTION 'academy_profile_function_unprotected'; END IF;
   END LOOP;
 END $guard$;
-REVOKE ALL ON club.academy_player_private_profiles
+REVOKE ALL ON club.academy_player_private_profiles, club.academy_player_contact_details, academy_intake.registration_sporting_baselines
   FROM PUBLIC, :"admin_auth_role", :"app_role";
 REVOKE ALL ON FUNCTION
   club.authorize_academy_private_profile(text,text,boolean),
   club.read_admin_academy_player_profile(text,text),
   club.write_admin_academy_player_profile(text,text,integer,text,text,integer),
+  club.write_admin_academy_player_contact(text,text,integer,text,text,text,text),
+  club.rename_admin_academy_player(text,text,text,text),
+  club.write_admin_academy_player_sporting(text,text,text,integer,text,integer),
   club.read_admin_academy_player_portrait(text,text),
   club.write_admin_academy_player_portrait(text,text,bytea)
   FROM PUBLIC, :"admin_auth_role", :"app_role";
 GRANT USAGE ON SCHEMA club TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION club.read_admin_academy_player_profile(text,text),
   club.write_admin_academy_player_profile(text,text,integer,text,text,integer),
+  club.write_admin_academy_player_contact(text,text,integer,text,text,text,text),
+  club.rename_admin_academy_player(text,text,text,text),
+  club.write_admin_academy_player_sporting(text,text,text,integer,text,integer),
   club.read_admin_academy_player_portrait(text,text),
   club.write_admin_academy_player_portrait(text,text,bytea)
   TO :"admin_auth_role";
@@ -64,6 +73,20 @@ BEGIN
     OR has_any_column_privilege(m,'club.academy_player_private_profiles',
       'SELECT,INSERT,UPDATE,REFERENCES')
     OR has_table_privilege(m,'club.academy_player_private_profiles','DELETE')
+    OR has_any_column_privilege(a,'club.academy_player_contact_details','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(a,'club.academy_player_contact_details','DELETE')
+    OR has_any_column_privilege(m,'club.academy_player_contact_details','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(m,'club.academy_player_contact_details','DELETE')
+    OR has_function_privilege(m,'club.write_admin_academy_player_contact(text,text,integer,text,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege(a,'club.write_admin_academy_player_contact(text,text,integer,text,text,text,text)','EXECUTE')
+    OR has_function_privilege(m,'club.rename_admin_academy_player(text,text,text,text)','EXECUTE')
+    OR NOT has_function_privilege(a,'club.rename_admin_academy_player(text,text,text,text)','EXECUTE')
+    OR has_function_privilege(m,'club.write_admin_academy_player_sporting(text,text,text,integer,text,integer)','EXECUTE')
+    OR NOT has_function_privilege(a,'club.write_admin_academy_player_sporting(text,text,text,integer,text,integer)','EXECUTE')
+    OR has_any_column_privilege(a,'academy_intake.registration_sporting_baselines','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_any_column_privilege(m,'academy_intake.registration_sporting_baselines','SELECT,INSERT,UPDATE,REFERENCES')
+    OR has_table_privilege(a,'academy_intake.registration_sporting_baselines','DELETE,TRUNCATE,TRIGGER')
+    OR has_table_privilege(m,'academy_intake.registration_sporting_baselines','DELETE,TRUNCATE,TRIGGER')
     OR has_function_privilege(a,
       'club.authorize_academy_private_profile(text,text,boolean)','EXECUTE')
     OR has_function_privilege(m,

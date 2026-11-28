@@ -14,7 +14,8 @@ test('a selected group owns the private match draft form, and standalone menu is
   assert.match(workspace,/import AdminGroupMatchDraftPanel/);
   assert.match(groups,/group=\{focusedGroup\}/);
   assert.match(workspace,/groupId=\{group\.id\}/);
-  assert.match(workspace,/canWrite=\{canCreate\}/);
+  assert.match(workspace,/canWrite=\{access\.matchWrite\}/);
+  assert.match(read('lib/admin/workspace-access.ts'),/matchWrite:matches&&canEdit&&has\('fixtures:write'\)/);
   assert.match(groups,/organization && \$auth\.session/);
   assert.match(groups,/data-testid="admin-group-workspace"/);
   for(const part of ['admin-group-new-match','admin-group-match-form','admin-group-private-drafts',

@@ -1,0 +1,34 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {compile} from 'svelte/compiler';
+const read=p=>readFileSync(new URL('../../'+p,import.meta.url),'utf8');
+test('roster search uses POST private body and verifies exact roster responses',()=>{
+  const roster=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
+  assert.ok(compile(roster,{filename:'AdminRosterPlayersPanel.svelte',generate:'server'}).js.code.length>100);
+  assert.match(roster,/fetch\('\/api\/admin\/football\/players\/search'/);
+  assert.match(roster,/method:'POST',credentials:'same-origin',cache:'no-store'/);
+  assert.match(roster,/search,exactGroupId:group,filterGroupId:filterGroup/);
+  assert.match(roster,/verified\(json,currentOwner,currentOffset,group\)/);
+  assert.doesNotMatch(roster,/params\.set\(['"]search|params\.set\(['"]q['"]/);
+  const api=read('backend/src/LefteriaFc.Api/Audiences/AdminRosterPlayerEndpoints.cs');
+  assert.match(api,/MapPost\("\/api\/admin\/football\/players\/search"/);
+  assert.match(api,/body\.ExactGroupId is not null && body\.FilterGroupId is not null/);
+  assert.match(api,/RequireAuthorization\(WebAdminServices\.Policy\)/);
+  assert.match(api,/body\.Search\.Length>100/);
+});
+test('SQL search retains both existing permission scopes and applies filters before paging',()=>{
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128195000_AdminRosterSearch.cs');
+  assert.equal((sql.match(/strpos\(lower\(p\.name\),lower\(_search\)\)/g)||[]).length,4);
+  assert.match(sql,/club\.admin_roster_player_visible\(v_actor,v_role,_owner/);
+  assert.match(sql,/club\.admin_football_allowed\(/);
+  assert.match(sql,/jsonb_build_array\(_group\)/);
+  assert.match(sql,/LIMIT _limit OFFSET _offset/);
+  assert.match(sql,/NOT p\.is_archived AND NOT p\.is_transferred/);
+  assert.match(sql,/REVOKE ALL ON FUNCTION club\.search_admin_roster_players/);
+  assert.doesNotMatch(sql,/guardian_phone|applicant_birth_date|UPDATE club\.players/);
+  const fixture=read('ops/postgres/academy-enrollment-checks.sql');
+  assert.match(fixture,/Roster search disclosed a sibling city/);
+  assert.match(fixture,/Roster search accessed another city group/);
+  assert.match(fixture,/Exact group search returned incorrect membership/);
+});

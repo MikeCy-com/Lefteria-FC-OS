@@ -10,9 +10,10 @@
     physical:Record<string,number>;character:Record<string,number>;overall:Record<string,unknown>};
   type Document={id:string;document_type:string;title:string;
     expiry_date:string|null;status:string};
-  let {owner,playerId,playerName,actorId,allowCreate,allowGoalManagement=false,onExpired,onRevoked}:{
+  let {owner,playerId,playerName,actorId,allowCreate,allowGoalManagement=false,section='all',onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;allowCreate:boolean;
     allowGoalManagement?:boolean;
+    section?:'all'|'documents'|'development';
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -54,6 +55,20 @@
     {id:'image_rights',label:'Δικαιώματα εικόνας'},
     {id:'other',label:'Άλλο έγγραφο'}
   ] as const;
+  let documentQuery=$state('');
+  let documentFilter=$state<'all'|'registration'|'attention'>('all');
+  const attentionStatuses=['expired','critical','warning'];
+  const documentStatusLabels:Record<string,string>={no_expiry:'Χωρίς ημερομηνία λήξης',expired:'Έληξε',critical:'Άμεση ανανέωση',warning:'Λήγει σύντομα',notice:'Ειδοποίηση λήξης',watch:'Παρακολούθηση',valid:'Σε ισχύ'};
+  const visibleDocuments=$derived(documents.filter(doc=>{
+    const term=documentQuery.trim().toLocaleLowerCase('el-CY');
+    const label=protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type;
+    return (documentFilter==='all'||(documentFilter==='registration'&&doc.document_type==='registration_form')||
+      (documentFilter==='attention'&&attentionStatuses.includes(doc.status)))&&
+      (!term||[doc.title,label].some(value=>value.toLocaleLowerCase('el-CY').includes(term)));
+  }).slice().sort((a,b)=>{
+    const rank=(doc:Document)=>doc.document_type==='registration_form'?0:attentionStatuses.includes(doc.status)?1:2;
+    return rank(a)-rank(b)||(a.expiry_date??'9999-12-31').localeCompare(b.expiry_date??'9999-12-31')||a.title.localeCompare(b.title,'el-CY');
+  }));
   const requiresExpiry=(type:string)=>
     ['id_passport','kop_registration','medical_cert','insurance',
       'school_confirmation'].includes(type);
@@ -183,7 +198,8 @@
     });
   }
   $effect(()=>{
-    const currentOwner=owner,currentPlayer=playerId,currentActor=actorId;
+    const currentOwner=owner,currentPlayer=playerId,currentActor=actorId,currentSection=section;
+    const resources:('evaluations'|'documents')[]=currentSection==='documents'?['documents']:currentSection==='development'?['evaluations']:['evaluations','documents'];
     void generation;
     evaluations=[];documents=[];loading=false;error='';
     if(!browser||!idValid(currentPlayer)||!currentActor)return;
@@ -193,7 +209,7 @@
       try{
         const query=new URLSearchParams({organization_id:currentOwner});
         const prefix='/api/admin/club/players/'+encodeURIComponent(currentPlayer);
-        const responses=await Promise.all(['evaluations','documents'].map(resource=>
+        const responses=await Promise.all(resources.map(resource=>
           fetch(prefix+'/'+resource+'?'+query.toString(),{
             credentials:'same-origin',cache:'no-store',signal:controller.signal,
             headers:{Accept:'application/json'}
@@ -204,12 +220,18 @@
         if(responses.some(response=>!response.ok))
           throw new Error('Οι ιδιωτικοί φάκελοι δεν είναι διαθέσιμοι.');
         const payloads:unknown[]=await Promise.all(responses.map(r=>r.json()));
-        if(!verifiedList(payloads[0],'evaluations',currentOwner,currentPlayer)||
-           !verifiedList(payloads[1],'documents',currentOwner,currentPlayer))
-          throw new Error('Μη επαληθευμένη απόκριση ιδιωτικού φακέλου.');
-        if(!controller.signal.aborted){
-          evaluations=payloads[0].evaluations as Evaluation[];
-          documents=payloads[1].documents as Document[];
+        const verifiedPayloads:Record<string,unknown>[]=[];
+        for(let i=0;i<resources.length;i++){
+          const payload=payloads[i];
+          if(!verifiedList(payload,resources[i],currentOwner,currentPlayer))
+            throw new Error('Μη επαληθευμένη απόκριση ιδιωτικού φακέλου.');
+          verifiedPayloads.push(payload);
+        }
+        if(!controller.signal.aborted&&owner===currentOwner&&playerId===currentPlayer&&actorId===currentActor&&section===currentSection){
+          resources.forEach((resource,i)=>{
+            if(resource==='evaluations')evaluations=verifiedPayloads[i].evaluations as Evaluation[];
+            else documents=verifiedPayloads[i].documents as Document[];
+          });
         }
       }catch{
         if(!controller.signal.aborted){
@@ -229,9 +251,14 @@
       Ανανέωση
     </button>
   </div>
-  <p class="admin-muted">Ιδιωτικές αξιολογήσεις και προστατευμένα έγγραφα του επιλεγμένου αθλητή.</p>
+  <p class="admin-muted">{section==='documents'?'Προστατευμένα έγγραφα του αθλητή.':section==='development'?'Αξιολογήσεις, στόχοι και πορεία ανάπτυξης του αθλητή.':'Ιδιωτικές αξιολογήσεις και προστατευμένα έγγραφα του επιλεγμένου αθλητή.'}</p>
+  <div class="private-player-card-sections" aria-label="Σύνοψη φακέλου">
+    {#if section!=='development'}<div><h4>Έγγραφα</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμα':documents.length+' καταχωρίσεις'}</p></div>{/if}
+    {#if section!=='documents'}<div><h4>Αξιολογήσεις</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμες':evaluations.length+' καταχωρίσεις'}</p></div>{/if}
+  </div>
+  {#if section!=='documents'}
   {#if allowCreate}
-    <button type="button" class="admin-secondary" onclick={()=>showCreate=!showCreate} disabled={creating}>
+    <button type="button" class="admin-secondary" onclick={()=>{showCreate=!showCreate;if(showCreate)showUpload=false;}} disabled={creating||uploading}>
       {showCreate?'Κλείσιμο φόρμας':'Νέα αξιολόγηση'}
     </button>
     {#if showCreate}
@@ -261,9 +288,11 @@
     {/if}
   {/if}
   {#if createNotice}<p role="status">{createNotice}</p>{/if}
+  {/if}
+  {#if section!=='development'}
   {#if allowCreate}
-    <button type="button" class="admin-secondary" disabled={uploading}
-      onclick={()=>showUpload=!showUpload}>
+    <button type="button" class="admin-secondary" disabled={uploading||creating}
+      onclick={()=>{showUpload=!showUpload;if(showUpload)showCreate=false;}}>
       {showUpload?'Κλείσιμο μεταφόρτωσης':'Μεταφόρτωση προστατευμένου εγγράφου'}
     </button>
     {#if showUpload}
@@ -297,18 +326,21 @@
       </form>
     {/if}
   {/if}
+  {/if}
+  {#if section!=='documents'}
   {#if allowGoalManagement}
     <AdminPlayerDevelopmentGoals {owner} {playerId} {playerName} {actorId}
       assessments={evaluations.map(e=>({id:e.id,summary:e.summary,created_at:e.created_at}))}
       {onExpired} {onRevoked}/>
   {/if}
-  <AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>
-  {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}
+  {/if}
+  {#if section!=='documents'}<AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>{/if}
+  {#if section!=='development' && uploadNotice}<p role="status">{uploadNotice}</p>{/if}
   {#if loading}<p role="status">Ανάκτηση προστατευμένων στοιχείων…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if !loading&&!error}
     <div class="private-player-card-sections">
-      <div>
+      {#if section!=='documents'}<div>
         <h4>Αξιολογήσεις ({evaluations.length})</h4>
         {#each evaluations as evaluation (evaluation.id)}
           <details id={'academy-evaluation-'+evaluation.id}>
@@ -320,17 +352,31 @@
           </details>
         {/each}
         {#if evaluations.length===0}<p>Δεν υπάρχουν αξιολογήσεις.</p>{/if}
-      </div>
-      <div>
+      </div>{/if}
+      {#if section!=='development'}<div>
         <h4>Έγγραφα ({documents.length})</h4>
-        {#each documents as doc (doc.id)}
-          <p><strong>{doc.title}</strong> · {doc.document_type}
-            · {doc.expiry_date??'Χωρίς λήξη'} ({doc.status})
-          </p>
+        <div class="player-document-filters" data-testid="admin-player-document-filters">
+          <label>Αναζήτηση εγγράφων <input type="search" bind:value={documentQuery} placeholder="Τίτλος ή τύπος"/></label>
+          <div class="document-filter-buttons" role="group" aria-label="Φίλτρο εγγράφων">
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='all'} onclick={()=>documentFilter='all'}>Όλα ({documents.length})</button>
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='registration'} onclick={()=>documentFilter='registration'}>Εγγραφές ({documents.filter(doc=>doc.document_type==='registration_form').length})</button>
+            <button type="button" class="admin-secondary" aria-pressed={documentFilter==='attention'} onclick={()=>documentFilter='attention'}>Χρειάζονται ανανέωση ({documents.filter(doc=>attentionStatuses.includes(doc.status)).length})</button>
+          </div>
+        </div>
+        {#each visibleDocuments as doc (doc.id)}
+          <article class="player-document-row">
+            <div>
+              <strong>{doc.title}</strong>
+              <p>{protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type}</p>
+              {#if doc.expiry_date}<small>Λήξη: {doc.expiry_date}</small>{/if}
+            </div>
+            <span class:document-attention={attentionStatuses.includes(doc.status)}>{documentStatusLabels[doc.status]??doc.status}</span>
+          </article>
         {/each}
-        {#if documents.length===0}<p>Δεν υπάρχουν μεταδεδομένα εγγράφων.</p>{/if}
-        <p class="admin-muted">Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
-      </div>
+        {#if documents.length===0}<p>Δεν έχουν καταχωριστεί έγγραφα.</p>
+        {:else if !visibleDocuments.length}<p>Δεν βρέθηκαν έγγραφα για αυτό το φίλτρο.</p>{/if}
+        <p class="admin-muted">Προβάλλονται μόνο τα στοιχεία των εγγράφων. Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
+      </div>{/if}
     </div>
   {/if}
 </section>
@@ -345,4 +391,13 @@
   .private-evaluation-form label{display:grid;gap:5px;font-size:13px}
   .private-evaluation-form fieldset{display:flex;gap:12px;flex-wrap:wrap;border:0;padding:0}
   .private-evaluation-form input,.private-evaluation-form textarea,.private-evaluation-form select{padding:8px;color:white;background:#171717;border:1px solid #555;border-radius:7px}
+  .player-document-filters{display:grid;gap:8px;margin:12px 0}
+  .player-document-filters label{display:grid;gap:5px}
+  .player-document-filters input{min-width:0;width:100%;padding:8px;color:inherit;background:var(--admin-surface,#151719);border:1px solid var(--admin-border,#555);border-radius:8px}
+  .document-filter-buttons{display:flex;flex-wrap:wrap;gap:6px}
+  .document-filter-buttons button[aria-pressed=true]{border-color:var(--admin-accent,#f6bb38);color:var(--admin-accent,#f6bb38)}
+  .player-document-row{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid var(--admin-border,#555);overflow-wrap:anywhere}
+  .player-document-row p{margin:4px 0}
+  .player-document-row>span{font-size:12px;color:var(--admin-muted,#aeb4b9)}
+  .player-document-row>span.document-attention{color:var(--admin-error,#fa9999)}
 </style>

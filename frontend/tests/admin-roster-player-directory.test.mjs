@@ -26,7 +26,14 @@ test('private player picker is manager-only, owner-locked, paged and intentional
   assert.match(border,/NOT has_function_privilege\(admin_role,f\.oid,'EXECUTE'\)/);
   assert.match(border,/has_any_column_privilege\(admin_role,c\.oid,'SELECT,INSERT,UPDATE,REFERENCES'\)/);
   assert.doesNotMatch(sql,/'parent_name'|'phone'|'birth_date'|'source_json'|'emergency_contact'/);
-  assert.doesNotMatch(api,/MapPost\(|MapPut\(|MapDelete\(/);
+  // Search is the only permitted POST, and remains a read-only projection.
+  assert.deepEqual([...api.matchAll(/MapPost\("([^"]+)"/g)].map(m=>m[1]),
+    ['/api/admin/football/players/search']);
+  assert.doesNotMatch(api,/MapPut\(|MapDelete\(|MapPatch\(/);
+  const searchApi=api.slice(api.indexOf('MapPost("/api/admin/football/players/search"'));
+  assert.match(searchApi,/directory\.ReadGroupAsync\(/);
+  assert.match(searchApi,/directory\.ReadAsync\(/);
+  assert.doesNotMatch(searchApi,/WriteAsync|ExecuteNonQuery|SaveChanges/);
   assert.match(api,/\.RequireAuthorization\(WebAdminServices.Policy\)/);
   assert.match(api,/AdminPermissions.Has\(session.User.Role,capability\)/);
 });
@@ -36,7 +43,7 @@ test('admin player list uses current backend membership, not fake data or stale 
   assert.match(page,/\{#if organization && \$auth\.session\}/);
   assert.ok(page.includes("{#key organization+':'+focusedGroup.id"));
   assert.match(workspace,/AdminRosterPlayersPanel/);
-  assert.match(workspace,/\{#if canCreate\}/);
+  assert.match(workspace,/\{#if access\.players\}/);
   assert.match(ui,/data-testid="admin-private-player-directory"/);
   assert.match(ui,/data-testid="admin-players-list"/);
   assert.match(ui,/const source=group\?'\/api\/admin\/football\/group-players\?'\:'\/api\/admin\/football\/players\?'/);

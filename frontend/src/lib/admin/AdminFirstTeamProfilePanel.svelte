@@ -1,4 +1,5 @@
 <script lang="ts">
+  import PublishedMediaBrowser from './PublishedMediaBrowser.svelte';
   type Team={id:string;name:string;kind:'team'|'academy_group';active_players:number};
   type Profile={organization_id:'lefteria_fc';team_id:string;
     level:string;description:string;banner_url:string;revision:number};
@@ -7,10 +8,18 @@
   }=$props();
   const owner='lefteria_fc';
   let teamId=$state('');
+  $effect(()=>{
+    const eligible=groups.filter(g=>g.kind==='team');
+    if(eligible.length===1&&teamId!==eligible[0].id)teamId=eligible[0].id;
+    else if(!eligible.some(g=>g.id===teamId))teamId='';
+  });
   let record=$state<Profile|null>(null);
   let level=$state("Α' Ομάδα");
   let description=$state('');
   let bannerUrl=$state('');
+  let showBannerPicker=$state(false);
+  let pickedBanner=$state('');
+  const previewBanner=$derived(bannerUrl&&(bannerUrl===record?.banner_url||bannerUrl===pickedBanner)?bannerUrl:'');
   let loading=$state(false);
   let saving=$state(false);
   let error=$state('');
@@ -32,7 +41,7 @@
   $effect(()=>{
     const selected=teamId,actor=actorId,generation=refresh;
     void generation;
-    record=null;loading=false;error='';notice='';
+    record=null;showBannerPicker=false;pickedBanner='';loading=false;error='';notice='';
     if(typeof window === 'undefined'||!actor||!groups.some(t=>t.id===selected&&t.kind==='team'))
       return;
     const controller=new AbortController();loading=true;
@@ -99,6 +108,7 @@
   <p class="admin-muted">Τα πεδία επιπέδου, περιγραφής και banner ακολουθούν
     το αρχικό Lefteria FC. Οι παίκτες και οι προπονητές διαχειρίζονται
     από τους ξεχωριστούς επαληθευμένους καταλόγους.</p>
+  {#if groups.filter(g=>g.kind==='team').length>1}
   <label for="first-team-profile-selection">Επιλέξτε ομάδα</label>
   <select id="first-team-profile-selection" bind:value={teamId} disabled={saving}>
     <option value="">Επιλέξτε ομάδα</option>
@@ -106,6 +116,7 @@
       <option value={group.id}>{group.name}</option>
     {/each}
   </select>
+  {:else if groups.length===1}<p class="admin-muted" data-testid="group-profile-current-name"><strong>{groups[0].name}</strong></p>{/if}
   {#if loading}<p role="status">Φόρτωση…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if notice}<p role="status">{notice}</p>{/if}
@@ -121,6 +132,25 @@
         <input type="url" maxlength="2048" bind:value={bannerUrl} disabled={saving}
           placeholder="https://..."/>
       </label>
+      <div class="group-banner-tools">
+        <button type="button" class="admin-secondary" disabled={saving} onclick={()=>showBannerPicker=!showBannerPicker}
+          aria-expanded={showBannerPicker}>{showBannerPicker?'Κλείσιμο βιβλιοθήκης':'Επιλογή από δημοσιευμένες εικόνες'}</button>
+        {#if bannerUrl}<button type="button" class="admin-secondary" disabled={saving} onclick={()=>bannerUrl=''}>Αφαίρεση banner</button>{/if}
+      </div>
+      {#if showBannerPicker}
+        <div class="group-banner-library" data-testid="group-banner-library">
+          <PublishedMediaBrowser organization={owner} embedded onPick={asset=>{
+            if(saving||asset.organization_id!==owner)return;
+            if(!/^https:\/\/[A-Za-z0-9.-]+(?:\/[A-Za-z0-9_./%?&=-]*)?$/.test(asset.url)){
+              error='Η εικόνα χρειάζεται συμβατή διεύθυνση HTTPS.';return;
+            }
+            bannerUrl=asset.url;pickedBanner=asset.url;showBannerPicker=false;error='';
+          }}/>
+        </div>
+      {/if}
+      {#if previewBanner}
+        <div class="group-banner-preview"><span>{bannerUrl===record.banner_url?'Τρέχον banner':'Προεπισκόπηση νέου banner · αποθηκεύστε τις αλλαγές'}</span><img src={previewBanner} alt="Προεπισκόπηση banner ομάδας" loading="lazy" referrerpolicy="no-referrer"/></div>
+      {/if}
       <div class="first-team-buttons">
         <button class="admin-secondary" type="submit" disabled={saving}>
           {saving?'Αποθήκευση…':'Αποθήκευση στοιχείων'}
@@ -134,8 +164,12 @@
 <style>
 .first-team-profile{display:grid;gap:12px;margin:18px 0}
 .first-team-profile>select{max-width:500px}
-.first-team-fields{display:grid;gap:14px;max-width:760px}
+.first-team-fields{display:grid;gap:14px;width:100%;max-width:none;min-width:0}
 .first-team-fields label{display:grid;gap:6px}
 .first-team-fields input,.first-team-fields textarea{width:100%}
 .first-team-buttons{display:flex;gap:10px;flex-wrap:wrap}
+.group-banner-preview{grid-column:1/-1;display:grid;gap:8px;max-width:100%;min-width:0}
+.group-banner-preview img{width:100%;max-height:260px;object-fit:contain;background:var(--admin-surface);border-radius:8px}
+.group-banner-tools{display:flex;flex-wrap:wrap;gap:8px;grid-column:1/-1}
+.group-banner-library{grid-column:1/-1;min-width:0}
 </style>

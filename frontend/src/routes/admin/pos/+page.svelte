@@ -325,7 +325,7 @@
 
   $effect(() => {
     const selected = scopedAdminOrganization($auth.session?.user ?? null, assignments.map(org => org.id));
-    if (owner !== selected) owner = selected;
+    if (!assignments.some(org => org.id === owner)) owner = selected;
   });
 
   $effect(() => {
@@ -399,9 +399,19 @@
       <div class="admin-pos" data-testid="admin-pos-catalog">
         <p class="admin-eyebrow">POS & ΚΑΤΑΣΤΗΜΑ · ΙΔΙΩΤΙΚΟΣ ΚΑΤΑΛΟΓΟΣ</p>
         <h1>POS & κατάστημα</h1>
-        <p class="admin-muted">Ασφαλής, πραγματική προβολή προϊόντων και παραλλαγών για τον επιλεγμένο οργανισμό. Η διαχείριση κατηγοριών και προϊόντων γίνεται με έλεγχο έκδοσης και ασφαλή καταγραφή αλλαγών. Οι διαθέσιμες λειτουργίες σημείων πώλησης και βαρδιών εμφανίζονται παρακάτω με έλεγχο δικαιωμάτων. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
+        <p class="admin-muted">Διαχειριστείτε ταμεία, βάρδιες, προϊόντα και τιμές. Οι διαθέσιμες ενέργειες εξαρτώνται από τα δικαιώματά σας. Η παραγωγική διασύνδεση πληρωμών και οι ανεπαλήθευτες πωλήσεις παραμένουν ανενεργές.</p>
         <section class="admin-panel admin-pos-owner" aria-label="Επιλογή οργανισμού καταλόγου">
           <span class="admin-organization-context-label" data-testid="admin-pos-organization">{assignments.find(org => org.id === owner)?.name ?? 'Δεν υπάρχει εξουσιοδοτημένος οργανισμός'}</span>
+          {#if assignments.length>1}
+            <div class="admin-pos-owner-actions" role="group" aria-label="Κατάλογοι POS">
+              {#each assignments as org (org.id)}
+                <button class="admin-secondary" type="button" aria-pressed={owner===org.id}
+                  disabled={busy||writing||productWriting||showCategoryForm||showProductForm}
+                  onclick={()=>{if(assignments.some(item=>item.id===org.id))owner=org.id;}}>{org.name}</button>
+              {/each}
+            </div>
+            <p class="admin-muted">Επιλέξτε τον κατάλογο για τη συγκεκριμένη εργασία. Οι πωλήσεις και τα ταμεία παραμένουν ξεχωριστά ανά οργανισμό.</p>
+          {/if}
         </section>
         {#if busy}
           <section class="admin-panel" role="status" data-testid="admin-pos-loading">Φόρτωση επαληθευμένου καταλόγου…</section>
@@ -411,6 +421,15 @@
             <button type="button" class="admin-secondary" onclick={() => retry++}>Δοκιμή ξανά</button>
           </section>
         {:else}
+          <nav class="admin-pos-task-nav" aria-label="Γρήγορες ενέργειες POS">
+            <a href="#pos-basket">Καλάθι</a>
+            <a href="#pos-categories-heading">Κατηγορίες</a>
+            <a href="#pos-products-heading">Προϊόντα & τιμές</a>
+            {#if owner && ['manager','super_admin'].includes($auth.session.user.role) && hasAdminPermission($auth.session.user.permissions,'finance:read')}<a href="#pos-sites">Σημεία πώλησης</a>{/if}
+            {#if canEdit && owner && ['manager','super_admin'].includes($auth.session.user.role)}<a href="#pos-shifts">Βάρδιες</a>{/if}
+            {#if canEdit && owner && $auth.session.user.role==='super_admin' && hasAdminPermission($auth.session.user.permissions,'finance:read')}<a href="#pos-finance">Οικονομικές κινήσεις</a>{/if}
+            {#if owner && $auth.session.user.role==='super_admin'}<a href="#pos-stock">Απόθεμα ανά τοποθεσία</a>{/if}
+          </nav>
           <div class="admin-pos-stats" aria-label="Στοιχεία πραγματικού καταλόγου">
             <div><span>Κατηγορίες</span><strong>{catalog.categories.length}</strong></div>
             <div><span>Προϊόντα</span><strong>{catalog.products.length}</strong></div>
@@ -418,20 +437,20 @@
           </div>
           {#if owner && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) &&
             hasAdminPermission($auth.session.user.permissions,'finance:read')}
-            <AdminPosSitesPanel owner={owner as Organization}
+            <div id="pos-sites"><AdminPosSitesPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
               canProvision={$auth.session.user.role==='super_admin'}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit && $auth.session && ['manager','super_admin'].includes($auth.session.user.role) && owner}
-            <AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+            <div id="pos-shifts"><AdminPosCashierShiftsPanel owner={owner as Organization} actorId={$auth.session.user.id}
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit && $auth.session && $auth.session.user.role==='super_admin' &&
             hasAdminPermission($auth.session.user.permissions,'finance:read') && owner}
-            <AdminPosFinanceHandoffPanel owner={owner as Organization}
+            <div id="pos-finance"><AdminPosFinanceHandoffPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
-              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/>
+              onExpired={()=>void auth.bootstrap()} onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
           {#if canEdit}
             <section class="admin-panel admin-pos-editor" aria-labelledby="pos-editor-heading" data-testid="admin-pos-category-editor">
@@ -542,7 +561,7 @@
               {/if}
             </section>
           {/if}
-          <AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>
+          <div id="pos-basket">{#key catalog.organization_id}<AdminPosBasketPreview products={catalog.products} categories={catalog.categories} organization={catalog.organization_id}/>{/key}</div>
           <div class="admin-pos-grid">
             <section class="admin-panel" aria-labelledby="pos-categories-heading">
               <h2 id="pos-categories-heading">Κατηγορίες</h2>
@@ -595,12 +614,12 @@
             </section>
           </div>
           {#if owner && $auth.session && $auth.session.user.role==='super_admin'}
-            <AdminPosLocationsPanel owner={owner as Organization}
+            <div id="pos-stock"><AdminPosLocationsPanel owner={owner as Organization}
               actorId={$auth.session.user.id}
               products={catalog.products}
               canWrite={!!canEdit&&['manager','super_admin'].includes($auth.session.user.role)}
               onExpired={()=>auth.invalidateSession()}
-              onRevoked={()=>void auth.bootstrap()}/>
+              onRevoked={()=>void auth.bootstrap()}/></div>
           {/if}
         {/if}
       </div>
@@ -614,7 +633,13 @@
 {/if}
 
 <style>
-  .admin-pos{max-width:1200px}
+  .admin-pos{width:100%;max-width:none;min-width:0}
+  .admin-pos-task-nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 20px}
+  .admin-pos-task-nav a{padding:10px 12px;border:1px solid var(--admin-line);border-radius:8px;color:inherit;text-decoration:none}
+  .admin-pos-task-nav a:is(:hover,:focus-visible){border-color:var(--admin-gold);color:var(--admin-gold)}
+  .admin-pos :is([id^="pos-"]){scroll-margin-top:100px}
+  .admin-pos-owner-actions{display:flex;flex-wrap:wrap;gap:8px;margin-block:12px}
+  .admin-pos-owner-actions button[aria-pressed=true]{border-color:var(--admin-gold);color:var(--admin-gold)}
   .admin-pos>h1{margin:0 0 10px}
   .admin-pos>.admin-muted{max-width:75ch;margin:0 0 20px}
   .admin-pos-owner{margin:0 0 15px}

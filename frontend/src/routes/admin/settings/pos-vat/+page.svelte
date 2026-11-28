@@ -425,7 +425,7 @@
   </AdminFrame>
 {/if}
 <style>
-.pos-vat-settings{display:grid;gap:16px;max-width:1100px;margin:auto}
+.pos-vat-settings{display:grid;gap:16px;width:100%;max-width:none;min-width:0;margin:auto}
 .pos-vat-settings h1{font-size:clamp(25px,3vw,36px);line-height:1.2}
 .pos-vat-settings .vat-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 .pos-vat-settings label{display:grid;gap:6px;font-size:13px}

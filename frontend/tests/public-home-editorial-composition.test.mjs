@@ -31,7 +31,7 @@ test('reference homepage preserves its working news CMS, filters, navigation and
 test('news composition matches one lead card and a three-card right rail at desktop widths',()=>{
   assert.match(css,/@media\(min-width:1024px\)/);
   assert.match(css,/grid-template-columns:minmax\(0,1\.12fr\) minmax\(0,1fr\)/);
-  assert.match(css,/grid-template-rows:repeat\(3,minmax\(160px,auto\)\)/);
+  assert.match(css,/grid-template-rows:repeat\(3,minmax\(116px,auto\)\)/);
   assert.match(css,/\.public-news-card:first-child\s*\{\s*grid-column:1;grid-row:1 \/ span 3/);
   assert.match(css,/\.public-news-card:not\(:first-child\)\s*\{\s*grid-column:2;grid-row:auto/);
   assert.match(css,/\.public-news-card:only-child\s*\{\s*grid-column:1 \/ -1/);

@@ -248,6 +248,7 @@ app.MapAdminAudiences();
 app.MapAdminGroupCreates();
 app.MapAdminProfiledGroupCreates();
 app.MapAdminAcademyGroupProfiles();
+app.MapAdminGroupRename();
 app.MapAdminFirstTeamProfiles();
 app.MapAdminRosterPlayers();
 app.MapAdminPlayerBirthdayPreferences();

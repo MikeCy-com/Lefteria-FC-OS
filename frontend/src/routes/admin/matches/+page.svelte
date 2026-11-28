@@ -248,7 +248,7 @@
 {/if}
 
 <style>
-  .admin-matches{max-width:1320px;margin:0 auto;padding:0 0 60px;color:#fff}
+  .admin-matches{width:100%;max-width:none;min-width:0;margin:0 auto;padding:0 0 60px;color:#fff}
   .admin-matches-heading{padding:28px 0 24px;border-bottom:1px solid #3b3d3f}
   .admin-matches-heading h1{font:italic 900 clamp(37px,4.4vw,67px)/1 'Fira Sans Extra Condensed',sans-serif;letter-spacing:.01em;margin:6px 0 12px}
   .admin-matches-heading h1 span{color:#f6bb38}

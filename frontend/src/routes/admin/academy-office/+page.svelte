@@ -6,6 +6,7 @@
   import {filterRegistrations,registrationNextStep,registrationPageSummary,
     type RegistrationQueue} from '../../../lib/admin/academy-registration-triage.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminCrmWorkspaceNav from '../../../lib/admin/AdminCrmWorkspaceNav.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AcademyGuardianProofReview from '../../../lib/admin/AcademyGuardianProofReview.svelte';
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
@@ -37,6 +38,7 @@
   let territoryError = $state('');
   let territoryLoading = $state(false);
   let enrollingId = $state('');
+  let openedRegistration=$state<string|null>(null);
   let cityId = $state('');
   let locationId = $state('');
   let groupId = $state('');
@@ -44,6 +46,7 @@
   let shirtNumber = $state(0);
   let enrollmentRequestId = $state('');
   let guardianReviewId = $state('');
+  let justEnrolled=$state<string|null>(null);
   const permittedCities = $derived(
     territory?.cities.filter(city => city.is_active &&
       territory?.locations.some(loc => loc.city_id === city.id && loc.can_manage && loc.is_active)) ?? []);
@@ -96,9 +99,9 @@
     search = '';
     lookedUp = false;
     requestId = null;
-    enrollingId = ''; cityId = ''; locationId = ''; groupId = '';
+    enrollingId = ''; cityId = ''; locationId = ''; groupId = '';openedRegistration=null;
     position = ''; shirtNumber = 0; enrollmentRequestId = '';
-    guardianReviewId = '';
+    guardianReviewId = '';justEnrolled=null;
     message = '';
     error = '';
   });
@@ -160,11 +163,24 @@
     return () => controller.abort();
   });
 
+  function chooseCity(next:string){
+    cityId=next;locationId='';groupId='';enrollmentRequestId='';
+    const choices=territory?.locations.filter(loc=>loc.city_id===next&&loc.can_manage&&loc.is_active)??[];
+    if(choices.length===1)chooseLocation(choices[0].id);
+  }
+  function chooseLocation(next:string){
+    locationId=next;groupId='';enrollmentRequestId='';
+    const choices=territory?.groups.filter(g=>g.city_id===cityId&&g.location_id===next)??[];
+    if(choices.length===1)groupId=choices[0].id;
+  }
   function selectForEnrollment(id: string) {
     if (!canEnroll || !territory) return;
     enrollingId = enrollingId === id ? '' : id;
     cityId = ''; locationId = ''; groupId = ''; position = '';
     shirtNumber = 0; enrollmentRequestId = '';
+    // A single authorized choice can be selected automatically. Never
+    // infer a child's position, shirt number or a choice among several sites.
+    if(enrollingId&&permittedCities.length===1)chooseCity(permittedCities[0].id);
   }
 
   async function enroll(event: SubmitEvent, row: Entry) {
@@ -183,7 +199,7 @@
     enrollmentRequestId ||= crypto.randomUUID();
     const requestId = enrollmentRequestId;
     busy = true;
-    error = ''; message = '';
+    error = ''; message = '';justEnrolled=null;
     try {
       const response = await fetch(api + 'registrations/enroll', {
         method:'POST', credentials:'same-origin', cache:'no-store',
@@ -211,7 +227,7 @@
           result.city_id !== selectedCity || result.location_id !== selectedLocation ||
           result.status !== 'approved' || typeof result.player_id !== 'string')
         throw new Error('Δεν επαληθεύτηκε η αποθήκευση. Ελέγξτε τη λίστα.');
-      enrollingId = ''; enrollmentRequestId = '';
+      enrollingId = ''; enrollmentRequestId = '';justEnrolled=result.player_id;
       message = 'Η έγκριση και η προσθήκη στο ρόστερ ολοκληρώθηκαν.';
       revision++;
     } catch (cause) {
@@ -240,7 +256,7 @@
   }
 
   async function save(path: string, body: object) {
-    if (busy || !access) return false;
+    if (busy || !access || !canEnroll) return false;
     const actor = $auth.session?.user.id;
     busy = true;
     error = '';
@@ -290,8 +306,9 @@
 {#if $auth.status === 'authenticated' && $auth.session}
   <AdminFrame user={$auth.session.user} active="academy-office" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if access}
-      <h1>Εγγραφές Ακαδημίας</h1>
-      <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Δεν δημιουργείται παίκτης, λογαριασμός γονέα ή χρέωση μόνο από την υποβολή ή την έγκριση.</p>
+      <h1>CRM · Εγγραφές Ακαδημίας</h1>
+      <AdminCrmWorkspaceNav user={$auth.session.user} active="registrations"/>
+      <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Η έγκριση & ένταξη ηλεκτρονικής αίτησης δημιουργεί τον αθλητή στο επιλεγμένο τμήμα. Ο λογαριασμός γονέα και η ενεργοποίηση χρεώσεων απαιτούν ξεχωριστή επαλήθευση.</p>
       {#if $auth.session.user.role !== 'super_admin'}
         <p class="admin-muted">Οι διαχειριστές βλέπουν μόνο τις αιτήσεις που καταχώρισαν οι ίδιοι. Οι νέες δημόσιες αιτήσεις διατίθενται μόνο στον Super Admin μέχρι να ενεργοποιηθεί η ασφαλής ανάθεση ανά πόλη και τοποθεσία.</p>
       {/if}
@@ -303,9 +320,10 @@
       </nav>
       {#if error}<p role="alert" class="admin-error">{error}</p>{/if}
       {#if message}<p role="status">{message}</p>{/if}
+      {#if justEnrolled && canEnroll}<a class="admin-primary" data-testid="newly-enrolled-player-360" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:justEnrolled}).toString()}>Άνοιγμα νέου Player 360 ›</a>{/if}
       {#key $auth.session.user.id}
         {#if tab === 'registrations'}
-          <details class="admin-panel manual-registration">
+          {#if canEnroll}<details class="admin-panel manual-registration">
             <summary>Χειροκίνητη καταχώριση αίτησης</summary>
             <p class="admin-muted">Για αιτήσεις που παραλήφθηκαν εκτός της δημόσιας φόρμας. Δεν προστίθεται παίκτης στο ρόστερ.</p>
             <form onsubmit={create}>
@@ -321,7 +339,7 @@
               </fieldset>
               <button class="admin-primary" disabled={busy}>Καταχώριση αίτησης</button>
             </form>
-          </details>
+          </details>{/if}
           <div class="academy-registration-inbox-head">
             <div>
               <p class="admin-eyebrow">ΑΙΤΗΣΕΙΣ · ΕΛΕΓΧΟΣ · ΕΝΤΑΞΗ</p>
@@ -379,13 +397,17 @@
               <div class="academy-registration-card-heading">
                 <div>
                   <p class="admin-eyebrow">{row.submission_source==='website'?'ONLINE ΑΙΤΗΣΗ':'ΕΓΓΡΑΦΗ ΑΚΑΔΗΜΙΑΣ'}</p>
-                  <h3>{row.applicant_first_name} {row.applicant_last_name}</h3>
+                  <h3><button type="button" class="registration-name-link" disabled={busy}
+                    aria-expanded={openedRegistration===row.id} onclick={()=>{openedRegistration=openedRegistration===row.id?null:row.id;enrollingId='';guardianReviewId='';}}>{row.applicant_first_name} {row.applicant_last_name}</button></h3>
                   <small class="registration-source">Αριθμός αίτησης: {row.id}</small>
                 </div>
                 <strong class="academy-registration-status" data-status={row.status}>
                   {labels[row.status] ?? row.status}
                 </strong>
               </div>
+              <button type="button" class="admin-secondary registration-open" disabled={busy} aria-expanded={openedRegistration===row.id}
+                onclick={()=>{openedRegistration=openedRegistration===row.id?null:row.id;enrollingId='';guardianReviewId='';}}>{openedRegistration===row.id?'Κλείσιμο αίτησης':'Άνοιγμα αίτησης ›'}</button>
+              {#if openedRegistration===row.id}
               <div class="academy-registration-card-details">
                 <div><span>Ημερομηνία γέννησης</span><strong>{row.applicant_birth_date}</strong></div>
                 <div><span>Κηδεμόνας · {row.guardian_relationship}</span><strong>{row.guardian_name}</strong></div>
@@ -398,9 +420,15 @@
               {#if row.status === 'approved'}
                 <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
                 {#if row.onboarded_player_id && canEnroll}
+                  <a class="admin-primary" data-testid="approved-player-360" data-sveltekit-reload
+                    href={'/admin/groups?'+new URLSearchParams({
+                      organization_id:'lefteria_fc_academy',view:'players',player_id:row.onboarded_player_id
+                    }).toString()}>
+                    Άνοιγμα Player 360 · {row.applicant_first_name} ›
+                  </a>
                   <a class="admin-secondary" data-testid="approved-player-documents"
-                    href={'/admin/documents?'+new URLSearchParams({
-                      organization_id:'lefteria_fc_academy',
+                    data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({
+                      organization_id:'lefteria_fc_academy',view:'players',section:'documents',
                       player_id:row.onboarded_player_id
                     }).toString()}>
                     <span aria-hidden="true">▣</span> Προστατευμένα έγγραφα {row.applicant_first_name}
@@ -415,7 +443,7 @@
                   </button>
                   {#if guardianReviewId === row.id}
                     <AcademyGuardianProofReview registrationId={row.id}
-                      guardianPhone={row.guardian_phone} />
+                      guardianPhone={row.guardian_phone} expectedPlayerId={row.onboarded_player_id} />
                   {/if}
                 {/if}
               {/if}
@@ -432,7 +460,7 @@
                       <p class="admin-muted">Για ασφάλεια, η τελική ένταξη επιτρέπεται μόνο μετά την επαλήθευση της ηλεκτρονικής αίτησης και των συγκαταθέσεων. Η ενέργεια είναι ατομική.</p>
                       <label>Πόλη
                         <select required bind:value={cityId}
-                          onchange={() => { locationId=''; groupId=''; enrollmentRequestId=''; }}>
+                          onchange={event=>chooseCity(event.currentTarget.value)}>
                           <option value="">Επιλέξτε πόλη</option>
                           {#each permittedCities as city (city.id)}
                             <option value={city.id}>{city.name}</option>
@@ -441,7 +469,7 @@
                       </label>
                       <label>Τοποθεσία
                         <select required bind:value={locationId}
-                          onchange={() => { groupId=''; enrollmentRequestId=''; }}>
+                          onchange={event=>chooseLocation(event.currentTarget.value)}>
                           <option value="">Επιλέξτε τοποθεσία</option>
                           {#each permittedLocations as loc (loc.id)}
                             <option value={loc.id}>{loc.name}</option>
@@ -479,14 +507,15 @@
               {:else if row.status === 'under_review' && row.submission_source === 'staff'}
                 <p class="admin-muted">Η χειροκίνητη αίτηση δεν περιέχει ακόμη επαληθευμένο αποδεικτικό συγκατάθεσης κηδεμόνα. Η έγκρισή της δεν δημιουργεί αθλητή.</p>
               {/if}
-              {#each transitions[row.status] ?? [] as status (status)}
+              {#each (canEnroll?transitions[row.status] ?? []:[]) as status (status)}
                 {#if status !== 'approved' || row.submission_source !== 'website'}
                   <button class="admin-secondary" disabled={busy}
                     onclick={() => void save('registrations/review', {id: row.id, status, version: row.status_version})}>
-                    {status === 'approved' ? 'Έγκριση αίτησης μόνο (χωρίς ένταξη)' : labels[status]}
+                    {status === 'approved' ? 'Έγκριση αίτησης μόνο (χωρίς ένταξη)' : status==='under_review'?'Έναρξη ελέγχου':labels[status]}
                   </button>
                 {/if}
               {/each}
+              {:else}<p class="admin-muted">{registrationNextStep(row)}</p>{/if}
             </article>
           {/each}
         {:else}
@@ -599,4 +628,7 @@
     .academy-registration-filters{display:grid;grid-template-columns:1fr}
     .academy-registration-card-details{grid-template-columns:1fr}}
 
+  .registration-name-link{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px}
+  .registration-name-link:hover,.registration-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
+  .registration-open{justify-self:start}
 </style>

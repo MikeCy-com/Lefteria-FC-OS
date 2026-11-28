@@ -6,8 +6,8 @@
   type Coach={id:string;name:string;job_role:string;group_ids:string[]};
   type Page={organization_id:Owner;ready:true;offset:number;limit:number;total:number;coaches:Coach[]};
 
-  let {owner,actorId,groups,revision=0,onExpired,onRevoked}: {
-    owner:Owner;actorId:string;groups:Group[];revision?:number;
+  let {owner,actorId,groups,focusGroupId=null,revision=0,onExpired,onRevoked}: {
+    owner:Owner;actorId:string;groups:Group[];focusGroupId?:string|null;revision?:number;
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -23,11 +23,15 @@
   let saving=$state(false);
   let saveError=$state<string|null>(null);
   let savedNotice=$state<string|null>(null);
+  let coachSearch=$state('');
+  let includeOtherCoaches=$state(false);
+  const focusedGroup=$derived(groups.find(group=>group.id===focusGroupId));
+  const visibleCoaches=$derived((page?.coaches??[]).filter(coach=>(!focusGroupId||includeOtherCoaches||coach.group_ids.includes(focusGroupId))&&(!coachSearch.trim()||coach.name.toLocaleLowerCase('el-CY').includes(coachSearch.trim().toLocaleLowerCase('el-CY')))));
 
   function editCoach(coach:Coach) {
-    if(saving || loading) return;
+    if(saving || loading || (focusGroupId&&!focusedGroup)) return;
     editing=coach.id;
-    selectedGroups=[...coach.group_ids];
+    selectedGroups=focusGroupId&&!coach.group_ids.includes(focusGroupId)?[...coach.group_ids,focusGroupId]:[...coach.group_ids];
     saveError=null;
     savedNotice=null;
   }
@@ -38,7 +42,7 @@
     saveError=null;
   }
   function toggleGroup(id:string,checked:boolean){
-    if(saving)return;
+    if(saving||(focusGroupId&&id!==focusGroupId))return;
     selectedGroups=checked?[...selectedGroups,id].sort():
       selectedGroups.filter(group=>group!==id);
   }
@@ -48,7 +52,8 @@
     const selectedActor=actorId;
     const previous=[...coach.group_ids];
     const desired=[...selectedGroups].sort();
-    if(desired.length>20 || desired.some(id=>!groups.some(g=>g.id===id))){
+    if(desired.length>20 || desired.some(id=>!groups.some(g=>g.id===id)) ||
+      (focusGroupId&&(!focusedGroup||previous.filter(id=>id!==focusGroupId).sort().join('|')!==desired.filter(id=>id!==focusGroupId).sort().join('|')))){
       saveError='Μη έγκυρη ανάθεση τμήματος.';
       return;
     }
@@ -149,7 +154,7 @@
   <div class="coach-heading">
     <div>
       <p class="admin-eyebrow">ΠΡΟΠΟΝΗΤΕΣ · ΕΠΑΛΗΘΕΥΜΕΝΕΣ ΑΝΑΘΕΣΕΙΣ</p>
-      <h2 id="admin-coaches-heading">Προπονητές & τμήματα</h2>
+      <h2 id="admin-coaches-heading">{focusedGroup?'Προπονητές · '+focusedGroup.name:'Προπονητές & τμήματα'}</h2>
       <p class="admin-muted">Εμφανίζονται μόνο οι προπονητές και οι αναθέσεις των ομάδων ή τοποθεσιών που επιτρέπεται να διαχειρίζεστε. Για προπονητή με επιπλέον αναθέσεις σε άλλη τοποθεσία, η συνολική αλλαγή γίνεται από εξουσιοδοτημένο Super Admin. Οι αλλαγές ελέγχονται και καταγράφονται.</p>
     </div>
     <button type="button" class="admin-secondary" disabled={loading}
@@ -165,12 +170,20 @@
   {:else}
     {#if saveError}<p role="alert" data-testid="admin-coach-assignment-error">{saveError}</p>{/if}
     {#if savedNotice}<p role="status" data-testid="admin-coach-assignment-success">{savedNotice}</p>{/if}
-    <p class="coach-count" role="status">{page.total} ενεργοί προπονητές</p>
-    {#if !page.coaches.length}
+    {#if focusedGroup}
+      <div class="coach-filter" role="group" aria-label="Επιλογή προπονητών">
+        <button type="button" class="admin-secondary" aria-pressed={!includeOtherCoaches} disabled={saving||editing!==null} onclick={()=>includeOtherCoaches=false}>Προπονητές τμήματος</button>
+        <button type="button" class="admin-secondary" aria-pressed={includeOtherCoaches} disabled={saving||editing!==null} onclick={()=>includeOtherCoaches=true}>Προσθήκη υπάρχοντος προπονητή</button>
+      </div>
+      <p class="admin-muted">Η αλλαγή αφορά μόνο το επιλεγμένο τμήμα. Οι υπόλοιπες αναθέσεις διατηρούνται.</p>
+    {/if}
+    <label class="coach-search">Αναζήτηση στην τρέχουσα σελίδα <input type="search" bind:value={coachSearch} disabled={saving||editing!==null} placeholder="Όνομα προπονητή"/></label>
+    <p class="coach-count" role="status">{visibleCoaches.length} εμφανίζονται · {page.total} εξουσιοδοτημένοι συνολικά</p>
+    {#if !visibleCoaches.length}
       <p class="admin-muted">Δεν βρέθηκαν προπονητές σε αυτή τη σελίδα.</p>
     {:else}
       <ul class="coach-list" data-testid="admin-coaches-list">
-        {#each page.coaches as coach (coach.id)}
+        {#each visibleCoaches as coach (coach.id)}
           <li>
             <div><strong>{coach.name}</strong><span>{coach.job_role}</span></div>
             <div class="coach-actions">
@@ -180,7 +193,7 @@
               {#if editing===coach.id}
                 <fieldset class="coach-editor" disabled={saving} data-testid="admin-coach-assignment-editor">
                   <legend>Τμήματα προπονητή (έως 20)</legend>
-                  {#each groups as group (group.id)}
+                  {#each (focusedGroup?[focusedGroup]:groups) as group (group.id)}
                     <label>
                       <input type="checkbox" checked={selectedGroups.includes(group.id)}
                         disabled={saving || (!selectedGroups.includes(group.id) && selectedGroups.length>=20)}
@@ -197,7 +210,7 @@
                 </fieldset>
               {:else}
                 <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
-                  onclick={()=>editCoach(coach)}>Αλλαγή ανάθεσης</button>
+                  onclick={()=>editCoach(coach)}>{focusGroupId?(coach.group_ids.includes(focusGroupId)?'Επεξεργασία ανάθεσης':'Προσθήκη στο τμήμα'):'Αλλαγή ανάθεσης'}</button>
               {/if}
             </div>
           </li>
@@ -233,4 +246,7 @@
   .coach-paging{display:flex;justify-content:flex-end;align-items:center;gap:9px;flex-wrap:wrap;padding-top:14px}
   .coach-paging span{margin-right:auto}
   @media(max-width:600px){.coach-list li{grid-template-columns:1fr}.coach-heading{display:grid}}
+.coach-filter{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.coach-filter [aria-pressed=true]{border-color:var(--admin-gold);color:var(--admin-gold)}
+.coach-search{display:grid;gap:6px;max-width:480px}
 </style>

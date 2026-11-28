@@ -57,7 +57,8 @@ test('the admin UI follows current allowed organizations rather than a hardcoded
   const group=read('frontend/src/lib/admin/AdminGroupWorkspace.svelte');
   const player=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
   assert.match(group,/AdminRosterPlayersPanel/);
-  assert.match(group,/hasAdminPermission\(user\.permissions,organization===/);
+  assert.match(group,/groupWorkspaceAccess\(user,organization,canCreate,canReadAttendance\)/);
+  assert.match(read('frontend/src/lib/admin/workspace-access.ts'),/has\(academy\?'academy:write':'teams:write'\)/);
   assert.match(player,/AdminPlayerPrivateRecordsPanel/);
   assert.match(player,/focusGroupId/);
 });

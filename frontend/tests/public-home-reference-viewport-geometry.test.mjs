@@ -31,14 +31,16 @@ test('desktop geometry restores source brand interval before news and mobile rem
   assert.match(base,/--public-rail:154px/);
   assert.match(base,/--public-header:64px/);
   assert.match(base,/\.public-rail nav :is\(a,button\)/);
-  assert.match(css,/height:clamp\(408px,24\.5vw,860px\)/);
+  assert.match(css,/min-height:var\(--lf-home-hero-min-height,560px\);height:auto/);
+  assert.match(css,/--lf-home-news-lead-height,380px/);
+  assert.match(home,/data-testid="home-matches-section"/);
   assert.match(css,/height:105px;aspect-ratio:auto/);
   assert.match(css,/min-height:clamp\(260px,21vw,370px\)/);
   assert.match(refresh,/min-height:var\(--ui-motto-height\)/);
   assert.match(css,/\.home-brand-interval/);
   assert.match(css,/\.home-brand-motto/);
   assert.match(css,/@media\(max-width:767px\)/);
-  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<400','news.y>900'])
+  for(const text of ['homeTiles:rect','homeFixture:rect','homeMotto:rect','homeNews:rect','hero.height<540','news.y>900'])
     assert.ok(audit.includes(text),'No browser measurement: '+text);
   assert.match(nav,/data-testid="public-sidebar"/);
   assert.match(nav,/data-testid="public-menu-drawer"/);

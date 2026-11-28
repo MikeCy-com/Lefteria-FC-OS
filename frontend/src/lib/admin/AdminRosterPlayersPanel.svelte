@@ -10,9 +10,9 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
-    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
-    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGoalManagement?:boolean;
+  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,requestedSection=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGuardianReview=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+    owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;requestedPlayerId?:string|null;requestedSection?:string|null;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGuardianReview?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
     allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
@@ -21,18 +21,30 @@
   const pageSize = 20;
   let offset = $state(0);
   let rosterMode=$state<'group'|'assign'>('group');
-  const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
+  const currentGroup=$derived(focusGroupId&&(rosterMode==='group'||!allowAssignments)?focusGroupId:null);
   let refresh = $state(0);
   let playerSearch=$state('');
   let playerGroupFilter=$state('');
+  let appliedSearch=$state(''),appliedGroupFilter=$state('');
+  const searchActive=$derived(!!appliedSearch||(!currentGroup&&!!appliedGroupFilter));
+  function applySearch(){
+    if(saving||editing!==null)return;
+    appliedSearch=playerSearch.trim().slice(0,100);
+    appliedGroupFilter=currentGroup?'':playerGroupFilter;
+    offset=0;
+  }
+  function clearSearch(){
+    if(saving||editing!==null)return;
+    playerSearch='';playerGroupFilter='';appliedSearch='';appliedGroupFilter='';offset=0;
+  }
+  function changeRosterMode(next:'group'|'assign'){
+    if(saving||editing!==null)return;
+    clearSearch();rosterMode=next;
+  }
   let page = $state<Page|null>(null);
-  const visiblePlayers=$derived((page?.players??[]).filter(player=>{
-    const term=playerSearch.trim().toLocaleLowerCase('el-GR');
-    const matchesGroup=!playerGroupFilter || currentGroups(player).includes(playerGroupFilter);
-    return matchesGroup && (!term || player.name.toLocaleLowerCase('el-GR').includes(term) ||
-      player.id.toLocaleLowerCase('el-GR').includes(term) ||
-      groupLabels(player).toLocaleLowerCase('el-GR').includes(term));
-  }));
+  // Server applies both filters before paging. Do not filter an authorized
+  // page a second time using browser locale rules.
+  const visiblePlayers=$derived((page?.players??[]));
 
   let loading = $state(false);
   let failed = $state(false);
@@ -41,6 +53,25 @@
   let inspectedPlayer = $state<string|null>(null);
   let inspectedGoals = $state<string|null>(null);
   let inspectedProfile = $state<string|null>(null);
+  let selectedPlayer360=$state<string|null>(null);
+  const focusedPlayer360=$derived(page?.players.find(player=>player.id===selectedPlayer360)??null);
+  type Player360Tab='overview'|'profile'|'documents'|'development'|'goals'|'attendance';
+  let player360Tab=$state<Player360Tab>('overview');
+  function closePlayer360(){
+    selectedPlayer360=null;player360Tab='overview';
+    inspectedProfile=null;inspectedPlayer=null;inspectedGoals=null;
+  }
+  function selectPlayer360Tab(player:Player,tab:Player360Tab){
+    if(selectedPlayer360!==player.id)return;
+    if(tab==='profile'&&!(allowPrivate&&owner==='lefteria_fc_academy'))return;
+    if((tab==='documents'||tab==='development')&&!(allowPrivate&&currentGroups(player).length>0))return;
+    if(tab==='goals'&&!(allowGoalRead&&currentGroup&&currentGroups(player).includes(currentGroup)))return;
+    if(tab==='attendance'&&!(allowPrivate&&currentGroup&&owner==='lefteria_fc_academy'&&canReadAttendance&&currentGroups(player).includes(currentGroup)))return;
+    player360Tab=tab;
+    inspectedProfile=tab==='profile'?player.id:null;
+    inspectedPlayer=tab==='documents'||tab==='development'?player.id:null;
+    inspectedGoals=tab==='goals'?player.id:null;
+  }
   let saving = $state(false);
   let saveError = $state<string|null>(null);
   let saveSuccess = $state<string|null>(null);
@@ -53,7 +84,8 @@
     // Exact-group rows redact all other group memberships. Editing from
     // that minimized view could silently remove a child's other groups.
     // Open explicit organization-wide assignment mode before any PUT.
-    if (saving || loading || !groups.length || currentGroup) return;
+    if (requestedPlayerId!==null || !allowAssignments || saving || loading || !groups.length || currentGroup) return;
+    closePlayer360();
     editing=player.id;
     selectedGroups=currentGroups(player);
     saveError=null;
@@ -72,7 +104,7 @@
       : selectedGroups.filter(group=>group!==id);
   }
   async function saveAssignment(player:Player) {
-    if (!browser || saving || loading || editing!==player.id || !page || currentGroup) return;
+    if (!browser || !allowAssignments || saving || loading || editing!==player.id || !page || currentGroup || requestedPlayerId!==null) return;
     const selectedOwner=owner;
     const selectedActor=actorId;
     const previous=currentGroups(player);
@@ -168,24 +200,53 @@
     const actor=actorId;
     const currentOffset=offset;
     const group=currentGroup;
-    const generation=refresh;
+    const generation=refresh,requested=requestedPlayerId,section=requestedSection;
+    const search=appliedSearch,filterGroup=group?null:appliedGroupFilter||null;
     void actor;void generation;
 
-    page=null;loading=false;failed=false;editing=null;inspectedPlayer=null;inspectedGoals=null;
+    page=null;loading=false;failed=false;editing=null;closePlayer360();
     selectedGroups=[];saveError=null;
     if(!browser)return;
     const controller=new AbortController();
     loading=true;
     void (async()=>{
       try{
+        if(requested!==null){
+          if(currentOwner!=='lefteria_fc_academy'||!allowPrivate||requested.length<1||requested.length>128||/[\x00-\x1f\x7f]/.test(requested))throw Error('Invalid player reference');
+          const response=await fetch('/api/admin/football/players/'+encodeURIComponent(requested)+'/private-profile?organization_id=lefteria_fc_academy',{credentials:'same-origin',cache:'no-store',signal:controller.signal});
+          if(controller.signal.aborted)return;
+          if(response.status===401){onExpired();return;}
+          if(response.status===403){onRevoked();return;}
+          if(!response.ok)throw Error('Player profile unavailable');
+          const raw:unknown=await response.json();
+          if(!raw||typeof raw!=='object'||Array.isArray(raw))throw Error('Invalid player response');
+          const record=raw as Record<string,unknown>;
+          if(record.organization_id!==currentOwner||record.player_id!==requested||!Array.isArray(record.academy_group_ids))throw Error('Unverified player identity');
+          const single={organization_id:currentOwner,ready:true,offset:0,limit:pageSize,total:1,players:[{id:requested,name:record.official_name,team_id:null,academy_group_ids:record.academy_group_ids}]};
+          if(!verified(single,currentOwner,0,null))throw Error('Invalid player roster response');
+          if(!controller.signal.aborted&&owner===currentOwner&&actorId===actor&&requestedPlayerId===requested){
+            page=single;selectedPlayer360=requested;
+            const player=single.players[0] as Player;
+            selectPlayer360Tab(player,'profile');
+            if(section==='documents'||section==='development'||section==='overview')selectPlayer360Tab(player,section);
+          }
+          return;
+        }
         const params=new URLSearchParams({
           organization_id:currentOwner,offset:String(currentOffset),limit:String(pageSize)
         });
         if(group)params.set('group_id',group);
         const source=group?'/api/admin/football/group-players?':'/api/admin/football/players?';
-        const response=await fetch(source+params.toString(),{
-          method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
-        });
+        const response=search||filterGroup
+          ?await fetch('/api/admin/football/players/search',{
+              method:'POST',credentials:'same-origin',cache:'no-store',signal:controller.signal,
+              headers:{'Content-Type':'application/json','X-Lefteria-Admin':'1'},
+              body:JSON.stringify({organizationId:currentOwner,offset:currentOffset,limit:pageSize,
+                search,exactGroupId:group,filterGroupId:filterGroup})
+            })
+          :await fetch(source+params.toString(),{
+              method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal
+            });
         if(controller.signal.aborted)return;
         if(response.status===401){onExpired();return;}
         if(response.status===403){onRevoked();return;}
@@ -203,6 +264,7 @@
 
 <section class="admin-panel admin-player-directory" data-testid="admin-private-player-directory"
   aria-labelledby="admin-private-player-heading">
+  {#if !focusedPlayer360 && requestedPlayerId===null}
   <div class="admin-player-heading">
     <div>
       <p class="admin-eyebrow">ΕΞΟΥΣΙΟΔΟΤΗΜΕΝΟ ΡΟΣΤΕΡ · ΜΟΝΟ ΔΙΑΧΕΙΡΙΣΤΕΣ</p>
@@ -213,13 +275,13 @@
       Ανανέωση παικτών
     </button>
   </div>
-  {#if focusGroupId}
+  {#if focusGroupId && allowAssignments}
     <div class="admin-player-group-scope" role="group" aria-label="Επιλογή ρόστερ" data-testid="group-player-scope">
       <button type="button" aria-pressed={rosterMode==='group'} disabled={saving}
-        onclick={()=>{rosterMode='group';offset=0;}} data-testid="group-current-player-filter">
+        onclick={()=>changeRosterMode('group')} data-testid="group-current-player-filter">
         Αθλητές τμήματος</button>
       <button type="button" aria-pressed={rosterMode==='assign'} disabled={saving}
-        onclick={()=>{rosterMode='assign';offset=0;}} data-testid="group-assign-player-filter">
+        onclick={()=>changeRosterMode('assign')} data-testid="group-assign-player-filter">
         Εύρεση αθλητή για ανάθεση</button>
     </div>
     {#if rosterMode==='assign'}
@@ -227,15 +289,15 @@
         για να προσθέσετε αθλητή στο τμήμα. Η ανάθεση ελέγχεται από το API.</p>
     {/if}
   {/if}
-  <div class="admin-player-filters" role="search" aria-label="Αναζήτηση αθλητών">
-    <label for="admin-player-search">Αναζήτηση στην τρέχουσα σελίδα
+  <form class="admin-player-filters" role="search" aria-label="Αναζήτηση αθλητών" onsubmit={event=>{event.preventDefault();applySearch();}}>
+    <label for="admin-player-search">Αναζήτηση σε όλο το εξουσιοδοτημένο ρόστερ
       <input id="admin-player-search" type="search" bind:value={playerSearch}
-        data-testid="admin-player-search" placeholder="Όνομα, αναγνωριστικό ή τμήμα…" autocomplete="off"/>
+        data-testid="admin-player-search" placeholder="Όνομα ή αναγνωριστικό…" maxlength="100" disabled={saving||editing!==null} autocomplete="off"/>
     </label>
     {#if !currentGroup}
       <label for="admin-player-group-filter">Ομάδα / τμήμα
         <select id="admin-player-group-filter" bind:value={playerGroupFilter}
-          data-testid="admin-player-group-filter">
+          data-testid="admin-player-group-filter" disabled={saving||editing!==null}>
           <option value="">Όλα τα εξουσιοδοτημένα τμήματα</option>
           {#each groups as group (group.id)}
             <option value={group.id}>{group.name}</option>
@@ -243,66 +305,52 @@
         </select>
       </label>
     {/if}
-    <p class="admin-muted">Η αναζήτηση αφορά μόνο τις εγγραφές της τρέχουσας σελίδας.
-      Για πλήρη έλεγχο του ρόστερ χρησιμοποιήστε την πλοήγηση σελίδων.</p>
-  </div>
+    <div class="roster-search-actions">
+      <button type="submit" class="admin-primary" disabled={saving||editing!==null}>Αναζήτηση</button>
+      {#if searchActive}<button type="button" class="admin-secondary" disabled={saving||editing!==null} onclick={clearSearch}>Καθαρισμός</button>{/if}
+    </div>
+    <p class="admin-muted">Η αναζήτηση και το φίλτρο εφαρμόζονται σε όλες τις εξουσιοδοτημένες εγγραφές πριν από τη σελιδοποίηση.</p>
+  </form>
+  {/if}
   {#if loading}
     <p role="status" data-testid="admin-players-loading">Ανάκτηση επαληθευμένου ρόστερ…</p>
   {:else if failed || !page}
     <div role="alert" data-testid="admin-players-error">
       <p>Τα στοιχεία του ρόστερ δεν είναι διαθέσιμα.</p>
       <button type="button" class="admin-secondary" onclick={()=>refresh++}>Επανάληψη</button>
+      {#if requestedPlayerId}<a data-sveltekit-reload href="/admin/groups?organization_id=lefteria_fc_academy&view=players">Επιστροφή στον κατάλογο</a>{/if}
     </div>
   {:else}
-    <div class="admin-player-total" role="status">
-      <strong>{page.total}</strong><span>{currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
+    {#if !focusedPlayer360}<div class="admin-player-total" role="status">
+      <strong>{page.total}</strong><span>{searchActive?'αποτελέσματα αναζήτησης':currentGroup?'ενεργοί αθλητές στο επιλεγμένο τμήμα':'ενεργοί παίκτες στον επιλεγμένο οργανισμό'}</span>
       <span class="admin-player-filter-count">Εμφανίζονται {visiblePlayers.length} / {page.players.length} στη σελίδα</span>
-    </div>
+    </div>{/if}
     {#if saveError}<p role="alert" class="admin-player-error" data-testid="admin-assignment-error">{saveError}</p>{/if}
     {#if saveSuccess}<p role="status" data-testid="admin-assignment-success">{saveSuccess}</p>{/if}
     {#if page.players.length===0}
-      <p class="admin-muted" data-testid="admin-players-empty">{currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
+      <p class="admin-muted" data-testid="admin-players-empty">{searchActive?'Δεν βρέθηκαν αθλητές για τα επιλεγμένα φίλτρα.':currentGroup?'Δεν υπάρχουν ακόμη αθλητές σε αυτό το τμήμα. Επιλέξτε «Εύρεση αθλητή για ανάθεση».':'Δεν υπάρχουν παίκτες σε αυτή τη σελίδα.'}</p>
     {:else}
-      <div class="admin-player-columns" aria-hidden="true">
+      {#if !focusedPlayer360}<div class="admin-player-columns" aria-hidden="true">
         <span>ΠΑΙΚΤΗΣ</span><span>ΟΜΑΔΑ / ΤΜΗΜΑ · ΕΝΕΡΓΕΙΕΣ</span>
-      </div>
+      </div>{/if}
       <ul class="admin-player-list" data-testid="admin-players-list">
-        {#each visiblePlayers as player (player.id)}
-          <li>
-            <div class="admin-player-identity">
+        {#each (focusedPlayer360?[focusedPlayer360]:visiblePlayers) as player (player.id)}
+          <li class:admin-player-focused={focusedPlayer360!==null}>
+            {#if !focusedPlayer360}<div class="admin-player-identity">
               <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
-              <div><strong>{player.name}</strong><small>{player.id}</small></div>
+              <div>{#if allowPrivate || allowGoalRead || allowFinance || !allowAssignments}
+                <button type="button" class="admin-player-name-link" disabled={saving||loading||editing!==null}
+                  onclick={()=>{closePlayer360();selectedPlayer360=player.id;}}>{player.name}</button>
+              {:else}<strong>{player.name}</strong>{/if}</div>
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
-              {#if allowFinance && owner === 'lefteria_fc_academy'}
-                <a class="admin-player-finance-link"
-                  href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
-                  data-testid="admin-player-billing-link">Χρεώσεις & παραστατικά ›</a>
-              {/if}
-              {#if allowPrivate && owner==='lefteria_fc_academy'}
-                <button type="button" class="admin-secondary" disabled={saving||loading}
-                  data-testid="admin-open-player-private-profile"
-                  aria-expanded={inspectedProfile===player.id}
-                  onclick={()=>inspectedProfile=inspectedProfile===player.id?null:player.id}>
-                  {inspectedProfile===player.id?'Κλείσιμο προφίλ':'Προφίλ · βιογραφικό & φωτογραφία'}
-                </button>
-              {/if}
-              {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
-                <button type="button" class="admin-secondary"
-                  data-testid="admin-manager-goal-reader-toggle"
-                  aria-expanded={inspectedGoals===player.id}
-                  disabled={saving||loading}
-                  onclick={()=>inspectedGoals=inspectedGoals===player.id?null:player.id}>
-                  {inspectedGoals===player.id?'Κλείσιμο στόχων':'Ατομικοί στόχοι · Προβολή'}
-                </button>
-              {/if}
-              {#if allowPrivate && currentGroups(player).length>0}
-                <button type="button" class="admin-secondary"
-                  aria-expanded={inspectedPlayer===player.id}
-                  disabled={saving||loading}
-                  onclick={()=>inspectedPlayer=inspectedPlayer===player.id?null:player.id}>
-                  {inspectedPlayer===player.id?'Κλείσιμο φακέλου':'Αξιολογήσεις & έγγραφα'}
+              {#if allowPrivate || allowGoalRead || allowFinance || !allowAssignments}
+                <button type="button" class="admin-primary admin-player360-open" disabled={saving||loading||editing!==null}
+                  data-testid="admin-open-player-360"
+                  aria-expanded={selectedPlayer360===player.id}
+                  onclick={()=>{if(selectedPlayer360===player.id)closePlayer360();else{closePlayer360();selectedPlayer360=player.id;}}}>
+                  {selectedPlayer360===player.id?'Κλείσιμο φακέλου':'Player 360 · Προφίλ'} <span aria-hidden="true">›</span>
                 </button>
               {/if}
               {#if editing===player.id}
@@ -335,58 +383,107 @@
                     <button type="button" class="admin-secondary" disabled={saving} onclick={cancelEditing}>Ακύρωση</button>
                   </div>
                 </div>
-              {:else if !currentGroup}
+              {:else if !currentGroup && allowAssignments}
                 <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
                   onclick={()=>startEditing(player)}>Αλλαγή ανάθεσης</button>
-              {:else}
+              {:else if allowAssignments}
                 <span class="admin-group-minimal-roster-note">Οι αναθέσεις σε περισσότερα τμήματα
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
-            {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
-              <div class="admin-player-individual-workspace" data-testid="admin-player-private-profile-workspace">
-                {#key actorId+':'+player.id}
-                  <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
-                    {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
-                {/key}
-              </div>
             {/if}
-            {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
-              currentGroups(player).includes(currentGroup)}
-              <div class="admin-player-individual-workspace"
-                data-testid="admin-manager-player-goals-workspace">
-                <AdminPlayerDevelopmentGoals {owner} playerId={player.id}
-                  playerName={player.name} {actorId} readOnly {onExpired} {onRevoked}/>
-              </div>
-            {/if}
-            {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
-              <div class="admin-player-individual-workspace" data-testid="admin-player-individual-workspace">
-                <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
-                  playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
-                {#if currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
-                  <details class="admin-player-attendance-details" data-testid="admin-player-attendance-history">
-                    <summary>Ατομικές παρουσίες προπονήσεων · {player.name}</summary>
+            {#if selectedPlayer360===player.id && (allowPrivate||allowGoalRead||allowFinance||!allowAssignments)}
+              {#key owner+':'+actorId+':'+player.id}
+              <section class="admin-player360 admin-player-individual-workspace" aria-label={'Player 360 · '+player.name}
+                data-testid="admin-player-360-workspace">
+                <header class="admin-player360-head">
+                  <div class="admin-player360-identity">
+                    <span class="admin-player-avatar" aria-hidden="true">{player.name.slice(0,1).toLocaleUpperCase('el-GR')}</span>
+                    <div><p class="admin-eyebrow">PLAYER 360 · {owner==='lefteria_fc_academy'?'ΑΚΑΔΗΜΙΑ':'ΠΡΩΤΗ ΟΜΑΔΑ'}</p>
+                      <h3>{player.name}</h3><p class="admin-muted">{groupLabels(player)}</p></div>
+                  </div>
+                  {#if requestedPlayerId}<a class="admin-secondary" data-sveltekit-reload href="/admin/groups?organization_id=lefteria_fc_academy&view=players">Πίσω στους παίκτες</a>{:else}<button type="button" class="admin-secondary" onclick={closePlayer360}>Πίσω στους παίκτες</button>{/if}
+                </header>
+                <div class="admin-player360-tabs" role="group" aria-label="Ενότητες αθλητή">
+                  <button type="button" aria-pressed={player360Tab==='overview'} onclick={()=>selectPlayer360Tab(player,'overview')}>Επισκόπηση</button>
+                  {#if allowPrivate && owner==='lefteria_fc_academy'}
+                    <button type="button" data-testid="admin-open-player-private-profile" aria-pressed={player360Tab==='profile'} onclick={()=>selectPlayer360Tab(player,'profile')}>Στοιχεία & φωτογραφία</button>
+                  {/if}
+                  {#if allowPrivate && currentGroups(player).length>0}
+                    <button type="button" aria-pressed={player360Tab==='documents'} onclick={()=>selectPlayer360Tab(player,'documents')}>Έγγραφα</button>
+                    <button type="button" aria-pressed={player360Tab==='development'} onclick={()=>selectPlayer360Tab(player,'development')}>Ανάπτυξη & αξιολογήσεις</button>
+                  {/if}
+                  {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
+                    <button type="button" data-testid="admin-manager-goal-reader-toggle" aria-pressed={player360Tab==='goals'} onclick={()=>selectPlayer360Tab(player,'goals')}>Ατομικοί στόχοι</button>
+                  {/if}
+                  {#if allowPrivate && currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
+                    <button type="button" aria-pressed={player360Tab==='attendance'} onclick={()=>selectPlayer360Tab(player,'attendance')}>Παρουσίες</button>
+                  {/if}
+                  {#if allowFinance && owner === 'lefteria_fc_academy'}
+                    <a href={`/admin/finance?organization_id=lefteria_fc_academy&player_id=${encodeURIComponent(player.id)}`}
+                      class="admin-player-finance-link" data-testid="admin-player-billing-link">Οικονομικά ›</a>
+                  {/if}
+                </div>
+                {#if player360Tab==='overview'}
+                  <div class="admin-player360-summary" data-testid="admin-player-360-overview">
+                    <div><span>Οργανισμός</span><strong>{owner==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</strong></div>
+                    <div><span>Ομάδα / τμήμα</span><strong>{groupLabels(player)}</strong>
+                      {#each groups.filter(group=>currentGroups(player).includes(group.id)) as membership (membership.id)}
+                        <a data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:owner,group_id:membership.id}).toString()}>{membership.name} ›</a>
+                      {/each}
+                    </div>
+                    <div><span>Εγγραφή ρόστερ</span><strong>Ενεργός παίκτης</strong></div>
+                  </div>
+                  <details><summary>Κωδικός αναφοράς αθλητή</summary><small>{player.id}</small></details>
+                  <p class="admin-muted">Επιλέξτε ενότητα για να δείτε τα πραγματικά στοιχεία του αθλητή. Εμφανίζονται μόνο οι ενότητες για τις οποίες έχετε δικαίωμα πρόσβασης.</p>
+                {:else}
+                  <p class="admin-muted admin-player360-save-note">Αποθηκεύστε τις αλλαγές πριν μεταβείτε σε άλλη ενότητα.</p>
+                {/if}
+                {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
+                  <div data-testid="admin-player-private-profile-workspace">
+                    <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
+                      {actorId} allowWrite={allowEvaluationWrite} {allowGuardianReview}
+                      onNameChanged={name=>{if(page&&selectedPlayer360===player.id)page={...page,players:page.players.map(p=>p.id===player.id?{...p,name}:p)};}}
+                      {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
+                  currentGroups(player).includes(currentGroup)}
+                  <div data-testid="admin-manager-player-goals-workspace">
+                    <AdminPlayerDevelopmentGoals {owner} playerId={player.id}
+                      playerName={player.name} {actorId} readOnly {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
+                  <div data-testid="admin-player-individual-workspace">
+                    <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
+                      playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} section={player360Tab==='documents'?'documents':'development'} {onExpired} {onRevoked}/>
+                  </div>
+                {/if}
+                {#if player360Tab==='attendance' && allowPrivate && currentGroup && owner==='lefteria_fc_academy' && canReadAttendance && currentGroups(player).includes(currentGroup)}
+                  <div class="admin-player-attendance-details" data-testid="admin-player-attendance-history">
                     <AdminGroupAttendancePanel groupId={currentGroup} {actorId}
                       canRead={canReadAttendance} canWrite={canWriteAttendance}
                       playerId={player.id} playerName={player.name}/>
-                  </details>
+                  </div>
                 {/if}
-              </div>
+              </section>
+              {/key}
             {/if}
           </li>
         {/each}
       </ul>
-      {#if visiblePlayers.length===0}
+      {#if !focusedPlayer360 && visiblePlayers.length===0}
         <p class="admin-muted" role="status" data-testid="admin-player-search-empty">Δεν υπάρχουν αποτελέσματα σε αυτή τη σελίδα.</p>
       {/if}
     {/if}
-    <nav class="admin-player-paging" aria-label="Σελίδες ρόστερ">
+    {#if !focusedPlayer360}<nav class="admin-player-paging" aria-label="Σελίδες ρόστερ">
       <span>{page.total===0 ? 0 : offset+1}–{Math.min(offset+pageSize,page.total)} / {page.total}</span>
       <button type="button" class="admin-secondary" disabled={offset===0 || loading}
         onclick={()=>offset=Math.max(0,offset-pageSize)}>Προηγούμενη</button>
       <button type="button" class="admin-secondary" disabled={loading || offset+pageSize>=page.total}
         onclick={()=>offset+=pageSize}>Επόμενη</button>
-    </nav>
+    </nav>{/if}
   {/if}
 </section>
 
@@ -411,6 +508,22 @@
   .admin-player-team-label{color:#b3d3df!important}
 
   .admin-player-individual-workspace{grid-column:1/-1;min-width:0;display:grid;gap:12px}
+  .admin-player360{padding:clamp(12px,2vw,24px);border:1px solid var(--admin-line);border-radius:12px;background:var(--admin-surface,#141617)}
+  .admin-player360-head,.admin-player360-identity{display:flex;align-items:center;gap:14px;min-width:0;flex-wrap:wrap}
+  .admin-player360-head{justify-content:space-between}
+  .admin-player360-head h3,.admin-player360-head p{margin:0;overflow-wrap:anywhere}
+  .admin-player360-tabs{display:flex;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--admin-line);padding-block:8px}
+  .admin-player360-tabs :is(button,a){font:inherit;color:inherit;background:transparent;border:1px solid var(--admin-line);border-radius:6px;min-height:44px;padding:8px 12px;text-decoration:none;display:inline-flex;align-items:center;cursor:pointer}
+  .admin-player360-tabs [aria-pressed=true]{color:var(--admin-gold);border-color:var(--admin-gold)}
+  .admin-player360-tabs :is(button,a):focus-visible{outline:2px solid var(--admin-gold);outline-offset:2px}
+  .admin-player360-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+  .admin-player360-summary>div{display:grid;gap:6px;padding:12px;border:1px solid var(--admin-line);border-radius:8px;min-width:0;overflow-wrap:anywhere}
+  .admin-player360-summary span,.admin-player360-save-note{font-size:12px}
+  .admin-player360-open{min-height:44px}
+  .admin-player-name-link{background:none;border:0;padding:4px 0;color:inherit;text-align:left;font:inherit;font-weight:700;cursor:pointer;overflow-wrap:anywhere;min-height:44px}
+  .admin-player-name-link:hover,.admin-player-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
+  .admin-player-list>li.admin-player-focused{display:block;padding:0;border:0;background:transparent}
+  .admin-player-focused>.admin-player360{width:100%;box-sizing:border-box}
   .admin-player-attendance-details{padding:13px;border:1px solid #98712b;background:#111414}
   .admin-player-attendance-details>summary{cursor:pointer;font-weight:800;color:#f8c95d;min-height:44px;display:flex;align-items:center}
   .admin-player-attendance-details>summary:focus-visible{outline:3px solid #f8c95d;outline-offset:3px}
@@ -449,4 +562,5 @@
   .admin-player-group-scope button:focus-visible{outline:3px solid #ffd164;outline-offset:2px}
   .admin-player-group-scope button:disabled{opacity:.6;cursor:not-allowed}
   .admin-group-minimal-roster-note{font-size:11px;color:#bfb5a0;line-height:1.4;max-width:30ch}
+  .roster-search-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
 </style>

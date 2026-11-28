@@ -6,6 +6,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminCrmWorkspaceNav from '../../../lib/admin/AdminCrmWorkspaceNav.svelte';
   import { scopedAdminOrganization } from '../../../lib/admin/admin-organization.ts';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
   import AdminGroupWorkspace from '../../../lib/admin/AdminGroupWorkspace.svelte';
@@ -21,7 +22,7 @@
     coach_name:string;training_schedule:string};
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
 
-  const assignments = $derived(
+  const grantedAssignments = $derived(
     $auth.status === 'authenticated' && $auth.session
       ? $auth.session.user.organizations.filter((org): org is typeof org & {id: Organization} =>
           (org.id === 'lefteria_fc' && hasAdminPermission($auth.session!.user.permissions, 'teams:read')) ||
@@ -29,8 +30,21 @@
       : []
   );
 
+  // A scoped menu route is a local workspace, not a global organization switch.
+  const routeOwner=$derived(page.url.searchParams.get('organization_id'));
+  const assignments=$derived(routeOwner===null?grantedAssignments:
+    grantedAssignments.filter(org=>org.id===routeOwner));
   let organization = $state<Organization | null>(null);
   let directory = $state<Directory | null>(null);
+  let otherDirectory=$state<Directory|null>(null);
+  let otherLoading=$state(false);
+  let otherUnavailable=$state(false);
+  const otherOwner=$derived(routeOwner===null?assignments.find(org=>org.id!==organization)?.id??null:null);
+  // Read-only cross-organization overview; all writes remain in the exact owner workspace.
+  const combinedDirectories=$derived(assignments.map(org=>({
+    owner:org.id,name:org.name,directory:org.id===organization?directory:otherDirectory?.organization_id===org.id?otherDirectory:null,
+    loading:org.id===organization?loading:otherLoading,unavailable:org.id===organization?unavailable:otherUnavailable
+  })));
   let focusedGroupId = $state('');
   let groupSearch = $state('');
   let groupPlacements=$state<Record<string,GroupPlacement>>({});
@@ -38,6 +52,8 @@
   let cityFilter=$state('');
   let siteFilter=$state('');
   let directoryView=$state<'groups'|'players'>('groups');
+  const requestedPlayerId=$derived(organization==='lefteria_fc_academy'?page.url.searchParams.get('player_id'):null);
+  const requestedSection=$derived(requestedPlayerId?page.url.searchParams.get('section'):null);
   let academyCardProfiles=$state<Record<string,AcademyCardProfile>>({});
   const placementCities=$derived([...new Map(Object.values(groupPlacements)
     .map(p=>[p.cityId,p.cityName])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'el')));
@@ -104,11 +120,16 @@
   let creationLocationsLoading=$state(false);
   let creationLocationsError=$state('');
 
+  let lastRequestedGroup:string|undefined;
   $effect(()=>{
     const requested=page.url.searchParams.get('group_id')??'';
-    const available=directory?.groups ?? [];
+    if(!directory||directory.organization_id!==organization)return;
+    const available=directory.groups;
     if(focusedGroupId && !available.some(group=>group.id===focusedGroupId))focusedGroupId='';
-    if(!focusedGroupId && available.some(group=>group.id===requested))focusedGroupId=requested;
+    if(requested!==lastRequestedGroup){
+      lastRequestedGroup=requested;
+      if(available.some(group=>group.id===requested))focusedGroupId=requested;
+    }
   });
   let appliedInitialOrganization=false;
   let openedRequestedCreate=false;
@@ -548,20 +569,74 @@
     })();
     return () => controller.abort();
   });
+  $effect(()=>{
+    const actor=$auth.session?.user.id;
+    const role=$auth.session?.user.role;
+    const permissions=$auth.session?.user.permissions.join('|');
+    const grants=assignments.map(org=>org.id).join('|');
+    const selected=otherOwner;
+    void role;void permissions;void grants;void retry;
+    otherDirectory=null;otherLoading=false;otherUnavailable=false;
+    if(!browser||$auth.status!=='authenticated'||!actor||!selected||assignments.length<2)return;
+    const controller=new AbortController();otherLoading=true;
+    void (async()=>{
+      try{
+        const query=new URLSearchParams({organization_id:selected});
+        const response=await fetch('/api/admin/football/audiences?'+query.toString(),{
+          credentials:'same-origin',cache:'no-store',signal:controller.signal
+        });
+        if(controller.signal.aborted)return;
+        if(response.status===401){auth.invalidateSession();return;}
+        if(response.status===403){void auth.bootstrap();throw new Error('Revoked roster access');}
+        if(!response.ok)throw new Error('Roster unavailable');
+        const raw:unknown=await response.json();
+        if(!verifiedDirectory(raw,selected))throw new Error('Unverified roster');
+        if(!controller.signal.aborted && $auth.session?.user.id===actor && otherOwner===selected)otherDirectory=raw;
+      }catch{if(!controller.signal.aborted)otherUnavailable=true;}
+      finally{if(!controller.signal.aborted)otherLoading=false;}
+    })();
+    return ()=>controller.abort();
+  });
 </script>
 
 <svelte:head><title>Ομάδες & τμήματα | Διαχείριση Λευτεριά FC</title></svelte:head>
 
 {#if $auth.status === 'authenticated' && $auth.session}
-  <AdminFrame user={$auth.session.user} active="groups" busy={$auth.busy} onLogout={() => void auth.logout()}>
+  <AdminFrame user={$auth.session.user} active="groups" workspaceOwner={organization} playerView={directoryView==='players'} busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if assignments.length}
       <div class="admin-audiences" data-testid="admin-live-audiences">
         <p class="admin-eyebrow">ΑΓΩΝΙΣΤΙΚΟ · ΑΚΑΔΗΜΙΑ · ΠΡΑΓΜΑΤΙΚΑ ΜΕΛΗ</p>
-        <h1>Ομάδες & τμήματα</h1>
+        <h1>{directoryView==='players'?'CRM · Παίκτες & προφίλ':'Ομάδες & τμήματα'}</h1>
+        {#if directoryView==='players' && organization}<AdminCrmWorkspaceNav user={$auth.session.user} active={organization==='lefteria_fc'?'first_team_players':'academy_players'}/>{/if}
         <p class="admin-muted">Ζωντανή εικόνα των ομάδων και των τμημάτων από το επαληθευμένο ρόστερ, όχι διπλές στατικές καταχωρίσεις. Οι αριθμοί περιλαμβάνουν μόνο ενεργούς παίκτες χωρίς αρχειοθέτηση ή μεταγραφή.</p>
+        {#if assignments.length>1}
+          <section class="admin-panel" aria-labelledby="combined-football-heading" data-testid="admin-combined-football">
+            <h2 id="combined-football-heading">Πρώτη ομάδα & Ακαδημία</h2>
+            <p class="admin-muted">Όλες οι εξουσιοδοτημένες ομάδες σε μία οθόνη. Επιλέξτε τμήμα για τη διαχείρισή του.</p>
+            <div class="admin-combined-grid">
+              {#each combinedDirectories as item (item.owner)}
+                <section class="admin-combined-owner" aria-label={item.name}>
+                  <h3>{item.name}</h3>
+                  {#if item.directory?.organization_id===item.owner}
+                    <p class="admin-muted">{item.directory.groups.length} ομάδες / τμήματα · {item.directory.groups.reduce((n,g)=>n+g.active_players,0)} συμμετοχές</p>
+                    <ul>{#each item.directory.groups as group (group.id)}
+                      <li><a data-sveltekit-reload href={`/admin/groups?organization_id=${encodeURIComponent(item.owner)}&group_id=${encodeURIComponent(group.id)}#admin-group-workspace`}>{group.name}</a><span>{group.active_players} παίκτες</span></li>
+                    {/each}</ul>
+                    {#if !item.directory.groups.length}<p class="admin-muted">Δεν υπάρχουν ορατές ομάδες.</p>{/if}
+                  {:else if item.unavailable}<p role="status">Ο κατάλογος δεν είναι διαθέσιμος.</p>
+                  {:else}<p role="status">Φόρτωση καταλόγου…</p>{/if}
+                  <a data-sveltekit-reload href={`/admin/groups?organization_id=${encodeURIComponent(item.owner)}`}>Διαχείριση ομάδων ›</a>
+                  {#if ['manager','super_admin'].includes($auth.session.user.role) && hasAdminPermission($auth.session.user.permissions,item.owner==='lefteria_fc'?'teams:write':'academy:write') && (item.owner!=='lefteria_fc'||$auth.session.user.role==='super_admin')}
+                    <a data-sveltekit-reload href={`/admin/groups?organization_id=${encodeURIComponent(item.owner)}&view=players`}>Παίκτες & προφίλ ›</a>
+                  {/if}
+                </section>
+              {/each}
+            </div>
+          </section>
+        {/if}
         <section class="admin-panel admin-audiences-select" aria-label="Οργανισμός ομάδων">
           {#if assignments.length > 1}
-            <label class="admin-groups-organization-choice">Οργανισμός
+            <label class="admin-groups-organization-choice">Πεδίο επεξεργασίας
               <select value={organization ?? ''} data-testid="admin-groups-organization"
                 disabled={loading || saving}
                 onchange={event => {
@@ -602,15 +677,16 @@
             <div class="admin-directory-switch" role="group" aria-label="Ενότητες διαχείρισης">
               <button type="button" aria-pressed={directoryView==='groups'}
                 data-testid="admin-directory-teams"
-                onclick={()=>directoryView='groups'}>Ομάδες & τμήματα</button>
+                onclick={()=>{if(requestedPlayerId)void goto('/admin/groups?organization_id=lefteria_fc_academy');else directoryView='groups';}}>Ομάδες & τμήματα</button>
               <button type="button" aria-pressed={directoryView==='players'}
                 data-testid="admin-directory-players"
-                onclick={()=>directoryView='players'}>Παίκτες CRM</button>
+                onclick={()=>directoryView='players'}>Παίκτες & προφίλ</button>
             </div>
           {/if}
           {#if canCreate && directoryView==='players' && $auth.session}
             <AdminRosterPlayersPanel owner={directory.organization_id} actorId={$auth.session.user.id}
-              groups={directory.groups} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              groups={directory.groups} {requestedPlayerId} {requestedSection} allowAssignments={requestedPlayerId===null} allowPrivate={true} allowEvaluationWrite={Boolean(canCreate)}
+              allowGuardianReview={organization==='lefteria_fc_academy'&&$auth.session.user.role==='super_admin'&&Boolean(canCreate)}
               allowFinance={organization==='lefteria_fc_academy' &&
                 $auth.session.user.role==='super_admin' &&
                 hasAdminPermission($auth.session.user.permissions,'finance:read')}
@@ -680,7 +756,7 @@
                     </label>
                   {:else}
                     <div class="admin-academy-placement">
-                      <label>Πόλη Ακαδημίας *
+                      <label>1. Πόλη Ακαδημίας *
                         <select bind:value={creationCityId}
                           disabled={saving || locationSaving || creationLocationsLoading}
                           required data-testid="admin-group-city"
@@ -694,9 +770,9 @@
                       {#if $auth.session?.user.role==='super_admin'}
                         <a class="admin-add-city-link"
                           href="/admin/territories?organization_id=lefteria_fc_academy#create-city"
-                          data-testid="admin-new-city-route">+ Νέα πόλη · κεντρικός κατάλογος</a>
+                          data-testid="admin-new-city-route">+ Δημιουργία πόλης</a>
                       {/if}
-                      <label>Τοποθεσία Ακαδημίας *
+                      <label>2. Τοποθεσία Ακαδημίας *
                         <select bind:value={creationLocationId}
                           disabled={saving || locationSaving || creationLocationsLoading || !creationCityId}
                           required data-testid="admin-group-verified-location"
@@ -801,6 +877,7 @@
               {/if}
             </section>
           {/if}
+          {#if !focusedGroup}
           <section class="admin-panel" aria-labelledby="admin-audiences-title">
             <div class="admin-audiences-heading">
               <h2 id="admin-audiences-title">{organization === 'lefteria_fc' ? 'Ομάδες πρώτης ομάδας' : 'Τμήματα Ακαδημίας'}</h2>
@@ -887,7 +964,7 @@
                   <li class:admin-audience-selected={focusedGroupId===group.id}>
                     <div class="admin-audience-card-title">
                       <span class="admin-audiences-type">{group.kind === 'team' ? 'ΟΜΑΔΑ' : 'ΤΜΗΜΑ ΑΚΑΔΗΜΙΑΣ'}</span>
-                      <strong>{group.name}</strong>
+                      <button type="button" class="admin-group-name-link" onclick={()=>focusedGroupId=group.id}>{group.name}</button>
                       {#if organization==='lefteria_fc_academy'}
                         <span class="admin-group-placement" data-testid="academy-group-exact-placement">
                           {groupPlacements[group.id]
@@ -923,14 +1000,17 @@
               {#if visibleGroups.length===0}
                 <p class="admin-muted" role="status" data-testid="admin-group-search-empty">Δεν βρέθηκε τμήμα με αυτή την ονομασία. Δοκιμάστε διαφορετική αναζήτηση.</p>
               {/if}
-              {#if focusedGroup}
+
+            {/if}
+          </section>
+          {:else if focusedGroup}
                 <section class="admin-group-workspace" id="admin-group-workspace" aria-labelledby="admin-focused-group-heading"
                   data-testid="admin-group-workspace">
                   <header class="admin-focused-group-header">
                     <div>
                       <p class="admin-eyebrow">ΤΜΗΜΑ · ΠΡΟΠΟΝΗΣΕΙΣ · ΑΘΛΗΤΕΣ</p>
                       <h3 id="admin-focused-group-heading">{focusedGroup.name}</h3>
-                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες · Τα εργαλεία αφορούν μόνο το επιλεγμένο τμήμα.</p>
+                      <p class="admin-muted">{focusedGroup.active_players} ενεργοί παίκτες{groupPlacements[focusedGroup.id]?' · '+groupPlacements[focusedGroup.id].cityName+' / '+groupPlacements[focusedGroup.id].locationName:''}</p>
                     </div>
                     <button type="button" class="admin-secondary"
                       onclick={()=>focusedGroupId=''}>Πίσω στις ομάδες</button>
@@ -946,9 +1026,7 @@
                     {/key}
                   {/if}
                 </section>
-              {/if}
-            {/if}
-          </section>
+          {/if}
           {/if}
           <p class="admin-audiences-note">Οι λίστες παραληπτών ανακοινώσεων και ομαδικών συνομιλιών θα χρησιμοποιούν αυτές τις ίδιες αναθέσεις, με ανεξάρτητη επαλήθευση συμμετοχής πριν από την αποστολή. Η αποστολή μηνυμάτων δεν έχει ενεργοποιηθεί.</p>
         {/if}
@@ -966,7 +1044,16 @@
 {/if}
 
 <style>
-  .admin-audiences{max-width:1440px}
+  .admin-audiences{width:100%;max-width:none;min-width:0}
+  .admin-group-name-link{background:none;border:0;color:inherit;font:inherit;font-weight:800;text-align:left;padding:4px 0;cursor:pointer;min-height:44px;overflow-wrap:anywhere}
+  .admin-group-name-link:hover,.admin-group-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
+  .admin-combined-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr));gap:16px}
+  .admin-combined-owner{display:grid;align-content:start;gap:8px;min-width:0;padding:16px;border:1px solid var(--admin-line);border-radius:8px}
+  .admin-combined-owner h3,.admin-combined-owner p,.admin-combined-owner ul{margin:0}
+  .admin-combined-owner ul{list-style:none;padding:0;display:grid;gap:6px}
+  .admin-combined-owner li{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--admin-line)}
+  .admin-combined-owner a{color:var(--admin-gold);overflow-wrap:anywhere}
+  .admin-combined-owner li span{color:inherit;font-size:12px}
   .admin-directory-switch{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
   .admin-directory-switch button{min-height:40px;padding:9px 15px;border:1px solid #3c4140;
     background:#161818;color:#d5dad8;border-radius:7px;font:700 13px/1.3 'Fira Sans',sans-serif}

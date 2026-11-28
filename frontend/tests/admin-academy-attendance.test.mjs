@@ -82,7 +82,7 @@ test('Admin UI separates RSVP from presence, shows provenance and verifies write
   const player=read('frontend/src/lib/admin/AdminRosterPlayersPanel.svelte');
   assert.match(group,/AdminGroupAttendancePanel/);
   assert.match(player,/AdminGroupAttendancePanel/);
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/attendance"/);
   assert.equal((frame.match(/href="\/admin\/attendance"/g)||[]).length,1);
   assert.match(read('frontend/src/lib/admin/AdminGroupWorkspace.svelte'),/admin-group-attendance-link/);

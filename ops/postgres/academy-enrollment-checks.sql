@@ -143,6 +143,23 @@ BEGIN
     decode(repeat('bb',16),'hex'));
   IF document_status<>'stored' THEN
     RAISE EXCEPTION 'Valid private document capability did not store'; END IF;
+  -- Server-generated registration form uses the same exact-child vault but
+  -- is not one of the browser upload slots. Synthetic encrypted fixture only.
+  document_status:=academy_intake.store_public_registration_document(
+    application,repeat('7',64),gen_random_uuid(),'registration_form',
+    NULL,'application/pdf',32,'fixture-vault',repeat('c',64),
+    decode(repeat('ce',32),'hex'),decode(repeat('aa',12),'hex'),
+    decode(repeat('bb',16),'hex'));
+  IF document_status<>'stored' THEN
+    RAISE EXCEPTION 'Generated registration PDF did not store'; END IF;
+  BEGIN
+    PERFORM academy_intake.store_public_registration_document(
+      application,repeat('7',64),gen_random_uuid(),'registration_form',
+      NULL,'image/png',32,'fixture-vault',repeat('c',64),
+      decode(repeat('ce',32),'hex'),decode(repeat('aa',12),'hex'),
+      decode(repeat('bb',16),'hex'));
+    RAISE EXCEPTION 'Non-PDF accepted into registration form slot';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
   document_status:=academy_intake.store_public_registration_document(
     application,repeat('7',64),gen_random_uuid(),'passport_photo',
     NULL,'image/png',32,'fixture-vault',repeat('f',64),
@@ -292,7 +309,7 @@ BEGIN
   -- player's encrypted Documents in the enrollment transaction.
   IF (SELECT count(*) FROM academy_private.player_documents
       WHERE organization_id='lefteria_fc_academy'
-        AND player_id=fixture_player_id)<>3
+        AND player_id=fixture_player_id)<>4
     OR EXISTS(
       SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=application AND
@@ -300,10 +317,17 @@ BEGIN
          promoted_document_id IS NULL OR ciphertext IS NOT NULL OR
          nonce IS NOT NULL OR auth_tag IS NOT NULL))
     OR (SELECT count(*) FROM academy_intake.registration_document_promotions
-      WHERE registration_id=application AND player_id=fixture_player_id)<>3
+      WHERE registration_id=application AND player_id=fixture_player_id)<>4
     OR EXISTS(SELECT 1 FROM academy_intake.registration_document_escrow
       WHERE registration_id=ANY(sibling_ids) AND promoted_at IS NOT NULL)
   THEN RAISE EXCEPTION 'Child 1 document promotion leaked sibling evidence'; END IF;
+  IF NOT EXISTS(SELECT 1 FROM academy_private.player_documents d
+    JOIN academy_private.encrypted_document_objects o ON o.id=d.storage_object_id
+    JOIN academy_intake.registration_document_promotions t ON t.player_document_id=d.id
+    WHERE d.player_id=fixture_player_id AND d.document_type='registration_form'
+      AND d.mime_type='application/pdf' AND o.scan_status='quarantined'
+      AND t.registration_id=application)
+  THEN RAISE EXCEPTION 'Generated form did not reach the exact child vault'; END IF;
   -- The pending sibling documents are NOT in child 1's folder.
   IF EXISTS(SELECT 1 FROM academy_private.player_documents d
     JOIN academy_intake.registration_document_escrow e
@@ -352,7 +376,7 @@ BEGIN
        sibling_index; END IF;
     IF processed IN (2,4,5)
       AND (SELECT count(*) FROM academy_intake.registration_document_promotions
-        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+2
+        WHERE registration_id=application OR registration_id=ANY(sibling_ids))<>processed+3
     THEN RAISE EXCEPTION 'Family % child documents count wrong',processed; END IF;
   END LOOP;
   SET CONSTRAINTS ALL IMMEDIATE;
@@ -364,6 +388,104 @@ BEGIN
   IF (SELECT count(DISTINCT registration_id)
       FROM academy_intake.registration_document_promotions)<>5 THEN
     RAISE EXCEPTION '1-5 child family documents not isolated'; END IF;
+
+  -- Player 360 uses the original approved application, not name or phone
+  -- matching. Confirm the local manager's allowed view and cross-city denial.
+  result:=club.read_admin_academy_player_profile(admin_digest,fixture_player_id);
+  IF result->>'player_id' IS DISTINCT FROM fixture_player_id
+    OR result#>>'{registration,id}' IS DISTINCT FROM application::text
+    OR result#>>'{registration,applicant_birth_date}' IS DISTINCT FROM '2016-01-01'
+    OR result#>>'{registration,guardian_name}' IS DISTINCT FROM 'Fixture Parent'
+    OR result#>>'{registration,guardian_phone}' IS DISTINCT FROM '+35799123456'
+    OR NOT coalesce((result->'academy_group_ids') ? fixture_group_id,false)
+    OR (result->'registration') ? 'evidence_ciphertext'
+  THEN RAISE EXCEPTION 'Player 360 original registration source mismatch'; END IF;
+  result:=club.read_admin_academy_player_profile(manager_digest,fixture_player_id);
+  IF result#>>'{registration,id}' IS DISTINCT FROM application::text THEN
+    RAISE EXCEPTION 'Assigned manager cannot access exact player registration'; END IF;
+  BEGIN
+    PERFORM club.read_admin_academy_player_profile(manager_digest,second_player);
+    RAISE EXCEPTION 'Original location manager read another city child registration';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+
+  -- Operational contact corrections must not rewrite signed registration data
+  -- or grant the contact app access. Only the exact authorized player can be edited.
+  result:=club.write_admin_academy_player_contact(manager_digest,fixture_player_id,0,
+    'Updated Contact','Parent','+35799000099','updated-contact@example.invalid');
+  IF result->>'revision' IS DISTINCT FROM '1' THEN
+    RAISE EXCEPTION 'Contact initial save was not versioned'; END IF;
+  result:=club.read_admin_academy_player_profile(admin_digest,fixture_player_id);
+  IF result#>>'{current_contact,phone}' IS DISTINCT FROM '+35799000099'
+    OR result#>>'{registration,guardian_phone}' IS DISTINCT FROM '+35799123456'
+    OR result#>>'{registration,guardian_name}' IS DISTINCT FROM 'Fixture Parent'
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registrations
+      WHERE id=application AND guardian_phone='+35799123456')
+  THEN RAISE EXCEPTION 'Operational contact correction changed original application'; END IF;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,fixture_player_id,0,
+      'Stale Contact','Parent','+35799000100','stale@example.invalid');
+    RAISE EXCEPTION 'Stale contact update accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_contact(manager_digest,second_player,0,
+      'Denied Contact','Parent','+35799000100','denied@example.invalid');
+    RAISE EXCEPTION 'Cross-city contact write accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=club.write_admin_academy_player_contact(admin_digest,fixture_player_id,1,
+    'Updated Contact','Parent','+35799000098','updated-contact@example.invalid');
+  IF result->>'revision' IS DISTINCT FROM '2' THEN
+    RAISE EXCEPTION 'Contact revision did not increment'; END IF;
+
+  -- Canonical name corrections preserve the immutable application, player ID
+  -- and membership. Test conflict, territorial denial and restore the fixture.
+  result:=club.rename_admin_academy_player(manager_digest,fixture_player_id,
+    'Synthetic Enrollee','Synthetic Corrected');
+  IF result->>'official_name' IS DISTINCT FROM 'Synthetic Corrected'
+    OR result->>'player_id' IS DISTINCT FROM fixture_player_id
+    OR NOT EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id
+      AND primary_academy_group_id=fixture_group_id AND position='Defender' AND number=14)
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registrations WHERE id=application
+      AND applicant_first_name='Synthetic' AND applicant_last_name='Enrollee')
+  THEN RAISE EXCEPTION 'Canonical name correction rewrote enrollment identity'; END IF;
+  BEGIN
+    PERFORM club.rename_admin_academy_player(manager_digest,fixture_player_id,
+      'Synthetic Enrollee','Stale Name');
+    RAISE EXCEPTION 'Stale canonical name correction accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.rename_admin_academy_player(manager_digest,second_player,
+      'Unknown','Denied Name');
+    RAISE EXCEPTION 'Cross-city canonical name correction accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  result:=club.rename_admin_academy_player(admin_digest,fixture_player_id,
+    'Synthetic Corrected','Synthetic Enrollee');
+
+  -- Search before paging: even a one-row page must find an exact player
+  -- without exposing a different city or the rest of a child's memberships.
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,NULL);
+  IF result->>'total' IS DISTINCT FROM '1'
+    OR result#>>'{players,0,id}' IS DISTINCT FROM fixture_player_id
+  THEN RAISE EXCEPTION 'Full authorized roster search failed'; END IF;
+  result:=club.search_admin_roster_players(manager_digest,'lefteria_fc_academy',
+    0,1,second_player,NULL);
+  IF result->>'total' IS DISTINCT FROM '0' THEN
+    RAISE EXCEPTION 'Roster search disclosed a sibling city'; END IF;
+  result:=club.search_admin_roster_players(admin_digest,'lefteria_fc_academy',
+    0,1,fixture_player_id,second_group);
+  IF result->>'total' IS DISTINCT FROM '0' THEN
+    RAISE EXCEPTION 'Roster search ignored group filter'; END IF;
+  result:=club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+    fixture_group_id,0,1,fixture_player_id);
+  IF result->>'total' IS DISTINCT FROM '1'
+    OR result#>>'{players,0,id}' IS DISTINCT FROM fixture_player_id
+    OR result#>'{players,0,academy_group_ids}' IS DISTINCT FROM jsonb_build_array(fixture_group_id)
+  THEN RAISE EXCEPTION 'Exact group search returned incorrect membership'; END IF;
+  BEGIN
+    PERFORM club.search_admin_group_roster(manager_digest,'lefteria_fc_academy',
+      second_group,0,1,second_player);
+    RAISE EXCEPTION 'Roster search accessed another city group';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
 
   -- Lost-response retry with exact request and fields must be idempotent.
   result:=identity.enroll_admin_academy_registration(admin_digest,payload);
@@ -378,6 +500,45 @@ BEGIN
       jsonb_set(payload,'{request_id}',to_jsonb(alternate_request::text)));
     RAISE EXCEPTION 'Conflicting enrollment request was accepted';
   EXCEPTION WHEN unique_violation THEN NULL; END;
+
+  -- A current sporting correction must not invalidate an enrollment retry.
+  result:=club.write_admin_academy_player_sporting(manager_digest,fixture_player_id,
+    'Defender',14,'Forward',19);
+  IF result->>'official_position' IS DISTINCT FROM 'Forward'
+    OR result->>'official_number' IS DISTINCT FROM '19'
+    OR NOT EXISTS(SELECT 1 FROM club.players WHERE id=fixture_player_id
+      AND position='Forward' AND number=19 AND primary_academy_group_id=fixture_group_id)
+    OR NOT EXISTS(SELECT 1 FROM academy_intake.registration_sporting_baselines
+      WHERE registration_id=application AND position='Defender' AND number=14)
+  THEN RAISE EXCEPTION 'Sporting correction changed placement or failed to preserve replay values'; END IF;
+  result:=identity.enroll_admin_academy_registration(admin_digest,payload);
+  IF result->>'player_id' IS DISTINCT FROM fixture_player_id THEN
+    RAISE EXCEPTION 'Sporting correction broke original enrollment replay'; END IF;
+  BEGIN
+    PERFORM identity.enroll_admin_academy_registration(admin_digest,
+      jsonb_set(jsonb_set(payload,'{position}','"Forward"'::jsonb),'{number}','19'::jsonb));
+    RAISE EXCEPTION 'Changed sporting fields were accepted as original enrollment replay';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(manager_digest,fixture_player_id,
+      'Defender',14,'Midfielder',9);
+    RAISE EXCEPTION 'Stale sporting correction accepted';
+  EXCEPTION WHEN unique_violation THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(manager_digest,second_player,
+      'Defender',14,'Forward',19);
+    RAISE EXCEPTION 'Cross-city sporting correction accepted';
+  EXCEPTION WHEN insufficient_privilege THEN NULL; END;
+  BEGIN
+    PERFORM club.write_admin_academy_player_sporting(admin_digest,fixture_player_id,
+      'Forward',19,'Forward',100);
+    RAISE EXCEPTION 'Invalid shirt number accepted';
+  EXCEPTION WHEN invalid_parameter_value THEN NULL; END;
+  result:=club.write_admin_academy_player_sporting(admin_digest,fixture_player_id,
+    'Forward',19,'Defender',14);
+  IF NOT EXISTS(SELECT 1 FROM academy_intake.registration_sporting_baselines
+    WHERE registration_id=application AND position='Defender' AND number=14)
+  THEN RAISE EXCEPTION 'Second correction rewrote enrollment baseline'; END IF;
 
   -- Independent guardian proof review is a human attestation ledger,
   -- NOT an OTP login or an app entitlement. The source phone is compared

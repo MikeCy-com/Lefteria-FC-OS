@@ -11,12 +11,13 @@ test('all admin roles share compact one-level navigation and one account header'
   assert.match(frame,/data-testid="admin-profile-menu"/);
   assert.match(frame,/data-testid="admin-profile-menu-toggle"/);
   assert.match(frame,/data-testid="admin-settings-link"/);
-  assert.match(frame,/data-testid="admin-football-navigation"/);
+  assert.match(frame,/data-testid="admin-first-team-navigation"/);
+  assert.match(frame,/data-testid="admin-academy-navigation"/);
   assert.match(frame,/data-testid="admin-website-navigation"/);
   assert.match(frame,/data-testid="admin-member-app-navigation"/);
   assert.match(frame,/data-testid="admin-crm-navigation"/);
   assert.match(frame,/data-testid="admin-commerce-navigation"/);
-  assert.equal((frame.match(/class="admin-nav-disclosure"/g)||[]).length,5);
+  assert.equal((frame.match(/class="admin-nav-disclosure"/g)||[]).length,6);
   assert.doesNotMatch(frame,/data-testid="admin-settings-submenu"/);
   assert.doesNotMatch(frame,/class="admin-nav-settings-details"/);
   assert.match(css,/\.admin-app \.admin-sidebar \.admin-nav-category/);
@@ -25,7 +26,7 @@ test('all admin roles share compact one-level navigation and one account header'
   assert.match(css,/@media\(max-width:720px\)/);
   assert.match(css,/\.admin-app \.admin-sidebar \.admin-nav-category:focus-visible/);
   assert.doesNotMatch(frame,/href="\/admin\/(?:matches|evaluations|documents)"/);
-  assert.match(frame,/\{#if liveIds\.has\('assigned_groups'\)\}[\s\S]*?href="\/admin\/schedule"/);
+  assert.match(frame,/\{#if academyCoachTools\}[\s\S]*?href="\/admin\/schedule"/);
 });
 
 test('settings is one entry point with grant-scoped real tools and no second nested submenu',()=>{

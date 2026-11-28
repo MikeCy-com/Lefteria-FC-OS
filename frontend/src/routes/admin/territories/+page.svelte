@@ -42,14 +42,19 @@
   };
   type Resource = 'opponent'|'playing_field'|'training_base';
   const auth = getContext<AdminAuthController>(ADMIN_AUTH_CONTEXT);
-  const owners = $derived(
+  const grantedOwners = $derived(
     ($auth.session?.user.organizations ?? []).map(org => org.id)
       .filter((id):id is Owner=>id==='lefteria_fc' || id==='lefteria_fc_academy')
   );
+  const routeOwner=$derived(page.url.searchParams.get('organization_id'));
+  const owners=$derived(routeOwner===null?grantedOwners:grantedOwners.filter(id=>id===routeOwner));
   let organization = $state<Owner>('lefteria_fc_academy');
   let appliedRouteScope=false;
   let appliedRouteGroup=false;
   let placedGroupId=$state('');
+  let pendingCityId=$state('');
+  let pendingLocationId=$state('');
+  let appliedDirectoryLink=false;
   const requestedGroup=$derived(page.url.searchParams.get('assign_group')??'');
   const requestedTeam=$derived(page.url.searchParams.get('team_id')??'');
 
@@ -78,7 +83,12 @@
   let academyFieldAddress=$state('');
   let academyFieldMapsUrl=$state('');
   let name = $state('');
-  let slug = $state('');
+  let cityName=$state('');
+  let citySlug=$state('');
+  let locationName=$state('');
+  let locationSlug=$state('');
+  let locationAddress=$state('');
+  let locationMapsUrl=$state('');
   let address = $state('');
   let googleMapsUrl = $state('');
   let selectedGroup = $state('');
@@ -204,10 +214,17 @@
     }
   });
   $effect(()=>{
+    if(!directory || directory.organization_id!==organization)return;
     if(organization==='lefteria_fc_academy'){
-      if(!cities.some(city=>city.id===cityId)) cityId=cities[0]?.id??'';
-      if(!locations.some(location=>location.id===locationId))
-        locationId=locations[0]?.id??'';
+      const requestedCity=pendingCityId||(!appliedDirectoryLink?page.url.searchParams.get('city_id')??'':'');
+      const requestedLocation=pendingLocationId||(!appliedDirectoryLink?page.url.searchParams.get('location_id')??'':'');
+      const verifiedLocation=directory.locations.find(item=>item.id===requestedLocation);
+      if(verifiedLocation && cities.some(city=>city.id===verifiedLocation.city_id))cityId=verifiedLocation.city_id;
+      else if(cities.some(city=>city.id===requestedCity))cityId=requestedCity;
+      else if(!cities.some(city=>city.id===cityId))cityId=cities[0]?.id??'';
+      if(verifiedLocation && verifiedLocation.city_id===cityId)locationId=verifiedLocation.id;
+      else if(!locations.some(location=>location.id===locationId))locationId=locations[0]?.id??'';
+      pendingCityId='';pendingLocationId='';appliedDirectoryLink=true;
     }else if(!(directory?.scopes ?? []).some(scope=>scope.id===scopeId))
       scopeId=directory?.scopes[0]?.id??'';
   });
@@ -236,7 +253,11 @@
         (result as Record<string,unknown>).organization_id!==owner ||
         typeof (result as Record<string,unknown>).id!=='string')
         throw new Error('Μη επαληθευμένη αποθήκευση.');
-      name='';slug='';address='';googleMapsUrl='';competition='';
+      const createdId=(result as Record<string,unknown>).id as string;
+      directory=null;
+      if(action==='city'){pendingCityId=createdId;cityName='';citySlug='';}
+      else if(action==='location'){pendingLocationId=createdId;locationName='';locationSlug='';locationAddress='';locationMapsUrl='';}
+      else {name='';address='';googleMapsUrl='';competition='';}
       if(action==='group_assignment' && typeof data.group_id==='string')placedGroupId=data.group_id;
       message=action==='group_assignment'
         ? 'Το τμήμα συνδέθηκε επιτυχώς με την πόλη και τοποθεσία.'
@@ -247,8 +268,8 @@
   }
   function submitLocation(){
     if(!cityId) return;
-    void createResource('location',{city_id:cityId,name,slug,address,
-      google_maps_url:googleMapsUrl});
+    void createResource('location',{city_id:cityId,name:locationName,slug:locationSlug,address:locationAddress,
+      google_maps_url:locationMapsUrl});
   }
   async function submitAcademyCatalog(resource:'opponent'|'playing_field'){
     if(organization!=='lefteria_fc_academy'||!selectedScope||
@@ -300,7 +321,7 @@
 </svelte:head>
 
 {#if $auth.status==='authenticated' && $auth.session}
-  <AdminFrame user={$auth.session.user} active="territories"
+  <AdminFrame user={$auth.session.user} active="territories" workspaceOwner={organization}
     busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <div class="territory-page" data-testid="admin-football-territories">
       <header>
@@ -327,13 +348,13 @@
       {/if}
       <section class="admin-panel" aria-label="Οργανισμός και ανανέωση">
         <div class="territory-row">
-          <label>Οργανισμός
+          {#if owners.length>1}<label>Οργανισμός
             <select bind:value={organization} data-testid="territory-organization">
               {#each owners as owner (owner)}
                 <option value={owner}>{owner==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</option>
               {/each}
             </select>
-          </label>
+          </label>{:else}<span class="admin-muted">{owners.length===0?'Δεν υπάρχει εξουσιοδοτημένος οργανισμός':organization==='lefteria_fc_academy'?'Ακαδημία':'Πρώτη ομάδα'}</span>{/if}
           <button type="button" class="admin-secondary" disabled={loading||saving}
             onclick={()=>revision++}>Ανανέωση καταλόγου</button>
         </div>
@@ -360,11 +381,11 @@
             </div>
             {#if canWrite && $auth.session.user.role==='super_admin'}
               <form class="territory-form" id="create-city" data-testid="admin-create-city" onsubmit={e=>{
-                e.preventDefault(); void createResource('city',{name,slug});
+                e.preventDefault(); void createResource('city',{name:cityName,slug:citySlug});
               }}>
                 <h3>Νέα πόλη</h3>
-                <label>Όνομα πόλης <input bind:value={name} required maxlength="120" /></label>
-                <label>Μοναδικό URL slug <input bind:value={slug} required maxlength="120"
+                <label>Όνομα πόλης <input bind:value={cityName} required maxlength="120" /></label>
+                <label>Σύντομο όνομα URL (λατινικά) <input bind:value={citySlug} required maxlength="120"
                   pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="nicosia" /></label>
                 <button type="submit" disabled={saving}>Προσθήκη πόλης</button>
               </form>
@@ -442,11 +463,11 @@
               {#if mayManageCatalog}
                 <form class="territory-form" id="create-location" data-testid="admin-create-location" onsubmit={e=>{e.preventDefault();submitLocation();}}>
                   <h3>Νέα τοποθεσία</h3>
-                  <label>Όνομα <input bind:value={name} required maxlength="120" /></label>
-                  <label>URL slug <input bind:value={slug} required maxlength="120"
+                  <label>Όνομα <input bind:value={locationName} required maxlength="120" /></label>
+                  <label>Σύντομο όνομα URL (λατινικά) <input bind:value={locationSlug} required maxlength="120"
                     pattern="[a-z0-9]+(-[a-z0-9]+)*" /></label>
-                  <label>Διεύθυνση <input bind:value={address} maxlength="300" /></label>
-                  <label>Google Maps <input type="url" bind:value={googleMapsUrl} maxlength="2048" /></label>
+                  <label>Διεύθυνση <input bind:value={locationAddress} maxlength="300" /></label>
+                  <label>Google Maps <input type="url" bind:value={locationMapsUrl} maxlength="2048" /></label>
                   <button type="submit" disabled={saving}>Προσθήκη τοποθεσίας</button>
                 </form>
               {/if}
@@ -462,7 +483,10 @@
                   revision={revision}/>
                 <AcademySupplierSiteTotals actorId={$auth.session.user.id}
                   {cityId} {locationId}/>
-                <h3>Τμήματα τοποθεσίας</h3>
+                <h3>3. Τμήματα τοποθεσίας</h3>
+                {#if mayManageLocation && canWrite}
+                  <a class="admin-secondary" href={`/admin/groups?organization_id=lefteria_fc_academy&new=1&location_id=${encodeURIComponent(locationId)}`} data-testid="territory-create-group-direct">+ Νέο τμήμα σε αυτή την τοποθεσία</a>
+                {/if}
                 {#if groups.length===0}<p class="admin-muted">Δεν έχουν ανατεθεί τμήματα σε αυτή την τοποθεσία.</p>
                 {:else}<ul class="territory-list">{#each groups as group (group.id)}<li>{group.name}</li>{/each}</ul>{/if}
                 {#if mayManageLocation && directory.unassigned_groups.length>0}

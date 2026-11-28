@@ -55,7 +55,7 @@ test('in-group player view defaults to selected group and assignment search is d
   assert.ok(compile(workspace,{filename:'AdminGroupWorkspace.svelte',generate:'server'}).js.code.length>100);
   assert.match(workspace,/focusGroupId=\{group\.id\}/);
   assert.match(roster,/rosterMode=\$state<'group'\|'assign'>\('group'\)/);
-  assert.match(roster,/currentGroup=\$derived\(focusGroupId&&rosterMode==='group'/);
+  assert.match(roster,/currentGroup=\$derived\(focusGroupId&&\(rosterMode==='group'\|\|!allowAssignments\)/);
   assert.match(roster,/\/api\/admin\/football\/group-players\?/);
   assert.match(roster,/data-testid="group-player-scope"/);
   assert.match(roster,/data-testid="group-current-player-filter"/);

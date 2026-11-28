@@ -4,6 +4,7 @@
   import { ADMIN_AUTH_CONTEXT, type AdminAuthController } from '../../../lib/admin/controller.ts';
   import { hasAdminPermission } from '../../../lib/admin/permissions.ts';
   import AdminFrame from '../../../lib/admin/AdminFrame.svelte';
+  import AdminCrmWorkspaceNav from '../../../lib/admin/AdminCrmWorkspaceNav.svelte';
   import AdminSessionStatus from '../../../lib/admin/AdminSessionStatus.svelte';
 
   type LeadStatus='new'|'contacted'|'trial_booked'|'registered'|'lost';
@@ -152,7 +153,8 @@
     {#if manager}
       <div class="academy-crm" data-testid="admin-academy-crm">
         
-        <h1>Ενδιαφερόμενοι & αιτήματα Ακαδημίας</h1>
+        <h1>CRM · Ενδιαφερόμενοι Ακαδημίας</h1>
+        <AdminCrmWorkspaceNav user={$auth.session.user} active="leads"/>
         <p class="admin-muted">Ιδιωτικά αιτήματα από τη φόρμα της Ακαδημίας.
           Η αλλαγή κατάστασης δεν δημιουργεί αυτόματα παίκτη, κράτηση
           δοκιμαστικής προπόνησης ή μήνυμα SMS.</p>
@@ -241,7 +243,7 @@
 {/if}
 
 <style>
-  .academy-crm{max-width:1120px}.academy-crm h1{margin:0 0 10px}
+  .academy-crm{width:100%;max-width:none;min-width:0}.academy-crm h1{margin:0 0 10px}
   .academy-crm>.admin-muted{max-width:83ch;margin:0 0 20px}
   .crm-controls{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px}
   .crm-controls label{font-size:13px}.crm-controls select{min-width:min(310px,100%);max-width:100%}
