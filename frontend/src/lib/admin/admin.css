@@ -34,7 +34,7 @@
 .admin-sidebar a:hover,.admin-sidebar a:focus-visible { background:#f6bb380b;color:var(--admin-gold);border-left-color:var(--admin-gold); }
 .admin-sidebar a[aria-current="page"] { background:#f6bb3812;color:var(--admin-gold);border-left-color:var(--admin-gold); }
 .admin-module-link { display:inline-flex;align-items:center;gap:32px;padding:14px 0;min-height:46px;font-weight:600; }
-.admin-content { width:min(100%,1200px);padding:42px clamp(24px,4vw,60px) 60px;min-width:0; }
+.admin-content { width:100%;max-width:none;box-sizing:border-box;padding:42px clamp(24px,4vw,60px) 60px;min-width:0; }
 .admin-content .admin-panel { margin-top:24px; scroll-margin-top:20px; }
 .admin-details { margin:0; display:grid; gap:14px; }
 .admin-details div { display:grid; grid-template-columns:minmax(100px,150px) minmax(0,1fr); gap:16px; }
@@ -110,7 +110,7 @@
   .admin-app .admin-workspace-body { grid-template-columns:300px minmax(0,1fr); }
   .admin-app .admin-sidebar { padding:44px 25px;gap:8px; }
   .admin-app .admin-sidebar a { font-size:16px;padding:17px; }
-  .admin-app .admin-content { width:min(100%,1800px);padding:clamp(50px,3vw,110px); }
+  .admin-app .admin-content { width:100%;max-width:none;box-sizing:border-box;padding:clamp(50px,3vw,110px); }
   .admin-app .admin-content .admin-panel { padding:clamp(35px,2vw,62px); }
   .admin-app h1 { font-size:clamp(58px,3vw,84px); }
   .admin-app h2 { font-size:clamp(28px,1.6vw,44px); }
@@ -178,7 +178,7 @@
 .admin-app .admin-sidebar .admin-nav-tool{padding-left:24px;color:#b2b5b7;font-size:12px}
 .admin-app .admin-sidebar a[aria-current='page']{background:#302311;color:#ffca46;border-left-color:#f6bb38;box-shadow:none}
 .admin-app .admin-sidebar-context{padding:18px 12px 0}
-.admin-app .admin-content{width:min(100%,1520px);padding:28px clamp(16px,2.4vw,38px) 60px}
+.admin-app .admin-content{width:100%;max-width:none;box-sizing:border-box;padding:28px clamp(16px,2.4vw,38px) 60px}
 .admin-app .admin-workspace-intro{margin-bottom:18px;padding:12px 4px 20px;border-bottom:1px solid #292b2c}
 .admin-app .admin-workspace-intro h1{margin:0 0 10px}
 .admin-app .admin-workspace-intro .admin-muted{max-width:68ch;margin:0}
@@ -224,7 +224,7 @@
   .admin-app .admin-workspace-body{grid-template-columns:260px minmax(0,1fr)}
   .admin-app .admin-sidebar{padding:24px 14px;gap:2px}
   .admin-app .admin-sidebar a{font-size:13px;padding:10px 12px}
-  .admin-app .admin-content{width:min(100%,1760px);padding:36px clamp(32px,2vw,64px)}
+  .admin-app .admin-content{width:100%;max-width:none;box-sizing:border-box;padding:36px clamp(32px,2vw,64px)}
   .admin-app .admin-content .admin-panel{padding:28px}
 }
 @media(max-width:1100px){
