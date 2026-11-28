@@ -321,7 +321,7 @@
 </svelte:head>
 
 {#if $auth.status==='authenticated' && $auth.session}
-  <AdminFrame user={$auth.session.user} active="territories"
+  <AdminFrame user={$auth.session.user} active="territories" workspaceOwner={organization}
     busy={$auth.busy} onLogout={()=>void auth.logout()}>
     <div class="territory-page" data-testid="admin-football-territories">
       <header>
