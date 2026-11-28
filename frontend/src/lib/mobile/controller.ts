@@ -566,7 +566,7 @@ export function createMobileAuthController(options: {
       if (!isCurrent()) return false;
       if (!data || data.event_id !== currentItem.id || data.event_type !== currentItem.kind ||
           data.organization_id !== currentItem.organization_id || !validOffset(data.next_offset, offset) ||
-          (data.next_offset !== null && (data.next_offset > 100000 || data.next_offset !== offset + 200)) ||
+          (data.next_offset !== null && (typeof data.next_offset !== 'number' || data.next_offset > 100000 || data.next_offset !== offset + 200)) ||
           !Array.isArray(data.players) || data.players.length > 200 ||
           new Set(data.players.map(player => player?.id)).size !== data.players.length || !data.players.every((player) => player && typeof player.id === 'string' && !!player.id.trim() &&
             typeof player.name === 'string' && typeof player.number === 'number' && Number.isInteger(player.number) &&
