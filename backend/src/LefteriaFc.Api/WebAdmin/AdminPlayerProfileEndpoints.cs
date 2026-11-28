@@ -13,9 +13,10 @@ namespace LefteriaFc.Api.WebAdmin;
 public sealed record UpdateAcademyPlayerContact(
     string? Name,string? Relationship,string? Phone,string? Email);
 public sealed record CorrectAcademyPlayerName(string? ExpectedName,string? Name);
+public sealed record CorrectAcademyPlayerSporting(string? ExpectedPosition,int? ExpectedNumber,string? Position,int? Number);
 public sealed record UpdateAcademyPlayerPrivateProfile(
     int ExpectedRevision,string? Biography,string? PreferredPosition,int? PreferredNumber,
-    UpdateAcademyPlayerContact? Contact=null,CorrectAcademyPlayerName? NameCorrection=null);
+    UpdateAcademyPlayerContact? Contact=null,CorrectAcademyPlayerName? NameCorrection=null,CorrectAcademyPlayerSporting? SportingCorrection=null);
 
 /// <summary>
 /// Restricted staff-only Academy child profile. All reads, edits and photo
@@ -56,6 +57,13 @@ public static class AdminPlayerProfileEndpoints
             WebAdminConnections connections,CancellationToken ct)=>
         {
             var digest=await SessionDigest(playerId,organization_id,context,admin,secrets,ct);
+            if(body.SportingCorrection is not null)
+            {
+                if(body.NameCorrection is not null||body.Contact is not null||body.Biography is not null||
+                    body.PreferredPosition is not null||body.PreferredNumber is not null)
+                    throw new WebAdminException(422,"player_profile_invalid","Save sporting corrections separately.");
+                return await CorrectSporting(digest,playerId,body.SportingCorrection,connections,ct);
+            }
             if(body.NameCorrection is not null)
             {
                 if(body.Contact is not null||body.Biography is not null||body.PreferredPosition is not null||body.PreferredNumber is not null)
@@ -163,6 +171,31 @@ public static class AdminPlayerProfileEndpoints
             return Results.NoContent();
         }).WithName("RemoveAdminAcademyPrivatePlayerPhoto").ExcludeFromDescription();
         return endpoints;
+    }
+
+    private static async Task<IResult> CorrectSporting(string digest,string playerId,CorrectAcademyPlayerSporting correction,
+        WebAdminConnections connections,CancellationToken ct)
+    {
+        if(correction.Position is not ("Goalkeeper" or "Defender" or "Midfielder" or "Forward")||
+            correction.Number is null or <1 or >99 ||
+            correction.ExpectedPosition is {Length:>32} || correction.ExpectedPosition?.Any(char.IsControl)==true)
+            throw new WebAdminException(422,"player_profile_invalid","Select a valid position and number from 1 to 99.");
+        await using var db=await connections.OpenAsync(ct);
+        await using var command=new NpgsqlCommand(
+            "SELECT club.write_admin_academy_player_sporting(@digest,@player,@old_position,@old_number,@position,@number)::text",db);
+        command.Parameters.AddWithValue("digest",digest);
+        command.Parameters.AddWithValue("player",playerId);
+        command.Parameters.Add("old_position",NpgsqlTypes.NpgsqlDbType.Text).Value=(object?)correction.ExpectedPosition??DBNull.Value;
+        command.Parameters.Add("old_number",NpgsqlTypes.NpgsqlDbType.Integer).Value=(object?)correction.ExpectedNumber??DBNull.Value;
+        command.Parameters.AddWithValue("position",correction.Position!);
+        command.Parameters.AddWithValue("number",correction.Number.Value);
+        try
+        {
+            var json=await command.ExecuteScalarAsync(ct) as string;
+            return json is null?Results.Problem(statusCode:503):
+                Results.Content(json,"application/json",Encoding.UTF8,200);
+        }
+        catch(PostgresException error){throw MapSql(error);}
     }
 
     private static async Task<IResult> CorrectName(string digest,string playerId,CorrectAcademyPlayerName correction,
