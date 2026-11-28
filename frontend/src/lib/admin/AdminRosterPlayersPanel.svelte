@@ -10,9 +10,9 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+  let {owner,actorId,groups,focusGroupId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;
-    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGoalManagement?:boolean;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
     allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
@@ -21,7 +21,7 @@
   const pageSize = 20;
   let offset = $state(0);
   let rosterMode=$state<'group'|'assign'>('group');
-  const currentGroup=$derived(focusGroupId&&rosterMode==='group'?focusGroupId:null);
+  const currentGroup=$derived(focusGroupId&&(rosterMode==='group'||!allowAssignments)?focusGroupId:null);
   let refresh = $state(0);
   let playerSearch=$state('');
   let playerGroupFilter=$state('');
@@ -72,7 +72,7 @@
     // Exact-group rows redact all other group memberships. Editing from
     // that minimized view could silently remove a child's other groups.
     // Open explicit organization-wide assignment mode before any PUT.
-    if (saving || loading || !groups.length || currentGroup) return;
+    if (!allowAssignments || saving || loading || !groups.length || currentGroup) return;
     closePlayer360();
     editing=player.id;
     selectedGroups=currentGroups(player);
@@ -92,7 +92,7 @@
       : selectedGroups.filter(group=>group!==id);
   }
   async function saveAssignment(player:Player) {
-    if (!browser || saving || loading || editing!==player.id || !page || currentGroup) return;
+    if (!browser || !allowAssignments || saving || loading || editing!==player.id || !page || currentGroup) return;
     const selectedOwner=owner;
     const selectedActor=actorId;
     const previous=currentGroups(player);
@@ -234,7 +234,7 @@
       Ανανέωση παικτών
     </button>
   </div>
-  {#if focusGroupId}
+  {#if focusGroupId && allowAssignments}
     <div class="admin-player-group-scope" role="group" aria-label="Επιλογή ρόστερ" data-testid="group-player-scope">
       <button type="button" aria-pressed={rosterMode==='group'} disabled={saving}
         onclick={()=>{rosterMode='group';offset=0;}} data-testid="group-current-player-filter">
@@ -297,7 +297,7 @@
             </div>
             <div class="admin-player-actions">
               <span class="admin-player-team-label">{groupLabels(player)}</span>
-              {#if allowPrivate || allowGoalRead || allowFinance}
+              {#if allowPrivate || allowGoalRead || allowFinance || !allowAssignments}
                 <button type="button" class="admin-primary admin-player360-open" disabled={saving||loading||editing!==null}
                   data-testid="admin-open-player-360"
                   aria-expanded={selectedPlayer360===player.id}
@@ -335,16 +335,16 @@
                     <button type="button" class="admin-secondary" disabled={saving} onclick={cancelEditing}>Ακύρωση</button>
                   </div>
                 </div>
-              {:else if !currentGroup}
+              {:else if !currentGroup && allowAssignments}
                 <button type="button" class="admin-secondary" disabled={saving || loading || groups.length===0}
                   onclick={()=>startEditing(player)}>Αλλαγή ανάθεσης</button>
-              {:else}
+              {:else if allowAssignments}
                 <span class="admin-group-minimal-roster-note">Οι αναθέσεις σε περισσότερα τμήματα
                   εμφανίζονται μόνο στη λειτουργία «Εύρεση αθλητή για ανάθεση».</span>
               {/if}
             </div>
             {/if}
-            {#if selectedPlayer360===player.id && (allowPrivate||allowGoalRead||allowFinance)}
+            {#if selectedPlayer360===player.id && (allowPrivate||allowGoalRead||allowFinance||!allowAssignments)}
               {#key owner+':'+actorId+':'+player.id}
               <section class="admin-player360 admin-player-individual-workspace" aria-label={'Player 360 · '+player.name}
                 data-testid="admin-player-360-workspace">
