@@ -10,9 +10,9 @@
   type Player = {id:string;name:string;team_id:string|null;academy_group_ids:string[]};
   type Page = {organization_id:Owner;group_id?:string;ready:true;offset:number;limit:number;total:number;players:Player[]};
 
-  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
+  let {owner,actorId,groups,focusGroupId=null,requestedPlayerId=null,allowPrivate,allowEvaluationWrite,allowFinance=false,allowGuardianReview=false,allowAssignments=true,allowGoalManagement=false,allowGoalRead=false,canReadAttendance=false,canWriteAttendance=false,onExpired,onRevoked,onChanged}: {
     owner:Owner;actorId:string;groups:Audience[];focusGroupId?:string|null;requestedPlayerId?:string|null;
-    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
+    allowPrivate:boolean;allowEvaluationWrite:boolean;allowFinance?:boolean;allowGuardianReview?:boolean;allowAssignments?:boolean;allowGoalManagement?:boolean;
     allowGoalRead?:boolean;
     canReadAttendance?:boolean;canWriteAttendance?:boolean;
     onExpired:()=>void;onRevoked:()=>void;onChanged:()=>void;
@@ -410,7 +410,7 @@
                 {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
                   <div data-testid="admin-player-private-profile-workspace">
                     <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
-                      {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
+                      {actorId} allowWrite={allowEvaluationWrite} {allowGuardianReview} {onExpired} {onRevoked}/>
                   </div>
                 {/if}
                 {#if inspectedGoals===player.id && allowGoalRead && currentGroup &&
