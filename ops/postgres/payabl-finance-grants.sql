@@ -63,6 +63,8 @@ GRANT EXECUTE ON FUNCTION finance.attach_admin_training_fee_payment(
   text,text,uuid,uuid) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.read_admin_training_fees(
   text,text) TO :"admin_auth_role";
+REVOKE ALL ON FUNCTION finance.read_admin_player_training_fees(text,text,text) FROM PUBLIC, :"app_role";
+GRANT EXECUTE ON FUNCTION finance.read_admin_player_training_fees(text,text,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.cancel_admin_future_training_fee(
   text,text,uuid,uuid,text) TO :"admin_auth_role";
 GRANT EXECUTE ON FUNCTION finance.reserve_admin_training_fee_sms(
