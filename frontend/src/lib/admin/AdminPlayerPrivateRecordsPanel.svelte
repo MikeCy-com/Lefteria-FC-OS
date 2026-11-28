@@ -10,9 +10,10 @@
     physical:Record<string,number>;character:Record<string,number>;overall:Record<string,unknown>};
   type Document={id:string;document_type:string;title:string;
     expiry_date:string|null;status:string};
-  let {owner,playerId,playerName,actorId,allowCreate,allowGoalManagement=false,onExpired,onRevoked}:{
+  let {owner,playerId,playerName,actorId,allowCreate,allowGoalManagement=false,section='all',onExpired,onRevoked}:{
     owner:Owner;playerId:string;playerName:string;actorId:string;allowCreate:boolean;
     allowGoalManagement?:boolean;
+    section?:'all'|'documents'|'development';
     onExpired:()=>void;onRevoked:()=>void;
   }=$props();
 
@@ -229,11 +230,12 @@
       Ανανέωση
     </button>
   </div>
-  <p class="admin-muted">Ιδιωτικές αξιολογήσεις και προστατευμένα έγγραφα του επιλεγμένου αθλητή.</p>
+  <p class="admin-muted">{section==='documents'?'Προστατευμένα έγγραφα του αθλητή.':section==='development'?'Αξιολογήσεις, στόχοι και πορεία ανάπτυξης του αθλητή.':'Ιδιωτικές αξιολογήσεις και προστατευμένα έγγραφα του επιλεγμένου αθλητή.'}</p>
   <div class="private-player-card-sections" aria-label="Σύνοψη φακέλου">
-    <div><h4>Έγγραφα</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμα':documents.length+' καταχωρίσεις'}</p></div>
-    <div><h4>Αξιολογήσεις</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμες':evaluations.length+' καταχωρίσεις'}</p></div>
+    {#if section!=='development'}<div><h4>Έγγραφα</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμα':documents.length+' καταχωρίσεις'}</p></div>{/if}
+    {#if section!=='documents'}<div><h4>Αξιολογήσεις</h4><p>{loading?'Φόρτωση…':error?'Μη διαθέσιμες':evaluations.length+' καταχωρίσεις'}</p></div>{/if}
   </div>
+  {#if section!=='documents'}
   {#if allowCreate}
     <button type="button" class="admin-secondary" onclick={()=>{showCreate=!showCreate;if(showCreate)showUpload=false;}} disabled={creating||uploading}>
       {showCreate?'Κλείσιμο φόρμας':'Νέα αξιολόγηση'}
@@ -265,6 +267,8 @@
     {/if}
   {/if}
   {#if createNotice}<p role="status">{createNotice}</p>{/if}
+  {/if}
+  {#if section!=='development'}
   {#if allowCreate}
     <button type="button" class="admin-secondary" disabled={uploading||creating}
       onclick={()=>{showUpload=!showUpload;if(showUpload)showCreate=false;}}>
@@ -301,18 +305,21 @@
       </form>
     {/if}
   {/if}
+  {/if}
+  {#if section!=='documents'}
   {#if allowGoalManagement}
     <AdminPlayerDevelopmentGoals {owner} {playerId} {playerName} {actorId}
       assessments={evaluations.map(e=>({id:e.id,summary:e.summary,created_at:e.created_at}))}
       {onExpired} {onRevoked}/>
   {/if}
-  <AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>
-  {#if uploadNotice}<p role="status">{uploadNotice}</p>{/if}
+  {/if}
+  {#if section!=='documents'}<AdminPlayerBirthdayPreferences {owner} {playerId} {playerName} {actorId} {onExpired} {onRevoked}/>{/if}
+  {#if section!=='development' && uploadNotice}<p role="status">{uploadNotice}</p>{/if}
   {#if loading}<p role="status">Ανάκτηση προστατευμένων στοιχείων…</p>{/if}
   {#if error}<p role="alert">{error}</p>{/if}
   {#if !loading&&!error}
     <div class="private-player-card-sections">
-      <div>
+      {#if section!=='documents'}<div>
         <h4>Αξιολογήσεις ({evaluations.length})</h4>
         {#each evaluations as evaluation (evaluation.id)}
           <details id={'academy-evaluation-'+evaluation.id}>
@@ -324,8 +331,8 @@
           </details>
         {/each}
         {#if evaluations.length===0}<p>Δεν υπάρχουν αξιολογήσεις.</p>{/if}
-      </div>
-      <div>
+      </div>{/if}
+      {#if section!=='development'}<div>
         <h4>Έγγραφα ({documents.length})</h4>
         {#each documents as doc (doc.id)}
           <p><strong>{doc.title}</strong> · {protectedTypes.find(type=>type.id===doc.document_type)?.label??doc.document_type}
@@ -334,7 +341,7 @@
         {/each}
         {#if documents.length===0}<p>Δεν έχουν καταχωριστεί έγγραφα.</p>{/if}
         <p class="admin-muted">Δεν επιτρέπεται λήψη αρχείων από αυτή την οθόνη.</p>
-      </div>
+      </div>{/if}
     </div>
   {/if}
 </section>
