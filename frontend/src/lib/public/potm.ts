@@ -56,7 +56,7 @@ export function projectPotm(sections: PublicSections | null): PotmView {
   for (const row of sections.players) {
     if (!row || row.organization_id !== club || row.team_type !== 'First Team') continue;
     if (typeof row.id !== 'string' || !row.id || row.id.length > 128 || ids.has(row.id) ||
-        typeof row.name !== 'string' || !row.name.trim() || !Number.isSafeInteger(row.number))
+        typeof row.name !== 'string' || !row.name.trim() || typeof row.number !== 'number' || !Number.isSafeInteger(row.number))
       return unavailable([], monthKey, sections.snapshot_at);
     ids.add(row.id);
     candidates.push({ id: row.id, name: row.name, number: row.number, position: row.position ?? null,
@@ -71,7 +71,7 @@ export function projectPotm(sections: PublicSections | null): PotmView {
   if (modules.length !== 1 || !['ready','empty'].includes(modules[0].status) ||
       modules[0].quarantined_count !== 0 || !result || result.organization_id !== club ||
       result.month_key !== monthKey || !Array.isArray(result.results) ||
-      !Number.isSafeInteger(result.total_votes) || result.total_votes < 0)
+      typeof result.total_votes !== 'number' || !Number.isSafeInteger(result.total_votes) || result.total_votes < 0)
     return unavailable(candidates, monthKey, sections.snapshot_at);
   if (!result.results.length && result.total_votes === 0)
     return { status: 'not-published', monthKey, snapshotAt: sections.snapshot_at, totalVotes: null, candidates };
@@ -82,7 +82,7 @@ export function projectPotm(sections: PublicSections | null): PotmView {
   let total = 0;
   for (const row of result.results) {
     if (!row || !ids.has(row.player_id) || votes.has(row.player_id) ||
-        !Number.isSafeInteger(row.votes) || row.votes <= 0)
+        typeof row.votes !== 'number' || !Number.isSafeInteger(row.votes) || row.votes <= 0)
       return unavailable(candidates, monthKey, sections.snapshot_at);
     votes.set(row.player_id, row.votes);
     total += row.votes;
