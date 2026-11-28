@@ -4,7 +4,7 @@
   type Fee={
     id:string;player_id:string;child_name:string;fee_month:string;amount_cents:number;
     currency:'EUR';status:'issued'|'paid'|'review_required'|'cancelled';payer_email:string;
-    cancelled_at:string|null;cancel_reason:string|null;
+    cancelled_at:string|null;cancel_reason:string|null;cancel_eligible?:boolean;
     payer_first_name:string;payer_last_name:string;
     payment_request_id:string|null;payment_status:string;checkout_url:string|null;
     sms_status:'reserved'|'accepted'|'unknown'|null;
@@ -16,12 +16,23 @@
   let rosterPlayers=$state<RosterPlayer[]>([]);
   let rosterError=$state(false);
   let fees=$state<Fee[]>([]);
-  // URL selection never fetches extra data or grants access. Filter only
-  // server-verified fees already authorized for the Academy finance reader.
-  const focus = $derived(/^[^\\x00-\\x1f\\x7f]{1,128}$/.test(focusPlayerId) ? focusPlayerId : '');
+  // A focused player gets a complete authorized per-child ledger, never a
+  // client-side subset of the latest organization-wide invoices.
+  const focus = $derived(/^[^\x00-\x1f\x7f]{1,128}$/.test(focusPlayerId)&&focusPlayerId===focusPlayerId.trim() ? focusPlayerId : '');
+  const invalidFocus=$derived(focusPlayerId!==''&&!focus);
+  let verifiedPlayer=$state<{id:string;name:string;active:boolean;month:string}|null>(null);
   const visibleFees = $derived(focus ? fees.filter(f=>f.player_id===focus) : fees);
-  const focusName = $derived(fees.find(f=>f.player_id===focus)?.child_name ??
-    rosterPlayers.find(p=>p.id===focus)?.name ?? 'Επιλεγμένος παίκτης');
+  const focusName=$derived(verifiedPlayer?.id===focus?verifiedPlayer.name:'Επιλεγμένος παίκτης');
+  const departureReview=$derived.by(()=>{
+    const sum=(rows:Fee[])=>rows.reduce((total,row)=>total+row.amount_cents,0);
+    const open=visibleFees.filter(row=>row.status==='issued'||row.status==='review_required');
+    const eligible=open.filter(row=>row.cancel_eligible===true);
+    const review=open.filter(row=>row.cancel_eligible!==true);
+    return {open:sum(open),eligible:sum(eligible),eligibleCount:eligible.length,
+      review:sum(review),reviewCount:review.length,
+      paid:sum(visibleFees.filter(row=>row.status==='paid')),
+      cancelled:sum(visibleFees.filter(row=>row.status==='cancelled'))};
+  });
   let status=$state<'idle'|'loading'|'ready'|'error'>('idle');
   let pending=$state(false);
   let message=$state('');
@@ -63,7 +74,7 @@
     const f=value as Record<string,unknown>;
     return typeof f.id==='string'&&/^[0-9a-f-]{36}$/i.test(f.id)&&
       typeof f.player_id==='string'&&typeof f.child_name==='string'&&
-      typeof f.fee_month==='string'&&/^20\d{2}-(0[1-9]|1[0-2])-01$/.test(f.fee_month)&&
+      typeof f.fee_month==='string'&&/^(?:20\d{2}|2100)-(0[1-9]|1[0-2])-01$/.test(f.fee_month)&&
       typeof f.amount_cents==='number'&&Number.isSafeInteger(f.amount_cents)&&f.amount_cents>0&&
       f.amount_cents<=100000000&&f.currency==='EUR'&&
       (f.status==='issued'||f.status==='paid'||f.status==='review_required'||f.status==='cancelled')&&
@@ -77,8 +88,8 @@
   }
   $effect(()=>{
     const selected=owner;const user=sessionId;const allowed=canWrite;
-    void user;rosterPlayers=[];rosterError=false;
-    if(selected!=='lefteria_fc_academy'||!allowed)return;
+    void user;void focus;rosterPlayers=[];rosterError=false;
+    if(selected!=='lefteria_fc_academy'||!allowed||focusPlayerId)return;
     let active=true;
     untrack(()=>{void(async()=>{
       try{
@@ -108,28 +119,39 @@
   $effect(()=>{
     // Change of finance organization or account invalidates any previous
     // success message or invoice selection; a normal list refresh does not.
-    void owner;void sessionId;
-    message='';selectedInvoiceIds=[];
+    void owner;void sessionId;void focus;
+    message='';selectedInvoiceIds=[];playerId=focus;issuingId=null;
+    cancellationDraft=null;cancellationReason='';
   });
 
   $effect(()=>{
-    const selected=owner;const user=sessionId;void user;void refresh;
-    status='idle';fees=[];
+    const selected=owner;const user=sessionId;const target=focus;const bad=invalidFocus;void user;void refresh;
+    status='idle';fees=[];verifiedPlayer=null;
     if(selected!=='lefteria_fc_academy')return;
+    if(bad){status='error';message='Μη έγκυρος κωδικός αθλητή.';return;}
     let active=true;
     status='loading';
     untrack(()=>{void(async()=>{
       try{
-        const response=await fetch('/api/admin/finance/payabl/training-fees/?organization_id='+encodeURIComponent(selected),{
+        const response=await fetch('/api/admin/finance/payabl/training-fees/?'+new URLSearchParams({organization_id:selected,...(target?{player_id:target}:{})}).toString(),{
           cache:'no-store',credentials:'same-origin'
         });
         if(!response.ok)throw new Error('Δεν είναι διαθέσιμος ο κατάλογος μηνών.');
         const raw:unknown=await response.json();
         if(!raw||typeof raw!=='object'||Array.isArray(raw)||
           !('organization_id' in raw)||raw.organization_id!==selected||
-          !('fees' in raw)||!Array.isArray(raw.fees)||raw.fees.length>100||!raw.fees.every(validFee))
+          !('fees' in raw)||!Array.isArray(raw.fees)||raw.fees.length>(target?1000:100)||!raw.fees.every(validFee))
           throw new Error('Μη επαληθευμένα στοιχεία τιμολόγησης.');
         if(!active)return;
+        if(target){
+          const scoped=raw as Record<string,unknown>;
+          if(scoped.player_id!==target||typeof scoped.player_name!=='string'||!scoped.player_name||
+            scoped.player_name.length>200||typeof scoped.player_active!=='boolean'||
+            typeof scoped.current_month!=='string'||!/^\d{4}-(0[1-9]|1[0-2])-01$/.test(scoped.current_month)||
+            !raw.fees.every(f=>f.player_id===target&&typeof f.cancel_eligible==='boolean'))
+            throw new Error('Μη επαληθευμένος πλήρης φάκελος αθλητή.');
+          verifiedPlayer={id:target,name:scoped.player_name,active:scoped.player_active,month:scoped.current_month};
+        }
         fees=raw.fees;status='ready';
       }catch(error){if(active){status='error';message=error instanceof Error?error.message:'Σφάλμα';}}
     })();});
@@ -185,9 +207,10 @@
 
   async function issue(event:SubmitEvent){
     event.preventDefault();
-    if(!canWrite||pending||owner!=='lefteria_fc_academy')return;
+    if(!canWrite||pending||owner!=='lefteria_fc_academy'||invalidFocus||
+      (focus&&(verifiedPlayer?.id!==focus||!verifiedPlayer.active||playerId!==focus)))return;
     const total=cents(amount);
-    if(!total||!/^20\d{2}-(0[1-9]|1[0-2])$/.test(month)||
+    if(!total||!/^(?:20\d{2}|2100)-(0[1-9]|1[0-2])$/.test(month)||
        playerId.length<1||playerId.length>128||
        !/^[\x20-\x7e]{3,50}$/.test(email)||!email.includes('@')||
        !/^[\x20-\x7e]{1,50}$/.test(first)||!/^[\x20-\x7e]{1,50}$/.test(last)){
@@ -234,7 +257,7 @@
 
   function canCancelFuture(fee:Fee):boolean {
     return canWrite && fee.status==='issued' && fee.payment_request_id===null &&
-      fee.sms_status===null && fee.fee_month>currentFeeMonth;
+      fee.sms_status===null && (focus?verifiedPlayer?.id===focus&&fee.player_id===focus&&fee.cancel_eligible===true:fee.fee_month>currentFeeMonth);
   }
 
   async function cancelFuture(fee:Fee) {
@@ -321,23 +344,37 @@
         <a href="/admin/finance?organization_id=lefteria_fc_academy">Όλες οι χρεώσεις της Ακαδημίας ↗</a>
       </div>
     {/if}
+    {#if focus&&status==='ready'&&verifiedPlayer?.id===focus}
+      <section class="departure-review" data-testid="admin-player-departure-review">
+        <h3>Οικονομικός έλεγχος αθλητή · πριν από αποχώρηση</h3>
+        <p>Πλήρες ιστορικό μηνιαίων χρεώσεων · {verifiedPlayer.active?'Ενεργός αθλητής':'Μη ενεργός αθλητής'}. Δεν μεταβάλλεται η κατάσταση του ρόστερ.</p>
+        <div class="departure-totals">
+          <div><small>Ανεξόφλητες χρεώσεις / σε έλεγχο</small><strong>{money(departureReview.open)}</strong></div>
+          <div><small>Μελλοντικές προς ακύρωση ({departureReview.eligibleCount})</small><strong>{money(departureReview.eligible)}</strong></div>
+          <div><small>Απαιτούν ξεχωριστό έλεγχο ({departureReview.reviewCount})</small><strong>{money(departureReview.review)}</strong></div>
+          <div><small>Πληρωμένες</small><strong>{money(departureReview.paid)}</strong></div>
+          <div><small>Ήδη ακυρωμένες</small><strong>{money(departureReview.cancelled)}</strong></div>
+        </div>
+        <p>Ακυρώστε μόνο επιλέξιμους μελλοντικούς μήνες με τις υπάρχουσες ενέργειες. Οι πληρωμένες, τρέχουσες ή συνδεδεμένες με πληρωμή χρεώσεις δεν διαγράφονται. Ελέγξτε επίσης την πρόσβαση κηδεμόνων πριν από αποχώρηση ή επανενεργοποίηση.</p>
+      </section>
+    {/if}
     <p>Οι ακυρωμένες μελλοντικές χρεώσεις παραμένουν στο ιστορικό, δεν
       υπολογίζονται ως ενεργές οφειλές και δεν επηρεάζουν τις εισπράξεις.</p>
     <p>Εκδίδετε μόνο τους μήνες που επιλέγετε. Δεν δημιουργούνται αυτόματα 12 χρεώσεις.
       Κάθε μήνας αντιστοιχίζεται στον επαληθευμένο γονέα και στο συγκεκριμένο παιδί.</p>
-    {#if canWrite}
+    {#if canWrite&&!invalidFocus&&(!focus||(status==='ready'&&verifiedPlayer?.id===focus&&verifiedPlayer.active))}
       <form class="fee-form" onsubmit={issue}>
         <label for="academy-fee-player">ID παιδιού από το Ρόστερ Ακαδημίας</label>
-        <input id="academy-fee-player" bind:value={playerId} maxlength="128" required
+        <input id="academy-fee-player" bind:value={playerId} maxlength="128" required readonly={!!focus}
           list="academy-fee-player-options" placeholder="Επιλογή παιδιού από το ρόστερ"/>
         <datalist id="academy-fee-player-options">
           {#each rosterPlayers as player (player.id)}
             <option value={player.id}>{player.name}</option>
           {/each}
         </datalist>
-        {#if rosterError}
+        {#if !focus&&rosterError}
           <small>Το ρόστερ δεν φορτώθηκε. Χρησιμοποιήστε το ID από το Ρόστερ Ακαδημίας.</small>
-        {:else if rosterPlayers.length===50}
+        {:else if !focus&&rosterPlayers.length===50}
           <small>Εμφανίζονται οι πρώτοι 50 παίκτες. Για επιπλέον παιδιά,
             χρησιμοποιήστε το ID από το Ρόστερ Ακαδημίας.</small>
         {/if}
@@ -488,4 +525,8 @@
     color:inherit;border:1px solid var(--border-color,#777);border-radius:7px;padding:10px}
   .fee-cancel-editor p{font-size:12px;margin:0}
   .fee-pdf{background:transparent;color:inherit}
+  .departure-review{display:grid;gap:12px;padding:14px;border:1px solid var(--admin-line,#555);border-radius:8px;margin:12px 0}
+  .departure-review h3,.departure-review p{margin:0}
+  .departure-totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:10px}
+  .departure-totals>div{display:grid;gap:6px;border:1px solid var(--admin-line,#555);padding:10px;border-radius:6px}
 </style>
