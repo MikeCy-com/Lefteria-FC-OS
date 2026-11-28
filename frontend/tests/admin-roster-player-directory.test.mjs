@@ -36,7 +36,7 @@ test('admin player list uses current backend membership, not fake data or stale 
   assert.match(page,/\{#if organization && \$auth\.session\}/);
   assert.ok(page.includes("{#key organization+':'+focusedGroup.id"));
   assert.match(workspace,/AdminRosterPlayersPanel/);
-  assert.match(workspace,/\{#if canCreate\}/);
+  assert.match(workspace,/\{#if access\.players\}/);
   assert.match(ui,/data-testid="admin-private-player-directory"/);
   assert.match(ui,/data-testid="admin-players-list"/);
   assert.match(ui,/const source=group\?'\/api\/admin\/football\/group-players\?'\:'\/api\/admin\/football\/players\?'/);
