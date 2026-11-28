@@ -50,3 +50,23 @@ test('registration PDFs are generated on the server and stored in the same submi
   assert.match(sql,/v_doc\.id,NEW\.organization_id,NEW\.player_id/);
   assert.match(sql,/'quarantined'/);
 });
+
+test('current contact corrections preserve original applications and existing guardian access rules',()=>{
+  const sql=read('backend/src/LefteriaFc.Infrastructure/Persistence/Migrations/20261128193000_AcademyPlayerCurrentContact.cs');
+  assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
+  assert.match(sql,/authorize_academy_private_profile\(_digest,_player,true\)/);
+  assert.match(sql,/player_id=_player AND revision=_expected/);
+  assert.match(sql,/operational_contact_only/);
+  assert.doesNotMatch(sql,/UPDATE academy_intake\.registrations|INSERT INTO identity\.mobile_identities|UPDATE identity\.family_guardian_permissions/);
+  const panel=read('frontend/src/lib/admin/AdminPlayerPrivateProfilePanel.svelte');
+  assert.match(panel,/profile\?\.current_contact\?\?/);
+  assert.match(panel,/expectedRevision:expected,contact:/);
+  assert.match(panel,/result\.player_id!==id/);
+  assert.match(panel,/allowWrite&&!editingContact/);
+  assert.match(panel,/guardianPhone=\{profile\.registration\.guardian_phone\}/);
+  const grants=read('ops/postgres/academy-private-player-profiles-grants.sql');
+  assert.match(grants,/has_function_privilege\(m,'club\.write_admin_academy_player_contact/);
+  const integration=read('ops/postgres/academy-enrollment-checks.sql');
+  assert.match(integration,/Cross-city contact write accepted/);
+  assert.match(integration,/Stale contact update accepted/);
+});
