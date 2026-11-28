@@ -184,7 +184,8 @@
     });
   }
   $effect(()=>{
-    const currentOwner=owner,currentPlayer=playerId,currentActor=actorId;
+    const currentOwner=owner,currentPlayer=playerId,currentActor=actorId,currentSection=section;
+    const resources:('evaluations'|'documents')[]=currentSection==='documents'?['documents']:currentSection==='development'?['evaluations']:['evaluations','documents'];
     void generation;
     evaluations=[];documents=[];loading=false;error='';
     if(!browser||!idValid(currentPlayer)||!currentActor)return;
@@ -194,7 +195,7 @@
       try{
         const query=new URLSearchParams({organization_id:currentOwner});
         const prefix='/api/admin/club/players/'+encodeURIComponent(currentPlayer);
-        const responses=await Promise.all(['evaluations','documents'].map(resource=>
+        const responses=await Promise.all(resources.map(resource=>
           fetch(prefix+'/'+resource+'?'+query.toString(),{
             credentials:'same-origin',cache:'no-store',signal:controller.signal,
             headers:{Accept:'application/json'}
@@ -205,12 +206,18 @@
         if(responses.some(response=>!response.ok))
           throw new Error('Οι ιδιωτικοί φάκελοι δεν είναι διαθέσιμοι.');
         const payloads:unknown[]=await Promise.all(responses.map(r=>r.json()));
-        if(!verifiedList(payloads[0],'evaluations',currentOwner,currentPlayer)||
-           !verifiedList(payloads[1],'documents',currentOwner,currentPlayer))
-          throw new Error('Μη επαληθευμένη απόκριση ιδιωτικού φακέλου.');
-        if(!controller.signal.aborted){
-          evaluations=payloads[0].evaluations as Evaluation[];
-          documents=payloads[1].documents as Document[];
+        const verifiedPayloads:Record<string,unknown>[]=[];
+        for(let i=0;i<resources.length;i++){
+          const payload=payloads[i];
+          if(!verifiedList(payload,resources[i],currentOwner,currentPlayer))
+            throw new Error('Μη επαληθευμένη απόκριση ιδιωτικού φακέλου.');
+          verifiedPayloads.push(payload);
+        }
+        if(!controller.signal.aborted&&owner===currentOwner&&playerId===currentPlayer&&actorId===currentActor&&section===currentSection){
+          resources.forEach((resource,i)=>{
+            if(resource==='evaluations')evaluations=verifiedPayloads[i].evaluations as Evaluation[];
+            else documents=verifiedPayloads[i].documents as Document[];
+          });
         }
       }catch{
         if(!controller.signal.aborted){
