@@ -245,23 +245,23 @@
         {#if allowWrite}
           <label>Ανέβασμα φωτογραφίας
             <input type="file" accept="image/jpeg,image/png,image/gif,image/webp"
-              disabled={saving||uploading}
+              disabled={saving||uploading||editingName||editingContact||sportingDirty||savingName||savingContact}
               onchange={event=>selectedFile=event.currentTarget.files?.[0]??null}/>
           </label>
           <p class="admin-muted">Μέχρι 5 MB. Η εικόνα μετατρέπεται σε ιδιωτική JPEG χωρίς μεταδεδομένα EXIF.</p>
-          <button type="button" class="admin-secondary" disabled={!canUpload||uploading||saving}
+          <button type="button" class="admin-secondary" disabled={!canUpload||uploading||saving||sportingDirty||editingName||editingContact||savingName||savingContact}
             data-testid="admin-player-upload-private-photo" onclick={()=>void changePortrait()}>
             {uploading?'Μεταφόρτωση…':'Αποθήκευση φωτογραφίας'}
           </button>
           {#if profile.has_portrait}
-            <button type="button" class="admin-secondary" disabled={uploading||saving}
+            <button type="button" class="admin-secondary" disabled={uploading||saving||sportingDirty||editingName||editingContact||savingName||savingContact}
               onclick={()=>void changePortrait(true)}>Αφαίρεση φωτογραφίας</button>
           {/if}
         {/if}
       </div>
       <div class="admin-player-private-fields">
         <div class="admin-player-official">
-          <strong>Επίσημα στοιχεία εγγραφής</strong>
+          <strong>Τρέχοντα επίσημα στοιχεία ρόστερ</strong>
           <span>{profile.official_name}</span>
           {#if allowWrite&&!editingName}
             <button type="button" class="admin-secondary" disabled={saving||uploading||savingContact||editingContact||sportingDirty} onclick={()=>{newName=profile?.official_name??'';editingName=true;error='';notice='';}}>Διόρθωση ονόματος</button>
@@ -277,7 +277,7 @@
             </form>
           {/if}
           <span>Αριθμός: {profile.official_number??'—'} · Θέση: {profile.official_position??'—'}</span>
-          <small>Τα στοιχεία εγγραφής διατηρούνται χωριστά για προστασία των αγώνων, γονέων και παραστατικών.</small>
+          <small>Η αρχική εγγραφή διατηρείται χωριστά. Οι αλλαγές στο ρόστερ δεν μεταβάλλουν το υπογεγραμμένο έντυπο.</small>
         </div>
         <label>Αθλητικό βιογραφικό
           <textarea bind:value={biography} maxlength="1000" rows="5"
@@ -307,6 +307,7 @@
         {/if}
       </div>
     </div>
+    {#if sportingDirty}<p class="admin-muted" role="status">Αποθηκεύστε τις αθλητικές προτιμήσεις πριν αλλάξετε όνομα, φωτογραφία ή στοιχεία επικοινωνίας.</p>{/if}
     <section class="registration-source-card" data-testid="admin-player-current-contact">
       <div class="contact-header">
         <h3>Τρέχοντα στοιχεία επικοινωνίας γονέα / κηδεμόνα</h3>
