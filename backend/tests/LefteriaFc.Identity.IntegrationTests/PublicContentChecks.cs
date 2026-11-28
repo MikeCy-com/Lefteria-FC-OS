@@ -152,6 +152,27 @@ internal sealed partial class IdentityHttpChecks
         await AssertPage("?category=missing-category&offset=0&limit=1", 0, 0, 1);
         await AssertPage("?organization_id=lefteria_fc&offset=1&limit=1", 2, 1, 1, "shared");
 
+        // Exact database lookup must not fold case, return another owner,
+        // treat SQL metacharacters as selectors or reject missing long IDs
+        // with a database error. All retain the public 404/no-store contract.
+        foreach (var path in new[]
+        {
+            "/api/public/news/SHARED",
+            "/api/public/news/not-present",
+            "/api/public/news/" + Uri.EscapeDataString("shared' OR '1'='1"),
+            "/api/public/news/" + new string('x', 129),
+            "/api/public/news/first?organization_id=lefteria_fc_academy"
+        })
+        {
+            using var missing = await client.GetAsync(path);
+            if (missing.StatusCode != HttpStatusCode.NotFound ||
+                missing.Headers.CacheControl?.NoStore != true)
+                throw new InvalidOperationException("Exact public detail lookup changed its missing-article contract.");
+            using var json = JsonDocument.Parse(await missing.Content.ReadAsStringAsync());
+            if (json.RootElement.GetProperty("code").GetString() != "not_found")
+                throw new InvalidOperationException("Public detail error contract changed.");
+        }
+
         await database.AddPublicNewsParityOverlaysAsync();
         try
         {
