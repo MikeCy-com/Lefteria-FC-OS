@@ -31,7 +31,7 @@
   const canTrainingWrite=$derived(access.trainingWrite);
   const canAttendanceWrite=$derived(access.attendanceWrite);
   const canEvaluate=$derived(access.profileWrite);
-  const canPrivate=$derived(access.players);
+  const canPrivate=$derived(access.profileWrite);
   const canAnnounce=$derived(access.announcements);
   const canFinance=$derived(access.finance);
   const visibleTabs=$derived((['players','training','attendance','matches','coaches','settings'] as Tab[]).filter(item=>access[item]));
@@ -90,10 +90,10 @@
           κατάλογο του οργανισμού και όχι από υποθετικό ρόστερ.</p>
         {#if access.players}
           <AdminRosterPlayersPanel owner={organization} actorId={user.id} {groups} focusGroupId={group.id}
-            allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance}
+            allowPrivate={canPrivate} allowEvaluationWrite={canEvaluate} allowFinance={canFinance} allowAssignments={access.profileWrite}
             canReadAttendance={access.attendance} canWriteAttendance={canAttendanceWrite}
             allowGoalManagement={user.role==='super_admin'}
-            allowGoalRead={user.role==='manager'}
+            allowGoalRead={user.role==='manager' && organization==='lefteria_fc_academy'}
             {onExpired} {onRevoked} {onChanged}/>
         {:else}
           <p role="status">Η διαχείριση ατομικών φακέλων απαιτεί επαληθευμένα δικαιώματα.</p>
