@@ -15,7 +15,7 @@ const player=(id,last_assignment,starts,reserves)=>({player_id:id,name:'Player '
 const roster=[player('a','starter',4,0),player('b','starter',3,1),player('c','reserve',1,3),player('d','reserve',0,4),player('e',null,0,0)];
 const squad=roster.slice(0,4).map(p=>({player_id:p.player_id,assignment:p.last_assignment,position:null}));
 const base={match_id:'match-a',organization_id:'lefteria_fc_academy',host_id:'group-a',mode:'grassroots',version:1,
-  state:'selected',completed:false,roster_stale:false,roster,squad,statistics:[],rotation_note:'',review_reason:''};
+  state:'selected',completed:false,roster_stale:false,roster,squad,statistics:[],rotation_note:'',review_reason:'',timing:{frozen:false,settings_version:null,duration_minutes:null,players_on_field:null,attendance_ids:null}};
 test('grassroots recommendations prioritize last reserves and never add unselected children',()=>{
   const result=recommendGrassrootsStarters(roster,squad,2);
   assert.deepEqual(result.filter(p=>p.assignment==='starter').map(p=>p.player_id),['c','d']);
