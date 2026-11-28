@@ -284,8 +284,8 @@
                 <button type="button" class="admin-secondary" disabled={saving||loading}
                   data-testid="admin-open-player-private-profile"
                   aria-expanded={inspectedProfile===player.id}
-                  onclick={()=>inspectedProfile=inspectedProfile===player.id?null:player.id}>
-                  {inspectedProfile===player.id?'Κλείσιμο προφίλ':'Προφίλ · βιογραφικό & φωτογραφία'}
+                  onclick={()=>{inspectedProfile=inspectedProfile===player.id?null:player.id;inspectedPlayer=null;inspectedGoals=null;}}>
+                  {inspectedProfile===player.id?'Κλείσιμο προφίλ':'Προβολή / επεξεργασία προφίλ'}
                 </button>
               {/if}
               {#if allowGoalRead && currentGroup && currentGroups(player).includes(currentGroup)}
@@ -293,7 +293,7 @@
                   data-testid="admin-manager-goal-reader-toggle"
                   aria-expanded={inspectedGoals===player.id}
                   disabled={saving||loading}
-                  onclick={()=>inspectedGoals=inspectedGoals===player.id?null:player.id}>
+                  onclick={()=>{inspectedGoals=inspectedGoals===player.id?null:player.id;inspectedProfile=null;inspectedPlayer=null;}}>
                   {inspectedGoals===player.id?'Κλείσιμο στόχων':'Ατομικοί στόχοι · Προβολή'}
                 </button>
               {/if}
@@ -301,7 +301,7 @@
                 <button type="button" class="admin-secondary"
                   aria-expanded={inspectedPlayer===player.id}
                   disabled={saving||loading}
-                  onclick={()=>inspectedPlayer=inspectedPlayer===player.id?null:player.id}>
+                  onclick={()=>{inspectedPlayer=inspectedPlayer===player.id?null:player.id;inspectedProfile=null;inspectedGoals=null;}}>
                   {inspectedPlayer===player.id?'Κλείσιμο φακέλου':'Αξιολογήσεις & έγγραφα'}
                 </button>
               {/if}
@@ -345,6 +345,7 @@
             </div>
             {#if inspectedProfile===player.id && allowPrivate && owner==='lefteria_fc_academy'}
               <div class="admin-player-individual-workspace" data-testid="admin-player-private-profile-workspace">
+                <h3>{player.name} · Στοιχεία & προφίλ</h3>
                 {#key actorId+':'+player.id}
                   <AdminPlayerPrivateProfilePanel playerId={player.id} playerName={player.name}
                     {actorId} allowWrite={allowEvaluationWrite} {onExpired} {onRevoked}/>
@@ -361,6 +362,7 @@
             {/if}
             {#if inspectedPlayer===player.id && allowPrivate && currentGroups(player).length>0}
               <div class="admin-player-individual-workspace" data-testid="admin-player-individual-workspace">
+                <h3>{player.name} · Έγγραφα & αξιολογήσεις</h3>
                 <AdminPlayerPrivateRecordsPanel {owner} playerId={player.id}
                   playerName={player.name} {actorId} allowCreate={allowEvaluationWrite} {allowGoalManagement} {onExpired} {onRevoked}/>
                 {#if currentGroup && owner==='lefteria_fc_academy' && canReadAttendance}
