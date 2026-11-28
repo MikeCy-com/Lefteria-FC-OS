@@ -38,6 +38,7 @@
   let territoryError = $state('');
   let territoryLoading = $state(false);
   let enrollingId = $state('');
+  let openedRegistration=$state<string|null>(null);
   let cityId = $state('');
   let locationId = $state('');
   let groupId = $state('');
@@ -98,7 +99,7 @@
     search = '';
     lookedUp = false;
     requestId = null;
-    enrollingId = ''; cityId = ''; locationId = ''; groupId = '';
+    enrollingId = ''; cityId = ''; locationId = ''; groupId = '';openedRegistration=null;
     position = ''; shirtNumber = 0; enrollmentRequestId = '';
     guardianReviewId = '';justEnrolled=null;
     message = '';
@@ -383,13 +384,17 @@
               <div class="academy-registration-card-heading">
                 <div>
                   <p class="admin-eyebrow">{row.submission_source==='website'?'ONLINE ΑΙΤΗΣΗ':'ΕΓΓΡΑΦΗ ΑΚΑΔΗΜΙΑΣ'}</p>
-                  <h3>{row.applicant_first_name} {row.applicant_last_name}</h3>
+                  <h3><button type="button" class="registration-name-link" disabled={busy}
+                    aria-expanded={openedRegistration===row.id} onclick={()=>{openedRegistration=openedRegistration===row.id?null:row.id;enrollingId='';guardianReviewId='';}}>{row.applicant_first_name} {row.applicant_last_name}</button></h3>
                   <small class="registration-source">Αριθμός αίτησης: {row.id}</small>
                 </div>
                 <strong class="academy-registration-status" data-status={row.status}>
                   {labels[row.status] ?? row.status}
                 </strong>
               </div>
+              <button type="button" class="admin-secondary registration-open" disabled={busy} aria-expanded={openedRegistration===row.id}
+                onclick={()=>{openedRegistration=openedRegistration===row.id?null:row.id;enrollingId='';guardianReviewId='';}}>{openedRegistration===row.id?'Κλείσιμο αίτησης':'Άνοιγμα αίτησης ›'}</button>
+              {#if openedRegistration===row.id}
               <div class="academy-registration-card-details">
                 <div><span>Ημερομηνία γέννησης</span><strong>{row.applicant_birth_date}</strong></div>
                 <div><span>Κηδεμόνας · {row.guardian_relationship}</span><strong>{row.guardian_name}</strong></div>
@@ -497,6 +502,7 @@
                   </button>
                 {/if}
               {/each}
+              {:else}<p class="admin-muted">{registrationNextStep(row)}</p>{/if}
             </article>
           {/each}
         {:else}
@@ -609,4 +615,7 @@
     .academy-registration-filters{display:grid;grid-template-columns:1fr}
     .academy-registration-card-details{grid-template-columns:1fr}}
 
+  .registration-name-link{background:none;border:0;padding:0;color:inherit;font:inherit;text-align:left;cursor:pointer;min-height:44px}
+  .registration-name-link:hover,.registration-name-link:focus-visible{color:var(--admin-gold);text-decoration:underline}
+  .registration-open{justify-self:start}
 </style>
