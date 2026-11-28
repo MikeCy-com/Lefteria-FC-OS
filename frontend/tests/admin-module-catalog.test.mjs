@@ -85,10 +85,11 @@ test('admin navigation exposes real operational destinations without five orphan
   assert.match(frame,/href="\/admin\/profile"/);
   assert.match(frame,/href="\/admin\/profile#access"/);
   assert.match(frame,/href="\/admin\/settings"/);
-  assert.match(frame,/href="\/admin\/groups"/);
+  assert.match(frame,/href="\/admin\/groups\?organization_id=lefteria_fc"/);
+  assert.match(frame,/href="\/admin\/groups\?organization_id=lefteria_fc_academy"/);
   for(const orphan of ['matches','evaluations','documents'])
     assert.doesNotMatch(frame,new RegExp('href="/admin/'+orphan+'"'));
-  const assigned=frame.match(/\{#if liveIds\.has\('assigned_groups'\)\}([\s\S]*?)\{\/if\}/)?.[1]??'';
+  const assigned=frame.match(/\{#if academyCoachTools\}([\s\S]*?)\{\/if\}/)?.[1]??'';
   assert.match(assigned,/href="\/admin\/schedule"/);
   assert.match(assigned,/href="\/admin\/attendance"/);
   assert.doesNotMatch(workspace,/data-testid="admin-quick-navigation"/);
@@ -176,7 +177,7 @@ test('live workflows are reachable in contextual groups and authorized standalon
   for(const href of ['/admin/schedule','/admin/attendance','/admin/evaluations','/admin/documents','/admin/matches'])
     assert.match(readFileSync(new URL('../src/routes'+href+'/+page.svelte',import.meta.url),'utf8'),/ADMIN_AUTH_CONTEXT/);
   for(const href of ['/admin/hub','/admin/academy-office','/admin/groups'])
-    assert.ok(frame.includes('href="'+href+'"'),href);
+    assert.ok(frame.includes('href="'+href+'"')||(['/admin/groups','/admin/territories'].includes(href)&&['lefteria_fc','lefteria_fc_academy'].every(owner=>frame.includes('href="'+href+'?organization_id='+owner+'"'))),href);
   const settings=readFileSync(new URL('../src/routes/admin/settings/+page.svelte',import.meta.url),'utf8');
   assert.match(frame,/href="\/admin\/settings"/);
   assert.match(settings,/href="\/admin\/staff"/);
