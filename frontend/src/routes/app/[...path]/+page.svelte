@@ -152,8 +152,8 @@
     if (role === 'parent' && tab === 'calendar' && childId) query.set('player_id', childId);
     await goto('/app?' + query.toString(), { reset: true });
   }
-  async function changeRole(nextRole: MobileRole) {
-    if (await controller.switchRole(nextRole)) await openTab('home');
+  async function changeRole(nextRole: MobileRole, destination: 'home' | 'profile' = 'home') {
+    if (await controller.switchRole(nextRole)) await openTab(destination);
   }
   async function openProfile() {
     // Own-profile updates are supported for the current mobile identity.
@@ -241,12 +241,15 @@
           {/if}
         {/key}
       {:else if activeTab === 'profile' && !composing}
+        {#key user.id+':'+role}
         <MobileProfile {user} busy={$controller.busy} error={$controller.error}
           playerOptions={$controller.playerOptions} playerOptionsStatus={$controller.playerOptionsStatus} playerOptionsError={$controller.playerOptionsError}
           onLoadPlayerOptions={() => controller.loadPlayerOptions()}
           onSaveFavoriteTeam={(value) => controller.updateFavoriteTeam(value)}
           onSaveProfile={(changes) => controller.updateProfile(changes)}
-          onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout} />
+          onUploadAvatar={(file) => controller.uploadAvatar(file)} onLogout={logout}
+          onSwitchRole={(nextRole) => changeRole(nextRole, 'profile')} />
+        {/key}
         {#if role === 'fan'}
         {#key `${user.id}:${user.phone}`}
           <MobileRecipientInvitations
