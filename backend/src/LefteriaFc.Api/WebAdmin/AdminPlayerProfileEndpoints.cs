@@ -10,6 +10,7 @@ using NpgsqlTypes;
 
 namespace LefteriaFc.Api.WebAdmin;
 
+public sealed record AcademyPlayerLifecycleCommand(string? Action,int ExpectedRevision,Guid RequestId,string? Reason);
 public sealed record UpdateAcademyPlayerContact(
     string? Name,string? Relationship,string? Phone,string? Email);
 public sealed record CorrectAcademyPlayerName(string? ExpectedName,string? Name);
@@ -107,6 +108,25 @@ public static class AdminPlayerProfileEndpoints
             }
             catch(PostgresException error){throw MapSql(error);}
         }).WithName("EditAdminAcademyPrivatePlayerProfile").ExcludeFromDescription();
+
+        routes.MapGet("/lifecycle",async (string playerId,string? organization_id,
+            HttpContext context,WebAdminService admin,IWebAdminSecrets secrets,
+            WebAdminConnections connections,CancellationToken ct)=>
+        {
+            var digest=await SessionDigest(playerId,organization_id,context,admin,secrets,ct);
+            return await Lifecycle(digest,playerId,"read",0,Guid.Empty,"",connections,ct);
+        }).WithName("ReadAdminAcademyPlayerLifecycle").ExcludeFromDescription();
+        routes.MapPost("/lifecycle",async (string playerId,string? organization_id,
+            AcademyPlayerLifecycleCommand body,HttpContext context,WebAdminService admin,IWebAdminSecrets secrets,
+            WebAdminConnections connections,CancellationToken ct)=>
+        {
+            var digest=await SessionDigest(playerId,organization_id,context,admin,secrets,ct);
+            if(body.Action is not ("archive" or "reactivate") || body.ExpectedRevision<0 ||
+              body.RequestId==Guid.Empty || body.Reason is null || body.Reason.Length is <8 or >240 ||
+              body.Reason!=body.Reason.Trim() || body.Reason.Any(char.IsControl))
+                throw new WebAdminException(422,"player_lifecycle_invalid","Review the player and provide a reason.");
+            return await Lifecycle(digest,playerId,body.Action!,body.ExpectedRevision,body.RequestId,body.Reason,connections,ct);
+        }).WithName("ChangeAdminAcademyPlayerLifecycle").ExcludeFromDescription();
 
         routes.MapGet("/photo",async (string playerId,string? organization_id,
             HttpContext context,WebAdminService admin,IWebAdminSecrets secrets,
@@ -266,6 +286,26 @@ public static class AdminPlayerProfileEndpoints
             if(await command.ExecuteScalarAsync(ct) is not true)
                 throw new WebAdminException(503,"player_portrait_unavailable",
                     "Private player portrait was not saved.");
+        }
+        catch(PostgresException error){throw MapSql(error);}
+    }
+
+    private static async Task<IResult> Lifecycle(string digest,string player,string action,int revision,Guid request,string reason,
+        WebAdminConnections connections,CancellationToken ct)
+    {
+        await using var db=await connections.OpenAsync(ct);
+        await using var command=new NpgsqlCommand(
+            "SELECT club.admin_academy_player_lifecycle(@digest,@player,@action,@revision,@request,@reason)::text",db);
+        command.Parameters.AddWithValue("digest",digest);
+        command.Parameters.AddWithValue("player",player);
+        command.Parameters.AddWithValue("action",action);
+        command.Parameters.AddWithValue("revision",revision);
+        command.Parameters.AddWithValue("request",request);
+        command.Parameters.AddWithValue("reason",reason);
+        try
+        {
+            var json=await command.ExecuteScalarAsync(ct) as string;
+            return json is null?Results.Problem(statusCode:503):Results.Content(json,"application/json",Encoding.UTF8,200);
         }
         catch(PostgresException error){throw MapSql(error);}
     }
