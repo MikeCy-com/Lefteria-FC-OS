@@ -44,6 +44,7 @@
   let shirtNumber = $state(0);
   let enrollmentRequestId = $state('');
   let guardianReviewId = $state('');
+  let justEnrolled=$state<string|null>(null);
   const permittedCities = $derived(
     territory?.cities.filter(city => city.is_active &&
       territory?.locations.some(loc => loc.city_id === city.id && loc.can_manage && loc.is_active)) ?? []);
@@ -98,7 +99,7 @@
     requestId = null;
     enrollingId = ''; cityId = ''; locationId = ''; groupId = '';
     position = ''; shirtNumber = 0; enrollmentRequestId = '';
-    guardianReviewId = '';
+    guardianReviewId = '';justEnrolled=null;
     message = '';
     error = '';
   });
@@ -183,7 +184,7 @@
     enrollmentRequestId ||= crypto.randomUUID();
     const requestId = enrollmentRequestId;
     busy = true;
-    error = ''; message = '';
+    error = ''; message = '';justEnrolled=null;
     try {
       const response = await fetch(api + 'registrations/enroll', {
         method:'POST', credentials:'same-origin', cache:'no-store',
@@ -211,7 +212,7 @@
           result.city_id !== selectedCity || result.location_id !== selectedLocation ||
           result.status !== 'approved' || typeof result.player_id !== 'string')
         throw new Error('Δεν επαληθεύτηκε η αποθήκευση. Ελέγξτε τη λίστα.');
-      enrollingId = ''; enrollmentRequestId = '';
+      enrollingId = ''; enrollmentRequestId = '';justEnrolled=result.player_id;
       message = 'Η έγκριση και η προσθήκη στο ρόστερ ολοκληρώθηκαν.';
       revision++;
     } catch (cause) {
@@ -291,7 +292,7 @@
   <AdminFrame user={$auth.session.user} active="academy-office" busy={$auth.busy} onLogout={() => void auth.logout()}>
     {#if access}
       <h1>Εγγραφές Ακαδημίας</h1>
-      <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Δεν δημιουργείται παίκτης, λογαριασμός γονέα ή χρέωση μόνο από την υποβολή ή την έγκριση.</p>
+      <p class="admin-muted registration-intro">Οι ηλεκτρονικές αιτήσεις από τη δημόσια ιστοσελίδα και οι χειροκίνητες καταχωρίσεις εμφανίζονται στην ίδια λίστα. Η έγκριση & ένταξη ηλεκτρονικής αίτησης δημιουργεί τον αθλητή στο επιλεγμένο τμήμα. Ο λογαριασμός γονέα και η ενεργοποίηση χρεώσεων απαιτούν ξεχωριστή επαλήθευση.</p>
       {#if $auth.session.user.role !== 'super_admin'}
         <p class="admin-muted">Οι διαχειριστές βλέπουν μόνο τις αιτήσεις που καταχώρισαν οι ίδιοι. Οι νέες δημόσιες αιτήσεις διατίθενται μόνο στον Super Admin μέχρι να ενεργοποιηθεί η ασφαλής ανάθεση ανά πόλη και τοποθεσία.</p>
       {/if}
@@ -303,6 +304,7 @@
       </nav>
       {#if error}<p role="alert" class="admin-error">{error}</p>{/if}
       {#if message}<p role="status">{message}</p>{/if}
+      {#if justEnrolled && canEnroll}<a class="admin-primary" data-testid="newly-enrolled-player-360" data-sveltekit-reload href={'/admin/groups?'+new URLSearchParams({organization_id:'lefteria_fc_academy',view:'players',player_id:justEnrolled}).toString()}>Άνοιγμα νέου Player 360 ›</a>{/if}
       {#key $auth.session.user.id}
         {#if tab === 'registrations'}
           <details class="admin-panel manual-registration">
@@ -398,6 +400,12 @@
               {#if row.status === 'approved'}
                 <p class="admin-muted">{row.onboarded_player_id ? 'Η σύνδεση στο ρόστερ έχει καταγραφεί.' : 'Εγκεκριμένη αίτηση · η τοποθέτηση του παιδιού σε πόλη, τοποθεσία και τμήμα παραμένει σε εκκρεμότητα.'}</p>
                 {#if row.onboarded_player_id && canEnroll}
+                  <a class="admin-primary" data-testid="approved-player-360" data-sveltekit-reload
+                    href={'/admin/groups?'+new URLSearchParams({
+                      organization_id:'lefteria_fc_academy',view:'players',player_id:row.onboarded_player_id
+                    }).toString()}>
+                    Άνοιγμα Player 360 · {row.applicant_first_name} ›
+                  </a>
                   <a class="admin-secondary" data-testid="approved-player-documents"
                     href={'/admin/documents?'+new URLSearchParams({
                       organization_id:'lefteria_fc_academy',
